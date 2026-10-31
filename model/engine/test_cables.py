@@ -102,3 +102,8 @@ def test_a_corridor_through_a_moving_part_fails_unless_it_is_clipped_to_that_par
 def test_the_swept_centrelines_cover_every_lead_at_every_pose():
     report, centrelines = swept("noggin-stage1")
     assert len(centrelines) % len(report) == 0 and len(centrelines) > len(report)
+
+
+def test_union_stays_closed_where_swept_voxels_meet_only_along_an_edge():
+    skew = line((0, 0, 0), (37, 11, 5))  # at r=0.6 its voxels touch diagonally: a non-manifold edge unless filled
+    assert cables.union([skew], 0.6).is_watertight

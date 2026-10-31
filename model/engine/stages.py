@@ -97,7 +97,7 @@ def servo_placements(key, label):
 
 
 def servo_port(label):
-    """Where the servo's lead leaves it (its cable exit): the Port the cable reach measures from."""
+    """Where the servo's lead leaves it (its cable exit): the Port its cable corridor starts from (model/engine/cables.py)."""
     return {f"{label} servo lead": (f"{label} servo:1", g.SERVO_STEP["lead"])}
 
 

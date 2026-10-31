@@ -148,7 +148,7 @@ def union(tubes, radius, voxel=VOXEL_MM):
     shape = np.ceil((pts.max(axis=0) + pad - lo) / voxel).astype(int)
     centres = lo + voxel * (np.indices(shape).reshape(3, -1).T + 0.5)
     d, _ = cKDTree(pts).query(centres, distance_upper_bound=radius + voxel * 3**0.5 / 2)
-    occ = np.pad(np.isfinite(d).reshape(shape).astype(np.int8), 1)
+    occ = np.pad(_manifold(np.isfinite(d).reshape(shape)).astype(np.int8), 1)
     quads = []
     for axis in range(3):
         u, v = np.eye(3, dtype=int)[[(axis + 1) % 3, (axis + 2) % 3]]
@@ -163,6 +163,28 @@ def union(tubes, radius, voxel=VOXEL_MM):
     n = np.arange(len(corners))[:, None] * 4
     faces = np.vstack([n + [0, 1, 2], n + [0, 2, 3]])
     return trimesh.Trimesh(vertices, faces)
+
+
+def _manifold(occ):
+    """Fill voxels until no two filled ones meet only along an edge (a non-manifold edge in the boundary mesh); the
+    fill only adds clearance."""
+    while True:
+        changed = False
+        for a, b in ((0, 1), (0, 2), (1, 2)):
+
+            def at(i, j):
+                s = [slice(None)] * 3
+                s[a], s[b] = slice(i, occ.shape[a] - 1 + i), slice(j, occ.shape[b] - 1 + j)
+                return tuple(s)
+
+            v00, v01, v10, v11 = (occ[at(i, j)].copy() for i, j in ((0, 0), (0, 1), (1, 0), (1, 1)))
+            fill01, fill00 = v00 & v11 & ~v01 & ~v10, v01 & v10 & ~v00 & ~v11
+            if fill01.any() or fill00.any():
+                occ[at(0, 1)] |= fill01
+                occ[at(0, 0)] |= fill00
+                changed = True
+        if not changed:
+            return occ
 
 
 @functools.cache
