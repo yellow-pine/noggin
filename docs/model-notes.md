@@ -47,6 +47,10 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   `make sim` keeps the designer's meshes and STEPs, so the committed reports are theirs, and the gate checks ours
   against them.
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
+- `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
+  model/build/stl; future prints use ours.
+- `make step` (#98): every part and envelope, and each Stage at neutral (the engine's placements, coloured, one
+  assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
 The model follows Cansin's build, then PurpleShark's stock version (CLAUDE.md). What we plan to change stays here until
