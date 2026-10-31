@@ -1,5 +1,8 @@
 # noggin eye program for the CyberBrick Core (ESP32-C3, MicroPython).
-# Plays named gestures and a background "thinking" mode on four servos.
+# Plays named gestures and background modes (thinking, exercise) on four servos.
+# Servos stay powered: released, the lids and eyes fall under gravity (gravity beats the smooth linkages).
+# Calibration lives in self.cal: defaults below, overridden live by `set key value`
+# lines that the Daemon pushes from eyes/calibration.json.
 # Importable on CPython for tests (machine is stubbed there).
 import time
 from machine import Pin, PWM
@@ -9,21 +12,24 @@ try:
 except ImportError:  # CPython
     def sleep_ms(ms): time.sleep(ms / 1000)
 
-# shield port 1..4 -> GPIO 3,2,1,0. Ranges from the designer's remote config.
+# shield port 1..4 -> GPIO 3,2,1,0
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
-# Lid ends sit 6 deg inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled against a stop.
-RANGE = {L_LID: (51, 144), L_EYE: (60, 120), R_LID: (46, 129), R_EYE: (60, 120)}  # calibrated 2026-10-31
+NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
-# Horn offsets differ per eye; added to every eye target so 90 looks straight ahead. Set by calibration.
-EYE_TRIM = {L_EYE: -2, R_EYE: -2}
-LID_OPEN, LID_HALF, LID_CLOSED = 1.0, 0.5, 0.0
-LID_REST = 0.28   # Rest: fully open reads as surprised
-LID_THINK = 0.16  # thinking / attention: a notch lower than neutral
-# The lid servos are mirror-mounted (designer's config drives PWM1 negative, PWM3 positive):
-# "open" is one end of the range for the left lid and the other end for the right. Set by calibration.
-LID_FLIP = {L_LID: True, R_LID: False}
-LID_BIAS = {L_LID: 0.0, R_LID: 0.06}   # evens the two lids at the same opening (linkages differ)
+LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
+
+# Known-good values for this Mech (2026-10-31); eyes/calibration.json is the source of truth.
+# Each servo has exact end angles for its side; everything else derives from them: an eye's
+# straight-ahead is the average of its two ends, lid levels are fractions between a lid's ends.
+# Lid ends sit inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled.
+# The lid servos are mirror-mounted, hence the per-lid flip (1: open is the low end).
+DEFAULT_CAL = {
+    "l_lid_lo": 51, "l_lid_hi": 144, "r_lid_lo": 51, "r_lid_hi": 129,
+    "l_eye_lo": 58, "l_eye_hi": 118, "r_eye_lo": 58, "r_eye_hi": 118,
+    "l_lid_flip": 1, "r_lid_flip": 0,
+    "lid_rest": 0.28, "lid_think": 0.16, "lid_closed": 0.10, "lid_open": 0.95,
+}
 
 
 def _duty(angle):
@@ -32,23 +38,34 @@ def _duty(angle):
 
 class Eyes:
     def __init__(self):
+        self.cal = dict(DEFAULT_CAL)
         self.pwm = {}
         self.pos = {}
         self.mode = "rest"
         self.next_drift = 0
+        self.until = 0
         self.rand = 12345
 
-    # --- servo primitives -------------------------------------------------
+    # --- calibration ------------------------------------------------------
+    def range(self, pin):
+        return self.cal[NAME[pin] + "_lo"], self.cal[NAME[pin] + "_hi"]
+
     def _lid_angle(self, pin, f):
-        lo, hi = RANGE[pin]
-        f = min(1.0, max(0.0, f + LID_BIAS[pin]))
-        if LID_FLIP[pin]:
+        lo, hi = self.range(pin)
+        f = min(1.0, max(0.0, f))
+        if self.cal[NAME[pin] + "_flip"]:
             f = 1 - f
         return lo + (hi - lo) * f
 
+    def _eye_angle(self, pin, angle):
+        """Gesture angles are written around EYE_CENTER; the eye's real centre is the average of its ends."""
+        lo, hi = self.range(pin)
+        return (lo + hi) / 2 + (angle - EYE_CENTER)
+
+    # --- servo primitives -------------------------------------------------
     def set(self, targets):
         for pin, angle in targets.items():
-            lo, hi = RANGE[pin]
+            lo, hi = self.range(pin)
             angle = min(hi, max(lo, angle))
             if pin not in self.pwm:
                 self.pwm[pin] = PWM(Pin(pin), freq=50)
@@ -56,7 +73,7 @@ class Eyes:
             self.pos[pin] = angle
 
     def glide(self, ms, targets, step=20):
-        start = {p: self.pos.get(p, EYE_CENTER + EYE_TRIM[p] if p in EYES else self._lid_angle(p, LID_REST)) for p in targets}
+        start = {p: self.pos.get(p, self._eye_angle(p, EYE_CENTER) if p in EYES else self._lid_angle(p, self.cal["lid_rest"])) for p in targets}
         n = max(1, ms // step)
         for i in range(1, n + 1):
             self.set({p: start[p] + (targets[p] - start[p]) * i / n for p in targets})
@@ -72,18 +89,19 @@ class Eyes:
         self.glide(ms, t) if ms else self.set(t)
 
     def eyes(self, angle, ms=0):
-        t = {p: angle + EYE_TRIM[p] for p in EYES}
+        t = {p: self._eye_angle(p, angle) for p in EYES}
         self.glide(ms, t) if ms else self.set(t)
 
     def blink(self, hold=90):
-        self.lids(LID_CLOSED); sleep_ms(hold); self.lids(LID_REST); sleep_ms(120)
+        # glide, never snap: a snap into the closed end slams the stop and slips the clutch
+        self.lids(self.cal["lid_closed"], 80); sleep_ms(hold); self.lids(self.cal["lid_rest"], 80); sleep_ms(120)
 
     def rest_pose(self):
-        self.lids(LID_REST, 200); self.eyes(EYE_CENTER, 200)
+        self.lids(self.cal["lid_rest"], 200); self.eyes(EYE_CENTER, 200)
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):
-        self.lids(LID_OPEN)
+        self.lids(self.cal["lid_open"], 60)
         if i == 1:
             self.eyes(105, 150); sleep_ms(300); self.eyes(EYE_CENTER, 200); self.blink()
             return
@@ -91,27 +109,27 @@ class Eyes:
         if i == 3:
             self.eyes(62, 150); sleep_ms(500)  # double-take
         self.eyes(EYE_CENTER, 250); self.blink(); self.blink()
-        self.lids(LID_HALF, 150); self.lids(LID_REST, 250)
+        self.lids(self.cal["lid_think"], 150); self.lids(self.cal["lid_rest"], 250)
 
     def attention(self, i):
-        self.lids(LID_THINK, 200)
+        self.lids(self.cal["lid_think"], 200)
         for _ in range(2):
             self.eyes(65, 600); self.eyes(115, 600)
         self.eyes(EYE_CENTER, 400); sleep_ms(300)
-        self.lids(LID_REST, 300)
+        self.lids(self.cal["lid_rest"], 300)
 
     def bored(self, i):
-        self.lids(0.35, 600); self.eyes(80, 800)
+        self.lids(self.cal["lid_think"], 600); self.eyes(80, 800)
         for _ in range(2):
-            self.lids(LID_CLOSED, 300); sleep_ms(250); self.lids(0.35, 400); sleep_ms(600)
+            self.lids(self.cal["lid_closed"], 300); sleep_ms(250); self.lids(self.cal["lid_think"], 400); sleep_ms(600)
         self.rest_pose()
 
     def wince(self, i):
-        self.lids(LID_CLOSED)
+        self.lids(self.cal["lid_closed"], 80)
         for _ in range(3):
             self.eyes(84); sleep_ms(60); self.eyes(96); sleep_ms(60)
         self.eyes(EYE_CENTER); sleep_ms(400)
-        self.lids(LID_REST, 700)
+        self.lids(self.cal["lid_rest"], 700)
 
     GESTURES = {"eureka": eureka, "attention": attention, "bored": bored, "wince": wince}
 
@@ -120,27 +138,49 @@ class Eyes:
         parts = line.strip().split()
         if not parts:
             return
-        if parts[0] in ("thinking", "rest"):
-            self.mode = parts[0]
-            if self.mode == "rest":
-                self.rest_pose(); sleep_ms(200); self.release()
+        cmd, args = parts[0], parts[1:]
+        if cmd in ("thinking", "rest"):
+            self.mode = cmd
+            if cmd == "rest":
+                self.rest_pose()
             else:
-                self.lids(LID_THINK, 300); self.release(); self.next_drift = 0
-            return
-        if parts[0] in self.GESTURES and len(parts) == 2 and parts[1] in ("1", "2", "3"):
-            self.GESTURES[parts[0]](self, int(parts[1]))
+                self.lids(self.cal["lid_think"], 300); self.next_drift = 0
+        elif cmd == "release":                          # unpower (e.g. muted overnight); next command re-powers
+            self.release()
+        elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
+            self.cal[args[0]] = type(DEFAULT_CAL[args[0]])(float(args[1]))
+        elif cmd == "pose" and len(args) in (2, 4):      # pose lids <0-1> | eyes <angle> | both; holds
+            for key, val in zip(args[::2], args[1::2]):
+                if key == "lids": self.lids(float(val), 150)
+                elif key == "eyes": self.eyes(float(val), 150)
+        elif cmd == "exercise" and len(args) == 1:       # run-in: smooth mid-range cycling, never near a stop
+            self.mode = "exercise"; self.until = None; self.minutes = float(args[0]); self.next_drift = 0
+        elif cmd in self.GESTURES and len(args) == 1 and args[0] in ("1", "2", "3"):
+            self.GESTURES[cmd](self, int(args[0]))
             if self.mode == "thinking":
-                self.lids(LID_THINK, 200)
-            sleep_ms(150); self.release()
+                self.lids(self.cal["lid_think"], 200)
 
     def tick(self, now_ms):
-        """Call often. In thinking mode, drift the eyes every 3-6 s, then release."""
+        """Call often. Drives the background modes."""
+        if self.mode == "exercise":
+            if self.until is None:
+                self.until = now_ms + int(self.minutes * 60000)
+            if now_ms >= self.until:
+                self.handle_line("rest"); return
+            if now_ms < self.next_drift:
+                return
+            self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
+            f = 0.15 + 0.70 * (self.rand % 1000) / 1000
+            self.lids(f, 600)
+            lo, hi = self.range(L_EYE)
+            self.eyes(lo + (hi - lo) * (0.30 + 0.40 * (self.rand % 997) / 997), 600)   # 30%-70% of the eye range
+            self.next_drift = now_ms + 1500
+            return
         if self.mode != "thinking" or now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
         if self.rand % 4 == 0:            # occasional blink
-            self.blink(); self.lids(LID_THINK)
+            self.blink(); self.lids(self.cal["lid_think"])
         else:
             self.eyes(70 + self.rand % 41, 500)
-        sleep_ms(100); self.release()
         self.next_drift = now_ms + 3000 + self.rand % 3000
