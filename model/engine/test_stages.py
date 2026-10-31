@@ -12,9 +12,22 @@ def world(m, p):
     return tuple((m @ np.array([*p, 1.0]))[:3])
 
 
-@pytest.mark.parametrize("doc", sorted(stages.STAGES))
+@pytest.mark.parametrize("doc", sorted(stages.DOCS))
 def test_neutral_placements_land_the_servos_and_boards_where_geometry_says(doc):
     assert stages.placements(stages.STAGES[doc]) == []
+
+
+def test_stage_documents_place_the_sub_assemblies_once_at_their_frames():
+    s1, s3 = stages.STAGES["noggin-stage1"], stages.STAGES["noggin-stage3"]
+    assert "PandT base:1" in s1.parts and "L eyeball:1" in s1.parts and "pan base:1" not in s1.parts
+    assert world(s1.parts["L eyeball:1"].matrix, g.EYE_L) == pytest.approx(g.EYES_ON_BASE[0])   # the eyes frame origin sits where STAGES says
+    assert world(s3.parts["L eyeball:1"].matrix, g.EYE_L) == pytest.approx(g.eyes_to_pt(g.EYE_L))
+    assert set(s3.horns) == {"L lid horn (inferred)", "L eye horn (inferred)", "R lid horn (inferred)", "R eye horn (inferred)",
+                             "tilt horn (inferred)", "pan horn (inferred)", "jaw horn (inferred)"}
+    moved = stages.pose(s3, "L lid horn (inferred)", 20)   # the eyes chain still closes in the PT frame
+    assert moved.joints == pytest.approx({"L inside lid pivot": 21.23, "L outside lid pivot": -19.38}, abs=0.01)
+    for name in ("L servo bracket:1", "PandT base:1", "tilt arm:1"):
+        assert np.allclose(moved.parts[name], s3.parts[name].matrix)
 
 
 def test_eyes_servo_tab_holes_sit_on_the_measured_pair_within_the_inferred_shaft_offset():
