@@ -44,3 +44,18 @@ def test_loaded_meshes_are_subdivided_and_the_battery_lead_is_cut():
     loaded = meshes.load(stage, ["PandT base:1", "battery 1:1"])
     assert loaded["PandT base:1"].edges_unique_length.max() <= meshes.MAX_EDGE_MM + 1e-6
     assert loaded["battery 1:1"].bounds[1][1] <= 56.0 + 1e-6
+
+
+@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
+def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral():
+    """Engine findings 2026-10-31 (#24): the tilt horn and bar swept into the pan base at the config's tilt end, and the
+    tilt servo's straight lead stub sank into receiver shield 1 at neutral."""
+    stage = stages.STAGES["noggin-pan-tilt"]
+    names = ["tilt horn (inferred):1", "tilt bar (inferred):1", "pan base:1", "tilt servo:1", "receiver shield 1:1"]
+    loaded = meshes.load(stage, names)
+    end = stages.pose(stage, "tilt horn (inferred)", stage.horns["tilt horn (inferred)"].limits[0]).parts
+    at = lambda name, pose: meshes.Placed(loaded[name], pose[name])
+    for name in ("tilt horn (inferred):1", "tilt bar (inferred):1"):
+        assert not meshes.penetrates(at(name, end), at("pan base:1", end)), name
+    neutral = {n: stage.parts[n].matrix for n in names}
+    assert not meshes.penetrates(at("tilt servo:1", neutral), at("receiver shield 1:1", neutral))

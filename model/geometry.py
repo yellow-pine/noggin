@@ -38,7 +38,9 @@ HORN_LIMITS = {
     "l_eye": (70, 110),
     "r_lid": (70, 120),
     "r_eye": (70, 110),  # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
-    "tilt": (20, 150),
+    # tilt [I]: the config says 20, but at 20..29 the inferred tilt horn and bar sweep into the pan base's front chord
+    # (contact from horn -61 deg, 1.05 mm deep at -70): the lower end stops at 30 until the tilt servo shaft is measured.
+    "tilt": (30, 150),
     "rotate": (40, 160),
     # mouth [I]: the config says 0..180, but the jaws are modelled closed at neutral and the connector-bar four-bar only
     # has solutions on the opening side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only.
@@ -123,7 +125,12 @@ BARS = {
 # single arm ("half arm1"): hub at (0,20,0), bore along Z, arm along +X with holes every 2 mm; the build pins
 # the bars at the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24
 # holes, Core under the PCB.
-SERVO_STEP = {"tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)], "shaft": (16.69, 5.9, -0.65), "horn_seat": 10.35}
+SERVO_STEP = {
+    "tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)],
+    "shaft": (16.69, 5.9, -0.65),
+    "horn_seat": 10.35,
+    "lead_x": 27.7,  # the STEP's three lead wires run straight on to x=42; the real lead is flexible: cut at the tab end
+}
 HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}  # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
 
