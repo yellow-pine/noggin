@@ -23,5 +23,5 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the Core program's own commands mapped onto the
   model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
-  servo degrees), 600x450, 10 fps, at most 96 colours and 1 MB each, with a contact sheet per gesture.
+  servo degrees), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
