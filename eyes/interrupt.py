@@ -1,5 +1,6 @@
 """Drop the Core to its REPL so mpremote can talk to it. The stock RC app (and our eye program)
-ignore mpremote's quick Ctrl-C; a couple of Ctrl-Cs with a pause do the job. Usage: python eyes/interrupt.py"""
+ignore mpremote's quick Ctrl-C; a couple of Ctrl-Cs with a pause do the job.
+Usage: python eyes/interrupt.py [reset]   (reset: then soft-reset with Ctrl-D so the program on the Core starts)"""
 import glob, sys, time
 import serial
 
@@ -19,3 +20,6 @@ with s:
     time.sleep(0.6)
     s.write(b"\x02"); time.sleep(0.3)           # friendly REPL
     print("Core at REPL on", ports[0], "" if b">>>" in s.read(500) else "(no prompt seen)")
+    if "reset" in sys.argv[1:]:
+        s.write(b"\x04"); time.sleep(1.0)       # Ctrl-D: soft reset, boot.py runs
+        print("Core reset:", s.read(200).decode(errors="replace").strip() or "(no output yet)")
