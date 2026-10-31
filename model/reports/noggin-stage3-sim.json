@@ -2056,7 +2056,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket outer on eye bracket",
+   "joint": "L servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -2066,7 +2066,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket inner on eye bracket",
+   "joint": "L servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -2076,7 +2076,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket stem on eye bracket",
+   "joint": "L servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -2247,7 +2247,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket outer on eye bracket",
+   "joint": "R servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -2257,7 +2257,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket inner on eye bracket",
+   "joint": "R servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -2267,7 +2267,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket stem on eye bracket",
+   "joint": "R servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -2675,39 +2675,39 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "9a6524a3c844f482a441ff36bb102acefc5205aba355bb6082e8fc6729f66794",
+  "stamp": "e8e5a212b5e5a48d9900187ba160f48e539fdca150267a2683349d70582eee88",
   "sources": {
-   "docs/references/01-eyes/models/L eyeball.stl": "0507d41ca95cb965",
+   "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
-   "docs/references/01-eyes/models/R eyeball.stl": "9b403f3d0ad92f60",
+   "docs/references/01-eyes/models/R eyeball regular.stl": "9b403f3d0ad92f60",
    "docs/references/01-eyes/models/R servo bracket.stl": "25271bee3bd01beb",
    "docs/references/01-eyes/models/eyeball bar.stl": "378ccee077232eec",
-   "docs/references/01-eyes/models/lid crank.stl": "565b97d310172fab",
-   "docs/references/01-eyes/models/lid bar.stl": "5cb46f0b3308366f",
-   "docs/references/01-eyes/models/upper lid.stl": "1fefa51a95fb0fa9",
-   "docs/references/01-eyes/models/lower lid.stl": "d7e55b01d26acb88",
-   "docs/references/01-eyes/models/pupil.stl": "6b4df114f3074aa8",
+   "docs/references/01-eyes/models/eyelid bar crank.stl": "565b97d310172fab",
+   "docs/references/01-eyes/models/eyelid bar.stl": "5cb46f0b3308366f",
+   "docs/references/01-eyes/models/inside lid.stl": "1fefa51a95fb0fa9",
+   "docs/references/01-eyes/models/outside lid.stl": "d7e55b01d26acb88",
+   "docs/references/01-eyes/models/regular pupil.stl": "6b4df114f3074aa8",
    "docs/references/01-eyes/models/wire keeper.stl": "1d21bf150b439390",
-   "docs/references/02-pan-tilt/models/pan bar.stl": "a967090814993a29",
-   "docs/references/02-pan-tilt/models/base plate.stl": "a315e6a030975597",
-   "docs/references/02-pan-tilt/models/bearing block.stl": "b2f7c850ad405fb9",
-   "docs/references/02-pan-tilt/models/pan turntable.stl": "71e975d77c175a53",
-   "docs/references/02-pan-tilt/models/pan servo lead mount.stl": "358ba29b5c0a1c94",
-   "docs/references/02-pan-tilt/models/pan servo tail mount.stl": "a18d274316bc72bf",
-   "docs/references/02-pan-tilt/models/tilt arm.stl": "0fdafb6ba9b6dfce",
-   "docs/references/02-pan-tilt/models/upright.stl": "8d74616c153a5264",
-   "docs/references/02-pan-tilt/models/wire holder.stl": "0ebecf9b45c8af5c",
+   "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
+   "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
+   "docs/references/02-pan-tilt/models/PandT bearing block.stl": "b2f7c850ad405fb9",
+   "docs/references/02-pan-tilt/models/PandT pan base.stl": "71e975d77c175a53",
+   "docs/references/02-pan-tilt/models/PandT servo mount cutout.stl": "358ba29b5c0a1c94",
+   "docs/references/02-pan-tilt/models/PandT servo mount plain.stl": "a18d274316bc72bf",
+   "docs/references/02-pan-tilt/models/PandT tilt arm.stl": "0fdafb6ba9b6dfce",
+   "docs/references/02-pan-tilt/models/PandT upright v2.stl": "8d74616c153a5264",
+   "docs/references/02-pan-tilt/models/PandT wire holder.stl": "0ebecf9b45c8af5c",
    "docs/references/02-pan-tilt/models/tilt bar.stl": "0badcc550333e7cd",
-   "docs/references/03-mouth/models/bottom jaw.stl": "4d25cd496dc7fede",
-   "docs/references/03-mouth/models/jaw bar.stl": "d69b121faa029ed3",
-   "docs/references/03-mouth/models/jaw servo mount.stl": "8d1a207a9a4a21f1",
-   "docs/references/03-mouth/models/eye bracket.stl": "51e1cda6fc7b7f26",
-   "docs/references/03-mouth/models/top jaw.stl": "8c33659ca78a3dc5",
+   "docs/references/03-mouth/models/bottom jaw plain.stl": "4d25cd496dc7fede",
+   "docs/references/03-mouth/models/jaws connector bar.stl": "d69b121faa029ed3",
+   "docs/references/03-mouth/models/jaws servo mount.stl": "8d1a207a9a4a21f1",
+   "docs/references/03-mouth/models/main bracket v2.stl": "51e1cda6fc7b7f26",
+   "docs/references/03-mouth/models/top jaw plain.stl": "8c33659ca78a3dc5",
    "model/build/steps/battery.stl": "d3f2b804a33d1477",
-   "model/build/steps/core.stl": "dd30ef7ac548f1e3",
+   "model/build/steps/core.stl": "594e4cbcf72bbf19",
    "model/build/steps/horn.stl": "f1f26194ebf2f894",
    "model/build/steps/receiver.stl": "06becafb46038cbb",
-   "model/build/steps/servo.stl": "33d8d2b5fdefd5e1",
+   "model/build/steps/servo.stl": "24b910cc3f5e1f35",
    "model/build/steps/switch.stl": "def44612d2b70685"
   }
  },

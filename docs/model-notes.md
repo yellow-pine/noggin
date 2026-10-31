@@ -32,7 +32,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Our printed parts (#50)
 - Every printed part gets an independent parametric CadQuery design in model/printed/ (never traced from the
   designer's mesh, which stays local under docs/references): interfaces exact, envelope within 1 mm, in the designer's
-  frame, registered in `model/printed/__init__.py` PARTS by the STL stem it stands in for.
+  frame, registered in `model/printed/__init__.py` PARTS by our part name (GLOSSARY.md); `model/engine/stages.py`
+  REFERENCE alone maps each name to the designer's file (#96).
 - Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
   its envelope; `model/printed/test_gate.py` swaps it for the designer's mesh in every document that places it and
   requires identical transmission and every clearance within 0.3 mm (local only: skipped without docs/references).

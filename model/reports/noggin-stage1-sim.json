@@ -1209,7 +1209,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket outer on eye bracket",
+   "joint": "L servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -1219,7 +1219,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket inner on eye bracket",
+   "joint": "L servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -1229,7 +1229,7 @@
    "ok": true
   },
   {
-   "joint": "L servo bracket stem on eye bracket",
+   "joint": "L servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
@@ -1400,7 +1400,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket outer on eye bracket",
+   "joint": "R servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -1410,7 +1410,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket inner on eye bracket",
+   "joint": "R servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -1420,7 +1420,7 @@
    "ok": true
   },
   {
-   "joint": "R servo bracket stem on eye bracket",
+   "joint": "R servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
@@ -1508,26 +1508,26 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "d7550e3e9fb542d02d95a110c90ce6328c359a8fcfd8d1cbd885e43829a0a4ba",
+  "stamp": "f0b6f553f4a43012e47f6fc996da45950a98cadff4bd4b6090e9749c7c4edef0",
   "sources": {
-   "docs/references/01-eyes/models/L eyeball.stl": "0507d41ca95cb965",
+   "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
-   "docs/references/01-eyes/models/R eyeball.stl": "9b403f3d0ad92f60",
+   "docs/references/01-eyes/models/R eyeball regular.stl": "9b403f3d0ad92f60",
    "docs/references/01-eyes/models/R servo bracket.stl": "25271bee3bd01beb",
    "docs/references/01-eyes/models/eyeball bar.stl": "378ccee077232eec",
-   "docs/references/01-eyes/models/lid crank.stl": "565b97d310172fab",
-   "docs/references/01-eyes/models/lid bar.stl": "5cb46f0b3308366f",
-   "docs/references/01-eyes/models/upper lid.stl": "1fefa51a95fb0fa9",
-   "docs/references/01-eyes/models/lower lid.stl": "d7e55b01d26acb88",
-   "docs/references/01-eyes/models/pupil.stl": "6b4df114f3074aa8",
+   "docs/references/01-eyes/models/eyelid bar crank.stl": "565b97d310172fab",
+   "docs/references/01-eyes/models/eyelid bar.stl": "5cb46f0b3308366f",
+   "docs/references/01-eyes/models/inside lid.stl": "1fefa51a95fb0fa9",
+   "docs/references/01-eyes/models/outside lid.stl": "d7e55b01d26acb88",
+   "docs/references/01-eyes/models/regular pupil.stl": "6b4df114f3074aa8",
    "docs/references/01-eyes/models/wire keeper.stl": "1d21bf150b439390",
-   "docs/references/02-pan-tilt/models/base plate.stl": "a315e6a030975597",
-   "docs/references/03-mouth/models/eye bracket.stl": "51e1cda6fc7b7f26",
+   "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
+   "docs/references/03-mouth/models/main bracket v2.stl": "51e1cda6fc7b7f26",
    "model/build/steps/battery.stl": "d3f2b804a33d1477",
-   "model/build/steps/core.stl": "dd30ef7ac548f1e3",
+   "model/build/steps/core.stl": "594e4cbcf72bbf19",
    "model/build/steps/horn.stl": "f1f26194ebf2f894",
    "model/build/steps/receiver.stl": "06becafb46038cbb",
-   "model/build/steps/servo.stl": "33d8d2b5fdefd5e1",
+   "model/build/steps/servo.stl": "24b910cc3f5e1f35",
    "model/build/steps/switch.stl": "def44612d2b70685"
   }
  },

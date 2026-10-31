@@ -95,6 +95,8 @@ def test_designer_file_names_only_in_the_reference_table():
         if f == "model/engine/stages.py":
             start = text.index("REFERENCE = {")
             text = text[:start] + text[text.index("\n}\n", start) :]
+        if f.startswith("model/reports/"):  # a report's input stamp lists the reference files the sim read
+            text = re.sub(r'"docs/references/[^"]*"', '""', text)
         hits += [
             f"{f}:{n}: {line.strip()[:120]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)
         ]
