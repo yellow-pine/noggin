@@ -12,7 +12,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   method the repo allows) the moment every required check is green and every review conversation is resolved, with no
   approval wait, and deletes the branch. Whoever works the ticket keeps that PR green and answers each review thread
   (a fix, or a reply saying why not) before resolving it. No integration or feature branches: a spec's tickets land on
-  main one PR at a time. Main is protected: a green PR is the only way in (it need not be up to date with main). CI
+  main one PR at a time. Main is protected: a green PR with one approval is the only way in (it need not be up to date with main). The
+  approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
+  that edits review.yml gets no review and needs Cansin's bypass. CI
   runs on pushes to main and on ready (non-draft) PRs. A pushed branch is never merged locally: it lands through its
   own PR. Every branch on GitHub has a PR, except on-hold work.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
