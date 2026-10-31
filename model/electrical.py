@@ -6,6 +6,7 @@ model/engine/cables.py. Independent of the engine: it reads only CHANNELS and th
 import importlib.util
 import json
 import os
+import re
 import sys
 
 # PySpice dlopens libngspice by bare name (PySpice/Spice/NgSpice/Shared.py setup_platform, NGSPICE_LIBRARY_PATH
@@ -14,8 +15,24 @@ if sys.platform == "darwin":
     os.environ.setdefault("NGSPICE_LIBRARY_PATH", "/opt/homebrew/lib/libngspice.dylib")
 
 from PySpice.Spice.Netlist import Circuit  # noqa: E402  (after the library path)
+from PySpice.Spice.NgSpice.Shared import NgSpiceShared  # noqa: E402
 
 from model.geometry import CHANNELS, SERVO_LABEL  # noqa: E402
+
+# ngspice 42 (Ubuntu noble, CI) names its linear solver on stderr ("Using SPARSE 1.3 as Direct Linear Solver"), and
+# PySpice 1.5 fails a command on any stderr line but "Warning:" (Shared.py _send_char), then calls send_char, the hook
+# it leaves to subclasses: there, every other stderr line still fails the command.
+SOLVER_NOTE = re.compile(r"Using .+ as Direct Linear Solver")
+
+
+def _send_char(self, message, ngspice_id):
+    self._error_in_stderr = any(
+        not (m.startswith("Warning:") or SOLVER_NOTE.fullmatch(m.strip())) for m in self._stderr
+    )
+    return 0
+
+
+NgSpiceShared.send_char = _send_char
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
