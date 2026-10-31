@@ -104,7 +104,8 @@ One of the designer's three builds, eyes, pan-tilt or mouth, each its own Fusion
 _Avoid_: part, module, phase
 
 **Sub-assembly**:
-A Stage's design as inserted into the top assembly.
+One of the four Fusion designs that own the parts once (noggin-base, noggin-stack, noggin-eyes, noggin-mouth), inserted by
+reference into the Stage documents noggin-stage1 (base + eyes, the desk build), stage2 (+ stack) and stage3 (+ mouth).
 
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.

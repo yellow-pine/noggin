@@ -515,9 +515,27 @@ def screenshots(app, root, out, stage, views, width=1600, height=1200):
         screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
 
 
+FOLDERS = ("isJointsFolderLightBulbOn", "isJointOriginsFolderLightBulbOn", "isSketchFolderLightBulbOn",
+           "isConstructionFolderLightBulbOn", "isOriginFolderLightBulbOn")   # glyphs hidden for a capture
+
+
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
     """Orthographic shaded view (no mesh edges: the spool appearances carry the shape) of the whole design looking
-    back along eye_dir, saved to path."""
+    back along eye_dir, saved to path. The joint, sketch, construction and origin glyphs of every component are hidden
+    for the capture and restored after (docs/model-notes.md)."""
+    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
+    comps = [root] + [o.component for o in root.allOccurrences]   # repeats are harmless; same-named ones can differ (reference versions)
+    was = [(c, f, getattr(c, f)) for c in comps for f in FOLDERS]
+    for c, f, _ in was:
+        setattr(c, f, False)
+    try:
+        _capture(app, path, eye_dir, up, width, height)
+    finally:
+        for c, f, v in was:
+            setattr(c, f, v)
+
+
+def _capture(app, path, eye_dir, up, width, height):
     viewport = app.activeViewport
     viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
     camera = viewport.camera

@@ -33,3 +33,16 @@ adds would land in the shared library component, so parts that carry Pivots are 
 parts would make everything referenceable; not done. Rebuilds compare the library version plus the placement matrix.
 Chunking: custom events only fire while the build pumps `adsk.doEvents()` (nothing is dispatched once the MCP call
 returns), so `fusion_lib.chunked` fires one part insert per event from inside the call and returns after the last.
+
+## Update 2026-10-31 (#17): four sub-assemblies, three cumulative Stage documents
+
+The top assembly `noggin` is replaced by Stage documents that show what each build on the desk looks like: `noggin-stage1`
+= base + eyes with the bracket stem through the pan recess, `noggin-stage2` = base + stack + eyes with the stem in the tilt
+arm window, `noggin-stage3` = stage2 + mouth. The pan-tilt design is split so the base plate can be shared: `noggin-base`
+(PandT base, electronics set 1, switch 1, battery 1) and `noggin-stack` (the neck: bearing block, pan base, upright, tilt
+arm, servos, horns, bars, electronics set 2, switch 2, battery 2). `noggin-eyes` no longer carries the base as context;
+`noggin-mouth` keeps its eyes reference, hidden in stage3. A Stage document inserts each sub-assembly once by reference
+(model/geometry.py STAGES, STEM_IN) and holds them with as-built rigid joints (no geometry, so nothing is written into a
+referenced design): stack on base, stem in STEM_IN's part, top jaw on the bracket. model/stage.py prints the part count
+and the duplicates (none) as the proof. The old `noggin-pan-tilt` document and its sweep report stay as the geometry
+fixture of base + stack.

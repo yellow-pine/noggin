@@ -61,9 +61,8 @@ def run(_context: str):
     dups = sorted(n for n, k in Counter(shown).items() if k > 1)
     print(f"{DOC} v{version}: {root.occurrences.count} sub-assemblies ({', '.join(f'{o.name}@v{part_file(app, o.component.name).versionNumber}' for o in root.occurrences)}),",
           f"{len(shown)} parts, duplicates: {dups or 'none'}, hidden context: {hidden or 'none'},", "saved: " + "; ".join(diff) if diff else "unchanged")
-    for j in root.asBuiltJoints:
-        state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage
-        print(f"  joint {j.name}: {state}")
+    for j in root.asBuiltJoints:   # as-built joints carry no health state; a bad pair raises at add
+        print(f"  joint {j.name}: {j.occurrenceOne.name} -> {j.occurrenceTwo.name}" + (" (suppressed)" if j.isSuppressed else ""))
     for occ in root.occurrences:
         lo, hi = body_box(occ)
         print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (occ.name, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
