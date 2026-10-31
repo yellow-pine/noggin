@@ -40,3 +40,11 @@ def test_thinking_drifts_then_releases_and_rest_stops_it(eyes, pwm_log):
     for t in range(30_000, 60_000, 100):
         eyes.tick(t)
     assert len(pwm_log) < drifts / 4   # rest pose once, then nothing
+
+def test_thinking_blinks_occasionally(eyes, pwm_log):
+    eyes.handle_line("thinking")
+    for t in range(0, 120_000, 100):
+        eyes.tick(t)
+    lid_writes = [d for pin, d in pwm_log if pin in (mod.L_LID, mod.R_LID) and d]
+    closed = mod._duty(eyes._lid_angle(mod.L_LID, mod.LID_CLOSED))
+    assert any(abs(d - closed) <= 2 for d in lid_writes), "no blink during 2 min of thinking"

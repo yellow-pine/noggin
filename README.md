@@ -1,6 +1,6 @@
 # noggin
 
-An animatronic head on the desk that reacts to Claude Code. Today it is a pair
+An animatronic Mech on the desk that reacts to Claude Code. Today it is a pair
 of eyes with lids that do a "just thought of something great" gesture when
 Claude finishes a response and a "needs you" scan when Claude is waiting.
 The pan-and-tilt base and the mouth come later.

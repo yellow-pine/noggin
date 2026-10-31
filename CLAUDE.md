@@ -15,7 +15,7 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 
 ## Hardware facts (researched 2026-10-31)
 
-- CyberBrick Core = ESP32-C3 running Bambu's MicroPython. USB-C exposes the REPL (native USB-Serial/JTAG, 115200, shows up as `/dev/cu.usbmodem*` on macOS).
+- CyberBrick Core = ESP32-C3 running Bambu's MicroPython (this board: `3.4.0; MicroPython e7cd27f2 on 2025-06-09`, stock RC program 01.00.00.13). mpremote's quick Ctrl-C does NOT interrupt the stock RC app; send Ctrl-C and wait ~1 s first (`eyes/interrupt.py`), then use `mpremote resume`. USB-C exposes the REPL (native USB-Serial/JTAG, 115200, shows up as `/dev/cu.usbmodem*` on macOS).
 - Use `mpremote` for file upload / REPL. NEVER flash firmware with esptool or third-party tools (bricks the board per official docs).
 - Stock `boot.py` runs the RC app forever; a custom project must ship its own `boot.py`.
 - Servo ports 1-4 = GPIO3, GPIO2, GPIO1, GPIO0, 50 Hz PWM. Official lib: `bbl.servos.ServosController` (`set_angle(idx, angle)`), or plain `machine.PWM`.
@@ -37,7 +37,7 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
   - wince: lids snap shut, eyes squint-twitch, slow reopen.
   - thinking: background state, see above.
 - Power (settled 2026-10-31): two official 7.4 V 800 mAh 2S packs (blue heat-shrink, look like one cell). One in the holder -> switch board -> shield; the spare charges on the USB-A dongle with the XH2.54 plug, which is a CHARGER, never a supply. USB-C to the Mac for data. The 3xAAA box is too weak; don't use it.
-- Firmware: replace stock `boot.py`. Back up stock filesystem first to `firmware/stock-backup/`; provide restore target.
+- Program: replace stock `boot.py`. Back up the stock program first to `eyes/stock-backup/` (gitignored); `make restore-stock` puts it back. Firmware is never touched.
 - Layout is feature-first, never function-first (directive 2026-10-31): `eyes/` (the eye mech's board program + its tests; later `pan_tilt/`, `mouth/`), `reactions/` (Claude Code events -> gestures: Director + tests), `daemon/` (serial + socket shell, poke hook, launchd plist, CLI + socket test). Tests live beside the code they test. `Makefile` for install / backup-stock / restore-stock. Python both sides; deps: pyserial, mpremote, pytest.
 - Photo of the actual build: `docs/eye-mech-build-photo.jpg` (Core + X11 shield centre, power/switch board top-right, cell holder top-left, 4 MakerWorld 180° servos: 2 eye, 2 lid).
 - Host tooling: system Python is 3.9, `uv` is available at /opt/homebrew/bin/uv. Use `uv` for the host env and to run mpremote.

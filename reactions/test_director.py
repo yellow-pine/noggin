@@ -94,3 +94,27 @@ def test_muted_director_sends_nothing():
     assert d.handle(prompt(), now=1.0) == []
     assert d.handle(stop(), now=5.0) == []
     assert d.tick(now=9999.0) == []
+
+def test_two_stale_turns_time_out_together():
+    d = Director()
+    d.handle(prompt("a"), now=0.0); d.handle(prompt("b"), now=1.0)
+    assert d.tick(now=16 * 60) == ["rest"]
+    assert d.turns == {}
+
+def test_mute_mid_turn_ends_turns_and_rests():
+    d = Director()
+    d.handle(prompt(), now=1.0)
+    assert d.mute() == ["rest"]
+    assert d.turns == {}
+    assert d.handle(stop(), now=5.0) == []
+
+def test_exactly_three_minutes_is_still_normal_tier():
+    d = Director()
+    d.handle(prompt(), now=0.0)
+    assert "eureka 2" in d.handle(stop(), now=180.0)
+
+def test_reconnect_resends_mode():
+    d = Director()
+    assert d.mode() == "rest"
+    d.handle(prompt(), now=1.0)
+    assert d.mode() == "thinking"

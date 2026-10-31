@@ -24,12 +24,12 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
-    assert wait_for(lambda: fake.buf == b"thinking\n")
+    assert wait_for(lambda: fake.buf == b"rest\nthinking\n")   # rest on connect, then the Trigger
     send(sock, "off\n")
     assert wait_for(lambda: state.exists())
     send(sock, json.dumps({"hook_event_name": "Stop", "session_id": "x"}) + "\n")
     time.sleep(0.3)
-    assert fake.buf == b"thinking\n"            # muted: nothing more
+    assert fake.buf == b"rest\nthinking\nrest\n"   # mute rests the Core; the Stop is dropped
     send(sock, "on\n"); send(sock, "eureka 2\n")   # manual gesture for the wizard
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n"))
     d.stop()
