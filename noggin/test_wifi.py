@@ -349,15 +349,16 @@ def test_seq_is_milliseconds_since_the_epoch_and_strictly_increases(tmp_path):
     core.running = False
 
 
-PROGRAM = {"eyes.py": b"eye program " * 40, "gaze_trace.py": bytes(range(256)) * 3, "wifi.py": b"# link\n"}
+PROGRAM = {"eyes.mpy": b"M\x06 eye program " * 40, "gaze_trace.mpy": bytes(range(256)) * 3, "wifi.mpy": b"M\x06 link"}
 
 
 def flashing(tmp_path, monkeypatch, core):
-    """The program files beside calibration.json on the Mac, an older eye program on the fake Core."""
+    """The compiled program in build/ beside calibration.json on the Mac (make flash), an older one on the fake Core."""
     (tmp_path / "core").mkdir()
+    (tmp_path / "build").mkdir()
     monkeypatch.chdir(tmp_path / "core")
     for name, data in PROGRAM.items():
-        (tmp_path / name).write_bytes(data)
+        (tmp_path / "build" / name).write_bytes(data)
         (tmp_path / "core" / name).write_bytes(b"old " + name.encode())
     (tmp_path / "core" / "boot.py").write_bytes(b"usb only")
     s, sock = start(tmp_path, core)
@@ -387,7 +388,7 @@ def test_flash_says_when_the_core_fell_back_to_the_bak_files(tmp_path, monkeypat
     s, sock = flashing(tmp_path, monkeypatch, core)
     reply = ask(sock, "flash\n", timeout=30)
     assert reply.startswith("flash failed") and ".bak" in reply, reply
-    assert (tmp_path / "core" / "eyes.py").read_bytes() == b"old eyes.py"
+    assert (tmp_path / "core" / "eyes.mpy").read_bytes() == b"old eyes.mpy"
     s.stop()
     core.running = False
 
@@ -423,5 +424,7 @@ def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, stat
         check=True,
     ).stdout
     assert ("FLASHED-OVER-WIFI" in out) == (path == "wifi")
-    assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")
+    assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")  # boot.py stays .py: the Core runs boot.py only
+    assert ("cp eyes/build/eyes.mpy :eyes.mpy" in out) == (path == "usb")
+    assert "mpy-cross -o eyes/build/eyes.mpy eyes/eyes.py" in out  # both paths send what make compiled just now
     assert ("mip install hmac" in out) == (path == "usb")  # the Core's hmac comes from micropython-lib, over USB

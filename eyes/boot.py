@@ -1,4 +1,3 @@
-# pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 # noggin: replaces the stock boot.py. Reads one command per line on USB serial;
 # with wifi.json present, also beacons and serves the same commands over UDP (eyes/wifi.py).
 # After a Wi-Fi flash (flash.trial lists the files it swapped in) the new program has 10 s to reach `noggin ready`,

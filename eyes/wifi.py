@@ -1,10 +1,10 @@
-# pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
+# pyright: reportOptionalMemberAccess=false
 # noggin Core-side Wi-Fi Link (docs/adr/0005): join the home Wi-Fi, beacon on UDP 4711,
 # serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop.
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib
-import hmac  # micropython-lib's on the Core (make flash-usb installs it with mpremote mip), stdlib on the Mac
+import hmac  # pyright: ignore[reportMissingImports]  # micropython-lib's on the Core (flash-usb's mip), stdlib on the Mac
 import json
 import os
 
@@ -23,8 +23,8 @@ try:
 except ImportError:  # CPython: tests set reset
     reset = None
 
-    def ticks_diff(a, b):
-        return a - b
+    def ticks_diff(ticks1, ticks2):
+        return ticks1 - ticks2
 
 
 BEACON_PORT, COMMAND_PORT = 4711, 4712
@@ -73,9 +73,10 @@ def flash(line):
     """`put <file> <offset> <base64>` appends a chunk to <file>.new; `commit <file> <sha256>` checks <file>.new against
     the hash and swaps it in, keeping the old file as <file>.bak and listing it in flash.trial, which boot.py reads to
     put the .bak files back if the new program never reaches `noggin ready`. A commit for a file that already has
-    the hash is ok without a swap: the Mac's check after the reboot. boot.py itself only changes over USB."""
+    the hash is ok without a swap: the Mac's check after the reboot. Only .mpy files: boot.py and .py files change
+    over USB alone (import finds a .py before its .mpy)."""
     cmd, name, arg, *chunk = line.split()
-    if name == "boot.py" or "/" in name or not name.endswith(".py"):
+    if "/" in name or not name.endswith(".mpy"):
         raise ValueError(name)
     new = name + ".new"
     if cmd == "put":

@@ -3,6 +3,7 @@ __pycache__/
 *.log
 docs/references/
 eyes/stock-backup/
+eyes/build/
 model/build/
 .DS_Store
 eyes/wifi.json

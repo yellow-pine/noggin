@@ -231,6 +231,9 @@ make -s stop >/dev/null 2>&1 || true   # free the port if a noggin service from 
 stage "What is on the Core"
 say "Reading MicroPython version and the file list."
 make -s core-info || warn "mpremote could not talk to the Core; is anything else holding the Link?"
+want=$("$PY" -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['tool']['noggin']['micropython'])")
+have=$("$MPR" resume exec "import sys; print('%d.%d' % sys.implementation.version[:2])" 2>/dev/null | tr -d '\r')
+[[ "$have" == "$want" ]] || warn "The Core runs MicroPython ${have:-?}, not the $want this repo type-checks and compiles .mpy for (pyproject.toml [tool.noggin]): the eye program may not load."
 note "Stock program looks like: boot.py, app/, bbl/ (see docs/references/stock-program-manifest.json)."
 note "If you see eyes.py here, the eye program is already installed and a backup already exists."
 pause

@@ -7,6 +7,7 @@ dependencies = [
     "cadquery>=2.8.0",
     "numpy>=2.5.4",
     "pyserial>=3.5",
+    "pyspice>=1.5",
     "scipy>=1.18.1",
     "trimesh>=5.2.0",
 ]
@@ -17,7 +18,14 @@ dev = [
     "mpremote>=1.24",
     "ruff>=0.17.3",
     "pyright>=1.1.414",
+    "micropython-esp32-esp32_generic_c3-stubs==1.23.*",  # the Core's MicroPython ([tool.noggin]): pyright on its files
+    "micropython-stdlib-stubs==1.23.*",
+    "mpy-cross==1.23.*",  # .mpy for the Core: mpy v6.3, what its 1.23 loads
+    "paho-mqtt>=2.1.0",
 ]
+
+[tool.noggin]
+micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the stubs and mpy-cross above pin the same
 
 [tool.pytest.ini_options]
 testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "test_vocabulary.py"]
@@ -36,8 +44,9 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
+pythonVersion = "3.12"  # the venv's (requires-python); else pyright asks whichever python is on PATH
 include = ["eyes", "noggin", "reactions", "scripts", "conftest.py", "test_vocabulary.py"]
-exclude = ["eyes/stock-backup"]
+exclude = ["eyes/stock-backup", "eyes/boot.py", "eyes/eyes.py", "eyes/gaze_trace.py", "eyes/wifi.py"]  # the Core's: eyes/test_micropython.py checks them against its MicroPython
 extraPaths = ["eyes"]  # conftest puts eyes/ on sys.path: `import eyes` is eyes/eyes.py, the Core program
 venvPath = "."
 venv = ".venv"
