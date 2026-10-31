@@ -361,34 +361,32 @@ STALL_S = 600
 _JOB = {}
 
 
-class _Chunk(adsk.core.CustomEventHandler):
-    def notify(self, args):
-        app = adsk.core.Application.get()
-        ui = app.userInterface
-        if ui.activeCommand != "SelectCommand":   # a chunk adds undo steps: end whatever command the user is in
-            ui.commandDefinitions.itemById("SelectCommand").execute()
-        label, fn = _JOB["steps"][_JOB["i"]]
-        t = time.time()
-        try:
-            fn()
-        except Exception:
-            _JOB["error"] = f"chunk {label}: " + traceback.format_exc()
-            return
-        _JOB["i"] += 1
-        _JOB["at"] = time.time()
-        line = f"[{_JOB['i']}/{len(_JOB['steps'])}] {label}: {time.time() - t:.1f} s"
-        _JOB["lines"].append(line)
-        app.log("noggin " + line)
-        if _JOB["i"] < len(_JOB["steps"]):
-            app.fireCustomEvent(EVENT_ID, "")
-
-
 def chunked(steps):
     """Run the (label, fn) steps one per custom event; returns the progress lines, raises on the first failing chunk."""
+    class Chunk(adsk.core.CustomEventHandler):   # defined here: the Mac tests stub adsk
+        def notify(self, args):
+            app = adsk.core.Application.get()
+            ui = app.userInterface
+            if ui.activeCommand != "SelectCommand":   # a chunk adds undo steps: end whatever command the user is in
+                ui.commandDefinitions.itemById("SelectCommand").execute()
+            label, fn = _JOB["steps"][_JOB["i"]]
+            t = time.time()
+            try:
+                fn()
+            except Exception:
+                _JOB["error"] = f"chunk {label}: " + traceback.format_exc()
+                return
+            _JOB["i"] += 1
+            _JOB["at"] = time.time()
+            line = f"[{_JOB['i']}/{len(_JOB['steps'])}] {label}: {time.time() - t:.1f} s"
+            _JOB["lines"].append(line)
+            app.log("noggin " + line)
+            if _JOB["i"] < len(_JOB["steps"]):
+                app.fireCustomEvent(EVENT_ID, "")
     app = adsk.core.Application.get()
     app.unregisterCustomEvent(EVENT_ID)
     event = app.registerCustomEvent(EVENT_ID)
-    handler = _Chunk()
+    handler = Chunk()
     event.add(handler)
     _JOB.clear()
     _JOB.update(steps=steps, i=0, lines=[], error=None, at=time.time(), event=event, handler=handler)   # kept alive here
