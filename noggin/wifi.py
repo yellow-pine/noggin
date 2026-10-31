@@ -1,7 +1,7 @@
 """Wi-Fi Link: learn each Core from its UDP beacon (`noggin <name> <ip> <uptime s>`, trusted only for the
 sender's real address) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>` under
 the shared token, so the secret never travels), each acked with `ok <seq>` from that Core's address and command port
-(retried once, then handed back to the noggin service, which tries USB)."""
+(up to four tries a line, each waiting longer; what is never acked goes back to the noggin service, for USB)."""
 
 import importlib.util
 import ipaddress
@@ -9,7 +9,7 @@ import socket
 import time
 from pathlib import Path
 
-ACK_SECONDS = 0.2
+ACK_SECONDS = (0.2, 0.4, 0.8, 1.6)  # one ack window per try: a lost datagram or a busy Core costs a retry
 
 _spec = importlib.util.spec_from_file_location("core_wifi", Path(__file__).resolve().parent.parent / "eyes" / "wifi.py")
 assert _spec and _spec.loader
@@ -30,7 +30,6 @@ class Wifi:
         self.beacons.setblocking(False)
         self.port = self.beacons.getsockname()[1]
         self.cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.cmd.settimeout(ACK_SECONDS)
 
     def poll(self, now):
         """Drain beacons; return the names that just came (back) on Wi-Fi."""
@@ -65,24 +64,26 @@ class Wifi:
         return f"wifi {ip} uptime {uptime}s"
 
     def send(self, name, lines):
-        """Deliver each line in turn, stopping at the first unacked one; return the lines not delivered."""
+        """Deliver each line in turn, going on past an unacked one; return the lines no try got acked."""
         ip = self.cores[name][0]
-        for i, line in enumerate(lines):
+        undelivered = []
+        for line in lines:
             self.seq = max(
                 self.seq + 1, int(time.time() * 1000)
             )  # the Core drops any seq below its highest: survive restarts
             datagram = f"{tag(self.token, f'{name} {self.seq} {line}')} {self.seq} {line}".encode()
-            for _attempt in range(2):
+            for window in ACK_SECONDS:  # every try repeats the seq: the Core re-acks it without running it again
                 self.cmd.sendto(datagram, (ip, self.command_port))
-                if self.acked(self.seq, ip):
+                if self.acked(self.seq, ip, window):
                     break
             else:
-                return lines[i:]
-        return []
+                undelivered.append(line)
+        return undelivered
 
-    def acked(self, seq, ip):
-        end = time.time() + ACK_SECONDS
-        while time.time() < end:
+    def acked(self, seq, ip, window):
+        end = time.time() + window
+        while (left := end - time.time()) > 0:
+            self.cmd.settimeout(left)
             try:
                 data, addr = self.cmd.recvfrom(256)
             except (TimeoutError, OSError):

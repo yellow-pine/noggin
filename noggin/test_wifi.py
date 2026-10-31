@@ -8,25 +8,36 @@ import threading
 import time
 import uuid
 
+import pytest
+
 from noggin.service import Service
 from noggin.test_service import FakeSerial, wait_for
 from noggin.wifi import tag
 
 TOKEN = "s3cret"
+FAST = (0.05, 0.1, 0.2, 0.4)  # the real windows, quartered: an unacked line costs 0.75 s, not 3 s
+
+
+@pytest.fixture
+def fast(monkeypatch):
+    monkeypatch.setattr("noggin.wifi.ACK_SECONDS", FAST)
 
 
 class FakeCore(threading.Thread):
-    """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first."""
+    """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first, `busy`
+    how long its loop is blocked before it reads the first one. Like the Core, it re-acks its last seq unrun."""
 
-    def __init__(self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1", stranger=False):
+    def __init__(self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1", stranger=False, busy=0.0):
         super().__init__(daemon=True)
         self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
+        self.busy, self.last_seq = busy, None
         self.stranger = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if stranger else None  # acks from another port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("127.0.0.1", 0))
         self.sock.settimeout(0.05)
         self.port = self.sock.getsockname()[1]
         self.beacon_to, self.beaconing, self.lines, self.datagrams, self.running = None, True, [], [], True
+        self.times = []  # when each datagram arrived
 
     def run(self):
         last = 0.0
@@ -38,14 +49,19 @@ class FakeCore(threading.Thread):
                 data, addr = self.sock.recvfrom(1024)
             except TimeoutError:
                 continue
+            time.sleep(self.busy)
+            self.busy = 0.0
             self.datagrams.append(data.decode())
+            self.times.append(time.time())
             if self.drop:
                 self.drop -= 1
                 continue
             t, seq, line = data.decode().split(" ", 2)
             if t != tag(self.token, f"{self.name_} {seq} {line}"):
                 continue
-            self.lines.append(line)
+            if seq != self.last_seq:
+                self.lines.append(line)
+            self.last_seq = seq
             if self.stranger:
                 self.stranger.sendto(f"ok {seq}".encode(), addr)
             if self.ack:
@@ -108,12 +124,12 @@ def test_gesture_reaches_the_eyes_core_with_a_tag_not_the_token(tmp_path):
     core.running = False
 
 
-def test_ack_from_another_address_does_not_count(tmp_path, capsys):
+def test_ack_from_another_address_does_not_count(tmp_path, capsys, fast):
     core = FakeCore(ack=False, stranger=True)
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: len(core.datagrams) == 2)  # sent twice, given up: the stranger's `ok` is not the Core's
-    time.sleep(0.3)
-    assert len(core.datagrams) == 2
+    assert wait_for(lambda: len(core.datagrams) == 8)  # 2 lines x 4 tries: the stranger's `ok` is not the Core's
+    time.sleep(0.5)
+    assert len(core.datagrams) == 8
     assert "no ack over wifi" in capsys.readouterr().out
     s.stop()
     core.running = False
@@ -138,22 +154,50 @@ def test_malformed_beacons_are_ignored(tmp_path):
     core.running = False
 
 
-def test_lost_datagram_is_resent_once_with_the_same_seq(tmp_path):
-    core = FakeCore(drop=1)
+def test_lost_datagrams_are_resent_up_to_four_tries_with_the_same_seq(tmp_path):
+    core = FakeCore(drop=3)
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
-    assert core.datagrams[0].split()[:2] == core.datagrams[1].split()[:2]  # the retry repeats the seq
-    assert len(core.datagrams) == 3
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"], timeout=3.0)
+    assert len({d.split()[1] for d in core.datagrams[:4]}) == 1  # every retry repeats the seq
+    assert len(core.datagrams) == 5
     s.stop()
     core.running = False
 
 
-def test_unacked_command_is_dropped_and_the_next_one_still_goes(tmp_path, capsys):
+def test_a_busy_core_that_acks_late_still_counts(tmp_path, capsys):
+    core = FakeCore(busy=0.7)  # thinking mode: a blink and a saccade block the Core's loop, past two 0.2 s windows
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
+    assert "no ack over wifi" not in capsys.readouterr().out
+    s.stop()
+    core.running = False
+
+
+def test_tries_wait_a_growing_ack_window(tmp_path, fast):
     core = FakeCore(ack=False)
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: len(core.datagrams) == 2)  # calibration line sent twice, then given up
-    time.sleep(0.3)
-    assert len(core.datagrams) == 2
+    assert wait_for(lambda: len(core.times) >= 4)
+    gaps = [b - a for a, b in zip(core.times[:3], core.times[1:4], strict=True)]
+    assert all(gap >= window * 0.9 for gap, window in zip(gaps, FAST, strict=False)), gaps
+    s.stop()
+    core.running = False
+
+
+def test_a_line_lost_on_every_try_does_not_stop_its_batch(tmp_path, capsys, fast):
+    core = FakeCore(drop=4)  # all four tries of the calibration line
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: core.lines == ["rest"])
+    assert "no ack over wifi eyes ['set lid_rest 0.28']" in capsys.readouterr().out
+    s.stop()
+    core.running = False
+
+
+def test_unacked_command_is_dropped_and_the_next_one_still_goes(tmp_path, capsys, fast):
+    core = FakeCore(ack=False)
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: len(core.datagrams) == 8)  # calibration and mode line, 4 tries each, then given up
+    time.sleep(0.5)
+    assert len(core.datagrams) == 8
     core.ack = True
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: core.lines[-1:] == ["eureka 2"])
@@ -181,10 +225,10 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
     core.running = False
 
 
-def test_unacked_wifi_line_and_the_rest_of_its_batch_go_over_usb(tmp_path, capsys):
+def test_unacked_wifi_lines_go_over_usb(tmp_path, capsys, fast):
     core, fake = FakeCore(ack=False), FakeSerial()
     s, sock = start(tmp_path, core, open_serial=lambda: fake)
-    assert wait_for(lambda: len(core.datagrams) == 2)  # discovery: the calibration line tried twice on Wi-Fi
+    assert wait_for(lambda: len(core.datagrams) == 8)  # discovery: both lines tried four times on Wi-Fi
     assert wait_for(lambda: fake.buf.count(b"set lid_rest 0.28\nrest\n") == 2)  # at USB connect, then the fallback
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n"))
