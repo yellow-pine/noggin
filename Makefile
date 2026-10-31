@@ -7,7 +7,7 @@ LABEL := gui/$(shell id -u)/com.noggin
 # $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
 fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) model/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs guide-sheets lint fmt
+.PHONY: venv test check sim ours model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs guide-sheets lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -23,9 +23,11 @@ check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard 
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-sim: venv model/build/steps/horn.stl   ## simulate every document (sub-assemblies + Stage configurations) in Python into model/reports (commit them), then threshold the reports
+sim: venv $(if $(wildcard docs/references),model/build/steps/horn.stl,ours)   ## simulate every document (sub-assemblies + Stage configurations) in Python into model/reports (commit them), then threshold the reports; without docs/references (CI) on our geometry
 	$(PY) -m model.engine.run $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
+ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws)
+	$(PY) -m model.ours
 model-step-meshes: ## tessellate the Bambu STEPs once into model/build/steps (cadquery-ocp, ephemeral)
 	uv run --with cadquery-ocp python model/engine/step_mesh.py
 model/build/steps/horn.stl: model/engine/step_mesh.py
@@ -70,9 +72,9 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-render: venv model/build/steps/horn.stl   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
+render: venv ours   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
-gifs: venv model/build/steps/horn.stl     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
+gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
 guide-sheets: venv model/build/steps/horn.stl   ## each guide step's picture beside the model from its camera, a sheet per guide (model/build/pictures/guide; needs docs/references)
 	BLENDER=$(BLENDER) $(PY) -m model.render.guide

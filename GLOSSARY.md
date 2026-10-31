@@ -107,6 +107,10 @@ _Avoid_: part, module, phase, top assembly
 **Sub-assembly**:
 An ownership unit: a Fusion design that owns its parts exactly once (base, stack, eyes, mouth) and is inserted into Stages by reference.
 
+**Envelope**:
+Our simple CadQuery stand-in for a piece of Bambu hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
+_Avoid_: proxy, dummy, placeholder
+
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.
 _Avoid_: arm, lever
