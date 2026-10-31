@@ -150,7 +150,7 @@ def shield():
     return out.union(boxes(pins))
 
 
-# Core: PCB y -7.4..-5.8 (x +-11 between z +-8.5, the USB end x +-4.5 to z -12.5, the antenna end x +-7 to z 14.5), the
+# Core: PCB y -7.4..-5.8 (x +-11 between z +-8.5, its pads out to x +-11.6 on the module side, the USB end x +-4.5 to z -12.5, the antenna end x +-7 to z 14.5), the
 # module can (x +-9.75, z -2.45..8.05) down to y -9.4, the USB-C socket (x +-4.47, z -13.39..-6.05) to y -10.68, and on
 # the Shield side its two header rows (x +-(6..8)) up to y -2.3.
 CORE = {
@@ -160,6 +160,7 @@ CORE = {
         (-7.4, -5.8),
     ),
     "parts": [
+        ((-11.6, 11.6), (-7.41, -7.3), (-7.25, 7.25)),  # the castellated pads, 0.6 past the PCB's long edges
         ((-9.75, 9.75), (-9.4, -7.4), (-2.45, 8.05)),  # module can
         ((-4.47, 4.47), (-10.68, -7.4), (-13.39, -6.05)),  # USB-C
         *mirror_x([((6.0, 8.0), (-5.8, -2.3), (-7.55, 7.55))]),  # header rows

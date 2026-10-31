@@ -75,6 +75,7 @@ def test_core_pcb_module_and_usb_c():
     assert inside("core", 0.0, -6.6, 0.0) and inside("core", 0.0, -9.2, 3.0) and not inside("core", 0.0, -9.6, 3.0)
     assert inside("core", 0.0, -10.5, -10.0) and not inside("core", 0.0, -10.9, -10.0)
     assert inside("core", 7.0, -2.5, 0.0) and not inside("core", 7.0, -2.1, 0.0)
+    assert inside("core", 11.5, -7.35, 0.0) and not inside("core", 11.5, -7.0, 0.0)  # pads past the PCB edge
 
 
 def test_switch_board_mount_hole_sockets_and_lever():
