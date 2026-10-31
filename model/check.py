@@ -16,7 +16,7 @@ import adsk.core, adsk.fusion, json, math, os, time
 HORN = None                           # model/sweep.py substitutes this line per call
 BUDGET_S = 180
 
-DOC = "noggin-eyes"                   # the coordinator edits this per Stage: noggin-eyes, noggin-pan-tilt, noggin-mouth
+DOC = "noggin-eyes"                   # model/sweep.py substitutes this line: `DOC=noggin-pan-tilt make model-check`
 PROJECT_NAME = "Noggin"               # the hub's former Default Project; Stage documents sit at its root
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
@@ -65,9 +65,10 @@ def open_doc(app):
     return app.documents.open(next(f for f in fld.dataFiles if f.name == DOC), True)
 
 
-def moving_chain(horn, joints):
+def moving_chain(horn, joints, groups=()):
     """Occurrences that move with the horn: Fusion's occurrenceOne is the moving side of a joint; walk the
-    other joints from it, never through grounded occurrences or the horn's fixed side (occurrenceTwo)."""
+    other joints and the rigid groups from it, never through grounded occurrences or the horn's fixed side
+    (occurrenceTwo)."""
     stop = {horn.occurrenceTwo.fullPathName} if horn.occurrenceTwo else set()
     chain, todo = {}, [horn.occurrenceOne]
     while todo:
@@ -75,6 +76,9 @@ def moving_chain(horn, joints):
         if occ is None or occ.isGrounded or occ.fullPathName in stop or occ.fullPathName in chain:
             continue
         chain[occ.fullPathName] = occ
+        for g in groups:
+            if any(m.fullPathName == occ.fullPathName for m in g):
+                todo.extend(g)
         for j in joints:
             if j is horn or j.isSuppressed:
                 continue
@@ -138,6 +142,11 @@ PLACEMENTS = {
         "pivots": [(f"{s} inside lid pivot", f"{s.lower()}_lid") for s in "LR"]
                   + [(f"{s} eyeball pivot", f"{s.lower()}_eye") for s in "LR"]
                   + [(f"{s} {part} horn (inferred)", f"{s.lower()}_{part}_horn") for s in "LR" for part in ("lid", "eye")],
+    },
+    "noggin-pan-tilt": {
+        "parts": [(f"{key} servo", SERVO_STEP["tab_holes"], SERVOS[key]["tab_holes"], TOL_INFERRED_MM) for key in ("tilt", "pan")]
+                 + [("receiver shield", [(0, 0, 0)], [_mean(STANDOFFS["pt_base"]["receiver_2"])], TOL_MM)],
+        "pivots": [("pan pivot", "pan"), ("tilt pivot", "tilt"), ("tilt horn (inferred)", "tilt_horn"), ("pan horn (inferred)", "pan_horn")],
     },
 }
 
@@ -205,7 +214,8 @@ def run(_context: str):
     lim = motion.rotationLimits
     lo, hi = round(math.degrees(lim.minimumValue)), round(math.degrees(lim.maximumValue))
     degs = list(range(lo, hi, STEP_DEG)) + [hi]
-    chain = moving_chain(horn, joints)
+    groups = [[g.occurrences.item(i) for i in range(g.occurrences.count)] for g in root.rigidGroups]
+    chain = moving_chain(horn, joints, groups)
     others = [o for o in root.allOccurrences if o.bRepBodies.count and o.fullPathName not in chain]
     linked = set()   # pairs that touch by construction: they share a joint or a rigid group
     for j in joints:
@@ -223,15 +233,17 @@ def run(_context: str):
     report["stage"] = {"total_g": round(total, 1), "com": [round(sum(m[0] * m[1][i] for m in parts.values()) / total, 1) for i in range(3)]}
     state = {"worst": None, "measured": 0}
     poses = {}
-    neutral_inv = {}                                    # driven pivots keep rotationValue 0 when another joint drives: read the angle off transform2
+    neutral_inv, axes = {}, {}                          # driven pivots keep rotationValue 0 when another joint drives: read the angle off transform2
     for j in driven:
         m = j.occurrenceOne.transform2.copy(); m.invert(); neutral_inv[j.name] = m
+        axes[j.name] = j.geometryOrOriginOne.primaryAxisVector.asArray()   # world axis of the joint origin at neutral
 
     def driven_deg(j):
-        m = matmul(j.occurrenceOne.transform2, neutral_inv[j.name])
-        if "lid" in j.name:                             # rotation about X: row 1 = (0, cos, -sin)
-            return round(math.degrees(math.atan2(-m.getCell(1, 2), m.getCell(1, 1))), 2)
-        return round(math.degrees(math.atan2(m.getCell(0, 2), m.getCell(0, 0))), 2)   # about Y: row 0 = (cos, 0, sin)
+        m = matmul(j.occurrenceOne.transform2, neutral_inv[j.name])   # rotation about the pivot axis k: signed angle from the axial part of R - R^T
+        k = axes[j.name]
+        s = (m.getCell(2, 1) - m.getCell(1, 2)) * k[0] + (m.getCell(0, 2) - m.getCell(2, 0)) * k[1] + (m.getCell(1, 0) - m.getCell(0, 1)) * k[2]
+        c = m.getCell(0, 0) + m.getCell(1, 1) + m.getCell(2, 2) - 1
+        return round(math.degrees(math.atan2(s, c)), 2)
 
     def measure(deg, calibrated=False):
         motion.rotationValue = math.radians(deg)
@@ -266,12 +278,12 @@ def run(_context: str):
         if time.time() - t0 > BUDGET_S:
             incomplete = f"budget of {BUDGET_S} s spent at {deg} deg after {state['measured']} measurements"; break
         measure(deg)
-    # The calibrated servo ends (eyes/calibration.json) lie outside the designer's limits: measure them with the
-    # limits off, then put the limits back (nothing is saved).
+    # The calibrated servo ends (eyes/calibration.json, eyes Stage only) lie outside the designer's limits: measure
+    # them with the limits off, then put the limits back (nothing is saved).
     key = horn.name[0].lower() + ("_lid" if "lid" in horn.name else "_eye")
-    cal_lo, cal_hi = calibrated_extremes(json.load(open(os.path.join(REPO, "eyes", "calibration.json"))))[key]
+    ends = calibrated_extremes(json.load(open(os.path.join(REPO, "eyes", "calibration.json")))).get(key)
     lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = False
-    for deg in (cal_lo, cal_hi):
+    for deg in ends or ():
         if deg not in poses and not incomplete:
             measure(deg, calibrated=True)
     lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = True
@@ -280,7 +292,8 @@ def run(_context: str):
     worst, measured = state["worst"], state["measured"]
     report["horns"][horn.name] = worst or {"min_mm": NEAR_MM, "at_deg": None, "pair": None, "note": f"nothing within {NEAR_MM} mm"}
     report["horns"][horn.name]["poses"] = {d: p for d, p in poses.items() if lo <= d <= hi}
-    report["calibrated"] = {horn.name: {"lo": cal_lo, "hi": cal_hi}}
+    if ends:
+        report["calibrated"] = {horn.name: {"lo": ends[0], "hi": ends[1]}}
     if incomplete:
         report["horns"][horn.name]["incomplete"] = incomplete
     report["horns"][horn.name]["measurements"] = measured

@@ -7,7 +7,9 @@ CLEARANCE = (0.1, 0.4)   # mm radial, agreed in #20
 M2 = 2.0                 # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EYES_MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
+PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
 MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
+M2_5 = 2.5               # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
 
 
 def stl(name, folder=EYES_MODELS):
@@ -86,9 +88,28 @@ EYES_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's hor
     "inside lid ear / bracket pin": (1.998, 1.735, True), "outside lid ear / bracket pin": (1.959, 1.735, True),
 }
 
+# Pan-tilt Stage: bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
+# the levers and the tilt pivot with M2.5 (self-tapping into the r 1.1 holes, as the eyeball bar's horn end).
+PT_JOINTS = [
+    ("tilt bar / horn screw", (stl("tilt bar", PT_MODELS), (10, 0, 1.5), "z", 2), M2),
+    ("tilt bar / arm lever screw", (stl("tilt bar", PT_MODELS), (-10, 0, 1.5), "z", 2), M2_5),
+    ("tilt arm lever / M2.5", (stl("PandT tilt arm", PT_MODELS), (8, 26.5, 33.4), "x", 3), M2_5, "self_tapping"),
+    ("pan bar / horn screw", (stl("PandT bar", PT_MODELS), (7.5, 0, 1.5), "z", 2), M2),
+    ("pan bar / upright lever screw", (stl("PandT bar", PT_MODELS), (-7.5, 0, 1.5), "z", 2), M2_5),
+    ("upright lever / M2.5", (stl("PandT upright v2", PT_MODELS), (-5.5, 25.5, 26.8), "z", 5), M2_5, "self_tapping"),
+    ("tilt arm / pivot screw", (stl("PandT tilt arm", PT_MODELS), (14, -13, 28.4), "x", 1.5), M2_5),
+    ("upright / pivot screw", (stl("PandT upright v2", PT_MODELS), (11, -13, 33.4), "x", 1.5), M2_5, "self_tapping"),
+]
+PT_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31
+    "tilt bar / horn screw": (1.1, 1.0, True), "tilt bar / arm lever screw": (1.35, 1.25, True),
+    "tilt arm lever / M2.5": (1.1, 1.25, True), "pan bar / horn screw": (1.1, 1.0, True),
+    "pan bar / upright lever screw": (1.35, 1.25, True), "upright lever / M2.5": (1.1, 1.25, True),
+    "tilt arm / pivot screw": (1.35, 1.25, True), "upright / pivot screw": (1.1, 1.25, True),
+}
+
 
 if __name__ == "__main__":
-    for row in fit_table(EYES_JOINTS):
+    for row in fit_table(EYES_JOINTS + PT_JOINTS):
         print("%-32s hole r %.3f  pin r %.3f  clearance %5.2f  offset %.2f  rms %.3f  %s" % (
             row["joint"], row["hole_r"], row["pin_r"], row["clearance"], row["offset"], row["rms"], row.get("tag") or ("ok" if row["ok"] else "FLAG")))
     sys.exit(0)

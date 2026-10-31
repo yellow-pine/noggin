@@ -4,7 +4,8 @@ import glob, importlib.util, json, os, pytest
 
 HERE = os.path.dirname(__file__)
 MAX_INTERFERENCE_MM3 = 0.5
-ENVELOPE = ((-60, 120), (-120, 60), (-60, 180))  # Mech extent in the eyes frame, mm (x, y, z)
+ENVELOPE = {"noggin-eyes": ((-60, 120), (-120, 60), (-60, 180)),      # Mech extent per Stage frame, mm (x, y, z)
+            "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60))}       # PandT base 120 x 160, tilt arm top z ~41
 REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-report.json")))
 
 
@@ -21,7 +22,7 @@ def problems(report):
     if not report["bboxes"]:
         out.append("no bboxes")
     for occ, (lo, hi) in report["bboxes"].items():
-        if any(a < e[0] or b > e[1] for a, b, e in zip(lo, hi, ENVELOPE)):
+        if any(a < e[0] or b > e[1] for a, b, e in zip(lo, hi, ENVELOPE[report["doc"]])):
             out.append(f"{occ}: bbox {lo}..{hi} outside envelope")
     for f in report.get("fits", []):           # #20 extras (model/sim.py), absent from older reports
         if not f["ok"]:

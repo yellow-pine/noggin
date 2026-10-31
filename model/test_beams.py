@@ -22,3 +22,9 @@ def test_stall_force_at_the_horn_pin():
 def test_eyes_stage_beams_are_recorded():
     rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.EYES_BEAMS)}
     assert rows == beams.EYES_RECORDED
+
+
+@pytest.mark.skipif(not os.path.isdir(beams.fits.PT_MODELS), reason="docs/references (local only) missing")
+def test_pan_tilt_stage_beams_are_recorded():
+    rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.PT_BEAMS)}
+    assert rows == beams.PT_RECORDED

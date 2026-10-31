@@ -62,8 +62,10 @@ PIVOTS = {
     "jaw_horn": _pivot((75.9, -48.6, 23.1), X, inferred=True),
     "pan": _pivot((0.0, 0.0, 0.0), Z, "pt"),
     "tilt": _pivot((0.0, -13.0, 33.4), X, "pt"),
-    "tilt_horn": _pivot((22.5, 17.6, 18.4), X, "pt", inferred=True),
-    "pan_horn": _pivot((-20.5, 38.2, 15.0), Z, "pt", inferred=True),
+    # PT horn pivots at the horn seat (tab plane + SERVO_STEP horn_seat), shaft offset 5.34 from the tab-hole midpoint
+    # toward the near hole, as the eyes servos: tilt shaft -X on the pan-base tower, pan shaft +Z on the mounts [I].
+    "tilt_horn": _pivot((12.15, 14.1, 18.4), X, "pt", inferred=True),
+    "pan_horn": _pivot((-20.5, 38.1, 25.35), Z, "pt", inferred=True),
 }
 
 SERVO_TAB_SPACING = 27.8  # SG90 mounting tab hole pitch
@@ -141,12 +143,53 @@ LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
 LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -29.5}, "eyelid_crank": {"lid": "outside", "x": -25.5}}
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eyeball end [M]
 
+# Pan-tilt linkage. Lever holes fitted on the STLs (model/fits.py) [M]: the tilt bar joins the tilt horn pin to the
+# tilt arm's lever (x 3..8 slab, hole along X; the arm STL is at the v1 height, upright v2 raises it 5 mm); the pan bar
+# joins the pan horn pin to the upright v2's lever (x -8..-3, hole along Z through its top z=26.8). The research note's
+# "pan-bar post at (18,19)" is the pan-base tower corner. Bar mid-planes [I]: the horn is 4.15 thick from its seat
+# along the shaft (tilt x 8.0..12.15, pan z 25.35..29.5), the bar rides on the horn's outer face: tilt bar x 10.1..13.1
+# (the arm lever, x 3..8, is bridged by the M2.5 screw), pan bar z 29.5..32.5 (the upright lever top is z=26.8). Horn direction at neutral [I]: tilt horn horizontal toward
+# +Y with the bar vertical (guide step 15), pan horn forward (-Y) with the bar along X, tangent to the lever (step 14).
+TILT_ARM_SHIFT_Z = 5.0
+PT_LEVER_HOLES = {"tilt": (8.0, 26.5, 33.4 + TILT_ARM_SHIFT_Z), "pan": (-5.5, 25.5, 26.8)}
+PT_BAR_PLANES = {"tilt": ("x", 11.6), "pan": ("z", 31.0)}
+PT_HORN_DIR = {"tilt": (0, 1, 0), "pan": (0, -1, 0)}
+
+
+def horn_pin(key):
+    """(pin, lever) world points in the bar's mid-plane for the tilt or pan link at neutral: the pin HORN_STEP['pin']
+    from the horn pivot and BARS[key + '_bar'] from the lever hole, on the side PT_HORN_DIR says."""
+    axis, plane = PT_BAR_PLANES[key]
+    i = "xyz".index(axis)
+    u, v = [k for k in range(3) if k != i]
+    hub, hole = PIVOTS[key + "_horn"]["point"], PT_LEVER_HOLES[key]
+    r1, r2 = HORN_STEP["pin"], BARS[key + "_bar"]
+    d = _dist((hub[u], hub[v]), (hole[u], hole[v]))
+    a = (r1 * r1 - r2 * r2 + d * d) / (2 * d)
+    h = (r1 * r1 - a * a) ** 0.5
+    eu, ev = (hole[u] - hub[u]) / d, (hole[v] - hub[v]) / d
+    want = PT_HORN_DIR[key]
+    best = None
+    for s in (1, -1):
+        pin = [0.0, 0.0, 0.0]
+        pin[i], pin[u], pin[v] = plane, hub[u] + a * eu - s * h * ev, hub[v] + a * ev + s * h * eu
+        score = sum((p - q) * w for p, q, w in zip(pin, hub, want))
+        if best is None or score > best[0]:
+            best = (score, tuple(pin))
+    lever = list(hole); lever[i] = plane
+    return best[1], tuple(lever)
+
+
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
 STL_LOCAL = {
     # Circle fits on the STL holes (model/fits.py, 2026-10-31): 41 mm pitch; the crank is the eyelid bar with its
     # horn end stepped up 3 mm, both holes along Z (the earlier Y-axis entry had the crank turned 90 degrees).
     "eyelid bar": {"holes": [(-20.5, 0.0, 1.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
     "eyelid bar crank": {"holes": [(-20.5, 0.0, 4.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
+    # Pan-tilt bars: the smaller hole (r 1.1, +x end) takes the M2 horn screw (guide step 12), the larger (r 1.35) the
+    # M2.5 lever screw; listed horn end first.
+    "tilt bar": {"holes": [(10.0, 0.0, 1.5), (-10.0, 0.0, 1.5)], "hole_axis": Z},
+    "PandT bar": {"holes": [(7.5, 0.0, 1.5), (-7.5, 0.0, 1.5)], "hole_axis": Z},
 }
 
 # Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the

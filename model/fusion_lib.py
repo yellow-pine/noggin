@@ -1,7 +1,7 @@
 """Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
 `# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-model.md."""
-import adsk.core, adsk.fusion, hashlib, json, math
+import adsk.core, adsk.fusion, hashlib, json, math, os
 
 PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root
 _PLANE_FOR_AXIS = {"X": "yZConstructionPlane", "Y": "xZConstructionPlane", "Z": "xYConstructionPlane"}
@@ -121,7 +121,8 @@ def summary(root):
     for j in root.joints:
         lim = j.jointMotion.rotationLimits if j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType else None
         joints[j.name] = {"limits": [round(math.degrees(lim.minimumValue), 2), round(math.degrees(lim.maximumValue), 2)] if lim and lim.isMinimumValueEnabled else None,
-                          "origins": [origin_frame(o) for o in (j.geometryOrOriginOne, j.geometryOrOriginTwo)]}
+                          "origins": [origin_frame(o) for o in (j.geometryOrOriginOne, j.geometryOrOriginTwo)],
+                          "parts": [o.name if o else None for o in (j.occurrenceOne, j.occurrenceTwo)]}
     ports = {}
     for o in root.occurrences:
         for sk in o.component.sketches:
@@ -330,6 +331,63 @@ def revolute(root, origin_a, origin_b, name, limits_deg=None):
 
 def cylindrical(root, origin_a, origin_b, name):
     return _joint(root, origin_a, origin_b, name, "setAsCylindricalJointMotion")
+
+
+# Shared by the Stage builds (eyes.py, pan_tilt.py): linkage placement, pivots and loop closure, the battery lead.
+def add(a, b):
+    return tuple(p + q for p, q in zip(a, b))
+
+
+def mean(points):
+    return tuple(sum(c) / len(points) for c in zip(*points))
+
+
+def side(s, p):
+    return p if s == "L" else mirror_x(p)
+
+
+def pivot_joint(root, occ_a, occ_b, point_mm, axis, name, limits=None):
+    return revolute(root, joint_origin(occ_a, point_mm, axis), joint_origin(occ_b, point_mm, axis), name, limits)
+
+
+def close_loop(root, occ_a, occ_b, point_mm, axis, name):
+    """Last pivot of a four-bar: revolute if Fusion accepts it, else cylindrical (one freed DOF, named)."""
+    a, b = joint_origin(occ_a, point_mm, axis), joint_origin(occ_b, point_mm, axis)
+    try:
+        joint = revolute(root, a, b, name)
+    except Exception:            # over-constrained loop: the fallback agreed in #11
+        joint = None
+    if joint is not None and joint.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState:
+        return joint
+    if joint is not None:
+        joint.deleteMe()
+    return cylindrical(root, a, b, name + " (cylindrical: loop)")
+
+
+def link(root, name, stl_key, hole_a, hole_b, normal, reuse, models, proxies):
+    """Place the local-frame link STL `models/<stl_key>.stl` (STL_LOCAL) so its two holes land on hole_a/hole_b
+    (world mm), hole axis along normal."""
+    spec = STL_LOCAL[stl_key]
+    la, lb = spec["holes"]
+    m = align(hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"])
+    return import_stl(root, os.path.join(models, stl_key + ".stl"), name, m, proxy=os.path.join(proxies, stl_key + ".stl"), reuse=reuse)
+
+
+def strip_lead(battery):
+    """The battery STEP fuses the lead into the pack body: split at the pack end and drop the lead."""
+    comp = battery.component
+    cut = comp.constructionPlanes.createInput()
+    cut.setByOffset(comp.xZConstructionPlane, adsk.core.ValueInput.createByReal(BATTERY_STEP["lead_y"] / 10))
+    plane = comp.constructionPlanes.add(cut)
+    plane.isLightBulbOn = False
+    split = comp.features.splitBodyFeatures
+    if split.count:   # reused part: already stripped
+        return
+    split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
+    for body in list(comp.bRepBodies):
+        if body.boundingBox.minPoint.y * 10 >= BATTERY_STEP["lead_y"] - 0.1:
+            comp.features.removeFeatures.add(body)
+
 
 
 def port(occ, name, point_mm):

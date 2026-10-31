@@ -71,3 +71,28 @@ def test_servo_frame_puts_tab_holes_on_the_measured_holes_and_shaft_toward_the_h
         for hole in g.SERVOS[key]["tab_holes"]:
             # shortcut: 0.5 mm, the horn pivots are inferred to +-4 mm; tighten when the shafts are measured
             assert min(_dist(p, hole) for p in placed) < 0.5, (key, placed, hole)
+
+
+def test_pan_tilt_servo_frames_put_tab_holes_on_the_measured_holes():
+    for key, shaft_dir in [("tilt", (-1, 0, 0)), ("pan", (0, 0, 1))]:
+        origin, tab_x, shaft = g.servo_frame(key)
+        assert shaft == shaft_dir
+        shaft_x = g.SERVO_STEP["shaft"][0]
+        placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
+        for hole in g.SERVOS[key]["tab_holes"]:
+            assert min(_dist(p, hole) for p in placed) < 0.5, (key, placed, hole)
+
+
+def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
+    for key, axis in (("tilt", 0), ("pan", 2)):
+        pin, lever = g.horn_pin(key)
+        hub = g.PIVOTS[key + "_horn"]["point"]
+        plane = g.PT_BAR_PLANES[key][1]
+        assert pin[axis] == lever[axis] == plane
+        in_plane = lambda p: [c for i, c in enumerate(p) if i != axis]
+        assert abs(_dist(in_plane(pin), in_plane(hub)) - g.HORN_STEP["pin"]) < 1e-6
+        assert abs(_dist(pin, lever) - g.BARS[key + "_bar"]) < 1e-6
+    tilt_pin, _ = g.horn_pin("tilt")
+    assert tilt_pin[1] > g.PIVOTS["tilt_horn"]["point"][1] + 12   # horn horizontal toward +Y
+    pan_pin, _ = g.horn_pin("pan")
+    assert pan_pin[1] < g.PIVOTS["pan_horn"]["point"][1] - 12     # horn forward (-Y)

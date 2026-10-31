@@ -5,10 +5,10 @@ horns[name]["poses"] = {deg: {"com": {part: [x, y, z] mm}, "joints": {joint: deg
 import math
 
 RATED_KGF_CM, TORQUE_SF = 0.4, 2.0     # CyberBrick 9 g servo rated at 6 V (#20 comment), safety factor 2
-G_UP = 1                               # +Y is up in the eyes frame
+UP = {"noggin-pan-tilt": 2}            # index of the up axis per Stage frame: +Z in the PT frame, else +Y (eyes frame)
 
 
-def gravity_torque(poses, masses):
+def gravity_torque(poses, masses, up=1):
     """kgf.cm at each sampled horn angle from the slope of the chain's potential energy (virtual work, so a
     linkage's ratio is included): central differences, one-sided at the ends."""
     degs = sorted(poses)
@@ -16,7 +16,7 @@ def gravity_torque(poses, masses):
     for i, d in enumerate(degs):
         lo, hi = degs[max(i - 1, 0)], degs[min(i + 1, len(degs) - 1)]
         dtheta = math.radians(hi - lo)
-        de = sum(masses[p] / 1000 * (poses[hi]["com"][p][G_UP] - poses[lo]["com"][p][G_UP]) / 10 for p in poses[d]["com"])
+        de = sum(masses[p] / 1000 * (poses[hi]["com"][p][up] - poses[lo]["com"][p][up]) / 10 for p in poses[d]["com"])
         out[d] = abs(de / dtheta)
     return out
 
@@ -42,7 +42,7 @@ def enrich(report, fits, beams):
         poses = h.pop("poses", None)
         if poses:
             poses = {int(d): p for d, p in poses.items()}   # JSON keys are strings
-            report["torque"][name] = {**worst(gravity_torque(poses, report["mass"])), "limit_kgf_cm": RATED_KGF_CM / TORQUE_SF}
+            report["torque"][name] = {**worst(gravity_torque(poses, report["mass"], UP.get(report["doc"], 1))), "limit_kgf_cm": RATED_KGF_CM / TORQUE_SF}
             report["curves"][name] = curves(poses)
     return report
 

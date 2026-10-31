@@ -75,60 +75,6 @@ def canvas(root, name, path, plane_name, offset_mm, cells):
     root.canvases.add(inp).name = name
 
 
-def add(a, b):
-    return tuple(p + q for p, q in zip(a, b))
-
-
-def mean(points):
-    return tuple(sum(c) / len(points) for c in zip(*points))
-
-
-def side(s, p):
-    return p if s == "L" else mirror_x(p)
-
-
-def pivot_joint(root, occ_a, occ_b, point_mm, axis, name, limits=None):
-    return revolute(root, joint_origin(occ_a, point_mm, axis), joint_origin(occ_b, point_mm, axis), name, limits)
-
-
-def close_loop(root, occ_a, occ_b, point_mm, axis, name):
-    """Last pivot of a four-bar: revolute if Fusion accepts it, else cylindrical (one freed DOF, named)."""
-    a, b = joint_origin(occ_a, point_mm, axis), joint_origin(occ_b, point_mm, axis)
-    try:
-        joint = revolute(root, a, b, name)
-    except Exception:            # over-constrained loop: the fallback agreed in #11
-        joint = None
-    if joint is not None and joint.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState:
-        return joint
-    if joint is not None:
-        joint.deleteMe()
-    return cylindrical(root, a, b, name + " (cylindrical: loop)")
-
-
-def link(root, name, stl_key, hole_a, hole_b, normal, reuse):
-    """Place a local-frame link STL so its two holes land on hole_a/hole_b (world mm), hole axis along normal."""
-    spec = STL_LOCAL[stl_key]
-    la, lb = spec["holes"]
-    m = align(hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"])
-    return import_stl(root, os.path.join(MODELS, stl_key + ".stl"), name, m, proxy=os.path.join(PROXIES, stl_key + ".stl"), reuse=reuse)
-
-
-def strip_lead(battery):
-    """The battery STEP fuses the lead into the pack body: split at the pack end and drop the lead."""
-    comp = battery.component
-    cut = comp.constructionPlanes.createInput()
-    cut.setByOffset(comp.xZConstructionPlane, adsk.core.ValueInput.createByReal(BATTERY_STEP["lead_y"] / 10))
-    plane = comp.constructionPlanes.add(cut)
-    plane.isLightBulbOn = False
-    split = comp.features.splitBodyFeatures
-    if split.count:   # reused part: already stripped
-        return
-    split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
-    for body in list(comp.bRepBodies):
-        if body.boundingBox.minPoint.y * 10 >= BATTERY_STEP["lead_y"] - 0.1:
-            comp.features.removeFeatures.add(body)
-
-
 def run(_context: str):
     app = adsk.core.Application.get()
     doc, design, folder = open_or_create(app, DOC, keep_parts=not FULL)
@@ -197,7 +143,7 @@ def run(_context: str):
             horn_pin = (x, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
             lid_pin = (x,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl} (inferred)"
-            occs[name] = link(root, name, stl, horn_pin, lid_pin, normal, reuse)
+            occs[name] = link(root, name, stl, horn_pin, lid_pin, normal, reuse, MODELS, PROXIES)
             pins[s, key] = horn_pin, lid_pin
     for occ in reuse.values():   # kept parts the build no longer places
         occ.deleteMe()
