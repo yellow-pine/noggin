@@ -1,6 +1,6 @@
 """Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit, and the
-leads the cable reach measures. Run: .venv/bin/python -m model.electrical. budget() is merged into the Mech-wide
-(noggin-stage3) report and leads() swept by model/engine/mech.py."""
+leads the cable corridors route. Run: .venv/bin/python -m model.electrical. budget() is merged into the Mech-wide
+(noggin-stage3) report and leads() routed by model/engine/cables.py."""
 
 import importlib.util
 import json
@@ -70,17 +70,17 @@ SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
 
 
 def leads():
-    """(lead, Port, Port, length mm) for every lead of the Mech: each servo from its shield header (CHANNELS) to where its
-    lead leaves the servo, each pack's lead to its switch board, each switch board's XH lead to its shield. Port names
-    are the Fusion builds' (model/engine/stages.py ports)."""
+    """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
+    shield header (CHANNELS), each pack's lead to its switch board, each switch board's XH lead to its shield. Port names
+    are the Fusion builds' (model/engine/stages.py ports); model/engine/cables.py routes each from its first Port."""
     out = []
     for n in (1, 2):
         for port, name in CHANNELS[f"core{n}"].items():
             out.append(
                 (
                     f"{name} servo -> Core {n} PWM{port}",
-                    f"Core {n} servo PWM{port}",
                     f"{SERVO_LABEL[name]} servo lead",
+                    f"Core {n} servo PWM{port}",
                     SERVO_LEAD_MM,
                 )
             )

@@ -4,6 +4,7 @@
 # Calibration lives in self.cal: defaults below, overridden live by `set key value`
 # lines that the noggin service pushes from eyes/calibration.json.
 # Importable on CPython for tests (machine is stubbed there).
+import json
 import time
 
 from machine import PWM, Pin  # pyright: ignore[reportMissingImports]
@@ -28,12 +29,23 @@ def _s8(v):
     return (v - 256 if v > 127 else v) / 2  # trace bytes: signed int8 half-degrees
 
 
-# shield port 1..4 -> GPIO 3,2,1,0
+# shield port 1..4 -> GPIO 3,2,1,0; core.json "ports" (port -> servo name) picks the GPIO per name, defaults below
+PORT_GPIO = {"1": 3, "2": 2, "3": 1, "4": 0}
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
 NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
+
+
+def servo_map():
+    """Servo name -> GPIO from core.json, or the defaults without the file."""
+    try:
+        with open("core.json") as f:
+            return {name: PORT_GPIO[port] for port, name in json.load(f)["ports"].items()}
+    except (OSError, KeyError, ValueError):
+        return {name: pin for pin, name in NAME.items()}
+
 
 # Known-good values for this Mech (2026-10-31); eyes/calibration.json is the source of truth.
 # Each servo has exact end angles for its side; everything else derives from them: an eye's
@@ -66,6 +78,7 @@ def _duty(angle):
 class Eyes:
     def __init__(self):
         self.cal = dict(DEFAULT_CAL)
+        self.gpio = servo_map()
         self.pwm = {}
         self.pos = {}
         self.mode = "rest"
@@ -95,12 +108,16 @@ class Eyes:
 
     # --- servo primitives -------------------------------------------------
     def set(self, targets):
+        """targets are keyed by the default pin; the servo map says which GPIO (if any) carries that name here."""
         for pin, angle in targets.items():
+            gpio = self.gpio.get(NAME[pin])
+            if gpio is None:  # a servo this Core does not carry (neck Core): skipped
+                continue
             lo, hi = self.range(pin)
             angle = min(hi, max(lo, angle))
-            if pin not in self.pwm:
-                self.pwm[pin] = PWM(Pin(pin), freq=50)
-            self.pwm[pin].duty(_duty(angle))
+            if gpio not in self.pwm:
+                self.pwm[gpio] = PWM(Pin(gpio), freq=50)
+            self.pwm[gpio].duty(_duty(angle))
             self.pos[pin] = angle
 
     def glide(self, ms, targets, step=20, ease=False):

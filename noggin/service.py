@@ -2,26 +2,48 @@
 Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the Director) or
 plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
 `pose ...` / `exercise <min>` (passed to the Core) / `set <key> <value>` (saved to the calibration
-file and sent) / `reload` (resend the file). The whole file is pushed whenever the Link connects."""
+file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
+dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart). The whole calibration
+file is pushed whenever the Link connects."""
 
 import glob
 import json
 import os
 import socket
+import sys
 import time
 from pathlib import Path
 
+from noggin.wifi import BEACON_PORT, COMMAND_PORT, Wifi
 from reactions.director import Director
 
 SOCK = os.path.expanduser("~/.noggin.sock")  # AF_UNIX paths max 104 bytes: keep it short
 MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
+WIFI_FILE = CAL_FILE.with_name("wifi.json")  # the wizard writes it here and copies it to the Core
 PORT_GLOB = "/dev/cu.usbmodem*"
+CORES = ("eyes", "neck")
+USB_CORE = "eyes"  # shortcut: the one USB Link is assumed to be the eyes Core, until a second port is told apart
+GESTURES = ("eureka", "attention", "bored", "wince", "wink")
+DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"}
+SEQUENCE = ["eureka 1", "eureka 2", "eureka 3", "attention 2", "bored 2", "wince 2", "wink 3", "thinking", "rest"]
+HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
 def log(*a):
     print(time.strftime("%H:%M:%S"), *a, flush=True)
+
+
+def gesture_seconds(line, cal):
+    """How long the Core plays `line`, from the eye program's own clock (eyes/replay.py)."""
+    if line in HOLD:
+        return HOLD[line]
+    if str(CAL_FILE.parent) not in sys.path:
+        sys.path.append(str(CAL_FILE.parent))
+    import replay
+
+    return replay.play([line], cal)[1] / 1000
 
 
 def open_link():
@@ -40,11 +62,37 @@ def open_link():
 
 
 class Service:
-    def __init__(self, sock_path=SOCK, open_serial=open_link, mute_file=MUTE_FILE, cal_file=CAL_FILE):
+    def __init__(
+        self,
+        sock_path=SOCK,
+        open_serial=open_link,
+        mute_file=MUTE_FILE,
+        cal_file=CAL_FILE,
+        wifi_file=WIFI_FILE,
+        beacon_port=BEACON_PORT,
+        command_port=COMMAND_PORT,
+        stale=6.0,
+        duration=gesture_seconds,
+        pause=5.0,
+    ):
         self.sock_path, self.open_serial, self.mute_file, self.cal_file = sock_path, open_serial, mute_file, cal_file
         self.director = Director()
         self.director.muted = self.mute_file.exists()
         self.link, self.last_probe, self.ready, self.running = None, 0.0, False, True
+        self.mode = "follow"  # or the demo command that is playing; never persisted, so a restart follows
+        self.duration, self.pause, self.demo, self.step, self.next_step = duration, pause, [], 0, 0.0
+        token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
+        self.wifi = Wifi(token, beacon_port, command_port, stale)
+
+    def status(self, now):
+        return "".join(f"{name} {self.link_status(name, now)}\n" for name in CORES) + f"mode {self.mode}\n"
+
+    def link_status(self, name, now):
+        if self.wifi.fresh(name, now):
+            return self.wifi.status(name)
+        if name == USB_CORE and self.link is not None:
+            return f"usb {getattr(self.link, 'port', '')} uptime n/a"  # the USB Link carries no beacon, so no uptime
+        return "offline"
 
     def stop(self):
         self.running = False
@@ -74,18 +122,56 @@ class Service:
             pass
         self.link = None
 
-    def send(self, lines):
-        if not lines or self.link is None:
-            if lines:
-                log("no Link, dropped", lines)
+    def send(self, lines, core="eyes"):
+        """Wi-Fi while the Core's beacon is fresh, else the USB Link (USB_CORE only), else a silent drop."""
+        if not lines:
             return
+        if self.wifi.fresh(core, time.time()):
+            try:
+                ok = self.wifi.send(core, lines)
+            except OSError as e:  # unroutable address, socket trouble: drop like the USB branch
+                return log("wifi error, dropped", core, repr(e))
+            return log("sent" if ok else "no ack, dropped", core, lines)
+        if core != USB_CORE or self.link is None:
+            return log("no Link, dropped", core, lines)
         try:
             self.link.write(("\n".join(lines) + "\n").encode())
             log("sent", lines)
         except Exception as e:  # pyserial raises SerialException(IOError)
             self.drop_link(e)
 
+    def start_demo(self, text):
+        line = text.removeprefix("demo").strip()
+        if line in ("", "once"):
+            lines = SEQUENCE
+        else:
+            line = line if line in DEMO_LINES else f"{line} 2"  # no level: the normal one
+            if line not in DEMO_LINES:
+                return log("unknown demo", repr(text))
+            lines = [line]
+        self.mode, self.demo, self.step, self.next_step = text, lines, 0, 0.0
+        log(text)
+
+    def follow(self):
+        self.mode = "follow"
+        log("following")
+        self.send([self.director.mode()])
+
+    def play_demo(self, now):
+        if now < self.next_step:
+            return
+        if self.mode == "demo once" and self.step == len(self.demo):
+            return self.follow()
+        line = self.demo[self.step % len(self.demo)]
+        self.step += 1
+        self.send([line])
+        self.next_step = now + self.duration(line, self.calibration()) + self.pause
+
     def command(self, text, now):
+        if text.split()[0] == "demo":
+            return self.start_demo(text)
+        if text == "follow":
+            return self.follow()
         if text == "off":
             self.mute_file.touch()
             log("muted")
@@ -110,6 +196,8 @@ class Service:
                 event = json.loads(text)
             except ValueError:
                 return log("bad json")
+            if self.mode != "follow":
+                return log(self.mode, "dropped", event.get("hook_event_name"))
             return self.send(self.director.handle(event, now))
         if text.split()[0] in MANUAL:
             return self.send([text])
@@ -132,7 +220,14 @@ class Service:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
-            self.send(self.director.tick(now))
+            if "eyes" in self.wifi.poll(now):
+                self.send(
+                    self.cal_lines() + [self.director.mode()]
+                )  # a Core (back) on Wi-Fi: calibrate, catch up the mode
+            if self.mode == "follow":
+                self.send(self.director.tick(now))
+            else:
+                self.play_demo(now)
             if self.link is not None:
                 self.read_core()
             try:
@@ -145,10 +240,13 @@ class Service:
                     data = conn.recv(65536).decode()
                 except (TimeoutError, UnicodeDecodeError):
                     data = ""
-            for line in data.splitlines():
-                if line.strip():
-                    self.command(line.strip(), now)
+                for line in data.splitlines():
+                    if line.strip() == "status":
+                        conn.sendall(self.status(now).encode())
+                    elif line.strip():
+                        self.command(line.strip(), now)
         srv.close()
+        self.wifi.close()
 
 
 if __name__ == "__main__":

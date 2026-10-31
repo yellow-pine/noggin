@@ -34,8 +34,8 @@ Horn = namedtuple(
 Sub = namedtuple(
     "Sub", "parts horns placements ports"
 )  # ports: {Port name: (part, local mm)}, as the Fusion builds name them
-Stage = namedtuple(
-    "Stage", "doc parts horns placements up ports"
+Doc = namedtuple(
+    "Doc", "doc parts horns placements up ports"
 )  # up: index of the document frame's up axis (gravity torque)
 Pose = namedtuple("Pose", "parts joints")
 
@@ -97,7 +97,7 @@ def servo_placements(key, label):
 
 
 def servo_port(label):
-    """Where the servo's lead leaves it (its cable exit): the Port the cable reach measures from."""
+    """Where the servo's lead leaves it (its cable exit): the Port its cable corridor starts from (model/engine/cables.py)."""
     return {f"{label} servo lead": (f"{label} servo:1", g.SERVO_STEP["lead"])}
 
 
@@ -361,7 +361,7 @@ def assemble(doc, frames, up, context=()):
                             todo.append(n)
                 loops.append(loop._replace(rockers=rockers))
             horns[h] = horn._replace(loops=loops)
-    return Stage(doc, parts, horns, placements, up, ports)
+    return Doc(doc, parts, horns, placements, up, ports)
 
 
 def stage(doc):

@@ -1,6 +1,5 @@
 """Every picture of the model, rendered in Blender from the engine's poses (#47; rules in docs/model-notes.md).
-`views` (`make render`): top/side/front of each sub-assembly and Stage, the stage 3 hero, the Stage strip and the
-stage 1 three-quarter still. `gifs` (`make gifs`): the six gestures on stage 1, posed per 100 ms frame from the Core
+`views` (`make render`): top/side/front of each sub-assembly and Stage, the stage 3 hero and the Stage strip. `gifs` (`make gifs`): the six gestures on stage 1, posed per 100 ms frame from the Core
 program's own commands (model/traces.py), at 10 fps, each with a contact sheet.
 Usage: python -m model.render.pictures views|gifs [name ...]   (Blender at $BLENDER)"""
 
@@ -33,7 +32,7 @@ DOCS = {  # picture name: (sub-assembly frames, views); the mouth is shown on th
 VIEW_SIZE, GIF_SIZE, STRIP_PANEL = (1600, 1200), (600, 450), (800, 600)
 STRIP = [("stage1", "front"), ("stage2", "side"), ("stage3", "side"), ("stage3", "front")]  # the README's Stage strip
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
-# gestures and the three-quarter still: the Mech's front-right (right eye nearest), 25 deg up, framed on the eyes
+# gestures: the Mech's front-right (right eye nearest), 25 deg up, framed on the eyes
 THREE_QUARTER = camera.three_quarter((0, -1, 0), (-1, 0, 0), g.Z, 25)
 HERO = (0, -math.cos(math.radians(10)), math.sin(math.radians(10)))  # stage 3 from the front, a little above
 GIF_FPS, GIF_MAX_BYTES = 10, 1_000_000
@@ -80,7 +79,7 @@ def blender(name, manifest, shots):
 
 
 def views(names=None):
-    """Top/side/front of every picture document, the hero, the three-quarter still and (all Stages present) the strip."""
+    """Top/side/front of every picture document, the hero and (all Stages present) the strip."""
     plans = {}
     for name, (frames, dirs) in DOCS.items():
         if not names or name in names:
@@ -106,9 +105,6 @@ def views(names=None):
                 )
         if name == "stage3":
             shots.append(shot("hero.png", VIEW_SIZE, camera.fit(pts, HERO, g.Z, aspect, LENS, MARGIN), mats))
-        if name == "stage1":
-            eyes = points(hulls, mats, set(stages.eyes().parts))
-            shots.append(shot("stage1-three-quarter.png", VIEW_SIZE, gesture_camera(eyes, aspect), mats))
         blender(name, manifest, shots)
         print(f"{name}: {len(shots)} pictures")
     if len(panels) == len(STRIP):
@@ -119,7 +115,7 @@ def views(names=None):
 
 def gesture_camera(eye_points, aspect):
     """Stage 1 from its front-right, 25 deg up, framed on the eyes (the base's front shows below them)."""
-    return camera.fit(eye_points, THREE_QUARTER, g.Z, aspect, LENS, 1.12)  # room for the lids at their widest
+    return camera.fit(eye_points, THREE_QUARTER, g.Z, aspect, LENS, 1.04)
 
 
 def gifs(names=None):
@@ -130,19 +126,19 @@ def gifs(names=None):
 
     names = names or list(traces.GESTURES)
     stage, manifest, hulls = prepare("stage1", g.STAGES["noggin-stage1"])
-    rest = metres({n: p.matrix for n, p in stage.parts.items()})
-    cam = gesture_camera(points(hulls, rest, set(stages.eyes().parts)), GIF_SIZE[0] / GIF_SIZE[1])
+    poses = {name: [metres(scene.pose(stage, f)) for f in traces.record(name)] for name in names}
+    eyes = set(stages.eyes().parts)
+    # one camera for every gesture, fitted to the eyes in all their frames: lids at their widest stay in
+    cam = gesture_camera(
+        np.concatenate([points(hulls, m, eyes) for frames in poses.values() for m in frames]), GIF_SIZE[0] / GIF_SIZE[1]
+    )
     shots = []
-    for name in names:
+    for name, frames in poses.items():
         folder = os.path.join(OUT, "gifs", name)
         os.makedirs(folder, exist_ok=True)
         for old in os.listdir(folder):
             os.remove(os.path.join(folder, old))
-        frames = traces.record(name)
-        shots += [
-            shot(os.path.join(folder, f"{i:03d}.png"), GIF_SIZE, cam, metres(scene.pose(stage, f)))
-            for i, f in enumerate(frames)
-        ]
+        shots += [shot(os.path.join(folder, f"{i:03d}.png"), GIF_SIZE, cam, m) for i, m in enumerate(frames)]
     blender("stage1", manifest, shots)
     for name in names:
         encode(os.path.join(OUT, "gifs", name), os.path.join(OUT, name))
@@ -152,7 +148,10 @@ def encode(frames, out):
     """frames/NNN.png -> out.gif (10 fps, one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
-    palette = "split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle"
+    palette = (  # 480 wide, 64 colours: bored's 117 frames fit 1 MB (600 wide or 96 colours did not)
+        "scale=480:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];"
+        "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
+    )
     ffmpeg("-framerate", str(GIF_FPS), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
     size = os.path.getsize(out + ".gif")
     if size > GIF_MAX_BYTES:
