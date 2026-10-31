@@ -92,3 +92,35 @@ _Avoid_: firmware, app, code, sketch
 **Firmware**:
 The MicroPython image flashed into the Core by Bambu's tools. Never modified by this project.
 _Avoid_: program, image, OS
+
+### Twin
+
+**Twin**:
+The Fusion 360 assembly of every stage and every piece of hardware, 1:1 with the physical Mech.
+_Avoid_: model, CAD, simulation
+
+**Stage**:
+One of the designer's three builds, eyes, pan-tilt or mouth, each its own Fusion design.
+_Avoid_: part, module, phase
+
+**Sub-assembly**:
+A Stage's design as inserted into the top assembly.
+
+**Horn**:
+The printed arm on a servo spline; the driven link of every chain.
+_Avoid_: arm, lever
+
+**Bar**:
+A straight link between two Pivots: eyeball bar, eyelid bar, connector bar.
+_Avoid_: rod, linkage
+
+**Crank**:
+The bent eyelid bar that turns Horn rotation into lid rotation.
+
+**Pivot**:
+A revolute axis between two parts; in the Twin, a Fusion joint.
+_Avoid_: hinge, axle
+
+**Port**:
+A named point on a connector where a cable plugs in.
+_Avoid_: socket, header

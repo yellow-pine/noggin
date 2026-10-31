@@ -1,0 +1,157 @@
+{
+ "clearance_mm": 3.0,
+ "step_deg": 10,
+ "min_distance_mm": {
+  "l_eye": {
+   "mm": 6.45,
+   "at_deg": -20,
+   "on_part": [
+    20.5,
+    -0.2,
+    -0.4
+   ],
+   "on_mask": [
+    27.0,
+    -0.2,
+    -0.4
+   ]
+  },
+  "r_eye": {
+   "mm": 6.48,
+   "at_deg": 30,
+   "on_part": [
+    38.5,
+    1.0,
+    -0.8
+   ],
+   "on_mask": [
+    32.0,
+    1.0,
+    -0.8
+   ]
+  },
+  "l_lid_in": {
+   "mm": 3.0,
+   "at_deg": -20,
+   "on_part": [
+    24.0,
+    2.7,
+    -3.6
+   ],
+   "on_mask": [
+    27.0,
+    2.7,
+    -3.6
+   ]
+  },
+  "l_lid_out": {
+   "mm": 3.0,
+   "at_deg": 30,
+   "on_part": [
+    24.0,
+    -3.2,
+    -2.6
+   ],
+   "on_mask": [
+    27.0,
+    -3.2,
+    -2.6
+   ]
+  },
+  "r_lid_in": {
+   "mm": 3.0,
+   "at_deg": -20,
+   "on_part": [
+    35.0,
+    3.5,
+    -2.8
+   ],
+   "on_mask": [
+    32.0,
+    3.5,
+    -2.8
+   ]
+  },
+  "r_lid_out": {
+   "mm": 3.0,
+   "at_deg": 30,
+   "on_part": [
+    35.0,
+    -7.5,
+    -7.2
+   ],
+   "on_mask": [
+    32.0,
+    -7.5,
+    -7.2
+   ]
+  }
+ },
+ "violations": [
+  {
+   "part": "l_lid_out",
+   "deg": -20,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "l_lid_out",
+   "deg": -10,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "l_lid_out",
+   "deg": 0,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "l_lid_out",
+   "deg": 10,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "l_lid_out",
+   "deg": 20,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "l_lid_out",
+   "deg": 30,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_in",
+   "deg": -20,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": -20,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": -10,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": 0,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": 10,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": 20,
+   "distance_mm": 3.0
+  },
+  {
+   "part": "r_lid_out",
+   "deg": 30,
+   "distance_mm": 3.0
+  }
+ ]
+}
