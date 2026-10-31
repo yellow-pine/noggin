@@ -1,4 +1,4 @@
-# robohead
+# noggin
 
 An animatronic eye mech on a desk that reacts when Claude Code finishes a response or needs attention. This glossary covers the physical mech, the board program, and the Mac-side process that connects them.
 

@@ -1,6 +1,6 @@
-# robohead
+# noggin
 
-Animatronic eye mech (Bambu Lab CyberBrick) driven from this Mac so the eyes react when Claude Code finishes a response.
+Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan-tilt, mouth). Part 1, the eyes, reacts when Claude Code finishes a response. Public repo: github.com/yellow-pine/noggin, PolyForm Noncommercial 1.0.0.
 
 ## Directives from Cansin
 
@@ -10,7 +10,7 @@ Animatronic eye mech (Bambu Lab CyberBrick) driven from this Mac so the eyes rea
 
 ## Layout
 
-- `docs/` — build PDFs and the CyberBrick remote-template JSON exports (reference only).
+- `docs/` — original build notes, build photo, ADRs. PurpleShark's PDFs/JSONs are NOT redistributable (MakerWorld Standard Digital File License, no derivatives); they live outside the repo in ~/Documents/cyberbrick-eyes-sources/.
 - Keep it minimal: the `ponytail` plugin (anti-overengineering) and `mattpocock-skills` are installed at user scope and should guide design here. Prefer the smallest thing that works.
 
 ## Hardware facts (researched 2026-10-31)
@@ -20,7 +20,7 @@ Animatronic eye mech (Bambu Lab CyberBrick) driven from this Mac so the eyes rea
 - Stock `boot.py` runs the RC app forever; a custom project must ship its own `boot.py`.
 - Servo ports 1-4 = GPIO3, GPIO2, GPIO1, GPIO0, 50 Hz PWM. Official lib: `bbl.servos.ServosController` (`set_angle(idx, angle)`), or plain `machine.PWM`.
 - USB alone powers the Core but not the servos reliably; the X11 shield wants 7.4-12.6 V on its XH2.54 power port.
-- Servo ranges from the remote config (`docs/eyes.json`): L lids 75-120, L eye 60-120, R lids 70-120, R eye 75-120, centre 90.
+- Servo ranges from the remote config (the designer's remote config): L lids 75-120, L eye 60-120, R lids 70-120, R eye 75-120, centre 90.
 
 ## Design decisions (grilled 2026-10-31)
 
