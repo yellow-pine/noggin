@@ -41,7 +41,8 @@ electronics set 1, switch 1, battery 1; noggin-stack: upright, tilt arm, bearing
 switch 2, battery 2; noggin-eyes; noggin-mouth). Three Stage designs insert them by reference: noggin-stage1 =
 base + eyes with the stem in the pan recess (the desk today), noggin-stage2 = base + stack + eyes on the tilt arm,
 noggin-stage3 = stage 2 + mouth, the full Mech. Simulation, photo comparison and reports run per Stage; the
-"top assembly" is Stage 3.
+"top assembly" is Stage 3. (#81: one pack and switch board on noggin-base feed both shields through a Y lead, as the
+pan-tilt guide builds it; noggin-stack carries receiver shield 2 and Core 2 only.)
 
 ### Implemented 2026-10-31 (#17)
 

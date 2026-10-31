@@ -37,10 +37,18 @@ BEHIND = {
     for s, x in (("L", 21.5), ("R", 37.5))
 }
 GATHER = ("main bracket v2:1", (23.5, -38.5, 34.5), "gathered behind the bracket stem, guide step 18 photo (inferred)")
+# The eyes build's cable holder on its posts (6, 68.5..92.5), z 13..16: the eye leads pass under it on the plate (Cansin's
+# build, docs/build-photos/eyes-top.jpg; pan-tilt guide step 18: "Move the original cable hold ... Pass the servo wires
+# under the cable holder").
+CABLE_HOLDER = (
+    "PandT base:1",
+    (6.0, 80.5, 7.0),
+    "under the cable holder, eyes-top build photo and guide step 18 (inferred)",
+)
 NECK = [
     ("tilt arm:1", (5.5, 36.0, 38.0), "zip-tied behind the tilt arm's back, guide step 18 photo (inferred)"),
     ("upright v2:1", (5.5, 36.0, 20.0), "down behind the upright, guide step 18 photo (inferred)"),
-    ("wire holder:1", (0.0, 40.5, 6.0), "under the cable holder on the base, guide step 18 (inferred)"),
+    CABLE_HOLDER,
 ]
 DESK = {
     s: [
@@ -49,7 +57,7 @@ DESK = {
             (x, -34.5, 48.5),
             "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
         ),
-        ("PandT base:1", (0.0, 40.5, 6.0), "under the wire keeper on the base, eyes guide step 2 (inferred)"),
+        CABLE_HOLDER,
     ]
     for s, x in (("L", 21.5), ("R", 37.5))
 }
@@ -77,23 +85,40 @@ ROUTES = {
     "pan servo -> Core 2 PWM3": [
         [("wire holder:1", (-5.0, 40.5, 6.0), "under the cable holder, guide steps 8-9 (inferred)")]
     ],
-    **{
-        f"pack {n} -> switch {n}": [
-            [("PandT base:1", (-20.0, 118.0, 6.0), "out of the battery box's back corner onto the plate (inferred)")]
+    # The pack's lead leaves its front end, crosses the plate and runs back up the middle to the switch board's input
+    # socket (Cansin's build, docs/build-photos/eyes-top.jpg; guide p.23 photo).
+    "pack 1 -> switch 1": [
+        [
+            (
+                "PandT base:1",
+                (-18.0, 66.0, 6.0),
+                "out of the pack's front end past the box's front corner, build photo (inferred)",
+            ),
+            (
+                "PandT base:1",
+                (12.0, 100.0, 6.0),
+                "back up the middle of the plate to the switch board, build photo (inferred)",
+            ),
         ]
-        for n in (1, 2)
-    },
+    ],
+    # The Y lead leaves the switch board's output over the plate's +x edge and runs along it into each shield's XH socket
+    # from +x (Cansin's build for shield 1, the photo's loop; guide p.23 photo for both branches).
     **{
-        f"switch {n} -> shield {n}": [
+        f"switch 1 -> shield {n}": [
             [
                 (
                     "PandT base:1",
-                    (25.0, 52.0 + 33.0 * (n - 1), 6.0),
-                    "along the plate to the shield's XH socket (inferred)",
-                )
+                    (59.0, 110.0, 4.0),
+                    "over the plate's +x edge below the switch board, build photo (inferred)",
+                ),
+                (
+                    "PandT base:1",
+                    (59.0, y, 4.0),
+                    "along the +x edge to the shield, build photo and guide p.23 (inferred)",
+                ),
             ]
         ]
-        for n in (1, 2)
+        for n, y in ((1, 56.0), (2, 89.0))
     },
 }
 # The part each clip is mounted on: exempt with it (a lead lies against what holds it).
@@ -258,6 +283,9 @@ def corridors(stage, placed, step, routes=None):
                 gap = round(clearance(home, placed[m], RADIUS_MM), 2)
                 if gap < c["clearance_mm"]:
                     c.update(clearance_mm=gap, clearance_at=at, clearance_part=m)
+    for c in out.values():  # the slack is for movement (guide step 18): a lead no pose stretches needs none
+        if c["min_mm"] == c["max_mm"]:
+            c["limit_mm"] = c["length_mm"]
     return out, centrelines
 
 

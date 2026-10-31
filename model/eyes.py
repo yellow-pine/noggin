@@ -47,7 +47,7 @@ def run(_context: str):
         m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
         part(key + "_servo", "servo", f"{label} servo", m)
         leads[key + "_servo"] = (f"{label} servo lead", at(m, SERVO_STEP["lead"]))
-        arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X  # single arm: toward the bar pin
+        arm = LID_HORN_ARM if "lid" in key else (-1, 0, 0) if key == "l_eye" else X  # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
         outer = add(seat, tuple(HORN_STEP["height"] * c for c in shaft))
         part(key + "_horn", "horn", f"{label} horn", align(outer, arm, [-c for c in shaft], HORN_STEP["hub"]))
@@ -60,7 +60,7 @@ def run(_context: str):
         for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = LID_LINKS[key]
             hx, lx = (side(s, (x, 0, 0))[0] for x in spec["x"])
-            horn_pin = (hx, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
+            horn_pin = (hx, *(c + HORN_STEP["pin"] * a for c, a in zip(lid_horn[1:], LID_HORN_ARM[1:])))
             lid_pin = (lx,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl}"
             steps.append(

@@ -1,5 +1,5 @@
-"""Build or rebuild the Fusion design `noggin-base` (project Noggin): the PandT base plate in the PT frame with electronics
-set 1 (receiver shield 1 with its Core on the front standoffs, switch board 1, battery 1) and Ports on its connectors.
+"""Build or rebuild the Fusion design `noggin-base` (project Noggin): the PandT base plate in the PT frame with receiver
+shield 1 with its Core on the front standoffs, the one switch board and pack, the cable holder and Ports on the connectors.
 What the desk build sits on and every Stage document (model/stage.py) inserts by reference; all grounded, no joints.
 Runs INSIDE Fusion: `make model-base`. Reuse as in eyes.py (fingerprints, fusion_lib)."""
 

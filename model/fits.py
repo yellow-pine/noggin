@@ -2,6 +2,7 @@
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
 prints the eyes table. Designer STLs: docs/references (local only)."""
 
+import functools
 import math
 import os
 import struct
@@ -24,6 +25,7 @@ def stl(name, folder=EYES_MODELS):
     return os.path.join(folder, name + ".stl")
 
 
+@functools.cache
 def vertices(path):
     d = open(path, "rb").read()
     n = struct.unpack_from("<I", d, 80)[0]
@@ -32,14 +34,15 @@ def vertices(path):
     return {tuple(float(t) for t in l.split()[1:]) for l in d.decode().splitlines() if l.strip().startswith("vertex")}
 
 
-def fit_circle(path, centre, axis, half, expect_r):
+def fit_circle(path, centre, axis, half, expect_r, within=(0.6, 1.8)):
     """Least-squares circle (Kasa) through the STL vertices within `half` mm of `centre` along `axis` and within
-    0.6..1.8 x expect_r of it radially (a hole's wall vertices sit on its two mouth rings, so `half` spans the part).
-    Returns r, the centre offset from `centre` and the rms radial residual (large = not round: slot or countersink)."""
+    `within` x expect_r of it radially (a hole's wall vertices sit on its two mouth rings, so `half` spans the part).
+    Returns r, the fitted centre, its offset from `centre` and the rms radial residual (large = not round: slot or
+    countersink)."""
     i = "xyz".index(axis)
     u, v = [k for k in range(3) if k != i]
     pts = [(p[u] - centre[u], p[v] - centre[v]) for p in vertices(path) if abs(p[i] - centre[i]) <= half]
-    pts = [p for p in pts if 0.6 * expect_r <= math.hypot(*p) <= 1.8 * expect_r]
+    pts = [p for p in pts if within[0] * expect_r <= math.hypot(*p) <= within[1] * expect_r]
     if len(pts) < 3:
         raise ValueError(f"{os.path.basename(path)}: no vertices around {centre} {axis}")
     # x^2 + y^2 + a x + b y + c = 0, normal equations solved by elimination
@@ -69,7 +72,15 @@ def fit_circle(path, centre, axis, half, expect_r):
     x0, y0 = -a / 2, -b / 2
     r = math.sqrt(x0 * x0 + y0 * y0 - c)
     rms = math.sqrt(sum((math.hypot(x - x0, y - y0) - r) ** 2 for x, y in pts) / len(pts))
-    return {"r": round(r, 3), "offset": round(math.hypot(x0, y0), 3), "rms": round(rms, 3), "n": len(pts)}
+    c = list(centre)
+    c[u], c[v] = centre[u] + x0, centre[v] + y0
+    return {
+        "r": round(r, 3),
+        "centre": tuple(c),
+        "offset": round(math.hypot(x0, y0), 3),
+        "rms": round(rms, 3),
+        "n": len(pts),
+    }
 
 
 def fit_table(joints):

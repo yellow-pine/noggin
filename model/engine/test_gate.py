@@ -25,13 +25,27 @@ KNOWN = {
     ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"
 }
 
-# Parts #62 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
+# Parts #62 and #67 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
 # docs/research/2026-10-31-shafts.md) after the recorded Fusion builds: their recorded boxes predate the move. Their
 # curves and distances still meet the gate. Drop a name once its Fusion design is rebuilt and its box re-recorded.
 MOVED = {
     "noggin-eyes": {f"{s} {k} {p}:1" for s in "LR" for k in ("lid", "eye") for p in ("servo", "horn")},
     "noggin-mouth": {"jaw servo:1", "jaw horn:1", "connector bar:1"},
-    "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")},
+    "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")}
+    | {"servo mount plain:1", "servo mount cutout:1"}  # swapped by the mating check (#67, geometry.MOUNT_SWAP_Y)
+    | {"receiver shield 1:1", "receiver shield 2:1"},  # on the STL's standoff tops, z 16 (#81)
+}
+# Parts a recorded Fusion box still names that the model no longer places (#81: one pack and switch board, the Cores
+# under the shields; the switch board 1 rename from #79) or records as one occurrence.
+GONE = {
+    "noggin-pan-tilt": {
+        "switch board 1 (inferred):1",
+        "switch board 2 (inferred):1",
+        "battery 2 (inferred):1",
+        "Core 1 (flipped onto the shield top, per photo):1",
+        "Core 2 (flipped onto the shield top, per photo):1",
+    },
+    "noggin-mouth": {"noggin-eyes:1"},  # Fusion's context copy of the eyes, assembled separately by the engine
 }
 
 _reports, _scenes = {}, {}
@@ -111,7 +125,7 @@ def test_every_part_sits_inside_its_recorded_fusion_box(doc):
     for name in sorted(set(recorded) & set(mine)):
         if name not in MOVED.get(doc, ()) and _out_of_box(recorded[name], mine[name], name):
             off.append((name, round(_out_of_box(recorded[name], mine[name], name), 2)))
-    assert off == [] and len(set(recorded) & set(mine)) >= len(recorded) - 1  # pan-tilt renamed switch board 1
+    assert off == [] and set(recorded) - set(mine) <= GONE.get(doc, set())
 
 
 def _out_of_box(rec, got, name):

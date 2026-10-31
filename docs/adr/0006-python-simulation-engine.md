@@ -28,5 +28,5 @@ Dependencies added: numpy, scipy, trimesh.
 ## Update 2026-10-31 (#45, #47)
 
 `make sim` writes model/reports/<doc>-sim.json, committed and stamped with a hash of its inputs (geometry tables,
-engine code, part fingerprints, the Core program's gestures); CI fails on a reported collision, an over-length lead
-or a stale stamp. Every picture is rendered in Blender from the engine's poses (docs/model-notes.md).
+engine code, part fingerprints, the Core program's gestures); CI fails on a reported collision, an over-length lead,
+a mating mismatch (#67: holes and shafts coaxial within 0.2 mm, servos in their pockets) or a stale stamp. Every picture is rendered in Blender from the engine's poses (docs/model-notes.md).
