@@ -18,7 +18,7 @@ animatronic series on MakerWorld ([eyes](https://makerworld.com/en/models/171883
 [pan & tilt](https://makerworld.com/en/models/1766064), [mouth](https://makerworld.com/en/models/1861301)):
 noggin uses almost all of its printed parts and hardware exactly as designed, and owes its
 existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
-the Claude Code hooks, the Fusion model and the simulation.
+the Claude Code hooks, the model and the simulation.
 
 ![The full Mech (Stage 3) rendered from the model: eyes on the pan-tilt stack with the mouth, in the real spool colours](docs/images/stage3-front.jpg)
 
@@ -69,8 +69,8 @@ flowchart LR
   socket, times each Turn to pick a Tier, and drops Triggers while Busy (ADR 0003). Hooks write one line and exit.
 - **Links**: Wi-Fi first, USB-C as the automatic fallback; each Core beacons on the LAN and is addressed
   directly (ADR 0005, PR #30). USB stays the only path for flashing.
-- **The model** (`model/`): four Sub-assemblies inserted by reference into three cumulative Stages in Fusion 360, with a Python simulation engine
-  that sweeps every linkage before a part is printed (ADRs 0004 and 0006, PR #31).
+- **The model** (`model/`): our own CadQuery parts in four Sub-assemblies and three cumulative Stages, posed by a Python
+  simulation engine that sweeps every linkage before a part is printed (ADRs 0004 and 0006, PR #31).
 
 Vocabulary is in `GLOSSARY.md`; decisions in `docs/adr/`.
 
@@ -122,17 +122,13 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 
 ![The three Stages rendered from the model: stage 1 front (base + eyes), stage 2 side (eyes on the tilt arm), stage 3 side and front (with the mouth)](docs/images/stages.jpg)
 
-`model/` builds the Mech in Fusion 360 and simulates it in Python (PR #31):
+`model/` is the Mech as code, simulated in Python (PR #31):
 
-- Four sub-assemblies own the parts once (base, stack, eyes, mouth); three Stage designs insert them
-  by reference: Stage 1 = base + eyes, Stage 2 = + stack on the tilt arm, Stage 3 = + mouth (ADR 0004).
-- A parts library: every STL and STEP converted once, with the real spool colours and PLA density
-  (`make model-parts`); the documents rebuild from it (`make model-eyes`, `model-base`, `model-stack`, `model-mouth`,
-  `model-stage1`..`3`).
+- Four sub-assemblies own the parts once (base, stack, eyes, mouth); three Stages place them at frames:
+  Stage 1 = base + eyes, Stage 2 = + stack on the tilt arm, Stage 3 = + mouth (ADR 0004).
 - A Python simulation engine (`model/engine/`, run by `make sim`): planar four-bar solver, rigid mesh
-  transforms, KD-tree contact screen, mass and torque, the electrical budget. Fusion builds the
-  documents; Blender renders every picture from the engine's poses; the sweeps run in seconds without
-  Fusion (ADR 0006).
+  transforms, KD-tree contact screen, mass and torque, the electrical budget, in seconds. Blender renders
+  every picture from the engine's poses (ADR 0006).
 - Our own parametric CadQuery parts (`model/printed/`) and hardware envelopes (`model/envelopes.py`), so CI
   simulates the Mech with none of the designers' files; every picture draws them.
 

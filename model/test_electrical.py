@@ -25,7 +25,7 @@ def test_both_cores_listen_on_wifi_in_every_scenario():
 
 
 def test_leads_run_every_servo_to_its_header_and_the_one_pack_through_its_switch_and_a_y_lead_to_both_shields():
-    leads = {name: (a, b, mm) for name, a, b, mm in electrical.leads()}  # Port names, as the Fusion builds name them
+    leads = {name: (a, b, mm) for name, a, b, mm in electrical.leads()}  # stages.py Port names
     assert len(leads) == 7 + 1 + 2
     assert leads["l_eye servo -> Core 1 PWM2"] == ("L eye servo lead", "Core 1 servo PWM2", 250)
     assert leads["pan servo -> Core 2 PWM3"][0] == "pan servo lead"

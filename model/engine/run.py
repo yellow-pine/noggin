@@ -1,6 +1,6 @@
 """The simulation (`make sim`, ADR 0006): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) drive each horn from its minimum to its maximum limit in STEP_DEG steps, measure the moving chain
-against every other part (contacts vs penetrations as the Fusion sweep judged them), record the driven joint angles and
+against every other part (contacts vs penetrations), record the driven joint angles and
 centres of mass per pose, the placements, bounding boxes and masses, the cable corridors (model/engine/cables.py), then
 fold in torque, curves, fits and beams (model/sim.py), the mating check (model/engine/mating.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
 model/test_report.py reads, and model/build/<doc>-corridors.ply. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past

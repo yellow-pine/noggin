@@ -1,9 +1,8 @@
 """The Mech as data for the engine: the four sub-assemblies (base, stack, eyes, mouth: every part with its mesh file,
-neutral placement and material, the horns and their four-bar chains) built from model/geometry.py exactly as the Fusion
-builders place them (model/base.py, stack.py, eyes.py, mouth.py: the same align() frames and link() hole alignment), and
-assemble() putting sub-assemblies at frames into one document: the recorded sweep documents (model/reports) and the Stage
-configurations of geometry.STAGES. pose() gives every part's world transform at a horn angle. Part names carry Fusion's
-":1" occurrence suffix so reports line up with the recorded ones."""
+neutral placement and material, the horns and their four-bar chains) built from model/geometry.py (align() frames and
+link() hole alignment), and assemble() putting sub-assemblies at frames into one document: the recorded sweep documents
+(model/reports) and the Stage configurations of geometry.STAGES. pose() gives every part's world transform at a horn
+angle. Part names carry the recorded sweeps' ":1" suffix so reports line up with them."""
 
 import math
 import os
@@ -29,7 +28,7 @@ Horn = namedtuple(
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4
 Sub = namedtuple(
     "Sub", "parts horns placements ports"
-)  # ports: {Port name: (part, local mm)}, as the Fusion builds name them
+)  # ports: {Port name: (part, local mm)}, as the recorded sweeps name them
 Doc = namedtuple(
     "Doc", "doc parts horns placements up ports"
 )  # up: index of the document frame's up axis (gravity torque)
@@ -37,7 +36,7 @@ Pose = namedtuple("Pose", "parts joints")
 
 
 def align(*frames, **kw):
-    """4x4 taking the local frame onto the world frame, mm (geometry.align_rows, the Fusion builds' frames)."""
+    """4x4 taking the local frame onto the world frame, mm (geometry.align_rows)."""
     return np.array(g.align_rows(*frames, **kw))
 
 
@@ -66,7 +65,7 @@ def part(file, matrix=None, material=None, clip=None):
 
 
 def link(stage, stl_key, hole_a, hole_b, normal):
-    """The local-frame link STL with its holes on hole_a/hole_b (world mm), hole axis along normal (fusion_lib.link)."""
+    """The local-frame link STL with its holes on hole_a/hole_b (world mm), hole axis along normal."""
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     m = align(hole_a, np.subtract(hole_b, hole_a), normal, la, np.subtract(lb, la), spec["hole_axis"])
@@ -186,7 +185,7 @@ def eyes():
 
 def electronics(n):
     """(parts, ports): receiver shield n with its Core plugged in under it; set 1 adds the one switch board, the pack and the
-    eyes build's cable holder on the PandT base (model/electronics.py)."""
+    eyes build's cable holder on the PandT base."""
     receiver_m = align(g.receiver_at(n), *g.RECEIVER_AXES)
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
     shield = f"receiver shield {n}:1"
@@ -207,8 +206,7 @@ def electronics(n):
 
 
 def base():
-    """noggin-base: the PandT base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame
-    (model/base.py)."""
+    """noggin-base: the PandT base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame."""
     set1, ports = electronics(1)
     parts = {"PandT base:1": part(stl("pt", "PandT base"), None, printed("PandT base")), **set1}
     stand = g.STANDOFFS["pt_base"]
@@ -221,7 +219,7 @@ def base():
 
 
 def stack():
-    """noggin-stack: the pan-tilt neck with receiver shield 2 and Core 2, PT frame (model/stack.py)."""
+    """noggin-stack: the pan-tilt neck with receiver shield 2 and Core 2, PT frame."""
     parts = {}
     for name, stem, shift in g.STACK_PARTS:
         parts[name + ":1"] = part(stl("pt", stem), translate(shift), printed(stem))
@@ -266,7 +264,7 @@ def stack():
 
 
 def mouth():
-    """noggin-mouth's own parts, eyes frame (model/mouth.py; its context copy of the eyes is assembled separately)."""
+    """noggin-mouth's own parts, eyes frame (its context copy of the eyes is assembled separately)."""
     parts = {}
     for name, stem in g.MOUTH_PARTS:
         parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
@@ -299,8 +297,8 @@ BASE_IN_EYES = (
     g.Y,
 )  # the base as the eyes/mouth sweep documents carried it (context)
 # Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames,
-# with the sub-assemblies they carried as grounded context: no horns swept, as Fusion sweeps root joints only) and the
-# Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as fusion_lib.align.
+# with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
+# Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {
     "noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
     "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
@@ -322,7 +320,7 @@ RIDES = {
 def assemble(doc, frames, up, context=()):
     """One document: each sub-assembly's parts and horns carried to its frame (parts static there unless a horn moves
     them); `context` sub-assemblies bring parts only. In a Stage configuration the eyes are clamped to STEM_IN's part
-    and the mouth to the bracket (model/stage.py's as-built joints), so they ride every chain that part rocks on.
+    and the mouth to the bracket (as built), so they ride every chain that part rocks on.
     Part names are unique across the sub-assemblies by construction."""
     parts, horns, placements, owner, ports = {}, {}, [], {}, {}
     for name, frame in frames.items():

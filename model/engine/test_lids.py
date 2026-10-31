@@ -7,9 +7,9 @@ from model.engine import lids
 
 
 @pytest.mark.parametrize("side", "LR")
-def test_closed_and_open_lie_either_side_of_the_fusion_renders(side):
+def test_closed_and_open_lie_either_side_of_the_recorded_renders(side):
     closed, opened = lids.ends(side)
-    # Fusion front render 2026-10-31 (noggin-eyes): horn -25 shows a slit, +25 the whole eyeball
+    # front render 2026-10-31 (noggin-eyes): horn -25 shows a slit, +25 the whole eyeball
     assert -35 < closed < -25 and 25 < opened <= g.HORN_LIMITS[f"{side.lower()}_lid"][1] - 90
 
 

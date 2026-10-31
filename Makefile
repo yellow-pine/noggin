@@ -4,10 +4,8 @@ MPR   := $(REPO)/.venv/bin/mpremote
 BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
-# $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
-fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) model/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
+.PHONY: venv test check sim ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -76,15 +74,3 @@ render: venv ours   ## Blender pictures from the engine's poses: views, hero, St
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
 gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
-model-parts: venv   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
-	$(call fusion,model/parts.py)
-model-eyes: venv   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
-	$(call fusion,model/eyes.py)
-model-base: venv   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
-	$(call fusion,model/base.py)
-model-stack: venv   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
-	$(call fusion,model/stack.py)
-model-mouth: venv   ## rebuild the noggin-mouth Fusion design the same way
-	$(call fusion,model/mouth.py)
-model-stage1 model-stage2 model-stage3: venv   ## rebuild a Stage document from the saved sub-assemblies (noggin-stage1: base + eyes; 2: + stack; 3: + mouth)
-	$(call fusion,model/stage.py,-e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/')
