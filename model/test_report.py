@@ -14,7 +14,7 @@ HERE = os.path.dirname(__file__)
 
 def problems(report):
     """Every threshold the report fails: penetrations and misplaced parts (violations; a 0 mm contact with nothing
-    inside is designed), fits, beams, torque, tip-over, clutch, cable reach, the electrical cap and the calibrated ends."""
+    inside is designed), fits, beams, torque, tip-over, clutch, cable corridors (path length, clearance), the electrical cap and the calibrated ends."""
     out = [f"violation: {v}" for v in report["violations"]]
     for f in report.get("fits", []):
         if not f["ok"]:
@@ -46,11 +46,14 @@ def problems(report):
                 f"clutch {horn}: holding load over {c['limit_kgf_cm']} kgf.cm (0.9 / 1.5, decalibration risk) at "
                 f"{c['flagged']} deg, worst {c['hold_kgf_cm']} at {c['at_deg']}"
             )
-    for lead, c in report.get("cable_reach", {}).items():
+    for lead, c in report.get("corridors", {}).items():
         if c["max_mm"] > c["limit_mm"]:
             out.append(
-                f"cable {lead}: {c['max_mm']} mm at pan {c['at']['pan']} tilt {c['at']['tilt']} > {c['limit_mm']} "
-                f"({c['length_mm']} mm lead less 20 slack)"
+                f"corridor {lead}: {c['max_mm']} mm at {c['at']} > {c['limit_mm']} ({c['length_mm']} mm lead less 20 slack)"
+            )
+        if c["clearance_mm"] < 0:  # the tube's surface inside a moving part
+            out.append(
+                f"corridor {lead}: tube {-c['clearance_mm']} mm into {c['clearance_part']} at {c['clearance_at']}"
             )
     e = report.get("electrical")
     for core, a in (e or {}).get("stall_a", {}).items():
@@ -94,7 +97,9 @@ FIXTURE_PROBLEMS = {
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
         "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
         "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
-        "cable l_lid servo -> Core 1 PWM1: 236.0 mm at pan 70 tilt 60 > 230 (250 mm lead less 20 slack)",
+        "corridor l_lid servo -> Core 1 PWM1: 236.0 mm at {'pan horn (inferred)': 70, 'tilt horn (inferred)': 60} > 230"
+        " (250 mm lead less 20 slack)",
+        "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar (inferred):1 at {'tilt horn (inferred)': -60}",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],

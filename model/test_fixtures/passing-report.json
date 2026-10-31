@@ -14,6 +14,7 @@
  "torque": {"L lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.05, "dynamic_at_deg": 30, "inertia_g_mm2": 1500, "accel_deg_s2": 48000}},
  "clutch": {"L lid horn": {"hold_kgf_cm": 0.01, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": []}},
  "tip_over": {"margin_mm": 25.0, "at": {"pan": 70, "tilt": -60}, "com": [-4.9, 36.6, 32.9]},
- "cable_reach": {"l_lid servo -> Core 1 PWM1": {"max_mm": 150.0, "at": {"pan": 70, "tilt": 60}, "length_mm": 250, "limit_mm": 230}},
+ "corridors": {"l_lid servo -> Core 1 PWM1": {"max_mm": 150.0, "at": {"pan horn (inferred)": 60, "tilt horn (inferred)": 60}, "min_mm": 114.9, "min_at": {}, "length_mm": 250, "limit_mm": 230,
+                                            "clearance_mm": 1.44, "clearance_at": {}, "clearance_part": "tilt bar (inferred):1", "waypoints": ["behind the lid servo (inferred)"]}},
  "electrical": {"cap_a": 3.0, "stall_a": {"core1": 2.995, "core2": 2.345}}
 }

@@ -20,7 +20,9 @@
             "R lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.25, "dynamic_at_deg": 30, "inertia_g_mm2": 9000, "accel_deg_s2": 48000}},
  "clutch": {"L lid horn": {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [20, 30]}},
  "tip_over": {"margin_mm": -3.2, "at": {"pan": -50, "tilt": 60}, "com": [10.0, -63.2, 40.0]},
- "cable_reach": {"l_lid servo -> Core 1 PWM1": {"max_mm": 236.0, "at": {"pan": 70, "tilt": 60}, "length_mm": 250, "limit_mm": 230},
-                 "pack 1 -> switch 1": {"max_mm": 67.2, "at": {"pan": -50, "tilt": -60}, "length_mm": 100, "limit_mm": 80}},
+ "corridors": {"l_lid servo -> Core 1 PWM1": {"max_mm": 236.0, "at": {"pan horn (inferred)": 70, "tilt horn (inferred)": 60}, "min_mm": 150.0, "min_at": {}, "length_mm": 250, "limit_mm": 230,
+                                            "clearance_mm": -0.8, "clearance_at": {"tilt horn (inferred)": -60}, "clearance_part": "pan bar (inferred):1", "waypoints": ["behind the lid servo (inferred)"]},
+               "pack 1 -> switch 1": {"max_mm": 72.5, "at": {}, "min_mm": 72.5, "min_at": {}, "length_mm": 100, "limit_mm": 80,
+                                      "clearance_mm": 10.0, "clearance_at": null, "clearance_part": null, "waypoints": ["onto the plate (inferred)"]}},
  "electrical": {"cap_a": 3.0, "stall_a": {"core1": 3.2, "core2": 2.3}}
 }
