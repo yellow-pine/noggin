@@ -11,9 +11,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   branch, with a normal PR into the integration branch opened on the first push; whoever works the ticket keeps that
   PR green and merges it (`gh pr merge --merge`) as soon as CI is green, with no approval wait, which deletes the
   branch. Integration PRs are squash-merged into main. A pushed branch is never merged locally: it lands through its
-  own PR. Every branch on GitHub has a PR, except parked work (`face-stage1`).
-- Issue labels follow the work: `ready-for-agent` (can start), `in-progress` (a session is on it; set when work
-  starts), `awaiting-main` (merged into its integration branch; closes when that reaches main), `blocked: …`, `parked`.
+  own PR. Every branch on GitHub has a PR, except on-hold work.
+- Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
+  being worked on, or merged into an integration branch), `blocked` (waits on something outside the repo; the
+  reason is in a comment), `on-hold` (paused by Cansin).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 
