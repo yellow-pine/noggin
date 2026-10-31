@@ -16,7 +16,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   background. STL facets are smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the
   eyeball so their outline stays whole.
 - Views, orthographic, 1600x1200, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
-  mouth on the eyes) and Stage (as Fusion's views: PT frame top looking down Z, side from +X, front from -Y; eyes
+  mouth on the eyes) and each Stage (as Fusion's views: PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
 - README media: the hero (stage 3 from the front, 10 degrees above, perspective), the Stage strip (stage 1 front,
   stage 2 side, stage 3 side and front at one scale on one ground line) and the gesture GIFs.
