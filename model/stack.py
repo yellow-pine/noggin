@@ -11,15 +11,12 @@ is inferred rather than measured carry an "(inferred)" suffix. Numbers live in m
 # include: model/contacts.py
 # include: model/electronics.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
 
 DOC = "noggin-stack"
 FULL = False  # `FULL=1 make model-stack` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
 MOVING = {
     "pan base",
@@ -130,8 +127,6 @@ def run(_context: str):
     if new_contacts:
         contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name in ("pan servo",)})
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "stack", {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
     now = summary(root)
     diff = (
         changes(saved_summary(root), now)

@@ -1,12 +1,13 @@
 REPO  := $(abspath .)
 PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
+BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 # $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
 fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) scripts/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases lint fmt
+.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -63,8 +64,10 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-model-canvases: venv   ## show/hide the reference-photo canvases of the active Fusion document
-	$(PY) scripts/fusion_run.py model/canvases.py
+render: venv model/build/steps/horn.stl   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
+	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
+gifs: venv model/build/steps/horn.stl     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
+	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
 model-parts: venv   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
 	$(call fusion,model/parts.py)
 model-eyes: venv   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)

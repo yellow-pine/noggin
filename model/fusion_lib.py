@@ -5,7 +5,6 @@ Verified calls: docs/research/2026-10-31-model.md."""
 import hashlib
 import json
 import math
-import os
 import time
 import traceback
 
@@ -504,62 +503,3 @@ def body_box(occ):
             lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
             hi[i] = max(hi[i], getattr(b.boundingBox.maxPoint, c) * 10)
     return lo, hi
-
-
-def screenshots(app, root, out, stage, views, width=1600, height=1200):
-    """Every view of `views` ({name: (eye_dir, up)}) saved as out/<stage>-<name>.png with the reference canvases
-    (the design's own and those of inserted designs) hidden and, when there are any, as <stage>-<name>-overlay.png
-    with them shown. The canvases stay hidden afterwards, so the saved document opens clean (`make model-canvases`
-    toggles them)."""
-    canvases = list(root.canvases) + [c for o in root.allOccurrences for c in o.component.canvases]
-    for name, (eye_dir, up) in views.items():
-        for c in canvases:
-            c.isLightBulbOn = True
-        if canvases:
-            screenshot(app, os.path.join(out, f"{stage}-{name}-overlay.png"), eye_dir, up, width, height)
-        for c in canvases:
-            c.isLightBulbOn = False
-        screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
-
-
-FOLDERS = (
-    "isJointsFolderLightBulbOn",
-    "isJointOriginsFolderLightBulbOn",
-    "isSketchFolderLightBulbOn",
-    "isConstructionFolderLightBulbOn",
-    "isOriginFolderLightBulbOn",
-)  # glyphs hidden for a capture
-
-
-def screenshot(app, path, eye_dir, up, width=1600, height=1200):
-    """Orthographic shaded view (no mesh edges: the spool appearances carry the shape) of the whole design looking
-    back along eye_dir, saved to path. The joint, sketch, construction and origin glyphs of every component are hidden
-    for the capture and restored after (docs/model-notes.md)."""
-    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
-    comps = [root] + [
-        o.component for o in root.allOccurrences
-    ]  # repeats are harmless; same-named ones can differ (reference versions)
-    was = [(c, f, getattr(c, f)) for c in comps for f in FOLDERS]
-    for c, f, _ in was:
-        setattr(c, f, False)
-    try:
-        _capture(app, path, eye_dir, up, width, height)
-    finally:
-        for c, f, v in was:
-            setattr(c, f, v)
-
-
-def _capture(app, path, eye_dir, up, width, height):
-    viewport = app.activeViewport
-    viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
-    camera = viewport.camera
-    camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
-    target = camera.target
-    camera.eye = adsk.core.Point3D.create(
-        target.x + eye_dir[0] * 100, target.y + eye_dir[1] * 100, target.z + eye_dir[2] * 100
-    )
-    camera.upVector = vector(up)
-    camera.isFitView = True
-    viewport.camera = camera
-    viewport.refresh()
-    viewport.saveAsImageFile(path, width, height)

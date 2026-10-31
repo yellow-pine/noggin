@@ -10,7 +10,6 @@ the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed f
 # include: model/fusion_lib.py
 # include: model/contacts.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
@@ -18,8 +17,6 @@ import adsk.fusion
 DOC = "noggin-mouth"
 EYES_DOC = "noggin-eyes"
 FULL = False  # `FULL=1 make model-mouth` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
 MOVING = {"bottom jaw", "jaw horn (inferred)", "connector bar (inferred)"}
 
@@ -111,8 +108,6 @@ def run(_context: str):
             | {o.name for o in root.occurrences if o.component.name in ("top jaw", "jaws servo mount", "jaw servo")},
         )
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "mouth", {"top": (Y, Z), "side": ((-1, 0, 0), Y), "front": ((0, 0, -1), Y)})
     now = summary(root)
     diff = (
         changes(saved_summary(root), now)
