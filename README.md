@@ -87,7 +87,9 @@ PurpleShark's three-part CyberBrick animatronic series on MakerWorld:
 Electronics are Bambu Lab's CyberBrick kit: a Core (ESP32-C3, MicroPython) on an X11 shield per
 Core (eyes, neck), one pack and switch board each, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core and the calibration
 lessons are in `docs/build-notes.md`; the parts to buy, and the Morty face that goes over all three
-Stages, in `docs/face-design.md`. The printed parts are not in this repo: get them from MakerWorld.
+Stages, in `docs/face-design.md`. Our own parametric versions of PurpleShark's printed parts live in
+`model/printed/`: `make stl` writes print-ready STLs to `model/build/stl` (`make step`: STEP files of each part and
+Stage, for FreeCAD).
 
 ## Setup
 
