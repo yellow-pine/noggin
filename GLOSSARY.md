@@ -42,9 +42,26 @@ The gesture for "Claude just thought of something great": played when Claude Cod
 **Attention**:
 The gesture for "Claude needs you": played when Claude Code is waiting on the user.
 
+**Bored**:
+The gesture for "you walked away": played when Claude Code has been waiting on the user for a while.
+
+**Wince**:
+The gesture for "something went wrong": played when a Claude Code turn fails with an error.
+
+**Thinking**:
+The background state while any session is mid-turn: half lids, slow eye drifts, occasional blinks. Not a gesture; gestures interrupt it.
+_Avoid_: working, busy, idle animation
+
 **Rest**:
-The state between gestures: lids open, eyes centred, servos released so the mech is silent and still.
+The state when no session is mid-turn and no gesture is playing: lids open, eyes centred, servos released so the mech is silent and still.
 _Avoid_: idle, sleep, neutral, home
+
+**Intensity**:
+How big a gesture plays, 1 to 3. For eureka it follows the Tier of the turn that ended.
+
+**Tier**:
+The size class of a turn by how long Claude worked on it: small under 20 s, normal up to 3 min, big beyond.
+_Avoid_: length, level, duration class
 
 ### Control
 
@@ -59,6 +76,14 @@ _Avoid_: service, server, agent, bridge, puppeteer
 **Busy**:
 The Daemon's state while a gesture is playing; any Trigger arriving while Busy is dropped.
 _Avoid_: cooldown, debounce, lock
+
+**Turn**:
+One session's work from the user's prompt to Claude's answer, timed by the Daemon to pick a Tier.
+_Avoid_: request, response, round
+
+**Mute**:
+The Daemon setting that drops every Trigger until switched back on.
+_Avoid_: pause, disable, sleep mode
 
 **Program**:
 The MicroPython files on the Core's filesystem. The stock program is Bambu's remote-control app; the eye program is ours and replaces it.

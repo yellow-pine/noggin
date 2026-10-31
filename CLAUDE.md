@@ -25,11 +25,17 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 ## Design decisions (grilled 2026-10-31)
 
 - Host: this Mac. launchd LaunchAgent runs a Python daemon that owns the serial port and listens on a Unix socket.
-- Triggers: Claude Code `Stop` -> "eureka"; `Notification` -> "attention". Hooks live in user-level `~/.claude/settings.json`, each a one-liner that writes to the socket and exits. Claude Code only (no desktop app / web).
-- Daemon drops triggers while an animation is playing (no queue). No idle motion: eyes are still between events. Daemon must tolerate the board being unplugged or battery off.
-- Animations are named routines in MicroPython on the board; host sends `eureka` / `attention` as newline commands over USB serial.
-  - eureka: lids snap wide, eyes dart up-and-aside, hold ~0.6 s, swing to centre, two quick blinks, lids settle. ~2 s.
+- Events (grilled 2026-10-31, supersedes the earlier Stop+Notification-only plan): UserPromptSubmit (silent: starts thinking + timer), Stop -> eureka, Notification permission_prompt -> attention, Notification idle_prompt -> bored, StopFailure -> wince, SessionEnd (silent: ends thinking). Hooks are async one-liners in user-level `~/.claude/settings.json`. Claude Code only.
+- Eureka intensity by work duration (UserPromptSubmit to Stop): <20 s small, 20 s to 3 min normal, >3 min big. Other gestures fixed intensity. Mapping lives in the daemon; board gestures take an intensity 1-3.
+- Thinking: alive during a turn (lids half, eye drift every 3-6 s, occasional blink, servos released between moves). Ends at Stop, SessionEnd, or 15 min without events from that session. Gestures interrupt thinking and it resumes after if the session is still mid-turn. Rest (still, released) when no session is mid-turn.
+- Sessions: per-session timers keyed by session_id; any session's events drive the one mech; Busy drops overlapping gestures (no queue, no pre-emption).
+- Mute: `noggin off` / `noggin on` via the daemon socket, persisted across restarts.
+- Gestures are named routines in MicroPython on the board; host sends `<gesture> <intensity>` as one newline-terminated line over USB serial.
+  - eureka: lids snap wide, eyes dart up-and-aside, hold, swing to centre, two quick blinks, lids settle. Small = glance + blink; big = extra double-take, longer hold.
   - attention: lids to half, eyes sweep slowly side to side twice, hold centre.
+  - bored: lids droop, slow sleepy blinks, eyes drift down, then Rest.
+  - wince: lids snap shut, eyes squint-twitch, slow reopen.
+  - thinking: background state, see above.
 - Power: kit 2S 7.4 V Li-ion pack on the X11 shield; USB-C for data (and Core power).
 - Firmware: replace stock `boot.py`. Back up stock filesystem first to `firmware/stock-backup/`; provide restore target.
 - Layout: `firmware/` (MicroPython), `host/` (daemon, hook, launchd plist), `Makefile` with install / backup-stock / restore-stock. Python both sides; deps: pyserial, mpremote.
