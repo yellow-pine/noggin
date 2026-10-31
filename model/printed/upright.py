@@ -20,7 +20,7 @@ PAN_LEVER = {"xy": (-5.5, 25.5), "r": 1.1, "end_r": 2.5}  # the pan bar's screw 
 
 
 def build():
-    (y0, y1), half = WALL["y"], (WALL["y"][1] - WALL["y"][0]) / 2
+    y1, half = WALL["y"][1], (WALL["y"][1] - WALL["y"][0]) / 2
     out = box(WALL["x"], WALL["y"], WALL["z"])
     out = out.union(rod_x(WALL["x"], (TILT["y"], TILT["z"]), half))
     shelf = box(WALL["x"], (y1 - 1, SHELF["y"][1]), SHELF["z"])
