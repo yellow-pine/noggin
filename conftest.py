@@ -1,4 +1,4 @@
-"""Stub MicroPython's `machine` so firmware/eyes.py imports on CPython and records every servo write."""
+"""Stub MicroPython's `machine` so the eye program (eyes/eyes.py) imports on CPython and records every servo write."""
 import sys, types, importlib, pathlib
 
 class _Pin:

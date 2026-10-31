@@ -214,7 +214,11 @@ with serial.Serial(sys.argv[1], 115200, timeout=0.5) as s:
 PYEOF
 }
 
-banner "noggin eye mech setup"
+_clear
+printf '\n%s%s  noggin eye Mech setup%s\n' "$BOLD" "$BLUE" "$RESET"
+printf '%s  %s stages. You handle the cable, battery and screwdriver; this wizard drives the Core\n' "$DIM" "$TOTAL_STAGES"
+printf '  and asks you what the Mech did. Ctrl-C any time and re-run.%s\n\n' "$RESET"
+pause "Ready to start?"
 
 stage "Plug in the Core"
 say "Connect the CyberBrick Core to this Mac with the USB-C cable and switch the battery on."
@@ -225,7 +229,7 @@ make -s stop >/dev/null 2>&1 || true   # free the port if a daemon from an earli
 
 stage "What is on the Core"
 say "Reading MicroPython version and the file list."
-make -s board-info || warn "mpremote could not talk to the board; is anything else holding the port?"
+make -s core-info || warn "mpremote could not talk to the Core; is anything else holding the Link?"
 note "Stock program looks like: boot.py, app/, bbl/ (see docs/references/stock-program-manifest.json)."
 note "If you see eyes.py here, the eye program is already installed and a backup already exists."
 pause
@@ -267,7 +271,7 @@ confirm "Both lids close then open now?" || warn "check servo wiring: ports 1 (L
 say "Playing eureka 3 (eyes dart aside, double-take, blinks)."
 board_send "eureka 3" >/dev/null; sleep 6
 confirm "Did both eyes move together and stay inside their sockets?" || warn "note which eye misbehaves; ranges are in eyes/eyes.py RANGE"
-note "If servos stutter or the board resets, the supply is too weak: use 2 cells in series (docs/build-notes.md)."
+note "If servos stutter or the Core resets, the supply is too weak: use 2 cells in series (docs/build-notes.md)."
 pause
 
 stage "Install hooks and the daemon"

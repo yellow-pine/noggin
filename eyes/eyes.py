@@ -16,9 +16,9 @@ RANGE = {L_LID: (51, 144), L_EYE: (60, 120), R_LID: (46, 129), R_EYE: (60, 120)}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 # Horn offsets differ per eye; added to every eye target so 90 looks straight ahead. Set by calibration.
-EYE_TRIM = {L_EYE: -5, R_EYE: -5}
+EYE_TRIM = {L_EYE: -2, R_EYE: -2}
 LID_OPEN, LID_HALF, LID_CLOSED = 1.0, 0.5, 0.0
-LID_REST = 0.28   # neutral: fully open reads as surprised
+LID_REST = 0.28   # Rest: fully open reads as surprised
 LID_THINK = 0.16  # thinking / attention: a notch lower than neutral
 # The lid servos are mirror-mounted (designer's config drives PWM1 negative, PWM3 positive):
 # "open" is one end of the range for the left lid and the other end for the right. Set by calibration.
@@ -138,6 +138,9 @@ class Eyes:
         if self.mode != "thinking" or now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
-        self.eyes(70 + self.rand % 41, 500)
+        if self.rand % 4 == 0:            # occasional blink
+            self.blink(); self.lids(LID_THINK)
+        else:
+            self.eyes(70 + self.rand % 41, 500)
         sleep_ms(100); self.release()
         self.next_drift = now_ms + 3000 + self.rand % 3000
