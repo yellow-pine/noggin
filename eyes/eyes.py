@@ -17,8 +17,8 @@ EYE_CENTER = 90
 # Horn offsets differ per eye; added to every eye target so 90 looks straight ahead. Set by calibration.
 EYE_TRIM = {L_EYE: -5, R_EYE: -5}
 LID_OPEN, LID_HALF, LID_CLOSED = 1.0, 0.5, 0.0
-LID_REST = 0.50   # neutral: fully open reads as surprised
-LID_THINK = 0.35  # thinking / attention: a notch lower than neutral
+LID_REST = 0.28   # neutral: fully open reads as surprised
+LID_THINK = 0.16  # thinking / attention: a notch lower than neutral
 # The lid servos are mirror-mounted (designer's config drives PWM1 negative, PWM3 positive):
 # "open" is one end of the range for the left lid and the other end for the right. Set by calibration.
 LID_FLIP = {L_LID: True, R_LID: False}
