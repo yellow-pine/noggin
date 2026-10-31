@@ -7,6 +7,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Work starts from a GitHub issue (a ticket). Open one before a big change so the shape can be agreed first.
 - The cycle, in order: grilling (interview only, nothing is built) → research and domain modelling as needed → plan/spec → TDD → code review → PR → retro.
 - One PR per concern. Keep it small.
+- A spec gets one integration branch with one PR; each ticket is built on its own branch, merged into the
+  integration branch, and that ticket branch is deleted right after the merge. Only PR branches and parked
+  work stay on GitHub.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 

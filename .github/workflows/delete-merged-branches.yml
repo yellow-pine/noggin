@@ -1,0 +1,36 @@
+name: delete merged branches
+# Ticket branches never get a PR (they merge into an integration branch), so GitHub's
+# "delete head branches" setting never sees them. When an integration branch (main, or a
+# branch with an open PR) is pushed, delete branches that are fully contained in it.
+# Kept: main, branches with an open PR, parked work (face-*), and any branch whose tip is
+# the pushed tip itself (a fresh ticket branch before its first commit). Fails closed.
+on: push
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PUSHED: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          open=$(gh pr list --state open --limit 1000 --json headRefName -q '.[].headRefName')
+          if [ "$PUSHED" != main ] && ! grep -qxF "$PUSHED" <<<"$open"; then
+            echo "$PUSHED is not an integration branch; nothing to do"; exit 0
+          fi
+          pushed_sha=$(git rev-parse "origin/$PUSHED")
+          for b in $(git for-each-ref --format='%(refname:lstrip=3)' refs/remotes/origin); do
+            case "$b" in HEAD|main|face-*|"$PUSHED") continue;; esac
+            if grep -qxF "$b" <<<"$open"; then continue; fi
+            [ "$(git rev-parse "origin/$b")" = "$pushed_sha" ] && continue
+            if git merge-base --is-ancestor "origin/$b" "$pushed_sha"; then
+              echo "deleting $b (merged into $PUSHED)"
+              git push origin --delete "$b"
+            fi
+          done
