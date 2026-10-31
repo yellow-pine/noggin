@@ -78,8 +78,26 @@ DESIGNER = [
 ]  # fmt: skip
 
 
-def test_designer_file_names_are_gone():
-    """Every part goes by our name (GLOSSARY.md, Model); README (credits) and docs/research (history) are exempt."""
+# CyberBrick product codes: only where we buy them.
+CODES = ["ZK004", "ZL003", "PG001", "XA004", "PC003", "X11"]
+# Where the vendor, the designer and their names may appear: credits, the buy list, dated research notes (history).
+CREDITS = {"README.md": "## Acknowledgements", "docs/build-notes.md": "## Parts to buy"}
+
+
+def outside_credits(f, text):
+    """The file's lines with their numbers, minus its credits section (heading to the next ## heading)."""
+    lines, skip = [], False
+    for n, line in enumerate(text.splitlines(), 1):
+        if line.startswith("## "):
+            skip = line.strip() == CREDITS.get(f)
+        if not skip:
+            lines.append((n, line))
+    return lines
+
+
+def test_vendor_and_designer_names_only_in_credits():
+    """Every part and board goes by our name (GLOSSARY.md); the vendor, the designer, product codes and the
+    designer's file names stay in README's acknowledgements, the build-notes buy list and dated docs/research."""
     from model import printed
 
     names = set(printed.PARTS)
@@ -87,20 +105,23 @@ def test_designer_file_names_are_gone():
     variants = {v for s in DESIGNER for v in (s, s.removeprefix("PandT "), s.removesuffix(" v2"))}
     banned = sorted(v for v in variants if " " in v and v not in names)
     words = "|".join(r"[ _]".join(map(re.escape, v.lower().split())) for v in banned)
-    pattern = re.compile(rf"PandT|\sv2\b(?!\.\d)|(?i:(?<!\w)(?:{words})(?!\w))")
+    vendors = "|".join(["PandT", "PurpleShark", "MakerWorld", "Bambu", "CyberBrick"])
+    codes = "|".join(CODES)  # case-sensitive: "\x11" in the baked trace bytes is not a code
+    pattern = re.compile(rf"(?i:\b(?:{vendors})\b)|\b(?:{codes})\b|\sv2\b(?!\.\d)|(?i:(?<!\w)(?:{words})(?!\w))")
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
     files = [
         f
         for f in tracked
-        if f not in {"README.md", "test_vocabulary.py"}
-        and not f.startswith("docs/research/")
+        # CLAUDE.md is the agents' instructions, like GLOSSARY's avoid lists it names what to keep out
+        if f not in {"test_vocabulary.py", "CLAUDE.md"}
+        and not re.match(r"docs/research/\d{4}-\d\d-\d\d-", f)
         and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
         and (ROOT / f).is_file()
     ]
-    hits = []
-    for f in files:
-        text = (ROOT / f).read_text(errors="replace")
-        hits += [
-            f"{f}:{n}: {line.strip()[:120]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)
-        ]
+    hits = [
+        f"{f}:{n}: {line.strip()[:120]}"
+        for f in files
+        for n, line in outside_credits(f, (ROOT / f).read_text(errors="replace"))
+        if pattern.search(line)
+    ]
     assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)

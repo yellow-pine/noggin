@@ -145,7 +145,7 @@ BARS = {
     "eyeball_bar": 27.0,
 }
 
-# Bambu STEP files, local mm (measured 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
+# Vendor STEP files, local mm (measured 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
 # z -2.3..0, tab holes along +X, shaft at x=16.69 pointing -Z; the horn's inner face sits 11.52 beyond the z -0.65 plane
 # (spline tip z -14.52 on the 2.35 deep bore). Horn = the kit's short single arm ("half arm1"): hub at (0,20,0), 4.15
 # tall, spline side z 4.15, arm (1.6 thick, holes every 2 mm along +X, r 0.5) on the outer face z 0; the build pins the
@@ -363,8 +363,8 @@ def battery_at():
     )
 
 
-# Printed parts: spool and material per part (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
-# is Bambu Studio's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
+# Printed parts: spool and material per part (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are PLA; the density
+# is the slicer's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
 # "(colour inferred)" where the build does not show the part's colour.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
 MATERIALS = {"PLA Pure": {"density_g_cm3": 1.24}}  # PETG possible later, per part
@@ -411,7 +411,7 @@ PRINTED = {
 
 
 # The pan servo mounts trade places (27.9, the base's foot-hole pitch): the cutout goes to the shaft end, where the servo's
-# lead leaves it (Bambu STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
+# lead leaves it (vendor STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
 # the far end, where the lead would run through the plain mount (docs/research/2026-10-31-shafts.md).
 MOUNT_SWAP_Y = 27.9
 # Sub-assembly parts placed straight from their meshes (model/engine/stages.py reads these):
