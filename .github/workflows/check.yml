@@ -25,7 +25,8 @@ jobs:
           key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'uv.lock') }}
       # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
       # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev
+      # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev mosquitto
       - run: make check
       # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
       # it (make sim-if-stale), main always runs it
