@@ -14,13 +14,13 @@ class _Pin:
 
 
 class _PWM:
-    log = []  # (pin, duty) in order; duty 0 == released
+    log = []  # (pin, pulse ns) in order; 0 == released
 
     def __init__(self, pin, freq=50):
         self.pin = pin.n
 
-    def duty(self, d):
-        _PWM.log.append((self.pin, d))
+    def duty_ns(self, ns):
+        _PWM.log.append((self.pin, ns))
 
     def deinit(self):
         _PWM.log.append((self.pin, 0))

@@ -71,8 +71,8 @@ DEFAULT_CAL = {
 }
 
 
-def _duty(angle):
-    return int(angle * 102 / 180 + 25)  # 10-bit duty at 50 Hz, stock bbl.servos formula
+def _pulse_ns(angle):
+    return int((angle * 102 / 180 + 25) * 20_000_000 / 1023)  # stock bbl.servos 10-bit duty at 50 Hz, unquantised
 
 
 class Eyes:
@@ -117,7 +117,7 @@ class Eyes:
             angle = min(hi, max(lo, angle))
             if gpio not in self.pwm:
                 self.pwm[gpio] = PWM(Pin(gpio), freq=50)
-            self.pwm[gpio].duty(_duty(angle))
+            self.pwm[gpio].duty_ns(_pulse_ns(angle))
             self.pos[pin] = angle
 
     def glide(self, ms, targets, step=20, ease=False):

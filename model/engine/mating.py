@@ -117,7 +117,7 @@ def _off(c, a, p):
 def check(stage, placed):
     """[{joint, kind, parts, mm, ok[, missing][, inferred]}] for every joint whose parts the document has, then every
     servo's seat and lead exit; `placed` is the document's parts at neutral (meshes.Placed)."""
-    from model.engine import meshes  # the engine's mesh judge; fits stays pure Python
+    from model.engine import meshes  # the engine's mesh judge
 
     def overlap(a, b):
         return meshes.judge(placed[a], placed[b])[1] if meshes.bbox_gap(placed[a], placed[b]) < SEAT_MM else 0.0

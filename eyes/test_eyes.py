@@ -5,19 +5,25 @@ import eyes as mod
 RANGES = {mod.L_LID: (51, 144), mod.L_EYE: (58, 118), mod.R_LID: (51, 129), mod.R_EYE: (58, 118)}
 
 
-def angle(duty):  # inverse of the stock bbl.servos formula; one duty step is 1.76 deg
-    return (duty - 25) * 180 / 102
+def angle(ns):  # inverse of the stock bbl.servos mapping as a pulse width (10-bit duty / 1023 of 20 ms)
+    return (ns * 1023 / 20_000_000 - 25) * 180 / 102
+
+
+def test_pulse_width_keeps_the_stock_mapping_at_sub_degree_steps(eyes, pwm_log):
+    eyes.set({mod.L_LID: 90})
+    eyes.set({mod.L_LID: 90.5})
+    assert [ns for _, ns in pwm_log] == [1_485_826, 1_491_365]  # 0.489 ms at 0, 2.483 at 180; duty() stepped 1.76 deg
 
 
 def assert_in_range_and_held(pwm_log):
     assert pwm_log, "nothing moved"
-    for pin, duty in pwm_log:
-        if duty:
+    for pin, ns in pwm_log:
+        if ns:
             lo, hi = RANGES[pin]
-            assert lo - 1.8 <= angle(duty) <= hi + 1.8, f"pin {pin} at {angle(duty):.1f}, range {lo}-{hi}"
+            assert lo - 0.01 <= angle(ns) <= hi + 0.01, f"pin {pin} at {angle(ns):.1f}, range {lo}-{hi}"
     last = {}
-    for pin, duty in pwm_log:
-        last[pin] = duty
+    for pin, ns in pwm_log:
+        last[pin] = ns
     assert all(d != 0 for d in last.values()), "servos released: gravity would move the Mech"
 
 
@@ -62,11 +68,11 @@ def test_thinking_blinks_occasionally(eyes, pwm_log):
     for t in range(0, 120_000, 100):
         eyes.tick(t)
     lid_writes = [d for pin, d in pwm_log if pin in (mod.L_LID, mod.R_LID) and d]
-    closed = mod._duty(eyes._lid_angle(mod.L_LID, eyes.cal["lid_closed"]))
-    assert any(abs(d - closed) <= 2 for d in lid_writes), "no blink during 2 min of thinking"
+    closed = eyes._lid_angle(mod.L_LID, eyes.cal["lid_closed"])
+    assert any(abs(angle(d) - closed) < 0.01 for d in lid_writes), "no blink during 2 min of thinking"
 
 
-def last_duty(pwm_log, pin):
+def last_ns(pwm_log, pin):
     return [d for p, d in pwm_log if p == pin][-1]
 
 
@@ -75,7 +81,7 @@ def test_set_changes_calibration_live(eyes, pwm_log):
     eyes.handle_line("set l_eye_hi 130")  # centre becomes 100
     eyes.handle_line("rest")
     moves = [d for p, d in pwm_log if p == mod.L_EYE and d]
-    assert abs(angle(moves[-1]) - 100) < 1.8
+    assert abs(angle(moves[-1]) - 100) < 0.01
 
 
 def test_set_rejects_unknown_key(eyes, pwm_log):
@@ -91,23 +97,23 @@ def test_blink_glides_to_lid_closed_not_the_stop(eyes, pwm_log):
     eyes.blink()
     lid = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]  # R lid: open = high end
     lo, hi = RANGES[mod.R_LID]
-    assert min(lid) >= lo + (hi - lo) * 0.2 - 1.8  # never past lid_closed
+    assert min(lid) >= lo + (hi - lo) * 0.2 - 0.01  # never past lid_closed
     assert len(lid) >= 4  # glided, not snapped
 
 
 def test_release_unpowers_and_next_command_repowers(eyes, pwm_log):
     eyes.handle_line("rest")
     eyes.handle_line("release")
-    assert last_duty(pwm_log, mod.L_EYE) == 0 and last_duty(pwm_log, mod.L_LID) == 0
+    assert last_ns(pwm_log, mod.L_EYE) == 0 and last_ns(pwm_log, mod.L_LID) == 0
     eyes.handle_line("rest")
-    assert last_duty(pwm_log, mod.L_EYE) != 0
+    assert last_ns(pwm_log, mod.L_EYE) != 0
 
 
 def test_pose_holds(eyes, pwm_log):
     eyes.handle_line("pose lids 0.4 eyes 100")
-    assert last_duty(pwm_log, mod.L_EYE) != 0 and last_duty(pwm_log, mod.L_LID) != 0
+    assert last_ns(pwm_log, mod.L_EYE) != 0 and last_ns(pwm_log, mod.L_LID) != 0
     moves = [d for p, d in pwm_log if p == mod.R_EYE and d]
-    assert abs(angle(moves[-1]) - 98) < 1.8  # centre 88 + 10
+    assert abs(angle(moves[-1]) - 98) < 0.01  # centre 88 + 10
 
 
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
@@ -116,7 +122,7 @@ def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
         eyes.tick(t)
     lo, hi = RANGES[mod.L_EYE]
     eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
-    assert min(eye) >= lo + (hi - lo) * 0.15 - 1.8 and max(eye) <= lo + (hi - lo) * 0.85 + 1.8
+    assert min(eye) >= lo + (hi - lo) * 0.15 - 0.01 and max(eye) <= lo + (hi - lo) * 0.85 + 0.01
     assert eyes.mode == "rest"
     assert_in_range_and_held(pwm_log)
 
@@ -138,7 +144,7 @@ def test_saccade_follows_the_real_profile(eyes, pwm_log):
     pwm_log.clear()
     eyes.saccade(110)
     eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
-    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 1.8  # 16 profile points, lands on target
+    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 0.01  # 16 profile points, lands on target
     assert eye[3] < eye[-1] - 3  # still travelling a third of the way in
 
 

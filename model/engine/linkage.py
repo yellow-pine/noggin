@@ -6,6 +6,7 @@ Angles are degrees about the +axis, as the recorded sweeps hold them."""
 import math
 
 import numpy as np
+import trimesh
 
 # In-plane coordinates (u, v) per axis so that a positive angle is a right-handed rotation about the axis.
 _PLANE = {(1, 0, 0): (1, 2), (0, 1, 0): (2, 0), (0, 0, 1): (0, 1)}
@@ -17,14 +18,7 @@ class Unreachable(ValueError):
 
 def rotation(axis, deg, about=(0.0, 0.0, 0.0)):
     """4x4 matrix: rotation by deg about the unit `axis` through the point `about` (mm)."""
-    k = np.asarray(axis, float)
-    kx = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-    r = np.eye(3) * c + s * kx + (1 - c) * np.outer(k, k)
-    m = np.eye(4)
-    m[:3, :3] = r
-    m[:3, 3] = np.asarray(about, float) - r @ np.asarray(about, float)
-    return m
+    return trimesh.transformations.rotation_matrix(math.radians(deg), axis, about)
 
 
 def four_bar(o2, a0, o4, b0, axis):
