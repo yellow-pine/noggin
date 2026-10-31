@@ -7,6 +7,7 @@ dependencies = [
     "cadquery>=2.8.0",
     "numpy>=2.5.4",
     "pyserial>=3.5",
+    "pyspice>=1.5",
     "scipy>=1.18.1",
     "trimesh>=5.2.0",
 ]

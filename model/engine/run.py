@@ -291,7 +291,7 @@ def report(doc, parallel=True):
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
     out["corridors"], out["swept"] = cables.corridors(stage, placed, STEP_DEG)  # swept: written by main, not committed
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
-        out["electrical"] = electrical.budget()
+        out["electrical"] = electrical.worst_case()
     for h, by_deg in dynamic.items():
         t = out["torque"][h]
         if mech.HORN_SERVO[h] not in peak:  # untraced (Core 2): what its choreography may reach

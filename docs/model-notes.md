@@ -55,7 +55,8 @@ The model follows Cansin's build, then our model (CLAUDE.md). What we plan to ch
 the model stabilises.
 - One pack and one switch board per shield (CLAUDE.md, ADR 0005), instead of stock's one pack and a Y lead to both: the
   one pack's worst case (every servo at stall, both shields, a Wi-Fi burst each) is 5.34 A against its 3 A continuous
-  (model/electrical.py `pack_a`); each shield alone stays under 3 A. Needs a second battery box and switch holder.
+  (model/electrical.py `pack_a`); each shield alone stays under 3 A. At the pack's 5.8 V cutoff the servos sag to
+  3.6 V at stall (`servo_v`, below their 4.8 V minimum); the Cores hold 3.3 V. Needs a second battery box and switch holder.
 - The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used):
   - the horns' spline tooth at servo 90: the model takes the STL pose; the rest photo does not settle it
