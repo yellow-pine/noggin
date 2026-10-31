@@ -28,7 +28,7 @@ def test_every_horn_link_and_the_bracket_stem_has_a_placement_tolerance():
     for part in stages.STAGES["noggin-stage3"].parts:
         if "horn" in part or (" bar:1" in part and "eyeball" not in part) or "crank" in part or "servo:1" in part:
             assert part in placed, part
-    assert placed["eye bracket:1"] == stages.TOL_INFERRED_MM  # the stem in the tilt arm window, depth inferred
+    assert placed["eye bracket:1"] == stages.TOL_MM  # the stem in the tilt arm window, its depth measured (#133)
     # its holes on the pins: the lid horn's neutral fits both lid loops within 0.14 (geometry.LID_HORN_ARM)
     assert placed["L lid bar:1"] == stages.TOL_MM
 
@@ -60,7 +60,7 @@ def test_a_misplaced_part_is_reported_with_its_tolerance():
         }
     )
     (v,) = [v for v in stages.placements(shifted) if v["placement"] == "eye bracket:1"]
-    assert v["mm"] == 5.0 and v["tol"] == stages.TOL_INFERRED_MM
+    assert v["mm"] == 5.0 and v["tol"] == stages.TOL_MM
 
 
 def test_stage_documents_place_the_sub_assemblies_once_at_their_frames():
@@ -154,7 +154,7 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
 
 def test_horn_limits_follow_geometry():
     assert stages.STAGES["noggin-eyes"].horns["L lid horn"].limits == (-20, 30)
-    assert stages.STAGES["noggin-pan-tilt"].horns["pan horn"].limits == (-50, 70)
+    assert stages.STAGES["noggin-pan-tilt"].horns["pan horn"].limits == (-40, 70)
     assert stages.STAGES["noggin-pan-tilt"].horns["tilt horn"].limits == (-60, 60)
     assert stages.STAGES["noggin-mouth"].horns["jaw horn"].limits == (-75, 0)
 
@@ -180,3 +180,52 @@ def test_lid_linkage_topology_follows_the_build(s):
     assert straight_horn_end == pytest.approx((x(-25.5), -0.485, 39.202), abs=1e-3)
     horn_x = world(stage.parts[f"{s} lid horn:1"].matrix, g.HORN_STEP["hub"])[0]
     assert out * horn_x < out * straight_horn_end[0] < out * plain[0]  # horn, straight bar, crank (under the nut)
+
+
+@pytest.mark.parametrize("horn,key", [("pan horn", "rotate"), ("tilt horn", "tilt")])
+def test_every_neck_limit_end_poses(horn, key):
+    """#133: the pan and tilt four-bars close over the whole of geometry.LIMITS, both ends included."""
+    s2 = stages.STAGES["noggin-stage2"]
+    lo, hi = g.HORN_LIMITS[key]
+    for deg in range(lo - 90, hi - 90 + 1):
+        stages.pose(s2, horn, deg)
+
+
+# The designer's pan-tilt GIF (02-pan-tilt picture-01.gif, a camera fit over all 72 frames, docs/research/2026-10-31-neck.md):
+# the head's largest swing either side of rest, +-3 deg. The stick is not known to reach full throw, so these are what the
+# mechanism at least does. The mouth GIF (03-mouth picture-01.gif) pans 46 +-6 deg end to end, the fuller throw.
+GIF_SIDES = {"pan horn": (12, 19), "tilt horn": (10, 19)}
+GIF_MEASURE_DEG = 3
+MOUTH_GIF_PAN = (46, 6)
+
+
+@pytest.mark.parametrize("horn,key", [("pan horn", "rotate"), ("tilt horn", "tilt")])
+def test_the_head_swings_at_the_neck_limits_as_far_as_the_designers_gif_shows(horn, key):
+    s2 = stages.STAGES["noggin-stage2"]
+    lo, hi = g.HORN_LIMITS[key]
+    joint = horn.replace("horn", "pivot")
+    ends = [stages.pose(s2, horn, d - 90).joints[joint] for d in (lo, hi)]
+    assert ends[0] * ends[1] < 0  # one limit each side of rest
+    # which servo sense turns the head which way is not in the GIF: compare the sides by size
+    for model, gif in zip(sorted(abs(e) for e in ends), GIF_SIDES[horn]):
+        assert model >= gif - GIF_MEASURE_DEG, (horn, ends)
+    if horn == "pan horn":
+        assert abs(sum(abs(e) for e in ends) - MOUTH_GIF_PAN[0]) <= MOUTH_GIF_PAN[1], ends
+
+
+@pytest.mark.parametrize("doc", ["noggin-stage2", "noggin-stage3"])
+def test_neutral_head_sits_on_the_neck_as_the_guide_builds_it(doc):
+    """Pan-tilt guide p.23 and p.26, GIF frame 5; the meshes: the eye bracket's stem below its rail is 5.0 long, the tilt
+    arm's window 5.0 deep, so the rail lies on the arm top (z 40.9, the arm 5 mm up on the raised upright) and the stem
+    bottom is flush with the arm's underside (z 35.9). Eyes frame: L eye centre at the origin, -Z front."""
+    m = stages.STAGES[doc].parts["eye bracket:1"].matrix
+    assert world(m, (29.5, -45.6, 15.5)) == pytest.approx((0, -13, 35.9))  # stem bottom in the window, flush
+    assert world(m, (29.5, -40.6, 15.5)) == pytest.approx((0, -13, 40.9))  # rail on the tilt arm top
+    plate_top = 3.0
+    left, right = world(m, g.EYE_L), world(m, g.EYE_R)
+    assert left[2] - plate_top == pytest.approx(78.5) and right[2] - plate_top == pytest.approx(78.5)
+    # facing -Y, away from the boards and the pack: from the front the Mech's L eye is on the viewer's right (+X), the pan
+    # servo behind the pan turntable on the viewer's left, the tilt servo on the right (GIF frame 5)
+    front = world(m, (0, 0, -24))
+    assert front[1] < left[1] < 0 and left[0] > 0 > right[0]
+    assert g.PIVOTS["pan_horn"]["point"][0] < 0 < g.PIVOTS["tilt_horn"]["point"][0]

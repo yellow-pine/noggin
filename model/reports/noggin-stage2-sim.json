@@ -1033,14 +1033,7 @@
    ]
   }
  },
- "unreachable": {
-  "pan horn": [
-   {
-    "deg": -50,
-    "why": "crank -50 deg: pin 42.55 mm from the rocker pivot, coupler 15.00, rocker 26.09"
-   }
-  ]
- },
+ "unreachable": {},
  "fits": [
   {
    "joint": "tilt bar / horn screw",
@@ -1296,8 +1289,8 @@
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 2800,
-   "inertia_g_mm2": 401350
+   "accel_limit_deg_s2": 3013,
+   "inertia_g_mm2": 373025
   },
   "L lid horn": {
    "kgf_cm": 0.002,
@@ -2384,7 +2377,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "c2fd64e0bf026072289d76abb76ed6e90c8d4be995fb7b56dd7dfe4dd1ff2017",
+  "stamp": "518c0b24ca9a117ad6a3796af2907548f62b8f33888a560d3541d9236b150cfc",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

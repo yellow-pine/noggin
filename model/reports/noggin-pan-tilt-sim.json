@@ -334,14 +334,7 @@
   ]
  },
  "calibrated": {},
- "unreachable": {
-  "pan horn": [
-   {
-    "deg": -50,
-    "why": "crank -50 deg: pin 42.55 mm from the rocker pivot, coupler 15.00, rocker 26.09"
-   }
-  ]
- },
+ "unreachable": {},
  "fits": [
   {
    "joint": "tilt bar / horn screw",
@@ -459,8 +452,8 @@
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 27939,
-   "inertia_g_mm2": 40221
+   "accel_limit_deg_s2": 30058,
+   "inertia_g_mm2": 37386
   }
  },
  "curves": {
@@ -889,7 +882,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "db737928e37d9bfdf07e5222e730686b75bc98230698264ef48d26f559de26e3",
+  "stamp": "d7725621368ccd11f91f990a7c8aabc68ee7f68d3f64e9276d6800c6d50ee3d8",
   "sources": {
    "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
