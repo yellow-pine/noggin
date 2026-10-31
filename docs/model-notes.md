@@ -16,14 +16,14 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   background. STL facets are smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the
   eyeball so their outline stays whole.
 - Views, orthographic, 1600x1200, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
-  mouth on the eyes) and Stage (as Fusion's views: PT frame top looking down Z, side from +X, front from -Y; eyes
+  mouth on the eyes) and each Stage (as Fusion's views: PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
 - README media: the hero (stage 3 from the front, 10 degrees above, perspective), the Stage strip (stage 1 front,
   stage 2 side, stage 3 side and front at one scale on one ground line) and the gesture GIFs.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the Core program's own commands mapped onto the
   model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
-  servo degrees), 600x450, 10 fps, at most 96 colours and 1 MB each, with a contact sheet per gesture.
+  servo degrees), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
 
 ## Our printed parts (#50)

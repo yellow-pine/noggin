@@ -6,11 +6,12 @@ import threading
 import time
 import uuid
 
-from noggin.service import Service
+from noggin.service import Service, gesture_seconds
 
 
 class FakeSerial:
     in_waiting = 0
+    port = ""
 
     def __init__(self):
         self.buf = b""
@@ -47,7 +48,7 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"
     cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
-    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
+    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal, beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True)
     t.start()
     assert wait_for(lambda: d.ready)
@@ -86,7 +87,11 @@ def test_core_output_is_logged(tmp_path, capsys):
 
     sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
     d = Service(
-        sock_path=sock, open_serial=lambda: ChattySerial(), mute_file=tmp_path / "m", cal_file=tmp_path / "c.json"
+        sock_path=sock,
+        open_serial=lambda: ChattySerial(),
+        mute_file=tmp_path / "m",
+        cal_file=tmp_path / "c.json",
+        beacon_port=0,
     )
     t = threading.Thread(target=d.run, daemon=True)
     t.start()
@@ -96,3 +101,108 @@ def test_core_output_is_logged(tmp_path, capsys):
     t.join(2)
     out = capsys.readouterr().out
     assert "Core: noggin ready" in out and "Core: Traceback" in out
+
+
+def start(tmp_path, **kw):
+    sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
+    fake = FakeSerial()
+    s = Service(
+        sock_path=sock,
+        open_serial=lambda: fake,
+        mute_file=tmp_path / "m",
+        cal_file=tmp_path / "c.json",
+        beacon_port=0,
+        **kw,
+    )
+    threading.Thread(target=s.run, daemon=True).start()
+    assert wait_for(lambda: s.ready)
+    return s, sock, fake
+
+
+def ask(path, text):
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(path)
+    s.sendall(text.encode())
+    s.settimeout(1.0)
+    try:
+        return s.recv(4096).decode()
+    finally:
+        s.close()
+
+
+def test_a_fresh_service_follows_and_status_says_so(tmp_path):
+    s, sock, _ = start(tmp_path)
+    assert ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
+def test_demo_gesture_repeats_it_until_follow(tmp_path):
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=0.0)
+    ask(sock, "demo bored 2\n")
+    assert wait_for(lambda: fake.buf.count(b"bored 2\n") >= 3)
+    assert ask(sock, "status\n").endswith("mode demo bored 2\n")
+    ask(sock, "follow\n")
+    assert wait_for(lambda: fake.buf.endswith(b"rest\n"))  # follow catches the Core up to the Director's mode
+    n = fake.buf.count(b"bored 2\n")
+    time.sleep(0.5)
+    assert fake.buf.count(b"bored 2\n") == n and ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
+def test_demo_waits_the_gesture_out_plus_the_pause(tmp_path):
+    asked = []
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: asked.append(line) or 0.3, pause=0.3)
+    ask(sock, "demo wince\n")  # no level: the normal one
+    assert wait_for(lambda: b"wince 2\n" in fake.buf)
+    time.sleep(0.3)
+    assert fake.buf.count(b"wince 2\n") == 1  # still inside 0.3 s gesture + 0.3 s pause
+    assert wait_for(lambda: fake.buf.count(b"wince 2\n") == 2) and asked[0] == "wince 2"
+    s.stop()
+
+
+def test_unknown_demo_is_ignored(tmp_path):
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=0.0)
+    ask(sock, "demo bored 7\n")
+    time.sleep(0.3)
+    assert b"bored" not in fake.buf and ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
+SEQUENCE = b"eureka 1\neureka 2\neureka 3\nattention 2\nbored 2\nwince 2\nwink 3\nthinking\nrest\n"
+
+
+def test_demo_loops_the_whole_sequence(tmp_path):
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=0.0)
+    ask(sock, "demo\n")
+    assert wait_for(lambda: SEQUENCE + b"eureka 1\n" in fake.buf, timeout=4)
+    ask(sock, "follow\n")
+    s.stop()
+
+
+def test_demo_once_plays_the_sequence_then_follows(tmp_path):
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=0.0)
+    ask(sock, "demo once\n")
+    assert ask(sock, "status\n").endswith("mode demo once\n")
+    assert wait_for(lambda: ask(sock, "status\n").endswith("mode follow\n"), timeout=4)
+    assert fake.buf.endswith(SEQUENCE + b"rest\n")  # then the Director's mode
+    time.sleep(0.3)
+    assert fake.buf.endswith(SEQUENCE + b"rest\n")
+    s.stop()
+
+
+def test_hooks_are_dropped_and_logged_in_demo(tmp_path, capsys):
+    s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=60.0)
+    ask(sock, "demo wink 3\n")
+    assert wait_for(lambda: fake.buf.endswith(b"wink 3\n"))
+    send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
+    time.sleep(0.3)
+    assert fake.buf.endswith(b"wink 3\n") and "dropped UserPromptSubmit" in capsys.readouterr().out
+    ask(sock, "follow\n")
+    send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
+    assert wait_for(lambda: fake.buf.endswith(b"rest\nthinking\n"))  # following again: the Director never saw it
+    s.stop()
+
+
+def test_gesture_seconds_come_from_the_core_programs_clock():
+    assert gesture_seconds("thinking", {}) == 8.0  # a mode: held, not played out
+    assert 1.5 < gesture_seconds("eureka 2", {}) < 3 < gesture_seconds("bored 2", {})  # replayed: about 2 s and 12 s
