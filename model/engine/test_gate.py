@@ -2,7 +2,13 @@
 transmission curves within 1 degree, the minimum distances within 0.3 mm at the recorded poses, placements identical.
 Known disagreements are listed in KNOWN with their reason (never loosened silently). Skipped without the local
 references (docs/references, make model-step-meshes)."""
-import glob, json, os, pytest
+
+import glob
+import json
+import os
+
+import pytest
+
 from model.engine import meshes, run, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
@@ -10,7 +16,13 @@ RECORDED = sorted(glob.glob(os.path.join(HERE, "reports", "*-report.json")))
 HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
 CURVE_DEG, DISTANCE_MM = 1.0, 0.3
 # (doc, horn, deg): why the engine cannot express what Fusion recorded there.
-KNOWN = {("noggin-pan-tilt", "pan horn (inferred)", -50): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"}
+KNOWN = {
+    (
+        "noggin-pan-tilt",
+        "pan horn (inferred)",
+        -50,
+    ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"
+}
 
 _reports, _scenes = {}, {}
 
@@ -36,7 +48,9 @@ def docs():
     return [os.path.basename(p)[: -len("-report.json")] for p in RECORDED]
 
 
-pytestmark = pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only (docs/references, model/build/steps)")
+pytestmark = pytest.mark.skipif(
+    not HAVE_REFERENCES, reason="local references only (docs/references, model/build/steps)"
+)
 
 
 @pytest.mark.parametrize("doc", docs())
@@ -66,7 +80,9 @@ def test_minimum_distances_within_point_three_mm_at_the_recorded_poses(doc):
         got = distance_at(doc, horn, h["at_deg"], h["pair"])
         if abs(got - h["min_mm"]) > DISTANCE_MM:
             off.append((horn, h["at_deg"], h["pair"], "recorded", h["min_mm"], "engine", round(got, 3)))
-        m = mine["horns"][horn]   # the engine also measures chain-vs-chain pairs Fusion skipped: never higher, may be lower
+        m = mine["horns"][
+            horn
+        ]  # the engine also measures chain-vs-chain pairs Fusion skipped: never higher, may be lower
         if m["min_mm"] > h["min_mm"] + DISTANCE_MM:
             off.append((horn, "sweep minimum", "recorded", h["min_mm"], "engine", m["min_mm"], m["at_deg"], m["pair"]))
     assert off == []

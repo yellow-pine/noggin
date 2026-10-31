@@ -2,7 +2,7 @@
 tables give it: the spool density for printed parts (geometry.PRINTED), the documented servo mass, and STEP volume at a
 PCB-like density for the other hardware (flagged in the source). Gravity torque per horn as model/sim.py: the slope of
 the chain's potential energy over the engine's poses."""
-import numpy as np
+
 import trimesh
 
 from model import sim
@@ -15,9 +15,14 @@ def mass(mesh, material):
     density, source = material
     volume = abs(mesh.volume)
     g = density if source == "documented" else density * volume / 1000
-    inertia = mesh.moment_inertia * (g / volume if volume else 0.0)   # trimesh integrates at unit density
-    return {"g": round(g, 3), "com": tuple(mesh.center_mass), "inertia_g_mm2": inertia.round(3).tolist(), "source": source,
-            "watertight": bool(mesh.is_watertight)}
+    inertia = mesh.moment_inertia * (g / volume if volume else 0.0)  # trimesh integrates at unit density
+    return {
+        "g": round(g, 3),
+        "com": tuple(mesh.center_mass),
+        "inertia_g_mm2": inertia.round(3).tolist(),
+        "source": source,
+        "watertight": bool(mesh.is_watertight),
+    }
 
 
 def table(stage, loaded):

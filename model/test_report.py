@@ -1,8 +1,7 @@
-"""Seam: the JSON report model/check.py writes (model/build/<doc>-report.json). The live-report test is
-skipped until `make model-check` has run; the fixture test checks the checker itself."""
+"""Seam: the JSON report `make sim` writes (model/engine/run.py, model/build/<doc>-sim.json). The live-report test is
+skipped until `make sim` has run; the fixture test checks the checker itself."""
 
 import glob
-import importlib.util
 import json
 import os
 
@@ -13,9 +12,12 @@ MAX_INTERFERENCE_MM3 = 0.5
 ENVELOPE = {
     "noggin-eyes": ((-60, 120), (-120, 60), (-60, 180)),  # Mech extent per Stage frame, mm (x, y, z)
     "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60)),  # PandT base 120 x 160, tilt arm top z ~41
-    "noggin-mouth": ((-60, 120), (-120, 60), (-60, 180)),
-}  # the eyes envelope: noggin-eyes is referenced in whole
-REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-report.json")))
+    "noggin-mouth": ((-60, 120), (-120, 60), (-60, 180)),  # the eyes envelope: noggin-eyes is referenced in whole
+    "noggin-stage1": ((-62, 62), (-40, 136), (-10, 70)),  # PT frame: base + eyes on the pan recess
+    "noggin-stage2": ((-62, 62), (-52, 136), (-3, 110)),  # + stack, eyes on the tilt arm
+    "noggin-stage3": ((-66, 66), (-66, 136), (-3, 110)),  # + mouth
+}
+REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-sim.json")))
 
 
 def problems(report):
@@ -55,7 +57,7 @@ def problems(report):
 @pytest.mark.parametrize("path", REPORTS or [None])
 def test_live_report_is_clean(path):
     if path is None:
-        pytest.skip("no model/build/*-report.json: run `make model-check` with Fusion open")
+        pytest.skip("no model/build/*-sim.json: run `make sim`")
     assert problems(json.load(open(path))) == []
 
 
@@ -78,57 +80,3 @@ FIXTURE_PROBLEMS = {
 def test_fixture_reports(name):
     report = json.load(open(os.path.join(HERE, "test_fixtures", f"{name}-report.json")))
     assert problems(report) == FIXTURE_PROBLEMS[name]
-
-
-def test_merge_per_horn_reports_and_flags_incomplete_horns():
-    spec = importlib.util.spec_from_file_location(
-        "sweep", os.path.join(HERE, "sweep.py")
-    )  # not on sys.path: eyes/ has its own `eyes` module
-    sweep = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(sweep)
-    merge = sweep.merge
-    lid = {
-        "doc": "noggin-eyes",
-        "version": 11,
-        "clearance_mm": 3.0,
-        "step_deg": 10,
-        "horns": {"L lid horn": {"min_mm": 4.1, "at_deg": 30, "pair": ["L inside lid", "L servo bracket"]}},
-        "interference": [],
-        "violations": [{"horn": "L lid horn", "deg": 30, "mm": 0.0, "pair": ["a", "b"]}],
-        "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]},
-        "placements": [{"name": "L eye servo", "ok": True}],
-    }
-    eye = {
-        "doc": "noggin-eyes",
-        "version": 11,
-        "clearance_mm": 3.0,
-        "step_deg": 10,
-        "horns": {
-            "L eye horn": {
-                "min_mm": None,
-                "at_deg": None,
-                "pair": None,
-                "incomplete": "budget of 180 s spent at 10 deg",
-            }
-        },
-        "interference": [],
-        "violations": [],
-        "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]},
-        "placements": [],
-        "calibrated": {"L eye horn": {"lo": -32, "hi": 28}},
-    }
-    lid["violations"].append({"horn": "L lid horn", "deg": 39, "mm": 0.0, "pair": ["c", "d"], "calibrated": True})
-    report = merge([lid, eye])
-    assert report["calibrated"] == {
-        "L eye horn": {"lo": -32, "hi": 28},
-        "L lid horn": {"violations": [{"deg": 39, "pair": ["c", "d"]}]},
-    }
-    assert set(report["horns"]) == {"L lid horn", "L eye horn"}
-    assert (
-        report["violations"] == lid["violations"][:1] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
-    )
-    assert problems(report) == [
-        "violation: {'horn': 'L lid horn', 'deg': 30, 'mm': 0.0, 'pair': ['a', 'b']}",
-        "L eye horn: incomplete (budget of 180 s spent at 10 deg)",
-        "calibrated L lid horn: collision at 39 deg between ['c', 'd']",
-    ]

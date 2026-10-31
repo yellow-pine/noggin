@@ -4,16 +4,17 @@ minimum distance (scipy cKDTree vertex screen, then exact point-to-triangle on t
 ADR 0006) and contact vs penetration: a vertex behind the other mesh's surface by more than DEPTH_MM is inside it
 (sign against the angle-weighted pseudo-normal of the closest face, edge or vertex, Baerentzen & Aanaes 2005, the
 deepest few confirmed by ray parity). A pair that measures 0 mm with nothing inside is a designed contact."""
+
 import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
-MAX_EDGE_MM = 4.0   # faces are bisected to this: the exact pass needs each mesh's reach small, not tiny (size classes handle the rest)
-NEAR_MM = 10.0      # pairs whose boxes are further apart are not measured (check.py NEAR_MM)
-EXACT_MM = 5.0      # the exact pass runs when the vertex screen is under this; above, the screen (at most ~1.5 mm high) is reported
-DEPTH_MM = 0.02     # a vertex counts as inside only this deep: coincident faces are a contact, not a collision
-CONFIRM = 3         # deepest candidates confirmed by ray parity per direction
-_RAY = np.array([0.5773, 0.6113, 0.5410])   # off-axis so edges and vertices are not hit
+MAX_EDGE_MM = 4.0  # faces are bisected to this: the exact pass needs each mesh's reach small, not tiny (size classes handle the rest)
+NEAR_MM = 10.0  # pairs whose boxes are further apart are not measured (check.py NEAR_MM)
+EXACT_MM = 5.0  # the exact pass runs when the vertex screen is under this; above, the screen (at most ~1.5 mm high) is reported
+DEPTH_MM = 0.1  # a vertex counts as inside only this deep (the sweep's clearance resolution): shallower is facet noise on a designed contact
+CONFIRM = 3  # deepest candidates confirmed by ray parity per direction
+_RAY = np.array([0.5773, 0.6113, 0.5410])  # off-axis so edges and vertices are not hit
 
 
 def load(stage, names=None):
@@ -24,11 +25,13 @@ def load(stage, names=None):
             continue
         mesh = trimesh.load(part.file, force="mesh")
         v, f = mesh.vertices, mesh.faces
-        if part.clip:   # shortcut: faces past the cut are dropped, no cap (the battery lead; the pack is grounded context)
+        if (
+            part.clip
+        ):  # shortcut: faces past the cut are dropped, no cap (the battery lead; the pack is grounded context)
             axis, cut = part.clip
             f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
         mesh = trimesh.Trimesh(*bisect(v, f, MAX_EDGE_MM))
-        if mesh.volume < 0:   # inward winding: the depth sign below needs outward faces
+        if mesh.volume < 0:  # inward winding: the depth sign below needs outward faces
             mesh.invert()
         out[name] = mesh
     return out
@@ -40,7 +43,7 @@ def bisect(v, f, max_edge):
     v, f = np.asarray(v, float), np.asarray(f)
     while True:
         tri = v[f]
-        edges = np.linalg.norm(tri - np.roll(tri, -1, axis=1), axis=2)   # edge i: vertex i -> i+1
+        edges = np.linalg.norm(tri - np.roll(tri, -1, axis=1), axis=2)  # edge i: vertex i -> i+1
         longest = edges.argmax(axis=1)
         split = np.flatnonzero(edges.max(axis=1) > max_edge)
         if not len(split):
@@ -61,7 +64,9 @@ class Placed:
         self.lo, self.hi = self.vertices.min(axis=0), self.vertices.max(axis=0)
         tri = self.vertices[self.faces]
         self.centroids = tri.mean(axis=1)
-        reach = np.linalg.norm(tri - self.centroids[:, None], axis=2).max(axis=1)   # every point of a face is this close to its centroid
+        reach = np.linalg.norm(tri - self.centroids[:, None], axis=2).max(
+            axis=1
+        )  # every point of a face is this close to its centroid
         self.reach = float(reach.max())
         # faces in size classes, each with its own centroid tree: a few large faces must not widen every query
         edges = np.unique(np.r_[0.25, 0.5, 1.0, 2.0, self.reach + 1e-9])
@@ -71,8 +76,10 @@ class Placed:
         n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
         self.normals = n / np.maximum(np.linalg.norm(n, axis=1), 1e-12)[:, None]
         # pseudo-normals for the inside test: angle-weighted at vertices, the two faces' sum on edges
-        self.vertex_normals = trimesh.geometry.weighted_vertex_normals(len(self.vertices), self.faces, self.normals, trimesh.triangles.angles(tri))
-        self.face_edges = mesh.faces_unique_edges          # (faces, 3): edge k joins face vertices k and k+1
+        self.vertex_normals = trimesh.geometry.weighted_vertex_normals(
+            len(self.vertices), self.faces, self.normals, trimesh.triangles.angles(tri)
+        )
+        self.face_edges = mesh.faces_unique_edges  # (faces, 3): edge k joins face vertices k and k+1
         self.edge_normals = np.zeros((len(mesh.edges_unique), 3))
         np.add.at(self.edge_normals, self.face_edges.ravel(), np.repeat(self.normals, 3, axis=0))
         self._tree = None
@@ -113,8 +120,9 @@ def to_surface(pts, b, bounds):
         d = np.linalg.norm(away, axis=1)
         best = np.full(len(pts), -1)
         order = np.argsort(d)[::-1]
-        best[pi[order]] = order                      # last write wins: the closest pair of each point
-        k = np.flatnonzero(best >= 0); best = best[k]
+        best[pi[order]] = order  # last write wins: the closest pair of each point
+        k = np.flatnonzero(best >= 0)
+        best = best[k]
         out[k] = np.minimum(out[k], d[best])
         depth[k] = np.where((away[best] * pseudo_normal(b, fi[best], pts[k])).sum(axis=1) < 0, d[best], 0.0)
     return out, depth
@@ -149,7 +157,7 @@ def pseudo_normal(b, faces, pts):
     corner = on.sum(axis=1) == 1
     n[corner] = b.vertex_normals[b.faces[faces[corner]][np.arange(corner.sum()), on[corner].argmax(axis=1)]]
     edge = on.sum(axis=1) == 2
-    off = (~on[edge]).argmax(axis=1)                 # the vertex not on the edge: edge (off+1, off+2) is face edge index off+1
+    off = (~on[edge]).argmax(axis=1)  # the vertex not on the edge: edge (off+1, off+2) is face edge index off+1
     n[edge] = b.edge_normals[b.face_edges[faces[edge], (off + 1) % 3]]
     return n
 

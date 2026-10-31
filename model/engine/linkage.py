@@ -2,6 +2,7 @@
 tilt arm, pan, jaw) about parallel pivots. Fed with the neutral pin positions from model/geometry.py, so the link
 lengths are the ones the Fusion joints enforce (the joints meet at the world pins, not at the bars' holes).
 Angles are degrees about the +axis, as Fusion records them (joint origins carry the world axis as their Z)."""
+
 import math
 
 import numpy as np
@@ -41,7 +42,7 @@ def four_bar(o2, a0, o4, b0, axis):
     # Out-of-plane parts stay as placed: the pins may sit in different planes (coupler squared length splits).
     d_perp = b0 - a0
     d_perp[[u, v]] = 0
-    r3 = math.sqrt(max(coupler ** 2 - float(d_perp @ d_perp), 0.0))
+    r3 = math.sqrt(max(coupler**2 - float(d_perp @ d_perp), 0.0))
     sign = None
 
     def solve(crank_deg):
@@ -52,12 +53,14 @@ def four_bar(o2, a0, o4, b0, axis):
         du, dv = o4[u] - a[u], o4[v] - a[v]
         d = math.hypot(du, dv)
         if d > r3 + r4 or d < abs(r3 - r4) or d == 0:
-            raise Unreachable(f"crank {crank_deg} deg: pin {d:.2f} mm from the rocker pivot, coupler {r3:.2f}, rocker {r4:.2f}")
+            raise Unreachable(
+                f"crank {crank_deg} deg: pin {d:.2f} mm from the rocker pivot, coupler {r3:.2f}, rocker {r4:.2f}"
+            )
         along = (r3 * r3 - r4 * r4 + d * d) / (2 * d)
         h = math.sqrt(max(r3 * r3 - along * along, 0.0))
         eu, ev = du / d, dv / d
         modes = [(a[u] + along * eu - s * h * ev, a[v] + along * ev + s * h * eu, s) for s in (1, -1)]
-        if sign is None:   # neutral call: the mode whose B lands on b0 holds for the sweep
+        if sign is None:  # neutral call: the mode whose B lands on b0 holds for the sweep
             sign = min(modes, key=lambda m: math.hypot(m[0] - b0[u], m[1] - b0[v]))[2]
         bu, bv, _ = next(m for m in modes if m[2] == sign)
         b = b0.copy()
@@ -65,7 +68,7 @@ def four_bar(o2, a0, o4, b0, axis):
         rocker = math.degrees(math.atan2(bv - o4[v], bu - o4[u]) - phi_b0)
         return (rocker + 180) % 360 - 180, tuple(a), tuple(b)
 
-    solve(0.0)   # fixes the assembly mode at neutral
+    solve(0.0)  # fixes the assembly mode at neutral
     solve.o4, solve.axis = tuple(o4), tuple(axis)
     return solve
 

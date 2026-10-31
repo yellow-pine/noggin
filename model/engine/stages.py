@@ -4,7 +4,9 @@ builders place them (model/base.py, stack.py, eyes.py, mouth.py: the same align(
 assemble() putting sub-assemblies at frames into one document: the recorded sweep documents (model/reports) and the Stage
 configurations of geometry.STAGES. pose() gives every part's world transform at a horn angle. Part names carry Fusion's
 ":1" occurrence suffix so reports line up with the recorded ones."""
-import math, os
+
+import math
+import os
 from collections import namedtuple
 
 import numpy as np
@@ -14,28 +16,41 @@ from model.engine import linkage
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REF = os.path.join(REPO, "docs", "references")
-MODELS = {"eyes": os.path.join(REF, "01-eyes", "models"), "pt": os.path.join(REF, "02-pan-tilt", "models"),
-          "mouth": os.path.join(REF, "03-mouth", "models")}
-STEPS = os.path.join(REPO, "model", "build", "steps")   # model/engine/step_mesh.py output (make model-step-meshes)
-SERVO_G = 16.0                      # docs/research/2026-10-31-electrical.md
-STEP_G_CM3 = 1.9                    # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
+MODELS = {
+    "eyes": os.path.join(REF, "01-eyes", "models"),
+    "pt": os.path.join(REF, "02-pan-tilt", "models"),
+    "mouth": os.path.join(REF, "03-mouth", "models"),
+}
+STEPS = os.path.join(REPO, "model", "build", "steps")  # model/engine/step_mesh.py output (make model-step-meshes)
+SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
+STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances, as check.py
 
-Part = namedtuple("Part", "file matrix material clip")   # clip: (axis, max) local-frame cut, the battery lead
-Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")   # rocker_pivot: (point, axis)
-Horn = namedtuple("Horn", "pivot limits crank loops still frame")   # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4
+Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery lead
+Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
+Horn = namedtuple(
+    "Horn", "pivot limits crank loops still frame"
+)  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4
 Sub = namedtuple("Sub", "parts horns placements")
-Stage = namedtuple("Stage", "doc parts horns placements up")   # up: index of the document frame's up axis (gravity torque)
+Stage = namedtuple(
+    "Stage", "doc parts horns placements up"
+)  # up: index of the document frame's up axis (gravity torque)
 Pose = namedtuple("Pose", "parts joints")
 
 
 def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
     """4x4 taking the local frame (from_*) onto the world frame (to_*), mm; fusion_lib.align's frames."""
+
     def frame(origin, x, z):
-        z = np.asarray(z, float); z = z / np.linalg.norm(z)
-        x = np.asarray(x, float); x = x - (x @ z) * z; x = x / np.linalg.norm(x)
-        m = np.eye(4); m[:3, 0], m[:3, 1], m[:3, 2], m[:3, 3] = x, np.cross(z, x), z, origin
+        z = np.asarray(z, float)
+        z = z / np.linalg.norm(z)
+        x = np.asarray(x, float)
+        x = x - (x @ z) * z
+        x = x / np.linalg.norm(x)
+        m = np.eye(4)
+        m[:3, 0], m[:3, 1], m[:3, 2], m[:3, 3] = x, np.cross(z, x), z, origin
         return m
+
     to_x = (1, 0, 0) if to_x is None else to_x
     to_z = (0, 0, 1) if to_z is None else to_z
     return frame(to_origin, to_x, to_z) @ np.linalg.inv(frame(from_origin, from_x, from_z))
@@ -75,8 +90,14 @@ def servo_and_horn(key, label, arm):
     """(servo part, horn part) for SERVOS[key] with the horn's single arm along `arm` at neutral."""
     origin, tab_x, shaft = g.servo_frame(key)
     seat = np.add(origin, np.multiply(g.SERVO_STEP["horn_seat"], shaft))
-    return {f"{label} servo:1": part(step("servo"), align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]), (SERVO_G, "documented")),
-            f"{label} horn (inferred):1": part(step("horn"), align(seat, arm, shaft, g.HORN_STEP["hub"]), (STEP_G_CM3, "step volume x 1.9 g/cm3"))}
+    return {
+        f"{label} servo:1": part(
+            step("servo"), align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]), (SERVO_G, "documented")
+        ),
+        f"{label} horn (inferred):1": part(
+            step("horn"), align(seat, arm, shaft, g.HORN_STEP["hub"]), (STEP_G_CM3, "step volume x 1.9 g/cm3")
+        ),
+    }
 
 
 def rocker_loop(joint, o2, a0, o4, b0, axis, coupler, rockers):
@@ -90,12 +111,20 @@ def limits(key):
 
 def eyes():
     parts, horns = {}, {}
-    for name, stem, dx in [("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
-                           ("L eyeball", "L eyeball regular", 0), ("R eyeball", "R eyeball regular", 0),
-                           ("L pupil", "regular pupil", -59), ("R pupil", "regular pupil", 0),
-                           ("L inside lid", "inside lid", 0), ("L outside lid", "outside lid", 0),
-                           ("R inside lid", "inside lid", 59), ("R outside lid", "outside lid", 59),
-                           ("L eyeball bar", "eyeball bar", 0), ("R eyeball bar", "eyeball bar", 79)]:
+    for name, stem, dx in [
+        ("L servo bracket", "L servo bracket", 0),
+        ("R servo bracket", "R servo bracket", 0),
+        ("L eyeball", "L eyeball regular", 0),
+        ("R eyeball", "R eyeball regular", 0),
+        ("L pupil", "regular pupil", -59),
+        ("R pupil", "regular pupil", 0),
+        ("L inside lid", "inside lid", 0),
+        ("L outside lid", "outside lid", 0),
+        ("R inside lid", "inside lid", 59),
+        ("R outside lid", "outside lid", 59),
+        ("L eyeball bar", "eyeball bar", 0),
+        ("R eyeball bar", "eyeball bar", 79),
+    ]:
         parts[name + ":1"] = part(stl("eyes", stem), translate((dx, 0, 0)), printed(stem))
     parts["main bracket v2:1"] = part(stl("mouth", "main bracket v2"), None, printed("main bracket v2"))
     for s in "LR":
@@ -113,14 +142,40 @@ def eyes():
             lid_pin = (x,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem} (inferred):1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
-            loops.append(rocker_loop(f"{s} {spec['lid']} lid pivot", lid_horn, horn_pin, g.PIVOTS[lid_key]["point"], lid_pin, g.X,
-                                     name, [f"{s} {spec['lid']} lid:1"]))
-        horns[f"{s} lid horn (inferred)"] = Horn(g.PIVOTS[lid_key + "_horn"], limits(lid_key), f"{s} lid horn (inferred):1", loops, [], None)
+            loops.append(
+                rocker_loop(
+                    f"{s} {spec['lid']} lid pivot",
+                    lid_horn,
+                    horn_pin,
+                    g.PIVOTS[lid_key]["point"],
+                    lid_pin,
+                    g.X,
+                    name,
+                    [f"{s} {spec['lid']} lid:1"],
+                )
+            )
+        horns[f"{s} lid horn (inferred)"] = Horn(
+            g.PIVOTS[lid_key + "_horn"], limits(lid_key), f"{s} lid horn (inferred):1", loops, [], None
+        )
         arm_end, eye_end = (side(p) for p in g.EYEBALL_BAR_PINS)
-        loop = rocker_loop(f"{s} eyeball pivot", g.PIVOTS[eye_key + "_horn"]["point"], arm_end, g.PIVOTS[eye_key]["point"], eye_end, g.Y,
-                           f"{s} eyeball bar:1", [f"{s} eyeball:1", f"{s} pupil:1"])
-        horns[f"{s} eye horn (inferred)"] = Horn(g.PIVOTS[eye_key + "_horn"], limits(eye_key), f"{s} eye horn (inferred):1", [loop], [], None)
-    placements = [(f"{s} {p} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[f"{s.lower()}_{p}"]["tab_holes"], TOL_INFERRED_MM) for s in "LR" for p in ("lid", "eye")]
+        loop = rocker_loop(
+            f"{s} eyeball pivot",
+            g.PIVOTS[eye_key + "_horn"]["point"],
+            arm_end,
+            g.PIVOTS[eye_key]["point"],
+            eye_end,
+            g.Y,
+            f"{s} eyeball bar:1",
+            [f"{s} eyeball:1", f"{s} pupil:1"],
+        )
+        horns[f"{s} eye horn (inferred)"] = Horn(
+            g.PIVOTS[eye_key + "_horn"], limits(eye_key), f"{s} eye horn (inferred):1", [loop], [], None
+        )
+    placements = [
+        (f"{s} {p} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[f"{s.lower()}_{p}"]["tab_holes"], TOL_INFERRED_MM)
+        for s in "LR"
+        for p in ("lid", "eye")
+    ]
     return Sub(parts, horns, placements)
 
 
@@ -132,28 +187,41 @@ def electronics(n):
     pocket = g.BATTERY_POCKET_PT
     battery_at = (sum(pocket["x"]) / 2, pocket["y"][0], pocket["floor_z"] - g.BATTERY_STEP["floor_z"] + (n - 1) * 16.3)
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
-    return {f"receiver shield {n}:1": part(step("receiver"), receiver_m, board),
-            f"Core {n} (flipped onto the shield top, per photo):1": part(step("core"), receiver_m @ flip, board),
-            f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1": part(step("switch"), align(stand["switch"][n - 1], (-1, 0, 0), g.Y, g.SWITCH_STEP["hole"]), board),
-            ("battery 1:1" if n == 1 else "battery 2 (inferred):1"): part(step("battery"), align(battery_at, g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"]))}
+    return {
+        f"receiver shield {n}:1": part(step("receiver"), receiver_m, board),
+        f"Core {n} (flipped onto the shield top, per photo):1": part(step("core"), receiver_m @ flip, board),
+        f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1": part(
+            step("switch"), align(stand["switch"][n - 1], (-1, 0, 0), g.Y, g.SWITCH_STEP["hole"]), board
+        ),
+        ("battery 1:1" if n == 1 else "battery 2 (inferred):1"): part(
+            step("battery"), align(battery_at, g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"])
+        ),
+    }
 
 
 def base():
     """noggin-base: the PandT base plate with electronics set 1, PT frame (model/base.py)."""
     parts = {"PandT base:1": part(stl("pt", "PandT base"), None, printed("PandT base")), **electronics(1)}
     stand = g.STANDOFFS["pt_base"]
-    placements = [("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
-                  ("switch board 1:1", [g.SWITCH_STEP["hole"]], [stand["switch"][0]], TOL_INFERRED_MM)]
+    placements = [
+        ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
+        ("switch board 1:1", [g.SWITCH_STEP["hole"]], [stand["switch"][0]], TOL_INFERRED_MM),
+    ]
     return Sub(parts, {}, placements)
 
 
 def stack():
     """noggin-stack: the pan-tilt neck with electronics set 2, PT frame (model/stack.py)."""
     parts = {}
-    for name, stem, dz in [("bearing block", "PandT bearing block", 0), ("pan base", "PandT pan base", 0),
-                           ("upright v2", "PandT upright v2", 0), ("tilt arm", "PandT tilt arm", g.TILT_ARM_SHIFT_Z),
-                           ("servo mount plain", "PandT servo mount plain", 0), ("servo mount cutout", "PandT servo mount cutout", 0),
-                           ("wire holder", "PandT wire holder", 0)]:
+    for name, stem, dz in [
+        ("bearing block", "PandT bearing block", 0),
+        ("pan base", "PandT pan base", 0),
+        ("upright v2", "PandT upright v2", 0),
+        ("tilt arm", "PandT tilt arm", g.TILT_ARM_SHIFT_Z),
+        ("servo mount plain", "PandT servo mount plain", 0),
+        ("servo mount cutout", "PandT servo mount cutout", 0),
+        ("wire holder", "PandT wire holder", 0),
+    ]:
         parts[name + ":1"] = part(stl("pt", stem), translate((0, 0, dz)), printed(stem))
     bars = {}
     for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
@@ -163,57 +231,137 @@ def stack():
         parts[f"{key} bar (inferred):1"] = link("pt", stem, pin, lever, pivot["axis"])
         bars[key] = pin, lever
     parts.update(electronics(2))
-    tilt = rocker_loop("tilt pivot", g.PIVOTS["tilt_horn"]["point"], bars["tilt"][0], g.PIVOTS["tilt"]["point"], bars["tilt"][1], g.X,
-                       "tilt bar (inferred):1", ["tilt arm:1"])
-    pan = rocker_loop("pan pivot", g.PIVOTS["pan_horn"]["point"], bars["pan"][0], g.PIVOTS["pan"]["point"], bars["pan"][1], g.Z,
-                      "pan bar (inferred):1", ["pan base:1", "upright v2:1", "tilt servo:1", "tilt arm:1", "tilt horn (inferred):1", "tilt bar (inferred):1"])
-    horns = {"tilt horn (inferred)": Horn(g.PIVOTS["tilt_horn"], limits("tilt"), "tilt horn (inferred):1", [tilt], ["pan pivot"], None),
-             "pan horn (inferred)": Horn(g.PIVOTS["pan_horn"], limits("rotate"), "pan horn (inferred):1", [pan], ["tilt pivot"], None)}
+    tilt = rocker_loop(
+        "tilt pivot",
+        g.PIVOTS["tilt_horn"]["point"],
+        bars["tilt"][0],
+        g.PIVOTS["tilt"]["point"],
+        bars["tilt"][1],
+        g.X,
+        "tilt bar (inferred):1",
+        ["tilt arm:1"],
+    )
+    pan = rocker_loop(
+        "pan pivot",
+        g.PIVOTS["pan_horn"]["point"],
+        bars["pan"][0],
+        g.PIVOTS["pan"]["point"],
+        bars["pan"][1],
+        g.Z,
+        "pan bar (inferred):1",
+        ["pan base:1", "upright v2:1", "tilt servo:1", "tilt arm:1", "tilt horn (inferred):1", "tilt bar (inferred):1"],
+    )
+    horns = {
+        "tilt horn (inferred)": Horn(
+            g.PIVOTS["tilt_horn"], limits("tilt"), "tilt horn (inferred):1", [tilt], ["pan pivot"], None
+        ),
+        "pan horn (inferred)": Horn(
+            g.PIVOTS["pan_horn"], limits("rotate"), "pan horn (inferred):1", [pan], ["tilt pivot"], None
+        ),
+    }
     stand = g.STANDOFFS["pt_base"]
-    placements = [(f"{key} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_INFERRED_MM) for key in ("tilt", "pan")]
-    placements += [("receiver shield 2:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_2"], axis=0))], TOL_MM),
-                   ("switch board 2 (inferred):1", [g.SWITCH_STEP["hole"]], [stand["switch"][1]], TOL_INFERRED_MM)]
+    placements = [
+        (f"{key} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_INFERRED_MM)
+        for key in ("tilt", "pan")
+    ]
+    placements += [
+        ("receiver shield 2:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_2"], axis=0))], TOL_MM),
+        ("switch board 2 (inferred):1", [g.SWITCH_STEP["hole"]], [stand["switch"][1]], TOL_INFERRED_MM),
+    ]
     return Sub(parts, horns, placements)
 
 
 def mouth():
     """noggin-mouth's own parts, eyes frame (model/mouth.py; its context copy of the eyes is assembled separately)."""
     parts = {}
-    for name, stem in [("top jaw", "top jaw plain"), ("bottom jaw", "bottom jaw plain"), ("jaws servo mount", "jaws servo mount")]:
+    for name, stem in [
+        ("top jaw", "top jaw plain"),
+        ("bottom jaw", "bottom jaw plain"),
+        ("jaws servo mount", "jaws servo mount"),
+    ]:
         parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
     parts["connector bar (inferred):1"] = link("mouth", "jaws connector bar", pin, lever, g.X)
-    loop = rocker_loop("jaw hinge", g.PIVOTS["jaw_horn"]["point"], pin, g.PIVOTS["jaw_hinge"]["point"], lever, g.X, "connector bar (inferred):1", ["bottom jaw:1"])
-    horns = {"jaw horn (inferred)": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn (inferred):1", [loop], [], None)}
+    loop = rocker_loop(
+        "jaw hinge",
+        g.PIVOTS["jaw_horn"]["point"],
+        pin,
+        g.PIVOTS["jaw_hinge"]["point"],
+        lever,
+        g.X,
+        "connector bar (inferred):1",
+        ["bottom jaw:1"],
+    )
+    horns = {
+        "jaw horn (inferred)": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn (inferred):1", [loop], [], None)
+    }
     placements = [("jaw servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS["jaw"]["tab_holes"], TOL_INFERRED_MM)]
     return Sub(parts, horns, placements)
 
 
 SUBS = {"noggin-base": base, "noggin-stack": stack, "noggin-eyes": eyes, "noggin-mouth": mouth}
 EYES_FRAME = (0, 0, 0), g.X, g.Z
-BASE_IN_EYES = g.pt_to_eyes_standalone((0, 0, 0)), (-1, 0, 0), g.Y   # the base as the eyes/mouth sweep documents carried it (context)
+BASE_IN_EYES = (
+    g.pt_to_eyes_standalone((0, 0, 0)),
+    (-1, 0, 0),
+    g.Y,
+)  # the base as the eyes/mouth sweep documents carried it (context)
 # Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as Fusion sweeps root joints only) and the
 # Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as fusion_lib.align.
-DOCS = {"noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
-        "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
-        "noggin-mouth": ({"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-eyes", "noggin-base"}),
-        **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()}}
+DOCS = {
+    "noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
+    "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
+    "noggin-mouth": (
+        {"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES},
+        1,
+        {"noggin-eyes", "noggin-base"},
+    ),
+    **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()},
+}
+
+
+RIDES = {
+    "noggin-eyes": lambda doc: g.STEM_IN[doc] + ":1",
+    "noggin-mouth": lambda doc: "main bracket v2:1",
+}  # clamped to that part
 
 
 def assemble(doc, frames, up, context=()):
     """One document: each sub-assembly's parts and horns carried to its frame (parts static there unless a horn moves
-    them); `context` sub-assemblies bring parts only. Part names are unique across the sub-assemblies by construction."""
-    parts, horns, placements = {}, {}, []
+    them); `context` sub-assemblies bring parts only. In a Stage configuration the eyes are clamped to STEM_IN's part
+    and the mouth to the bracket (model/stage.py's as-built joints), so they ride every chain that part rocks on.
+    Part names are unique across the sub-assemblies by construction."""
+    parts, horns, placements, owner = {}, {}, [], {}
     for name, frame in frames.items():
         sub, f = SUBS[name](), align(*frame)
         for pname, p in sub.parts.items():
             assert pname not in parts, pname
             parts[pname] = Part(p.file, f @ p.matrix, p.material, p.clip)
+            owner[pname] = name
         if name not in context:
-            horns.update({h: Horn(*horn[:5], f) for h, horn in sub.horns.items()})
-        placements += [(pname, local, [world(f, e) for e in expected], tol) for pname, local, expected, tol in sub.placements]
+            horns.update({h: horn._replace(frame=f) for h, horn in sub.horns.items()})
+        placements += [
+            (pname, local, [world(f, e) for e in expected], tol) for pname, local, expected, tol in sub.placements
+        ]
+    if doc in g.STEM_IN:
+        riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
+        for sub, carrier in RIDES.items():
+            if sub in frames:
+                riders.setdefault(carrier(doc), []).extend(n for n in parts if owner[n] == sub)
+        for h, horn in horns.items():
+            loops = []
+            for loop in horn.loops:
+                rockers = list(loop.rockers)
+                todo = list(rockers)
+                while todo:  # transitive: a carried part may carry more
+                    for n in riders.get(todo.pop(), []):
+                        if n not in rockers:
+                            rockers.append(n)
+                            todo.append(n)
+                loops.append(loop._replace(rockers=rockers))
+            horns[h] = horn._replace(loops=loops)
     return Stage(doc, parts, horns, placements, up)
 
 
@@ -228,7 +376,7 @@ class _Stages(dict):
         return self[doc]
 
 
-STAGES = _Stages()   # built on first use: a document per DOCS key
+STAGES = _Stages()  # built on first use: a document per DOCS key
 
 
 def world(m, p):
@@ -243,7 +391,14 @@ def placements(stage):
         actual = [world(stage.parts[name].matrix, q) for q in local_pts]
         worst = max(min(math.dist(a, e) for a in actual) for e in expected)
         if worst > tol:
-            out.append({"placement": name, "mm": round(worst, 2), "tol": tol, "actual": [[round(c, 2) for c in a] for a in actual]})
+            out.append(
+                {
+                    "placement": name,
+                    "mm": round(worst, 2),
+                    "tol": tol,
+                    "actual": [[round(c, 2) for c in a] for a in actual],
+                }
+            )
     return out
 
 
@@ -252,9 +407,11 @@ def pose(stage, horn_name, deg):
     joint angles. Raises linkage.Unreachable when a loop cannot close."""
     horn = stage.horns[horn_name]
     mats = {name: p.matrix for name, p in stage.parts.items()}
-    f, f_inv = horn.frame, np.linalg.inv(horn.frame)   # the chain solves in its sub-assembly's frame
+    f, f_inv = horn.frame, np.linalg.inv(horn.frame)  # the chain solves in its sub-assembly's frame
+
     def move(name, delta):
         mats[name] = f @ delta @ f_inv @ mats[name]
+
     move(horn.crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
     joints = {j: 0.0 for j in horn.still}
     for loop in horn.loops:

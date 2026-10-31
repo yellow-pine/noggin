@@ -1,6 +1,6 @@
 """Report-side simulation extras (#20), pure Python: static gravity torque per horn from the centre-of-mass samples
 the sweep records at each pose, transmission curves from the driven joints, and the merge of fits, beams, torque
-and curves into the Stage report that model/test_report.py thresholds. Sweep samples (model/check.py):
+and curves into the Stage report that model/test_report.py thresholds. Sweep samples (model/engine/run.py):
 horns[name]["poses"] = {deg: {"com": {part: [x, y, z] mm}, "joints": {joint: deg}}}, report["mass"] = {part: g}."""
 
 import math

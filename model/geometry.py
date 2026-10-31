@@ -223,7 +223,7 @@ BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
 
 
 # Printed parts: spool and material per STL stem (model/parts.py gives each library part the spool's appearance and a
-# physical material of that density; check.py and beams.py take masses from it). Spools are Bambu PLA Pure; the density
+# physical material of that density; the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
 # is Bambu Studio's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
 # "(colour inferred)" where an STL name does not map cleanly onto a named part.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
