@@ -95,6 +95,9 @@ def spec(doc):
         width=32,
         height=32,
     )
+    # MuJoCo's default headlight (ambient 0.1, diffuse 0.4, specular 0.5) dims every colour by half and greys it; this
+    # one draws a face toward the camera in its exact colour (XMLreference.html#visual-headlight)
+    s.visual.headlight.ambient, s.visual.headlight.diffuse, s.visual.headlight.specular = [0.5] * 3, [0.5] * 3, [0] * 3
     r = root(doc)
     frame = s.worldbody.add_frame(pos=r[:3, 3] * MM, quat=_quat(r))  # the bodies keep the document's own numbers
     mesh = mujoco.mjtGeom.mjGEOM_MESH

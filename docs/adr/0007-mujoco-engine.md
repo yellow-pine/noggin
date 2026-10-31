@@ -33,7 +33,8 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   (https://mujoco.readthedocs.io/en/stable/python.html#interactive-viewer). Its visual config is one rgba per part from
   the colour table the pictures use (model/render/scene.py, Absolute Black drawn #2B2B2E) and a flat skybox in the
   pictures' background colour (scene.BG; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
-  under MuJoCo's default light.
+  under a headlight that draws a face toward the camera in its exact colour (ambient 0.5, diffuse 0.5, no specular;
+  MuJoCo's default dims and greys every colour).
 - **Z-up, in metres.** The eyes-frame documents (noggin-eyes, noggin-mouth) are carried into the PT frame by one
   `<frame>` (stages.BASE_IN_EYES undone), so every model is Z-up as the Stages are, gravity along -Z; inside it the
   bodies keep the document's numbers.
