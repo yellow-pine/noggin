@@ -13,6 +13,13 @@ bored when you walk away. Claude Code hooks feed a small Mac service; the servic
 CyberBrick Core that plays the gestures on four servos. The pan-and-tilt base and the mouth are
 the next two Stages.
 
+The mechanism is [PurpleShark](https://makerworld.com/en/@PurpleShark)'s three-part CyberBrick
+animatronic series on MakerWorld ([eyes](https://makerworld.com/en/models/1718839),
+[pan & tilt](https://makerworld.com/en/models/1766064), [mouth](https://makerworld.com/en/models/1861301)):
+noggin uses almost all of its printed parts and hardware exactly as designed, and owes its
+existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
+the Claude Code hooks, the Fusion model and the simulation.
+
 ![The eyes Stage: two pink printed eyeballs with lids on a bracket](docs/images/eyes-front.jpg)
 
 ![Eureka: the lids snap open and the eyes jump up](docs/images/eureka.gif)
