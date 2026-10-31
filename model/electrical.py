@@ -22,7 +22,7 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")
 
-CAP_A = min(3.0, 3.0)  # shield max, pack continuous discharge: one pack per shield
+CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
 # Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet Table 5-7 (chip peak at 3.3 V,

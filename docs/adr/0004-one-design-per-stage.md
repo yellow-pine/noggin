@@ -1,4 +1,4 @@
-# One Fusion design per stage, plus a top assembly
+# Sub-assemblies by reference into cumulative Stages
 
 The Model could be a single Fusion design with everything inside, or one design per Stage (eyes, pan-tilt,
 mouth) inserted as Sub-assemblies into a top design `noggin`. We chose the latter: each Stage carries
@@ -23,7 +23,7 @@ library design and inserted by reference, so builds stop re-converting meshes (d
 
 ### Implemented 2026-10-31 (#32): copies for jointed parts, references for context
 
-`make model-parts` converts each STL (with its proxy body, spool appearance and PLA material) and STEP once into
+`make model-parts` converts each STL (with its spool appearance and PLA material) and STEP once into
 `parts/`. Measured over the 31 parts: inserting them by reference takes 42 s, as copies 85 s, as references with
 `breakLink` 83 s; the old per-Stage mesh converts took about 60 s plus the timeline growth. A referenced component
 cannot be renamed (`root component name cannot be changed`) and the joint-origin sketches `fusion_lib.joint_origin`
@@ -51,3 +51,10 @@ inserts each sub-assembly once by reference at the frames in `model/geometry.py`
 joints (no geometry, so nothing is written into a referenced design): stack on base, bracket stem in STEM_IN's part (depth
 inferred), top jaw on the bracket; it prints the part count and the duplicates (none) as the proof. The old `noggin-pan-tilt`
 document and its sweep report stay as the geometry fixture of base + stack.
+
+## Update 2026-10-31 (#31, #47): what stands
+
+The original "one design per stage plus a top assembly" is superseded by the updates above: four Sub-assemblies
+(base, stack, eyes, mouth) own their parts once, and three cumulative Stage documents (noggin-stage1..3) insert them by
+reference. Fusion only builds documents: no screenshots, no canvases, no proxy bodies; the engine simulates
+(ADR 0006) and Blender renders.
