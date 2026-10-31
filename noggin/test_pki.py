@@ -25,7 +25,9 @@ def test_the_ca_signs_the_broker_as_a_server_and_each_client_as_a_client(tmp_pat
             openssl("verify", "-CAfile", "ca.crt", "-purpose", "sslclient", f"{name}.crt", cwd=tmp_path).returncode == 0
         )
         assert openssl("verify", "-CAfile", "ca.crt", "-purpose", "sslserver", f"{name}.crt", cwd=tmp_path).returncode
-        subject = openssl("x509", "-in", f"{name}.crt", "-noout", "-subject", cwd=tmp_path).stdout
+        subject = openssl(
+            "x509", "-in", f"{name}.crt", "-noout", "-subject", "-nameopt", "RFC2253", cwd=tmp_path
+        ).stdout
         assert subject.strip() == f"subject=CN={name}"  # the broker's use_identity_as_username reads this
 
 
