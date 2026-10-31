@@ -100,12 +100,11 @@ The Fusion 360 assembly of every stage and every piece of hardware, 1:1 with the
 _Avoid_: model, CAD, simulation
 
 **Stage**:
-One of the designer's three builds, eyes, pan-tilt or mouth, each its own Fusion design.
-_Avoid_: part, module, phase
+A cumulative build state of the Mech, each its own Fusion design that inserts Sub-assemblies by reference: Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
+_Avoid_: part, module, phase, top assembly
 
 **Sub-assembly**:
-One of the four Fusion designs that own the parts once (noggin-base, noggin-stack, noggin-eyes, noggin-mouth), inserted by
-reference into the Stage documents noggin-stage1 (base + eyes, the desk build), stage2 (+ stack) and stage3 (+ mouth).
+An ownership unit: a Fusion design that owns its parts exactly once (base, stack, eyes, mouth) and is inserted into Stages by reference.
 
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.
