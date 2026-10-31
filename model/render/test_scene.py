@@ -1,7 +1,5 @@
 """Seam: model/render/scene.py, a Stage posed at the eye program's joint degrees and exported for Blender."""
 
-import os
-
 import numpy as np
 import pytest
 import trimesh
@@ -36,7 +34,7 @@ def test_a_stage_without_eye_horns_ignores_the_eye_joints():
     assert all(np.allclose(mats[n], p.matrix) for n, p in stack.parts.items())
 
 
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 @pytest.mark.skipif(not HAVE_REFERENCES, reason="designer STLs and STEP meshes are local only")

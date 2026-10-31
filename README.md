@@ -131,6 +131,8 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
   transforms, KD-tree contact screen, mass and torque, the electrical budget. Fusion builds the
   documents; Blender renders every picture from the engine's poses; the sweeps run in seconds without
   Fusion (ADR 0006).
+- Our own parametric CadQuery parts (`model/printed/`) and hardware envelopes (`model/envelopes.py`), so CI
+  simulates the Mech with none of the designers' files; every picture draws them.
 
 Rendering rules are in `docs/model-notes.md`.
 

@@ -13,6 +13,10 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EYES_MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
 PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
 MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
+# without the designer's STLs (CI) read ours (model/ours.py), as model/engine/stages.py does
+HAVE_REFERENCES = os.path.isdir(EYES_MODELS) and os.path.isfile(os.path.join(REPO, "model/build/steps/horn.stl"))
+if not HAVE_REFERENCES:
+    EYES_MODELS = PT_MODELS = MOUTH_MODELS = os.path.join(REPO, "model/build/ours")
 M2_5 = 2.5  # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
 
 

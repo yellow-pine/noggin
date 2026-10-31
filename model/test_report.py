@@ -144,8 +144,10 @@ def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once
 
 
 def test_known_calibrated_collisions_are_still_there():
-    """When the model changes so a KNOWN_CALIBRATED entry no longer collides, drop it."""
-    found = {
-        (h, v["deg"]) for c in ("noggin-eyes",) for h, r in committed(c)["calibrated"].items() for v in r["violations"]
-    }
+    """When the model changes so a KNOWN_CALIBRATED entry no longer collides, drop it. They are the designer meshes'
+    (the committed reports): a report simulated on our geometry (CI's `make sim`) is not held to them."""
+    report = committed("noggin-eyes")
+    if any(s.startswith("model/build/ours/") for s in report["inputs"]["sources"]):
+        pytest.skip("simulated on our geometry: our parts clear the calibrated ends")
+    found = {(h, v["deg"]) for h, r in report["calibrated"].items() for v in r.get("violations", [])}
     assert set(KNOWN_CALIBRATED) == found
