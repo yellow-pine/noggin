@@ -90,6 +90,15 @@ def proxy_body(occ):
     return body.createForAssemblyContext(occ) if body else None
 
 
+def real_body(occ):
+    """The occurrence's full-resolution body in assembly context when it carries a proxy (an occurrence-level
+    measurement would include the proxy), else the occurrence itself."""
+    if not occ.component.bRepBodies.itemByName("proxy"):
+        return occ
+    body = next(b for b in occ.component.bRepBodies if b.name != "proxy")
+    return body.createForAssemblyContext(occ)
+
+
 def world_frame(origin):
     """World (pivot point mm, Z axis) of a joint origin built by joint_origin(): the sketch point plus the
     offset along the (possibly flipped) plane normal, carried through the occurrence."""

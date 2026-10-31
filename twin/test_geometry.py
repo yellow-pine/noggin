@@ -18,7 +18,7 @@ def test_mirror_x_maps_left_eye_to_right():
 
 def test_horn_limits_match_designer_config():
     assert g.HORN_LIMITS == {
-        "l_lid": (70, 120), "l_eye": (65, 115), "r_lid": (70, 120), "r_eye": (65, 115),
+        "l_lid": (70, 120), "l_eye": (60, 120), "r_lid": (70, 120), "r_eye": (60, 120),
         "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
     }
 

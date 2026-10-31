@@ -34,7 +34,7 @@ def mirror_x(p):
 
 # Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
 HORN_LIMITS = {
-    "l_lid": (70, 120), "l_eye": (65, 115), "r_lid": (70, 120), "r_eye": (65, 115),   # eye: +-25 (horn tip meets the brackets at +-30)
+    "l_lid": (70, 120), "l_eye": (60, 120), "r_lid": (70, 120), "r_eye": (60, 120),
     "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
 }
 
@@ -139,7 +139,7 @@ def servo_frame(key):
 # the lid-servo horn pin outside the ears, the straight bar outboard of the crank (guide p.23) [I: x +-3].
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
 LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -29.5}, "eyelid_crank": {"lid": "outside", "x": -25.5}}
-EYEBALL_BAR_PINS = [(-10.0, 4.5, 27.0), (-10.0, 4.5, 0.0)]   # eye-horn end, eyeball end [M], y +0.5 so the bar clears the bracket rail it rides on [I]
+EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eyeball end [M]
 
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
 STL_LOCAL = {

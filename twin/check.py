@@ -179,7 +179,7 @@ def run(_context: str):
                 measured += 1
                 adsk.doEvents()   # let the UI repaint and take input between measurements
                 if d < CLEARANCE_MM and (proxy_body(mover) or proxy_body(other)):   # decimation can close slots: confirm on the real bodies
-                    d = app.measureManager.measureMinimumDistance(mover, other).value * 10
+                    d = app.measureManager.measureMinimumDistance(real_body(mover), real_body(other)).value * 10
                     measured += 1
                 pair = [mover.name, other.name]
                 if worst is None or d < worst["min_mm"]:
