@@ -13,10 +13,14 @@ except ImportError:  # CPython
     def sleep_ms(ms): time.sleep(ms / 1000)
 
 try:
-    import gaze_trace                      # real human gaze (GazeBase) replayed while thinking
-    TRACE_BLINKS = set(gaze_trace.BLINKS)
+    import gaze_trace                      # real human eye movements (GazeBase): saccade shapes, a scan, a viewing session
+    TRACE_BLINKS = set(gaze_trace.THINK_BLINKS)
 except ImportError:
     gaze_trace = None
+
+
+def _s8(v):
+    return (v - 256 if v > 127 else v) / 2   # trace bytes: signed int8 half-degrees
 
 # shield port 1..4 -> GPIO 3,2,1,0
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
@@ -120,9 +124,24 @@ class Eyes:
         self.lids(self.cal["lid_rest"] if level is None else level, open_ms, ease=True)
 
     def saccade(self, angle):
-        """Step to ~93% of the way, pause, then the corrective saccade (D = 21 + 2.2*A ms is below servo slew)."""
+        """Move the eyes along a real saccade's velocity profile (GazeBase, nearest amplitude), undershoot
+        and correction included. Without a trace: ~93% step, pause, corrective step."""
         cur = self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0)
-        self.eyes(cur + (angle - cur) * 0.93); sleep_ms(120); self.eyes(angle); sleep_ms(60)
+        d = angle - cur
+        if gaze_trace is None or abs(d) < 2:
+            self.eyes(cur + d * 0.93); sleep_ms(120); self.eyes(angle); sleep_ms(60); return
+        prof = gaze_trace.SACCADE[min(gaze_trace.SACCADE, key=lambda a: abs(a - abs(d)))]
+        for f in prof:
+            self.eyes(cur + d * f); sleep_ms(10)
+        self.eyes(angle)
+
+    def replay(self, samples, blinks=()):
+        """Play a 25 Hz gaze clip around centre (blocking)."""
+        for i in range(len(samples)):
+            self.eyes(EYE_CENTER + _s8(samples[i]))
+            if i in blinks:
+                self.blink(level=self.cal["lid_think"])
+            sleep_ms(1000 // gaze_trace.HZ)
 
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200); self.eyes(EYE_CENTER, 200)
@@ -145,10 +164,13 @@ class Eyes:
     def attention(self, i):
         """Needs you: half lids, two slow pursuit sweeps (~40 deg/s), centre, lids open, one blink."""
         self.lids(self.cal["lid_think"], 200)
-        self.eyes(EYE_CENTER - 25, 600)
-        for _ in range(2):
-            self.eyes(EYE_CENTER + 25, 1250); self.eyes(EYE_CENTER - 25, 1250)
-        self.eyes(EYE_CENTER, 600)
+        if gaze_trace is not None:                      # a real person scanning left-right (HSS task)
+            self.replay(gaze_trace.SCAN)
+        else:
+            self.eyes(EYE_CENTER - 25, 600)
+            for _ in range(2):
+                self.eyes(EYE_CENTER + 25, 1250); self.eyes(EYE_CENTER - 25, 1250)
+        self.saccade(EYE_CENTER)
         self.lids(self.cal["lid_rest"], 300, ease=True); sleep_ms(200); self.blink()
 
     def bored(self, i):
@@ -181,7 +203,7 @@ class Eyes:
                 self.rest_pose()
             else:                                       # gaze-evoked blink with the saccade aside
                 self.think_side = self._side()
-                self.lids(self.cal["lid_closed"]); self.eyes(EYE_CENTER + self.think_side * 18); sleep_ms(100)
+                self.lids(self.cal["lid_closed"]); self.saccade(EYE_CENTER + self.think_side * 18)
                 self.lids(self.cal["lid_think"], 250, ease=True)
                 self.next_drift = 0; self.next_blink = 0; self.think_start = None; self.trace_i = -1
         elif cmd == "release":                          # unpower (e.g. muted overnight); next command re-powers
@@ -220,11 +242,10 @@ class Eyes:
         if gaze_trace is not None and self.cal["think_trace"]:   # replay the recording, looping
             if self.think_start is None:
                 self.think_start = now_ms
-            i = ((now_ms - self.think_start) * gaze_trace.HZ // 1000) % len(gaze_trace.X)
+            i = ((now_ms - self.think_start) * gaze_trace.HZ // 1000) % len(gaze_trace.THINK)
             if i != self.trace_i:
                 self.trace_i = i
-                v = gaze_trace.X[i]
-                self.eyes(EYE_CENTER + (v - 256 if v > 127 else v) / 2)
+                self.eyes(EYE_CENTER + _s8(gaze_trace.THINK[i]))
                 if i in TRACE_BLINKS:
                     self.blink(level=self.cal["lid_think"])
             return
@@ -236,6 +257,6 @@ class Eyes:
         if now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
-        shift = (self.rand % 7) - 3                    # micro-shifts of a few degrees around the averted gaze
-        self.eyes(EYE_CENTER + self.think_side * 18 + shift * 1.5)
+        shift = (self.rand % 7) - 3                    # micro-saccades of a few degrees around the averted gaze
+        self.saccade(EYE_CENTER + self.think_side * 18 + shift * 2)
         self.next_drift = now_ms + 400 + self.rand % 500   # fixations 0.4-0.9 s
