@@ -4,6 +4,7 @@
 usage: noggin on|off                     mute / unmute
        noggin eureka|attention|bored|wince <1-3>
        noggin thinking|rest              background mode
+       noggin release                    unpower the servos (they slump); any command re-powers
        noggin pose lids <0-1> [eyes <angle>]   hold a pose (eyes 90 = straight)
        noggin set <key> <value>          live calibration, saved to eyes/calibration.json
        noggin reload                     resend eyes/calibration.json to the Core

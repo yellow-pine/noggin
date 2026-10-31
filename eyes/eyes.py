@@ -1,5 +1,6 @@
 # noggin eye program for the CyberBrick Core (ESP32-C3, MicroPython).
 # Plays named gestures and background modes (thinking, exercise) on four servos.
+# Servos stay powered: released, the lids and eyes fall under gravity (gravity beats the smooth linkages).
 # Calibration lives in self.cal: defaults below, overridden live by `set key value`
 # lines that the Daemon pushes from eyes/calibration.json.
 # Importable on CPython for tests (machine is stubbed there).
@@ -141,9 +142,11 @@ class Eyes:
         if cmd in ("thinking", "rest"):
             self.mode = cmd
             if cmd == "rest":
-                self.rest_pose(); sleep_ms(200); self.release()
+                self.rest_pose()
             else:
-                self.lids(self.cal["lid_think"], 300); self.release(); self.next_drift = 0
+                self.lids(self.cal["lid_think"], 300); self.next_drift = 0
+        elif cmd == "release":                          # unpower (e.g. muted overnight); next command re-powers
+            self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
             self.cal[args[0]] = type(DEFAULT_CAL[args[0]])(float(args[1]))
         elif cmd == "pose" and len(args) in (2, 4):      # pose lids <0-1> | eyes <angle> | both; holds
@@ -156,7 +159,6 @@ class Eyes:
             self.GESTURES[cmd](self, int(args[0]))
             if self.mode == "thinking":
                 self.lids(self.cal["lid_think"], 200)
-            sleep_ms(150); self.release()
 
     def tick(self, now_ms):
         """Call often. Drives the background modes."""
@@ -181,5 +183,4 @@ class Eyes:
             self.blink(); self.lids(self.cal["lid_think"])
         else:
             self.eyes(70 + self.rand % 41, 500)
-        sleep_ms(100); self.release()
         self.next_drift = now_ms + 3000 + self.rand % 3000

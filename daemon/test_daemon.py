@@ -30,7 +30,7 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     assert wait_for(lambda: state.exists())
     send(sock, json.dumps({"hook_event_name": "Stop", "session_id": "x"}) + "\n")
     time.sleep(0.3)
-    assert fake.buf.endswith(b"thinking\nrest\n")   # mute rests the Core; the Stop is dropped
+    assert fake.buf.endswith(b"thinking\nrest\nrelease\n")   # mute rests + unpowers the Core; the Stop is dropped
     send(sock, "on\n"); send(sock, "eureka 2\n")   # manual gesture for the wizard
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n"))
     send(sock, "set lid_rest 0.3\n")                 # live tune: Core gets it, file keeps it

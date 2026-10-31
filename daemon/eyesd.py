@@ -11,7 +11,7 @@ SOCK = os.path.expanduser("~/.noggin.sock")      # AF_UNIX paths max 104 bytes: 
 MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
 PORT_GLOB = "/dev/cu.usbmodem*"
-MANUAL = {"thinking", "rest", "eureka", "attention", "bored", "wince", "pose", "exercise"}
+MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "pose", "exercise"}
 
 
 def log(*a):
@@ -64,7 +64,7 @@ class Daemon:
     def command(self, text, now):
         if text == "off":
             self.mute_file.touch(); log("muted")
-            return self.send(self.director.mute())
+            return self.send(self.director.mute() + ["release"])   # muted: unpower, let it slump
         if text == "on":
             self.director.muted = False; self.mute_file.unlink(missing_ok=True); log("unmuted")
             return
