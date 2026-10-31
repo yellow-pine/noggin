@@ -57,7 +57,13 @@ class Service:
                     if line.strip():
                         log("Core:", line.strip())
         except Exception as e:
-            log("Link lost:", e); self.link = None
+            self.drop_link(e)
+
+    def drop_link(self, e):
+        log("Link lost:", e)
+        try: self.link.close()
+        except Exception: pass
+        self.link = None
 
     def send(self, lines):
         if not lines or self.link is None:
@@ -67,10 +73,7 @@ class Service:
             self.link.write(("\n".join(lines) + "\n").encode())
             log("sent", lines)
         except Exception as e:  # pyserial raises SerialException(IOError)
-            log("Link lost:", e)
-            try: self.link.close()
-            except Exception: pass
-            self.link = None
+            self.drop_link(e)
 
     def command(self, text, now):
         if text == "off":

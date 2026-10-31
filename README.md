@@ -20,10 +20,12 @@ noggin service and the Claude Code hooks; see `docs/build-notes.md`, `GLOSSARY.m
 | Notification permission_prompt | attention: half lids, a real left-right scan |
 | Notification idle_prompt | bored: drooping lids, heavy blinks, one long closure |
 | StopFailure | wince |
-| SessionEnd | back to rest |
+| SessionEnd | back to rest (a turn with no events for 15 min also returns to rest) |
 
 Several sessions share the one Mech; a gesture already playing wins and later ones are dropped.
-Eye movements are real human recordings (GazeBase); blink and lid timing follow the literature in
+Eye movements use real human recordings (GazeBase): every saccade follows a recorded velocity
+profile, attention replays a scan, bored a calm viewing window; thinking is synthetic drift built
+from those saccades unless `think_trace` is on. Blink and lid timing follow the literature in
 `docs/research/`. Calibration is live: `eyes/calibration.json`, pushed to the Core by the noggin
 service, tuned with `noggin set`.
 

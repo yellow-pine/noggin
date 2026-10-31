@@ -39,6 +39,11 @@ pushing past them, the lids bind at the ends.
   supply for the board. One pack in the holder through the switch board, the
   spare on charge. USB-C to the Mac carries data and powers the Core only.
 
+## Host
+
+- `uv` manages `.venv` (Python 3.12) and runs mpremote and pytest; the system Python is 3.9 and is
+  not used.
+
 ## Talking to the Core
 
 - This board reports `3.4.0; MicroPython e7cd27f2 on 2025-06-09`; stock RC program 01.00.00.13.

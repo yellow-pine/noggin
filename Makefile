@@ -12,7 +12,7 @@ test: venv
 	$(PY) -m pytest -q
 check: test       ## everything CI runs: tests, wizard syntax, plist validity, hook script syntax
 	bash -n scripts/setup.sh
-	sh -n noggin/hook.sh noggin/noggin noggin/demo
+	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:

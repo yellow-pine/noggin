@@ -53,7 +53,7 @@ The background state while any session is mid-turn: half lids, slow eye drifts, 
 _Avoid_: working, busy, idle animation
 
 **Rest**:
-The state when no session is mid-turn and no gesture is playing: lids open, eyes centred, servos released so the mech is silent and still.
+The state when no session is mid-turn and no gesture is playing: lids at their rest level, eyes centred, servos holding so the mech is still.
 _Avoid_: idle, sleep, neutral, home
 
 **Intensity**:
