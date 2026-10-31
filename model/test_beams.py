@@ -28,3 +28,9 @@ def test_eyes_stage_beams_are_recorded():
 def test_pan_tilt_stage_beams_are_recorded():
     rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.PT_BEAMS)}
     assert rows == beams.PT_RECORDED
+
+
+@pytest.mark.skipif(not os.path.isdir(beams.fits.MOUTH_MODELS), reason="docs/references (local only) missing")
+def test_mouth_stage_beams_are_recorded():
+    rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.MOUTH_BEAMS)}
+    assert rows == beams.MOUTH_RECORDED

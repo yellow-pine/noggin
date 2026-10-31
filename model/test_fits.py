@@ -52,3 +52,9 @@ def test_eyes_stage_fits_are_recorded():
 def test_pan_tilt_stage_fits_are_recorded():
     rows = {r["joint"]: (r["hole_r"], r["pin_r"], r["ok"]) for r in fits.fit_table(fits.PT_JOINTS)}
     assert rows == fits.PT_RECORDED
+
+
+@pytest.mark.skipif(not os.path.isdir(fits.MOUTH_MODELS), reason="docs/references (local only) missing")
+def test_mouth_stage_fits_are_recorded():
+    rows = {r["joint"]: (r["hole_r"], r["pin_r"], r["ok"]) for r in fits.fit_table(fits.MOUTH_JOINTS)}
+    assert rows == fits.MOUTH_RECORDED

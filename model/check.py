@@ -16,7 +16,7 @@ import adsk.core, adsk.fusion, json, math, os, time
 HORN = None                           # model/sweep.py substitutes this line per call
 BUDGET_S = 180
 
-DOC = "noggin-eyes"                   # model/sweep.py substitutes this line: `DOC=noggin-pan-tilt make model-check`
+DOC = "noggin-eyes"                   # model/sweep.py substitutes this line: `DOC=noggin-mouth make model-check`
 PROJECT_NAME = "Noggin"               # the hub's former Default Project; Stage documents sit at its root
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
@@ -147,6 +147,10 @@ PLACEMENTS = {
         "parts": [(f"{key} servo", SERVO_STEP["tab_holes"], SERVOS[key]["tab_holes"], TOL_INFERRED_MM) for key in ("tilt", "pan")]
                  + [("receiver shield", [(0, 0, 0)], [_mean(STANDOFFS["pt_base"]["receiver_2"])], TOL_MM)],
         "pivots": [("pan pivot", "pan"), ("tilt pivot", "tilt"), ("tilt horn (inferred)", "tilt_horn"), ("pan horn (inferred)", "pan_horn")],
+    },
+    "noggin-mouth": {
+        "parts": [("jaw servo", SERVO_STEP["tab_holes"], SERVOS["jaw"]["tab_holes"], TOL_INFERRED_MM)],
+        "pivots": [("jaw hinge", "jaw_hinge"), ("jaw horn (inferred)", "jaw_horn")],
     },
 }
 

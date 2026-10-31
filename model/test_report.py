@@ -5,7 +5,8 @@ import glob, importlib.util, json, os, pytest
 HERE = os.path.dirname(__file__)
 MAX_INTERFERENCE_MM3 = 0.5
 ENVELOPE = {"noggin-eyes": ((-60, 120), (-120, 60), (-60, 180)),      # Mech extent per Stage frame, mm (x, y, z)
-            "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60))}       # PandT base 120 x 160, tilt arm top z ~41
+            "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60)),       # PandT base 120 x 160, tilt arm top z ~41
+            "noggin-mouth": ((-60, 120), (-120, 60), (-60, 180))}       # the eyes envelope: noggin-eyes is referenced in whole
 REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-report.json")))
 
 

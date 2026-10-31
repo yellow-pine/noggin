@@ -1,4 +1,4 @@
-"""Mac-side driver for the horn sweep (`DOC=noggin-pan-tilt make model-check`, default noggin-eyes): one Fusion call
+"""Mac-side driver for the horn sweep (`DOC=noggin-pan-tilt|noggin-mouth make model-check`, default noggin-eyes): one Fusion call
 per horn so the UI breathes between calls and a crash loses one horn, then the per-horn reports are merged into
 model/build/<doc>-report.json. Usage: sweep.py [doc] [--merge-only]"""
 import glob, json, os, sys
@@ -27,7 +27,8 @@ def merge(parts):
 def main():
     import fusion_run
     import beams, fits, sim   # model/ siblings (sys.path[0] is this folder when run as a script)
-    TABLES = {"noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS), "noggin-pan-tilt": (fits.PT_JOINTS, beams.PT_BEAMS)}
+    TABLES = {"noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS), "noggin-pan-tilt": (fits.PT_JOINTS, beams.PT_BEAMS),
+              "noggin-mouth": (fits.MOUTH_JOINTS, beams.MOUTH_BEAMS)}
     check = open(os.path.join(HERE, "check.py")).read()
     doc = next((a for a in sys.argv[1:] if not a.startswith("--")), "noggin-eyes")
     check = check.replace('DOC = "noggin-eyes"', f'DOC = "{doc}"')

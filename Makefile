@@ -4,8 +4,8 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-pan-tilt
-DOC ?= noggin-eyes   ## Stage document for model-check: noggin-eyes or noggin-pan-tilt
+.PHONY: venv test check model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-pan-tilt model-mouth
+DOC ?= noggin-eyes   ## Stage document for model-check: noggin-eyes, noggin-pan-tilt or noggin-mouth
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -58,3 +58,5 @@ model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusi
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
 model-pan-tilt: venv model-proxies   ## rebuild the noggin-pan-tilt Fusion design the same way
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/pan_tilt.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-mouth: venv model-proxies   ## rebuild the noggin-mouth Fusion design the same way (WIP: not yet run, #32)
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/mouth.py | $(PY) scripts/fusion_run.py /dev/stdin

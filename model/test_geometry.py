@@ -96,3 +96,15 @@ def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
     assert tilt_pin[1] > g.PIVOTS["tilt_horn"]["point"][1] + 12   # horn horizontal toward +Y
     pan_pin, _ = g.horn_pin("pan")
     assert pan_pin[1] < g.PIVOTS["pan_horn"]["point"][1] - 12     # horn forward (-Y)
+
+
+def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub():
+    origin, tab_x, shaft = g.servo_frame("jaw")
+    assert shaft == (-1, 0, 0) and origin == (75.9, -48.6, 23.1)   # tab plane at the mount lug, the horn seat 10.35 inboard
+    assert abs(g.PIVOTS["jaw_horn"]["point"][0] - (75.9 - g.SERVO_STEP["horn_seat"])) < 1e-9
+    pin, lever = g.horn_pin("jaw")
+    assert pin[0] == lever[0] == 58.9 and lever[1:] == (-58.1, -10.44)
+    hub = g.PIVOTS["jaw_horn"]["point"]
+    assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
+    assert abs(_dist(pin, lever) - g.BARS["connector_bar"]) < 1e-6
+    assert pin[1] < hub[1] - 10   # horn pointing down (-Y), away from the bracket rail

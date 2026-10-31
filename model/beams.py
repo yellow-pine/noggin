@@ -88,9 +88,16 @@ PT_BEAMS = [
 ]
 PT_RECORDED = {"tilt bar": (81.23, True), "pan bar": (81.23, True)}   # read 2026-10-31: the same 3 x 5 mm section as the eyes bars
 
+# Mouth Stage: the connector bar as an axial link across its 31.4 mm pivot spacing; section from its lower tab (x > 8: the
+# 5 x 3 tab plus its edge rounding, since the STL carries no vertices on the tab's flat top).
+MOUTH_BEAMS = [
+    ("connector bar", "axial", stall_force_n, 31.4, (fits.stl("jaws connector bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z")),
+]
+MOUTH_RECORDED = {"connector bar": (92.29, True)}   # read 2026-10-31 (5 x 3.4 tab)
+
 
 if __name__ == "__main__":
-    for r in beam_table(EYES_BEAMS + PT_BEAMS):
+    for r in beam_table(EYES_BEAMS + PT_BEAMS + MOUTH_BEAMS):
         print("%-16s %-10s F %5.2f N  L %4.1f  b x h %4.2f x %4.2f  SF %6.2f  (cantilever: %6.2f MPa, %6.3f mm, SF %6.2f)  %s" % (
             r["beam"], r["model"], r["F_n"], r["L_mm"], r["b_mm"], r["h_mm"], r["sf"], r["sigma_cantilever_mpa"], r["deflection_mm"], r["sf_cantilever"], "ok" if r["ok"] else "FLAG"))
     sys.exit(0)

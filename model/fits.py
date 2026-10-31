@@ -107,9 +107,21 @@ PT_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31
     "tilt arm / pivot screw": (1.35, 1.25, True), "upright / pivot screw": (1.1, 1.25, True),
 }
 
+# Mouth Stage: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
+# self-tapped into the jaw's pivot lug (step 8). The bar's own holes are not fitted: at 960 vertices the hole rings tangle
+# with the tab-end rounding (rms 0.1-0.16); the research note reads them as r ~1.25.
+MOUTH_JOINTS = [
+    ("L hinge / top jaw pin", (stl("bottom jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 3), (stl("top jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 4)),
+    ("R hinge / top jaw pin", (stl("bottom jaw plain", MOUTH_MODELS), (70, -49.6, 8), "x", 3), (stl("top jaw plain", MOUTH_MODELS), (68, -49.6, 8), "x", 4)),
+    ("jaw pivot lug / M2.5", (stl("bottom jaw plain", MOUTH_MODELS), (66, -58.1, -10.44), "x", 5), M2_5, "self_tapping"),
+]
+MOUTH_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the L pin reads 1.72 (coarser facets than the R pin's 1.75)
+    "L hinge / top jaw pin": (2.0, 1.72, True), "R hinge / top jaw pin": (2.0, 1.75, True), "jaw pivot lug / M2.5": (1.1, 1.25, True),
+}
+
 
 if __name__ == "__main__":
-    for row in fit_table(EYES_JOINTS + PT_JOINTS):
+    for row in fit_table(EYES_JOINTS + PT_JOINTS + MOUTH_JOINTS):
         print("%-32s hole r %.3f  pin r %.3f  clearance %5.2f  offset %.2f  rms %.3f  %s" % (
             row["joint"], row["hole_r"], row["pin_r"], row["clearance"], row["offset"], row["rms"], row.get("tag") or ("ok" if row["ok"] else "FLAG")))
     sys.exit(0)
