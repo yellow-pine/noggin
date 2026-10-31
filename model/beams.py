@@ -96,49 +96,49 @@ def _lid_weight(name):
 # the cantilever bound (bending about the pin axis, depth h = in-plane width) is reported alongside. Ears: the lug from
 # the lid body to the pin (~5 mm) as a cantilever under half the lid, bending about the pin, depth across the lug.
 EYES_BEAMS = [
-    ("eyelid bar", "axial", stall_force_n, 41.0, (fits.stl("eyelid bar"), lambda v: True, "z", "y")),
+    ("lid bar", "axial", stall_force_n, 41.0, (fits.stl("lid bar"), lambda v: True, "z", "y")),
     (
-        "eyelid crank",
+        "lid crank",
         "axial",
         stall_force_n,
         41.0,
-        (fits.stl("eyelid bar crank"), lambda v: v[2] < 3.5, "z", "y"),
+        (fits.stl("lid crank"), lambda v: v[2] < 3.5, "z", "y"),
     ),  # the lower tab; the step is 3 mm higher
     ("eyeball bar", "axial", stall_force_n, 27.0, (fits.stl("eyeball bar"), lambda v: True, "y", "x")),
-    ("inside lid ear", "cantilever", _lid_weight("inside lid"), 5.0, (fits.stl("inside lid"), _ear, "x", "y")),
-    ("outside lid ear", "cantilever", _lid_weight("outside lid"), 5.0, (fits.stl("outside lid"), _ear, "x", "y")),
+    ("upper lid ear", "cantilever", _lid_weight("upper lid"), 5.0, (fits.stl("upper lid"), _ear, "x", "y")),
+    ("lower lid ear", "cantilever", _lid_weight("lower lid"), 5.0, (fits.stl("lower lid"), _ear, "x", "y")),
 ]
 EYES_RECORDED = {  # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are far from yield (the cantilever bound gave 1.65)
-    "eyelid bar": (81.23, True),
-    "eyelid crank": (81.23, True),
+    "lid bar": (81.23, True),
+    "lid crank": (81.23, True),
     "eyeball bar": (81.23, True),
-    "inside lid ear": (999, True),
-    "outside lid ear": (999, True),
+    "upper lid ear": (999, True),
+    "lower lid ear": (999, True),
 }
 
 # Stack sub-assembly (pan-tilt): the two bars as axial links under the stall force across their pivot spacing.
 PT_BEAMS = [
     ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar", fits.PT_MODELS), lambda v: True, "z", "y")),
-    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("PandT bar", fits.PT_MODELS), lambda v: True, "z", "y")),
+    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar", fits.PT_MODELS), lambda v: True, "z", "y")),
 ]
 PT_RECORDED = {
     "tilt bar": (81.23, True),
     "pan bar": (81.23, True),
 }  # read 2026-10-31: the same 3 x 5 mm section as the eyes bars
 
-# Mouth sub-assembly: the connector bar as an axial link across its 44.1 mm in-plane pivot spacing (the 13 mm crank along
+# Mouth sub-assembly: the jaw bar as an axial link across its 44.1 mm in-plane pivot spacing (the 13 mm crank along
 # the pins is not modelled); section from its lower tab (x > 8: the
 # 5 x 3 tab plus its edge rounding, since the STL carries no vertices on the tab's flat top).
 MOUTH_BEAMS = [
     (
-        "connector bar",
+        "jaw bar",
         "axial",
         stall_force_n,
         44.1,
-        (fits.stl("jaws connector bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
+        (fits.stl("jaw bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
-MOUTH_RECORDED = {"connector bar": (81.23, True)}  # read 2026-10-31 on ours
+MOUTH_RECORDED = {"jaw bar": (81.23, True)}  # read 2026-10-31 on ours
 
 
 if __name__ == "__main__":

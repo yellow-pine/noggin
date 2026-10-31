@@ -58,6 +58,7 @@ class Wifi:
         self.handle_line, self.name, self.cfg = handle_line, name, cfg
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
+        self.wlan.config(pm=self.wlan.PM_NONE)  # power save: the AP holds our datagrams past the ack window
         self.join_at = None
         self.beacon = self.cmd = None
         self.next_beacon = 0
@@ -90,8 +91,9 @@ class Wifi:
             self.serve(data, addr)
 
     def serve(self, data, addr):
-        """Datagram `<tag> <seq> <command line>` -> reply `ok <seq>` or `err <seq> <reason>`. seq must not go
-        backwards (replays are dropped); the highest seq is re-acked without running again."""
+        """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then the line runs (and a parser exception
+        follows as `err <seq> <reason>`). seq must not go backwards (replays are dropped); the highest seq is
+        re-acked with its last reply, never run again."""
         try:
             parts = data.decode().split(" ", 2)
         except (UnicodeError, ValueError):  # junk on the LAN must never stop the loop
@@ -105,11 +107,13 @@ class Wifi:
         seq, line = int(parts[1]), parts[2]
         if seq < self.last[0]:
             return
-        if seq > self.last[0]:
-            try:
-                self.handle_line(line)
-                reply = f"ok {seq}"
-            except Exception as e:
-                reply = f"err {seq} {type(e).__name__}"
-            self.last = (seq, reply)
-        self.cmd.sendto(self.last[1].encode(), addr)
+        if seq == self.last[0]:
+            self.cmd.sendto(self.last[1].encode(), addr)
+            return
+        self.last = (seq, f"ok {seq}")
+        self.cmd.sendto(self.last[1].encode(), addr)  # ack on receipt: a gesture runs longer than the ack window
+        try:
+            self.handle_line(line)
+        except Exception as e:
+            self.last = (seq, f"err {seq} {type(e).__name__}")
+            self.cmd.sendto(self.last[1].encode(), addr)

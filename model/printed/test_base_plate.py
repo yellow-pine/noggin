@@ -1,4 +1,4 @@
-"""Seam: our PandT base (model/printed/base.py) carries the pan pivot and bearing, the pan servo mounts, the standoffs of
+"""Seam: our base plate (model/printed/base_plate.py) carries the pan pivot and bearing, the pan servo mounts, the standoffs of
 both electronics sets, the wire keeper posts and the battery, PT frame, envelope within ENVELOPE_MM (expected numbers:
 docs/research/2026-10-31-model.md [M])."""
 
@@ -6,7 +6,7 @@ import functools
 
 import cadquery as cq
 
-from model.printed import base
+from model.printed import base_plate
 
 ENVELOPE_MM = 1.0
 RECEIVERS = [
@@ -25,7 +25,7 @@ PINNED = [(50.0, 40.5), (26.0, 63.5), (50.0, 73.5), (26.0, 96.5)]  # each shield
 @functools.cache
 def solid():
     """Built when the first test runs, not at collection (see test_main_bracket)."""
-    return base.build().val()
+    return base_plate.build().val()
 
 
 def inside(*p):

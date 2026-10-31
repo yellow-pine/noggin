@@ -117,11 +117,31 @@ The printed arm on a servo spline; the driven link of every chain.
 _Avoid_: arm, lever
 
 **Bar**:
-A straight link between two Pivots: eyeball bar, eyelid bar, connector bar.
+A straight link between two Pivots: eyeball bar, lid bar, tilt bar, pan bar, jaw bar.
 _Avoid_: rod, linkage
 
 **Crank**:
-The bent eyelid bar that turns Horn rotation into lid rotation.
+The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation into upper lid rotation.
+
+**Printed part**:
+A part we print, by our name (the designer's file names stay in model/engine/stages.py REFERENCE, nowhere else):
+- eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
+- L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;
+- L / R eyeball: turns in the eye bracket's fork; pupil: the disc on its front;
+- upper lid, lower lid: the two lid shells of an eye on the eye bracket's lid pins, the upper one nested inside;
+- eyeball bar, lid bar, lid crank: the eye mech's Bars from the Horns to the eyeball, the lower lid and the upper lid;
+- wire keeper: holds the eye servo leads down on the base plate's cable holder posts;
+- base plate: carries the pan pivot, the pan servo mounts, the Shields' standoffs, the battery box and the switch board holder;
+- bearing block: the ring the pan turntable turns on in the base plate's recess;
+- pan turntable: turns on the pan axis and carries the tilt servo tower and the upright;
+- upright: the post carrying the tilt pivot, its lever driven by the pan bar;
+- tilt arm: turns on the tilt pivot, the eye bracket's stem clamped in its window, its lever driven by the tilt bar;
+- pan servo lead mount, pan servo tail mount: the pan servo's two mounts, the lead mount at the shaft end arched to let the
+  servo lead out;
+- wire holder: holds the leads down on the base plate's two wire holder posts;
+- top jaw (screwed under the eye bracket, the jaw hinge pins), bottom jaw (turns on them), jaw servo mount (on the eye
+  bracket's rail), jaw bar (the jaw Horn to the bottom jaw's lug).
+_Avoid_: the designer's file names, version suffixes, plain / cutout / regular
 
 **Pivot**:
 A revolute axis between two parts; in the Model, a joint of the engine's four-bar solver (model/engine/linkage.py).

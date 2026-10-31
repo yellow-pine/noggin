@@ -9,7 +9,7 @@
    "at_deg": -60,
    "pair": [
     "tilt horn:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "measurements": 79
   },
@@ -17,15 +17,15 @@
    "min_mm": 0.5,
    "at_deg": -40,
    "pair": [
-    "pan base:1",
-    "PandT base:1"
+    "pan turntable:1",
+    "base plate:1"
    ],
    "measurements": 95
   }
  },
  "contacts": [],
  "bboxes": {
-  "PandT base:1": [
+  "base plate:1": [
    [
     -60.0,
     -25.0,
@@ -109,7 +109,7 @@
     5.5
    ]
   ],
-  "pan base:1": [
+  "pan turntable:1": [
    [
     -25.0,
     -25.0,
@@ -121,7 +121,7 @@
     24.26
    ]
   ],
-  "upright v2:1": [
+  "upright:1": [
    [
     -11.0,
     -15.5,
@@ -145,7 +145,7 @@
     40.9
    ]
   ],
-  "servo mount plain:1": [
+  "pan servo tail mount:1": [
    [
     -35.5,
     54.9,
@@ -157,7 +157,7 @@
     15.0
    ]
   ],
-  "servo mount cutout:1": [
+  "pan servo lead mount:1": [
    [
     -35.5,
     27.0,
@@ -280,18 +280,18 @@
  },
  "violations": [],
  "mass": {
-  "PandT base:1": 116.466,
+  "base plate:1": 116.466,
   "receiver shield 1:1": 4.833,
   "Core 1:1": 3.096,
   "switch board 1:1": 4.239,
   "battery 1:1": 39.408,
   "cable holder:1": 0.598,
   "bearing block:1": 1.199,
-  "pan base:1": 11.536,
-  "upright v2:1": 6.037,
+  "pan turntable:1": 11.536,
+  "upright:1": 6.037,
   "tilt arm:1": 3.47,
-  "servo mount plain:1": 1.417,
-  "servo mount cutout:1": 1.121,
+  "pan servo tail mount:1": 1.417,
+  "pan servo lead mount:1": 1.121,
   "wire holder:1": 0.397,
   "tilt servo:1": 16.0,
   "tilt horn:1": 0.374,
@@ -303,18 +303,18 @@
   "Core 2:1": 3.096
  },
  "mass_source": {
-  "PandT base:1": "PLA Pure",
+  "base plate:1": "PLA Pure",
   "receiver shield 1:1": "step volume x 1.9 g/cm3",
   "Core 1:1": "step volume x 1.9 g/cm3",
   "switch board 1:1": "step volume x 1.9 g/cm3",
   "battery 1:1": "step volume x 1.9 g/cm3",
   "cable holder:1": "PLA Pure",
   "bearing block:1": "PLA Pure",
-  "pan base:1": "PLA Pure",
-  "upright v2:1": "PLA Pure",
+  "pan turntable:1": "PLA Pure",
+  "upright:1": "PLA Pure",
   "tilt arm:1": "PLA Pure",
-  "servo mount plain:1": "PLA Pure",
-  "servo mount cutout:1": "PLA Pure",
+  "pan servo tail mount:1": "PLA Pure",
+  "pan servo lead mount:1": "PLA Pure",
   "wire holder:1": "PLA Pure",
   "tilt servo:1": "documented",
   "tilt horn:1": "step volume x 1.9 g/cm3",
@@ -679,21 +679,21 @@
  },
  "mating": [
   {
-   "joint": "tilt servo / pan base near tab screw",
+   "joint": "tilt servo / pan turntable near tab screw",
    "kind": "coaxial",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.11,
    "ok": true
   },
   {
-   "joint": "tilt servo / pan base far tab screw",
+   "joint": "tilt servo / pan turntable far tab screw",
    "kind": "coaxial",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.11,
    "ok": true
@@ -733,27 +733,27 @@
    "kind": "coaxial",
    "parts": [
     "tilt arm:1",
-    "upright v2:1"
+    "upright:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "pan servo / servo mount cutout near tab screw",
+   "joint": "pan servo / pan servo lead mount near tab screw",
    "kind": "coaxial",
    "parts": [
     "pan servo:1",
-    "servo mount cutout:1"
+    "pan servo lead mount:1"
    ],
    "mm": 0.1,
    "ok": true
   },
   {
-   "joint": "pan servo / servo mount plain far tab screw",
+   "joint": "pan servo / pan servo tail mount far tab screw",
    "kind": "coaxial",
    "parts": [
     "pan servo:1",
-    "servo mount plain:1"
+    "pan servo tail mount:1"
    ],
    "mm": 0.1,
    "ok": true
@@ -783,67 +783,67 @@
    "kind": "coaxial",
    "parts": [
     "pan bar:1",
-    "upright v2:1"
+    "upright:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "upright on the pan base",
+   "joint": "upright on the pan turntable",
    "kind": "coaxial",
    "parts": [
-    "upright v2:1",
-    "pan base:1"
+    "upright:1",
+    "pan turntable:1"
    ],
-   "mm": 0.0,
+   "mm": 0.043,
    "ok": true
   },
   {
    "joint": "pan pivot",
    "kind": "coaxial",
    "parts": [
-    "pan base:1",
-    "PandT base:1"
+    "pan turntable:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount cutout outer foot on the base",
+   "joint": "pan servo lead mount outer foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount cutout:1",
-    "PandT base:1"
+    "pan servo lead mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount cutout inner foot on the base",
+   "joint": "pan servo lead mount inner foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount cutout:1",
-    "PandT base:1"
+    "pan servo lead mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount plain outer foot on the base",
+   "joint": "pan servo tail mount outer foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount plain:1",
-    "PandT base:1"
+    "pan servo tail mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount plain inner foot on the base",
+   "joint": "pan servo tail mount inner foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount plain:1",
-    "PandT base:1"
+    "pan servo tail mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -853,7 +853,7 @@
    "kind": "seat",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -872,7 +872,7 @@
    "kind": "seat",
    "parts": [
     "pan servo:1",
-    "servo mount cutout:1"
+    "pan servo lead mount:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -889,24 +889,24 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "47c4c464b84f03eb8fe8fe21bafeec95a768540de875dc527f9fefcabe61a267",
+  "stamp": "cf0c7db4b6eb5618946ad7bcbdb50f3bdf60d05565c611a36b10fdc05e71c051",
   "sources": {
-   "model/build/ours/PandT bar.stl": "e5c17e3ec6f9226f",
-   "model/build/ours/PandT base.stl": "a1737976cae161f0",
-   "model/build/ours/PandT bearing block.stl": "80e8a52018ce2d7e",
-   "model/build/ours/PandT pan base.stl": "5b8e4fe8f0a550ab",
-   "model/build/ours/PandT servo mount cutout.stl": "a3f3c74fadfeafd2",
-   "model/build/ours/PandT servo mount plain.stl": "6d72881a5ec1f255",
-   "model/build/ours/PandT tilt arm.stl": "d170d04a9c5b9ec7",
-   "model/build/ours/PandT upright v2.stl": "9215325c4c0fcd26",
-   "model/build/ours/PandT wire holder.stl": "4bdfd670ab4df4c3",
+   "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
+   "model/build/ours/bearing block.stl": "80e8a52018ce2d7e",
    "model/build/ours/core.stl": "3b3e2d97fb6c5bc0",
    "model/build/ours/horn.stl": "b2e64230ab55d401",
+   "model/build/ours/pan bar.stl": "e5c17e3ec6f9226f",
+   "model/build/ours/pan servo lead mount.stl": "a3f3c74fadfeafd2",
+   "model/build/ours/pan servo tail mount.stl": "6d72881a5ec1f255",
+   "model/build/ours/pan turntable.stl": "5b8e4fe8f0a550ab",
    "model/build/ours/receiver.stl": "872ff0f127ade6ba",
    "model/build/ours/servo.stl": "ccd6c988d2541e87",
    "model/build/ours/switch.stl": "d7773a0d101e5622",
+   "model/build/ours/tilt arm.stl": "d170d04a9c5b9ec7",
    "model/build/ours/tilt bar.stl": "e41ccc7939d8fd9c",
+   "model/build/ours/upright.stl": "9215325c4c0fcd26",
+   "model/build/ours/wire holder.stl": "4bdfd670ab4df4c3",
    "model/build/ours/wire keeper.stl": "c8c8876bff415924"
   }
  },

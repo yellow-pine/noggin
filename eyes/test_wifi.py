@@ -15,12 +15,17 @@ def dg(seq, line, name="eyes"):
 class FakeWLAN:
     connected = False
     connects = []
+    configs = []
+    PM_NONE = 0
 
     def __init__(self, iface):
         pass
 
     def active(self, on):
         pass
+
+    def config(self, **kw):
+        FakeWLAN.configs.append(kw)
 
     def connect(self, ssid, password):
         FakeWLAN.connects.append((ssid, password))
@@ -70,6 +75,7 @@ def link(monkeypatch):
     monkeypatch.setattr(mod, "socket", fake_sock)
     FakeWLAN.connected = False
     FakeWLAN.connects.clear()
+    FakeWLAN.configs.clear()
     FakeSocket.sent.clear()
     FakeSocket.inbox.clear()
     handled = []
@@ -119,6 +125,19 @@ def test_command_with_the_token_runs_through_the_parser_and_is_acked(link):
     assert FakeSocket.sent == [(b"ok 7", MAC)]
 
 
+def test_power_save_is_off_so_datagrams_are_not_held_at_the_access_point(link):
+    assert {"pm": FakeWLAN.PM_NONE} in FakeWLAN.configs
+
+
+def test_ack_goes_out_before_the_line_runs(link):
+    joined(link)
+    sent_when_run = []
+    link.handle_line = lambda line: sent_when_run.extend(FakeSocket.sent)  # a gesture blocks for about a second
+    FakeSocket.inbox.append((dg(7, "wink 3"), MAC))
+    link.poll(1_100)
+    assert sent_when_run == [(b"ok 7", MAC)]
+
+
 def test_wrong_tag_is_ignored(link):
     joined(link)
     FakeSocket.inbox.append((b"nope 7 eureka 2", MAC))
@@ -148,7 +167,10 @@ def test_parser_error_is_reported_with_the_seq(link):
     link.handle_line = lambda line: 1 / 0
     FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
     link.poll(1_100)
-    assert FakeSocket.sent == [(b"err 8 ZeroDivisionError", MAC)]
+    assert FakeSocket.sent == [(b"ok 8", MAC), (b"err 8 ZeroDivisionError", MAC)]
+    FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
+    link.poll(1_200)  # a retry of it is answered with what happened, not run again
+    assert FakeSocket.sent[-1] == (b"err 8 ZeroDivisionError", MAC)
 
 
 def test_malformed_datagram_is_ignored(link):

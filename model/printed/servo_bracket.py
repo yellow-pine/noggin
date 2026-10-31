@@ -1,7 +1,7 @@
 """Our L and R servo brackets: independent parametric designs (never traced from the designer's meshes) in the eyes
 frame (model/geometry.py). Drawn for the L side; the R bracket is its mirror about x=29.5 but for the stem tab, which
-sits 10 mm higher so the two tabs stack side by side on the main bracket's stem. A plate (z 18..21) screwed onto the
-main bracket; the eye servo's two walls (tab holes along Y); the lid servo's two tongues (tab holes along X): the
+sits 10 mm higher so the two tabs stack side by side on the eye bracket's stem. A plate (z 18..21) screwed onto the
+eye bracket; the eye servo's two walls (tab holes along Y); the lid servo's two tongues (tab holes along X): the
 post at the front, the block at the back. Interfaces exact, envelope within 1 mm, fillets dropped. Measured:
 docs/research/2026-10-31-model.md [M]."""
 
@@ -9,7 +9,7 @@ import cadquery as cq
 
 from model import fits
 from model import geometry as g
-from model.printed.main_bracket import box, mirrored
+from model.printed.eye_bracket import box, mirrored
 
 PLATE_Z = (18.0, 21.0)
 PLATE = [(-3.42, -35.6), (19.24, -35.6), (19.24, -16.5), (24.24, -11.5), (25.16, -11.5), (25.16, -6.5), (24.24, -6.5)]

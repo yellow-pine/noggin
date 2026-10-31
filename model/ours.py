@@ -1,4 +1,4 @@
-"""Our geometry as files: every printed part (printed.PARTS, by the designer's STL stem) and every hardware envelope
+"""Our geometry as files: every printed part (printed.PARTS, by our part name) and every hardware envelope
 (envelopes.ENVELOPES, by the STEP mesh's name), each in the frame of the mesh it stands in for. `make ours`: all of them
 as STLs in model/build/ours (stages.OURS), which the engine (make sim, everywhere) and the renders read. `make stl`: the
 printed parts as print-ready STLs in model/build/stl. `make step`: every shape and each Stage at neutral (the engine's
@@ -41,7 +41,7 @@ def stage_step(doc, path):
     shape = functools.cache(lambda stem: SHAPES[stem]())
     asm = cq.Assembly(name=doc)
     for name, part in stages.STAGES[doc].parts.items():
-        stem = os.path.basename(part.file)[:-4]
+        stem = os.path.splitext(os.path.basename(part.file))[0]
         trsf = gp_Trsf()
         trsf.SetValues(*part.matrix[:3].flatten().tolist())
         loc = cq.Location(trsf)

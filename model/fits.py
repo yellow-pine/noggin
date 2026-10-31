@@ -1,5 +1,5 @@
 """Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to our part's STL around the
-hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
+hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. `python -m model.fits`
 prints the eyes table. Our printed parts' STLs: model/build/ours (make ours)."""
 
 import functools
@@ -114,40 +114,40 @@ def fit_table(joints):
 # Both bars take the horn screw in their smaller hole (+x end) and the lid in the larger (-x end; guide p.23); the
 # crank's lid end is stepped up 3 mm. The crank goes to the inside (top) lid, the straight bar to the outside one (#48).
 EYES_JOINTS = [
-    ("eyelid bar / horn screw", (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2), M2),
+    ("lid bar / horn screw", (stl("lid bar"), (20.5, 0, 1.5), "z", 2), M2),
     (
-        "eyelid bar / outside lid pin",
-        (stl("eyelid bar"), (-20.5, 0, 1.5), "z", 2),
-        (stl("outside lid"), (-22, -12, 0), "x", 3),
+        "lid bar / lower lid pin",
+        (stl("lid bar"), (-20.5, 0, 1.5), "z", 2),
+        (stl("lower lid"), (-22, -12, 0), "x", 3),
     ),
-    ("eyelid crank / horn screw", (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2), M2),
+    ("lid crank / horn screw", (stl("lid crank"), (20.5, 0, 1.5), "z", 2), M2),
     (
-        "eyelid crank / inside lid pin",
-        (stl("eyelid bar crank"), (-20.5, 0, 4.5), "z", 2),
-        (stl("inside lid"), (-22, 12, 0), "x", 3),
+        "lid crank / upper lid pin",
+        (stl("lid crank"), (-20.5, 0, 4.5), "z", 2),
+        (stl("upper lid"), (-22, 12, 0), "x", 3),
     ),
     ("eyeball bar / horn screw", (stl("eyeball bar"), (-10, 4, 27), "y", 2), M2, "self_tapping"),
     ("eyeball bar / eyeball screw", (stl("eyeball bar"), (-10, 4, 0), "y", 2), M2),
     (
-        "inside lid ear / bracket pin",
-        (stl("inside lid"), (-22.5, 0, 0), "x", 2),
-        (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
+        "upper lid ear / bracket pin",
+        (stl("upper lid"), (-22.5, 0, 0), "x", 2),
+        (stl("eye bracket", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
     ),
     (
-        "outside lid ear / bracket pin",
-        (stl("outside lid"), (-22.5, 0, 0), "x", 2),
-        (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
+        "lower lid ear / bracket pin",
+        (stl("lower lid"), (-22.5, 0, 0), "x", 2),
+        (stl("eye bracket", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
     ),
 ]
 EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end (0.05 mm) self-taps by design
-    "eyelid bar / horn screw": (1.1, 1.0, True),
-    "eyelid bar / outside lid pin": (1.35, 1.0, True),
-    "eyelid crank / horn screw": (1.1, 1.0, True),
-    "eyelid crank / inside lid pin": (1.35, 1.0, True),
+    "lid bar / horn screw": (1.1, 1.0, True),
+    "lid bar / lower lid pin": (1.35, 1.0, True),
+    "lid crank / horn screw": (1.1, 1.0, True),
+    "lid crank / upper lid pin": (1.35, 1.0, True),
     "eyeball bar / horn screw": (1.05, 1.0, True),
     "eyeball bar / eyeball screw": (1.25, 1.0, True),
-    "inside lid ear / bracket pin": (1.985, 1.75, True),
-    "outside lid ear / bracket pin": (1.95, 1.75, True),
+    "upper lid ear / bracket pin": (1.985, 1.75, True),
+    "lower lid ear / bracket pin": (1.95, 1.75, True),
 }
 
 # Stack sub-assembly (pan-tilt): bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
@@ -155,12 +155,12 @@ EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn
 PT_JOINTS = [
     ("tilt bar / horn screw", (stl("tilt bar", PT_MODELS), (10, 0, 1.5), "z", 2), M2),
     ("tilt bar / arm lever screw", (stl("tilt bar", PT_MODELS), (-10, 0, 1.5), "z", 2), M2_5),
-    ("tilt arm lever / M2.5", (stl("PandT tilt arm", PT_MODELS), (8, 26.5, 33.4), "x", 3), M2_5, "self_tapping"),
-    ("pan bar / horn screw", (stl("PandT bar", PT_MODELS), (7.5, 0, 1.5), "z", 2), M2),
-    ("pan bar / upright lever screw", (stl("PandT bar", PT_MODELS), (-7.5, 0, 1.5), "z", 2), M2_5),
-    ("upright lever / M2.5", (stl("PandT upright v2", PT_MODELS), (-5.5, 25.5, 26.8), "z", 5), M2_5, "self_tapping"),
-    ("tilt arm / pivot screw", (stl("PandT tilt arm", PT_MODELS), (14, -13, 28.4), "x", 1.5), M2_5),
-    ("upright / pivot screw", (stl("PandT upright v2", PT_MODELS), (11, -13, 33.4), "x", 1.5), M2_5, "self_tapping"),
+    ("tilt arm lever / M2.5", (stl("tilt arm", PT_MODELS), (8, 26.5, 33.4), "x", 3), M2_5, "self_tapping"),
+    ("pan bar / horn screw", (stl("pan bar", PT_MODELS), (7.5, 0, 1.5), "z", 2), M2),
+    ("pan bar / upright lever screw", (stl("pan bar", PT_MODELS), (-7.5, 0, 1.5), "z", 2), M2_5),
+    ("upright lever / M2.5", (stl("upright", PT_MODELS), (-5.5, 25.5, 26.8), "z", 5), M2_5, "self_tapping"),
+    ("tilt arm / pivot screw", (stl("tilt arm", PT_MODELS), (14, -13, 28.4), "x", 1.5), M2_5),
+    ("upright / pivot screw", (stl("upright", PT_MODELS), (11, -13, 33.4), "x", 1.5), M2_5, "self_tapping"),
 ]
 PT_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31
     "tilt bar / horn screw": (1.1, 1.0, True),
@@ -173,23 +173,23 @@ PT_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31
     "upright / pivot screw": (1.1, 1.25, True),
 }
 
-# Mouth sub-assembly: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
+# Mouth sub-assembly: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the jaw bar's M2.5
 # self-tapped into the jaw's pivot lug (step 8). The bar's own holes are not fitted: at 960 vertices the hole rings tangle
 # with the tab-end rounding (rms 0.1-0.16); the research note reads them as r ~1.25.
 MOUTH_JOINTS = [
     (
         "L hinge / top jaw pin",
-        (stl("bottom jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 3),
-        (stl("top jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 4),
+        (stl("bottom jaw", MOUTH_MODELS), (-8, -49.6, 8), "x", 3),
+        (stl("top jaw", MOUTH_MODELS), (-8, -49.6, 8), "x", 4),
     ),
     (
         "R hinge / top jaw pin",
-        (stl("bottom jaw plain", MOUTH_MODELS), (70, -49.6, 8), "x", 3),
-        (stl("top jaw plain", MOUTH_MODELS), (68, -49.6, 8), "x", 4),
+        (stl("bottom jaw", MOUTH_MODELS), (70, -49.6, 8), "x", 3),
+        (stl("top jaw", MOUTH_MODELS), (68, -49.6, 8), "x", 4),
     ),
     (
         "jaw pivot lug / M2.5",
-        (stl("bottom jaw plain", MOUTH_MODELS), (66, -58.1, -10.44), "x", 5),
+        (stl("bottom jaw", MOUTH_MODELS), (66, -58.1, -10.44), "x", 5),
         M2_5,
         "self_tapping",
     ),

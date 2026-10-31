@@ -87,7 +87,7 @@ def test_a_corridor_through_a_moving_part_fails_unless_it_is_clipped_to_that_par
     def through_the_eyeball(part):  # a waypoint at the L eye centre: the tube crosses the eyeball's shell
         return {**cables.ROUTES, lead: [[(part, (0.0, 0.0, 0.0), "at the eye centre (inferred)")]]}
 
-    held = swept("noggin-eyes", through_the_eyeball("main bracket v2:1"))[0][lead]
+    held = swept("noggin-eyes", through_the_eyeball("eye bracket:1"))[0][lead]
     assert held["clearance_mm"] < 0
     clipped = swept("noggin-eyes", through_the_eyeball("L eyeball:1"))[0][lead]
     assert clipped["clearance_part"] != "L eyeball:1"  # the part it is clipped to is exempt

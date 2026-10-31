@@ -92,10 +92,10 @@ def linked(stage, horn):
 
 
 PIVOT_PARTNER = {
-    **{f"{s} {lid} lid:1": ["main bracket v2:1"] for s in "LR" for lid in ("inside", "outside")},
-    **{f"{s} eyeball:1": ["main bracket v2:1"] for s in "LR"},
-    "tilt arm:1": ["upright v2:1"],
-    "pan base:1": ["bearing block:1"],
+    **{f"{s} {lid} lid:1": ["eye bracket:1"] for s in "LR" for lid in ("upper", "lower")},
+    **{f"{s} eyeball:1": ["eye bracket:1"] for s in "LR"},
+    "tilt arm:1": ["upright:1"],
+    "pan turntable:1": ["bearing block:1"],
     "bottom jaw:1": ["top jaw:1"],
 }
 
@@ -285,7 +285,7 @@ def report(doc, parallel=True):
     out["inputs"] = {"stamp": stamp(src), "sources": src}
     out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
     if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
-        outline = mech.footprint(placed["PandT base:1"].vertices)
+        outline = mech.footprint(placed["base plate:1"].vertices)
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
     out["corridors"], out["swept"] = cables.corridors(stage, placed, STEP_DEG)  # swept: written by main, not committed
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores

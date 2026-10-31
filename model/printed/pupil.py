@@ -1,4 +1,4 @@
-"""Our regular pupil: an independent parametric design (never traced from the designer's mesh) in the designer's frame
+"""Our pupil: an independent parametric design (never traced from the designer's mesh) in the designer's frame
 (the R eye, model/geometry.py EYE_R; the L pupil is the same part placed 59 mm left). The cap of the eyeball's r 20.5
 sphere in front of the eyeball's flat face at z -18.5."""
 

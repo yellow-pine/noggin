@@ -26,7 +26,7 @@ GREYS = {
 
 
 def colour(file):
-    stem = os.path.basename(file)[:-4]
+    stem = os.path.splitext(os.path.basename(file))[0]
     if stem in GREYS:
         return GREYS[stem]
     return g.SPOOLS[next(spool for k, (spool, _) in g.PRINTED.items() if k.split(" (")[0] == stem)]

@@ -1,4 +1,4 @@
-"""Our main bracket v2: an independent parametric design (never traced from the designer's mesh) in the eyes frame
+"""Our eye bracket: an independent parametric design (never traced from the designer's mesh) in the eyes frame
 (model/geometry.py: L eye centre at the origin, +Y up, -Z front). A plate (z 13..18) behind the eyes: the top band
 the servo brackets screw onto, the stem the neck clamps, the bottom rail the jaw servo mount screws onto; and a frame
 in front of it at eye height carrying the lid pins and the eyeball forks. Interfaces exact, envelope within 1 mm,

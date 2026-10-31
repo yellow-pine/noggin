@@ -1,7 +1,7 @@
 """The lids seen from the front, for the gesture replay (#39): where each lid pair's edges sit at a lid horn angle and
 the horn angles at which the model's lids are closed and open. Angles are elevations about the lid pivot axis (X)
 through the eye centre, 0 straight ahead (-Z), positive up, measured on the vertical plane through the eye centre:
-the inside lid is the upper one, the outside lid the lower one. Closed: the two edges just meet over the eyeball.
+the upper lid above, the lower lid below. Closed: the two edges just meet over the eyeball.
 Open: both edges have turned far enough that the lid shell's outer surface projects outside the eyeball's silhouette
 (the eyeball's front cap is clear from the front)."""
 
@@ -20,9 +20,9 @@ COLUMN_MM = 2.0  # half-width of the vertical slab through the eye centre the ed
 
 @cache
 def _local(side):
-    """Vertices (world mm, neutral pose) of the side's inside lid, outside lid, eyeball and pupil."""
+    """Vertices (world mm, neutral pose) of the side's upper lid, lower lid, eyeball and pupil."""
     stage = stages.STAGES[DOC]
-    names = [f"{side} {p}:1" for p in ("inside lid", "outside lid", "eyeball", "pupil")]
+    names = [f"{side} {p}:1" for p in ("upper lid", "lower lid", "eyeball", "pupil")]
     loaded = meshes.load(stage, names)
     return [trimesh.transform_points(loaded[n].vertices, stage.parts[n].matrix) for n in names]
 
@@ -39,13 +39,13 @@ def _elevation(v, side):
 
 
 def edges(side, deg):
-    """(upper, lower) edge elevations with the side's lid horn at `deg` from neutral: the inside lid's lowest point and
-    the outside lid's highest on the front of the column (+-90 once an edge has gone past the top or bottom)."""
+    """(upper, lower) edge elevations with the side's lid horn at `deg` from neutral: the upper lid's lowest point and
+    the lower lid's highest on the front of the column (+-90 once an edge has gone past the top or bottom)."""
     stage = stages.STAGES[DOC]
     pose = stages.pose(stage, f"{side} lid horn", deg)
-    inside, outside, _, _ = _local(side)
+    upper, lower, _, _ = _local(side)
     out = []
-    for v, name, pick, none in ((inside, "inside", min, 90.0), (outside, "outside", max, -90.0)):
+    for v, name, pick, none in ((upper, "upper", min, 90.0), (lower, "lower", max, -90.0)):
         m = pose.parts[f"{side} {name} lid:1"] @ np.linalg.inv(stage.parts[f"{side} {name} lid:1"].matrix)
         e = _elevation(trimesh.transform_points(v, m), side)
         out.append(float(pick(e)) if len(e) else none)
@@ -61,11 +61,11 @@ def gap(side, deg):
 @cache
 def _sizes(side):
     """(pupil half-span deg, edge elevation that clears the eyeball's silhouette) from the meshes."""
-    inside, outside, eyeball, pupil = _local(side)
+    upper, lower, eyeball, pupil = _local(side)
     c = _centre(side)
     pupil_deg = float(_elevation(pupil, side).max())
     eye_r = float(np.linalg.norm(eyeball - c, axis=1).max())
-    lid_r = float(np.linalg.norm(np.vstack([inside, outside])[:, 1:] - c[1:], axis=1).max())
+    lid_r = float(np.linalg.norm(np.vstack([upper, lower])[:, 1:] - c[1:], axis=1).max())
     return pupil_deg, math.degrees(math.asin(eye_r / lid_r))
 
 

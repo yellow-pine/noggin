@@ -26,27 +26,27 @@ def test_touching_cubes_are_a_contact_and_overlapping_ones_a_penetration():
 
 def test_eyeball_bar_rides_the_bracket_rail_at_neutral():
     stage = stages.STAGES["noggin-eyes"]
-    loaded = meshes.load(stage, ["L eyeball bar:1", "main bracket v2:1"])
-    bar, bracket = (meshes.Placed(loaded[n], stage.parts[n].matrix) for n in ("L eyeball bar:1", "main bracket v2:1"))
+    loaded = meshes.load(stage, ["L eyeball bar:1", "eye bracket:1"])
+    bar, bracket = (meshes.Placed(loaded[n], stage.parts[n].matrix) for n in ("L eyeball bar:1", "eye bracket:1"))
     assert meshes.distance(bar, bracket) < 0.1 and not meshes.penetrates(bar, bracket)
 
 
 def test_loaded_meshes_are_subdivided_and_the_battery_lead_is_cut():
     stage = stages.STAGES["noggin-pan-tilt"]
-    loaded = meshes.load(stage, ["PandT base:1", "battery 1:1"])
-    assert loaded["PandT base:1"].edges_unique_length.max() <= meshes.MAX_EDGE_MM + 1e-6
+    loaded = meshes.load(stage, ["base plate:1", "battery 1:1"])
+    assert loaded["base plate:1"].edges_unique_length.max() <= meshes.MAX_EDGE_MM + 1e-6
     assert loaded["battery 1:1"].bounds[1][1] <= 56.0 + 1e-6
 
 
 def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral():
-    """Engine findings 2026-10-31 (#24): the tilt horn and bar swept into the pan base at the config's tilt end, and the
+    """Engine findings 2026-10-31 (#24): the tilt horn and bar swept into the pan turntable at the config's tilt end, and the
     tilt servo's straight lead stub sank into receiver shield 1 at neutral."""
     stage = stages.STAGES["noggin-pan-tilt"]
-    names = ["tilt horn:1", "tilt bar:1", "pan base:1", "tilt servo:1", "receiver shield 1:1"]
+    names = ["tilt horn:1", "tilt bar:1", "pan turntable:1", "tilt servo:1", "receiver shield 1:1"]
     loaded = meshes.load(stage, names)
     end = stages.pose(stage, "tilt horn", stage.horns["tilt horn"].limits[0]).parts
     at = lambda name, pose: meshes.Placed(loaded[name], pose[name])
     for name in ("tilt horn:1", "tilt bar:1"):
-        assert not meshes.penetrates(at(name, end), at("pan base:1", end)), name
+        assert not meshes.penetrates(at(name, end), at("pan turntable:1", end)), name
     neutral = {n: stage.parts[n].matrix for n in names}
     assert not meshes.penetrates(at("tilt servo:1", neutral), at("receiver shield 1:1", neutral))

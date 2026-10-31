@@ -1,7 +1,7 @@
-"""Our PandT servo mounts, plain and cutout: independent parametric designs (never traced from the designer's meshes)
+"""Our pan servo mounts, the tail mount and the lead mount (its arch lets the servo lead out): independent parametric designs (never traced from the designer's meshes)
 in the PT frame (Z up, pan axis Z through the origin). One XZ profile 5 deep along Y: a z 3..6 foot screwed to the base
 through r 1.35 holes at x -32.5 and -8.5, a tower to the z 15 top (chamfered 3 at the top corners) with the pan servo's
-r 1.1 tab hole down from it at x -20.5. The cutout mount arches over the base (x -25.5..-15.5 up to z 8). Measured
+r 1.1 tab hole down from it at x -20.5. The lead mount arches over the base (x -25.5..-15.5 up to z 8). Measured
 numbers: docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
@@ -16,15 +16,15 @@ FEET_X, FOOT_R, FOOT_TOP = (-32.5, -8.5), 1.35, 6.0
 ARCH = {"x": (-25.5, -15.5), "top": 8.0}
 
 
-PLAIN, CUTOUT = ((27.0, 32.0), 29.55, 29.5), ((54.9, 59.9), 57.35, 57.4)  # (y span, tab hole y, feet y)
+TAIL, LEAD = ((27.0, 32.0), 29.55, 29.5), ((54.9, 59.9), 57.35, 57.4)  # (y span, tab hole y, feet y)
 
 
-def plain():
-    return mount(*PLAIN)
+def tail():
+    return mount(*TAIL)
 
 
-def cutout():
-    out = mount(*CUTOUT)
+def lead():
+    out = mount(*LEAD)
     (x0, x1), y0 = ARCH["x"], 54.9
     arch = cq.Workplane("XY").box(x1 - x0, DEPTH, ARCH["top"] - 3, centered=False).translate((x0, y0, 3))
     return out.cut(arch)

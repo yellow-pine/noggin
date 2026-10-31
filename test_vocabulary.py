@@ -67,3 +67,40 @@ def test_fusion_is_only_history():
         if re.search(r"fusion", line, re.I)
     ]
     assert not hits, "\n".join(hits)
+
+
+# The designer's file stems our parts replaced (#96): history, never names in the repo.
+DESIGNER = [
+    "main bracket v2", "L eyeball regular", "R eyeball regular", "regular pupil", "inside lid", "outside lid",
+    "eyelid bar", "eyelid bar crank", "PandT base", "PandT bearing block", "PandT pan base", "PandT upright v2",
+    "PandT tilt arm", "PandT servo mount plain", "PandT servo mount cutout", "PandT wire holder", "PandT bar",
+    "top jaw plain", "bottom jaw plain", "jaws servo mount", "jaws connector bar",
+]  # fmt: skip
+
+
+def test_designer_file_names_are_gone():
+    """Every part goes by our name (GLOSSARY.md, Model); README (credits) and docs/research (history) are exempt."""
+    from model import printed
+
+    names = set(printed.PARTS)
+    # the stems, and their shortened forms the code used for parts (no "PandT" prefix, no version suffix)
+    variants = {v for s in DESIGNER for v in (s, s.removeprefix("PandT "), s.removesuffix(" v2"))}
+    banned = sorted(v for v in variants if " " in v and v not in names)
+    words = "|".join(r"[ _]".join(map(re.escape, v.lower().split())) for v in banned)
+    pattern = re.compile(rf"PandT|\sv2\b(?!\.\d)|(?i:(?<!\w)(?:{words})(?!\w))")
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    files = [
+        f
+        for f in tracked
+        if f not in {"README.md", "test_vocabulary.py"}
+        and not f.startswith("docs/research/")
+        and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
+        and (ROOT / f).is_file()
+    ]
+    hits = []
+    for f in files:
+        text = (ROOT / f).read_text(errors="replace")
+        hits += [
+            f"{f}:{n}: {line.strip()[:120]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)
+        ]
+    assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)

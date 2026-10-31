@@ -17,7 +17,7 @@ Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview render
   mounts = Pure White. Material tracked per part (PETG Black possible for reprints).
 
 ## Stages
-1. **Face mask** on the eyes mech: forehead, cheeks, nose, eye sockets. Bolts to main bracket v2's
+1. **Face mask** on the eyes mech: forehead, cheeks, nose, eye sockets. Bolts to the eye bracket's
    corner holes and side wings with M2x12 + M2 nuts (bracket holes are 2.2 mm). Chin stays open.
 2. **Skull back + hair cap + collar** with the pan-tilt: skull and hair bolt to the same wings and tilt
    with the head, open at the bottom for the bracket stem; a black collar skirt sits on the 120 x 160
@@ -30,8 +30,8 @@ standoffs, battery pocket) when that serves the face, collar or wiring. The eyes
 and the jaw stay as designed.
 
 ## Measured hardware (from the designer's STLs, see docs/references)
-- Main bracket v2 115 x 54 x 22; stem drops into the tilt arm slot. Side wings at x = -28 and +87 are flat faces.
-- Pan-tilt v2 stack 35.9 mm above the base plate; eye centre about 66-72 mm above the plate.
+- Eye bracket 115 x 54 x 22; stem drops into the tilt arm slot. Side wings at x = -28 and +87 are flat faces.
+- Pan-tilt stack 35.9 mm above the base plate; eye centre about 66-72 mm above the plate.
 - Jaw 82 mm wide, 48 deep, front face 14 mm ahead of the pupils, bottom 61 mm below eye centre.
 
 ## Hardware (inventory and buy list 2026-10-31, grilled)

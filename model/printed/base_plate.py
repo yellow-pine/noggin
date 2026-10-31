@@ -1,4 +1,4 @@
-"""Our PandT base: an independent parametric design (never traced from the designer's mesh) in the PT frame (Z up, pan
+"""Our base plate: an independent parametric design (never traced from the designer's mesh) in the PT frame (Z up, pan
 axis Z through the origin). A z -2..3 plate (corners r 5, its front sides slanting in to the 54 wide front edge) with
 the pan pivot and bearing recess, three cut-outs and a slot; the r 3 standoffs of both receiver shields, the switch
 boards and the wire keeper; the battery box on the left and a U-shaped holder at the back right. Interfaces exact,
@@ -7,7 +7,7 @@ envelope within 1 mm, the underside lettering dropped. Measured numbers: docs/re
 import cadquery as cq
 
 from model import fits
-from model.printed.pan_base import box
+from model.printed.pan_turntable import box
 
 PLATE_Z = (-2.0, 3.0)
 OUTLINE = [(-27, -25), (27, -25), (60, 33), (60, 135), (-60, 135), (-60, 33)]  # corners r 5

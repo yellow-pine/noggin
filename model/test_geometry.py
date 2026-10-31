@@ -34,11 +34,11 @@ def test_every_horn_limit_is_ours_with_its_reason():
 
 def test_bars_are_measured_pivot_spacings():
     assert g.BARS == {
-        "eyelid_bar": 41.0,
-        "eyelid_crank": 41.0,
+        "lid_bar": 41.0,
+        "lid_crank": 41.0,
         "tilt_bar": 20.0,
         "pan_bar": 15.0,
-        "connector_bar": 44.1,
+        "jaw_bar": 44.1,
         "eyeball_bar": 27.0,
     }
 
@@ -157,11 +157,11 @@ def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub
     origin, tab_x, shaft = g.servo_frame("jaw")
     assert shaft == (1, 0, 0) and _dist(origin, (71.77, -48.6, 33.67)) < 1e-9  # tab plane inside the mount plate
     pin, lever = g.horn_pin("jaw")
-    # the connector bar is cranked 13 mm along the pin: horn end under the horn arm, jaw end on the jaw lug's outer face
+    # the jaw bar is cranked 13 mm along the pin: horn end under the horn arm, jaw end on the jaw lug's outer face
     assert pin[0] == 84.92 and lever == (71.92, -58.1, -10.44)
     hub = g.PIVOTS["jaw_horn"]["point"]
     assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
-    assert abs(_dist(pin[1:], lever[1:]) - g.BARS["connector_bar"]) < 1e-6
+    assert abs(_dist(pin[1:], lever[1:]) - g.BARS["jaw_bar"]) < 1e-6
     assert pin[1] < hub[1] - 10  # horn pointing down (-Y), away from the bracket rail
 
 
@@ -180,7 +180,7 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert (
         on_base(g.STEM_BOTTOM) == (0.0, 0.0, -7.0) == g.STEM_AT["noggin-stage1"]
     )  # through the 5 mm plate, feet on its top
-    assert g.STEM_IN == {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
+    assert g.STEM_IN == {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
         assert all(abs(a - b) < 1e-9 for a, b in zip(on_stack(p), g.eyes_to_pt(p)))
 
@@ -210,7 +210,7 @@ def test_one_channel_table_maps_each_cores_headers_to_its_servos():
 
 
 def test_receiver_shields_sit_on_the_base_standoff_tops_with_the_core_under_each():
-    # PandT base STL: the receiver standoffs top at z 16 (r 1.1 pins up to 18); the Core plugs in under the shield as in
+    # base plate STL: the receiver standoffs top at z 16 (r 1.1 pins up to 18); the Core plugs in under the shield as in
     # the receiver STEP and Cansin's build (docs/build-photos/eyes-top.jpg, references build-photos/eyes-side)
     assert g.receiver_at(1) == (38.0, 52.0, 16.0) and g.receiver_at(2) == (38.0, 85.0, 16.0)
     m = g.align_rows(g.receiver_at(1), *g.RECEIVER_AXES)
@@ -237,7 +237,7 @@ def test_one_pack_and_one_switch_board_feed_both_shields_as_the_pan_tilt_guide_b
 
 
 def test_switch_board_1_lies_in_the_two_clip_holder_at_the_base_back_edge():
-    # PandT base STL (docs/research/2026-10-31-shafts.md): post (34.5, 108.5) and both clip shelves top z 9, clip walls'
+    # base plate STL (docs/research/2026-10-31-shafts.md): post (34.5, 108.5) and both clip shelves top z 9, clip walls'
     # inner faces x 18 / 51, back wall y 126; eyes guide p.13, pan-tilt guide p.23
     m = g.align_rows(*g.switch_at(), g.SWITCH_STEP["hole"])
     assert _apply(m, g.SWITCH_STEP["hole"]) == (34.5, 108.5, 9.0)
@@ -260,7 +260,7 @@ def test_sub_assembly_parts_tables_name_printed_parts():
     stems = {k.split(" (")[0] for k in g.PRINTED}
     for table in (g.EYES_PARTS, g.STACK_PARTS, g.MOUTH_PARTS):
         assert {row[1] for row in table} <= stems
-    assert ("tilt arm", "PandT tilt arm", (0, 0, g.TILT_ARM_SHIFT_Z)) in g.STACK_PARTS
+    assert ("tilt arm", "tilt arm", (0, 0, g.TILT_ARM_SHIFT_Z)) in g.STACK_PARTS
 
 
 def test_every_eye_mech_horn_pins_its_bar_at_the_second_hole_from_the_end_and_the_lid_horns_are_drilled_out():

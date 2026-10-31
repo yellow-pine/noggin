@@ -1,18 +1,18 @@
-"""Our PandT upright v2: an independent parametric design (never traced from the designer's mesh) in the PT frame
-(Z up, pan axis Z through the origin). A wall (x -11..11, y -15.5..-10.5) standing in the pan base's slot down to its
-underside, round-topped about the tilt pivot; a shelf behind it resting on the plate over the pan base's pin hole; and
+"""Our upright: an independent parametric design (never traced from the designer's mesh) in the PT frame
+(Z up, pan axis Z through the origin). A wall (x -11..11, y -15.5..-10.5) standing in the pan turntable's slot down to its
+underside, round-topped about the tilt pivot; a shelf behind it resting on the plate over the pan turntable's pin hole; and
 the pan lever (x -8..-3) reaching back and stepping up to the pan bar's screw hole. Interfaces exact, envelope within
 1 mm, cosmetic fillets dropped. Measured numbers: docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
 from model import fits
-from model.printed.pan_base import box
+from model.printed.pan_turntable import box
 
 WALL = {"x": (-11.0, 11.0), "y": (-15.5, -10.5), "z": (3.5, 33.4)}
 TILT = {"y": -13.0, "z": 33.4, "r": 1.1}  # the tilt pivot along X; the wall's top is round about it
 SHELF = {"y": (-10.5, -5.5), "z": (8.5, 12.5), "corner_r": 2.0}
-PIN = {"xy": (0.0, -8.0), "r": 1.35}  # over the pan base's pin hole
+PIN = {"xy": (0.0, -8.0), "r": 1.35}  # over the pan turntable's pin hole
 LEVER_X = (-8.0, -3.0)
 # The lever's YZ profile: z 17.5..22.5 off the wall, up at about 42 degrees to z 20.5..26.8 under the pan bar
 LEVER_YZ = [(-10.5, 17.5), (15.2, 17.5), (18.6, 20.5), (25.5, 20.5), (25.5, 26.8), (17.3, 26.8), (12.5, 22.5)]
@@ -44,7 +44,7 @@ def features():
     lever_z, lever_half = fits.slab(LEVER_YZ[2][1], LEVER_YZ[4][1])
     x, half = fits.slab(*WALL["x"])
     return {
-        "pan base screw": ((*PIN["xy"], screw_z), "z", PIN["r"], screw_half),
+        "pan turntable screw": ((*PIN["xy"], screw_z), "z", PIN["r"], screw_half),
         "lever": ((*PAN_LEVER["xy"], lever_z), "z", PAN_LEVER["r"], lever_half),
         "tilt pivot": ((x, TILT["y"], TILT["z"]), "x", TILT["r"], half),
     }

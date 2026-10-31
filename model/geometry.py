@@ -19,7 +19,7 @@ def pt_to_eyes(p):
 
 
 def pt_to_eyes_standalone(p):
-    """PandT base point -> eyes frame for the eyes-only build (no neck): the bracket v2 stem drops through the
+    """Base plate point -> eyes frame for the eyes-only build (no neck): the eye bracket stem drops through the
     pan bearing recess at the PT origin (builder-confirmed) and the servo brackets' feet rest on the plate top
     (side photo), so plate top z=3 is y=-35.6."""
     x, y, z = p
@@ -38,7 +38,7 @@ _LID = (
     "one range for the mirrored lid pair: +30 opens both lids clear of the eyeball (model/engine/lids.py); the real"
     " Mech closes past -20, at its calibrated ends"
 )
-_EYE = "+-22: the eyeball bar rides on main bracket v2 and enters it 0.1 mm at +-24, 0.26 at +-28"
+_EYE = "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"
 LIMITS = {
     "l_lid": ((70, 120), _LID),
     "l_eye": ((68, 112), _EYE),
@@ -46,7 +46,7 @@ LIMITS = {
     "r_eye": ((68, 112), _EYE),
     "tilt": (
         (30, 150),
-        "at 20..27 the tilt horn and bar sweep into the pan base's front chord (0.06 mm clear at -62, 0.38 mm deep at"
+        "at 20..27 the tilt horn and bar sweep into the pan turntable's front chord (0.06 mm clear at -62, 0.38 mm deep at"
         " -66, 1.16 at -70): the lower end stops at 30, which keeps the pan x tilt grid on neutral; up to +60 the"
         " arm sweeps clear",
     ),
@@ -57,7 +57,7 @@ LIMITS = {
     "mouth": (
         (15, 90),
         "the jaws are modelled closed at neutral: horn +1..+22 drives the bottom jaw further shut into the top jaw (the"
-        " hinge pair, not swept) and past +22 the connector-bar four-bar has no solution; on the opening side the bar"
+        " hinge pair, not swept) and past +22 the jaw bar's four-bar has no solution; on the opening side the bar"
         " enters the jaw servo past -75 (0.28 mm at -80): horn -75..0 = jaw -58..0 deg",
     ),
 }
@@ -124,24 +124,24 @@ STANDOFFS = {
         "switch": [(8.24, -30.6, 92.5)],
     },
     "pt_base": {
-        # PandT base STL [M]: receiver standoffs to z 16 (r 1.1 locating pins up to z 18 on one diagonal of each set)
+        # base plate STL [M]: receiver standoffs to z 16 (r 1.1 locating pins up to z 18 on one diagonal of each set)
         "receiver_1": [(26.0, 40.5, 16.0), (50.0, 40.5, 16.0), (26.0, 63.5, 16.0), (50.0, 63.5, 16.0)],
         "receiver_2": [(26.0, 73.5, 16.0), (50.0, 73.5, 16.0), (26.0, 96.5, 16.0), (50.0, 96.5, 16.0)],
         # the eyes build's cable holder (wire keeper), moved onto this base (pan-tilt guide p.23 step 18; Cansin's build,
         # docs/build-photos/eyes-top.jpg): the eye leads pass under it
         "cable_holder": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
         "switch_post": [(34.5, 108.5, 9.0)],  # switch board 1's post in the two-clip holder at the back edge [M]
-        "wire_holder": [(-7.5, 40.5, 9.0), (7.5, 40.5, 9.0)],  # the PandT wire holder's posts [M]
+        "wire_holder": [(-7.5, 40.5, 9.0), (7.5, 40.5, 9.0)],  # the wire holder's posts [M]
     },
 }
 
 # Pivot-to-pivot hole spacing of each link.
 BARS = {
-    "eyelid_bar": 41.0,
-    "eyelid_crank": 41.0,
+    "lid_bar": 41.0,
+    "lid_crank": 41.0,
     "tilt_bar": 20.0,
     "pan_bar": 15.0,
-    "connector_bar": 44.1,
+    "jaw_bar": 44.1,
     "eyeball_bar": 27.0,
 }
 
@@ -238,31 +238,31 @@ def servo_frame(key):
 
 
 # Lid linkage (L side; mirror_x for R). Lid pins r=1 along X on the lid ears [M]. Per the build (#48, build photos
-# eyes-lid-linkage*.jpg, guide p.21: the top lid is the inside one) the crank joins the inside lid by its stepped end and
-# sits outermost on the horn pin under the nut; the straight bar joins the outside lid, between the horn and the crank.
+# eyes-lid-linkage*.jpg, guide p.21: the top lid is the inside one) the crank joins the upper lid by its stepped end and
+# sits outermost on the horn pin under the nut; the straight bar joins the lower lid, between the horn and the crank.
 # "x": bar mid-planes at (horn pin, lid pin). The lid ears' outer faces are at x=-24 [M], so both lid ends ride on
 # -24..-27; the straight bar is flat, so it stands 0.26 off the horn's outer face (x -23.74, docs/research/2026-10-31-
 # shafts.md); the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
-LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
+LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # The lid horn's arm at neutral (both sides): 3.59 deg from +Y toward the lids (-Z), where its pin best fits both lid loops
-# with the lids in the STLs' pose and the 41 mm bars: 41.14 to the inside lid's pin, 40.86 to the outside one's
+# with the lids in the STLs' pose and the 41 mm bars: 41.14 to the upper lid's pin, 40.86 to the lower one's
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
 LID_LINKS = {
-    "eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)},
-    "eyelid_crank": {"lid": "inside", "x": (-28.5, -25.5)},
+    "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},
+    "lid_crank": {"lid": "upper", "x": (-28.5, -25.5)},
 }
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeball end [M]
 
 # Pan-tilt linkage. Lever holes fitted on the STLs (model/fits.py) [M]: the tilt bar joins the tilt horn pin to the
-# tilt arm's lever (x 3..8 slab, hole along X; the arm STL is at the v1 height, upright v2 raises it 5 mm); the pan bar
-# joins the pan horn pin to the upright v2's lever (x -8..-3, hole along Z through its top z=26.8). The research note's
+# tilt arm's lever (x 3..8 slab, hole along X; the arm STL predates the 5 mm the upright was raised); the pan bar
+# joins the pan horn pin to the upright's lever (x -8..-3, hole along Z through its top z=26.8). The research note's
 # "pan-bar post at (18,19)" is the pan-base tower corner. Bar mid-planes (docs/research/2026-10-31-shafts.md): the tilt
 # bar fills the 2.98 between the lever face x 8.0 and the horn arm (outer face x 10.98): x 8..11; the pan bar sits on the
 # upright lever top z 26.8 under the horn arm (underside z 29.72, pan-tilt guide p.7 CAD): z 26.8..29.8. Horn direction
 # at neutral: tilt horn horizontal toward +Y with the bar vertical (guide step 15), pan horn forward (-Y) with the bar
 # along X, tangent to the lever (step 14).
-# Jaw (eyes frame): the connector bar is cranked 13 mm along its pins (STL_LOCAL): its larger hole on the outer face of the
+# Jaw (eyes frame): the jaw bar is cranked 13 mm along its pins (STL_LOCAL): its larger hole on the outer face of the
 # bottom jaw's pivot lug (x 70.42..73.42; hole r 1.1 along X at (y -58.1, z -10.44), M2.5 self-tapping, guide step 8),
 # its smaller hole under the jaw horn's arm (x 83.42..86.42; the arm's underside is x 85.84: 0.58 overlap no source
 # settles); the horn points down (-Y) at neutral (mouth guide p.14 CAD), clear of the bracket rail (y > -40.6).
@@ -275,7 +275,7 @@ PT_LEVER_HOLES = {
 }
 PT_BAR_PLANES = {"tilt": ("x", 9.5), "pan": ("z", 28.3), "jaw": ("x", 84.92, 71.92)}
 PT_HORN_DIR = {"tilt": (0, 1, 0), "pan": (0, -1, 0), "jaw": (0, -1, 0)}
-HORN_BAR = {"tilt": "tilt_bar", "pan": "pan_bar", "jaw": "connector_bar"}  # BARS key of each horn's link
+HORN_BAR = {"tilt": "tilt_bar", "pan": "pan_bar", "jaw": "jaw_bar"}  # BARS key of each horn's link
 
 
 def horn_pin(key):
@@ -307,25 +307,25 @@ def horn_pin(key):
 STL_LOCAL = {
     # Circle fits on the STL holes (model/fits.py, 2026-10-31): 41 mm pitch, both holes along Z; horn end first: the
     # smaller hole (r 1.1, +x end) on the horn screw, the larger (r 1.35) takes the lid screw (guide p.23). The crank is
-    # the eyelid bar with its lid end (-x) stepped up 3 mm (+z, placed toward the lid ear).
-    "eyelid bar": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 1.5)], "hole_axis": Z},
-    "eyelid bar crank": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 4.5)], "hole_axis": Z},
+    # the lid bar with its lid end (-x) stepped up 3 mm (+z, placed toward the lid ear).
+    "lid bar": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 1.5)], "hole_axis": Z},
+    "lid crank": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 4.5)], "hole_axis": Z},
     # Pan-tilt bars: the smaller hole (r 1.1, +x end) takes the M2 horn screw (guide step 12), the larger (r 1.35) the
     # M2.5 lever screw; listed horn end first.
     "tilt bar": {"holes": [(10.0, 0.0, 1.5), (-10.0, 0.0, 1.5)], "hole_axis": Z},
-    "PandT bar": {"holes": [(7.5, 0.0, 1.5), (-7.5, 0.0, 1.5)], "hole_axis": Z},
-    # Jaws connector bar: a 3 mm strip cranked 13 mm along its pins (fits.py, docs/research/2026-10-31-shafts.md); horn end
+    "pan bar": {"holes": [(7.5, 0.0, 1.5), (-7.5, 0.0, 1.5)], "hole_axis": Z},
+    # The jaw bar: a 3 mm strip cranked 13 mm along its pins (fits.py, docs/research/2026-10-31-shafts.md); horn end
     # first: the smaller hole (r 1.1) on the horn, the larger (r 1.35) on the jaw (mouth guide step 8).
-    "jaws connector bar": {"holes": [(-22.05, -2.5, 6.5), (22.05, -2.5, -6.5)], "hole_axis": Z},
+    "jaw bar": {"holes": [(-22.05, -2.5, 6.5), (22.05, -2.5, -6.5)], "hole_axis": Z},
 }
 
 # Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0 (51.2 long, 28.4 wide), lead
 # fused to the pack body beyond y=56 (plug at y 50..55).
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
-BATTERY_POCKET_PT = {"x": (-50.0, -21.5), "y": (73.0, 125.0), "floor_z": 3.0}  # PandT base STL pocket, PT frame [M]
+BATTERY_POCKET_PT = {"x": (-50.0, -21.5), "y": (73.0, 125.0), "floor_z": 3.0}  # base plate STL pocket, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
-# The electronics on the PandT base (model/engine/stages.py), PT frame, as the pan-tilt guide builds
+# The electronics on the base plate (model/engine/stages.py), PT frame, as the pan-tilt guide builds
 # them (p.10 Y adapter, p.23): one pack and one switch board feed both receiver shields through a Y lead. Shield n sits
 # on standoff set n (1 front, 2 back), PCB on the standoff tops (z 16), the Core plugged in under it as in the receiver
 # STEP, its USB-C and the shield's XH socket toward the plate's +x edge (Cansin's build for shield 1,
@@ -363,50 +363,50 @@ def battery_at():
     )
 
 
-# Printed parts: spool and material per STL stem (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
+# Printed parts: spool and material per part (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
 # is Bambu Studio's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
-# "(colour inferred)" where an STL name does not map cleanly onto a named part.
+# "(colour inferred)" where the build does not show the part's colour.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
 MATERIALS = {"PLA Pure": {"density_g_cm3": 1.24}}  # PETG possible later, per part
 PRINTED = {
-    stem: (spool, "PLA Pure")
-    for spool, stems in {
+    name: (spool, "PLA Pure")
+    for spool, names in {
         "Milky Pink": [
             "L servo bracket",
             "R servo bracket",
-            "main bracket v2",
-            "inside lid",
-            "outside lid",
+            "eye bracket",
+            "upper lid",
+            "lower lid",
             "eyeball bar",
-            "eyelid bar",
-            "eyelid bar crank",
+            "lid bar",
+            "lid crank",
             "wire keeper",
         ],
         "Pure White": [
-            "L eyeball regular",
-            "R eyeball regular",
+            "L eyeball",
+            "R eyeball",
             "tilt bar",
-            "PandT bar",
-            "PandT servo mount plain",
-            "PandT servo mount cutout",
-            "top jaw plain",
-            "bottom jaw plain",
-            "jaws connector bar",
-            "jaws servo mount",
+            "pan bar",
+            "pan servo tail mount",
+            "pan servo lead mount",
+            "top jaw",
+            "bottom jaw",
+            "jaw bar",
+            "jaw servo mount",
         ],
         "Absolute Black": [
-            "regular pupil",
-            "PandT base",
-            "PandT tilt arm",
-            "PandT bearing block",
-            "PandT wire holder (colour inferred)",
+            "pupil",
+            "base plate",
+            "tilt arm",
+            "bearing block",
+            "wire holder (colour inferred)",
         ],
         "Apricot": [
-            "PandT upright v2",
-            "PandT pan base (colour inferred)",
-        ],  # the pan base reads beige in the guide photos (p.18)
+            "upright",
+            "pan turntable (colour inferred)",
+        ],  # the pan turntable reads beige in the guide photos (p.18)
     }.items()
-    for stem in stems
+    for name in names
 }
 
 
@@ -414,42 +414,42 @@ PRINTED = {
 # lead leaves it (Bambu STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
 # the far end, where the lead would run through the plain mount (docs/research/2026-10-31-shafts.md).
 MOUNT_SWAP_Y = 27.9
-# Sub-assembly parts placed straight from the designer's STLs (model/engine/stages.py reads these):
-# (component, STL stem, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the regular eye and
-# the "updated main bracket and base" profile (main bracket v2, placed apart). Stack: shift; the designer exported these
-# in the assembled PT frame, except the tilt arm, still at the v1 height (upright v2 raised the pivot 5 mm). Mouth: in
-# the eyes frame with the jaws closed; plain jaws, the guide's first variant (the teeth jaws are the same build).
+# Sub-assembly parts placed straight from their meshes (model/engine/stages.py reads these):
+# (component, part, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the eyeballs without
+# eye texture and the updated eye bracket (placed apart). Stack: shift; the designer exported these in the assembled PT
+# frame, except the tilt arm, still at the height before the upright was raised 5 mm. Mouth: in the eyes frame with
+# the jaws closed; plain jaws, the guide's first variant (the jaws with teeth are the same build).
 EYES_PARTS = [
     ("L servo bracket", "L servo bracket", 0),
     ("R servo bracket", "R servo bracket", 0),
-    ("L eyeball", "L eyeball regular", 0),
-    ("R eyeball", "R eyeball regular", 0),
-    ("L pupil", "regular pupil", -59),
-    ("R pupil", "regular pupil", 0),
-    ("L inside lid", "inside lid", 0),
-    ("L outside lid", "outside lid", 0),
-    ("R inside lid", "inside lid", 59),
-    ("R outside lid", "outside lid", 59),
+    ("L eyeball", "L eyeball", 0),
+    ("R eyeball", "R eyeball", 0),
+    ("L pupil", "pupil", -59),
+    ("R pupil", "pupil", 0),
+    ("L upper lid", "upper lid", 0),
+    ("L lower lid", "lower lid", 0),
+    ("R upper lid", "upper lid", 59),
+    ("R lower lid", "lower lid", 59),
     ("L eyeball bar", "eyeball bar", 0),
     ("R eyeball bar", "eyeball bar", 79),
 ]
 STACK_PARTS = [
-    ("bearing block", "PandT bearing block", (0, 0, 0)),
-    ("pan base", "PandT pan base", (0, 0, 0)),
-    ("upright v2", "PandT upright v2", (0, 0, 0)),
-    ("tilt arm", "PandT tilt arm", (0, 0, TILT_ARM_SHIFT_Z)),
-    ("servo mount plain", "PandT servo mount plain", (0, MOUNT_SWAP_Y, 0)),
-    ("servo mount cutout", "PandT servo mount cutout", (0, -MOUNT_SWAP_Y, 0)),
-    ("wire holder", "PandT wire holder", (0, 0, 0)),
+    ("bearing block", "bearing block", (0, 0, 0)),
+    ("pan turntable", "pan turntable", (0, 0, 0)),
+    ("upright", "upright", (0, 0, 0)),
+    ("tilt arm", "tilt arm", (0, 0, TILT_ARM_SHIFT_Z)),
+    ("pan servo tail mount", "pan servo tail mount", (0, MOUNT_SWAP_Y, 0)),
+    ("pan servo lead mount", "pan servo lead mount", (0, -MOUNT_SWAP_Y, 0)),
+    ("wire holder", "wire holder", (0, 0, 0)),
 ]
 MOUTH_PARTS = [
-    ("top jaw", "top jaw plain"),
-    ("bottom jaw", "bottom jaw plain"),
-    ("jaws servo mount", "jaws servo mount"),
+    ("top jaw", "top jaw"),
+    ("bottom jaw", "bottom jaw"),
+    ("jaw servo mount", "jaw servo mount"),
 ]
 
 # Stage configurations put the sub-assemblies, each at an (origin, x axis, z axis) frame
-# in the PT frame (align_rows takes the same triple). The bracket v2 stem (eyes x 23.5..35.5, z 13..18, bottom
+# in the PT frame (align_rows takes the same triple). The eye bracket stem (eyes x 23.5..35.5, z 13..18, bottom
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
 # pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].
 EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
@@ -469,7 +469,7 @@ STAGES = {
         "noggin-mouth": EYES_ON_STACK,
     },
 }
-STEM_IN = {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
+STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
 # arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3). Research note; depth [I].
 STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

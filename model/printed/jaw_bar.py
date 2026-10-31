@@ -1,4 +1,4 @@
-"""Our jaws connector bar: an independent parametric design (never traced from the designer's mesh) in the designer's
+"""Our jaw bar: an independent parametric design (never traced from the designer's mesh) in the designer's
 local frame (model/geometry.py STL_LOCAL places it). A 5 mm thick Z: two 3 mm end tabs a 12.5 mm step apart, joined
 by a straight band, each tab with its screw hole along Z; the bends' cosmetic radii dropped. Measured numbers:
 docs/research/2026-10-31-model.md [M]."""

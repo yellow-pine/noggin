@@ -23,8 +23,8 @@ def test_each_servo_moves_its_own_chain_as_the_engine_poses_it():
         alone = stages.pose(STAGE1, name, deg).parts
         moved = [n for n in alone if not np.allclose(alone[n], STAGE1.parts[n].matrix)]
         assert moved and all(np.allclose(mats[n], alone[n]) for n in moved)
-    assert np.allclose(mats["PandT base:1"], STAGE1.parts["PandT base:1"].matrix)
-    assert not np.allclose(mats["R inside lid:1"], stages.pose(STAGE1, "L lid horn", 20.0).parts["R inside lid:1"])
+    assert np.allclose(mats["base plate:1"], STAGE1.parts["base plate:1"].matrix)
+    assert not np.allclose(mats["R upper lid:1"], stages.pose(STAGE1, "L lid horn", 20.0).parts["R upper lid:1"])
 
 
 def test_a_stage_without_eye_horns_ignores_the_eye_joints():
@@ -37,8 +37,8 @@ def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(STAGE1, tmp_path)
     assert set(manifest) == set(STAGE1.parts)
     assert manifest["L eyeball:1"]["colour"] == "#FFFFFF"  # Pure White
-    assert manifest["PandT base:1"]["colour"] == "#000000"  # Absolute Black
-    assert manifest["L inside lid:1"]["colour"] == "#F7CED7"  # Milky Pink
+    assert manifest["base plate:1"]["colour"] == "#000000"  # Absolute Black
+    assert manifest["L upper lid:1"]["colour"] == "#F7CED7"  # Milky Pink
     assert manifest["L lid servo:1"]["colour"] not in geometry.SPOOLS.values()
-    base = trimesh.load(tmp_path / manifest["PandT base:1"]["ply"])
+    base = trimesh.load(tmp_path / manifest["base plate:1"]["ply"])
     assert 0.1 < base.extents.max() < 0.2  # the 120 x 160 mm plate, in metres

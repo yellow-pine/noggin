@@ -1,12 +1,12 @@
-"""Our jaws servo mount: an independent parametric design (never traced from the designer's mesh) in the eyes frame
+"""Our jaw servo mount: an independent parametric design (never traced from the designer's mesh) in the eyes frame
 (model/geometry.py). A wall the jaw servo's tabs screw onto, the servo body in a window below its back edge, and a foot
-screwed onto the main bracket's bottom rail. Interfaces exact, envelope within 1 mm. Measured numbers:
+screwed onto the eye bracket's bottom rail. Interfaces exact, envelope within 1 mm. Measured numbers:
 docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
 from model import fits
-from model.printed.main_bracket import box
+from model.printed.eye_bracket import box
 
 WALL = {"x": (73.42, 78.42), "y": (-52.6, -30.6), "z": (12.0, 44.66)}
 WINDOW = {"y": -42.1, "z": (17.0, 39.66)}  # the servo body sits below y -42.1 between the tabs

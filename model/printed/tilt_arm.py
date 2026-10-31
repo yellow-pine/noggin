@@ -1,12 +1,12 @@
-"""Our PandT tilt arm: an independent parametric design (never traced from the designer's mesh) in the designer's STL
-frame (the PT frame with the arm at the v1 height; geometry.TILT_ARM_SHIFT_Z raises it 5 onto upright v2). A z 30.9..35.9
+"""Our tilt arm: an independent parametric design (never traced from the designer's mesh) in the designer's STL
+frame (the PT frame with the arm at the v1 height; geometry.TILT_ARM_SHIFT_Z raises it 5 onto upright). A z 30.9..35.9
 frame with a window, hung by two side ears on the tilt pivot screws, and the lever (x 3..8) reaching back to the tilt
 bar's screw. Interfaces exact, envelope within 1 mm. Measured numbers: docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
 from model import fits
-from model.printed.pan_base import box
+from model.printed.pan_turntable import box
 from model.printed.upright import rod_x
 
 PLATE_Z = (30.9, 35.9)

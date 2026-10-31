@@ -1,4 +1,4 @@
-"""Seam: our top jaw plain (model/printed/top_jaw.py) meets the measured interfaces exactly and the designer's envelope
+"""Seam: our top jaw (model/printed/top_jaw.py) meets the measured interfaces exactly and the designer's envelope
 within ENVELOPE_MM, probed on the CadQuery solid (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools

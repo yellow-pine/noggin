@@ -75,7 +75,7 @@ def link(stage, stl_key, hole_a, hole_b, normal):
 def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None, tol=None):
     """The link's two holes on its pins, in the plane of the loop: along the pin axis a link may sit anywhere on its pin
     (the crank's lid end is stepped 3 mm). pin_axis (0, 1 or 2) is the world pin direction when the two pins sit at
-    different depths along it (the eyelid crank): the expected lid-end point then takes the horn end's depth too."""
+    different depths along it (the lid crank): the expected lid-end point then takes the horn end's depth too."""
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     i = spec["hole_axis"].index(1)
@@ -134,7 +134,7 @@ def eyes():
     parts, horns = {}, {}
     for name, stem, dx in g.EYES_PARTS:
         parts[name + ":1"] = part(stl(stem), translate((dx, 0, 0)), printed(stem))
-    parts["main bracket v2:1"] = part(stl("main bracket v2"), None, printed("main bracket v2"))
+    parts["eye bracket:1"] = part(stl("eye bracket"), None, printed("eye bracket"))
     placements = []
     for s in "LR":
         side = (lambda p: p) if s == "L" else g.mirror_x
@@ -144,7 +144,7 @@ def eyes():
         lid_horn = g.PIVOTS[lid_key + "_horn"]["point"]
         normal = (1, 0, 0) if s == "L" else (-1, 0, 0)  # inboard: the crank's step toward the lid ear
         loops = []
-        for key, stem in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
+        for key, stem in (("lid_bar", "lid bar"), ("lid_crank", "lid crank")):
             spec = g.LID_LINKS[key]
             hx, lx = (side((x, 0, 0))[0] for x in spec["x"])
             horn_pin = (hx, *(c + g.HORN_STEP["pin"] * a for c, a in zip(lid_horn[1:], g.LID_HORN_ARM[1:])))
@@ -185,7 +185,7 @@ def eyes():
 
 def electronics(n):
     """(parts, ports): receiver shield n with its Core plugged in under it; set 1 adds the one switch board, the pack and the
-    eyes build's cable holder on the PandT base."""
+    eyes build's cable holder on the base plate."""
     receiver_m = align(g.receiver_at(n), *g.RECEIVER_AXES)
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
     shield = f"receiver shield {n}:1"
@@ -206,9 +206,9 @@ def electronics(n):
 
 
 def base():
-    """noggin-base: the PandT base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame."""
+    """noggin-base: the base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame."""
     set1, ports = electronics(1)
-    parts = {"PandT base:1": part(stl("PandT base"), None, printed("PandT base")), **set1}
+    parts = {"base plate:1": part(stl("base plate"), None, printed("base plate")), **set1}
     stand = g.STANDOFFS["pt_base"]
     placements = [
         ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
@@ -224,7 +224,7 @@ def stack():
     for name, stem, shift in g.STACK_PARTS:
         parts[name + ":1"] = part(stl(stem), translate(shift), printed(stem))
     bars, placements = {}, []
-    for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
+    for key, stem in (("tilt", "tilt bar"), ("pan", "pan bar")):
         pivot = g.PIVOTS[key + "_horn"]
         pin, lever = g.horn_pin(key)
         parts.update(servo_and_horn(key, key, np.subtract(pin, pivot["point"])))
@@ -252,7 +252,7 @@ def stack():
         bars["pan"][1],
         g.Z,
         "pan bar:1",
-        ["pan base:1", "upright v2:1", "tilt servo:1", "tilt arm:1", "tilt horn:1", "tilt bar:1"],
+        ["pan turntable:1", "upright:1", "tilt servo:1", "tilt arm:1", "tilt horn:1", "tilt bar:1"],
     )
     horns = {
         "tilt horn": Horn(g.PIVOTS["tilt_horn"], limits("tilt"), "tilt horn:1", [tilt], ["pan pivot"], None),
@@ -270,7 +270,7 @@ def mouth():
         parts[name + ":1"] = part(stl(stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
-    parts["connector bar:1"] = link("mouth", "jaws connector bar", pin, lever, g.X)
+    parts["jaw bar:1"] = link("mouth", "jaw bar", pin, lever, g.X)
     loop = rocker_loop(
         "jaw hinge",
         g.PIVOTS["jaw_horn"]["point"],
@@ -278,13 +278,13 @@ def mouth():
         g.PIVOTS["jaw_hinge"]["point"],
         lever,
         g.X,
-        "connector bar:1",
+        "jaw bar:1",
         ["bottom jaw:1"],
     )
     horns = {"jaw horn": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn:1", [loop], [], None)}
     placements = [
         *servo_placements("jaw", "jaw"),
-        link_placement("connector bar:1", "jaws connector bar", pin, lever, pin_axis=0),  # cranked 13 mm along X
+        link_placement("jaw bar:1", "jaw bar", pin, lever, pin_axis=0),  # cranked 13 mm along X
     ]
     return Sub(parts, horns, placements, servo_port("jaw"))
 
@@ -313,7 +313,7 @@ DOCS = {
 
 RIDES = {
     "noggin-eyes": lambda doc: g.STEM_IN[doc] + ":1",
-    "noggin-mouth": lambda doc: "main bracket v2:1",
+    "noggin-mouth": lambda doc: "eye bracket:1",
 }  # clamped to that part
 
 
@@ -336,7 +336,7 @@ def assemble(doc, frames, up, context=()):
         ]
         ports.update(sub.ports)  # part-local: they ride their part
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
-        placements.append(("main bracket v2:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_INFERRED_MM))
+        placements.append(("eye bracket:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_INFERRED_MM))
     if doc in g.STEM_IN:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():
@@ -369,13 +369,6 @@ class _Stages(dict):
 
 
 STAGES = _Stages()  # built on first use: a document per DOCS key
-
-
-def ours(doc):
-    """The document with every part read from our geometry (model/build/ours: the same file names, the same frames)."""
-    return doc._replace(
-        parts={n: p._replace(file=os.path.join(OURS, os.path.basename(p.file))) for n, p in doc.parts.items()}
-    )
 
 
 def world(m, p):
