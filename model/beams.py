@@ -19,7 +19,7 @@ geometry = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(geometry)
 
 E_MPA, YIELD_MPA, DENSITY = 3500.0, 50.0, geometry.MATERIALS["PLA Pure"]["density_g_cm3"]  # PLA (g/cm3)
-STALL_KGF_CM, HORN_PIN_MM = 1.2, 12.75  # CyberBrick 9 g servo at 6 V (#20); bar pin radius on the horn
+STALL_KGF_CM, HORN_PIN_MM = 1.2, 12.75  # the 9 g servo at 6 V (#20); bar pin radius on the horn
 G, MIN_SF = 9.81, 2.0
 
 

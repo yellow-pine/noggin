@@ -222,7 +222,7 @@ printf '  and asks you what the Mech did. Ctrl-C any time and re-run.%s\n\n' "$R
 pause "Ready to start?"
 
 stage "Plug in the Core"
-say "Connect the CyberBrick Core to this Mac with the USB-C cable and switch the battery on."
+say "Connect the Core to this Mac with the USB-C cable and switch the battery on."
 note "USB powers the Core; the servos need the battery (or the USB-A -> XH2.54 lead)."
 until [[ -n "$(port)" ]]; do pause "Waiting for /dev/cu.usbmodem* ... press Enter to re-check"; done
 say "Found $(port)"
@@ -245,7 +245,7 @@ fi
 pause
 
 stage "Flash the eye program"
-warn "This replaces boot.py on the Core. The CyberBrick remote app stops working until 'make restore-stock'."
+warn "This replaces boot.py on the Core. The stock remote app stops working until 'make restore-stock'."
 confirm "Flash eyes/eyes.py + eyes/boot.py now?" || { warn "stopped before flashing"; exit 1; }
 make -s flash
 sleep 2

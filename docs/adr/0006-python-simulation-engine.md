@@ -49,7 +49,7 @@ for the engine's curves and masses.
 
 Once our parts matched the designer's meshes within 0.3 mm with every joint mated (tag `stock-parity`), the model
 stopped checking itself against them. The gate (model/printed/test_gate.py and model/engine/test_gate.py, the latter
-on the recorded Fusion reports), the Bambu STEP meshing (model/build/steps) and the guide sheets are deleted, and
+on the recorded Fusion reports), the vendor STEP meshing (model/build/steps) and the guide sheets are deleted, and
 nothing reads docs/references. `make sim` runs on our geometry everywhere, so the committed reports are ours. The
 mating check fits the features our parts declare (each part's features(), model/envelopes.py FEATURES) on our meshes,
 and the horn limits are our own, each with its reason (geometry.LIMITS). The recorded Fusion reports that stay

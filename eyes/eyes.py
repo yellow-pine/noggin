@@ -1,4 +1,4 @@
-# noggin eye program for the CyberBrick Core (ESP32-C3, MicroPython).
+# noggin eye program for the Core (ESP32-C3, MicroPython).
 # Plays named gestures and background modes (thinking, exercise) on four servos.
 # Servos stay powered: released, the lids and eyes fall under gravity (gravity beats the smooth linkages).
 # Calibration lives in self.cal: defaults below, overridden live by `set key value`

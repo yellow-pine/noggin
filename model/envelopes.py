@@ -1,5 +1,5 @@
-"""Our hardware envelopes (#58): simple CadQuery stand-ins for the Bambu CyberBrick hardware (servo, Horn, Shield,
-Core, switch board, battery) so the engine and the renders need no Bambu file. Each is drawn in its STEP file's own
+"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield,
+Core, switch board, battery) so the engine and the renders need no vendor file. Each is drawn in its STEP file's own
 frame, registered in ENVELOPES by its mesh's name, with the features the mating check fits in FEATURES. Interfaces
 (mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
 and circle hulls of the STEP's outer faces; inner detail is dropped."""
@@ -109,7 +109,7 @@ def mirror_x(spans):
     return [*spans, *(((-x1, -x0), y, z) for (x0, x1), y, z in spans)]
 
 
-# Shield (X11, the STEP's "receiver"): PCB bottom y 0, 29 x 30 (r 3 corners) with r 1.35 mount holes at x +-11.5,
+# Shield (the STEP's "receiver"): PCB bottom y 0, 29 x 30 (r 3 corners) with r 1.35 mount holes at x +-11.5,
 # z +-12; on top the XH power socket at z -15..-7.2, the two servo header bodies and their 0.64 square pins (x +-1.69,
 # +-4.23, +-6.77; z 1.23, 3.77) up to y 10.78, the edge parts at x +-(9.5..14.5); under it the Core's two sockets.
 SHIELD = {

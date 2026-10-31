@@ -1,5 +1,5 @@
 """Seam: our hardware envelopes (model/envelopes.py) meet each piece's interfaces (mount holes, shaft, connectors) in
-its Bambu STEP frame and the STEP's box within ENVELOPE_MM, probed on the CadQuery solid. Expected numbers are
+its vendor STEP frame and the STEP's box within ENVELOPE_MM, probed on the CadQuery solid. Expected numbers are
 literals read off the STEP files once (history: docs/research)."""
 
 import functools
