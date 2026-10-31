@@ -57,6 +57,19 @@ def _convex(args):
     return convex(*args)
 
 
+def root(doc):
+    """4x4 from the document's frame to MuJoCo's world: the Y-up eyes-frame documents (noggin-eyes, noggin-mouth) are
+    carried into the PT frame (stages.BASE_IN_EYES undone), so every model is Z-up with its base plate where the
+    Stages have it, and the viewer and gravity agree with it."""
+    return np.linalg.inv(stages.align(*stages.BASE_IN_EYES)) if stages.STAGES[doc].up == 1 else np.eye(4)
+
+
+def _quat(m):
+    q = np.zeros(4)
+    mujoco.mju_mat2Quat(q, np.ascontiguousarray(m[:3, :3]).flatten())
+    return q
+
+
 def spec(doc):
     """The document as an MjSpec: a body per part at its placement (welded to the world: joints come in #148), its
     mesh drawn in its colour, its convex pieces colliding."""
@@ -72,53 +85,30 @@ def spec(doc):
         s.add_mesh(name=stem, file=os.path.relpath(file, BUILD), scale=[MM] * 3)
         for p in pieces[stem]:
             s.add_mesh(name=f"{stem} {stages.stem(p)}", file=os.path.relpath(p, BUILD), scale=[MM] * 3)
+    rgb = trimesh.visual.color.hex_to_rgba(scene.BG)[:3] / 255
+    # the pictures' background as the sky: a flat skybox (XMLreference.html#asset-texture, builtin "flat")
+    s.add_texture(
+        type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
+        builtin=mujoco.mjtBuiltin.mjBUILTIN_FLAT,
+        rgb1=rgb,
+        rgb2=rgb,
+        width=32,
+        height=32,
+    )
+    r = root(doc)
+    frame = s.worldbody.add_frame(pos=r[:3, 3] * MM, quat=_quat(r))  # the bodies keep the document's own numbers
+    mesh = mujoco.mjtGeom.mjGEOM_MESH
     for name, part in stage.parts.items():
-        quat = np.zeros(4)
-        mujoco.mju_mat2Quat(quat, part.matrix[:3, :3].flatten())
-        body = s.worldbody.add_body(name=name, pos=part.matrix[:3, 3] * MM, quat=quat)
+        body = frame.add_body(name=name, pos=part.matrix[:3, 3] * MM, quat=_quat(part.matrix))
         stem = stages.stem(part.file)
-        colour = scene.colour(part.file)  # the spool's, or the hardware's grey
-        rgba = [*trimesh.visual.color.hex_to_rgba(colour)[:3] / 255, 1]
-        if not s.material(colour):
-            s.add_material(name=colour, rgba=rgba, specular=0.3, shininess=0.4)
-        mesh = mujoco.mjtGeom.mjGEOM_MESH
+        # make view only has to tell the parts apart: the colour the pictures draw it in, under MuJoCo's own light
+        rgba = [*trimesh.visual.color.hex_to_rgba(scene.drawn(part.file))[:3] / 255, 1]
         # the drawn mesh carries no mass and touches nothing: the pieces do both
-        body.add_geom(type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, material=colour)
+        body.add_geom(type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba)
         for p in pieces[stem]:
             # shortcut: MuJoCo's default density, the bodies are welded; part masses come with the joints in #148
             body.add_geom(type=mesh, meshname=f"{stem} {stages.stem(p)}", group=COLLISION, rgba=rgba)
     return s
-
-
-def look(s, up, model):
-    """For make view (pictures stay Blender's, ADR 0007): a pale sky, a key light over the front casting shadows, and a
-    camera "front" on the document's up axis (the viewer's free camera is Z-up, the eyes documents are Y-up; ] steps to
-    it). Front is -Z in the eyes frame and -Y in the PT frame (stages.BASE_IN_EYES)."""
-    s.add_texture(
-        name="sky",
-        type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
-        builtin=mujoco.mjtBuiltin.mjBUILTIN_GRADIENT,
-        rgb1=[0.95, 0.96, 0.98],
-        rgb2=[0.75, 0.78, 0.82],
-        width=256,
-        height=256,
-    )
-    s.visual.headlight.ambient, s.visual.headlight.diffuse = [0.35] * 3, [0.35] * 3
-    s.visual.quality.shadowsize = 8192
-    upward, front = np.eye(3)[up], -np.eye(3)[3 - up]
-    data = mujoco.MjData(model)
-    mujoco.mj_forward(model, data)
-    drawn = model.geom_group == VISUAL
-    lo = (data.geom_xpos[drawn] - model.geom_rbound[drawn, None]).min(axis=0)
-    hi = (data.geom_xpos[drawn] + model.geom_rbound[drawn, None]).max(axis=0)
-    centre, extent = (lo + hi) / 2, np.linalg.norm(hi - lo) / 2  # the drawn parts' bounds (stat.center sits off them)
-    key = upward * 1.5 + front + np.eye(3)[0] * 0.5
-    s.worldbody.add_light(pos=centre + key * extent, dir=-key, diffuse=[0.6] * 3, castshadow=True)
-    view = front + upward * 0.45 + np.eye(3)[0] * 0.6  # from the front, a little above and to the right
-    view /= np.linalg.norm(view)
-    x = np.cross(upward, view)
-    x /= np.linalg.norm(x)
-    s.worldbody.add_camera(name="front", pos=centre + view * 1.6 * extent, xyaxes=[*x, *np.cross(view, x)])
 
 
 def write(doc):
@@ -126,7 +116,6 @@ def write(doc):
     os.makedirs(MJCF, exist_ok=True)
     s = spec(doc)
     s.modelfiledir = MJCF
-    look(s, stages.STAGES[doc].up, s.compile())
     s.compile()
     path = os.path.join(MJCF, doc + ".xml")
     with open(path, "w") as f:

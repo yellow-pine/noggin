@@ -11,7 +11,7 @@
     "jaw bar:1",
     "jaw servo:1"
    ],
-   "measurements": 81
+   "measurements": 62
   }
  },
  "contacts": [],
@@ -387,78 +387,6 @@
     14.46,
     41.7
    ]
-  ],
-  "base plate:1": [
-   [
-    -30.5,
-    -40.6,
-    -9.5
-   ],
-   [
-    89.5,
-    -20.6,
-    150.5
-   ]
-  ],
-  "receiver shield 1:1": [
-   [
-    -23.5,
-    -26.9,
-    53.0
-   ],
-   [
-    6.5,
-    -11.82,
-    82.0
-   ]
-  ],
-  "Core 1:1": [
-   [
-    -21.89,
-    -33.28,
-    55.9
-   ],
-   [
-    6.0,
-    -24.9,
-    79.1
-   ]
-  ],
-  "switch board 1:1": [
-   [
-    -21.0,
-    -34.2,
-    121.0
-   ],
-   [
-    11.0,
-    -14.44,
-    141.5
-   ]
-  ],
-  "battery 1:1": [
-   [
-    51.07,
-    -35.6,
-    89.3
-   ],
-   [
-    79.43,
-    -19.3,
-    140.5
-   ]
-  ],
-  "cable holder:1": [
-   [
-    20.5,
-    -25.6,
-    81.0
-   ],
-   [
-    26.5,
-    -22.6,
-    111.0
-   ]
   ]
  },
  "violations": [],
@@ -493,13 +421,7 @@
   "R eye servo:1": 16.0,
   "R eye horn:1": 0.374,
   "R lid bar:1": 0.8,
-  "R lid crank:1": 0.892,
-  "base plate:1": 116.466,
-  "receiver shield 1:1": 4.833,
-  "Core 1:1": 3.096,
-  "switch board 1:1": 4.239,
-  "battery 1:1": 39.408,
-  "cable holder:1": 0.598
+  "R lid crank:1": 0.892
  },
  "mass_source": {
   "top jaw:1": "PLA Pure",
@@ -532,20 +454,14 @@
   "R eye servo:1": "documented",
   "R eye horn:1": "step volume x 1.9 g/cm3",
   "R lid bar:1": "PLA Pure",
-  "R lid crank:1": "PLA Pure",
-  "base plate:1": "PLA Pure",
-  "receiver shield 1:1": "step volume x 1.9 g/cm3",
-  "Core 1:1": "step volume x 1.9 g/cm3",
-  "switch board 1:1": "step volume x 1.9 g/cm3",
-  "battery 1:1": "step volume x 1.9 g/cm3",
-  "cable holder:1": "PLA Pure"
+  "R lid crank:1": "PLA Pure"
  },
  "stage": {
-  "total_g": 372.3,
+  "total_g": 203.7,
   "com": [
-   34.5,
-   -25.2,
-   49.7
+   33.8,
+   -17.9,
+   15.0
   ]
  },
  "calibrated": {},
@@ -1358,16 +1274,13 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "ae754d2a55e7a000aa86b83732860c6a29512070c145d6c1a7d60799633b570a",
+  "stamp": "c4860e5bd53a639f03d4ca8375e9954a4d5c83d877a280e43971b3df114cfe6b",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
    "model/build/ours/R eyeball.stl": "57aae422f37ead67",
    "model/build/ours/R servo bracket.stl": "b3e67100bdc8ce68",
-   "model/build/ours/base plate.stl": "a1737976cae161f0",
-   "model/build/ours/battery.stl": "a924d2ea2c057c7d",
    "model/build/ours/bottom jaw.stl": "5d18f1d08a1e2c66",
-   "model/build/ours/core.stl": "3b3e2d97fb6c5bc0",
    "model/build/ours/eye bracket.stl": "026fbe5b24ee1008",
    "model/build/ours/eyeball bar.stl": "2539e551259fbe78",
    "model/build/ours/horn.stl": "b2e64230ab55d401",
@@ -1377,12 +1290,9 @@
    "model/build/ours/lid crank.stl": "dc208dcecab5f6e8",
    "model/build/ours/lower lid.stl": "82abfa8c37702e4b",
    "model/build/ours/pupil.stl": "355215488eef44b7",
-   "model/build/ours/receiver.stl": "872ff0f127ade6ba",
    "model/build/ours/servo.stl": "ccd6c988d2541e87",
-   "model/build/ours/switch.stl": "d7773a0d101e5622",
    "model/build/ours/top jaw.stl": "c2a91e0d048502e6",
-   "model/build/ours/upper lid.stl": "cacf0ab7470022c3",
-   "model/build/ours/wire keeper.stl": "c8c8876bff415924"
+   "model/build/ours/upper lid.stl": "cacf0ab7470022c3"
   }
  },
  "clutch": {
@@ -1393,96 +1303,5 @@
    "flagged": []
   }
  },
- "corridors": {
-  "pack 1 -> switch 1": {
-   "max_mm": 91.2,
-   "at": {},
-   "min_mm": 91.2,
-   "min_at": {},
-   "length_mm": 100,
-   "limit_mm": 100,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "out of the pack's front end past the box's front corner, build photo (inferred)",
-    "back up the middle of the plate to the switch board, build photo (inferred)"
-   ]
-  },
-  "switch 1 -> shield 1": {
-   "max_mm": 94.9,
-   "at": {},
-   "min_mm": 94.9,
-   "min_at": {},
-   "length_mm": 100,
-   "limit_mm": 100,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "over the plate's +x edge below the switch board, build photo (inferred)",
-    "along the +x edge to the shield, build photo and guide p.23 (inferred)"
-   ]
-  },
-  "l_lid servo -> Core 1 PWM1": {
-   "max_mm": 135.1,
-   "at": {},
-   "min_mm": 135.1,
-   "min_at": {},
-   "length_mm": 250,
-   "limit_mm": 250,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
-    "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
-   ]
-  },
-  "l_eye servo -> Core 1 PWM2": {
-   "max_mm": 132.8,
-   "at": {},
-   "min_mm": 132.8,
-   "min_at": {},
-   "length_mm": 250,
-   "limit_mm": 250,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
-    "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
-   ]
-  },
-  "r_lid servo -> Core 1 PWM3": {
-   "max_mm": 132.0,
-   "at": {},
-   "min_mm": 132.0,
-   "min_at": {},
-   "length_mm": 250,
-   "limit_mm": 250,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
-    "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
-   ]
-  },
-  "r_eye servo -> Core 1 PWM4": {
-   "max_mm": 129.4,
-   "at": {},
-   "min_mm": 129.4,
-   "min_at": {},
-   "length_mm": 250,
-   "limit_mm": 250,
-   "clearance_mm": 10.0,
-   "clearance_at": null,
-   "clearance_part": null,
-   "waypoints": [
-    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
-    "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
-   ]
-  }
- }
+ "corridors": {}
 }

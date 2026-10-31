@@ -73,7 +73,7 @@ def shot(out, size, cam, mats):
 
 def blender(name, manifest, shots):
     job = os.path.join(OUT, "meshes", name, "job.json")
-    json.dump({"parts": manifest, "shots": shots}, open(job, "w"))
+    json.dump({"parts": manifest, "shots": shots, "bg": scene.BG}, open(job, "w"))
     r = subprocess.run([BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
     if r.returncode or not all(os.path.isfile(s["out"]) for s in shots):
         sys.exit(f"Blender failed on {name}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")

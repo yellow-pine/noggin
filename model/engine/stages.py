@@ -302,11 +302,9 @@ BASE_IN_EYES = (
 DOCS = {
     "noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
     "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
-    "noggin-mouth": (
-        {"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES},
-        1,
-        {"noggin-eyes", "noggin-base"},
-    ),
+    # without the desk base its recorded sweep carried: the mouth is only built on the neck (stage 3), and on the desk
+    # base its jaw reaches into the plate (#147)
+    "noggin-mouth": ({"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME}, 1, {"noggin-eyes"}),
     **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()},
 }
 

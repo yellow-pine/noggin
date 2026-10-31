@@ -25,6 +25,16 @@ GREYS = {
 }  # the hardware envelopes (by file name): neutral greys, darker for the boards
 
 
+BG = "#F7F4EE"  # the pictures' background (Blender) and the MuJoCo viewer's sky
+BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read (Blender and MuJoCo)
+
+
+def drawn(file):
+    """The colour a picture draws the part in: its colour, Absolute Black lifted."""
+    c = colour(file)
+    return BLACK_LIFT if c == g.SPOOLS["Absolute Black"] else c
+
+
 def colour(file):
     stem = stages.stem(file)
     if stem in GREYS:
@@ -44,7 +54,7 @@ def export(stage, out):
         mesh.apply_scale(0.001)
         ply = f"{i:02d}.ply"
         mesh.export(os.path.join(out, ply))
-        manifest[name] = {"ply": ply, "colour": colour(part.file)}
+        manifest[name] = {"ply": ply, "colour": drawn(part.file)}
     return manifest
 
 

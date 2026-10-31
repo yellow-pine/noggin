@@ -11,8 +11,6 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-BG = "#F7F4EE"
-BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B)
 KEY = (0.62, 0.60, 0.51)  # key light toward the camera's upper right, in the camera's (right, up, back) frame
 
@@ -111,16 +109,16 @@ def load(parts):
             "pupil" in name
         ):  # the pupil face lies on the eyeball sphere: lifted, it neither z-fights nor dashes its outline
             ob.modifiers.new("lift", "DISPLACE").strength = 0.0003
-        ob.data.materials.append(material(name, BLACK_LIFT if p["colour"] == "#000000" else p["colour"]))
+        ob.data.materials.append(material(name, p["colour"]))  # Absolute Black already lifted (scene.drawn)
         objs[name] = ob
     return objs
 
 
-def flatten(path, w, h):
-    """Lay the transparent render over the plain background, in place."""
+def flatten(path, w, h, hexc):
+    """Lay the transparent render over the plain background (hexc, scene.BG), in place."""
     img = bpy.data.images.load(path)
     px = np.array(img.pixels[:]).reshape(h, w, 4)
-    bg = np.array([int(BG[i : i + 2], 16) / 255 for i in (1, 3, 5)])  # 8-bit PNG pixels are display values
+    bg = np.array([int(hexc[i : i + 2], 16) / 255 for i in (1, 3, 5)])  # 8-bit PNG pixels are display values
     a = px[..., 3:4]
     img.pixels[:] = np.concatenate([px[..., :3] * a + bg * (1 - a), np.ones((h, w, 1))], axis=2).ravel()
     img.save()
@@ -149,7 +147,7 @@ def main(job):
         sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
         sc.render.filepath = shot["out"]
         bpy.ops.render.render(write_still=True)
-        flatten(shot["out"], w, h)
+        flatten(shot["out"], w, h, job["bg"])
 
 
 main(json.load(open(sys.argv[sys.argv.index("--") + 1])))

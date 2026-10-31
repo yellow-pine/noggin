@@ -167,7 +167,7 @@ def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub
 
 def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     # Research note: the stem (eyes x 23.5..35.5, z 13..18, bottom y=-45.6) drops through the pan recess at the PT origin in
-    # the desk build (plate top z=3 is y=-35.6) and into the tilt arm window (0, -13) in the neck build, where the eye centres
+    # the desk build (plate top z=3 is y=-40.6, the rail on it) and into the tilt arm window (0, -13) in the neck build, where the eye centres
     # sit 78.5 above the plate top; the Mech centreline x=29.5 (eyes) is the pan axis. The mouth rides in the eyes frame.
     pt = ((0, 0, 0), g.X, g.Z)
     assert g.STAGES["noggin-stage1"] == {"noggin-base": pt, "noggin-eyes": g.EYES_ON_BASE}
@@ -178,8 +178,8 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert on_stack(g.EYE_R) == (-29.5, -28.5, 81.5)
     assert on_stack(g.STEM_BOTTOM) == (0.0, -13.0, 35.9) == g.STEM_AT["noggin-stage2"]
     assert (
-        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -7.0) == g.STEM_AT["noggin-stage1"]
-    )  # through the 5 mm plate, feet on its top
+        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -2.0) == g.STEM_AT["noggin-stage1"]
+    )  # through the 5 mm plate, flush with its bottom, the rail on its top
     assert g.STEM_IN == {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
         assert all(abs(a - b) < 1e-9 for a, b in zip(on_stack(p), g.eyes_to_pt(p)))

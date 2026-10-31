@@ -37,7 +37,7 @@ def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(STAGE1, tmp_path)
     assert set(manifest) == set(STAGE1.parts)
     assert manifest["L eyeball:1"]["colour"] == "#FFFFFF"  # Pure White
-    assert manifest["base plate:1"]["colour"] == "#000000"  # Absolute Black
+    assert manifest["base plate:1"]["colour"] == "#2B2B2E"  # Absolute Black, lifted so its shading reads
     assert manifest["L upper lid:1"]["colour"] == "#F7CED7"  # Milky Pink
     assert manifest["L lid servo:1"]["colour"] not in geometry.SPOOLS.values()
     base = trimesh.load(tmp_path / manifest["base plate:1"]["ply"])

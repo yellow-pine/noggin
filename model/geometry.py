@@ -20,10 +20,12 @@ def pt_to_eyes(p):
 
 def pt_to_eyes_standalone(p):
     """Base plate point -> eyes frame for the eyes-only build (no neck): the eye bracket stem drops through the
-    pan bearing recess at the PT origin (builder-confirmed) and the servo brackets' feet rest on the plate top
-    (side photo), so plate top z=3 is y=-35.6."""
+    pan bearing recess at the PT origin (builder-confirmed) and the bracket's rail (y -40.6..-30.6) lies on the plate
+    top, as it lies on the tilt arm on the neck, so plate top z=3 is y=-40.6 and the stem (5.0 below the rail) ends flush
+    with the plate's bottom. The servo brackets' feet (y=-35.6) stand 5 mm above the plate: with them on it (the side
+    photo's reading until #147) the rail sat 5 mm deep in the solid plate."""
     x, y, z = p
-    return (29.5 - x, z - 38.6, y + 15.5)
+    return (29.5 - x, z - 43.6, y + 15.5)
 
 
 def mirror_x(p):
@@ -460,7 +462,7 @@ MOUTH_PARTS = [
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
 # pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt): the stem below the bracket's
 # rail is 5.0 long, the window 5.0 deep, so the rail lies on the arm top and the stem is flush below [M].
-EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
+EYES_ON_BASE = ((29.5, -15.5, 43.6), (-1, 0, 0), (0, 1, 0))
 EYES_ON_STACK = ((29.5, -28.5, 81.5), (-1, 0, 0), (0, 1, 0))
 STEM_BOTTOM = (29.5, -45.6, 15.5)  # centre of the stem's bottom face, eyes frame
 STAGES = {
@@ -478,6 +480,6 @@ STAGES = {
     },
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
-# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
+# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, rail on its top (stage 1); in the tilt
 # arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
-STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}
+STEM_AT = {"noggin-stage1": (0.0, 0.0, -2.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

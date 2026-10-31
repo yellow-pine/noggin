@@ -12,9 +12,10 @@ BOX_MM = 1.0
 PUPIL = (50.17, -8.83, -20.49, 67.83, 8.83, -18.5)
 BRACKET = (-28.0, -45.6, -4.0, 87.0, 8.5, 18.0)
 EYEBALL_L = (-20.5, -20.5, -18.5, 20.5, 20.28, 5.0)  # a sphere: OCCT leaves zero-area facets at its pole
-# The base plate's x +-60 and y 135 (it sits at the PT origin), the bracket stem's bottom at z -7 (geometry.STEM_AT),
-# and, read off this export once (regression values), the eyeballs' front at y -36 and the lids' top at z 62.6.
-STAGE1 = (-60.0, -36.0, -7.0, 60.0, 135.0, 62.6)
+# The base plate's x +-60 and y 135 (it sits at the PT origin), its bottom and the bracket stem's at z -2 (geometry.STEM_AT),
+# and, read off this export once (regression values), the eyeballs' front at y -36 and the lids' top at z 67.6 (62.6
+# until #147 lifted the eyes 5 mm onto the rail).
+STAGE1 = (-60.0, -36.0, -2.0, 60.0, 135.0, 67.6)
 
 
 def near(got, want):
