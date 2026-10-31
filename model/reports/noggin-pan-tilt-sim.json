@@ -889,7 +889,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "2e8544694be19deca28ee9c6c2bfc35d204cbab2637c6c97ad8914101fb2a3df",
+  "stamp": "b15bbfc672c6f3aac75ed6e3e89d6dababee5da524dbad5dd4b312e2c70b7297",
   "sources": {
    "docs/references/01-eyes/models/wire keeper.stl": "1d21bf150b439390",
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
@@ -903,10 +903,10 @@
    "docs/references/02-pan-tilt/models/PandT wire holder.stl": "0ebecf9b45c8af5c",
    "docs/references/02-pan-tilt/models/tilt bar.stl": "0badcc550333e7cd",
    "model/build/steps/battery.stl": "d3f2b804a33d1477",
-   "model/build/steps/core.stl": "dd30ef7ac548f1e3",
+   "model/build/steps/core.stl": "594e4cbcf72bbf19",
    "model/build/steps/horn.stl": "f1f26194ebf2f894",
    "model/build/steps/receiver.stl": "06becafb46038cbb",
-   "model/build/steps/servo.stl": "33d8d2b5fdefd5e1",
+   "model/build/steps/servo.stl": "24b910cc3f5e1f35",
    "model/build/steps/switch.stl": "def44612d2b70685"
   }
  },

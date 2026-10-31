@@ -3,12 +3,12 @@
 Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); structure: docs/adr/0004.
 
 ## Rendering rules (2026-10-31, #47)
-- Fusion only builds documents: no screenshots, no reference-photo canvases or overlay views. Every picture is
-  rendered in Blender (headless, Eevee) from the poses the Python engine computes (model/engine): `make render`
-  for the views, `make gifs` for the gestures; code in model/render, output in model/build/pictures.
+- No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
+  from the poses the Python engine computes (model/engine): `make render` for the views, `make gifs` for the gestures;
+  code in model/render, output in model/build/pictures.
 - Parts carry their real spool's colour (Bambu PLA Pure: Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black
   #000000, drawn #2B2B2E so its shading and lines read, Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
-  and a "Bambu PLA Pure" physical material (1.24 g/cm3) in Fusion. Electronics and servos are neutral greys,
+  and the Bambu PLA Pure density (1.24 g/cm3). Electronics and servos are neutral greys,
   darker for the boards (model/render/scene.py GREYS).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
   shadow and one small highlight band, 2.5 px black Freestyle lines on silhouettes, borders and creases (faces
@@ -16,7 +16,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   background. STL facets are smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the
   eyeball so their outline stays whole.
 - Views, orthographic, 1600x1200, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
-  mouth on the eyes) and each Stage (as Fusion's views: PT frame top looking down Z, side from +X, front from -Y; eyes
+  mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
 - README media: the hero (stage 3 from the front, 10 degrees above, perspective), the Stage strip (stage 1 front,
   stage 2 side, stage 3 side and front at one scale on one ground line) and the gesture GIFs.
@@ -47,6 +47,10 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   `make sim` keeps the designer's meshes and STEPs, so the committed reports are theirs, and the gate checks ours
   against them.
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
+- `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
+  model/build/stl; future prints use ours.
+- `make step` (#98): every part and envelope, and each Stage at neutral (the engine's placements, coloured, one
+  assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
 The model follows Cansin's build, then PurpleShark's stock version (CLAUDE.md). What we plan to change stays here until

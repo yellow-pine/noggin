@@ -4,10 +4,8 @@ MPR   := $(REPO)/.venv/bin/mpremote
 BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
-# $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
-fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) model/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim ours model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs guide-sheets lint fmt
+.PHONY: venv test check sim ours stl step model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock render gifs guide-sheets lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -28,6 +26,10 @@ sim: venv $(if $(wildcard docs/references),model/build/steps/horn.stl,ours)   ##
 	$(PY) -m pytest -q model/test_report.py
 ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws)
 	$(PY) -m model.ours
+stl: venv    ## print-ready STLs of our printed parts (mm, the designer's frames, L and R each) in model/build/stl
+	$(PY) -m model.ours stl
+step: venv   ## STEP files of every part and envelope, and each Stage as assembled (every horn at 0), in model/build/step (open -a FreeCAD)
+	$(PY) -m model.ours step
 model-step-meshes: ## tessellate the Bambu STEPs once into model/build/steps (cadquery-ocp, ephemeral)
 	uv run --with cadquery-ocp python model/engine/step_mesh.py
 model/build/steps/horn.stl: model/engine/step_mesh.py
@@ -79,15 +81,3 @@ gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from th
 guide-sheets: venv model/build/steps/horn.stl   ## each guide step's picture beside the model from its camera, a sheet per guide (model/build/pictures/guide; needs docs/references)
 	BLENDER=$(BLENDER) $(PY) -m model.render.guide
 	open model/build/pictures/guide/*.png
-model-parts: venv   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
-	$(call fusion,model/parts.py)
-model-eyes: venv   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
-	$(call fusion,model/eyes.py)
-model-base: venv   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
-	$(call fusion,model/base.py)
-model-stack: venv   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
-	$(call fusion,model/stack.py)
-model-mouth: venv   ## rebuild the noggin-mouth Fusion design the same way
-	$(call fusion,model/mouth.py)
-model-stage1 model-stage2 model-stage3: venv   ## rebuild a Stage document from the saved sub-assemblies (noggin-stage1: base + eyes; 2: + stack; 3: + mouth)
-	$(call fusion,model/stage.py,-e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/')

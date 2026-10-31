@@ -1358,7 +1358,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['connector bar:1', 'jaw horn:1'] (inferred: the connector bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "2cacb83fbac51da1b46ba632243bf23da0526dc5eb06f9722a7e8746918882a3",
+  "stamp": "be6053758e0ad389711f3f86701b5df9d81b592d0f310e1965103a51987f83c4",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -1378,10 +1378,10 @@
    "docs/references/03-mouth/models/main bracket v2.stl": "51e1cda6fc7b7f26",
    "docs/references/03-mouth/models/top jaw plain.stl": "8c33659ca78a3dc5",
    "model/build/steps/battery.stl": "d3f2b804a33d1477",
-   "model/build/steps/core.stl": "dd30ef7ac548f1e3",
+   "model/build/steps/core.stl": "594e4cbcf72bbf19",
    "model/build/steps/horn.stl": "f1f26194ebf2f894",
    "model/build/steps/receiver.stl": "06becafb46038cbb",
-   "model/build/steps/servo.stl": "33d8d2b5fdefd5e1",
+   "model/build/steps/servo.stl": "24b910cc3f5e1f35",
    "model/build/steps/switch.stl": "def44612d2b70685"
   }
  },
