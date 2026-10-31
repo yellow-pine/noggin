@@ -12,5 +12,6 @@
  "lid_rest": 0.28,
  "lid_think": 0.16,
  "lid_closed": 0.1,
- "lid_open": 0.95
+ "lid_open": 0.95,
+ "think_trace": 0
 }

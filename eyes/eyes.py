@@ -12,6 +12,12 @@ try:
 except ImportError:  # CPython
     def sleep_ms(ms): time.sleep(ms / 1000)
 
+try:
+    import gaze_trace                      # real human gaze (GazeBase) replayed while thinking
+    TRACE_BLINKS = set(gaze_trace.BLINKS)
+except ImportError:
+    gaze_trace = None
+
 # shield port 1..4 -> GPIO 3,2,1,0
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
 NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
@@ -29,6 +35,7 @@ DEFAULT_CAL = {
     "l_eye_lo": 58, "l_eye_hi": 118, "r_eye_lo": 58, "r_eye_hi": 118,
     "l_lid_flip": 1, "r_lid_flip": 0,
     "lid_rest": 0.28, "lid_think": 0.16, "lid_closed": 0.10, "lid_open": 0.95,
+    "think_trace": 0,   # 1: replay the GazeBase recording while thinking instead of synthetic drift
 }
 
 
@@ -45,6 +52,8 @@ class Eyes:
         self.next_drift = 0
         self.next_blink = 0
         self.think_side = 1
+        self.think_start = None
+        self.trace_i = -1
         self.until = 0
         self.rand = 12345
 
@@ -174,7 +183,7 @@ class Eyes:
                 self.think_side = self._side()
                 self.lids(self.cal["lid_closed"]); self.eyes(EYE_CENTER + self.think_side * 18); sleep_ms(100)
                 self.lids(self.cal["lid_think"], 250, ease=True)
-                self.next_drift = 0; self.next_blink = 0
+                self.next_drift = 0; self.next_blink = 0; self.think_start = None; self.trace_i = -1
         elif cmd == "release":                          # unpower (e.g. muted overnight); next command re-powers
             self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
@@ -207,6 +216,17 @@ class Eyes:
             self.next_drift = now_ms + 1500
             return
         if self.mode != "thinking":
+            return
+        if gaze_trace is not None and self.cal["think_trace"]:   # replay the recording, looping
+            if self.think_start is None:
+                self.think_start = now_ms
+            i = ((now_ms - self.think_start) * gaze_trace.HZ // 1000) % len(gaze_trace.X)
+            if i != self.trace_i:
+                self.trace_i = i
+                v = gaze_trace.X[i]
+                self.eyes(EYE_CENTER + (v - 256 if v > 127 else v) / 2)
+                if i in TRACE_BLINKS:
+                    self.blink(level=self.cal["lid_think"])
             return
         if now_ms >= self.next_blink:                   # sparse blinks while thinking: one per 5-8 s
             self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
