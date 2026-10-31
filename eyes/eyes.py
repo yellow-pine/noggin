@@ -23,6 +23,7 @@ LID_THINK = 0.16  # thinking / attention: a notch lower than neutral
 # The lid servos are mirror-mounted (designer's config drives PWM1 negative, PWM3 positive):
 # "open" is one end of the range for the left lid and the other end for the right. Set by calibration.
 LID_FLIP = {L_LID: True, R_LID: False}
+LID_BIAS = {L_LID: 0.0, R_LID: 0.06}   # evens the two lids at the same opening (linkages differ)
 
 
 def _duty(angle):
@@ -40,6 +41,7 @@ class Eyes:
     # --- servo primitives -------------------------------------------------
     def _lid_angle(self, pin, f):
         lo, hi = RANGE[pin]
+        f = min(1.0, max(0.0, f + LID_BIAS[pin]))
         if LID_FLIP[pin]:
             f = 1 - f
         return lo + (hi - lo) * f
