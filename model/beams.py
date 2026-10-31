@@ -118,8 +118,8 @@ EYES_RECORDED = {  # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are fa
 
 # Stack sub-assembly (pan-tilt): the two bars as axial links under the stall force across their pivot spacing.
 PT_BEAMS = [
-    ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar", fits.PT_MODELS), lambda v: True, "z", "y")),
-    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar", fits.PT_MODELS), lambda v: True, "z", "y")),
+    ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar"), lambda v: True, "z", "y")),
+    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar"), lambda v: True, "z", "y")),
 ]
 PT_RECORDED = {
     "tilt bar": (81.23, True),
@@ -135,7 +135,7 @@ MOUTH_BEAMS = [
         "axial",
         stall_force_n,
         44.1,
-        (fits.stl("jaw bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
+        (fits.stl("jaw bar"), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
 MOUTH_RECORDED = {"jaw bar": (81.23, True)}  # read 2026-10-31 on ours

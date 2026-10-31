@@ -17,7 +17,7 @@ DESIGNER = {"upper": (-24, -3.5, -19.02, 24, 24, 5), "lower": (-24, -24, -20.26,
 
 @functools.cache
 def solid(which):
-    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
+    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the sweep's forks)."""
     return lid.build(which).val()
 
 

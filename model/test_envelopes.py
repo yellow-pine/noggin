@@ -10,7 +10,7 @@ import pytest
 from model import envelopes
 
 ENVELOPE_MM = 1.0
-BOXES = {  # the STEP mesh's box as the engine uses it (servo and battery leads cut, model/engine/stages.py clip)
+BOXES = {  # the STEP's box as the engine uses it (servo and battery leads cut, model/engine/stages.py clip)
     "servo": ((-4.9, -0.1, -14.52), (27.6, 11.9, 16.3)),
     "horn": ((-3.63, 16.37, 0.0), (16.05, 23.63, 4.15)),
     "receiver": ((-14.5, -4.3, -15.0), (14.5, 10.78, 15.0)),

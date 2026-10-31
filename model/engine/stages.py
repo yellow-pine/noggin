@@ -49,6 +49,11 @@ def stl(stem):
     return os.path.join(OURS, stem + ".stl")
 
 
+def stem(file):
+    """The part a mesh file holds (stl's inverse)."""
+    return os.path.splitext(os.path.basename(file))[0]
+
+
 def printed(stem):
     """Material of a printed part from geometry.PRINTED (density g/cm3, source label)."""
     key = next(k for k in g.PRINTED if k.split(" (")[0] == stem)
@@ -291,7 +296,7 @@ BASE_IN_EYES = (
     (-1, 0, 0),
     g.Y,
 )  # the base as the eyes/mouth sweep documents carried it (context)
-# Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames,
+# Documents the engine simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
 # Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {

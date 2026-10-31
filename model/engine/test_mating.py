@@ -30,7 +30,7 @@ def test_every_joint_names_features_our_parts_declare_and_no_declared_feature_go
         for doc in ("noggin-eyes", "noggin-pan-tilt", "noggin-mouth")
         for n, p in stages.STAGES[doc].parts.items()
     }
-    named = {(stages.os.path.basename(files[p])[:-4], f) for _, feats in mating.JOINTS for p, f in feats}
+    named = {(stages.stem(files[p]), f) for _, feats in mating.JOINTS for p, f in feats}
     assert named == {(stem, f) for stem, feats in declared.items() for f in feats}
 
 

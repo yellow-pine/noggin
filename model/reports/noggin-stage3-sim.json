@@ -2677,7 +2677,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "3db10ee840727e2321e38af6938c9af14da05273cc32a4d6122fd2dc555e17ed",
+  "stamp": "8e80ffea51d4bd7f2b33644ec245b89039f3e721fb47655cdb079cc31076c9da",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

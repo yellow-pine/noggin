@@ -10,12 +10,11 @@ FEATURES is what our parts declare, by mesh stem: each printed part's features()
 hardware envelopes' (model/envelopes.py FEATURES), {feature: (centre, axis, r, half[, band])} in the part's own frame:
 centre on the axis, `half` the slab along it that holds the feature's wall, `band` the radial window of the fit (x r)."""
 
-import os
-
 import numpy as np
 
 from model import envelopes, fits, printed
 from model import geometry as g
+from model.engine import stages
 
 COAXIAL_MM = 0.2
 SEAT_MM = 0.1  # the servo's flange touches its mount: the sweep's contact resolution (run.CLEARANCE_MM)
@@ -104,7 +103,7 @@ MOUNTS = {feats[0][0]: feats[1][0] for name, feats in JOINTS if name.endswith(" 
 
 def feature(part, name):
     """(world centre, world axis, fitted r) of a part's feature, or None when its mesh has no such feature."""
-    centre, axis, r, half, *band = FEATURES[os.path.splitext(os.path.basename(part.file))[0]][name]
+    centre, axis, r, half, *band = FEATURES[stages.stem(part.file)][name]
     try:
         fit = fits.fit_circle(part.file, centre, axis, half, r, *band or [fits.HOLE])
     except ValueError:

@@ -22,11 +22,11 @@ GREYS = {
     "receiver": "#55595E",
     "switch": "#55595E",
     "battery": "#9A9EA3",
-}  # the hardware (STEP meshes or our envelopes, by file name): neutral greys, darker for the boards
+}  # the hardware envelopes (by file name): neutral greys, darker for the boards
 
 
 def colour(file):
-    stem = os.path.splitext(os.path.basename(file))[0]
+    stem = stages.stem(file)
     if stem in GREYS:
         return GREYS[stem]
     return g.SPOOLS[next(spool for k, (spool, _) in g.PRINTED.items() if k.split(" (")[0] == stem)]

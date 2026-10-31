@@ -24,7 +24,7 @@ Dependencies added: numpy, scipy, trimesh.
   and freezes the window gives false comfort and never gets run. Condition met 2026-10-31 (T14): the engine passes
   the gate on the three recorded documents and sweeps them in 8.0 s wall (M-series Mac, 10 cores) against the 150 s
   the Fusion sweeps recorded (18.8x; all six documents including the Stage configurations in 24 s), so check.py and
-  sweep.py are deleted, the recorded reports stay as frozen gate fixtures (model/engine/test_gate.py), `make sim`
+  sweep.py are deleted, the recorded reports stay as frozen gate fixtures (model/engine/test_gate.py; the gate is gone since #97), `make sim`
   green is the Stage criterion, and Fusion only builds the documents.
 
 ## Update 2026-10-31 (#45, #47)

@@ -28,8 +28,8 @@ INPUTS = [
     "model/fits.py",
     "model/beams.py",
     "model/electrical.py",
-    "model/engine/[!t]*.py",  # the engine, not its tests
-    "model/printed/[!t]*.py",  # our parts and the features they declare (the mating check)
+    "model/engine/*.py",  # the engine (stamp() skips the tests)
+    "model/printed/*.py",  # our parts and the features they declare (the mating check)
     "model/envelopes.py",
     "eyes/calibration.json",
     "eyes/eyes.py",
@@ -70,6 +70,8 @@ def stamp(sources):
     h = hashlib.sha256()
     for pattern in INPUTS:
         for path in sorted(glob.glob(os.path.join(stages.REPO, pattern))):
+            if os.path.basename(path).startswith("test_"):
+                continue
             h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
     h.update(json.dumps(sources, sort_keys=True).encode())
     return h.hexdigest()

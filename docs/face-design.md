@@ -29,7 +29,7 @@ The pan-tilt base and how the stages attach to it may be redesigned (our own bas
 standoffs, battery pocket) when that serves the face, collar or wiring. The eyes mech brackets
 and the jaw stay as designed.
 
-## Measured hardware (from the designer's STLs, see docs/references)
+## Measured hardware (history: read off the designer's STLs before our parts replaced them)
 - Eye bracket 115 x 54 x 22; stem drops into the tilt arm slot. Side wings at x = -28 and +87 are flat faces.
 - Pan-tilt stack 35.9 mm above the base plate; eye centre about 66-72 mm above the plate.
 - Jaw 82 mm wide, 48 deep, front face 14 mm ahead of the pupils, bottom 61 mm below eye centre.
