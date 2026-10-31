@@ -87,3 +87,34 @@ STANDOFFS = {
 # Pivot-to-pivot hole spacing of each link.
 BARS = {"eyelid_bar": 41.0, "eyelid_crank": 41.0, "tilt_bar": 20.0, "pan_bar": 15.0,
         "connector_bar": 31.4, "eyeball_bar": 27.0}
+
+# Bambu STEP files, local mm (measured in Fusion 2026-10-31). Servo: tab holes along +X on the tab mid-plane,
+# shaft at x=16.69 pointing -Z, horn seats on the boss top 10.35 beyond the tab plane. Line-arm horn: hub at
+# (0,20,0), bore along Z, arm holes at x=+-14.15. Receiver: PCB bottom y=0, 23 x 24 holes, Core under the PCB.
+SERVO_STEP = {"tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)], "shaft": (16.69, 5.9, -0.65),
+              "horn_seat": 10.35}
+HORN_STEP = {"hub": (0.0, 20.0, 0.0), "hole": 14.15}
+
+
+def _dist(a, b):
+    return sum((p - q) ** 2 for p, q in zip(a, b)) ** 0.5
+
+
+def _unit(v):
+    n = sum(c * c for c in v) ** 0.5
+    return tuple(c / n for c in v)
+
+
+def servo_frame(key):
+    """Where SERVOS[key] sits: (origin, tab_x, shaft). origin is the point of the tab mid-plane under the shaft,
+    tab_x the unit vector along the tabs from the hole far from the shaft to the near one (the STEP's +X),
+    shaft the unit direction the output shaft points. The shaft axis is PIVOTS[key + '_horn'], so the tab
+    holes land within the inferred +-4 mm."""
+    pivot = PIVOTS[key + "_horn"]
+    a, b = sorted(SERVOS[key]["tab_holes"], key=lambda h: _dist(h, pivot["point"]), reverse=True)
+    tab_x = _unit([q - p for p, q in zip(a, b)])
+    toward_horn = sum((p - q) * c for p, q, c in zip(pivot["point"], a, pivot["axis"]))
+    shaft = tuple(c if toward_horn > 0 else -c for c in pivot["axis"])
+    along = sum((p - q) * c for p, q, c in zip(a, pivot["point"], shaft))
+    origin = tuple(p + along * c for p, c in zip(pivot["point"], shaft))
+    return origin, tab_x, shaft

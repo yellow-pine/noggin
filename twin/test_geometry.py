@@ -60,3 +60,14 @@ def test_pivots_name_frame_axis_and_inferred_shafts():
     for name, p in g.PIVOTS.items():
         assert p["frame"] in ("eyes", "pt")
         assert name.endswith("_horn") == bool(p.get("inferred"))
+
+
+def test_servo_frame_puts_tab_holes_on_the_measured_holes_and_shaft_toward_the_horn():
+    for key, shaft_dir in [("l_lid", (-1, 0, 0)), ("r_lid", (1, 0, 0)), ("l_eye", (0, 1, 0)), ("r_eye", (0, 1, 0))]:
+        origin, tab_x, shaft = g.servo_frame(key)
+        assert shaft == shaft_dir
+        shaft_x = g.SERVO_STEP["shaft"][0]
+        placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
+        for hole in g.SERVOS[key]["tab_holes"]:
+            # shortcut: 0.5 mm, the horn pivots are inferred to +-4 mm; tighten when the shafts are measured
+            assert min(_dist(p, hole) for p in placed) < 0.5, (key, placed, hole)
