@@ -1,7 +1,5 @@
 """Our own printed parts (#50): independent parametric CadQuery designs, by the designer's STL stem each stands in for."""
 
-import cadquery as cq
-
 from model.printed import (
     bars,
     base,
@@ -51,9 +49,3 @@ PARTS = {
     "PandT tilt arm": tilt_arm.build,
     "PandT base": base.build,
 }
-
-
-def export(stem, path):
-    """The part as an STL at `path` (returned) in its designer's frame, tessellated well under the gate's 0.3 mm."""
-    cq.exporters.export(PARTS[stem](), path, tolerance=0.02, angularTolerance=0.1)
-    return path

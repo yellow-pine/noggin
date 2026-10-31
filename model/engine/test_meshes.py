@@ -1,13 +1,11 @@
 """Seam: model/engine/meshes.py, mesh loading per document and the pairwise distance / penetration judgement."""
 
-import os
-
 import pytest
 import trimesh
 
 from model.engine import meshes, stages
 
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 def cube(at, size=10.0):

@@ -33,3 +33,14 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
   its envelope; `model/printed/test_gate.py` swaps it for the designer's mesh in every document that places it and
   requires identical transmission and every clearance within 0.3 mm (local only: skipped without docs/references).
+
+## Our hardware envelopes and CI (#58)
+- The Bambu STEPs (servo, horn, Shield, Core, switch board, battery) stay local too: model/envelopes.py draws a simple
+  CadQuery envelope of each in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the
+  STEP's numbers (model/test_envelopes.py); the gate holds them to the tessellated STEPs like the printed parts.
+- `make ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
+  (CadQuery's threads must not precede the sweep's fork). Without docs/references the engine reads those
+  (model/engine/stages.py HAVE_REFERENCES): CI runs `make check` and then `make sim` on our geometry alone. Locally
+  `make sim` keeps the designer's meshes and STEPs, so the committed reports are theirs, and the gate checks ours
+  against them.
+- Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
