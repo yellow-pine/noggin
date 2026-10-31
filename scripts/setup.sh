@@ -200,9 +200,10 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=7
+TOTAL_STAGES=8
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
+MPR=.venv/bin/mpremote
 port() { ls /dev/cu.usbmodem* 2>/dev/null | head -n1; }
 # board_send LINE: write one command to the Core over USB and print its reply (before the noggin service is installed)
 board_send() {
@@ -250,6 +251,26 @@ make -s flash
 sleep 2
 say "Ping reply: $(board_send ping)"
 note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run this wizard."
+pause
+
+stage "Join the Wi-Fi"
+say "Credentials go to the Core over USB as wifi.json; core.json names the Core (eyes / neck) and its servo ports."
+note "A copy stays in ./wifi.json (gitignored) so the second Core gets the same token."
+ask WIFI_SSID "Wi-Fi network name (SSID):"
+ask_secret WIFI_PASSWORD "Wi-Fi password:"
+until [[ "${CORE_NAME:-}" == eyes || "${CORE_NAME:-}" == neck ]]; do ask CORE_NAME "Which Core is plugged in? [eyes/neck]:"; done
+TOKEN=$("$PY" -c 'import json,sys; print(json.load(open("wifi.json"))["token"])' 2>/dev/null || openssl rand -hex 16)
+(umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" TOKEN="$TOKEN" "$PY" -c 'import json,os; json.dump({k: os.environ[v] for k, v in [("ssid","WIFI_SSID"),("password","WIFI_PASSWORD"),("token","TOKEN")]}, open("wifi.json","w"))')
+PORTS='{"1": "l_lid", "2": "l_eye", "3": "r_lid", "4": "r_eye"}'; [[ "$CORE_NAME" == neck ]] && PORTS='{"1": "tilt", "2": "mouth", "3": "pan"}'
+printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
+make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
+"$MPR" resume cp wifi.json :wifi.json
+"$MPR" resume cp core.json :core.json
+rm -f core.json
+"$PY" eyes/interrupt.py reset
+say "Listening 6 s for the beacon on UDP 4711 (expected: 'noggin $CORE_NAME <ip> <uptime s>') ..."
+"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(6); print(s.recv(64).decode())' \
+  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 6 s, or the SSID/password is wrong: re-run this stage"
 pause
 
 stage "Calibrate lids and eyes"

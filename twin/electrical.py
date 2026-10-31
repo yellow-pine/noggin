@@ -19,6 +19,9 @@ CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},   # docs/
 CAP_A = min(3.0, 3.0)                      # shield max, pack continuous discharge: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}       # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
+# Wi-Fi station idle + a 2 s beacon (eyes/wifi.py): ~100 mA averaged. Assumption, no measurement on the Core yet;
+# docs/research/2026-10-31-radio.md records no draw figure. The Core is a Link on every scenario, so it is always on.
+WIFI_A = 0.100
 # Holding allowance: a held servo is not spinning (no no-load current), only the torque current for the load.
 # Worst moving chain is an eyeball plus its bar, ~10 g on a ~3 cm lever = 0.03 kgf.cm; 0.05 leaves margin
 # until #20 measures the real gravity torque. 0.05 / 2.03 kgf.cm per A = 25 mA.
@@ -32,11 +35,11 @@ def budget():
     cal = json.load(open(os.path.join(ROOT, "eyes", "calibration.json")))
     moving_s = sum(n * replay.play([line], cal)[1] / 1000 for line, n in SESSION_PER_HOUR.items())
     out = {"channels": CHANNELS, "cap_a": CAP_A, "pack": PACK, "stall_a": {}, "draw_a": {}, "runtime_h": {},
-           "session_moving_s_per_hour": moving_s, "hold_a_per_servo": HOLD_A, "run_a_per_servo": RUN_A}
+           "session_moving_s_per_hour": moving_s, "hold_a_per_servo": HOLD_A, "run_a_per_servo": RUN_A, "wifi_a": WIFI_A}
     for core, ch in CHANNELS.items():
         n = len(ch)
-        rest = SHIELD_STANDBY_A + n * (servo.STANDBY_A + HOLD_A)
-        demo = SHIELD_STANDBY_A + n * RUN_A
+        rest = SHIELD_STANDBY_A + WIFI_A + n * (servo.STANDBY_A + HOLD_A)
+        demo = SHIELD_STANDBY_A + WIFI_A + n * RUN_A
         session = rest + (demo - rest) * (moving_s / 3600 if core == "core1" else 0)   # core2 has no choreography yet
         out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"]
         out["draw_a"][core] = {"rest": rest, "session": session, "demo": demo}

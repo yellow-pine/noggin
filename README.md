@@ -38,7 +38,7 @@ use; contact Yellow Pine for commercial licensing. See `LICENSE.md`.
 
 ```
 make test            # unit tests
-scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, calibrate, install hooks + the noggin service
+scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, Wi-Fi + core name, calibrate, install hooks + the noggin service
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
 noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
