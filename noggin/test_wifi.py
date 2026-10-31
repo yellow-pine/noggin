@@ -91,7 +91,7 @@ def test_beacon_puts_the_core_on_wifi_in_status(tmp_path):
     core = FakeCore()
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
-    assert ask(sock, "status\n") == "eyes wifi 127.0.0.1 uptime 42s\nneck offline\n"
+    assert ask(sock, "status\n") == "eyes wifi 127.0.0.1 uptime 42s\nneck offline\nmode follow\n"
     s.stop()
     core.running = False
 
@@ -168,7 +168,9 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
     s, sock = start(tmp_path, core, open_serial=lambda: fake, stale=0.5)
     assert wait_for(lambda: core.lines[-1:] == ["rest"])
     core.beaconing = False
-    assert wait_for(lambda: ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\n")
+    assert wait_for(
+        lambda: ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\nmode follow\n"
+    )
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n")) and "eureka 2" not in core.lines
     core.beaconing = True
@@ -185,7 +187,7 @@ def test_offline_core_makes_commands_silent_no_ops(tmp_path):
     s, sock = start(tmp_path, core, wifi=False)  # no wifi.json either
     ask(sock, "eureka 2\n")
     time.sleep(0.2)
-    assert ask(sock, "status\n") == "eyes offline\nneck offline\n" and core.datagrams == []
+    assert ask(sock, "status\n") == "eyes offline\nneck offline\nmode follow\n" and core.datagrams == []
     s.stop()
     core.running = False
 
@@ -193,7 +195,7 @@ def test_offline_core_makes_commands_silent_no_ops(tmp_path):
 def test_neck_core_is_seen_but_receives_nothing(tmp_path):
     core = FakeCore(name="neck")
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: ask(sock, "status\n") == "eyes offline\nneck wifi 127.0.0.1 uptime 42s\n")
+    assert wait_for(lambda: ask(sock, "status\n") == "eyes offline\nneck wifi 127.0.0.1 uptime 42s\nmode follow\n")
     ask(sock, "eureka 2\n")
     time.sleep(0.2)
     assert core.datagrams == []

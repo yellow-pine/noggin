@@ -101,6 +101,8 @@ noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual 
 noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
 noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
 noggin/noggin exercise 10                # gentle run-in, 10 minutes
+make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
+make follow          # follow mode: react to Claude Code again (the default, and the mode after any restart)
 ```
 
 Requirements: macOS, [uv](https://docs.astral.sh/uv/) (Python 3.12 and mpremote come with it),
