@@ -8,8 +8,13 @@ Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview render
 - Morty. Clean 2.5D cartoon read: smooth shell, small bump nose, black line details printed with the AMS.
 - On-model scale around the 41 mm eyeballs (59 mm centre to centre, lid span 107 mm): head about
   125 wide, 165 tall, 130 deep. Eye sockets 46 mm so the lids swing freely. Prints on the P1S in halves.
-- Colours, all owned: Apricot skin, Absolute Black for hair, eyebrow/mouth lines and the collar,
-  Pure White / Absolute Black for eyes. The four eyelid parts are reprinted in Apricot.
+- Colours, all owned, all Bambu PLA Pure (hex from Bambu Studio, density 1.24 g/cm3, docs/research/2026-10-31-filament.md):
+  Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black #000000, Apricot #FFB673. Face: Apricot skin, Absolute
+  Black hair, lines and collar, Pure White / Absolute Black eyes; the four eyelid parts are reprinted in Apricot.
+- Printed parts as they are (docs/build-photos/printed-parts.jpg; data in model/geometry.py): eyes mech brackets,
+  lids, bars, crank, wire keeper = Milky Pink; eyeballs = Pure White; pupils, base plate, tilt cradle, bearing ring
+  and the small black bits = Absolute Black; upright and tilt lever = Apricot; jaws, pan-tilt bars and servo
+  mounts = Pure White. Material tracked per part (PETG Black possible for reprints).
 
 ## Stages
 1. **Face mask** on the eyes mech: forehead, cheeks, nose, eye sockets. Bolts to main bracket v2's
