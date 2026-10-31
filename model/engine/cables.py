@@ -36,18 +36,18 @@ BEHIND = {
     s: (f"{s} servo bracket:1", (x, -35.5, 49.5), "behind the lid servo, under the bracket's back (inferred)")
     for s, x in (("L", 21.5), ("R", 37.5))
 }
-GATHER = ("main bracket v2:1", (23.5, -38.5, 34.5), "gathered behind the bracket stem, guide step 18 photo (inferred)")
+GATHER = ("eye bracket:1", (23.5, -38.5, 34.5), "gathered behind the bracket stem, guide step 18 photo (inferred)")
 # The eyes build's cable holder on its posts (6, 68.5..92.5), z 13..16: the eye leads pass under it on the plate (Cansin's
 # build, docs/build-photos/eyes-top.jpg; pan-tilt guide step 18: "Move the original cable hold ... Pass the servo wires
 # under the cable holder").
 CABLE_HOLDER = (
-    "PandT base:1",
+    "base plate:1",
     (6.0, 80.5, 7.0),
     "under the cable holder, eyes-top build photo and guide step 18 (inferred)",
 )
 NECK = [
     ("tilt arm:1", (5.5, 36.0, 38.0), "zip-tied behind the tilt arm's back, guide step 18 photo (inferred)"),
-    ("upright v2:1", (5.5, 36.0, 20.0), "down behind the upright, guide step 18 photo (inferred)"),
+    ("upright:1", (5.5, 36.0, 20.0), "down behind the upright, guide step 18 photo (inferred)"),
     CABLE_HOLDER,
 ]
 DESK = {
@@ -90,12 +90,12 @@ ROUTES = {
     "pack 1 -> switch 1": [
         [
             (
-                "PandT base:1",
+                "base plate:1",
                 (-18.0, 66.0, 6.0),
                 "out of the pack's front end past the box's front corner, build photo (inferred)",
             ),
             (
-                "PandT base:1",
+                "base plate:1",
                 (12.0, 100.0, 6.0),
                 "back up the middle of the plate to the switch board, build photo (inferred)",
             ),
@@ -107,12 +107,12 @@ ROUTES = {
         f"switch 1 -> shield {n}": [
             [
                 (
-                    "PandT base:1",
+                    "base plate:1",
                     (59.0, 110.0, 4.0),
                     "over the plate's +x edge below the switch board, build photo (inferred)",
                 ),
                 (
-                    "PandT base:1",
+                    "base plate:1",
                     (59.0, y, 4.0),
                     "along the +x edge to the shield, build photo and guide p.23 (inferred)",
                 ),
@@ -124,13 +124,13 @@ ROUTES = {
 # The part each clip is mounted on: exempt with it (a lead lies against what holds it).
 CARRIER = {
     **{f"{s} {k} servo:1": f"{s} servo bracket:1" for s in "LR" for k in ("lid", "eye")},
-    **{f"{s} servo bracket:1": "main bracket v2:1" for s in "LR"},
-    "jaw servo:1": "jaws servo mount:1",
-    "jaws servo mount:1": "main bracket v2:1",
-    "tilt servo:1": "pan base:1",
-    "tilt arm:1": "upright v2:1",
-    "upright v2:1": "pan base:1",
-    "pan servo:1": "servo mount plain:1",
+    **{f"{s} servo bracket:1": "eye bracket:1" for s in "LR"},
+    "jaw servo:1": "jaw servo mount:1",
+    "jaw servo mount:1": "eye bracket:1",
+    "tilt servo:1": "pan turntable:1",
+    "tilt arm:1": "upright:1",
+    "upright:1": "pan turntable:1",
+    "pan servo:1": "pan servo tail mount:1",
 }
 
 

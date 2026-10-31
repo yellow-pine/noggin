@@ -6,18 +6,17 @@ passes when it touches the mount its tab screws go into and enters no part (the 
 spline is simplified). Results go in the report as "mating" (model/test_report.py fails a mismatch). A joint no source
 settles is listed in INFERRED with its reason: it warns (run.warnings) instead of failing.
 
-FEATURES is the interface a part supplies, by mesh stem: {feature: (centre, axis, r, half[, band])} in the part's own
+FEATURES is the interface a part supplies, by part name: {feature: (centre, axis, r, half[, band])} in the part's own
 frame (the designer's STL frame, the STEP's local frame): centre on the axis, `half` the slab along it that holds the
 feature's wall, `band` the radial window of the fit (x r). Our printed parts (model/printed) export in the designer's
-frame under the same stem, so the same table reads them; once they declare their features exactly they take these
+frame, so the same table reads them; once they declare their features exactly they take these
 entries' place."""
-
-import os
 
 import numpy as np
 
 from model import fits
 from model import geometry as g
+from model.engine import stages
 
 COAXIAL_MM = 0.2
 SEAT_MM = 0.1  # the servo's flange touches its mount: the sweep's contact resolution (run.CLEARANCE_MM)
@@ -32,7 +31,7 @@ def _mirror(features):
     return {k: (g.mirror_x(c), *rest) for k, (c, *rest) in features.items()}
 
 
-_L_BRACKET = {  # [M] fitted 2026-10-31; tab holes on the lug axes, feet on the main bracket plate (z 18)
+_L_BRACKET = {  # [M] fitted 2026-10-31; tab holes on the lug axes, feet on the eye bracket plate (z 18)
     "lid near": ((-5.41, -4.65, 40.0), "x", 1.1, 2.1),
     "lid far": ((-5.41, -32.35, 40.0), "x", 1.1, 2.1),
     "eye near": ((-6.0, -9.0, 26.9), "y", 1.1, 2.6),
@@ -60,7 +59,7 @@ FEATURES = {
     # eyes (designer frame; the R lids and eyeball bar are the L STLs moved, so their features are the L ones)
     "L servo bracket": {**_L_BRACKET, "foot stem": ((29.5, -31.6, 19.5), "z", 1.35, 1.6)},
     "R servo bracket": {**_mirror(_L_BRACKET), "foot stem": ((29.5, -21.6, 19.5), "z", 1.35, 1.6)},
-    "main bracket v2": {
+    "eye bracket": {
         **_L_MAIN,
         **{"R" + k[1:]: v for k, v in _mirror(_L_MAIN).items()},
         "L foot stem": ((29.5, -31.6, 15.5), "z", 1.1, 2.6),
@@ -68,10 +67,10 @@ FEATURES = {
         "rail L": ((65.92, -35.6, 15.5), "z", 1.1, 2.6),
         "rail R": ((70.92, -35.6, 15.5), "z", 1.1, 2.6),
     },
-    "inside lid": {**_LID, "pin": ((-22.0, 12.0, 0.0), "x", 1.0, 3.0)},
-    "outside lid": {**_LID, "pin": ((-22.0, -12.0, 0.0), "x", 1.0, 3.0)},
-    "eyelid bar": {"horn hole": ((20.5, 0.0, 1.5), "z", 1.1, 1.6), "lid hole": ((-20.5, 0.0, 1.5), "z", 1.35, 1.6)},
-    "eyelid bar crank": {
+    "upper lid": {**_LID, "pin": ((-22.0, 12.0, 0.0), "x", 1.0, 3.0)},
+    "lower lid": {**_LID, "pin": ((-22.0, -12.0, 0.0), "x", 1.0, 3.0)},
+    "lid bar": {"horn hole": ((20.5, 0.0, 1.5), "z", 1.1, 1.6), "lid hole": ((-20.5, 0.0, 1.5), "z", 1.35, 1.6)},
+    "lid crank": {
         "horn hole": ((20.5, 0.0, 1.5), "z", 1.1, 1.6),
         "lid hole": ((-20.5, 0.0, 4.5), "z", 1.35, 1.6),
     },
@@ -79,57 +78,57 @@ FEATURES = {
         "horn hole": ((-10.0, 4.0, 27.0), "y", 1.05, 2.0),
         "eyeball hole": ((-10.0, 4.0, 0.0), "y", 1.25, 2.0),
     },
-    "L eyeball regular": _L_EYEBALL,
-    "R eyeball regular": _mirror(_L_EYEBALL),
+    "L eyeball": _L_EYEBALL,
+    "R eyeball": _mirror(_L_EYEBALL),
     # mouth (eyes frame)
-    "jaws servo mount": {
+    "jaw servo mount": {
         "near tab hole": ((75.92, -48.6, 42.23), "x", 1.1, 2.6),
         "far tab hole": ((75.92, -48.6, 14.43), "x", 1.1, 2.6),
         "foot L": ((65.92, -35.6, 20.5), "z", 1.35, 2.0),
         "foot R": ((70.92, -35.6, 20.5), "z", 1.35, 2.0),
     },
-    "jaws connector bar": {
+    "jaw bar": {
         "horn hole": ((-22.05, -2.5, 6.5), "z", 1.1, 1.6),
         "jaw hole": ((22.05, -2.5, -6.5), "z", 1.35, 1.6),
     },
-    "bottom jaw plain": {
+    "bottom jaw": {
         "lug": ((71.92, -58.1, -10.44), "x", 1.1, 1.6),
         "L hinge": ((-8.0, -49.6, 8.0), "x", 2.0, 3.0),
         "R hinge": ((70.0, -49.6, 8.0), "x", 2.0, 3.0),
     },
-    "top jaw plain": {"L pin": ((-8.0, -49.6, 8.0), "x", 1.75, 4.0), "R pin": ((68.0, -49.6, 8.0), "x", 1.75, 4.0)},
+    "top jaw": {"L pin": ((-8.0, -49.6, 8.0), "x", 1.75, 4.0), "R pin": ((68.0, -49.6, 8.0), "x", 1.75, 4.0)},
     # pan-tilt (PT frame; the tilt arm STL at the v1 height, geometry.TILT_ARM_SHIFT_Z)
-    "PandT pan base": {
+    "pan turntable": {
         "tilt near": ((22.5, 22.54, 18.38), "x", 1.1, 2.6),
         "tilt far": ((22.5, -5.04, 18.38), "x", 1.1, 2.6),
         "upright screw": ((0.0, -8.0, 6.0), "z", 1.1, 2.5),
         "pan pivot": ((0.0, 0.0, 8.5), "z", 1.75, 3.0),
     },
-    "PandT servo mount plain": {
+    "pan servo tail mount": {
         "tab hole": ((-20.5, 29.5, 9.0), "z", 1.1, 6.1),
         "foot outer": ((-32.5, 29.5, 4.5), "z", 1.35, 1.5),
         "foot inner": ((-8.5, 29.5, 4.5), "z", 1.35, 1.5),
     },
-    "PandT servo mount cutout": {
+    "pan servo lead mount": {
         "tab hole": ((-20.5, 57.3, 9.0), "z", 1.1, 6.1),
         "foot outer": ((-32.5, 57.4, 4.5), "z", 1.35, 1.5),
         "foot inner": ((-8.5, 57.4, 4.5), "z", 1.35, 1.5),
     },
-    "PandT base": {
+    "base plate": {
         "near foot outer": ((-32.5, 29.5, 0.5), "z", 1.1, 2.6),
         "near foot inner": ((-8.5, 29.5, 0.5), "z", 1.1, 2.6),
         "far foot outer": ((-32.5, 57.4, 0.5), "z", 1.1, 2.6),
         "far foot inner": ((-8.5, 57.4, 0.5), "z", 1.1, 2.6),
         "pan pivot": ((0.0, 0.0, 1.5), "z", 1.3, 3.6),
     },
-    "PandT upright v2": {
-        "pan base screw": ((0.0, -8.0, 10.5), "z", 1.35, 2.0),
+    "upright": {
+        "pan turntable screw": ((0.0, -8.0, 10.5), "z", 1.35, 2.0),
         "lever": ((-5.5, 25.5, 24.0), "z", 1.1, 3.0),
         "tilt pivot": ((0.0, -13.0, 33.4), "x", 1.1, 12.0),
     },
-    "PandT tilt arm": {"lever": ((8.0, 26.5, 33.4), "x", 1.1, 3.0), "pivot": ((0.0, -13.0, 28.4), "x", 1.35, 13.5)},
+    "tilt arm": {"lever": ((8.0, 26.5, 33.4), "x", 1.1, 3.0), "pivot": ((0.0, -13.0, 28.4), "x", 1.35, 13.5)},
     "tilt bar": {"horn hole": ((10.0, 0.0, 1.5), "z", 1.1, 1.6), "lever hole": ((-10.0, 0.0, 1.5), "z", 1.35, 1.6)},
-    "PandT bar": {"horn hole": ((7.5, 0.0, 1.5), "z", 1.1, 1.6), "lever hole": ((-7.5, 0.0, 1.5), "z", 1.35, 1.6)},
+    "pan bar": {"horn hole": ((7.5, 0.0, 1.5), "z", 1.1, 1.6), "lever hole": ((-7.5, 0.0, 1.5), "z", 1.35, 1.6)},
 }
 
 
@@ -148,17 +147,15 @@ def _servo(label, mount, near, far, bar=None, bar_hole="horn hole"):
 
 def _eyes(s):
     lid, eye, br = f"{s} lid", f"{s} eye", f"{s} servo bracket:1"
-    bar, crank, inside, outside = (
-        f"{s} {n}:1" for n in ("eyelid bar", "eyelid bar crank", "inside lid", "outside lid")
-    )
-    main = "main bracket v2:1"
+    bar, crank, upper, lower = (f"{s} {n}:1" for n in ("lid bar", "lid crank", "upper lid", "lower lid"))
+    main = "eye bracket:1"
     return [
         *_servo(lid, br, "lid near", (br, "lid far"), [bar, crank]),
-        (f"{s} eyelid bar / {s} outside lid pin", [(bar, "lid hole"), (outside, "pin")]),
-        (f"{s} eyelid crank / {s} inside lid pin", [(crank, "lid hole"), (inside, "pin")]),
+        (f"{s} lid bar / {s} lower lid pin", [(bar, "lid hole"), (lower, "pin")]),
+        (f"{s} lid crank / {s} upper lid pin", [(crank, "lid hole"), (upper, "pin")]),
         *[
             (f"{s} {which} lid {ear} on the bracket pin", [(lid_part, f"{ear} ear"), (main, f"{s} {ear} lid pin")])
-            for which, lid_part in (("inside", inside), ("outside", outside))
+            for which, lid_part in (("upper", upper), ("lower", lower))
             for ear in ("outer", "inner")
         ],
         *_servo(eye, br, "eye near", (br, "eye far"), [f"{s} eyeball bar:1"]),
@@ -168,7 +165,7 @@ def _eyes(s):
         ),
         (f"{s} eyeball pivot in the fork", [(f"{s} eyeball:1", "pivot"), (main, f"{s} fork")]),
         *[
-            (f"{s} servo bracket {k} on main bracket v2", [(br, f"foot {k}"), (main, f"{s} foot {k}")])
+            (f"{s} servo bracket {k} on the eye bracket", [(br, f"foot {k}"), (main, f"{s} foot {k}")])
             for k in ("outer", "inner", "stem")
         ],
     ]
@@ -177,37 +174,37 @@ def _eyes(s):
 JOINTS = [
     *_eyes("L"),
     *_eyes("R"),
-    *_servo("jaw", "jaws servo mount:1", "near tab hole", ("jaws servo mount:1", "far tab hole"), ["connector bar:1"]),
-    ("connector bar / bottom jaw lug", [("connector bar:1", "jaw hole"), ("bottom jaw:1", "lug")]),
+    *_servo("jaw", "jaw servo mount:1", "near tab hole", ("jaw servo mount:1", "far tab hole"), ["jaw bar:1"]),
+    ("jaw bar / bottom jaw lug", [("jaw bar:1", "jaw hole"), ("bottom jaw:1", "lug")]),
     *[(f"{s} jaw hinge", [("bottom jaw:1", f"{s} hinge"), ("top jaw:1", f"{s} pin")]) for s in "LR"],
     *[
         (
-            f"jaws servo mount {s} foot on the rail",
-            [("jaws servo mount:1", f"foot {s}"), ("main bracket v2:1", f"rail {s}")],
+            f"jaw servo mount {s} foot on the rail",
+            [("jaw servo mount:1", f"foot {s}"), ("eye bracket:1", f"rail {s}")],
         )
         for s in "LR"
     ],
-    *_servo("tilt", "pan base:1", "tilt near", ("pan base:1", "tilt far"), ["tilt bar:1"]),
+    *_servo("tilt", "pan turntable:1", "tilt near", ("pan turntable:1", "tilt far"), ["tilt bar:1"]),
     ("tilt bar / tilt arm lever", [("tilt bar:1", "lever hole"), ("tilt arm:1", "lever")]),
-    ("tilt pivot", [("tilt arm:1", "pivot"), ("upright v2:1", "tilt pivot")]),
+    ("tilt pivot", [("tilt arm:1", "pivot"), ("upright:1", "tilt pivot")]),
     *_servo(
-        "pan", "servo mount cutout:1", "tab hole", ("servo mount plain:1", "tab hole"), ["pan bar:1"]
+        "pan", "pan servo lead mount:1", "tab hole", ("pan servo tail mount:1", "tab hole"), ["pan bar:1"]
     ),  # mounts swapped
-    ("pan bar / upright lever", [("pan bar:1", "lever hole"), ("upright v2:1", "lever")]),
-    ("upright on the pan base", [("upright v2:1", "pan base screw"), ("pan base:1", "upright screw")]),
-    ("pan pivot", [("pan base:1", "pan pivot"), ("PandT base:1", "pan pivot")]),
+    ("pan bar / upright lever", [("pan bar:1", "lever hole"), ("upright:1", "lever")]),
+    ("upright on the pan turntable", [("upright:1", "pan turntable screw"), ("pan turntable:1", "upright screw")]),
+    ("pan pivot", [("pan turntable:1", "pan pivot"), ("base plate:1", "pan pivot")]),
     *[
         (
-            f"servo mount {m} {k} foot on the base",
-            [(f"servo mount {m}:1", f"foot {k}"), ("PandT base:1", f"{end} foot {k}")],
+            f"pan servo {m} mount {k} foot on the base",
+            [(f"pan servo {m} mount:1", f"foot {k}"), ("base plate:1", f"{end} foot {k}")],
         )
-        for m, end in (("cutout", "near"), ("plain", "far"))  # geometry.MOUNT_SWAP_Y
+        for m, end in (("lead", "near"), ("tail", "far"))  # geometry.MOUNT_SWAP_Y
         for k in ("outer", "inner")
     ],
 ]
 # joint: why no source settles it (listed in the report, warns instead of failing)
 INFERRED = {
-    "jaw horn pin": "the connector bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs"
+    "jaw horn pin": "the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs"
     " under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise;"
     " the horn's seat on the real spline needs the calliper",
 }
@@ -217,8 +214,7 @@ MOUNTS = {feats[0][0]: feats[1][0] for name, feats in JOINTS if name.endswith(" 
 
 def feature(part, name):
     """(world centre, world axis, fitted r) of a part's feature, or None when its mesh has no such feature."""
-    stem = os.path.splitext(os.path.basename(part.file))[0]
-    centre, axis, r, half, *band = FEATURES[stem][name]
+    centre, axis, r, half, *band = FEATURES[stages.part_name(part.file)][name]
     try:
         fit = fits.fit_circle(part.file, centre, axis, half, r, *band or [HOLE])
     except ValueError:

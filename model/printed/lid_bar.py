@@ -1,4 +1,4 @@
-"""Our eyelid bar and eyelid bar crank: independent parametric designs (never traced from the designer's meshes) in
+"""Our lid bar and lid crank: independent parametric designs (never traced from the designer's meshes) in
 their own local frame (model/geometry.py STL_LOCAL: holes 41 mm apart along X, both along Z). A 5 wide, 3 thick slot;
 the horn screw's r 1.1 hole at +x, the lid screw's r 1.35 at -x. The crank is the same bar with its lid end stepped up
 3 mm (+Z, toward the lid ear)."""

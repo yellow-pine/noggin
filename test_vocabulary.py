@@ -67,3 +67,46 @@ def test_fusion_is_only_history():
         if re.search(r"fusion", line, re.I)
     ]
     assert not hits, "\n".join(hits)
+
+
+# Files that keep the designer's names until #97 deletes them with the rest of the reference machinery.
+LEAVING = {
+    "model/printed/test_gate.py",
+    "model/engine/test_gate.py",
+    "model/engine/step_mesh.py",
+    "model/render/guide.py",
+    "model/render/test_guide.py",
+}
+
+
+def test_designer_file_names_only_in_the_reference_table():
+    """Every part goes by our name (GLOSSARY.md, Model); the designer's file names live only in stages.REFERENCE, the
+    table that loads the local reference meshes. README (credits) and docs/research (dated history) are exempt."""
+    from model.engine import stages
+
+    names = set(stages.REFERENCE)
+    stems = {s for n, s in stages.REFERENCE.items() if s != n}
+    # the stems, and their shortened forms the code used for parts (no "PandT" prefix, no version suffix)
+    variants = {v for s in stems for v in (s, s.removeprefix("PandT "), s.removesuffix(" v2"))}
+    banned = sorted(v for v in variants if " " in v and v not in names)
+    words = "|".join(r"[ _]".join(map(re.escape, v.lower().split())) for v in banned)
+    pattern = re.compile(rf"PandT|\sv2\b(?!\.\d)|(?i:(?<!\w)(?:{words})(?!\w))")
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    files = [
+        f
+        for f in tracked
+        if f not in LEAVING | {"README.md", "test_vocabulary.py"}
+        and not f.startswith("docs/research/")
+        and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
+        and (ROOT / f).is_file()
+    ]
+    hits = []
+    for f in files:
+        text = (ROOT / f).read_text(errors="replace")
+        if f == "model/engine/stages.py":
+            start = text.index("REFERENCE = {")
+            text = text[:start] + text[text.index("\n}\n", start) :]
+        hits += [
+            f"{f}:{n}: {line.strip()[:120]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)
+        ]
+    assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)

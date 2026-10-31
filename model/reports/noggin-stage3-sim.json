@@ -8,8 +8,8 @@
    "min_mm": 0.0,
    "at_deg": -60,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ],
    "measurements": 110
   },
@@ -17,8 +17,8 @@
    "min_mm": 0.5,
    "at_deg": -40,
    "pair": [
-    "pan base:1",
-    "PandT base:1"
+    "pan turntable:1",
+    "base plate:1"
    ],
    "measurements": 98
   },
@@ -26,7 +26,7 @@
    "min_mm": 0.48,
    "at_deg": -20,
    "pair": [
-    "L outside lid:1",
+    "L lower lid:1",
     "L eyeball:1"
    ],
    "measurements": 119
@@ -36,7 +36,7 @@
    "at_deg": -22,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "measurements": 128
   },
@@ -44,7 +44,7 @@
    "min_mm": 0.48,
    "at_deg": -20,
    "pair": [
-    "R outside lid:1",
+    "R lower lid:1",
     "R eyeball:1"
    ],
    "measurements": 118
@@ -54,7 +54,7 @@
    "at_deg": -22,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "measurements": 128
   },
@@ -62,7 +62,7 @@
    "min_mm": 0.27,
    "at_deg": -75,
    "pair": [
-    "connector bar:1",
+    "jaw bar:1",
     "jaw servo:1"
    ],
    "measurements": 69
@@ -73,104 +73,104 @@
    "horn": "tilt horn",
    "deg": -60,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": -50,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": -40,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": -30,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": -20,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": -10,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 0,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 10,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 20,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 30,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 40,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 50,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
    "horn": "tilt horn",
    "deg": 60,
    "pair": [
-    "main bracket v2:1",
-    "upright v2:1"
+    "eye bracket:1",
+    "upright:1"
    ]
   },
   {
@@ -178,7 +178,7 @@
    "deg": -22,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -186,7 +186,7 @@
    "deg": -12,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -194,7 +194,7 @@
    "deg": -2,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -202,7 +202,7 @@
    "deg": 8,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -210,7 +210,7 @@
    "deg": 18,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -218,7 +218,7 @@
    "deg": 22,
    "pair": [
     "L eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -226,7 +226,7 @@
    "deg": -22,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -234,7 +234,7 @@
    "deg": -12,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -242,7 +242,7 @@
    "deg": -2,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -250,7 +250,7 @@
    "deg": 8,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -258,7 +258,7 @@
    "deg": 18,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   },
   {
@@ -266,12 +266,12 @@
    "deg": 22,
    "pair": [
     "R eyeball bar:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ]
   }
  ],
  "bboxes": {
-  "PandT base:1": [
+  "base plate:1": [
    [
     -60.0,
     -25.0,
@@ -355,7 +355,7 @@
     5.5
    ]
   ],
-  "pan base:1": [
+  "pan turntable:1": [
    [
     -25.0,
     -25.0,
@@ -367,7 +367,7 @@
     24.26
    ]
   ],
-  "upright v2:1": [
+  "upright:1": [
    [
     -11.0,
     -15.5,
@@ -391,7 +391,7 @@
     40.9
    ]
   ],
-  "servo mount plain:1": [
+  "pan servo tail mount:1": [
    [
     -35.5,
     54.9,
@@ -403,7 +403,7 @@
     15.0
    ]
   ],
-  "servo mount cutout:1": [
+  "pan servo lead mount:1": [
    [
     -35.5,
     27.0,
@@ -595,7 +595,7 @@
     90.33
    ]
   ],
-  "L inside lid:1": [
+  "L upper lid:1": [
    [
     5.5,
     -47.51,
@@ -607,7 +607,7 @@
     105.5
    ]
   ],
-  "L outside lid:1": [
+  "L lower lid:1": [
    [
     5.5,
     -48.76,
@@ -619,7 +619,7 @@
     85.0
    ]
   ],
-  "R inside lid:1": [
+  "R upper lid:1": [
    [
     -53.5,
     -47.51,
@@ -631,7 +631,7 @@
     105.5
    ]
   ],
-  "R outside lid:1": [
+  "R lower lid:1": [
    [
     -53.5,
     -48.76,
@@ -667,7 +667,7 @@
     87.0
    ]
   ],
-  "main bracket v2:1": [
+  "eye bracket:1": [
    [
     -57.5,
     -32.5,
@@ -727,7 +727,7 @@
     84.02
    ]
   ],
-  "L eyelid bar:1": [
+  "L lid bar:1": [
    [
     53.5,
     -31.14,
@@ -739,7 +739,7 @@
     83.51
    ]
   ],
-  "L eyelid bar crank:1": [
+  "L lid crank:1": [
    [
     53.5,
     -30.86,
@@ -799,7 +799,7 @@
     84.02
    ]
   ],
-  "R eyelid bar:1": [
+  "R lid bar:1": [
    [
     -56.5,
     -31.14,
@@ -811,7 +811,7 @@
     83.51
    ]
   ],
-  "R eyelid bar crank:1": [
+  "R lid crank:1": [
    [
     -59.5,
     -30.86,
@@ -847,7 +847,7 @@
     36.9
    ]
   ],
-  "jaws servo mount:1": [
+  "jaw servo mount:1": [
    [
     -48.92,
     -16.5,
@@ -883,7 +883,7 @@
     36.53
    ]
   ],
-  "connector bar:1": [
+  "jaw bar:1": [
    [
     -56.67,
     -41.92,
@@ -898,18 +898,18 @@
  },
  "violations": [],
  "mass": {
-  "PandT base:1": 116.466,
+  "base plate:1": 116.466,
   "receiver shield 1:1": 4.833,
   "Core 1:1": 3.096,
   "switch board 1:1": 4.239,
   "battery 1:1": 39.408,
   "cable holder:1": 0.598,
   "bearing block:1": 1.199,
-  "pan base:1": 11.536,
-  "upright v2:1": 6.037,
+  "pan turntable:1": 11.536,
+  "upright:1": 6.037,
   "tilt arm:1": 3.47,
-  "servo mount plain:1": 1.417,
-  "servo mount cutout:1": 1.121,
+  "pan servo tail mount:1": 1.417,
+  "pan servo lead mount:1": 1.121,
   "wire holder:1": 0.397,
   "tilt servo:1": 16.0,
   "tilt horn:1": 0.374,
@@ -925,45 +925,45 @@
   "R eyeball:1": 17.063,
   "L pupil:1": 0.305,
   "R pupil:1": 0.305,
-  "L inside lid:1": 5.045,
-  "L outside lid:1": 5.357,
-  "R inside lid:1": 5.045,
-  "R outside lid:1": 5.357,
+  "L upper lid:1": 5.045,
+  "L lower lid:1": 5.357,
+  "R upper lid:1": 5.045,
+  "R lower lid:1": 5.357,
   "L eyeball bar:1": 0.544,
   "R eyeball bar:1": 0.544,
-  "main bracket v2:1": 20.327,
+  "eye bracket:1": 20.327,
   "L lid servo:1": 16.0,
   "L lid horn:1": 0.374,
   "L eye servo:1": 16.0,
   "L eye horn:1": 0.374,
-  "L eyelid bar:1": 0.8,
-  "L eyelid bar crank:1": 0.892,
+  "L lid bar:1": 0.8,
+  "L lid crank:1": 0.892,
   "R lid servo:1": 16.0,
   "R lid horn:1": 0.374,
   "R eye servo:1": 16.0,
   "R eye horn:1": 0.374,
-  "R eyelid bar:1": 0.8,
-  "R eyelid bar crank:1": 0.892,
+  "R lid bar:1": 0.8,
+  "R lid crank:1": 0.892,
   "top jaw:1": 11.339,
   "bottom jaw:1": 8.364,
-  "jaws servo mount:1": 3.227,
+  "jaw servo mount:1": 3.227,
   "jaw servo:1": 16.0,
   "jaw horn:1": 0.374,
-  "connector bar:1": 0.882
+  "jaw bar:1": 0.882
  },
  "mass_source": {
-  "PandT base:1": "PLA Pure",
+  "base plate:1": "PLA Pure",
   "receiver shield 1:1": "step volume x 1.9 g/cm3",
   "Core 1:1": "step volume x 1.9 g/cm3",
   "switch board 1:1": "step volume x 1.9 g/cm3",
   "battery 1:1": "step volume x 1.9 g/cm3",
   "cable holder:1": "PLA Pure",
   "bearing block:1": "PLA Pure",
-  "pan base:1": "PLA Pure",
-  "upright v2:1": "PLA Pure",
+  "pan turntable:1": "PLA Pure",
+  "upright:1": "PLA Pure",
   "tilt arm:1": "PLA Pure",
-  "servo mount plain:1": "PLA Pure",
-  "servo mount cutout:1": "PLA Pure",
+  "pan servo tail mount:1": "PLA Pure",
+  "pan servo lead mount:1": "PLA Pure",
   "wire holder:1": "PLA Pure",
   "tilt servo:1": "documented",
   "tilt horn:1": "step volume x 1.9 g/cm3",
@@ -979,31 +979,31 @@
   "R eyeball:1": "PLA Pure",
   "L pupil:1": "PLA Pure",
   "R pupil:1": "PLA Pure",
-  "L inside lid:1": "PLA Pure",
-  "L outside lid:1": "PLA Pure",
-  "R inside lid:1": "PLA Pure",
-  "R outside lid:1": "PLA Pure",
+  "L upper lid:1": "PLA Pure",
+  "L lower lid:1": "PLA Pure",
+  "R upper lid:1": "PLA Pure",
+  "R lower lid:1": "PLA Pure",
   "L eyeball bar:1": "PLA Pure",
   "R eyeball bar:1": "PLA Pure",
-  "main bracket v2:1": "PLA Pure",
+  "eye bracket:1": "PLA Pure",
   "L lid servo:1": "documented",
   "L lid horn:1": "step volume x 1.9 g/cm3",
   "L eye servo:1": "documented",
   "L eye horn:1": "step volume x 1.9 g/cm3",
-  "L eyelid bar:1": "PLA Pure",
-  "L eyelid bar crank:1": "PLA Pure",
+  "L lid bar:1": "PLA Pure",
+  "L lid crank:1": "PLA Pure",
   "R lid servo:1": "documented",
   "R lid horn:1": "step volume x 1.9 g/cm3",
   "R eye servo:1": "documented",
   "R eye horn:1": "step volume x 1.9 g/cm3",
-  "R eyelid bar:1": "PLA Pure",
-  "R eyelid bar crank:1": "PLA Pure",
+  "R lid bar:1": "PLA Pure",
+  "R lid crank:1": "PLA Pure",
   "top jaw:1": "PLA Pure",
   "bottom jaw:1": "PLA Pure",
-  "jaws servo mount:1": "PLA Pure",
+  "jaw servo mount:1": "PLA Pure",
   "jaw servo:1": "documented",
   "jaw horn:1": "step volume x 1.9 g/cm3",
-  "connector bar:1": "PLA Pure"
+  "jaw bar:1": "PLA Pure"
  },
  "stage": {
   "total_g": 438.9,
@@ -1022,15 +1022,15 @@
     {
      "deg": -54,
      "pair": [
-      "L eyelid bar:1",
-      "main bracket v2:1"
+      "L lid bar:1",
+      "eye bracket:1"
      ]
     },
     {
      "deg": -54,
      "pair": [
-      "L eyelid bar crank:1",
-      "main bracket v2:1"
+      "L lid crank:1",
+      "eye bracket:1"
      ]
     }
    ],
@@ -1038,7 +1038,7 @@
     {
      "deg": 39,
      "pair": [
-      "L outside lid:1",
+      "L lower lid:1",
       "L servo bracket:1"
      ]
     }
@@ -1053,14 +1053,14 @@
      "deg": -32,
      "pair": [
       "L eyeball bar:1",
-      "main bracket v2:1"
+      "eye bracket:1"
      ]
     },
     {
      "deg": 28,
      "pair": [
       "L eyeball bar:1",
-      "main bracket v2:1"
+      "eye bracket:1"
      ]
     }
    ],
@@ -1076,7 +1076,7 @@
      "deg": -32,
      "pair": [
       "L eye horn:1",
-      "main bracket v2:1"
+      "eye bracket:1"
      ]
     }
    ]
@@ -1089,8 +1089,8 @@
     {
      "deg": -46,
      "pair": [
-      "R eyelid bar crank:1",
-      "main bracket v2:1"
+      "R lid crank:1",
+      "eye bracket:1"
      ]
     }
    ],
@@ -1098,7 +1098,7 @@
     {
      "deg": 39,
      "pair": [
-      "R outside lid:1",
+      "R lower lid:1",
       "R servo bracket:1"
      ]
     }
@@ -1113,14 +1113,14 @@
      "deg": -32,
      "pair": [
       "R eyeball bar:1",
-      "main bracket v2:1"
+      "eye bracket:1"
      ]
     },
     {
      "deg": 28,
      "pair": [
       "R eyeball bar:1",
-      "main bracket v2:1"
+      "eye bracket:1"
      ]
     }
    ]
@@ -1211,7 +1211,7 @@
    "tag": "self_tapping"
   },
   {
-   "joint": "eyelid bar / horn screw",
+   "joint": "lid bar / horn screw",
    "hole_r": 1.1,
    "pin_r": 1.0,
    "clearance": 0.1,
@@ -1220,7 +1220,7 @@
    "ok": true
   },
   {
-   "joint": "eyelid bar / outside lid pin",
+   "joint": "lid bar / lower lid pin",
    "hole_r": 1.35,
    "pin_r": 1.0,
    "clearance": 0.35,
@@ -1229,7 +1229,7 @@
    "ok": true
   },
   {
-   "joint": "eyelid crank / horn screw",
+   "joint": "lid crank / horn screw",
    "hole_r": 1.1,
    "pin_r": 1.0,
    "clearance": 0.1,
@@ -1238,7 +1238,7 @@
    "ok": true
   },
   {
-   "joint": "eyelid crank / inside lid pin",
+   "joint": "lid crank / upper lid pin",
    "hole_r": 1.35,
    "pin_r": 1.0,
    "clearance": 0.35,
@@ -1266,7 +1266,7 @@
    "ok": true
   },
   {
-   "joint": "inside lid ear / bracket pin",
+   "joint": "upper lid ear / bracket pin",
    "hole_r": 1.985,
    "pin_r": 1.75,
    "clearance": 0.24,
@@ -1275,7 +1275,7 @@
    "ok": true
   },
   {
-   "joint": "outside lid ear / bracket pin",
+   "joint": "lower lid ear / bracket pin",
    "hole_r": 1.95,
    "pin_r": 1.75,
    "clearance": 0.2,
@@ -1340,7 +1340,7 @@
    "ok": true
   },
   {
-   "beam": "eyelid bar",
+   "beam": "lid bar",
    "model": "axial",
    "F_n": 9.23,
    "L_mm": 41.0,
@@ -1353,7 +1353,7 @@
    "ok": true
   },
   {
-   "beam": "eyelid crank",
+   "beam": "lid crank",
    "model": "axial",
    "F_n": 9.23,
    "L_mm": 41.0,
@@ -1379,7 +1379,7 @@
    "ok": true
   },
   {
-   "beam": "inside lid ear",
+   "beam": "upper lid ear",
    "model": "cantilever",
    "F_n": 0.02,
    "L_mm": 5.0,
@@ -1392,7 +1392,7 @@
    "ok": true
   },
   {
-   "beam": "outside lid ear",
+   "beam": "lower lid ear",
    "model": "cantilever",
    "F_n": 0.03,
    "L_mm": 5.0,
@@ -1405,7 +1405,7 @@
    "ok": true
   },
   {
-   "beam": "connector bar",
+   "beam": "jaw bar",
    "model": "axial",
    "F_n": 9.23,
    "L_mm": 44.1,
@@ -1691,7 +1691,7 @@
    ]
   },
   "L lid horn": {
-   "L outside lid pivot": [
+   "L lower lid pivot": [
     [
      -20,
      23.85
@@ -1717,7 +1717,7 @@
      -28.68
     ]
    ],
-   "L inside lid pivot": [
+   "L upper lid pivot": [
     [
      -20,
      -20.56
@@ -1773,7 +1773,7 @@
    ]
   },
   "R lid horn": {
-   "R outside lid pivot": [
+   "R lower lid pivot": [
     [
      -20,
      23.85
@@ -1799,7 +1799,7 @@
      -28.68
     ]
    ],
-   "R inside lid pivot": [
+   "R upper lid pivot": [
     [
      -20,
      -20.56
@@ -1931,68 +1931,68 @@
    "kind": "coaxial",
    "parts": [
     "L lid horn:1",
-    "L eyelid bar:1",
-    "L eyelid bar crank:1"
+    "L lid bar:1",
+    "L lid crank:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "L eyelid bar / L outside lid pin",
+   "joint": "L lid bar / L lower lid pin",
    "kind": "coaxial",
    "parts": [
-    "L eyelid bar:1",
-    "L outside lid:1"
+    "L lid bar:1",
+    "L lower lid:1"
    ],
    "mm": 0.142,
    "ok": true
   },
   {
-   "joint": "L eyelid crank / L inside lid pin",
+   "joint": "L lid crank / L upper lid pin",
    "kind": "coaxial",
    "parts": [
-    "L eyelid bar crank:1",
-    "L inside lid:1"
+    "L lid crank:1",
+    "L upper lid:1"
    ],
    "mm": 0.142,
    "ok": true
   },
   {
-   "joint": "L inside lid outer on the bracket pin",
+   "joint": "L upper lid outer on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "L inside lid:1",
-    "main bracket v2:1"
+    "L upper lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.005,
    "ok": true
   },
   {
-   "joint": "L inside lid inner on the bracket pin",
+   "joint": "L upper lid inner on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "L inside lid:1",
-    "main bracket v2:1"
+    "L upper lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.005,
    "ok": true
   },
   {
-   "joint": "L outside lid outer on the bracket pin",
+   "joint": "L lower lid outer on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "L outside lid:1",
-    "main bracket v2:1"
+    "L lower lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "L outside lid inner on the bracket pin",
+   "joint": "L lower lid inner on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "L outside lid:1",
-    "main bracket v2:1"
+    "L lower lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2052,37 +2052,37 @@
    "kind": "coaxial",
    "parts": [
     "L eyeball:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "L servo bracket outer on main bracket v2",
+   "joint": "L servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "L servo bracket inner on main bracket v2",
+   "joint": "L servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "L servo bracket stem on main bracket v2",
+   "joint": "L servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "L servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2122,68 +2122,68 @@
    "kind": "coaxial",
    "parts": [
     "R lid horn:1",
-    "R eyelid bar:1",
-    "R eyelid bar crank:1"
+    "R lid bar:1",
+    "R lid crank:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "R eyelid bar / R outside lid pin",
+   "joint": "R lid bar / R lower lid pin",
    "kind": "coaxial",
    "parts": [
-    "R eyelid bar:1",
-    "R outside lid:1"
+    "R lid bar:1",
+    "R lower lid:1"
    ],
    "mm": 0.142,
    "ok": true
   },
   {
-   "joint": "R eyelid crank / R inside lid pin",
+   "joint": "R lid crank / R upper lid pin",
    "kind": "coaxial",
    "parts": [
-    "R eyelid bar crank:1",
-    "R inside lid:1"
+    "R lid crank:1",
+    "R upper lid:1"
    ],
    "mm": 0.142,
    "ok": true
   },
   {
-   "joint": "R inside lid outer on the bracket pin",
+   "joint": "R upper lid outer on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "R inside lid:1",
-    "main bracket v2:1"
+    "R upper lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.005,
    "ok": true
   },
   {
-   "joint": "R inside lid inner on the bracket pin",
+   "joint": "R upper lid inner on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "R inside lid:1",
-    "main bracket v2:1"
+    "R upper lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.005,
    "ok": true
   },
   {
-   "joint": "R outside lid outer on the bracket pin",
+   "joint": "R lower lid outer on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "R outside lid:1",
-    "main bracket v2:1"
+    "R lower lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "R outside lid inner on the bracket pin",
+   "joint": "R lower lid inner on the bracket pin",
    "kind": "coaxial",
    "parts": [
-    "R outside lid:1",
-    "main bracket v2:1"
+    "R lower lid:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2243,57 +2243,57 @@
    "kind": "coaxial",
    "parts": [
     "R eyeball:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "R servo bracket outer on main bracket v2",
+   "joint": "R servo bracket outer on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "R servo bracket inner on main bracket v2",
+   "joint": "R servo bracket inner on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "R servo bracket stem on main bracket v2",
+   "joint": "R servo bracket stem on the eye bracket",
    "kind": "coaxial",
    "parts": [
     "R servo bracket:1",
-    "main bracket v2:1"
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "jaw servo / jaws servo mount near tab screw",
+   "joint": "jaw servo / jaw servo mount near tab screw",
    "kind": "coaxial",
    "parts": [
     "jaw servo:1",
-    "jaws servo mount:1"
+    "jaw servo mount:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "jaw servo / jaws servo mount far tab screw",
+   "joint": "jaw servo / jaw servo mount far tab screw",
    "kind": "coaxial",
    "parts": [
     "jaw servo:1",
-    "jaws servo mount:1"
+    "jaw servo mount:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2312,18 +2312,18 @@
    "joint": "jaw horn pin",
    "kind": "overlap",
    "parts": [
-    "connector bar:1",
+    "jaw bar:1",
     "jaw horn:1"
    ],
    "mm": 0.28,
    "ok": false,
-   "inferred": "the connector bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper"
+   "inferred": "the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper"
   },
   {
-   "joint": "connector bar / bottom jaw lug",
+   "joint": "jaw bar / bottom jaw lug",
    "kind": "coaxial",
    "parts": [
-    "connector bar:1",
+    "jaw bar:1",
     "bottom jaw:1"
    ],
    "mm": 0.0,
@@ -2350,41 +2350,41 @@
    "ok": true
   },
   {
-   "joint": "jaws servo mount L foot on the rail",
+   "joint": "jaw servo mount L foot on the rail",
    "kind": "coaxial",
    "parts": [
-    "jaws servo mount:1",
-    "main bracket v2:1"
+    "jaw servo mount:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "jaws servo mount R foot on the rail",
+   "joint": "jaw servo mount R foot on the rail",
    "kind": "coaxial",
    "parts": [
-    "jaws servo mount:1",
-    "main bracket v2:1"
+    "jaw servo mount:1",
+    "eye bracket:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "tilt servo / pan base near tab screw",
+   "joint": "tilt servo / pan turntable near tab screw",
    "kind": "coaxial",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.11,
    "ok": true
   },
   {
-   "joint": "tilt servo / pan base far tab screw",
+   "joint": "tilt servo / pan turntable far tab screw",
    "kind": "coaxial",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.11,
    "ok": true
@@ -2424,27 +2424,27 @@
    "kind": "coaxial",
    "parts": [
     "tilt arm:1",
-    "upright v2:1"
+    "upright:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "pan servo / servo mount cutout near tab screw",
+   "joint": "pan servo / pan servo lead mount near tab screw",
    "kind": "coaxial",
    "parts": [
     "pan servo:1",
-    "servo mount cutout:1"
+    "pan servo lead mount:1"
    ],
    "mm": 0.1,
    "ok": true
   },
   {
-   "joint": "pan servo / servo mount plain far tab screw",
+   "joint": "pan servo / pan servo tail mount far tab screw",
    "kind": "coaxial",
    "parts": [
     "pan servo:1",
-    "servo mount plain:1"
+    "pan servo tail mount:1"
    ],
    "mm": 0.1,
    "ok": true
@@ -2474,17 +2474,17 @@
    "kind": "coaxial",
    "parts": [
     "pan bar:1",
-    "upright v2:1"
+    "upright:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "upright on the pan base",
+   "joint": "upright on the pan turntable",
    "kind": "coaxial",
    "parts": [
-    "upright v2:1",
-    "pan base:1"
+    "upright:1",
+    "pan turntable:1"
    ],
    "mm": 0.043,
    "ok": true
@@ -2493,48 +2493,48 @@
    "joint": "pan pivot",
    "kind": "coaxial",
    "parts": [
-    "pan base:1",
-    "PandT base:1"
+    "pan turntable:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount cutout outer foot on the base",
+   "joint": "pan servo lead mount outer foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount cutout:1",
-    "PandT base:1"
+    "pan servo lead mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount cutout inner foot on the base",
+   "joint": "pan servo lead mount inner foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount cutout:1",
-    "PandT base:1"
+    "pan servo lead mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount plain outer foot on the base",
+   "joint": "pan servo tail mount outer foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount plain:1",
-    "PandT base:1"
+    "pan servo tail mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
   },
   {
-   "joint": "servo mount plain inner foot on the base",
+   "joint": "pan servo tail mount inner foot on the base",
    "kind": "coaxial",
    "parts": [
-    "servo mount plain:1",
-    "PandT base:1"
+    "pan servo tail mount:1",
+    "base plate:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2620,7 +2620,7 @@
    "kind": "seat",
    "parts": [
     "jaw servo:1",
-    "jaws servo mount:1"
+    "jaw servo mount:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2639,7 +2639,7 @@
    "kind": "seat",
    "parts": [
     "tilt servo:1",
-    "pan base:1"
+    "pan turntable:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2658,7 +2658,7 @@
    "kind": "seat",
    "parts": [
     "pan servo:1",
-    "servo mount cutout:1"
+    "pan servo lead mount:1"
    ],
    "mm": 0.0,
    "ok": true
@@ -2674,42 +2674,42 @@
   }
  ],
  "warnings": [
-  "mating jaw horn pin: overlap 0.28 mm between ['connector bar:1', 'jaw horn:1'] (inferred: the connector bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
+  "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "2a0688f2f6b91f0bb3d94af146bb2c52fc345bb32ec2cc0803f645576ded9361",
+  "stamp": "bc1dfc25b5bba6de939446464fce24e5e210339f8d10a93cbce0feebc0f35e92",
   "sources": {
-   "model/build/ours/L eyeball regular.stl": "73e54404f14c6e38",
+   "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
-   "model/build/ours/PandT bar.stl": "e5c17e3ec6f9226f",
-   "model/build/ours/PandT base.stl": "a1737976cae161f0",
-   "model/build/ours/PandT bearing block.stl": "80e8a52018ce2d7e",
-   "model/build/ours/PandT pan base.stl": "5b8e4fe8f0a550ab",
-   "model/build/ours/PandT servo mount cutout.stl": "a3f3c74fadfeafd2",
-   "model/build/ours/PandT servo mount plain.stl": "6d72881a5ec1f255",
-   "model/build/ours/PandT tilt arm.stl": "d170d04a9c5b9ec7",
-   "model/build/ours/PandT upright v2.stl": "9215325c4c0fcd26",
-   "model/build/ours/PandT wire holder.stl": "4bdfd670ab4df4c3",
-   "model/build/ours/R eyeball regular.stl": "57aae422f37ead67",
+   "model/build/ours/R eyeball.stl": "57aae422f37ead67",
    "model/build/ours/R servo bracket.stl": "b3e67100bdc8ce68",
+   "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
-   "model/build/ours/bottom jaw plain.stl": "5d18f1d08a1e2c66",
+   "model/build/ours/bearing block.stl": "80e8a52018ce2d7e",
+   "model/build/ours/bottom jaw.stl": "5d18f1d08a1e2c66",
    "model/build/ours/core.stl": "3b3e2d97fb6c5bc0",
+   "model/build/ours/eye bracket.stl": "026fbe5b24ee1008",
    "model/build/ours/eyeball bar.stl": "2539e551259fbe78",
-   "model/build/ours/eyelid bar crank.stl": "dc208dcecab5f6e8",
-   "model/build/ours/eyelid bar.stl": "a26227a35a2259a4",
    "model/build/ours/horn.stl": "b2e64230ab55d401",
-   "model/build/ours/inside lid.stl": "cacf0ab7470022c3",
-   "model/build/ours/jaws connector bar.stl": "30a72314cd37e254",
-   "model/build/ours/jaws servo mount.stl": "a2ef9c1e37698048",
-   "model/build/ours/main bracket v2.stl": "026fbe5b24ee1008",
-   "model/build/ours/outside lid.stl": "82abfa8c37702e4b",
+   "model/build/ours/jaw bar.stl": "30a72314cd37e254",
+   "model/build/ours/jaw servo mount.stl": "a2ef9c1e37698048",
+   "model/build/ours/lid bar.stl": "a26227a35a2259a4",
+   "model/build/ours/lid crank.stl": "dc208dcecab5f6e8",
+   "model/build/ours/lower lid.stl": "82abfa8c37702e4b",
+   "model/build/ours/pan bar.stl": "e5c17e3ec6f9226f",
+   "model/build/ours/pan servo lead mount.stl": "a3f3c74fadfeafd2",
+   "model/build/ours/pan servo tail mount.stl": "6d72881a5ec1f255",
+   "model/build/ours/pan turntable.stl": "5b8e4fe8f0a550ab",
+   "model/build/ours/pupil.stl": "355215488eef44b7",
    "model/build/ours/receiver.stl": "872ff0f127ade6ba",
-   "model/build/ours/regular pupil.stl": "355215488eef44b7",
    "model/build/ours/servo.stl": "ccd6c988d2541e87",
    "model/build/ours/switch.stl": "d7773a0d101e5622",
+   "model/build/ours/tilt arm.stl": "d170d04a9c5b9ec7",
    "model/build/ours/tilt bar.stl": "e41ccc7939d8fd9c",
-   "model/build/ours/top jaw plain.stl": "c2a91e0d048502e6",
+   "model/build/ours/top jaw.stl": "c2a91e0d048502e6",
+   "model/build/ours/upper lid.stl": "cacf0ab7470022c3",
+   "model/build/ours/upright.stl": "9215325c4c0fcd26",
+   "model/build/ours/wire holder.stl": "4bdfd670ab4df4c3",
    "model/build/ours/wire keeper.stl": "c8c8876bff415924"
   }
  },

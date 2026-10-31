@@ -1,4 +1,4 @@
-"""Seam: our regular pupil (model/printed/pupil.py) is the cap of the eyeball's r 20.5 sphere in front of the eyeball's
+"""Seam: our pupil (model/printed/pupil.py) is the cap of the eyeball's r 20.5 sphere in front of the eyeball's
 flat face (z -18.5) about the R eye centre (the designer's frame), within ENVELOPE_MM of the designer's box (numbers:
 measured on the designer's STLs, the eyeball's box x +-20.5, z -18.5..5)."""
 

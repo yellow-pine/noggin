@@ -1,4 +1,4 @@
-"""Our PandT wire holder: an independent parametric design (never traced from the designer's mesh) in the PT frame
+"""Our wire holder: an independent parametric design (never traced from the designer's mesh) in the PT frame
 (Z up, pan axis Z through the origin). A 21 x 6 strap with round ends, z 9..12, dropped over the base's two wire keeper
 posts at (+-7.5, 40.5) through r 1.35 holes. Measured numbers: docs/research/2026-10-31-model.md [M]."""
 

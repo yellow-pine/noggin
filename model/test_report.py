@@ -11,11 +11,11 @@ from model.engine import mating, run, stages
 
 HERE = os.path.dirname(__file__)
 _LID = (
-    "the real Mech closes the lid here, past the designer's end: the eyelid crank's step meets main bracket v2's outer"
+    "the real Mech closes the lid here, past the designer's end: the lid crank's step meets eye bracket's outer"
     " edge (x -27..-28) from -38, 1.0 mm deep; the crank's plane needs the calliper"
 )
 _EYE = (
-    "the real Mech runs here, past +-22: the eyeball bar rides on main bracket v2 and the model has it 0.26..0.5 mm in"
+    "the real Mech runs here, past +-22: the eyeball bar rides on the eye bracket and the model has it 0.26..0.5 mm in"
     " (the eye horn 0.2..0.5 mm into the brackets at -32); the bar and rail heights need the calliper"
 )
 # (horn, calibrated end): where the model still collides and the real Mech runs. The build wins (CLAUDE.md): these are
@@ -124,7 +124,7 @@ FIXTURE_PROBLEMS = {
     "failing": [
         "violation: {'horn': 'L lid horn', 'deg': 120, 'mm': 1.2}",
         "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
-        "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
+        "beam lid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
         "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
@@ -133,12 +133,12 @@ FIXTURE_PROBLEMS = {
         " (250 mm lead less 20 slack)",
         "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar:1 at {'tilt horn': -60}",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
-        "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
+        "calibrated L lid horn: collision at 39 deg between ['L lower lid', 'L servo bracket']",
         "mating L lid servo / L servo bracket upper tab screw: axes 0.35 mm apart > 0.2",
         "mating L lid servo in its mount: 0.4 mm into L servo bracket:1",
         "mating R lid servo in its mount: 0.3 mm off R servo bracket:1",
-        "mating pan servo lead exit: the lead runs into servo mount plain:1",
-        "mating jaw servo / jaws servo mount lower tab screw: no hole feature found on jaws servo mount:1",
+        "mating pan servo lead exit: the lead runs into pan servo tail mount:1",
+        "mating jaw servo / jaw servo mount lower tab screw: no hole feature found on jaw servo mount:1",
     ],
 }
 
@@ -151,10 +151,10 @@ def test_fixture_reports(name):
 
 def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once_measured():
     report = json.load(open(os.path.join(HERE, "test_fixtures", "failing-report.json")))
-    assert "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']" in problems(report)
+    assert "calibrated L lid horn: collision at 39 deg between ['L lower lid', 'L servo bracket']" in problems(report)
     assert not any("L eye horn" in p for p in problems(report))
     assert run.warnings(report) == [
-        "calibrated L eye horn: collision at -32 deg between ['L eyeball bar', 'main bracket v2']"
+        "calibrated L eye horn: collision at -32 deg between ['L eyeball bar', 'eye bracket']"
         " (pivot inferred: fails once measured)",
         "mating L eye horn / L eyeball bar pin: coaxial 0.21 mm between ['L eye horn:1', 'L eyeball bar:1'] (inferred:"
         " no source settles it)",

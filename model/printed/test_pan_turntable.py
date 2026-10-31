@@ -1,11 +1,11 @@
-"""Seam: our PandT pan base (model/printed/pan_base.py) turns on the pan pivot over the bearing and carries the tilt
+"""Seam: our pan turntable (model/printed/pan_turntable.py) turns on the pan pivot over the bearing and carries the tilt
 servo on its tower, PT frame, envelope within ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools
 
 import cadquery as cq
 
-from model.printed import pan_base
+from model.printed import pan_turntable
 
 ENVELOPE_MM = 1.0
 
@@ -13,7 +13,7 @@ ENVELOPE_MM = 1.0
 @functools.cache
 def solid():
     """Built when the first test runs, not at collection (see test_main_bracket)."""
-    return pan_base.build().val()
+    return pan_turntable.build().val()
 
 
 def inside(*p):

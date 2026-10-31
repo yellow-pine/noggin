@@ -32,7 +32,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Our printed parts (#50)
 - Every printed part gets an independent parametric CadQuery design in model/printed/ (never traced from the
   designer's mesh, which stays local under docs/references): interfaces exact, envelope within 1 mm, in the designer's
-  frame, registered in `model/printed/__init__.py` PARTS by the STL stem it stands in for.
+  frame, registered in `model/printed/__init__.py` PARTS by our part name (GLOSSARY.md); `model/engine/stages.py`
+  REFERENCE alone maps each name to the designer's file (#96).
 - Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
   its envelope; `model/printed/test_gate.py` swaps it for the designer's mesh in every document that places it and
   requires identical transmission and every clearance within 0.3 mm (local only: skipped without docs/references).
@@ -68,5 +69,5 @@ the model stabilises.
   - the receiver headers' PWM numbering (geometry.RECEIVER_STEP);
   - the jaw horn pin's 0.58 mm bar/arm overlap (model/engine/mating.py INFERRED);
   - the model limits where the model collides before the designer's ends (geometry.MODEL_LIMITS, each with its reason);
-  - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan base);
+  - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan turntable);
   - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).

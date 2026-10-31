@@ -26,7 +26,7 @@ GREYS = {
 
 
 def colour(file):
-    stem = os.path.basename(file)[:-4]
+    stem = stages.part_name(file)
     if stem in GREYS:
         return GREYS[stem]
     return g.SPOOLS[next(spool for k, (spool, _) in g.PRINTED.items() if k.split(" (")[0] == stem)]

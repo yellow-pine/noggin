@@ -1,18 +1,18 @@
-"""Our bottom jaw plain: an independent parametric design (never traced from the designer's mesh) in the eyes frame
+"""Our bottom jaw: an independent parametric design (never traced from the designer's mesh) in the eyes frame
 (model/geometry.py), jaws closed. The lip, a 5 mm U round the mouth, its arms ending in ears that turn on the top jaw's
-pins about the jaw hinge, and the lug the connector bar screws to. Interfaces exact, envelope within 1 mm. Measured
+pins about the jaw hinge, and the lug the jaw bar screws to. Interfaces exact, envelope within 1 mm. Measured
 numbers: docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
-from model.printed.main_bracket import box, rod
+from model.printed.eye_bracket import box, rod
 
 # The lip's U in XZ: round below z 3 about x 29.5 between these radii, straight arms above.
 U = {"x": 29.5, "z": 3.0, "r": (32.92, 37.92)}
 LIP_Y = (-54.6, -44.6)
 HINGE = {"yz": (-49.6, 8.0), "ear_r": 5.0, "hole_r": 2.0}  # the ears round about the hinge, on the top jaw's pins
 # The lug: this XY outline (chamfered at its +x front corner) through z -12.94..-7.94, round r 2.5 about the
-# connector bar's screw hole (r 1.1 along X).
+# jaw bar's screw hole (r 1.1 along X).
 LUG_XY = [(61.42, -58.1), (70.42, -58.1), (70.42, -51.6), (66.42, -44.6), (61.42, -44.6)]
 LUG_Z = (-12.94, -7.94)
 LUG_HOLE = {"yz": (-58.1, -10.44), "r": 1.1}

@@ -1,4 +1,4 @@
-"""Seam: our PandT bearing block (model/printed/bearing_block.py), the 18 x 5.5 ring in the base's r 9 recess about the
+"""Seam: our bearing block (model/printed/bearing_block.py), the 18 x 5.5 ring in the base's r 9 recess about the
 pan axis, PT frame, envelope within ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools

@@ -1,4 +1,4 @@
-"""Seam: our PandT upright v2 (model/printed/upright.py) stands in the pan base's slot, carries the tilt pivot and the pan
+"""Seam: our upright (model/printed/upright.py) stands in the pan turntable's slot, carries the tilt pivot and the pan
 bar's lever, PT frame, envelope within ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M],
 geometry.PT_LEVER_HOLES)."""
 
@@ -28,7 +28,7 @@ def test_envelope_is_the_designers_box_within_a_millimetre():
 
 
 def test_wall_carries_the_tilt_pivot():
-    """r 1.1 hole along X through the wall at (y -13, z 33.4), the tilt axis with upright v2."""
+    """r 1.1 hole along X through the wall at (y -13, z 33.4), the tilt axis with upright."""
     for x in (-10.8, 0.0, 10.8):
         assert not inside(x, -13, 33.4) and not inside(x, -13 + 1.0, 33.4) and not inside(x, -13, 33.4 - 1.0)
         assert inside(x, -13 + 1.3, 33.4) and inside(x, -13, 33.4 - 1.3) and inside(x, -13, 33.4 + 1.3), x

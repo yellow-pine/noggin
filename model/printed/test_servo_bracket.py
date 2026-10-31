@@ -34,7 +34,7 @@ def test_envelopes_are_the_designers_boxes_within_a_millimetre():
 
 
 def test_feet_take_their_screws_through_the_plate():
-    """r 1.35 clearance holes along Z through the plate (z 18..21) onto the main bracket's tapped holes."""
+    """r 1.35 clearance holes along Z through the plate (z 18..21) onto the eye bracket's tapped holes."""
     for side, feet in FEET.items():
         for x, y in feet:
             for z in (18.2, 19.5, 20.8):
