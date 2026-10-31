@@ -22,21 +22,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - run: npx -y skills@1.7.4 experimental_install   # skills-lock.json into .agents/skills (.claude/skills links there)
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: |
-            https://github.com/anthropics/claude-plugins-official.git
-            https://github.com/DietrichGebert/ponytail.git
-          plugins: |
-            mattpocock-skills@claude-plugins-official
-            ponytail@ponytail
           prompt: |
             Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }} (base `${{ github.event.pull_request.base.ref }}`).
             The issue tracker is GitHub issues (`gh issue view`); the spec is the issue the PR body closes or names.
-            1. Call the Skill tool with `mattpocock-skills:code-review`, fixed point `origin/${{ github.event.pull_request.base.ref }}`.
+            1. Call the Skill tool with `code-review` (the repo's mattpocock skill in .claude/skills, not a built-in), fixed point `origin/${{ github.event.pull_request.base.ref }}`.
                Standards sources: CLAUDE.md, CONTRIBUTING.md, GLOSSARY.md, docs/adr/, docs/model-notes.md.
-            2. Call the Skill tool with `ponytail:ponytail-review` on the same diff: what could be smaller, deleted or reused.
+            2. Call the Skill tool with `ponytail-review` on the same diff: what could be smaller, deleted or reused.
             3. Post ONE PR comment (`gh pr comment`) with the sections Standards, Spec and Ponytail, each finding with
                file:line and a one-line fix, worst first, under 500 words; inline comments only for concrete line fixes.
             Review only; never push, approve or merge.

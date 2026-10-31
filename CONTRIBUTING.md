@@ -16,6 +16,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on, or merged into an integration branch), `blocked` (waits on something outside the repo; the
   reason is in a comment), `on-hold` (paused by Cansin).
+- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`; `npx skills@1.7.4 experimental_install`
+  restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at.
 - Every ready PR gets a Claude review (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It
   needs the `CLAUDE_CODE_OAUTH_TOKEN` secret: run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
