@@ -1,6 +1,7 @@
 """Seam: the gate (#50). Each part in printed.PARTS stands in for the designer's mesh in every document that places it,
 and the engine must see the same Mech: transmission identical (every driven joint at every swept pose) and every
-clearance it measures against the part within CLEARANCE_MM of the designer's, with no new penetration. Clearances are
+clearance it measures against the part (those under NEAR_MM, as model/engine/run.py) within CLEARANCE_MM of the
+designer's, with no new penetration. Clearances are
 exact to NEAR_MM here (the sweep's vertex screen above EXACT_MM depends on tessellation). Local only: skipped without
 docs/references and model/build/steps (make model-step-meshes)."""
 
@@ -69,6 +70,7 @@ def test_ours_stands_in_for_the_designers_mesh(stem, doc, names, exported, monke
                     meshes.judge(placed(k, pair[0], poses[k], True), placed(k, pair[1], poses[k], False))
                     for k in ("theirs", "ours")
                 )
+                dt, do = min(dt, meshes.NEAR_MM), min(do, meshes.NEAR_MM)  # the sweep measures nothing beyond NEAR_MM
                 worst, near = max(worst, abs(do - dt)), near + (min(dt, do) < meshes.NEAR_MM)
                 if abs(do - dt) > CLEARANCE_MM or (deep_o > 0) != (deep_t > 0):
                     off.append(
