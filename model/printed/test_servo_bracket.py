@@ -18,7 +18,7 @@ FEET = {
 
 @functools.cache
 def solid(side):
-    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
+    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the sweep's forks)."""
     return servo_bracket.build(side).val()
 
 

@@ -24,7 +24,7 @@ Dependencies added: numpy, scipy, trimesh.
   and freezes the window gives false comfort and never gets run. Condition met 2026-10-31 (T14): the engine passes
   the gate on the three recorded documents and sweeps them in 8.0 s wall (M-series Mac, 10 cores) against the 150 s
   the Fusion sweeps recorded (18.8x; all six documents including the Stage configurations in 24 s), so check.py and
-  sweep.py are deleted, the recorded reports stay as frozen gate fixtures (model/engine/test_gate.py), `make sim`
+  sweep.py are deleted, the recorded reports stay as frozen gate fixtures (model/engine/test_gate.py; the gate is gone since #97), `make sim`
   green is the Stage criterion, and Fusion only builds the documents.
 
 ## Update 2026-10-31 (#45, #47)
@@ -36,8 +36,7 @@ a mating mismatch (#67: holes and shafts coaxial within 0.2 mm, servos in their 
 ## Update 2026-10-31 (#50, #58)
 
 CI runs `make sim` itself on our own geometry: the CadQuery printed parts (model/printed) and hardware envelopes
-(model/envelopes.py), written by `make ours`. Locally, while docs/references exists, `make sim` still reads the
-designer's meshes and STEPs, and the gate holds our parts within 0.3 mm of them.
+(model/envelopes.py), written by `make ours`.
 
 ## Update 2026-10-31 (#88, #99): Fusion is gone
 
@@ -45,3 +44,14 @@ The Fusion build scripts, the parts library and their make targets are deleted, 
 the Claude Code config. The model is our CadQuery parts and envelopes placed by model/geometry.py and simulated here;
 FreeCAD opens `make step` exports. The recorded Fusion sweeps (model/reports/*-report.json) stay as frozen fixtures
 for the engine's curves and masses.
+
+## Update 2026-10-31 (#97): our model is the source
+
+Once our parts matched the designer's meshes within 0.3 mm with every joint mated (tag `stock-parity`), the model
+stopped checking itself against them. The gate (model/printed/test_gate.py and model/engine/test_gate.py, the latter
+on the recorded Fusion reports), the Bambu STEP meshing (model/build/steps) and the guide sheets are deleted, and
+nothing reads docs/references. `make sim` runs on our geometry everywhere, so the committed reports are ours. The
+mating check fits the features our parts declare (each part's features(), model/envelopes.py FEATURES) on our meshes,
+and the horn limits are our own, each with its reason (geometry.LIMITS). The recorded Fusion reports that stay
+(noggin-eyes, noggin-pan-tilt) are linkage and mass fixtures
+(the Fusion documents, history).

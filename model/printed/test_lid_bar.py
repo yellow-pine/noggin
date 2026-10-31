@@ -13,7 +13,7 @@ ENVELOPE_MM = 1.0
 
 @functools.cache
 def solid(crank):
-    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
+    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the sweep's forks)."""
     return (lid_bar.crank if crank else lid_bar.build)().val()
 
 

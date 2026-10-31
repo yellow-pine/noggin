@@ -1117,7 +1117,7 @@
     "L upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -1127,7 +1127,7 @@
     "L upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -1308,7 +1308,7 @@
     "R upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -1318,7 +1318,7 @@
     "R upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -1510,7 +1510,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "f0252623dc194570c1d21e5b7af75689ee9e47a90a1b6e4b35b59c15a7fc1f02",
+  "stamp": "b744983012e1b5d12165d5294f5625fb98e6ee774d61faea9464505d5b0a7110",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

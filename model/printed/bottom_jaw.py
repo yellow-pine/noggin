@@ -5,6 +5,7 @@ numbers: docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
+from model import fits
 from model.printed.eye_bracket import box, rod
 
 # The lip's U in XZ: round below z 3 about x 29.5 between these radii, straight arms above.
@@ -43,3 +44,13 @@ def lip(y, top):
     for x in arms():
         out = out.union(box(x, y, (U["z"], top)))
     return out
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    x, half = fits.slab(LUG_XY[0][0], LUG_XY[1][0])
+    hinges = {
+        f"{s} hinge": ((fits.slab(*arm)[0], *HINGE["yz"]), "x", HINGE["hole_r"], fits.slab(*arm)[1])
+        for s, arm in zip("LR", arms())
+    }
+    return {"lug": ((x, *LUG_HOLE["yz"]), "x", LUG_HOLE["r"], half), **hinges}

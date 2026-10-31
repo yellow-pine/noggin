@@ -136,7 +136,7 @@ def test_recorded_curves_come_out_of_pose(doc="noggin-pan-tilt"):
         for joint, pts in curves.items():
             for deg, rec in pts:
                 if horn.startswith("pan") and deg == -50:
-                    continue  # recorded 0.0: the joint did not solve there (the loop cannot close, see the gate)
+                    continue  # recorded 0.0: the joint did not solve there (the loop cannot close there)
                 assert stages.pose(stage, horn, deg).joints[joint] == pytest.approx(rec, abs=1.0), (horn, joint, deg)
 
 

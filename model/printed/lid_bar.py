@@ -5,6 +5,8 @@ the horn screw's r 1.1 hole at +x, the lid screw's r 1.35 at -x. The crank is th
 
 import cadquery as cq
 
+from model import fits
+
 PITCH, WIDTH, THICK = 41.0, 5.0, 3.0
 HORN_R, LID_R = 1.1, 1.35
 STEP = {"x": (-23.0, -12.0), "from_x": -18.0}  # the crank: the lid end's slot, and where the lower bar starts
@@ -27,3 +29,10 @@ def slot(x0, x1, z):
 
 def hole(x, z, r):
     return cq.Workplane("XY", origin=(x, 0, z - 1)).circle(r).extrude(THICK + 2)
+
+
+def features(crank=False):
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    z, half = fits.slab(0, THICK)
+    lid_z = z + THICK if crank else z
+    return {"horn hole": ((PITCH / 2, 0, z), "z", HORN_R, half), "lid hole": ((-PITCH / 2, 0, lid_z), "z", LID_R, half)}

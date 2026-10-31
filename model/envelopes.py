@@ -1,12 +1,14 @@
 """Our hardware envelopes (#58): simple CadQuery stand-ins for the Bambu CyberBrick hardware (servo, Horn, Shield,
 Core, switch board, battery) so the engine and the renders need no Bambu file. Each is drawn in its STEP file's own
-frame (model/engine/step_mesh.py tessellates the STEPs into the same frames: the engine swaps one for the other with
-no transform), registered in ENVELOPES by that mesh's name. Interfaces (mount holes, shaft, connectors) are the STEP's
-numbers; bodies are boxes, plates and circle hulls of the STEP's outer faces; inner detail is dropped."""
+frame, registered in ENVELOPES by its mesh's name, with the features the mating check fits in FEATURES. Interfaces
+(mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
+and circle hulls of the STEP's outer faces; inner detail is dropped."""
 
 import cadquery as cq
 import numpy as np
 from scipy.spatial import ConvexHull
+
+from model import fits
 
 
 def box(x, y, z):
@@ -211,4 +213,28 @@ def battery():
     return hull("XZ", BATTERY["cells"], -BATTERY["length"])
 
 
+def servo_features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    s, (_, _, (z0, z1)) = SERVO, SERVO["tabs"]
+    z, half = fits.slab(z0, z1)
+    (far, near), spline = s["tab_holes"], fits.slab(s["tip_z"], s["boss_z"][0])
+    return {
+        "near tab hole": ((*near, z), "z", s["tab_r"], half),
+        "far tab hole": ((*far, z), "z", s["tab_r"], half),
+        "spline": ((*s["shaft"], spline[0]), "z", s["spline_r"], spline[1], (0.8, 1.2)),  # clear of the collar r 2.4
+    }
+
+
+def horn_features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    h = HORN
+    bore_z, bore_half = fits.slab(h["bore"][1], h["height"])
+    pin_z, pin_half = fits.slab(0, h["arm_t"])
+    return {
+        "bore": ((*h["hub"], bore_z), "z", h["bore"][0], bore_half, fits.BORE),
+        "pin hole": ((h["holes_x"][4], h["hub"][1], pin_z), "z", h["hole_r"], pin_half),  # the bars pin at 12.75
+    }
+
+
 ENVELOPES = {"servo": servo, "horn": horn, "receiver": shield, "core": core, "switch": switch, "battery": battery}
+FEATURES = {"servo": servo_features(), "horn": horn_features()}

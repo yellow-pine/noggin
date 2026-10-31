@@ -23,8 +23,8 @@ jobs:
           path: model/build/ours
           key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'uv.lock') }}
       - run: make check
-      # no docs/references here: simulates our own parts and hardware envelopes (model/ours.py); a PR whose committed
-      # report stamps still match skips it (make sim-if-stale), main always runs it
+      # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
+      # it (make sim-if-stale), main always runs it
       - run: make ${{ github.event_name == 'push' && 'sim' || 'sim-if-stale' }}
       - run: sudo apt-get install -y shellcheck
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose

@@ -6,6 +6,7 @@ docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
+from model import fits
 from model.printed.bottom_jaw import HINGE, arms, lip
 from model.printed.eye_bracket import box, rod
 
@@ -44,3 +45,11 @@ def dome(inner, s):
     centre = inner - s * (PIN["full"] - (R * R - r * r) ** 0.5)
     sphere = cq.Workplane("XY").sphere(R).translate((centre, y0, z0))
     return rod(*sorted((inner + s, centre)), r + 1, (y0, z0)).union(sphere)
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    (left, _), (_, right) = arms()
+    full = PIN["full"]  # the pin's full-radius length in from its cheek, before the dome
+    spans = {"L pin": (left, left + full), "R pin": (right - full, right)}
+    return {k: ((fits.slab(*x)[0], *HINGE["yz"]), "x", PIN["r"], fits.slab(*x)[1]) for k, x in spans.items()}

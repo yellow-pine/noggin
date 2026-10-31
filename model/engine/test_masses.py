@@ -10,7 +10,6 @@ import trimesh
 from model.engine import masses, meshes, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
-HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 def test_cube_mass_centre_and_inertia_follow_density_and_placement():
@@ -24,7 +23,6 @@ def test_cube_mass_centre_and_inertia_follow_density_and_placement():
     assert masses.com_at(m, stages.translate((5, 0, 0))) == pytest.approx((5, 0, 0))
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_printed_part_masses_match_the_recorded_masses():
     recorded = json.load(open(os.path.join(HERE, "reports", "noggin-eyes-report.json")))["mass"]
     stage = stages.STAGES["noggin-eyes"]
@@ -35,7 +33,6 @@ def test_printed_part_masses_match_the_recorded_masses():
     assert table["L lid servo:1"]["source"] == "documented"
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_gravity_torque_of_the_tilt_horn_is_tiny_at_neutral_and_grows_with_the_arm_lean():
     stage = stages.STAGES["noggin-pan-tilt"]
     table = masses.table(stage, meshes.load(stage))

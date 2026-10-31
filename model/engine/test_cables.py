@@ -44,7 +44,6 @@ def test_union_of_swept_tubes_is_one_closed_volume_that_holds_every_tube():
     assert 2 * np.pi * 2.0**2 * 30 * 0.9 < union.volume < 2 * np.pi * 3.5**2 * 30  # two r=2 tubes, voxel-coarse
 
 
-HAVE_REFERENCES = stages.HAVE_REFERENCES
 _swept = {}
 
 
@@ -60,7 +59,6 @@ def swept(doc, routes=None):
     return _swept[doc]
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_every_lead_of_the_full_mech_has_a_corridor_longer_than_its_straight_reach():
     report, _ = swept("noggin-stage3")
     assert len(report) == 7 + 1 + 2  # one pack, one switch board, the Y lead's two branches
@@ -74,7 +72,6 @@ def test_every_lead_of_the_full_mech_has_a_corridor_longer_than_its_straight_rea
     assert all("(inferred)" in w for c in report.values() for w in c["waypoints"])
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_the_desk_build_routes_the_eye_leads_straight_to_the_base_and_skips_core_2():
     report, _ = swept("noggin-stage1")
     assert sorted(report) == sorted(
@@ -84,7 +81,6 @@ def test_the_desk_build_routes_the_eye_leads_straight_to_the_base_and_skips_core
     assert not any("tilt arm" in w for w in report["l_lid servo -> Core 1 PWM1"]["waypoints"])
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_a_corridor_through_a_moving_part_fails_unless_it_is_clipped_to_that_part():
     lead = "l_eye servo -> Core 1 PWM2"
 
@@ -97,7 +93,6 @@ def test_a_corridor_through_a_moving_part_fails_unless_it_is_clipped_to_that_par
     assert clipped["clearance_part"] != "L eyeball:1"  # the part it is clipped to is exempt
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_the_swept_centrelines_cover_every_lead_at_every_pose():
     report, centrelines = swept("noggin-stage1")
     assert len(centrelines) % len(report) == 0 and len(centrelines) > len(report)

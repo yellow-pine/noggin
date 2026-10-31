@@ -6,6 +6,7 @@ the pan lever (x -8..-3) reaching back and stepping up to the pan bar's screw ho
 
 import cadquery as cq
 
+from model import fits
 from model.printed.pan_turntable import box
 
 WALL = {"x": (-11.0, 11.0), "y": (-15.5, -10.5), "z": (3.5, 33.4)}
@@ -35,3 +36,15 @@ def build():
 
 def rod_x(x, yz, r):
     return cq.Workplane("YZ", origin=(x[0], *yz)).circle(r).extrude(x[1] - x[0])
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    screw_z, screw_half = fits.slab(*SHELF["z"])
+    lever_z, lever_half = fits.slab(LEVER_YZ[2][1], LEVER_YZ[4][1])
+    x, half = fits.slab(*WALL["x"])
+    return {
+        "pan turntable screw": ((*PIN["xy"], screw_z), "z", PIN["r"], screw_half),
+        "lever": ((*PAN_LEVER["xy"], lever_z), "z", PAN_LEVER["r"], lever_half),
+        "tilt pivot": ((x, TILT["y"], TILT["z"]), "x", TILT["r"], half),
+    }

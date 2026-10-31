@@ -6,11 +6,11 @@ PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock render gifs guide-sheets lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
-test: venv
+test: venv ours
 	$(PY) -m pytest -q
 lint: venv       ## ruff
 	$(PY) -m ruff check
@@ -22,7 +22,7 @@ check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard 
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-sim: venv $(if $(wildcard docs/references),model/build/steps/horn.stl,ours)   ## simulate every document (sub-assemblies + Stage configurations) in Python into model/reports (commit them), then threshold the reports; without docs/references (CI) on our geometry
+sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry in Python into model/reports (commit them), then threshold the reports
 	$(PY) -m model.engine.run $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
 sim-if-stale: venv ours   ## make sim unless every committed report still matches the inputs and our meshes as built now (CI on PRs)
@@ -33,10 +33,6 @@ stl: venv    ## print-ready STLs of our printed parts (mm, the designer's frames
 	$(PY) -m model.ours stl
 step: venv   ## STEP files of every part and envelope, and each Stage as assembled (every horn at 0), in model/build/step (open -a FreeCAD)
 	$(PY) -m model.ours step
-model-step-meshes: ## tessellate the Bambu STEPs once into model/build/steps (cadquery-ocp, ephemeral)
-	uv run --with cadquery-ocp python model/engine/step_mesh.py
-model/build/steps/horn.stl: model/engine/step_mesh.py
-	$(MAKE) model-step-meshes
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
 	$(PY) noggin/install_hooks.py
@@ -81,6 +77,3 @@ render: venv ours   ## Blender pictures from the engine's poses: views, hero, St
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
 gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
-guide-sheets: venv model/build/steps/horn.stl   ## each guide step's picture beside the model from its camera, a sheet per guide (model/build/pictures/guide; needs docs/references)
-	BLENDER=$(BLENDER) $(PY) -m model.render.guide
-	open model/build/pictures/guide/*.png

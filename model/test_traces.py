@@ -16,7 +16,6 @@ spec = importlib.util.spec_from_file_location(
 traces = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(traces)
 
-pytestmark = pytest.mark.skipif(not lids.HAVE_REFERENCES, reason="local references only")
 VISIBLE = 1 / 3  # a pupil counts as visible with at least a third of its height between the edges; less is a slit
 FRAME_S = traces.FRAME_MS / 1000
 
