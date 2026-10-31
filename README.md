@@ -68,7 +68,7 @@ flowchart LR
 - **noggin service** (`noggin/`, `reactions/`): a launchd process that owns the Link, listens on a Unix
   socket, times each Turn to pick a Tier, and drops Triggers while Busy (ADR 0003). Hooks write one line and exit.
 - **Links**: Wi-Fi first, USB-C as the automatic fallback; each Core beacons on the LAN and is addressed
-  directly (ADR 0005, PR #30). USB stays the only path for flashing.
+  directly (ADR 0005, PR #30). `make flash` goes over Wi-Fi too; USB-C is for boot.py and recovery.
 - **The model** (`model/`): our own CadQuery parts in four Sub-assemblies and three cumulative Stages, posed by a Python
   simulation engine that sweeps every linkage before a part is printed (ADRs 0004 and 0006, PR #31).
 
@@ -97,7 +97,7 @@ Stage, for FreeCAD).
 scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
 make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
-make flash           # install the eye program on the Core and reboot it
+make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons, else USB (USB=1 forces it)
 make restore-stock   # put Bambu's remote-control program back on the Core
 noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture

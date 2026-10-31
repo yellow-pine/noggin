@@ -247,7 +247,7 @@ pause
 stage "Flash the eye program"
 warn "This replaces boot.py on the Core. The CyberBrick remote app stops working until 'make restore-stock'."
 confirm "Flash eyes/eyes.py + eyes/boot.py now?" || { warn "stopped before flashing"; exit 1; }
-make -s flash
+make -s flash USB=1                     # the first install carries boot.py, which only goes over USB
 sleep 2
 say "Ping reply: $(board_send ping)"
 note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run this wizard."

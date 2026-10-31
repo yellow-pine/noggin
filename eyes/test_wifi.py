@@ -1,6 +1,9 @@
 # pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 """Core-side Wi-Fi Link (eyes/wifi.py) on the Mac: `network` and `socket` stubbed, like conftest stubs `machine`."""
 
+import base64
+import hashlib
+
 import pytest
 import wifi as mod
 
@@ -244,3 +247,91 @@ def test_uptime_survives_the_ticks_wrap(link, monkeypatch):
         (WRAP - 1_500) // 1000,
         (WRAP + 500) // 1000,
     ]
+
+
+# --- flashing over the Link: `put` chunks to <file>.new, `commit` swaps it in by its sha256 ---------------------------
+
+
+def puts(name, data, chunk=120):
+    return [f"put {name} {i} {base64.b64encode(data[i : i + chunk]).decode()}" for i in range(0, len(data), chunk)]
+
+
+def commit(name, data):
+    return f"commit {name} {hashlib.sha256(data).hexdigest()}"
+
+
+def run(link, lines, seq=100):
+    """Each line as a datagram from the Mac; the replies in order."""
+    FakeSocket.sent.clear()
+    for i, line in enumerate(lines):
+        FakeSocket.inbox.append((dg(seq + i, line), MAC))
+        link.poll(1_100 + i)
+    return [m.decode() for m, _ in FakeSocket.sent]
+
+
+def test_put_and_commit_swap_the_new_file_in_and_keep_the_old_one_as_bak(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "eyes.py").write_bytes(b"old program")
+    new = bytes(range(256)) * 2  # several chunks, every byte value
+    joined(link)
+    replies = run(link, [*puts("eyes.py", new), commit("eyes.py", new)])
+    assert replies == [f"ok {100 + i}" for i in range(len(replies))] and len(replies) == 6
+    assert (tmp_path / "eyes.py").read_bytes() == new
+    assert (tmp_path / "eyes.py.bak").read_bytes() == b"old program"
+    assert not (tmp_path / "eyes.py.new").exists()
+    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.py"]  # boot.py's cue: on probation
+    assert link.handled == []  # flash lines never reach the eye program's parser
+
+
+def test_a_hash_mismatch_swaps_nothing_and_is_reported(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "eyes.py").write_bytes(b"old program")
+    joined(link)
+    replies = run(link, [*puts("eyes.py", b"new program"), commit("eyes.py", b"something else")])
+    assert replies == ["ok 100", "err 101 ValueError"]
+    assert (tmp_path / "eyes.py").read_bytes() == b"old program"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py"]
+
+
+def test_boot_py_only_changes_over_usb(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    joined(link)
+    for name in ("boot.py", "../boot.py", "wifi.json"):
+        assert run(link, puts(name, b"x")) == ["err 100 ValueError"]
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_chunk_out_of_order_is_refused(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    joined(link)
+    first, _, third = puts("eyes.py", b"a" * 360)
+    assert run(link, [first, third]) == ["ok 100", "err 101 ValueError"]
+    assert (tmp_path / "eyes.py.new").read_bytes() == b"a" * 120
+
+
+def test_flashing_again_before_a_reboot_keeps_the_bak_that_last_booted(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "eyes.py").write_bytes(b"good")
+    joined(link)
+    run(link, [*puts("eyes.py", b"first try"), commit("eyes.py", b"first try")], seq=100)
+    run(link, [*puts("eyes.py", b"second try"), commit("eyes.py", b"second try")], seq=200)
+    assert (tmp_path / "eyes.py").read_bytes() == b"second try"
+    assert (tmp_path / "eyes.py.bak").read_bytes() == b"good"
+    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.py"]
+
+
+def test_commit_of_a_file_already_in_place_is_ok_without_a_swap(link, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "eyes.py").write_bytes(b"running")
+    joined(link)
+    replies = run(link, [commit("eyes.py", b"running"), commit("eyes.py", b"other")])
+    assert replies[0] == "ok 100" and replies[1].startswith("err 101 ")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py"]  # the Mac's check after the reboot
+
+
+def test_reboot_is_acked_then_resets_the_core(link, monkeypatch):
+    joined(link)
+    events = []
+    monkeypatch.setattr(mod, "reset", lambda: events.append(list(FakeSocket.sent)))
+    assert run(link, ["reboot"]) == ["ok 100"]
+    assert events == [[(b"ok 100", MAC)]] and link.handled == []
