@@ -83,31 +83,33 @@ PIVOTS = {
     # lid: upper hole (guide p.32 photo, hub 10 mm under the upper screw), shaft outboard, tab on the lug's outer face x -7.42
     "l_lid_horn": _pivot((-19.59, -13.21, 40.0), X),
     "r_lid_horn": _pivot((78.59, -13.21, 40.0), X),
-    # eye: outboard hole (only it reaches the eyeball bar pin), shaft up, tab under the lug (y -11.5; guide step 6)
-    "l_eye_horn": _pivot((2.56, -1.63, 26.9), Y),
-    "r_eye_horn": _pivot((56.44, -1.63, 26.9), Y),
+    # eye: outboard hole (only it reaches the eyeball bar pin), shaft up, tab under the lug (y -11.5; guide step 6), the
+    # case side on the bracket floor z 21.0 (the lug holes fit at z 26.88: the screws take the 0.12)
+    "l_eye_horn": _pivot((2.56, -1.63, 27.0), Y),
+    "r_eye_horn": _pivot((56.44, -1.63, 27.0), Y),
     "jaw_hinge": _pivot((CENTRE_X, -49.6, 8.0), X),
     # jaw: upper hole, shaft outboard through the mount plate (mouth guide step 3 photo, p.14 CAD), tab inside it (x 73.42)
     "jaw_horn": _pivot((83.29, -48.6, 33.67), X),
     "pan": _pivot((0.0, 0.0, 0.0), Z, "pt"),
     "tilt": _pivot((0.0, -13.0, 33.4), X, "pt"),
-    # tilt: lever-end hole, shaft -X (pan-tilt guide p.7 CAD), tab on the tower's outer face x 25 (the horn clears the lever)
-    "tilt_horn": _pivot((15.13, 13.98, 18.38), X, "pt"),
+    # tilt: lever-end hole, shaft -X (pan-tilt guide p.7 CAD), tab on the tower's outer face x 25 (the horn clears the lever),
+    # centred on the tower's holes (27.58 apart against the tabs' 27.8: each screw 0.11 off)
+    "tilt_horn": _pivot((15.13, 14.09, 18.38), X, "pt"),
     # pan: pan-base end hole (p.7 CAD; the far end leaves the bar at full stretch), shaft up, tabs on the mount tops z 15
     "pan_horn": _pivot((-20.5, 38.11, 27.17), Z, "pt"),
 }
 
 SERVO_TAB_SPACING = 27.8  # SG90 mounting tab hole pitch
 
-# The servo's tab holes: on the printed lug's measured hole axes, at the SERVO_STEP tab plane (z -0.65) where the flange
-# rests on the lug face (docs/research/2026-10-31-shafts.md).
+# The printed lug's measured hole axes, at the SERVO_STEP tab plane (z -0.65) where the flange rests on the lug face
+# (docs/research/2026-10-31-shafts.md); the servo's own tab holes sit within 0.2 of them (model/engine/mating.py).
 SERVOS = {
     "l_lid": {"tab_holes": [(-8.07, -32.35, 40.0), (-8.07, -4.65, 40.0)], "frame": "eyes"},
     "r_lid": {"tab_holes": [(67.07, -32.35, 40.0), (67.07, -4.65, 40.0)], "frame": "eyes"},
-    "l_eye": {"tab_holes": [(-6.0, -13.15, 26.9), (21.8, -13.15, 26.9)], "frame": "eyes"},
-    "r_eye": {"tab_holes": [(65.0, -13.15, 26.9), (37.2, -13.15, 26.9)], "frame": "eyes"},
+    "l_eye": {"tab_holes": [(-6.0, -13.15, 26.88), (21.8, -13.15, 26.88)], "frame": "eyes"},
+    "r_eye": {"tab_holes": [(65.0, -13.15, 26.88), (37.2, -13.15, 26.88)], "frame": "eyes"},
     "tilt": {"tab_holes": [(26.65, -5.04, 18.38), (26.65, 22.54, 18.38)], "frame": "pt"},
-    "pan": {"tab_holes": [(-20.5, 29.55, 15.65), (-20.5, 57.35, 15.65)], "frame": "pt"},
+    "pan": {"tab_holes": [(-20.5, 29.45, 15.65), (-20.5, 57.45, 15.65)], "frame": "pt"},  # the mounts swapped
     "jaw": {"tab_holes": [(71.77, -48.6, 14.43), (71.77, -48.6, 42.23)], "frame": "eyes"},
 }
 
@@ -234,6 +236,10 @@ def servo_frame(key):
 # -24..-27; the straight bar is flat, so it stands 0.26 off the horn's outer face (x -23.74, docs/research/2026-10-31-
 # shafts.md); the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
+# The lid horn's arm at neutral (both sides): 3.59 deg from +Y toward the lids (-Z), where its pin best fits both lid loops
+# with the lids in the STLs' pose and the 41 mm bars: 41.14 to the inside lid's pin, 40.86 to the outside one's
+# (docs/research/2026-10-31-shafts.md).
+LID_HORN_ARM = (0.0, 0.99804, -0.06262)
 LID_LINKS = {
     "eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)},
     "eyelid_crank": {"lid": "inside", "x": (-28.5, -25.5)},
@@ -392,9 +398,13 @@ PRINTED = {
 }
 
 
+# The pan servo mounts trade places (27.9, the base's foot-hole pitch): the cutout goes to the shaft end, where the servo's
+# lead leaves it (Bambu STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
+# the far end, where the lead would run through the plain mount (docs/research/2026-10-31-shafts.md).
+MOUNT_SWAP_Y = 27.9
 # Sub-assembly parts placed straight from the designer's STLs (the Fusion builds and model/engine/stages.py read these):
 # (component, STL stem, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the regular eye and
-# the "updated main bracket and base" profile (main bracket v2, placed apart). Stack: z shift; the designer exported these
+# the "updated main bracket and base" profile (main bracket v2, placed apart). Stack: shift; the designer exported these
 # in the assembled PT frame, except the tilt arm, still at the v1 height (upright v2 raised the pivot 5 mm). Mouth: in
 # the eyes frame with the jaws closed; plain jaws, the guide's first variant (the teeth jaws are the same build).
 EYES_PARTS = [
@@ -412,13 +422,13 @@ EYES_PARTS = [
     ("R eyeball bar", "eyeball bar", 79),
 ]
 STACK_PARTS = [
-    ("bearing block", "PandT bearing block", 0),
-    ("pan base", "PandT pan base", 0),
-    ("upright v2", "PandT upright v2", 0),
-    ("tilt arm", "PandT tilt arm", TILT_ARM_SHIFT_Z),
-    ("servo mount plain", "PandT servo mount plain", 0),
-    ("servo mount cutout", "PandT servo mount cutout", 0),
-    ("wire holder", "PandT wire holder", 0),
+    ("bearing block", "PandT bearing block", (0, 0, 0)),
+    ("pan base", "PandT pan base", (0, 0, 0)),
+    ("upright v2", "PandT upright v2", (0, 0, 0)),
+    ("tilt arm", "PandT tilt arm", (0, 0, TILT_ARM_SHIFT_Z)),
+    ("servo mount plain", "PandT servo mount plain", (0, MOUNT_SWAP_Y, 0)),
+    ("servo mount cutout", "PandT servo mount cutout", (0, -MOUNT_SWAP_Y, 0)),
+    ("wire holder", "PandT wire holder", (0, 0, 0)),
 ]
 MOUTH_PARTS = [
     ("top jaw", "top jaw plain"),

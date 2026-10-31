@@ -142,7 +142,7 @@ def eyes():
     for s in "LR":
         side = (lambda p: p) if s == "L" else g.mirror_x
         lid_key, eye_key = f"{s.lower()}_lid", f"{s.lower()}_eye"
-        parts.update(servo_and_horn(lid_key, f"{s} lid", g.Y))
+        parts.update(servo_and_horn(lid_key, f"{s} lid", g.LID_HORN_ARM))
         parts.update(servo_and_horn(eye_key, f"{s} eye", (-1, 0, 0) if s == "L" else g.X))
         lid_horn = g.PIVOTS[lid_key + "_horn"]["point"]
         normal = (1, 0, 0) if s == "L" else (-1, 0, 0)  # inboard: the crank's step toward the lid ear
@@ -150,12 +150,12 @@ def eyes():
         for key, stem in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = g.LID_LINKS[key]
             hx, lx = (side((x, 0, 0))[0] for x in spec["x"])
-            horn_pin = (hx, lid_horn[1] + g.HORN_STEP["pin"], lid_horn[2])
+            horn_pin = (hx, *(c + g.HORN_STEP["pin"] * a for c, a in zip(lid_horn[1:], g.LID_HORN_ARM[1:])))
             lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem}:1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
-            # lid pins run along X; the lid STLs' pose is not the neutral one (41.6 / 41.9 mm from the horn pin for 41 mm bars)
-            placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0, tol=TOL_INFERRED_MM))
+            # lid pins run along X; the horn pin is 41.14 / 40.86 from them for 41 mm bars (geometry.LID_HORN_ARM)
+            placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0))
             loops.append(
                 rocker_loop(
                     f"{s} {spec['lid']} lid pivot",
@@ -222,8 +222,8 @@ def base():
 def stack():
     """noggin-stack: the pan-tilt neck with electronics set 2, PT frame (model/stack.py)."""
     parts = {}
-    for name, stem, dz in g.STACK_PARTS:
-        parts[name + ":1"] = part(stl("pt", stem), translate((0, 0, dz)), printed(stem))
+    for name, stem, shift in g.STACK_PARTS:
+        parts[name + ":1"] = part(stl("pt", stem), translate(shift), printed(stem))
     bars, placements = {}, []
     for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
         pivot = g.PIVOTS[key + "_horn"]
