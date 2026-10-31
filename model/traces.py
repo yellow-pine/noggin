@@ -2,20 +2,16 @@
 (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
 joint degrees per 100 ms frame: lids between the model's closed and open angles (model/engine/lids.py), eyes over
-geometry.HORN_LIMITS. No servo degrees: the real servo ends and horn spline offsets are not the model's. Then played
-in Fusion by model/replay.py (one call per gesture, noggin-stage1, a 3/4 and a front capture per frame), the front
-3/4 frames assembled into one GIF per gesture in model/build (docs/model-notes.md).
-`python model/traces.py [gesture...] [--no-fusion]` (Fusion open with its MCP; --no-fusion re-assembles only)."""
+geometry.HORN_LIMITS. No servo degrees: the real servo ends and horn spline offsets are not the model's. The GIFs
+are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md)."""
 
 import importlib.util
 import json
 import os
-import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-OUT = os.path.join(HERE, "build")
 
 
 def _load(name, path):
@@ -90,33 +86,3 @@ def record(gesture):
             i += 1
         frames.append({s: round(joint(s, pos[s] if "lid" in s else pos[s] / half[PIN[s]]), 2) for s in SERVOS})
     return frames
-
-
-def gif(name):
-    """The README GIF from the gesture's 3/4 captures: 480 wide, 10 fps, at most 128 colours."""
-    palette = "split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse"
-    frames = os.path.join(OUT, "replay", name, "%03d.png")
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", "10", "-i", frames]
-    subprocess.run([*cmd, "-vf", f"scale=480:-2:flags=lanczos,{palette}", os.path.join(OUT, f"{name}.gif")], check=True)
-
-
-def main(names, fusion=True):
-    """Record, play in Fusion (one call per gesture), assemble the GIFs. fusion=False only re-assembles from the
-    captures already in model/build/replay."""
-    sys.path.insert(0, os.path.join(REPO, "scripts"))
-    import fusion_run
-
-    os.makedirs(OUT, exist_ok=True)
-    if fusion:
-        json.dump({g: record(g) for g in GESTURES}, open(os.path.join(OUT, "traces.json"), "w"))
-    replay = open(os.path.join(HERE, "replay.py")).read()
-    for g in names:
-        if fusion:
-            print(fusion_run.run_script(replay.replace("GESTURE = None", f"GESTURE = {g!r}"))["message"], end="")
-        gif(g)
-        print(f"  {g}.gif: {os.path.getsize(os.path.join(OUT, g + '.gif')) // 1024} KB")
-
-
-if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if a != "--no-fusion"]
-    main(args or list(GESTURES), fusion="--no-fusion" not in sys.argv)
