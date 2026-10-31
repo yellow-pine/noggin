@@ -1,7 +1,6 @@
 """Seam: the JSON report twin/check.py writes (twin/build/<doc>-report.json). The live-report test is
 skipped until `make twin-check` has run; the fixture test checks the checker itself."""
-import glob, json, os, sys, pytest
-sys.path.insert(0, os.path.dirname(__file__))
+import glob, importlib.util, json, os, pytest
 
 HERE = os.path.dirname(__file__)
 MAX_INTERFERENCE_MM3 = 0.5
@@ -52,7 +51,8 @@ def test_fixture_reports(name):
 
 
 def test_merge_per_horn_reports_and_flags_incomplete_horns():
-    from sweep import merge
+    spec = importlib.util.spec_from_file_location("sweep", os.path.join(HERE, "sweep.py"))   # not on sys.path: eyes/ has its own `eyes` module
+    sweep = importlib.util.module_from_spec(spec); spec.loader.exec_module(sweep); merge = sweep.merge
     lid = {"doc": "noggin-eyes", "version": 11, "clearance_mm": 3.0, "step_deg": 10,
            "horns": {"L lid horn": {"min_mm": 4.1, "at_deg": 30, "pair": ["L inside lid", "L servo bracket"]}},
            "interference": [], "violations": [{"horn": "L lid horn", "deg": 30, "mm": 0.0, "pair": ["a", "b"]}],
