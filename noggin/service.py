@@ -5,16 +5,18 @@ plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `
 file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
 dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart) / `flash` (the eye program to the
 eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is pushed whenever the
-Link connects."""
+Link connects. Run as `python -m noggin.service`, it also keeps the Link's MQTT broker running (noggin/broker.py)."""
 
 import glob
 import json
 import os
+import signal
 import socket
 import sys
 import time
 from pathlib import Path
 
+from noggin.broker import Broker
 from noggin.wifi import BEACON_PORT, COMMAND_PORT, Wifi
 from reactions.director import Director
 
@@ -91,6 +93,7 @@ class Service:
         stale=6.0,
         duration=gesture_seconds,
         pause=5.0,
+        broker=None,
     ):
         self.sock_path, self.open_serial, self.mute_file, self.cal_file = sock_path, open_serial, mute_file, cal_file
         self.director = Director()
@@ -100,6 +103,7 @@ class Service:
         self.duration, self.pause, self.demo, self.step, self.next_step = duration, pause, [], 0, 0.0
         token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
         self.wifi = Wifi(token, beacon_port, command_port, stale)
+        self.broker = broker
 
     def status(self, now):
         return "".join(f"{name} {self.link_status(name, now)}\n" for name in CORES) + f"mode {self.mode}\n"
@@ -251,8 +255,12 @@ class Service:
         srv.settimeout(0.2)
         log("listening on", self.sock_path, "muted" if self.director.muted else "")
         self.ready = True
+        if self.broker:
+            self.broker.start()
         while self.running:
             now = time.time()
+            if self.broker:
+                self.broker.poll()
             if self.link is None and now - self.last_probe > 2.0:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
@@ -289,7 +297,11 @@ class Service:
                         log("client gone:", e)
         srv.close()
         self.wifi.close()
+        if self.broker:
+            self.broker.stop()
 
 
 if __name__ == "__main__":
-    Service().run()
+    service = Service(broker=Broker(CORES))
+    signal.signal(signal.SIGTERM, lambda *_: service.stop())  # `make stop` (launchd's SIGTERM) stops Mosquitto too
+    service.run()
