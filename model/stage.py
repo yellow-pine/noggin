@@ -10,7 +10,6 @@ fingerprint is its saved version plus the frame, so a rebuilt sub-assembly is re
 # include: model/geometry.py
 # include: model/fusion_lib.py
 import json
-import os
 from collections import Counter
 
 import adsk.core
@@ -18,8 +17,6 @@ import adsk.fusion
 
 DOC = "noggin-stage1"
 FULL = False  # `FULL=1 make model-stage2` flips this: empty the document and insert everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
 
 def run(_context: str):
@@ -57,8 +54,6 @@ def run(_context: str):
     steps.append(("joints", joints))
     progress = chunked(steps)
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, DOC[len("noggin-") :], {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
     now = json.loads(
         json.dumps(
             {

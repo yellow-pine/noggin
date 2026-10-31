@@ -7,15 +7,12 @@ Runs INSIDE Fusion: `make model-base`. Reuse as in eyes.py (fingerprints, fusion
 # include: model/fusion_lib.py
 # include: model/electronics.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
 
 DOC = "noggin-base"
 FULL = False  # `FULL=1 make model-base` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
 
 def run(_context: str):
@@ -42,8 +39,6 @@ def run(_context: str):
     for occ in root.occurrences:
         occ.isGrounded = True
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "base", {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
     now = summary(root)
     diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse]
     if diff:
