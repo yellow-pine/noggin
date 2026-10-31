@@ -4,7 +4,9 @@ name: delete merged branches
 # branch with an open PR) is pushed, delete branches that are fully contained in it.
 # Kept: main, branches with an open PR, parked work (face-*), and any branch whose tip is
 # the pushed tip itself (a fresh ticket branch before its first commit). Fails closed.
-on: push
+on:
+  push:
+    branches: ['**']   # branch pushes only, never tags
 permissions:
   contents: write
   pull-requests: read
@@ -20,7 +22,7 @@ jobs:
           PUSHED: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          open=$(gh pr list --state open --limit 1000 --json headRefName -q '.[].headRefName')
+          open=$(gh pr list --state open --limit 1000 --json headRefName,isCrossRepository -q '.[] | select(.isCrossRepository | not) | .headRefName')   # fork PRs never count
           if [ "$PUSHED" != main ] && ! grep -qxF "$PUSHED" <<<"$open"; then
             echo "$PUSHED is not an integration branch; nothing to do"; exit 0
           fi
