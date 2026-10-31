@@ -104,7 +104,7 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 
 ## The model
 
-![The eyes Stage in Fusion: front, front with photo overlay, side, top](docs/images/stages.jpg)
+![The model in Fusion with the real spool colours: eyes front, eyes with the photo overlay, pan-tilt side, mouth side](docs/images/stages.jpg)
 
 `model/` builds the Mech in Fusion 360 and simulates it in Python (PR #31):
 
