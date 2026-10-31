@@ -53,5 +53,5 @@ restore-stock: interrupt
 
 twin-proxies:   ## decimated STLs for the sweep (Blender), into twin/build/proxies
 	/Applications/Blender.app/Contents/MacOS/Blender -b -P twin/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models twin/build/proxies | grep -v '^Blender'
-twin-eyes: venv twin-proxies   ## rebuild + save the noggin-eyes Fusion design (Fusion open with its MCP)
-	$(PY) scripts/fusion_run.py twin/eyes.py
+twin-eyes: venv twin-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' twin/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin

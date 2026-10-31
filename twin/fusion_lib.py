@@ -1,7 +1,7 @@
 """Fusion helpers shared by the Stage scripts, inlined via `# include: twin/fusion_lib.py` after
 `# include: twin/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-twin.md."""
-import adsk.core, adsk.fusion, math
+import adsk.core, adsk.fusion, hashlib, json, math
 
 PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root
 _PLANE_FOR_AXIS = {"X": "yZConstructionPlane", "Y": "xZConstructionPlane", "Z": "xYConstructionPlane"}
@@ -15,8 +15,18 @@ def vector(v):
     return adsk.core.Vector3D.create(v[0], v[1], v[2])
 
 
-def open_or_create(app, name):
-    """Open the design `name` in project Noggin (or a new one), parametric, emptied of occurrences.
+# Rebuild bookkeeping, as attributes (STEP metadata overwrites a component's description on reopen): the
+# timeline index after the last import, each component's part name and fingerprint, the last build summary.
+PARTS_END_ATTR, SUMMARY_ATTR = ("noggin", "parts_end"), ("noggin", "summary")
+PART_ATTR, FINGERPRINT_ATTR = ("noggin", "part"), ("noggin", "fingerprint")
+FRESH = []   # names imported by the current build (reset by open_or_create; Fusion keeps globals between calls)
+
+
+def open_or_create(app, name, keep_parts=False):
+    """Open the design `name` in project Noggin (or a new one), parametric. Emptied of occurrences unless
+    keep_parts: then the timeline is cut where the last build's parts_end() put it, so only the cheap features
+    every build recreates (Ports, pivots, joints, rigid groups, canvases) go and the occurrences stay for
+    import_stl/import_step to reuse.
     Returns (document, design, folder); pass the folder to save()."""
     projects = app.data.activeHub.dataProjects
     project = next((p for p in projects if p.name == PROJECT_NAME), None) or projects.add(PROJECT_NAME)   # new hub/account
@@ -25,12 +35,105 @@ def open_or_create(app, name):
     doc = app.documents.open(existing, True) if existing else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
     design = adsk.fusion.Design.cast(app.activeProduct)
     design.designType = adsk.fusion.DesignTypes.ParametricDesignType   # mesh convert only works here
-    if design.timeline.count:          # one rollback + delete: per-occurrence deletes recompute the timeline each time
-        design.timeline.markerPosition = 0
-        design.timeline.deleteAllAfterMarker()
-    for occ in list(design.rootComponent.occurrences):
+    root = design.rootComponent
+    FRESH.clear()
+    timeline = design.timeline
+    recorded = root.attributes.itemByName(*PARTS_END_ATTR)
+    keep_parts = keep_parts and recorded is not None   # a document from before T9 is rebuilt in full
+    cut = int(recorded.value) if keep_parts else 0
+    if cut < timeline.count:           # one rollback + delete: per-feature deletes recompute the timeline each time
+        timeline.markerPosition = cut
+        timeline.deleteAllAfterMarker()
+    if keep_parts:
+        return doc, design, folder
+    for occ in list(root.occurrences):
         occ.deleteMe()
     return doc, design, folder
+
+
+def parts_end(design):
+    """Builds call this after their last import (and stale-part deletion): the next keep_parts build cuts here."""
+    design.rootComponent.attributes.add(*PARTS_END_ATTR, str(design.timeline.count))
+
+
+def fingerprint(paths, cells):
+    """What a placed part depends on: sha256 of its source files and the placement matrix (16 cells, rounded so
+    float noise is not a change). Stored on the component (FINGERPRINT_ATTR); a match on rebuild skips the import."""
+    h = hashlib.sha256()
+    for p in paths:
+        h.update(open(p, "rb").read())
+    h.update(json.dumps([float(round(c, 4)) for c in cells]).encode())
+    return h.hexdigest()[:16]
+
+
+def kept_parts(root):
+    """Occurrences a previous build placed, by part name (open_or_create keep_parts leaves them in place).
+    An untagged occurrence (hand-added, or from before T9) goes by its component name and is never reused."""
+    parts = {}
+    for o in root.occurrences:
+        a = o.component.attributes.itemByName(*PART_ATTR)
+        parts[a.value if a else o.component.name] = o
+    return parts
+
+
+def tag(occ, name, fp):
+    occ.component.name = name
+    occ.component.attributes.add(*PART_ATTR, name)
+    occ.component.attributes.add(*FINGERPRINT_ATTR, fp)
+
+
+def reusable(reuse, name, paths, matrix):
+    """The kept occurrence `name` when its fingerprint matches, else None (a stale one is deleted and the name
+    goes on FRESH). Pops from `reuse`, so it ends up holding only the parts the build no longer places."""
+    fp = fingerprint(paths, (matrix or adsk.core.Matrix3D.create()).asArray())
+    occ = reuse.pop(name, None) if reuse is not None else None
+    if occ is not None:
+        stored = occ.component.attributes.itemByName(*FINGERPRINT_ATTR)
+        if stored and stored.value == fp:
+            return occ, fp
+        occ.component.name = name + " (stale)"   # else the re-import is named "<name> (1)" until the component is gone
+        occ.deleteMe()
+    FRESH.append(name)
+    return None, fp
+
+
+def changes(old, new):
+    """Human-readable differences between two build summaries ({section: {name: value}}); [] when equal."""
+    if old is None:
+        return ["no previous summary"]
+    out = []
+    for section in sorted(set(old) | set(new)):
+        a, b = old.get(section, {}), new.get(section, {})
+        for name in sorted(set(a) | set(b)):
+            if name not in a:
+                out.append(f"{section} {name}: added")
+            elif name not in b:
+                out.append(f"{section} {name}: removed")
+            elif a[name] != b[name]:
+                out.append(f"{section} {name}: {a[name]} -> {b[name]}")
+    return out
+
+
+def summary(root):
+    """What the cheap, recreated features amount to: joints (limits, origin frames), ports (world points).
+    Compared across builds to decide whether a new version is worth saving."""
+    joints = {}
+    for j in root.joints:
+        lim = j.jointMotion.rotationLimits if j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType else None
+        joints[j.name] = {"limits": [round(math.degrees(lim.minimumValue), 2), round(math.degrees(lim.maximumValue), 2)] if lim and lim.isMinimumValueEnabled else None,
+                          "origins": [origin_frame(o) for o in (j.geometryOrOriginOne, j.geometryOrOriginTwo)]}
+    ports = {}
+    for o in root.occurrences:
+        for sk in o.component.sketches:
+            if sk.name.startswith("Port:"):
+                p = sk.sketchPoints.item(sk.sketchPoints.count - 1).worldGeometry.copy(); p.transformBy(o.transform2)
+                ports[sk.name[6:]] = [round(p.x * 10, 2), round(p.y * 10, 2), round(p.z * 10, 2)]
+    return json.loads(json.dumps({"joints": joints, "ports": ports}))   # as it comes back from the attribute
+
+
+def saved_summary(root):
+    a = root.attributes.itemByName(*SUMMARY_ATTR)
+    return json.loads(a.value) if a else None
 
 
 def save(doc, message, name, folder):
@@ -63,12 +166,16 @@ def matmul(a, b):
     return m
 
 
-def import_stl(component, path, name, matrix=None, convert=True, proxy=None):
+def import_stl(component, path, name, matrix=None, convert=True, proxy=None, reuse=None):
     """Mesh body in its own component (faceted solid when convert). `proxy`: a decimated STL of the same part,
-    added as a hidden second body named "proxy" that the sweep measures instead. Returns the occurrence."""
+    added as a hidden second body named "proxy" that the sweep measures instead. `reuse`: kept occurrences by
+    component name (open_or_create keep_parts); a fingerprint match returns the kept one. Returns the occurrence."""
+    kept, fp = reusable(reuse, name, [p for p in (path, proxy) if p], matrix)
+    if kept:
+        return kept
     adsk.doEvents()   # keep the UI responsive during long builds
     occ = component.occurrences.addNewComponent(matrix or adsk.core.Matrix3D.create())
-    occ.component.name = name
+    tag(occ, name, fp)
     for p, body_name in ((path, None), (proxy, "proxy")):
         if p is None:
             continue
@@ -114,13 +221,18 @@ def world_frame(origin):
     return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)   # axis: sketch space, see check.placements
 
 
-def import_step(component, path, name, matrix=None):
+def import_step(component, path, name, matrix=None, reuse=None):
+    """STEP in its own component at `matrix`; see import_stl for `reuse` (a reused part already carries its
+    post-import edits, so keep those idempotent). Returns the occurrence."""
+    kept, fp = reusable(reuse, name, [path], matrix)
+    if kept:
+        return kept
     adsk.doEvents()   # keep the UI responsive during long builds
     app = adsk.core.Application.get()
     options = app.importManager.createSTEPImportOptions(path)
     options.isViewFit = False
     occ = app.importManager.importToTarget2(options, component).item(0)
-    occ.component.name = name
+    tag(occ, name, fp)
     return reoccur(occ, matrix) if matrix else occ
 
 
