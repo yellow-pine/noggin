@@ -1,9 +1,8 @@
 """Gesture replay for the model (#20, #39): the five gestures plus thinking recorded from the eye program on CPython
 (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
-joint degrees per 100 ms frame: lids between the model's closed and open angles (model/engine/lids.py), eyes over
-geometry.HORN_LIMITS. No servo degrees: the real servo ends and horn spline offsets are not the model's. The GIFs
-are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md)."""
+joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to servo degrees, then
+the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The GIFs are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md)."""
 
 import importlib.util
 import json
@@ -26,8 +25,7 @@ if "machine" not in sys.modules:  # under pytest the root conftest has done this
 if REPO not in sys.path:
     sys.path.insert(1, REPO)  # model.engine; eyes/ stays first so `import eyes` is the Core program
 import eyes as mod  # noqa: E402  the Core's eye program
-from model import geometry  # noqa: E402
-from model.engine import lids  # noqa: E402
+from model import geometry, sim  # noqa: E402
 
 CAL = json.load(open(os.path.join(REPO, "eyes", "calibration.json")))
 GESTURES = {
@@ -41,13 +39,14 @@ GESTURES = {
 SERVOS = ("l_lid", "l_eye", "r_lid", "r_eye")
 PIN = {name: pin for pin, name in mod.NAME.items()}
 FRAME_MS, THINK_MS = 100, 6000
+_CORE = mod.Eyes()  # the Core's lid mapping (fraction -> servo degrees) under the calibration
+_CORE.cal.update(CAL)
 
 
 def joint(servo, v):
     """Model horn degrees from neutral for a lid fraction or an eye position."""
     if "lid" in servo:
-        closed, opened = lids.ends(servo[0].upper())
-        return closed + v * (opened - closed)
+        return sim.joint_deg(servo, _CORE._lid_angle(PIN[servo], v), CAL)
     lo, hi = geometry.HORN_LIMITS[servo]
     return v * ((hi - 90) if v > 0 else (90 - lo))
 
