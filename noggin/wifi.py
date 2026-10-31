@@ -1,13 +1,14 @@
-"""Wi-Fi Link: learn each Core from its UDP beacon (`noggin <name> <ip> <uptime s>`, trusted only for the
-sender's real address) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>` under
-the shared token, so the secret never travels), each acked with `ok <seq>` from that Core's address and command port
-(up to four tries a line, each waiting longer; what is never acked goes back to the noggin service, for USB).
+"""Wi-Fi Link: learn each Core from its UDP beacon (`<tag> noggin <name> <ip> <uptime s>`, taken only when tagged and
+sent from the ip it claims) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>`
+under the shared token, so the secret never travels), each acked with `<tag> ok <seq>` from that Core's address and
+command port (up to four tries a line, each waiting longer; what is never acked goes back to the noggin service, for
+USB). Every tag the Core sends is over `<name> <body>`, so no LAN host can pose as a Core or fake its acks.
 `flash` sends the eye program the same way, as tagged `put` chunks and `commit` lines (eyes/wifi.py)."""
 
 import base64
 import hashlib
+import hmac
 import importlib.util
-import ipaddress
 import socket
 import time
 from pathlib import Path
@@ -44,18 +45,21 @@ class Wifi:
                 data, addr = self.beacons.recvfrom(256)
             except (BlockingIOError, OSError):
                 break
-            parts = data.decode(errors="replace").split()
-            if len(parts) == 4 and parts[0] == "noggin" and parts[1].isalnum() and parts[3].isdigit():
-                try:
-                    ipaddress.IPv4Address(parts[2])
-                except ValueError:
-                    continue
-                self.cores[parts[1]] = (
-                    addr[0],
-                    parts[3],
-                    now,
-                )  # the claimed ip is for humans; the source address is what we trust
+            t, _, body = data.decode(errors="replace").partition(" ")
+            parts = body.split()
+            if (
+                len(parts) == 4
+                and parts[0] == "noggin"
+                and parts[1].isalnum()
+                and parts[2] == addr[0]  # a captured beacon replayed from another host is not that Core
+                and parts[3].isdigit()
+                and self.signed(parts[1], body, t)
+            ):
+                self.cores[parts[1]] = (addr[0], parts[3], now)
         return [n for n in self.cores if self.fresh(n, now) and n not in fresh_before]
+
+    def signed(self, name, body, t):
+        return hmac.compare_digest(t.encode(), tag(self.token, f"{name} {body}").encode())
 
     def close(self):
         self.beacons.close()
@@ -81,11 +85,11 @@ class Wifi:
         datagram = f"{tag(self.token, f'{name} {self.seq} {line}')} {self.seq} {line}".encode()
         for window in ACK_SECONDS:  # every try repeats the seq: the Core re-acks it without running it again
             self.cmd.sendto(datagram, (ip, self.command_port))
-            if (reply := self.reply(self.seq, ip, window)) is not None:
+            if (reply := self.reply(name, self.seq, ip, window)) is not None:
                 return reply
         return None
 
-    def reply(self, seq, ip, window):
+    def reply(self, name, seq, ip, window):
         end = time.time() + window
         while (left := end - time.time()) > 0:
             self.cmd.settimeout(left)
@@ -93,11 +97,14 @@ class Wifi:
                 data, addr = self.cmd.recvfrom(256)
             except (TimeoutError, OSError):
                 return None
-            reply = data.decode(errors="replace")
+            t, _, reply = data.decode(errors="replace").partition(" ")
             words = reply.split()
-            if (
-                addr == (ip, self.command_port) and len(words) >= 2 and words[1] == str(seq)
-            ):  # only the Core we sent to can ack
+            if (  # only the Core we sent to can ack
+                addr == (ip, self.command_port)
+                and len(words) >= 2
+                and words[1] == str(seq)
+                and self.signed(name, reply, t)
+            ):
                 return reply  # `err <seq> ...` is still delivered: the Core saw it, retrying would not help
         return None
 

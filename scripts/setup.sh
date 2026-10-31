@@ -247,7 +247,7 @@ pause
 stage "Flash the eye program"
 warn "This replaces boot.py on the Core. The stock remote app stops working until 'make restore-stock'."
 confirm "Flash eyes/eyes.py + eyes/boot.py now?" || { warn "stopped before flashing"; exit 1; }
-make -s flash USB=1                     # the first install carries boot.py, which only goes over USB
+make -s flash USB=1                     # the first install carries boot.py and micropython-lib's hmac, which only go over USB
 sleep 2
 say "Ping reply: $(board_send ping)"
 note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run this wizard."
@@ -268,8 +268,8 @@ make -s interrupt                       # stops the noggin service and drops the
 "$MPR" resume cp core.json :core.json
 rm -f core.json
 "$PY" eyes/interrupt.py reset
-say "Listening 6 s for the beacon on UDP 4711 (expected: 'noggin $CORE_NAME <ip> <uptime s>') ..."
-"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(6); print(s.recv(64).decode())' \
+say "Listening 6 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
+"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(6); print(s.recv(128).decode())' \
   && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 6 s, or the SSID/password is wrong: re-run this stage"
 pause
 

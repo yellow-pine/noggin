@@ -4,6 +4,7 @@
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib
+import hmac  # micropython-lib's on the Core (make flash-usb installs it with mpremote mip), stdlib on the Mac
 import json
 import os
 
@@ -28,19 +29,24 @@ except ImportError:  # CPython: tests set reset
 
 BEACON_PORT, COMMAND_PORT = 4711, 4712
 BEACON_MS, JOIN_MS = 2000, 10000
+SEQ_SAVE_MS = 10000  # link.seq is written at most once per 10 s of the Mac's seq (milliseconds since the epoch)
 
 
 def tag(token, msg):
-    """HMAC-SHA256 tag of msg under the shared token, 32 hex chars. Hand-rolled: MicroPython has hashlib, not hmac.
-    msg is `<core name> <seq> <line>`, so a datagram for one Core is worthless to another.
-    The noggin service imports this very function, so both sides always agree."""
-    key = token.encode()
-    if len(key) > 64:
-        key = hashlib.sha256(key).digest()
-    key = key + b"\x00" * (64 - len(key))
-    inner = hashlib.sha256(bytes(b ^ 0x36 for b in key) + msg.encode()).digest()
-    outer = hashlib.sha256(bytes(b ^ 0x5C for b in key) + inner).digest()
-    return "".join(f"{b:02x}" for b in outer)[:32]
+    """HMAC-SHA256 of msg under the shared token, truncated to 32 hex chars (RFC 2104 section 5). msg starts with the
+    Core's name: `<name> <seq> <line>` for a command, `<name> <body>` for the Core's beacon and replies, so a datagram
+    for one Core or one direction is worthless anywhere else. The noggin service imports this very function."""
+    return hmac.new(token.encode(), msg.encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def same(a, b):
+    """Constant-time compare of two tags (bytes): hmac.compare_digest, else XOR-accumulate (micropython-lib hmac)."""
+    if hasattr(hmac, "compare_digest"):
+        return hmac.compare_digest(a, b)
+    diff = len(a) ^ len(b)
+    for i in range(min(len(a), len(b))):  # no zip(strict=) on MicroPython
+        diff |= a[i] ^ b[i]
+    return diff == 0
 
 
 def sha256(path):
@@ -127,11 +133,12 @@ class Wifi:
         self.beacon = self.cmd = None
         self.next_beacon = 0
         self.uptime_ms, self.last_ms = 0, 0  # accumulated with ticks_diff: ticks_ms wraps every ~12 days
-        try:  # (highest seq, its reply): a retried seq is acked again, an older one dropped, even across a reboot
+        try:  # link.seq: no seq at or below it runs again, even across a reboot or a power cut
             with open("link.seq") as f:
-                self.last = (int(f.read()), None)
+                self.saved = int(f.read())
         except (OSError, ValueError):
-            self.last = (-1, None)
+            self.saved = -1
+        self.last = (self.saved, None)  # (highest seq, its reply): a retried seq is acked again, an older one dropped
 
     def poll(self, now_ms):
         self.uptime_ms += ticks_diff(now_ms, self.last_ms)
@@ -149,7 +156,7 @@ class Wifi:
             self.cmd.setblocking(False)
         if ticks_diff(now_ms, self.next_beacon) >= 0:
             msg = f"noggin {self.name} {self.wlan.ifconfig()[0]} {self.uptime_ms // 1000}"
-            self.beacon.sendto(msg.encode(), ("255.255.255.255", BEACON_PORT))
+            self.beacon.sendto(self.signed(msg), ("255.255.255.255", BEACON_PORT))
             self.next_beacon = now_ms + BEACON_MS
         while True:
             try:
@@ -161,8 +168,9 @@ class Wifi:
     def serve(self, data, addr):
         """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then the line runs (and a parser exception
         follows as `err <seq> <reason>`); `put` and `commit` (flash) are answered once they ran, `ok` or `err`, and
-        `reboot` resets the Core after its ack. seq must not go backwards (replays are dropped, and link.seq keeps
-        the highest across a reboot); the highest seq is re-acked with its last reply, never run again."""
+        `reboot` resets the Core after its ack. seq must not go backwards (replays are dropped, and link.seq keeps a
+        ceiling at or above every seq seen, across a reboot or a power cut); the highest seq is re-acked with its last
+        reply, never run again. Every reply is tagged too (signed)."""
         try:
             parts = data.decode().split(" ", 2)
         except (UnicodeError, ValueError):  # junk on the LAN must never stop the loop
@@ -170,7 +178,7 @@ class Wifi:
         if (
             len(parts) < 3
             or not parts[1].isdigit()
-            or parts[0] != tag(self.cfg["token"], self.name + " " + parts[1] + " " + parts[2])
+            or not same(parts[0].encode(), tag(self.cfg["token"], self.name + " " + parts[1] + " " + parts[2]).encode())
         ):
             return  # the secret never travels: each datagram carries its own tag
         seq, line = int(parts[1]), parts[2]
@@ -178,27 +186,34 @@ class Wifi:
             return
         if seq == self.last[0]:
             if self.last[1]:  # None: seen before a reboot, nothing to ack again
-                self.cmd.sendto(self.last[1].encode(), addr)
+                self.cmd.sendto(self.signed(self.last[1]), addr)
             return
-        if not line.startswith("put "):  # saved before it acts; a put only stages a .new, which commit hash-checks
-            with open("link.seq", "w") as f:
-                f.write(str(seq))
+        reboot = line.strip() == "reboot"
+        if reboot or seq > self.saved:  # saved before it acts, a commit too: no seq that ran is above link.seq
+            self.saved = seq if reboot else seq + SEQ_SAVE_MS  # a ceiling, so lines inside it need no write
+            with open("link.seq", "w") as f:  # the reboot's exact seq lets the Mac's next line run at once
+                f.write(str(self.saved))
         if line.startswith(("put ", "commit ")):  # quick, and the Mac must know they took: answered once they ran
             try:
                 flash(line)
-                self.last = (seq, f"ok {seq}")
+                self.reply(seq, f"ok {seq}", addr)
             except Exception as e:
-                self.last = (seq, f"err {seq} {type(e).__name__}")
-            self.cmd.sendto(self.last[1].encode(), addr)
+                self.reply(seq, f"err {seq} {type(e).__name__}", addr)
             return
-        self.last = (seq, f"ok {seq}")
-        self.cmd.sendto(self.last[1].encode(), addr)  # ack on receipt: a gesture runs longer than the ack window
+        self.reply(seq, f"ok {seq}", addr)  # ack on receipt: a gesture runs longer than the ack window
         try:
-            if line.strip() == "reboot":  # after a flash
+            if reboot:  # after a flash
                 time.sleep(0.2)  # let the ack leave first
                 reset()  # pyright: ignore[reportOptionalCall]
             else:
                 self.handle_line(line)
         except Exception as e:
-            self.last = (seq, f"err {seq} {type(e).__name__}")
-            self.cmd.sendto(self.last[1].encode(), addr)
+            self.reply(seq, f"err {seq} {type(e).__name__}", addr)
+
+    def reply(self, seq, body, addr):
+        self.last = (seq, body)
+        self.cmd.sendto(self.signed(body), addr)
+
+    def signed(self, body):
+        """`<tag> <body>`: the Mac takes no beacon or reply without it, so no LAN host can pose as this Core."""
+        return f"{tag(self.cfg['token'], self.name + ' ' + body)} {body}".encode()
