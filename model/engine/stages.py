@@ -44,8 +44,8 @@ def translate(p):
     return align(p)
 
 
-def stl(stage, stem):
-    """Our printed part's mesh; `stage` names the sub-assembly it belongs to."""
+def stl(stem):
+    """Our printed part's mesh."""
     return os.path.join(OURS, stem + ".stl")
 
 
@@ -69,7 +69,7 @@ def link(stage, stl_key, hole_a, hole_b, normal):
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     m = align(hole_a, np.subtract(hole_b, hole_a), normal, la, np.subtract(lb, la), spec["hole_axis"])
-    return part(stl(stage, stl_key), m, printed(stl_key))
+    return part(stl(stl_key), m, printed(stl_key))
 
 
 def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None, tol=None):
@@ -133,8 +133,8 @@ def limits(key):
 def eyes():
     parts, horns = {}, {}
     for name, stem, dx in g.EYES_PARTS:
-        parts[name + ":1"] = part(stl("eyes", stem), translate((dx, 0, 0)), printed(stem))
-    parts["main bracket v2:1"] = part(stl("mouth", "main bracket v2"), None, printed("main bracket v2"))
+        parts[name + ":1"] = part(stl(stem), translate((dx, 0, 0)), printed(stem))
+    parts["main bracket v2:1"] = part(stl("main bracket v2"), None, printed("main bracket v2"))
     placements = []
     for s in "LR":
         side = (lambda p: p) if s == "L" else g.mirror_x
@@ -197,7 +197,7 @@ def electronics(n):
         parts["switch board 1:1"] = part(step("switch"), switch_m, board)
         parts["battery 1:1"] = part(step("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
         parts["cable holder:1"] = part(
-            stl("eyes", "wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
+            stl("wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
         )
         ports["battery 1 lead"] = ("battery 1:1", g.BATTERY_STEP["plug"])
         ports["switch board 1 in"] = ("switch board 1:1", g.SWITCH_STEP["in"])
@@ -208,7 +208,7 @@ def electronics(n):
 def base():
     """noggin-base: the PandT base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame."""
     set1, ports = electronics(1)
-    parts = {"PandT base:1": part(stl("pt", "PandT base"), None, printed("PandT base")), **set1}
+    parts = {"PandT base:1": part(stl("PandT base"), None, printed("PandT base")), **set1}
     stand = g.STANDOFFS["pt_base"]
     placements = [
         ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
@@ -222,7 +222,7 @@ def stack():
     """noggin-stack: the pan-tilt neck with receiver shield 2 and Core 2, PT frame."""
     parts = {}
     for name, stem, shift in g.STACK_PARTS:
-        parts[name + ":1"] = part(stl("pt", stem), translate(shift), printed(stem))
+        parts[name + ":1"] = part(stl(stem), translate(shift), printed(stem))
     bars, placements = {}, []
     for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
         pivot = g.PIVOTS[key + "_horn"]
@@ -267,7 +267,7 @@ def mouth():
     """noggin-mouth's own parts, eyes frame (its context copy of the eyes is assembled separately)."""
     parts = {}
     for name, stem in g.MOUTH_PARTS:
-        parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
+        parts[name + ":1"] = part(stl(stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
     parts["connector bar:1"] = link("mouth", "jaws connector bar", pin, lever, g.X)

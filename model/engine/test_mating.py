@@ -37,7 +37,7 @@ def test_every_joint_names_features_our_parts_declare_and_no_declared_feature_go
 @pytest.mark.parametrize("stem", sorted(mating.FEATURES))
 def test_our_mesh_carries_every_feature_its_part_declares(stem):
     for name, (centre, axis, r, half, *band) in mating.FEATURES[stem].items():
-        fit = fits.fit_circle(stages.stl(None, stem), centre, axis, half, r, *band or [fits.HOLE])
+        fit = fits.fit_circle(stages.stl(stem), centre, axis, half, r, *band or [fits.HOLE])
         off = np.linalg.norm(np.subtract(fit["centre"], centre))
         assert fit["r"] == pytest.approx(r, abs=0.03) and off < 0.03, (name, fit["r"], off)
 
