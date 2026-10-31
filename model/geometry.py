@@ -123,11 +123,14 @@ STANDOFFS = {
         "switch": [(8.24, -30.6, 92.5)],
     },
     "pt_base": {
-        "receiver_1": [(26.0, 40.5, 13.0), (50.0, 40.5, 13.0), (26.0, 63.5, 13.0), (50.0, 63.5, 13.0)],
-        "receiver_2": [(26.0, 73.5, 13.0), (50.0, 73.5, 13.0), (26.0, 96.5, 13.0), (50.0, 96.5, 13.0)],
-        "switch": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
+        # PandT base STL [M]: receiver standoffs to z 16 (r 1.1 locating pins up to z 18 on one diagonal of each set)
+        "receiver_1": [(26.0, 40.5, 16.0), (50.0, 40.5, 16.0), (26.0, 63.5, 16.0), (50.0, 63.5, 16.0)],
+        "receiver_2": [(26.0, 73.5, 16.0), (50.0, 73.5, 16.0), (26.0, 96.5, 16.0), (50.0, 96.5, 16.0)],
+        # the eyes build's cable holder (wire keeper), moved onto this base (pan-tilt guide p.23 step 18; Cansin's build,
+        # docs/build-photos/eyes-top.jpg): the eye leads pass under it
+        "cable_holder": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
         "switch_post": [(34.5, 108.5, 9.0)],  # switch board 1's post in the two-clip holder at the back edge [M]
-        "wire_keeper": [(-7.5, 40.5, 7.7), (7.5, 40.5, 7.7)],
+        "wire_holder": [(-7.5, 40.5, 9.0), (7.5, 40.5, 9.0)],  # the PandT wire holder's posts [M]
     },
 }
 
@@ -144,8 +147,11 @@ BARS = {
 # Bambu STEP files, local mm (measured in Fusion 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
 # z -2.3..0, tab holes along +X, shaft at x=16.69 pointing -Z; the horn's inner face sits 11.52 beyond the z -0.65 plane
 # (spline tip z -14.52 on the 2.35 deep bore). Horn = the kit's short single arm ("half arm1"): hub at (0,20,0), 4.15
-# tall, spline side z 4.15, arm (1.6 thick, holes every 2 mm along +X) on the outer face z 0; the build pins the bars at
-# the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24 holes, Core under the PCB.
+# tall, spline side z 4.15, arm (1.6 thick, holes every 2 mm along +X, r 0.5) on the outer face z 0; the build pins the
+# bars at the second-from-last hole (guide p.15; Cansin's build, all four eye-mech horns), 12.75 from the hub. The two lid
+# horns have that hole drilled out with a 2 mm drill for the M2 bar screw and nut, the eye horns not (eyes guide p.15
+# step 5, p.29 step 22; Cansin's build, 2026-10-31): pin_r per horn. The horn mesh stays the STEP's for all four: the
+# drilling does not move the hole's axis, which is all the loops and the mating check use. Receiver: PCB bottom y=0, 23 x 24 holes, Core under the PCB.
 SERVO_STEP = {
     "tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)],
     "shaft": (16.69, 5.9, -0.65),
@@ -154,8 +160,10 @@ SERVO_STEP = {
     # mesh is cut there (the tab end) and the cable corridor starts there
     "lead": (27.7, 5.9, 11.0),
 }
-HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15}
-SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}  # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
+HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15, "pin_r": {"lid": 1.0, "eye": 0.5}}
+# Switch STEP: the mounting hole on the PCB bottom (PCB x -7.25..13.25, z +-16) and the two XH sockets' mouths at the PCB
+# ends (housings x -5.75..4.25, y 1.4..7.6, z +-5..15.5): "in" takes the pack's lead, "out" the lead to the shields.
+SWITCH_STEP = {"hole": (10.25, 0.0, 0.0), "in": (-0.75, 4.5, 15.5), "out": (-0.75, 4.5, -15.5)}
 # The servos by the names the remote config and calibration use, and their Mech labels (Fusion components "<label> servo").
 # Core 1 drives the eyes (docs/build-notes.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
 CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
@@ -171,7 +179,7 @@ SERVO_LABEL = {
 }
 
 # Receiver STEP Ports: the four servo headers and the XH power socket (top centres); the PWM numbering of the headers is
-# inferred. The switch board's two XH sockets are not located: the cable corridors take its mounting hole for both [I].
+# inferred.
 RECEIVER_STEP = {
     "headers": {
         "PWM1": (4.2, 10.8, 0.4),
@@ -311,23 +319,28 @@ STL_LOCAL = {
     "jaws connector bar": {"holes": [(-22.05, -2.5, 6.5), (22.05, -2.5, -6.5)], "hole_axis": Z},
 }
 
-# Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the
-# pack body beyond y=56 (plug at y 50..55).
+# Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0 (51.2 long, 28.4 wide), lead
+# fused to the pack body beyond y=56 (plug at y 50..55).
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
-BATTERY_POCKET_PT = {"x": (-48.0, -24.0), "y": (71.0, 127.0), "floor_z": 3.0}  # PandT base, PT frame [M]
+BATTERY_POCKET_PT = {"x": (-50.0, -21.5), "y": (73.0, 125.0), "floor_z": 3.0}  # PandT base STL pocket, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
-# Electronics set n on the PandT base (model/electronics.py, model/engine/stages.py), PT frame, oriented as the designer's
-# build: the receiver's XH socket to the front and the Core on top (the STEP has the Core under the shield: flipped about
-# the PCB mid-plane). Switch board 1 lies in the base's two-clip holder at the back edge, slide switch lever up at the
-# back, reachable from behind (Cansin's build, docs/build-photos/eyes-top.jpg; eyes guide p.13, pan-tilt guide p.23):
-# PCB bottom on the clip shelves and the post (all top z 9), between the clip walls (x 18 / 51) against the back wall
-# (y 126), the slide switch's underside dropping between the shelves [M]. Set 2 (switch board 2 on the standoff at
-# (6, 92.5), battery 2 on top of battery 1 in the box) is inferred.
+# The electronics on the PandT base (model/electronics.py, model/engine/stages.py), PT frame, as the pan-tilt guide builds
+# them (p.10 Y adapter, p.23): one pack and one switch board feed both receiver shields through a Y lead. Shield n sits
+# on standoff set n (1 front, 2 back), PCB on the standoff tops (z 16), the Core plugged in under it as in the receiver
+# STEP, its USB-C and the shield's XH socket toward the plate's +x edge (Cansin's build for shield 1,
+# docs/build-photos/eyes-top.jpg and references build-photos/eyes-side; guide p.23 for shield 2). Switch board 1 lies in
+# the base's two-clip holder at the back edge, slide switch lever up at the back, reachable from behind (Cansin's build;
+# eyes guide p.13, pan-tilt guide p.23): PCB bottom on the clip shelves and the post (all top z 9), between the clip walls
+# (x 18 / 51) against the back wall (y 126), the slide switch's underside dropping between the shelves [M]. The pack lies
+# in the box's pocket with its lead at the front end (both photos), turned end for end from the STEP's frame.
 RECEIVER_AXES = ((0, -1, 0), (-1, 0, 0))  # (x, z) of the receiver STEP
-CORE_FLIP = ((0, 0, 1), 180, (0, 0.8, 0))  # (axis, deg, about local mm)
-SWITCH_AXES = {1: ((0, -1, 0), (-1, 0, 0)), 2: ((-1, 0, 0), (0, 1, 0))}  # (x, z) of the switch STEP per set
-BATTERY_STACK_Z = 16.3  # pack height: the second pack's floor sits on the first pack's top [I]
+SWITCH_AXES = ((0, -1, 0), (-1, 0, 0))  # (x, z) of the switch STEP
+BATTERY_AXES = ((-1, 0, 0), (0, 0, 1))  # (x, z) of the battery STEP: the lead end to the front (-y)
+# The eyes build's wire keeper (its STL in the eyes frame, holes along Y at (29.5, 51/75), bottom face y -22.6) lies on the
+# base's cable holder posts: align_rows(*CABLE_HOLDER_AT, **CABLE_HOLDER_FROM).
+CABLE_HOLDER_AT = (STANDOFFS["pt_base"]["cable_holder"][0], Y, Z)
+CABLE_HOLDER_FROM = {"from_origin": (29.5, -22.6, 51.0), "from_x": Z, "from_z": Y}
 
 
 def receiver_at(n):
@@ -335,18 +348,18 @@ def receiver_at(n):
     return tuple(sum(c) / len(pts) for c in zip(*pts))
 
 
-def switch_at(n):
-    """(point, x, z): switch board n's mounting hole on its post top and its STEP's axes, align's first arguments."""
-    point = STANDOFFS["pt_base"]["switch_post"][0] if n == 1 else STANDOFFS["pt_base"]["switch"][1]  # [I] for set 2
-    return point, *SWITCH_AXES[n]
+def switch_at():
+    """(point, x, z): switch board 1's mounting hole on its post top and its STEP's axes, align's first arguments."""
+    return STANDOFFS["pt_base"]["switch_post"][0], *SWITCH_AXES
 
 
-def battery_at(n):
+def battery_at():
+    """(origin, x, z) of the battery STEP (align's first arguments): the pack's back end on the pocket's back wall,
+    centred across the pocket, its floor on the pocket floor."""
     pocket = BATTERY_POCKET_PT
     return (
-        sum(pocket["x"]) / 2,
-        pocket["y"][0],
-        pocket["floor_z"] - BATTERY_STEP["floor_z"] + (n - 1) * BATTERY_STACK_Z,
+        (sum(pocket["x"]) / 2, pocket["y"][1], pocket["floor_z"] - BATTERY_STEP["floor_z"]),
+        *BATTERY_AXES,
     )
 
 

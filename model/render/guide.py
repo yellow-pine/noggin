@@ -28,7 +28,8 @@ BOARDS1 = [
     "battery 1:1",
     "switch board 1:1",
     "receiver shield 1:1",
-    "Core 1 (flipped onto the shield top, per photo):1",
+    "Core 1:1",
+    "cable holder:1",
 ]
 L_SIDE = ["L servo bracket:1", "L lid servo:1", "L eye servo:1"]
 R_SIDE = ["R servo bracket:1", "R lid servo:1", "R eye servo:1"]
@@ -42,7 +43,7 @@ EYE_LINKS = ["L eyeball bar:1", "R eyeball bar:1", "L eye horn:1", "R eye horn:1
 LID_HORNS = ["L lid horn:1", "R lid horn:1"]
 EYES = [*BRACKET, *LIDS, *TOPLIDS, *CRANKS, *BARS, *BALLS, *EYE_LINKS, *LID_HORNS]
 PAN = ["bearing block:1", "pan base:1", "upright v2:1"]
-BOARDS2 = ["receiver shield 2:1", "Core 2 (flipped onto the shield top, per photo):1", "wire holder:1"]
+BOARDS2 = ["receiver shield 2:1", "Core 2:1", "wire holder:1"]
 SERVOS2 = ["tilt servo:1", "pan servo:1", "servo mount plain:1", "servo mount cutout:1"]
 LINKS2 = ["tilt arm:1", "tilt horn:1", "tilt bar:1", "pan horn:1", "pan bar:1"]
 STACK = [*PAN, *BOARDS2, *SERVOS2, *LINKS2]
@@ -50,8 +51,8 @@ JAW_SERVO = ["jaws servo mount:1", "jaw servo:1"]
 MOUTH = [*JAW_SERVO, "top jaw:1", "bottom jaw:1", "jaw horn:1", "connector bar:1"]
 
 STEPS = [
-    Step("eyes", 13, 0, "2", BASE, (180, 50)),
-    Step("eyes", 13, 1, "3", [*BASE, *BOARDS1[:2]], (180, 50)),
+    Step("eyes", 13, 0, "2", [*BASE, "cable holder:1"], (180, 50)),
+    Step("eyes", 13, 1, "3", [*BASE, *BOARDS1[:2], "cable holder:1"], (180, 50)),
     Step("eyes", 14, 0, "4", [*BASE, *BOARDS1], (180, 50)),
     Step("eyes", 16, 1, "6", L_SIDE, (135, 30)),
     Step("eyes", 17, 0, "7", ["main bracket v2:1", *L_SIDE], (150, -40)),

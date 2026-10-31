@@ -187,40 +187,43 @@ def eyes():
 
 
 def electronics(n):
-    """(parts, ports): receiver shield n with its Core flipped on top, switch board n and battery n on the PandT base
-    (model/electronics.py)."""
+    """(parts, ports): receiver shield n with its Core plugged in under it; set 1 adds the one switch board, the pack and the
+    eyes build's cable holder on the PandT base (model/electronics.py)."""
     receiver_m = align(g.receiver_at(n), *g.RECEIVER_AXES)
-    axis, deg, about = g.CORE_FLIP
-    flip = linkage.rotation(axis, deg, about)
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
-    shield, switch = f"receiver shield {n}:1", f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1"
-    battery = "battery 1:1" if n == 1 else "battery 2 (inferred):1"
+    shield = f"receiver shield {n}:1"
     ports = {f"Core {n} servo {h}": (shield, p) for h, p in g.RECEIVER_STEP["headers"].items()}
     ports[f"Core {n} XH power"] = (shield, g.RECEIVER_STEP["xh_power"])
-    ports[f"battery {n} lead"] = (battery, g.BATTERY_STEP["plug"])
-    ports[f"switch board {n} hole"] = (switch, g.SWITCH_STEP["hole"])  # its XH sockets are not located [I]
-    return {
-        shield: part(step("receiver"), receiver_m, board),
-        f"Core {n} (flipped onto the shield top, per photo):1": part(step("core"), receiver_m @ flip, board),
-        switch: part(step("switch"), align(*g.switch_at(n), g.SWITCH_STEP["hole"]), board),
-        battery: part(step("battery"), align(g.battery_at(n), g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"])),
-    }, ports
+    parts = {shield: part(step("receiver"), receiver_m, board), f"Core {n}:1": part(step("core"), receiver_m, board)}
+    if n == 1:
+        switch_m = align(*g.switch_at(), g.SWITCH_STEP["hole"])
+        parts["switch board 1:1"] = part(step("switch"), switch_m, board)
+        parts["battery 1:1"] = part(step("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
+        parts["cable holder:1"] = part(
+            stl("eyes", "wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
+        )
+        ports["battery 1 lead"] = ("battery 1:1", g.BATTERY_STEP["plug"])
+        ports["switch board 1 in"] = ("switch board 1:1", g.SWITCH_STEP["in"])
+        ports["switch board 1 out"] = ("switch board 1:1", g.SWITCH_STEP["out"])
+    return parts, ports
 
 
 def base():
-    """noggin-base: the PandT base plate with electronics set 1, PT frame (model/base.py)."""
+    """noggin-base: the PandT base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame
+    (model/base.py)."""
     set1, ports = electronics(1)
     parts = {"PandT base:1": part(stl("pt", "PandT base"), None, printed("PandT base")), **set1}
     stand = g.STANDOFFS["pt_base"]
     placements = [
         ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
         ("switch board 1:1", [g.SWITCH_STEP["hole"]], [stand["switch_post"][0]], TOL_MM),
+        ("cable holder:1", [(29.5, -22.6, 51.0), (29.5, -22.6, 75.0)], stand["cable_holder"], TOL_MM),
     ]
     return Sub(parts, {}, placements, ports)
 
 
 def stack():
-    """noggin-stack: the pan-tilt neck with electronics set 2, PT frame (model/stack.py)."""
+    """noggin-stack: the pan-tilt neck with receiver shield 2 and Core 2, PT frame (model/stack.py)."""
     parts = {}
     for name, stem, shift in g.STACK_PARTS:
         parts[name + ":1"] = part(stl("pt", stem), translate(shift), printed(stem))
@@ -260,10 +263,7 @@ def stack():
         "pan horn": Horn(g.PIVOTS["pan_horn"], limits("rotate"), "pan horn:1", [pan], ["tilt pivot"], None),
     }
     stand = g.STANDOFFS["pt_base"]
-    placements += [
-        ("receiver shield 2:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_2"], axis=0))], TOL_MM),
-        ("switch board 2 (inferred):1", [g.SWITCH_STEP["hole"]], [stand["switch"][1]], TOL_INFERRED_MM),
-    ]
+    placements += [("receiver shield 2:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_2"], axis=0))], TOL_MM)]
     return Sub(parts, horns, placements, ports)
 
 
