@@ -7,13 +7,13 @@ import serial
 ports = sorted(glob.glob("/dev/cu.usbmodem*"))
 if not ports:
     sys.exit("no Core on USB")
-for attempt in range(15):                        # the Daemon may still be letting go of the Link
+for attempt in range(15):                        # the noggin service may still be letting go of the Link
     try:
         s = serial.Serial(ports[0], 115200, timeout=0.5, exclusive=True); break
     except (serial.SerialException, OSError):
         time.sleep(0.2)
 else:
-    sys.exit("Link busy: is the Daemon still running? (make stop)")
+    sys.exit("Link busy: is the noggin service still running? (make stop)")
 with s:
     for _ in range(3):
         s.write(b"\x03"); time.sleep(0.4)

@@ -204,7 +204,7 @@ TOTAL_STAGES=7
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
 port() { ls /dev/cu.usbmodem* 2>/dev/null | head -n1; }
-# board_send LINE: write one command to the Core over USB and print its reply (pre-daemon use only)
+# board_send LINE: write one command to the Core over USB and print its reply (before the noggin service is installed)
 board_send() {
   "$PY" - "$(port)" "$1" <<'PYEOF'
 import serial, sys, time
@@ -225,7 +225,7 @@ say "Connect the CyberBrick Core to this Mac with the USB-C cable and switch the
 note "USB powers the Core; the servos need the battery (or the USB-A -> XH2.54 lead)."
 until [[ -n "$(port)" ]]; do pause "Waiting for /dev/cu.usbmodem* ... press Enter to re-check"; done
 say "Found $(port)"
-make -s stop >/dev/null 2>&1 || true   # free the port if a daemon from an earlier run holds it
+make -s stop >/dev/null 2>&1 || true   # free the port if a noggin service from an earlier run holds it
 
 stage "What is on the Core"
 say "Reading MicroPython version and the file list."
@@ -253,31 +253,31 @@ note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run t
 pause
 
 stage "Calibrate lids and eyes"
-say "Calibration is live: eyes/calibration.json is pushed to the Core by the Daemon; nothing is reflashed."
+say "Calibration is live: eyes/calibration.json is pushed to the Core by the noggin service; nothing is reflashed."
 say "Known-good values for this Mech are already in the file. Re-tune only what looks off."
 note "Fit horns first with the servos at centre (board_send 'pose lids 0.5 eyes 90'), then the small screws."
 board_send "pose lids 0.5 eyes 90" >/dev/null
 confirm "With servos at centre: lids about half open, eyes straight? (if not, refit the horns now)" || warn "refit horns, then re-run this stage"
 board_send "wince 2" >/dev/null; sleep 4
-confirm "Did BOTH lids close and reopen?" || warn "a lid runs backwards: after install, 'daemon/noggin set l_lid_flip 0' (or 1), r_lid_flip likewise"
+confirm "Did BOTH lids close and reopen?" || warn "a lid runs backwards: after install, 'noggin/noggin set l_lid_flip 0' (or 1), r_lid_flip likewise"
 board_send "eureka 3" >/dev/null; sleep 6
-confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'daemon/noggin set l_eye_lo N' / l_eye_hi (centre = their average), r_eye likewise"
-note "Tuning by eye after install: 'daemon/noggin pose lids 0.3 eyes 95' holds a pose; 'daemon/noggin set lid_rest 0.3' applies + saves."
+confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'noggin/noggin set l_eye_lo N' / l_eye_hi (centre = their average), r_eye likewise"
+note "Tuning by eye after install: 'noggin/noggin pose lids 0.3 eyes 95' holds a pose; 'noggin/noggin set lid_rest 0.3' applies + saves."
 note "Lid levels: lid_closed (blink), lid_think, lid_rest, lid_open (eureka). Never set *_lo/*_hi onto a hard stop: clutch servos slip."
 pause
 
-stage "Install hooks and the daemon"
-say "Adds async hooks to ~/.claude/settings.json and starts the launchd agent com.noggin.eyesd."
+stage "Install hooks and the noggin service"
+say "Adds async hooks to ~/.claude/settings.json and starts the noggin service (launchd com.noggin)."
 confirm "Install now?" && make -s install
 sleep 2; make -s status
 pause
 
 stage "End-to-end test"
-say "Manual gesture through the daemon socket:"
-daemon/noggin eureka 2 && say "sent" || warn "daemon not reachable"
+say "Manual gesture through the noggin socket:"
+noggin/noggin eureka 2 && say "sent" || warn "noggin not reachable"
 say "Now open another terminal, start a Claude Code session, send any prompt."
 say "Expected: lids half + slow drifts while it works, eureka when it answers."
-note "Mute any time with 'daemon/noggin off', back with 'daemon/noggin on'."
+note "Mute any time with 'noggin/noggin off', back with 'noggin/noggin on'."
 pause "Press Enter when you have seen it (or given up)."
 
 finish

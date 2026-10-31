@@ -66,23 +66,23 @@ _Avoid_: length, level, duration class
 ### Control
 
 **Trigger**:
-A request for a gesture arriving at the Daemon, normally from a Claude Code hook.
+A request for a gesture arriving at the noggin service, normally from a Claude Code hook.
 _Avoid_: hook, event, signal, poke
 
-**Daemon**:
-The always-running Mac process that owns the Link and turns Triggers into gesture commands for the Core.
-_Avoid_: service, server, agent, bridge, puppeteer
+**Noggin service**:
+The always-running Mac process that owns the Link and turns Triggers into gesture commands for the Core. Just "noggin" in commands.
+_Avoid_: daemon, server, agent, bridge, puppeteer
 
 **Busy**:
-The Daemon's state while a gesture is playing; any Trigger arriving while Busy is dropped.
+The noggin service's state while a gesture is playing; any Trigger arriving while Busy is dropped.
 _Avoid_: cooldown, debounce, lock
 
 **Turn**:
-One session's work from the user's prompt to Claude's answer, timed by the Daemon to pick a Tier.
+One session's work from the user's prompt to Claude's answer, timed by the noggin service to pick a Tier.
 _Avoid_: request, response, round
 
 **Mute**:
-The Daemon setting that drops every Trigger until switched back on.
+The noggin service setting that drops every Trigger until switched back on.
 _Avoid_: pause, disable, sleep mode
 
 **Program**:

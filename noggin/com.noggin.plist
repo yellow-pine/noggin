@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>com.noggin.eyesd</string>
+  <key>Label</key><string>com.noggin</string>
   <key>ProgramArguments</key><array>
     <string>__REPO__/.venv/bin/python</string>
-    <string>-m</string><string>daemon.eyesd</string>
+    <string>-m</string><string>noggin.service</string>
   </array>
   <key>WorkingDirectory</key><string>__REPO__</string>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>__REPO__/eyesd.log</string>
-  <key>StandardErrorPath</key><string>__REPO__/eyesd.log</string>
+  <key>StandardOutPath</key><string>__REPO__/noggin.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/noggin.log</string>
 </dict></plist>

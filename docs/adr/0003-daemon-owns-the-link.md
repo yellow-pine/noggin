@@ -6,3 +6,7 @@ Claude Code hooks could open the USB serial port directly, but several sessions 
 
 - Direct from hook: simplest, rejected for port contention and hook latency.
 - Queue instead of drop: rejected; stacked gestures look twitchy and carry stale meaning.
+
+## Update 2026-10-31
+
+The process is called the noggin service (folder `noggin/`, launchd label `com.noggin`), not "the Daemon". Same design.
