@@ -41,6 +41,12 @@ pushing past them, the lids bind at the ends.
 
 ## Talking to the Core
 
+- This board reports `3.4.0; MicroPython e7cd27f2 on 2025-06-09`; stock RC program 01.00.00.13.
+- mpremote's own Ctrl-C does not interrupt the stock RC app, and `mpremote soft-reset` waits for a
+  raw REPL the eye program never gives. `eyes/interrupt.py` handles both; every Makefile board
+  target goes through it, then uses `mpremote resume`.
+- Servos stay powered at rest: released, the lids and eyes fall under gravity.
+
 - ESP32-C3 running Bambu's MicroPython build. USB-C is the REPL at 115200,
   enumerating on macOS as `/dev/cu.usbmodem*`.
 - Upload files with `mpremote`. Never flash firmware with esptool or any

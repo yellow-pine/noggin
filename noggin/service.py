@@ -48,6 +48,17 @@ class Service:
     def cal_lines(self):
         return [f"set {k} {v}" for k, v in self.calibration().items()]
 
+    def read_core(self):
+        """Log whatever the Core prints (ready banner, unknown commands, tracebacks after a brownout)."""
+        try:
+            n = self.link.in_waiting
+            if n:
+                for line in self.link.read(n).decode(errors="replace").splitlines():
+                    if line.strip():
+                        log("Core:", line.strip())
+        except Exception as e:
+            log("Link lost:", e); self.link = None
+
     def send(self, lines):
         if not lines or self.link is None:
             if lines: log("no Link, dropped", lines)
@@ -100,6 +111,8 @@ class Service:
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])   # calibrate, then catch up the mode
             self.send(self.director.tick(now))
+            if self.link is not None:
+                self.read_core()
             try:
                 conn, _ = srv.accept()
             except socket.timeout:
