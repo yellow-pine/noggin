@@ -30,6 +30,7 @@ stop:            ## stop the noggin service (frees the Link for mpremote); waits
 	@while launchctl print $(LABEL) >/dev/null 2>&1; do sleep 0.2; done
 status:
 	-launchctl print $(LABEL) | grep -E 'state|pid' | head -3
+	-noggin/noggin status
 	-tail -5 noggin.log
 log:
 	tail -f noggin.log

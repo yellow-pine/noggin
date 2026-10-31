@@ -23,7 +23,7 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     state = tmp_path / "mute"
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"; cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
-    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
+    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal, beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
@@ -49,7 +49,7 @@ def test_core_output_is_logged(tmp_path, capsys):
         def in_waiting(self): return len(self.pending)
         def read(self, n): out, self.pending = self.pending[:n], self.pending[n:]; return out
     sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
-    d = Service(sock_path=sock, open_serial=lambda: ChattySerial(), mute_file=tmp_path / "m", cal_file=tmp_path / "c.json")
+    d = Service(sock_path=sock, open_serial=lambda: ChattySerial(), mute_file=tmp_path / "m", cal_file=tmp_path / "c.json", beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready); time.sleep(0.6); d.stop(); t.join(2)
     out = capsys.readouterr().out
