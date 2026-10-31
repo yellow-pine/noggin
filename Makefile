@@ -46,6 +46,7 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 flash: interrupt ## install the eye program and reboot the Core
 	$(MPR) resume cp eyes/eyes.py :eyes.py
 	$(MPR) resume cp eyes/gaze_trace.py :gaze_trace.py
+	$(MPR) resume cp eyes/wifi.py :wifi.py
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(PY) eyes/interrupt.py reset
 restore-stock: interrupt
