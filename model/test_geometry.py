@@ -1,4 +1,5 @@
-"""Seam: model/geometry.py public data and functions. Expected values are literals from docs/research/2026-10-31-model.md."""
+"""Seam: model/geometry.py public data and functions. Expected values are literals from docs/research/2026-10-31-model.md
+and docs/research/2026-10-31-shafts.md (servo shafts, horn seat)."""
 
 from model import geometry as g
 
@@ -33,12 +34,12 @@ def test_designer_limits_are_the_remote_config():
 def test_model_limits_deviate_from_the_designer_only_with_a_recorded_reason():
     assert g.HORN_LIMITS == {
         "l_lid": (70, 120),
-        "l_eye": (70, 110),
+        "l_eye": (68, 112),
         "r_lid": (70, 120),
-        "r_eye": (70, 110),
+        "r_eye": (68, 112),
         "tilt": (30, 150),
         "rotate": (40, 160),
-        "mouth": (50, 90),
+        "mouth": (15, 90),
     }
     deviated = {k for k in g.HORN_LIMITS if g.HORN_LIMITS[k] != g.DESIGNER_LIMITS[k]}
     assert deviated == set(g.MODEL_LIMITS)
@@ -51,7 +52,7 @@ def test_bars_are_measured_pivot_spacings():
         "eyelid_crank": 41.0,
         "tilt_bar": 20.0,
         "pan_bar": 15.0,
-        "connector_bar": 31.4,
+        "connector_bar": 44.1,
         "eyeball_bar": 27.0,
     }
 
@@ -81,7 +82,7 @@ def test_receiver_standoffs_form_23_by_24_rectangle():
         assert extents == [0, 23, 24]
 
 
-def test_pivots_name_frame_axis_and_inferred_shafts():
+def test_pivots_name_frame_axis_and_none_is_inferred():
     assert set(g.PIVOTS) == {
         "l_lid",
         "r_lid",
@@ -101,20 +102,44 @@ def test_pivots_name_frame_axis_and_inferred_shafts():
     assert g.PIVOTS["tilt"] == {"point": (0.0, -13.0, 33.4), "axis": (1, 0, 0), "frame": "pt"}
     assert g.PIVOTS["jaw_hinge"] == {"point": (29.5, -49.6, 8.0), "axis": (1, 0, 0), "frame": "eyes"}
     assert g.PIVOTS["r_eye"]["point"] == g.mirror_x(g.PIVOTS["l_eye"]["point"])
-    for name, p in g.PIVOTS.items():
+    for p in g.PIVOTS.values():
         assert p["frame"] in ("eyes", "pt")
-        assert name.endswith("_horn") == bool(p.get("inferred"))
+        assert not p.get("inferred")  # every shaft settled by the STEPs, STLs and guide pictures (#62)
+
+
+def test_horn_pivots_sit_at_the_horn_seat_on_the_shaft_the_guides_show():
+    # docs/research/2026-10-31-shafts.md: horn inner face, shaft 8.56 from the near tab hole, flange on the lug face
+    want = {
+        "l_lid_horn": ((-19.59, -13.21, 40.0), (1, 0, 0)),
+        "r_lid_horn": ((78.59, -13.21, 40.0), (1, 0, 0)),
+        "l_eye_horn": ((2.56, -1.63, 26.9), (0, 1, 0)),
+        "r_eye_horn": ((56.44, -1.63, 26.9), (0, 1, 0)),
+        "tilt_horn": ((15.13, 13.98, 18.38), (1, 0, 0)),
+        "pan_horn": ((-20.5, 38.11, 27.17), (0, 0, 1)),
+        "jaw_horn": ((83.29, -48.6, 33.67), (1, 0, 0)),
+    }
+    for name, (point, axis) in want.items():
+        p = g.PIVOTS[name]
+        assert _dist(p["point"], point) < 0.01 and p["axis"] == axis, (name, p)
+    assert g.SERVO_STEP["horn_seat"] == 11.52  # spline tip on the bore bottom: STEP z -12.17, tab plane z -0.65
 
 
 def test_servo_frame_puts_tab_holes_on_the_measured_holes_and_shaft_toward_the_horn():
-    for key, shaft_dir in [("l_lid", (-1, 0, 0)), ("r_lid", (1, 0, 0)), ("l_eye", (0, 1, 0)), ("r_eye", (0, 1, 0))]:
+    for key, shaft_dir in [
+        ("l_lid", (-1, 0, 0)),
+        ("r_lid", (1, 0, 0)),
+        ("l_eye", (0, 1, 0)),
+        ("r_eye", (0, 1, 0)),
+        ("jaw", (1, 0, 0)),
+    ]:
         origin, tab_x, shaft = g.servo_frame(key)
         assert shaft == shaft_dir
         shaft_x = g.SERVO_STEP["shaft"][0]
         placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
         for hole in g.SERVOS[key]["tab_holes"]:
-            # shortcut: 0.5 mm, the horn pivots are inferred to +-4 mm; tighten when the shafts are measured
-            assert min(_dist(p, hole) for p in placed) < 0.5, (key, placed, hole)
+            # the near hole exactly; the far one within the lug's pitch error (27.58..27.7 printed vs the servo's 27.8)
+            assert min(_dist(p, hole) for p in placed) < 0.25, (key, placed, hole)
+        assert min(_dist(placed[1], h) for h in g.SERVOS[key]["tab_holes"]) < 0.01, key
 
 
 def test_pan_tilt_servo_frames_put_tab_holes_on_the_measured_holes():
@@ -124,7 +149,9 @@ def test_pan_tilt_servo_frames_put_tab_holes_on_the_measured_holes():
         shaft_x = g.SERVO_STEP["shaft"][0]
         placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
         for hole in g.SERVOS[key]["tab_holes"]:
-            assert min(_dist(p, hole) for p in placed) < 0.5, (key, placed, hole)
+            # the near hole exactly; the far one within the lug's pitch error (27.58..27.7 printed vs the servo's 27.8)
+            assert min(_dist(p, hole) for p in placed) < 0.25, (key, placed, hole)
+        assert min(_dist(placed[1], h) for h in g.SERVOS[key]["tab_holes"]) < 0.01, key
 
 
 def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
@@ -132,7 +159,7 @@ def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
         pin, lever = g.horn_pin(key)
         hub = g.PIVOTS[key + "_horn"]["point"]
         plane = g.PT_BAR_PLANES[key][1]
-        assert pin[axis] == lever[axis] == plane
+        assert pin[axis] == lever[axis] == plane == {"tilt": 9.5, "pan": 28.3}[key]  # on the lever face / top
         in_plane = lambda p: [c for i, c in enumerate(p) if i != axis]
         assert abs(_dist(in_plane(pin), in_plane(hub)) - g.HORN_STEP["pin"]) < 1e-6
         assert abs(_dist(pin, lever) - g.BARS[key + "_bar"]) < 1e-6
@@ -144,17 +171,13 @@ def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
 
 def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub():
     origin, tab_x, shaft = g.servo_frame("jaw")
-    assert shaft == (-1, 0, 0) and origin == (
-        75.9,
-        -48.6,
-        23.1,
-    )  # tab plane at the mount lug, the horn seat 10.35 inboard
-    assert abs(g.PIVOTS["jaw_horn"]["point"][0] - (75.9 - g.SERVO_STEP["horn_seat"])) < 1e-9
+    assert shaft == (1, 0, 0) and _dist(origin, (71.77, -48.6, 33.67)) < 1e-9  # tab plane inside the mount plate
     pin, lever = g.horn_pin("jaw")
-    assert pin[0] == lever[0] == 58.9 and lever[1:] == (-58.1, -10.44)
+    # the connector bar is cranked 13 mm along the pin: horn end under the horn arm, jaw end on the jaw lug's outer face
+    assert pin[0] == 84.92 and lever == (71.92, -58.1, -10.44)
     hub = g.PIVOTS["jaw_horn"]["point"]
     assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
-    assert abs(_dist(pin, lever) - g.BARS["connector_bar"]) < 1e-6
+    assert abs(_dist(pin[1:], lever[1:]) - g.BARS["connector_bar"]) < 1e-6
     assert pin[1] < hub[1] - 10  # horn pointing down (-Y), away from the bracket rail
 
 

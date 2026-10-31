@@ -38,8 +38,8 @@ BEHIND = {
 }
 GATHER = ("main bracket v2:1", (23.5, -38.5, 34.5), "gathered behind the bracket stem, guide step 18 photo (inferred)")
 NECK = [
-    ("tilt arm:1", (6.0, 36.0, 38.0), "zip-tied behind the tilt arm's back, guide step 18 photo (inferred)"),
-    ("upright v2:1", (6.0, 36.0, 20.0), "down behind the upright, guide step 18 photo (inferred)"),
+    ("tilt arm:1", (5.5, 36.0, 38.0), "zip-tied behind the tilt arm's back, guide step 18 photo (inferred)"),
+    ("upright v2:1", (5.5, 36.0, 20.0), "down behind the upright, guide step 18 photo (inferred)"),
     ("wire holder:1", (0.0, 40.5, 6.0), "under the cable holder on the base, guide step 18 (inferred)"),
 ]
 DESK = {
@@ -69,7 +69,6 @@ ROUTES = {
     ],
     "mouth servo -> Core 2 PWM2": [
         [
-            ("jaws servo mount:1", (89.5, -39.5, 23.5), "up over the jaw servo's outer end (inferred)"),
             (*UNDER["R"][:2], "joins the R eye lead under the R servo bracket (inferred)"),
             GATHER,
             *NECK,

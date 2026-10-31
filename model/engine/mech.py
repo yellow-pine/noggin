@@ -16,13 +16,13 @@ FRAME_S = 0.02  # 50 Hz PWM: the servo sees one new pulse per frame, so the plan
 KGF_CM = 0.0980665  # N.m
 CLUTCH_KGF_CM, CLUTCH_MARGIN = 0.9, 1.5  # B-PG001 clutch protection at 4.8 V (docs/research/2026-10-31-electrical.md)
 HORN_SERVO = {
-    "L lid horn (inferred)": "l_lid",
-    "L eye horn (inferred)": "l_eye",
-    "R lid horn (inferred)": "r_lid",
-    "R eye horn (inferred)": "r_eye",
-    "tilt horn (inferred)": "tilt",
-    "pan horn (inferred)": "rotate",
-    "jaw horn (inferred)": "mouth",
+    "L lid horn": "l_lid",
+    "L eye horn": "l_eye",
+    "R lid horn": "r_lid",
+    "R eye horn": "r_eye",
+    "tilt horn": "tilt",
+    "pan horn": "rotate",
+    "jaw horn": "mouth",
 }  # geometry.HORN_LIMITS keys
 
 
@@ -129,7 +129,7 @@ def margin(outline, xy):
     return float(-(outline[:, :2] @ np.asarray(xy, float) + outline[:, 2]).max())
 
 
-PAN, TILT = "pan horn (inferred)", "tilt horn (inferred)"
+PAN, TILT = "pan horn", "tilt horn"
 
 
 def mech_poses(stage, step):

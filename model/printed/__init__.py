@@ -2,7 +2,19 @@
 
 import cadquery as cq
 
-from model.printed import eyeball, eyeball_bar, eyelid_bar, lid, main_bracket, pupil, servo_bracket
+from model.printed import (
+    bottom_jaw,
+    eyeball,
+    eyeball_bar,
+    eyelid_bar,
+    jaws_connector_bar,
+    jaws_servo_mount,
+    lid,
+    main_bracket,
+    pupil,
+    servo_bracket,
+    top_jaw,
+)
 
 PARTS = {
     "main bracket v2": main_bracket.build,
@@ -16,6 +28,10 @@ PARTS = {
     "outside lid": lambda: lid.build("outside"),
     "L servo bracket": lambda: servo_bracket.build("L"),
     "R servo bracket": lambda: servo_bracket.build("R"),
+    "jaws servo mount": jaws_servo_mount.build,
+    "jaws connector bar": jaws_connector_bar.build,
+    "top jaw plain": top_jaw.build,
+    "bottom jaw plain": bottom_jaw.build,
 }
 
 

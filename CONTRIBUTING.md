@@ -9,7 +9,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - One PR per concern. Keep it small.
 - A spec gets one integration branch with one PR into main. Each ticket is built in its own worktree on its own
   branch, with a normal PR into the integration branch opened on the first push; whoever works the ticket keeps that
-  PR green and merges it when done, which deletes the branch. Every branch on GitHub has a PR, except parked work.
+  PR green and merges it (`gh pr merge --merge`) as soon as CI is green, with no approval wait, which deletes the
+  branch. Integration PRs are squash-merged into main. A pushed branch is never merged locally: it lands through its
+  own PR. Every branch on GitHub has a PR, except parked work (`face-stage1`).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 

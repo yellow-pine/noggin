@@ -52,14 +52,14 @@ def lid_loop(key):
 
 @pytest.mark.parametrize("key, joint", [("eyelid_bar", "L outside lid pivot"), ("eyelid_crank", "L inside lid pivot")])
 def test_lid_linkage_matches_the_recorded_fusion_curve(key, joint):
-    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L lid horn (inferred)"][joint]
+    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L lid horn"][joint]
     solve = lid_loop(key)
     for horn_deg, lid_deg in curves:
         assert solve(horn_deg)[0] == pytest.approx(lid_deg, abs=1.0), (horn_deg, lid_deg)
 
 
 def test_eyeball_linkage_matches_the_recorded_fusion_curve():
-    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L eye horn (inferred)"][
+    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L eye horn"][
         "L eyeball pivot"
     ]
     arm_end, eye_end = g.EYEBALL_BAR_PINS
