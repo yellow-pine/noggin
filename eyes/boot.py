@@ -1,5 +1,8 @@
 # noggin: replaces Bambu's stock boot.py. Reads one command per line on USB serial.
-import sys, select, time
+import select
+import sys
+import time
+
 from eyes import Eyes
 
 e = Eyes()
@@ -14,4 +17,4 @@ while True:
             print("ok")
         else:
             e.handle_line(line)
-    e.tick(time.ticks_ms())
+    e.tick(time.ticks_ms())  # pyright: ignore[reportAttributeAccessIssue]

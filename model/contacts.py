@@ -2,7 +2,6 @@
 stops at contact instead of passing through. Inlined into a build script via `# include: model/contacts.py`
 (after fusion_lib) and called before save(); eyes.py: contact_set(design, root, moving | {"main bracket v2"} |
 {o.name for o in root.occurrences if o.name.endswith("servo")}). Verified calls: twin-notes/fusion-sim-facts.md."""
-import adsk.core, adsk.fusion
 
 
 def contact_set(design, root, names):

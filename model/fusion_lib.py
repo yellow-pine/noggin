@@ -1,9 +1,18 @@
 """Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
 `# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-model.md."""
-import adsk.core, adsk.fusion, hashlib, json, math, os, time, traceback
 
-PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root
+import hashlib
+import json
+import math
+import os
+import time
+import traceback
+
+import adsk.core
+import adsk.fusion
+
+PROJECT_NAME = "Noggin"  # the hub's former Default Project, renamed; Stage documents sit at its root
 _PLANE_FOR_AXIS = {"X": "yZConstructionPlane", "Y": "xZConstructionPlane", "Z": "xYConstructionPlane"}
 
 
@@ -19,7 +28,7 @@ def vector(v):
 # timeline index after the last import, each component's part name and fingerprint, the last build summary.
 PARTS_END_ATTR, SUMMARY_ATTR = ("noggin", "parts_end"), ("noggin", "summary")
 PART_ATTR, FINGERPRINT_ATTR = ("noggin", "part"), ("noggin", "fingerprint")
-FRESH = []   # names imported by the current build (reset by open_or_create; Fusion keeps globals between calls)
+FRESH = []  # names imported by the current build (reset by open_or_create; Fusion keeps globals between calls)
 
 
 def open_or_create(app, name, keep_parts=False):
@@ -30,16 +39,20 @@ def open_or_create(app, name, keep_parts=False):
     Returns (document, design, folder); pass the folder to save()."""
     folder = project_root(app)
     existing = next((f for f in folder.dataFiles if f.name == name), None)
-    doc = app.documents.open(existing, True) if existing else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+    doc = (
+        app.documents.open(existing, True)
+        if existing
+        else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+    )
     design = adsk.fusion.Design.cast(app.activeProduct)
-    design.designType = adsk.fusion.DesignTypes.ParametricDesignType   # mesh convert only works here
+    design.designType = adsk.fusion.DesignTypes.ParametricDesignType  # mesh convert only works here
     root = design.rootComponent
     FRESH.clear()
     timeline = design.timeline
     recorded = root.attributes.itemByName(*PARTS_END_ATTR)
-    keep_parts = keep_parts and recorded is not None   # a document from before T9 is rebuilt in full
+    keep_parts = keep_parts and recorded is not None  # a document from before T9 is rebuilt in full
     cut = int(recorded.value) if keep_parts else 0
-    if cut < timeline.count:           # one rollback + delete: per-feature deletes recompute the timeline each time
+    if cut < timeline.count:  # one rollback + delete: per-feature deletes recompute the timeline each time
         timeline.markerPosition = cut
         timeline.deleteAllAfterMarker()
     if keep_parts:
@@ -51,7 +64,9 @@ def open_or_create(app, name, keep_parts=False):
 
 def project_root(app):
     projects = app.data.activeHub.dataProjects
-    project = next((p for p in projects if p.name == PROJECT_NAME), None) or projects.add(PROJECT_NAME)   # new hub/account
+    project = next((p for p in projects if p.name == PROJECT_NAME), None) or projects.add(
+        PROJECT_NAME
+    )  # new hub/account
     return project.rootFolder
 
 
@@ -63,7 +78,9 @@ def parts_folder(app):
 
 def stored_fingerprint(app, data_file):
     """The FINGERPRINT_ATTR a library part's root carries, read from the saved design without showing it."""
-    for attempt in range(3):   # right after a save the cloud copy can refuse the open ("Missing key for PIMOpenWorkflowTracker")
+    for attempt in range(
+        3
+    ):  # right after a save the cloud copy can refuse the open ("Missing key for PIMOpenWorkflowTracker")
         try:
             doc = app.documents.open(data_file, False)
             break
@@ -123,7 +140,9 @@ def reusable(reuse, name, paths, matrix, key=""):
         if stored and stored.value == fp:
             return occ, fp
         if not occ.isReferencedComponent:
-            occ.component.name = name + " (stale)"   # else the re-insert is named "<name> (1)" until the component is gone
+            occ.component.name = (
+                name + " (stale)"
+            )  # else the re-insert is named "<name> (1)" until the component is gone
         occ.deleteMe()
     FRESH.append(name)
     return None, fp
@@ -151,17 +170,26 @@ def summary(root):
     Compared across builds to decide whether a new version is worth saving."""
     joints = {}
     for j in root.joints:
-        lim = j.jointMotion.rotationLimits if j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType else None
-        joints[j.name] = {"limits": [round(math.degrees(lim.minimumValue), 2), round(math.degrees(lim.maximumValue), 2)] if lim and lim.isMinimumValueEnabled else None,
-                          "origins": [origin_frame(o) for o in (j.geometryOrOriginOne, j.geometryOrOriginTwo)],
-                          "parts": [o.name if o else None for o in (j.occurrenceOne, j.occurrenceTwo)]}
+        lim = (
+            j.jointMotion.rotationLimits
+            if j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType
+            else None
+        )
+        joints[j.name] = {
+            "limits": [round(math.degrees(lim.minimumValue), 2), round(math.degrees(lim.maximumValue), 2)]
+            if lim and lim.isMinimumValueEnabled
+            else None,
+            "origins": [origin_frame(o) for o in (j.geometryOrOriginOne, j.geometryOrOriginTwo)],
+            "parts": [o.name if o else None for o in (j.occurrenceOne, j.occurrenceTwo)],
+        }
     ports = {}
     for o in root.occurrences:
         for sk in o.component.sketches:
             if sk.name.startswith("Port:"):
-                p = sk.sketchPoints.item(sk.sketchPoints.count - 1).worldGeometry.copy(); p.transformBy(o.transform2)
+                p = sk.sketchPoints.item(sk.sketchPoints.count - 1).worldGeometry.copy()
+                p.transformBy(o.transform2)
                 ports[sk.name[6:]] = [round(p.x * 10, 2), round(p.y * 10, 2), round(p.z * 10, 2)]
-    return json.loads(json.dumps({"joints": joints, "ports": ports}))   # as it comes back from the attribute
+    return json.loads(json.dumps({"joints": joints, "ports": ports}))  # as it comes back from the attribute
 
 
 def saved_summary(root):
@@ -180,15 +208,21 @@ def save(doc, message, name, folder):
 
 def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
     """Matrix3D taking the local frame (from_*) onto the world frame (to_*), mm. Axes default to identity."""
+
     def frame(origin, x, z):
         x, z = vector(x), vector(z)
         z.normalize()
-        tilt = z.copy(); tilt.scaleBy(x.dotProduct(z)); x.subtract(tilt)   # x in the plane normal to z (stepped links)
+        tilt = z.copy()
+        tilt.scaleBy(x.dotProduct(z))
+        x.subtract(tilt)  # x in the plane normal to z (stepped links)
         x.normalize()
         y = z.crossProduct(x)
         return point(origin), x, y, z
+
     m = adsk.core.Matrix3D.create()
-    m.setToAlignCoordinateSystems(*frame(from_origin, from_x, from_z), *frame(to_origin, to_x or (1, 0, 0), to_z or (0, 0, 1)))
+    m.setToAlignCoordinateSystems(
+        *frame(from_origin, from_x, from_z), *frame(to_origin, to_x or (1, 0, 0), to_z or (0, 0, 1))
+    )
     return m
 
 
@@ -201,7 +235,7 @@ def matmul(a, b):
     return m
 
 
-_PARTS = {}   # library DataFiles by name; refilled when a name is missing (Fusion keeps globals between calls)
+_PARTS = {}  # library DataFiles by name; refilled when a name is missing (Fusion keeps globals between calls)
 
 
 def part_file(app, name):
@@ -231,7 +265,7 @@ def insert_part(root, name, label, matrix=None, reuse=None, referenced=False):
     kept, fp = reusable(reuse, label, [], matrix, f"{name}@v{df.versionNumber}")
     if kept:
         return kept
-    adsk.doEvents()   # keep the UI responsive during long builds
+    adsk.doEvents()  # keep the UI responsive during long builds
     occ = root.occurrences.addByInsert(df, matrix or adsk.core.Matrix3D.create(), referenced)
     tag(occ, label, fp)
     return occ
@@ -260,11 +294,13 @@ def world_frame(origin):
     p, z = g.origin.copy(), g.primaryAxisVector.copy()
     if native.isFlipped:
         z.scaleBy(-1)
-    step = z.copy(); step.scaleBy(native.offsetZ.value)
+    step = z.copy()
+    step.scaleBy(native.offsetZ.value)
     p.translateBy(step)
     if origin.assemblyContext:
-        p.transformBy(origin.assemblyContext.transform2); z.transformBy(origin.assemblyContext.transform2)
-    return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)   # axis: sketch space, see check.placements
+        p.transformBy(origin.assemblyContext.transform2)
+        z.transformBy(origin.assemblyContext.transform2)
+    return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)  # axis: sketch space, see check.placements
 
 
 def local(occ, point_mm, axis):
@@ -272,7 +308,8 @@ def local(occ, point_mm, axis):
     inverse = occ.transform2.copy()
     inverse.invert()
     p, a = point(point_mm), vector(axis)
-    p.transformBy(inverse); a.transformBy(inverse)
+    p.transformBy(inverse)
+    a.transformBy(inverse)
     return p, a
 
 
@@ -309,14 +346,15 @@ def joint_origin(occ, point_mm, axis):
     p, _ = local(occ, point_mm, _UNIT[axis])
     _, ref = local(occ, (0, 0, 0), _UNIT[_NEXT[axis]])
     height = getattr(p, plane_axis.lower())
-    setattr(p, plane_axis.lower(), 0.0)          # in-plane point; the out-of-plane part goes in offsetZ
+    setattr(p, plane_axis.lower(), 0.0)  # in-plane point; the out-of-plane part goes in offsetZ
     sketch = occ.component.sketches.add(getattr(occ.component, _PLANE_FOR_AXIS[plane_axis]))
     start = sketch.sketchPoints.add(sketch.modelToSketchSpace(p))
-    q = p.copy(); q.translateBy(ref)
+    q = p.copy()
+    q.translateBy(ref)
     line = sketch.sketchCurves.sketchLines.addByTwoPoints(start, sketch.modelToSketchSpace(q))
     inp = occ.component.jointOrigins.createInput(adsk.fusion.JointGeometry.createByPoint(start))
     inp.xAxisEntity = line
-    inp.isFlipped = sign < 0                     # Z along the world axis; offsetZ then runs along the flipped Z
+    inp.isFlipped = sign < 0  # Z along the world axis; offsetZ then runs along the flipped Z
     inp.offsetZ = adsk.core.ValueInput.createByReal(height * sign)
     origin = occ.component.jointOrigins.add(inp)
     return origin.createForAssemblyContext(occ)
@@ -326,7 +364,11 @@ def origin_frame(origin):
     """World (origin mm, Z, X) of a joint origin proxy, for checks."""
     t = origin.transform
     o = t.translation
-    return (round(o.x * 10, 2), round(o.y * 10, 2), round(o.z * 10, 2)), tuple(round(c, 2) for c in origin.primaryAxisVector.asArray()), tuple(round(c, 2) for c in origin.secondaryAxisVector.asArray())
+    return (
+        (round(o.x * 10, 2), round(o.y * 10, 2), round(o.z * 10, 2)),
+        tuple(round(c, 2) for c in origin.primaryAxisVector.asArray()),
+        tuple(round(c, 2) for c in origin.secondaryAxisVector.asArray()),
+    )
 
 
 def _joint(root, origin_a, origin_b, name, motion):
@@ -374,11 +416,12 @@ _JOB = {}
 
 def chunked(steps):
     """Run the (label, fn) steps one per custom event; returns the progress lines, raises on the first failing chunk."""
-    class Chunk(adsk.core.CustomEventHandler):   # defined here: the Mac tests stub adsk
+
+    class Chunk(adsk.core.CustomEventHandler):  # defined here: the Mac tests stub adsk
         def notify(self, args):
             app = adsk.core.Application.get()
             ui = app.userInterface
-            if ui.activeCommand != "SelectCommand":   # a chunk adds undo steps: end whatever command the user is in
+            if ui.activeCommand != "SelectCommand":  # a chunk adds undo steps: end whatever command the user is in
                 ui.commandDefinitions.itemById("SelectCommand").execute()
             label, fn = _JOB["steps"][_JOB["i"]]
             t = time.time()
@@ -394,13 +437,14 @@ def chunked(steps):
             app.log("noggin " + line)
             if _JOB["i"] < len(_JOB["steps"]):
                 app.fireCustomEvent(EVENT_ID, "")
+
     app = adsk.core.Application.get()
     app.unregisterCustomEvent(EVENT_ID)
     event = app.registerCustomEvent(EVENT_ID)
     handler = Chunk()
     event.add(handler)
     _JOB.clear()
-    _JOB.update(steps=steps, i=0, lines=[], error=None, at=time.time(), event=event, handler=handler)   # kept alive here
+    _JOB.update(steps=steps, i=0, lines=[], error=None, at=time.time(), event=event, handler=handler)  # kept alive here
     app.fireCustomEvent(EVENT_ID, "")
     while _JOB["i"] < len(steps) and not _JOB["error"]:
         adsk.doEvents()
@@ -435,7 +479,7 @@ def close_loop(root, occ_a, occ_b, point_mm, axis, name):
     a, b = joint_origin(occ_a, point_mm, axis), joint_origin(occ_b, point_mm, axis)
     try:
         joint = revolute(root, a, b, name)
-    except Exception:            # over-constrained loop: the fallback agreed in #11
+    except Exception:  # over-constrained loop: the fallback agreed in #11
         joint = None
     if joint is not None and joint.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState:
         return joint
@@ -449,7 +493,9 @@ def link(root, name, stl_key, hole_a, hole_b, normal, reuse):
     hole axis along normal."""
     spec = STL_LOCAL[stl_key]
     la, lb = spec["holes"]
-    m = align(hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"])
+    m = align(
+        hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"]
+    )
     return insert_part(root, stl_key, name, m, reuse=reuse)
 
 
@@ -461,13 +507,12 @@ def strip_lead(battery):
     plane = comp.constructionPlanes.add(cut)
     plane.isLightBulbOn = False
     split = comp.features.splitBodyFeatures
-    if split.count:   # reused part: already stripped
+    if split.count:  # reused part: already stripped
         return
     split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
     for body in list(comp.bRepBodies):
         if body.boundingBox.minPoint.y * 10 >= BATTERY_STEP["lead_y"] - 0.1:
             comp.features.removeFeatures.add(body)
-
 
 
 def port(occ, name, point_mm):
@@ -490,8 +535,10 @@ def body_box(occ):
     """World bounding box (mm) of the occurrence's solid bodies only, children included (occ.boundingBox also counts
     sketches and planes)."""
     lo, hi = [1e9] * 3, [-1e9] * 3
+
     def bodies(o):
         return list(o.bRepBodies) + [b for c in o.childOccurrences for b in bodies(c)]
+
     for b in bodies(occ):
         for i, c in enumerate("xyz"):
             lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
@@ -515,8 +562,13 @@ def screenshots(app, root, out, stage, views, width=1600, height=1200):
         screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
 
 
-FOLDERS = ("isJointsFolderLightBulbOn", "isJointOriginsFolderLightBulbOn", "isSketchFolderLightBulbOn",
-           "isConstructionFolderLightBulbOn", "isOriginFolderLightBulbOn")   # glyphs hidden for a capture
+FOLDERS = (
+    "isJointsFolderLightBulbOn",
+    "isJointOriginsFolderLightBulbOn",
+    "isSketchFolderLightBulbOn",
+    "isConstructionFolderLightBulbOn",
+    "isOriginFolderLightBulbOn",
+)  # glyphs hidden for a capture
 
 
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
@@ -524,7 +576,9 @@ def screenshot(app, path, eye_dir, up, width=1600, height=1200):
     back along eye_dir, saved to path. The joint, sketch, construction and origin glyphs of every component are hidden
     for the capture and restored after (docs/model-notes.md)."""
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
-    comps = [root] + [o.component for o in root.allOccurrences]   # repeats are harmless; same-named ones can differ (reference versions)
+    comps = [root] + [
+        o.component for o in root.allOccurrences
+    ]  # repeats are harmless; same-named ones can differ (reference versions)
     was = [(c, f, getattr(c, f)) for c in comps for f in FOLDERS]
     for c, f, _ in was:
         setattr(c, f, False)
@@ -541,7 +595,9 @@ def _capture(app, path, eye_dir, up, width, height):
     camera = viewport.camera
     camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
     target = camera.target
-    camera.eye = adsk.core.Point3D.create(target.x + eye_dir[0] * 100, target.y + eye_dir[1] * 100, target.z + eye_dir[2] * 100)
+    camera.eye = adsk.core.Point3D.create(
+        target.x + eye_dir[0] * 100, target.y + eye_dir[1] * 100, target.z + eye_dir[2] * 100
+    )
     camera.upVector = vector(up)
     camera.isFitView = True
     viewport.camera = camera

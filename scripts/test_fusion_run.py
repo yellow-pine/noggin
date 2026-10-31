@@ -1,4 +1,5 @@
 """Seam: inline_includes(text, repo_root) replaces '# include: <path>' lines with that file's contents."""
+
 import sys
 from pathlib import Path
 

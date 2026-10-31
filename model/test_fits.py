@@ -1,19 +1,33 @@
 """Seam: model/fits.py's fit table (hole radius fitted to the designer's STL vs the fastener). The synthetic test
 is the spec; the live test records the designer's eyes-Stage parts and is skipped without docs/references."""
-import importlib.util, math, os, struct, pytest
+
+import importlib.util
+import math
+import os
+import struct
+
+import pytest
 
 HERE = os.path.dirname(__file__)
-spec = importlib.util.spec_from_file_location("fits", os.path.join(HERE, "fits.py"))   # by path: model/ must never shadow eyes/
-fits = importlib.util.module_from_spec(spec); spec.loader.exec_module(fits)
+spec = importlib.util.spec_from_file_location(
+    "fits", os.path.join(HERE, "fits.py")
+)  # by path: model/ must never shadow eyes/
+fits = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fits)
 
 
 def ring_stl(path, centre, axis, r, thickness, n=24):
     """Binary STL of a cylinder wall (a hole) with its axis along `axis` through `centre`, mm."""
-    i = "xyz".index(axis); u, v = [k for k in range(3) if k != i]
+    i = "xyz".index(axis)
+    u, v = [k for k in range(3) if k != i]
+
     def pt(k, side):
-        p = list(centre); p[u] += r * math.cos(2 * math.pi * k / n); p[v] += r * math.sin(2 * math.pi * k / n)
+        p = list(centre)
+        p[u] += r * math.cos(2 * math.pi * k / n)
+        p[v] += r * math.sin(2 * math.pi * k / n)
         p[i] += side * thickness / 2
         return p
+
     tris = []
     for k in range(n):
         a, b, c, d = pt(k, -1), pt(k + 1, -1), pt(k + 1, 1), pt(k, 1)
@@ -34,11 +48,22 @@ def test_fit_circle_recovers_an_offset_hole(tmp_path):
 
 def test_fit_table_flags_clearance_outside_the_window(tmp_path):
     tight, loose, ok = (tmp_path / f"{n}.stl" for n in ("tight", "loose", "ok"))
-    ring_stl(tight, (0, 0, 0), "z", 1.0, 3.0); ring_stl(loose, (0, 0, 0), "z", 1.6, 3.0); ring_stl(ok, (0, 0, 0), "z", 1.2, 3.0)
-    joints = [("tight", (str(tight), (0, 0, 0), "z", 1.5), 2.0), ("loose", (str(loose), (0, 0, 0), "z", 1.5), 2.0),
-              ("ok", (str(ok), (0, 0, 0), "z", 1.5), 2.0), ("tapped", (str(tight), (0, 0, 0), "z", 1.5), 2.0, "self_tapping")]
+    ring_stl(tight, (0, 0, 0), "z", 1.0, 3.0)
+    ring_stl(loose, (0, 0, 0), "z", 1.6, 3.0)
+    ring_stl(ok, (0, 0, 0), "z", 1.2, 3.0)
+    joints = [
+        ("tight", (str(tight), (0, 0, 0), "z", 1.5), 2.0),
+        ("loose", (str(loose), (0, 0, 0), "z", 1.5), 2.0),
+        ("ok", (str(ok), (0, 0, 0), "z", 1.5), 2.0),
+        ("tapped", (str(tight), (0, 0, 0), "z", 1.5), 2.0, "self_tapping"),
+    ]
     table = fits.fit_table(joints)
-    assert [(row["joint"], row["clearance"], row["ok"]) for row in table] == [("tight", 0.0, False), ("loose", 0.6, False), ("ok", 0.2, True), ("tapped", 0.0, True)]
+    assert [(row["joint"], row["clearance"], row["ok"]) for row in table] == [
+        ("tight", 0.0, False),
+        ("loose", 0.6, False),
+        ("ok", 0.2, True),
+        ("tapped", 0.0, True),
+    ]
     assert table[3]["tag"] == "self_tapping"
 
 

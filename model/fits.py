@@ -1,15 +1,19 @@
 """Pin fits at every pinned joint of a Stage: a circle fitted (least squares) to the designer's STL around the
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
 prints the eyes table. Designer STLs: docs/references (local only)."""
-import math, os, struct, sys
 
-CLEARANCE = (0.1, 0.4)   # mm radial, agreed in #20
-M2 = 2.0                 # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
+import math
+import os
+import struct
+import sys
+
+CLEARANCE = (0.1, 0.4)  # mm radial, agreed in #20
+M2 = 2.0  # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EYES_MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
 PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
 MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
-M2_5 = 2.5               # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
+M2_5 = 2.5  # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
 
 
 def stl(name, folder=EYES_MODELS):
@@ -19,7 +23,7 @@ def stl(name, folder=EYES_MODELS):
 def vertices(path):
     d = open(path, "rb").read()
     n = struct.unpack_from("<I", d, 80)[0]
-    if 84 + n * 50 == len(d):   # binary
+    if 84 + n * 50 == len(d):  # binary
         return {struct.unpack_from("<3f", d, 84 + i * 50 + 12 + 12 * k) for i in range(n) for k in range(3)}
     return {tuple(float(t) for t in l.split()[1:]) for l in d.decode().splitlines() if l.strip().startswith("vertex")}
 
@@ -35,9 +39,21 @@ def fit_circle(path, centre, axis, half, expect_r):
     if len(pts) < 3:
         raise ValueError(f"{os.path.basename(path)}: no vertices around {centre} {axis}")
     # x^2 + y^2 + a x + b y + c = 0, normal equations solved by elimination
-    m = [[sum(x * x for x, _ in pts), sum(x * y for x, y in pts), sum(x for x, _ in pts), -sum(x * (x * x + y * y) for x, y in pts)],
-         [sum(x * y for x, y in pts), sum(y * y for _, y in pts), sum(y for _, y in pts), -sum(y * (x * x + y * y) for x, y in pts)],
-         [sum(x for x, _ in pts), sum(y for _, y in pts), len(pts), -sum(x * x + y * y for x, y in pts)]]
+    m = [
+        [
+            sum(x * x for x, _ in pts),
+            sum(x * y for x, y in pts),
+            sum(x for x, _ in pts),
+            -sum(x * (x * x + y * y) for x, y in pts),
+        ],
+        [
+            sum(x * y for x, y in pts),
+            sum(y * y for _, y in pts),
+            sum(y for _, y in pts),
+            -sum(y * (x * x + y * y) for x, y in pts),
+        ],
+        [sum(x for x, _ in pts), sum(y for _, y in pts), len(pts), -sum(x * x + y * y for x, y in pts)],
+    ]
     for r in range(3):
         p = max(range(r, 3), key=lambda k: abs(m[k][r]))
         m[r], m[p] = m[p], m[r]
@@ -60,10 +76,17 @@ def fit_table(joints):
         p = pin / 2 if isinstance(pin, float) else fit_circle(*pin, expect_r=1.0)["r"]
         h = fit_circle(*hole, expect_r=p)
         clearance = round(h["r"] - p, 2)
-        row = {"joint": name, "hole_r": h["r"], "pin_r": round(p, 3), "clearance": clearance, "offset": h["offset"],
-               "rms": h["rms"], "ok": CLEARANCE[0] <= clearance <= CLEARANCE[1]}
+        row = {
+            "joint": name,
+            "hole_r": h["r"],
+            "pin_r": round(p, 3),
+            "clearance": clearance,
+            "offset": h["offset"],
+            "rms": h["rms"],
+            "ok": CLEARANCE[0] <= clearance <= CLEARANCE[1],
+        }
         if tag:
-            row["tag"], row["ok"] = tag[0], True   # self_tapping: the screw cuts its thread, no clearance by design
+            row["tag"], row["ok"] = tag[0], True  # self_tapping: the screw cuts its thread, no clearance by design
         out.append(row)
     return out
 
@@ -73,19 +96,39 @@ def fit_table(joints):
 # its horn end stepped up 3 mm, both holes along Z (STL_LOCAL has them along Y). `half` spans the part around the hole.
 EYES_JOINTS = [
     ("eyelid bar / horn screw", (stl("eyelid bar"), (-20.5, 0, 1.5), "z", 2), M2),
-    ("eyelid bar / inside lid pin", (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2), (stl("inside lid"), (-22, 12, 0), "x", 3)),
+    (
+        "eyelid bar / inside lid pin",
+        (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2),
+        (stl("inside lid"), (-22, 12, 0), "x", 3),
+    ),
     ("eyelid crank / horn screw", (stl("eyelid bar crank"), (-20.5, 0, 4.5), "z", 2), M2),
-    ("eyelid crank / outside lid pin", (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2), (stl("outside lid"), (-22, -12, 0), "x", 3)),
+    (
+        "eyelid crank / outside lid pin",
+        (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2),
+        (stl("outside lid"), (-22, -12, 0), "x", 3),
+    ),
     ("eyeball bar / horn screw", (stl("eyeball bar"), (-10, 4, 27), "y", 2), M2, "self_tapping"),
     ("eyeball bar / eyeball screw", (stl("eyeball bar"), (-10, 4, 0), "y", 2), M2),
-    ("inside lid ear / bracket pin", (stl("inside lid"), (-22.5, 0, 0), "x", 2), (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2)),
-    ("outside lid ear / bracket pin", (stl("outside lid"), (-22.5, 0, 0), "x", 2), (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2)),
+    (
+        "inside lid ear / bracket pin",
+        (stl("inside lid"), (-22.5, 0, 0), "x", 2),
+        (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
+    ),
+    (
+        "outside lid ear / bracket pin",
+        (stl("outside lid"), (-22.5, 0, 0), "x", 2),
+        (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2),
+    ),
 ]
-EYES_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end (0.05 mm) self-taps by design
-    "eyelid bar / horn screw": (1.35, 1.0, True), "eyelid bar / inside lid pin": (1.1, 1.0, True),
-    "eyelid crank / horn screw": (1.35, 1.0, True), "eyelid crank / outside lid pin": (1.1, 1.0, True),
-    "eyeball bar / horn screw": (1.05, 1.0, True), "eyeball bar / eyeball screw": (1.25, 1.0, True),
-    "inside lid ear / bracket pin": (1.998, 1.735, True), "outside lid ear / bracket pin": (1.959, 1.735, True),
+EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end (0.05 mm) self-taps by design
+    "eyelid bar / horn screw": (1.35, 1.0, True),
+    "eyelid bar / inside lid pin": (1.1, 1.0, True),
+    "eyelid crank / horn screw": (1.35, 1.0, True),
+    "eyelid crank / outside lid pin": (1.1, 1.0, True),
+    "eyeball bar / horn screw": (1.05, 1.0, True),
+    "eyeball bar / eyeball screw": (1.25, 1.0, True),
+    "inside lid ear / bracket pin": (1.998, 1.735, True),
+    "outside lid ear / bracket pin": (1.959, 1.735, True),
 }
 
 # Pan-tilt Stage: bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
@@ -100,28 +143,57 @@ PT_JOINTS = [
     ("tilt arm / pivot screw", (stl("PandT tilt arm", PT_MODELS), (14, -13, 28.4), "x", 1.5), M2_5),
     ("upright / pivot screw", (stl("PandT upright v2", PT_MODELS), (11, -13, 33.4), "x", 1.5), M2_5, "self_tapping"),
 ]
-PT_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31
-    "tilt bar / horn screw": (1.1, 1.0, True), "tilt bar / arm lever screw": (1.35, 1.25, True),
-    "tilt arm lever / M2.5": (1.1, 1.25, True), "pan bar / horn screw": (1.1, 1.0, True),
-    "pan bar / upright lever screw": (1.35, 1.25, True), "upright lever / M2.5": (1.1, 1.25, True),
-    "tilt arm / pivot screw": (1.35, 1.25, True), "upright / pivot screw": (1.1, 1.25, True),
+PT_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31
+    "tilt bar / horn screw": (1.1, 1.0, True),
+    "tilt bar / arm lever screw": (1.35, 1.25, True),
+    "tilt arm lever / M2.5": (1.1, 1.25, True),
+    "pan bar / horn screw": (1.1, 1.0, True),
+    "pan bar / upright lever screw": (1.35, 1.25, True),
+    "upright lever / M2.5": (1.1, 1.25, True),
+    "tilt arm / pivot screw": (1.35, 1.25, True),
+    "upright / pivot screw": (1.1, 1.25, True),
 }
 
 # Mouth Stage: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
 # self-tapped into the jaw's pivot lug (step 8). The bar's own holes are not fitted: at 960 vertices the hole rings tangle
 # with the tab-end rounding (rms 0.1-0.16); the research note reads them as r ~1.25.
 MOUTH_JOINTS = [
-    ("L hinge / top jaw pin", (stl("bottom jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 3), (stl("top jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 4)),
-    ("R hinge / top jaw pin", (stl("bottom jaw plain", MOUTH_MODELS), (70, -49.6, 8), "x", 3), (stl("top jaw plain", MOUTH_MODELS), (68, -49.6, 8), "x", 4)),
-    ("jaw pivot lug / M2.5", (stl("bottom jaw plain", MOUTH_MODELS), (66, -58.1, -10.44), "x", 5), M2_5, "self_tapping"),
+    (
+        "L hinge / top jaw pin",
+        (stl("bottom jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 3),
+        (stl("top jaw plain", MOUTH_MODELS), (-8, -49.6, 8), "x", 4),
+    ),
+    (
+        "R hinge / top jaw pin",
+        (stl("bottom jaw plain", MOUTH_MODELS), (70, -49.6, 8), "x", 3),
+        (stl("top jaw plain", MOUTH_MODELS), (68, -49.6, 8), "x", 4),
+    ),
+    (
+        "jaw pivot lug / M2.5",
+        (stl("bottom jaw plain", MOUTH_MODELS), (66, -58.1, -10.44), "x", 5),
+        M2_5,
+        "self_tapping",
+    ),
 ]
-MOUTH_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the L pin reads 1.72 (coarser facets than the R pin's 1.75)
-    "L hinge / top jaw pin": (2.0, 1.72, True), "R hinge / top jaw pin": (2.0, 1.75, True), "jaw pivot lug / M2.5": (1.1, 1.25, True),
+MOUTH_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the L pin reads 1.72 (coarser facets than the R pin's 1.75)
+    "L hinge / top jaw pin": (2.0, 1.72, True),
+    "R hinge / top jaw pin": (2.0, 1.75, True),
+    "jaw pivot lug / M2.5": (1.1, 1.25, True),
 }
 
 
 if __name__ == "__main__":
     for row in fit_table(EYES_JOINTS + PT_JOINTS + MOUTH_JOINTS):
-        print("%-32s hole r %.3f  pin r %.3f  clearance %5.2f  offset %.2f  rms %.3f  %s" % (
-            row["joint"], row["hole_r"], row["pin_r"], row["clearance"], row["offset"], row["rms"], row.get("tag") or ("ok" if row["ok"] else "FLAG")))
+        print(
+            "%-32s hole r %.3f  pin r %.3f  clearance %5.2f  offset %.2f  rms %.3f  %s"
+            % (
+                row["joint"],
+                row["hole_r"],
+                row["pin_r"],
+                row["clearance"],
+                row["offset"],
+                row["rms"],
+                row.get("tag") or ("ok" if row["ok"] else "FLAG"),
+            )
+        )
     sys.exit(0)

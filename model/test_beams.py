@@ -1,9 +1,16 @@
 """Seam: model/beams.py's hand estimates (cantilever deflection and safety factor from STL sections)."""
-import importlib.util, os, pytest
+
+import importlib.util
+import os
+
+import pytest
 
 HERE = os.path.dirname(__file__)
-spec = importlib.util.spec_from_file_location("beams", os.path.join(HERE, "beams.py"))   # by path: model/ must never shadow eyes/
-beams = importlib.util.module_from_spec(spec); spec.loader.exec_module(beams)
+spec = importlib.util.spec_from_file_location(
+    "beams", os.path.join(HERE, "beams.py")
+)  # by path: model/ must never shadow eyes/
+beams = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(beams)
 
 
 def test_cantilever_textbook_case():
@@ -15,7 +22,7 @@ def test_cantilever_textbook_case():
 
 
 def test_stall_force_at_the_horn_pin():
-    assert beams.stall_force_n() == pytest.approx(1.2 * 9.81 * 10 / 12.75, rel=1e-3)   # 1.2 kgf.cm over 12.75 mm
+    assert beams.stall_force_n() == pytest.approx(1.2 * 9.81 * 10 / 12.75, rel=1e-3)  # 1.2 kgf.cm over 12.75 mm
 
 
 @pytest.mark.skipif(not os.path.isdir(beams.fits.EYES_MODELS), reason="docs/references (local only) missing")
