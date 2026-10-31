@@ -1,5 +1,5 @@
-"""Seam: our PandT tilt arm (model/printed/tilt_arm.py) hangs on the tilt pivot and carries the tilt bar's lever screw, in
-the designer's STL frame (PT frame at the v1 height: placed TILT_ARM_SHIFT_Z higher with upright v2), envelope within
+"""Seam: our tilt arm (model/printed/tilt_arm.py) hangs on the tilt pivot and carries the tilt bar's lever screw, in
+the designer's STL frame (PT frame at the v1 height: placed TILT_ARM_SHIFT_Z higher with upright), envelope within
 ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M], geometry.PT_LEVER_HOLES)."""
 
 import functools

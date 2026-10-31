@@ -11,7 +11,7 @@ from model.printed import bars
 
 ENVELOPE_MM = 1.0
 # (builder, half pitch, designer bbox): tilt bar holes 20 apart, pan bar 15 apart, both 5 wide and 3 thick
-CASES = {"tilt bar": (bars.tilt, 10.0, 12.5), "PandT bar": (bars.pan, 7.5, 10.0)}
+CASES = {"tilt bar": (bars.tilt, 10.0, 12.5), "pan bar": (bars.pan, 7.5, 10.0)}
 
 
 @functools.cache

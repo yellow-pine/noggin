@@ -28,7 +28,7 @@ def test_cube_mass_centre_and_inertia_follow_density_and_placement():
 def test_printed_part_masses_match_the_recorded_fusion_masses():
     recorded = json.load(open(os.path.join(HERE, "reports", "noggin-eyes-report.json")))["mass"]
     stage = stages.STAGES["noggin-eyes"]
-    names = ["L eyeball:1", "L servo bracket:1", "L eyelid bar:1", "L lid servo:1"]
+    names = ["L eyeball:1", "L servo bracket:1", "L lid bar:1", "L lid servo:1"]
     table = masses.table(stage, meshes.load(stage, names))
     for name in names:
         assert table[name]["g"] == pytest.approx(recorded[name], rel=0.02), name

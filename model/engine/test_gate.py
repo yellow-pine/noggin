@@ -30,9 +30,9 @@ KNOWN = {
 # curves and distances still meet the gate. Drop a name once its Fusion design is rebuilt and its box re-recorded.
 MOVED = {
     "noggin-eyes": {f"{s} {k} {p}:1" for s in "LR" for k in ("lid", "eye") for p in ("servo", "horn")},
-    "noggin-mouth": {"jaw servo:1", "jaw horn:1", "connector bar:1"},
+    "noggin-mouth": {"jaw servo:1", "jaw horn:1", "jaw bar:1"},
     "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")}
-    | {"servo mount plain:1", "servo mount cutout:1"}  # swapped by the mating check (#67, geometry.MOUNT_SWAP_Y)
+    | {"pan servo tail mount:1", "pan servo lead mount:1"}  # swapped by the mating check (#67, geometry.MOUNT_SWAP_Y)
     | {"receiver shield 1:1", "receiver shield 2:1"},  # on the STL's standoff tops, z 16 (#81)
 }
 # Parts a recorded Fusion box still names that the model no longer places (#81: one pack and switch board, the Cores

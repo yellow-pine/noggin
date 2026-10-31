@@ -1,4 +1,4 @@
-"""Seam: our jaws connector bar (model/printed/jaws_connector_bar.py) meets the measured interfaces exactly and the
+"""Seam: our jaw bar (model/printed/jaw_bar.py) meets the measured interfaces exactly and the
 designer's envelope within ENVELOPE_MM, probed on the CadQuery solid in the designer's local frame (expected numbers:
 docs/research/2026-10-31-model.md [M])."""
 
@@ -6,7 +6,7 @@ import functools
 
 import cadquery as cq
 
-from model.printed import jaws_connector_bar
+from model.printed import jaw_bar
 
 ENVELOPE_MM = 1.0
 
@@ -14,7 +14,7 @@ ENVELOPE_MM = 1.0
 @functools.cache
 def solid():
     """Built when the first test runs, not at collection (see test_main_bracket.solid)."""
-    return jaws_connector_bar.build().val()
+    return jaw_bar.build().val()
 
 
 def inside(*p):

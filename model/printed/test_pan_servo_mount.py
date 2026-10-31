@@ -1,4 +1,4 @@
-"""Seam: our PandT servo mounts (model/printed/servo_mount.py) carry the pan servo's tab screws at mount top z 15 and
+"""Seam: our pan servo mounts (model/printed/pan_servo_mount.py) carry the pan servo's tab screws at mount top z 15 and
 screw to the base, PT frame, envelope within ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools
@@ -6,13 +6,13 @@ import functools
 import cadquery as cq
 import pytest
 
-from model.printed import servo_mount
+from model.printed import pan_servo_mount
 
 ENVELOPE_MM = 1.0
 # (builder, mount y span, the pan servo's tab hole y, the base screw y)
 CASES = {
-    "PandT servo mount plain": (servo_mount.plain, (27.0, 32.0), 29.55, 29.5),
-    "PandT servo mount cutout": (servo_mount.cutout, (54.9, 59.9), 57.35, 57.4),
+    "pan servo tail mount": (pan_servo_mount.tail, (27.0, 32.0), 29.55, 29.5),
+    "pan servo lead mount": (pan_servo_mount.lead, (54.9, 59.9), 57.35, 57.4),
 }
 
 
@@ -54,8 +54,8 @@ def test_feet_screw_to_the_base(stem):
         assert not inside(stem, x, y, 6.2)
 
 
-def test_cutout_mount_arches_over_the_base():
-    """The cutout mount clears x -25.5..-15.5 up to z 8 under its tab."""
-    stem = "PandT servo mount cutout"
+def test_lead_mount_arches_over_the_base():
+    """The lead mount clears x -25.5..-15.5 up to z 8 under its tab."""
+    stem = "pan servo lead mount"
     assert not inside(stem, -20.5 + 3, 57.4, 7.8) and inside(stem, -20.5 + 3, 57.4, 8.2)
     assert not inside(stem, -25.3, 57.4, 4.0) and inside(stem, -25.7, 57.4, 4.0)

@@ -1,4 +1,4 @@
-"""Our PandT bearing block: an independent parametric design (never traced from the designer's mesh) in the PT frame
+"""Our bearing block: an independent parametric design (never traced from the designer's mesh) in the PT frame
 (Z up, pan axis Z through the origin). An 18 x 5.5 ring, bore r 5, in the base's r 9 recess over its r 4.75 boss.
 Measured numbers: docs/research/2026-10-31-model.md [M]."""
 

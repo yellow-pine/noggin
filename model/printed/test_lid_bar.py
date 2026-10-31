@@ -1,4 +1,4 @@
-"""Seam: our eyelid bar and eyelid bar crank (model/printed/eyelid_bar.py) meet the measured interfaces exactly and the
+"""Seam: our lid bar and lid crank (model/printed/lid_bar.py) meet the measured interfaces exactly and the
 designer's envelope within ENVELOPE_MM, probed on the CadQuery solids (numbers: model/geometry.py STL_LOCAL, the circle
 fits on the designer's holes)."""
 
@@ -6,7 +6,7 @@ import functools
 
 import cadquery as cq
 
-from model.printed import eyelid_bar
+from model.printed import lid_bar
 
 ENVELOPE_MM = 1.0
 
@@ -14,7 +14,7 @@ ENVELOPE_MM = 1.0
 @functools.cache
 def solid(crank):
     """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
-    return (eyelid_bar.crank if crank else eyelid_bar.build)().val()
+    return (lid_bar.crank if crank else lid_bar.build)().val()
 
 
 def bbox(crank):

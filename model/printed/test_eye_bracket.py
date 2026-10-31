@@ -1,4 +1,4 @@
-"""Seam: our main bracket v2 (model/printed/main_bracket.py) meets the measured interfaces exactly and the designer's
+"""Seam: our eye bracket (model/printed/eye_bracket.py) meets the measured interfaces exactly and the designer's
 envelope within ENVELOPE_MM, probed on the CadQuery solid (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools
@@ -6,7 +6,7 @@ import functools
 import cadquery as cq
 
 from model import geometry as g
-from model.printed import main_bracket
+from model.printed import eye_bracket
 
 ENVELOPE_MM = 1.0
 
@@ -15,13 +15,13 @@ ENVELOPE_MM = 1.0
 def solid():
     """Built when the first test runs, not at collection: CadQuery's booleans start OCCT threads, and the engine's gate
     forks its sweep workers (a fork after threads start can deadlock)."""
-    return main_bracket.build().val()
+    return eye_bracket.build().val()
 
 
 def test_envelope_is_the_designers_box_within_a_millimetre():
     box = solid().BoundingBox()
     lo, hi = (box.xmin, box.ymin, box.zmin), (box.xmax, box.ymax, box.zmax)
-    designer = (-28.0, -45.6, -4.0), (87.0, 8.5, 18.0)  # bracket v2 bbox
+    designer = (-28.0, -45.6, -4.0), (87.0, 8.5, 18.0)  # eye bracket bbox
     assert max(abs(a - b) for a, b in zip(lo + hi, designer[0] + designer[1])) <= ENVELOPE_MM
 
 

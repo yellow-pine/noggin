@@ -50,7 +50,7 @@ def lid_loop(key):
     return linkage.four_bar(o2, a0, g.EYE_L, b0, axis=g.X)
 
 
-@pytest.mark.parametrize("key, joint", [("eyelid_bar", "L outside lid pivot"), ("eyelid_crank", "L inside lid pivot")])
+@pytest.mark.parametrize("key, joint", [("lid_bar", "L lower lid pivot"), ("lid_crank", "L upper lid pivot")])
 def test_lid_linkage_matches_the_recorded_fusion_curve(key, joint):
     curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L lid horn"][joint]
     solve = lid_loop(key)

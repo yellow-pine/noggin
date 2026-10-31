@@ -1,4 +1,4 @@
-"""Our top jaw plain: an independent parametric design (never traced from the designer's mesh) in the eyes frame
+"""Our top jaw: an independent parametric design (never traced from the designer's mesh) in the eyes frame
 (model/geometry.py). The lip, the same 5 mm U as the bottom jaw's, two flanges screwed to the front of the main
 bracket's bottom rail either side of its stem, and cheeks forward to the jaw hinge carrying the pins the bottom jaw's
 ears turn on. Interfaces exact, envelope within 1 mm. Measured numbers:
@@ -7,7 +7,7 @@ docs/research/2026-10-31-model.md [M]."""
 import cadquery as cq
 
 from model.printed.bottom_jaw import HINGE, arms, lip
-from model.printed.main_bracket import box, rod
+from model.printed.eye_bracket import box, rod
 
 LIP_Y = (-40.6, -30.6)
 FLANGE = {"z": (10.0, 13.0), "x": [(-11.42, 19.58), (39.42, 70.42)], "end_r": 2.0}  # the stem passes between them

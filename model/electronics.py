@@ -1,4 +1,4 @@
-"""The CyberBrick electronics on the PandT base (PT frame): receiver shield n with its Core plugged in under it on the
+"""The CyberBrick electronics on the base plate (PT frame): receiver shield n with its Core plugged in under it on the
 base's standoff set n (1 front, 2 back: guide p.19); set 1 adds the one switch board, the pack and the eyes build's cable
 holder (pan-tilt guide p.10, p.23: one pack and switch board feed both shields through a Y lead), with Ports on the
 connectors. Inlined via `# include: model/electronics.py` after fusion_lib by model/base.py (set 1) and model/stack.py

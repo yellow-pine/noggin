@@ -1,4 +1,4 @@
-"""Seam: our PandT wire holder (model/printed/wire_holder.py) sits on the base's wire keeper posts (+-7.5, 40.5) in the
+"""Seam: our wire holder (model/printed/wire_holder.py) sits on the base's wire keeper posts (+-7.5, 40.5) in the
 PT frame, envelope within ENVELOPE_MM (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools

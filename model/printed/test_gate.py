@@ -23,7 +23,11 @@ pytestmark = pytest.mark.skipif(
 def placing(stem):
     """(doc, part names) for every document that places the designer's `stem`."""
     for doc in stages.DOCS:
-        names = [n for n, p in stages.STAGES[doc].parts.items() if os.path.basename(p.file) == stem + ".stl"]
+        names = [
+            n
+            for n, p in stages.STAGES[doc].parts.items()
+            if os.path.basename(p.file) == stages.mesh_name(stem) + ".stl"
+        ]
         if names:
             yield doc, names
 

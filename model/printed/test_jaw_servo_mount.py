@@ -1,11 +1,11 @@
-"""Seam: our jaws servo mount (model/printed/jaws_servo_mount.py) meets the measured interfaces exactly and the designer's
+"""Seam: our jaw servo mount (model/printed/jaw_servo_mount.py) meets the measured interfaces exactly and the designer's
 envelope within ENVELOPE_MM, probed on the CadQuery solid (expected numbers: docs/research/2026-10-31-model.md [M])."""
 
 import functools
 
 import cadquery as cq
 
-from model.printed import jaws_servo_mount
+from model.printed import jaw_servo_mount
 
 ENVELOPE_MM = 1.0
 
@@ -13,7 +13,7 @@ ENVELOPE_MM = 1.0
 @functools.cache
 def solid():
     """Built when the first test runs, not at collection (see test_main_bracket.solid)."""
-    return jaws_servo_mount.build().val()
+    return jaw_servo_mount.build().val()
 
 
 def inside(*p):

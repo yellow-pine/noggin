@@ -23,7 +23,7 @@ GUIDES = {  # guide: (its PDF under docs/references, the Stage document its step
 # (+X); lens: mm, None for the guide's orthographic-looking CAD views; fit: the parts a close-up frames (default: all)
 Step = namedtuple("Step", "guide page image step parts view lens fit", defaults=(50, None))
 
-BASE = ["PandT base:1"]
+BASE = ["base plate:1"]
 BOARDS1 = [
     "battery 1:1",
     "switch board 1:1",
@@ -33,29 +33,29 @@ BOARDS1 = [
 ]
 L_SIDE = ["L servo bracket:1", "L lid servo:1", "L eye servo:1"]
 R_SIDE = ["R servo bracket:1", "R lid servo:1", "R eye servo:1"]
-BRACKET = ["main bracket v2:1", *L_SIDE, *R_SIDE]
-LIDS = ["L outside lid:1", "R outside lid:1"]
-TOPLIDS = ["L inside lid:1", "R inside lid:1"]
-CRANKS = ["L eyelid bar crank:1", "R eyelid bar crank:1"]
-BARS = ["L eyelid bar:1", "R eyelid bar:1"]
+BRACKET = ["eye bracket:1", *L_SIDE, *R_SIDE]
+LIDS = ["L lower lid:1", "R lower lid:1"]
+TOPLIDS = ["L upper lid:1", "R upper lid:1"]
+CRANKS = ["L lid crank:1", "R lid crank:1"]
+BARS = ["L lid bar:1", "R lid bar:1"]
 BALLS = ["L eyeball:1", "R eyeball:1", "L pupil:1", "R pupil:1"]
 EYE_LINKS = ["L eyeball bar:1", "R eyeball bar:1", "L eye horn:1", "R eye horn:1"]
 LID_HORNS = ["L lid horn:1", "R lid horn:1"]
 EYES = [*BRACKET, *LIDS, *TOPLIDS, *CRANKS, *BARS, *BALLS, *EYE_LINKS, *LID_HORNS]
-PAN = ["bearing block:1", "pan base:1", "upright v2:1"]
+PAN = ["bearing block:1", "pan turntable:1", "upright:1"]
 BOARDS2 = ["receiver shield 2:1", "Core 2:1", "wire holder:1"]
-SERVOS2 = ["tilt servo:1", "pan servo:1", "servo mount plain:1", "servo mount cutout:1"]
+SERVOS2 = ["tilt servo:1", "pan servo:1", "pan servo tail mount:1", "pan servo lead mount:1"]
 LINKS2 = ["tilt arm:1", "tilt horn:1", "tilt bar:1", "pan horn:1", "pan bar:1"]
 STACK = [*PAN, *BOARDS2, *SERVOS2, *LINKS2]
-JAW_SERVO = ["jaws servo mount:1", "jaw servo:1"]
-MOUTH = [*JAW_SERVO, "top jaw:1", "bottom jaw:1", "jaw horn:1", "connector bar:1"]
+JAW_SERVO = ["jaw servo mount:1", "jaw servo:1"]
+MOUTH = [*JAW_SERVO, "top jaw:1", "bottom jaw:1", "jaw horn:1", "jaw bar:1"]
 
 STEPS = [
     Step("eyes", 13, 0, "2", [*BASE, "cable holder:1"], (180, 50)),
     Step("eyes", 13, 1, "3", [*BASE, *BOARDS1[:2], "cable holder:1"], (180, 50)),
     Step("eyes", 14, 0, "4", [*BASE, *BOARDS1], (180, 50)),
     Step("eyes", 16, 1, "6", L_SIDE, (135, 30)),
-    Step("eyes", 17, 0, "7", ["main bracket v2:1", *L_SIDE], (150, -40)),
+    Step("eyes", 17, 0, "7", ["eye bracket:1", *L_SIDE], (150, -40)),
     Step("eyes", 19, 1, "9", [*BASE, *BOARDS1, *BRACKET], (0, 20), fit=BRACKET),
     Step("eyes", 20, 1, "10", [*BASE, *BOARDS1, *BRACKET, *LIDS], (-60, 55), fit=[*BRACKET, *LIDS, "battery 1:1"]),
     Step("eyes", 21, 1, "11", [*BASE, *BOARDS1, *BRACKET, *LIDS, *TOPLIDS], (-100, 60), fit=[*BRACKET, *LIDS]),
@@ -100,8 +100,8 @@ STEPS = [
     Step("pan-tilt", 18, 1, "11", [*BASE, *PAN, *BOARDS2, *SERVOS2, "tilt arm:1"], (-60, 30), fit=[*PAN, "tilt arm:1"]),
     Step("pan-tilt", 23, 1, "18", [*BASE, *BOARDS1, *STACK, *EYES], (180, 55)),
     Step("pan-tilt", 26, 3, "built", [*BASE, *BOARDS1, *STACK, *EYES], (0, 10), fit=[*PAN, "tilt arm:1", *LIDS]),
-    Step("mouth", 10, 0, "4", ["main bracket v2:1", *JAW_SERVO], (180, 0)),
-    Step("mouth", 11, 1, "6", [*EYES, *JAW_SERVO, "top jaw:1"], (-10, 20), fit=["main bracket v2:1", "top jaw:1"]),
+    Step("mouth", 10, 0, "4", ["eye bracket:1", *JAW_SERVO], (180, 0)),
+    Step("mouth", 11, 1, "6", [*EYES, *JAW_SERVO, "top jaw:1"], (-10, 20), fit=["eye bracket:1", "top jaw:1"]),
     Step(
         "mouth",
         12,
@@ -109,11 +109,11 @@ STEPS = [
         "7",
         [*BASE, *STACK, *EYES, *JAW_SERVO, "top jaw:1", "bottom jaw:1"],
         (-75, 15),
-        fit=["main bracket v2:1", *JAW_SERVO, "top jaw:1", "bottom jaw:1"],
+        fit=["eye bracket:1", *JAW_SERVO, "top jaw:1", "bottom jaw:1"],
     ),
     Step("mouth", 13, 0, "8-9", [*BASE, *STACK, *EYES, *MOUTH], (-90, 10), fit=MOUTH),
     Step("mouth", 13, 1, "built", [*BASE, *BOARDS1, *STACK, *EYES, *MOUTH], (-25, 25)),
-    Step("mouth", 14, 0, "CAD", ["main bracket v2:1", *MOUTH], (-30, 30), None),
+    Step("mouth", 14, 0, "CAD", ["eye bracket:1", *MOUTH], (-30, 30), None),
     Step("mouth", 14, 1, "CAD", [*BASE, *STACK, *BRACKET, *MOUTH], (-30, 35), None),
 ]
 RENDER, CELL, MARGIN = (800, 600), (860, 600), 1.1

@@ -1,4 +1,4 @@
-"""Our PandT pan base: an independent parametric design (never traced from the designer's mesh) in the PT frame (Z up,
+"""Our pan turntable: an independent parametric design (never traced from the designer's mesh) in the PT frame (Z up,
 pan axis Z through the origin). A z 3.5..8.5 plate turning on the M3 pan pivot (r 1.75, with a boss on top) over the
 bearing (an r 9 recess underneath, to z 5.5), its front-left corner cut at 45 degrees, corners r 5; the upright's slot in front of
 the pivot; and the x 20..25 tower on its right edge, two lugs carrying the tilt servo's tab screws along X. Interfaces

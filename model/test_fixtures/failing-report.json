@@ -3,19 +3,19 @@
  "version": 4,
  "clearance_mm": 3.0,
  "horns": {
-  "L lid horn": {"min_mm": 1.2, "at_deg": 120, "pair": ["L inside lid", "L servo bracket"]},
-  "L eye horn": {"min_mm": 6.3, "at_deg": 60, "pair": ["L eyeball bar", "main bracket v2"]}
+  "L lid horn": {"min_mm": 1.2, "at_deg": 120, "pair": ["L upper lid", "L servo bracket"]},
+  "L eye horn": {"min_mm": 6.3, "at_deg": 60, "pair": ["L eyeball bar", "eye bracket"]}
  },
  "bboxes": {
   "L eyeball": [[-14, -14, -14], [14, 14, 200]],
-  "main bracket v2": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
+  "eye bracket": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
  },
  "violations": [{"horn": "L lid horn", "deg": 120, "mm": 1.2}],
  "fits": [{"joint": "eyeball bar / horn screw", "hole_r": 1.05, "pin_r": 1.0, "clearance": 0.05, "ok": false},
           {"joint": "eyeball bar / eyeball screw", "hole_r": 1.25, "pin_r": 1.0, "clearance": 0.25, "ok": true}],
- "beams": [{"beam": "eyelid bar", "sf": 1.65, "deflection_mm": 1.939, "ok": false}, {"beam": "eyeball bar", "sf": 2.51, "deflection_mm": 0.554, "ok": true}],
- "calibrated": {"L lid horn": {"lo": -54, "hi": 39, "inferred": false, "violations": [{"deg": 39, "pair": ["L outside lid", "L servo bracket"]}]},
-                "L eye horn": {"lo": -32, "hi": 28, "inferred": true, "violations": [{"deg": -32, "pair": ["L eyeball bar", "main bracket v2"]}]}},
+ "beams": [{"beam": "lid bar", "sf": 1.65, "deflection_mm": 1.939, "ok": false}, {"beam": "eyeball bar", "sf": 2.51, "deflection_mm": 0.554, "ok": true}],
+ "calibrated": {"L lid horn": {"lo": -54, "hi": 39, "inferred": false, "violations": [{"deg": 39, "pair": ["L lower lid", "L servo bracket"]}]},
+                "L eye horn": {"lo": -32, "hi": 28, "inferred": true, "violations": [{"deg": -32, "pair": ["L eyeball bar", "eye bracket"]}]}},
  "torque": {"L lid horn": {"kgf_cm": 0.31, "at_deg": -20, "limit_kgf_cm": 0.2}, "L eye horn": {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2},
             "R lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.25, "dynamic_at_deg": 30, "inertia_g_mm2": 9000, "accel_deg_s2": 48000}},
  "clutch": {"L lid horn": {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [20, 30]}},
@@ -29,6 +29,6 @@
             {"joint": "L eye horn / L eyeball bar pin", "kind": "coaxial", "parts": ["L eye horn:1", "L eyeball bar:1"], "mm": 0.21, "ok": false, "inferred": "no source settles it"},
             {"joint": "L lid servo in its mount", "kind": "overlap", "parts": ["L lid servo:1", "L servo bracket:1"], "mm": 0.4, "ok": false},
             {"joint": "R lid servo in its mount", "kind": "seat", "parts": ["R lid servo:1", "R servo bracket:1"], "mm": 0.3, "ok": false},
-            {"joint": "pan servo lead exit", "kind": "lead", "parts": ["pan servo:1", "servo mount plain:1"], "mm": null, "ok": false},
-            {"joint": "jaw servo / jaws servo mount lower tab screw", "kind": "coaxial", "parts": ["jaw servo:1", "jaws servo mount:1"], "mm": null, "ok": false, "missing": "jaws servo mount:1"}]
+            {"joint": "pan servo lead exit", "kind": "lead", "parts": ["pan servo:1", "pan servo tail mount:1"], "mm": null, "ok": false},
+            {"joint": "jaw servo / jaw servo mount lower tab screw", "kind": "coaxial", "parts": ["jaw servo:1", "jaw servo mount:1"], "mm": null, "ok": false, "missing": "jaw servo mount:1"}]
 }

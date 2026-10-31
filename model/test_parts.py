@@ -35,7 +35,9 @@ def test_every_printed_library_part_has_a_spool():
     gspec = importlib.util.spec_from_file_location("geometry", os.path.join(HERE, "geometry.py"))
     geometry = importlib.util.module_from_spec(gspec)
     gspec.loader.exec_module(geometry)
-    stems = {k.split(" (")[0] for k in geometry.PRINTED}
+    from model.engine.stages import REFERENCE
+
+    stems = {REFERENCE[k.split(" (")[0]] for k in geometry.PRINTED}
     assert {stem for s in parts.STLS.values() for stem in s} <= stems
     assert all(
         spool in geometry.SPOOLS and material in geometry.MATERIALS for spool, material in geometry.PRINTED.values()
