@@ -194,6 +194,22 @@ def test_unacked_wifi_line_and_the_rest_of_its_batch_go_over_usb(tmp_path, capsy
     core.running = False
 
 
+def test_wifi_socket_error_sends_the_whole_batch_over_usb(tmp_path, capsys):
+    core, fake = FakeCore(), FakeSerial()
+    s, sock = start(tmp_path, core, open_serial=lambda: fake)
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
+
+    def unroutable(name, lines):
+        raise OSError(65, "No route to host")
+
+    s.wifi.send = unroutable
+    ask(sock, "reload\n")
+    assert wait_for(lambda: fake.buf.count(b"set lid_rest 0.28\n") == 2)  # at USB connect, then the whole batch
+    assert "wifi error" in capsys.readouterr().out
+    s.stop()
+    core.running = False
+
+
 def test_offline_core_makes_commands_silent_no_ops(tmp_path):
     core = FakeCore()
     core.beaconing = False
