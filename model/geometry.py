@@ -32,20 +32,34 @@ def mirror_x(p):
     return (2 * CENTRE_X - x, y, z)
 
 
-# Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
-HORN_LIMITS = {
-    "l_lid": (70, 120),
-    "l_eye": (70, 110),
+# Absolute servo angle limits in degrees, neutral 90. Designer: PurpleShark's remote config (PWM min/max, the same in
+# every config under docs/references). Model: where the model sweeps instead, each with its reason ([I]: until the
+# inferred horn pivots are measured).
+DESIGNER_LIMITS = {
+    "l_lid": (75, 120),
+    "l_eye": (60, 120),
     "r_lid": (70, 120),
-    "r_eye": (70, 110),  # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
-    # tilt [I]: the config says 20, but at 20..29 the inferred tilt horn and bar sweep into the pan base's front chord
-    # (contact from horn -61 deg, 1.05 mm deep at -70): the lower end stops at 30 until the tilt servo shaft is measured.
-    "tilt": (30, 150),
+    "r_eye": (75, 120),
+    "tilt": (20, 150),
     "rotate": (40, 160),
-    # mouth [I]: the config says 0..180, but the jaws are modelled closed at neutral and the connector-bar four-bar only
-    # has solutions on the opening side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only.
-    "mouth": (50, 90),
+    "mouth": (0, 180),
 }
+MODEL_LIMITS = {
+    "l_lid": ((70, 120), "one range for the mirrored lid pair: the L lid is swept to the R lid's 70 [I]"),
+    "l_eye": ((70, 110), "+-20 [I]: the eyeball bar enters the bracket at +-25 with the inferred eye horn pivot"),
+    "r_eye": ((70, 110), "+-20 [I]: the eyeball bar enters the bracket at +-25 with the inferred eye horn pivot"),
+    "tilt": (
+        (30, 150),
+        "[I] at 20..29 the inferred tilt horn and bar sweep into the pan base's front chord (contact from horn -61 deg,"
+        " 1.05 mm deep at -70): the lower end stops at 30 until the tilt servo shaft is measured",
+    ),
+    "mouth": (
+        (50, 90),
+        "[I] the jaws are modelled closed at neutral and the connector-bar four-bar only has solutions on the opening"
+        " side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only",
+    ),
+}
+HORN_LIMITS = {**DESIGNER_LIMITS, **{k: v for k, (v, _) in MODEL_LIMITS.items()}}
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 
@@ -312,6 +326,9 @@ STAGES = {
     },
 }
 STEM_IN = {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
+# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
+# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3). Research note; depth [I].
+STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}
 
 
 def in_frame(frame, p):

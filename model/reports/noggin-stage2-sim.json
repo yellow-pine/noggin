@@ -59,7 +59,6 @@
    "measurements": 128
   }
  },
- "interference": [],
  "contacts": [
   {
    "horn": "tilt horn (inferred)",
@@ -1691,7 +1690,7 @@
   }
  },
  "inputs": {
-  "stamp": "ae70410c07edc4b8288260609dab0f8e78d407f2713cdbd40a12305eb7537655",
+  "stamp": "10073ed00c8f52c4e987e2de0fa7060536524bc54fdd0c0e55ab3bb2181d9d2d",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",

@@ -22,6 +22,29 @@ def test_neutral_placements_land_the_servos_and_boards_where_geometry_says(doc):
     assert stages.placements(stages.STAGES[doc]) == []
 
 
+def test_every_horn_link_and_the_bracket_stem_has_a_placement_tolerance():
+    placed = {name: tol for name, _, _, tol in stages.STAGES["noggin-stage3"].placements}
+    for part in stages.STAGES["noggin-stage3"].parts:
+        if "horn" in part or "bar (inferred)" in part or "crank" in part or "servo:1" in part:
+            assert part in placed, part
+    assert placed["main bracket v2:1"] == stages.TOL_INFERRED_MM  # the stem in the tilt arm window, depth inferred
+    # its holes on the pins, which hang on the inferred lid horn: 41.98 mm apart against the bar's 41
+    assert placed["L eyelid bar (inferred):1"] == stages.TOL_INFERRED_MM
+
+
+def test_a_misplaced_part_is_reported_with_its_tolerance():
+    stage = stages.STAGES["noggin-stage1"]
+    m = stage.parts["main bracket v2:1"].matrix
+    shifted = stage._replace(
+        parts={
+            **stage.parts,
+            "main bracket v2:1": stage.parts["main bracket v2:1"]._replace(matrix=stages.translate((0, 0, 5)) @ m),
+        }
+    )
+    (v,) = [v for v in stages.placements(shifted) if v["placement"] == "main bracket v2:1"]
+    assert v["mm"] == 5.0 and v["tol"] == stages.TOL_INFERRED_MM
+
+
 def test_stage_documents_place_the_sub_assemblies_once_at_their_frames():
     s1, s3 = stages.STAGES["noggin-stage1"], stages.STAGES["noggin-stage3"]
     assert "PandT base:1" in s1.parts and "L eyeball:1" in s1.parts and "pan base:1" not in s1.parts

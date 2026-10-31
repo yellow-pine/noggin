@@ -17,16 +17,32 @@ def test_mirror_x_maps_left_eye_to_right():
     assert g.mirror_x(g.EYE_L) == g.EYE_R
 
 
-def test_horn_limits_match_designer_config():
+def test_designer_limits_are_the_remote_config():
+    # docs/references/03-mouth/remote-config-eyes-pandt-jaw.json, PWM min_value/max_value per servo
+    assert g.DESIGNER_LIMITS == {
+        "l_lid": (75, 120),
+        "l_eye": (60, 120),
+        "r_lid": (70, 120),
+        "r_eye": (75, 120),
+        "tilt": (20, 150),
+        "rotate": (40, 160),
+        "mouth": (0, 180),
+    }
+
+
+def test_model_limits_deviate_from_the_designer_only_with_a_recorded_reason():
     assert g.HORN_LIMITS == {
         "l_lid": (70, 120),
         "l_eye": (70, 110),
         "r_lid": (70, 120),
         "r_eye": (70, 110),
-        "tilt": (30, 150),  # tilt: 20 in the config; the inferred horn reaches the pan base below 30, see geometry.py
+        "tilt": (30, 150),
         "rotate": (40, 160),
-        "mouth": (50, 90),  # mouth: opening side only (config says 0..180), see geometry.py
+        "mouth": (50, 90),
     }
+    deviated = {k for k in g.HORN_LIMITS if g.HORN_LIMITS[k] != g.DESIGNER_LIMITS[k]}
+    assert deviated == set(g.MODEL_LIMITS)
+    assert all(len(why) > 20 for _, why in g.MODEL_LIMITS.values())
 
 
 def test_bars_are_measured_pivot_spacings():

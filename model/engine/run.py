@@ -202,7 +202,6 @@ def report(doc, parallel=True):
         "clearance_mm": CLEARANCE_MM,
         "step_deg": STEP_DEG,
         "horns": {},
-        "interference": [],
         "contacts": [],
         "bboxes": {},
         "violations": stages.placements(stage),

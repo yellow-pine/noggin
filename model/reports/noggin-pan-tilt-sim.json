@@ -23,7 +23,6 @@
    "measurements": 92
   }
  },
- "interference": [],
  "contacts": [],
  "bboxes": {
   "PandT base:1": [
@@ -693,7 +692,7 @@
   }
  },
  "inputs": {
-  "stamp": "26254845b40b5e906126f55d717a2709e6aaad35a298951063a4555fd2153ce8",
+  "stamp": "a40779755b36ffaa29b35bef82bf0bc0687278a09f496faa2bef23ed6033f501",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",

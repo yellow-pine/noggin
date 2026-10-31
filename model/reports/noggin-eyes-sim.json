@@ -41,7 +41,6 @@
    "measurements": 128
   }
  },
- "interference": [],
  "contacts": [
   {
    "horn": "L eye horn (inferred)",
@@ -997,7 +996,7 @@
   }
  },
  "inputs": {
-  "stamp": "305c2601e206af177fb9f73957d6f017855440dd0490a11d9eab7ff9cdaa3e58",
+  "stamp": "00d84304d6d22c11f52b942b815c9e6163b94322a379dc5532e9cfd56f722903",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",

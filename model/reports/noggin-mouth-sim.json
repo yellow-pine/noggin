@@ -14,7 +14,6 @@
    "measurements": 53
   }
  },
- "interference": [],
  "contacts": [],
  "bboxes": {
   "top jaw:1": [
@@ -756,7 +755,7 @@
   }
  },
  "inputs": {
-  "stamp": "75a3db06b13c850f7dfb99e250f7eff5aaf004e1ff51cc65ed630a9a0c0298d2",
+  "stamp": "75652ce7d312f59f4ae5540bde552f5f27b13c5c87567ed670a7e6089eb12245",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",

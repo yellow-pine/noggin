@@ -86,6 +86,24 @@ def link(stage, stl_key, hole_a, hole_b, normal):
     return part(stl(stage, stl_key), m, printed(stl_key))
 
 
+def link_placement(name, stl_key, hole_a, hole_b):
+    """The link's two holes on its pins, in the plane of the loop: along the pin axis a link may sit anywhere on its pin
+    (the crank's horn end is stepped 3 mm)."""
+    spec = g.STL_LOCAL[stl_key]
+    la, lb = spec["holes"]
+    i = spec["hole_axis"].index(1)
+    lb = tuple(la[i] if k == i else c for k, c in enumerate(lb))
+    return (name, [la, lb], [hole_a, hole_b], TOL_INFERRED_MM if "(inferred)" in name else TOL_MM)
+
+
+def servo_placements(key, label):
+    """The servo's tab holes on the measured pair and its horn's hub on the horn pivot (both inferred, +-4 mm)."""
+    return [
+        (f"{label} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_INFERRED_MM),
+        (f"{label} horn (inferred):1", [g.HORN_STEP["hub"]], [g.PIVOTS[key + "_horn"]["point"]], TOL_INFERRED_MM),
+    ]
+
+
 def servo_and_horn(key, label, arm):
     """(servo part, horn part) for SERVOS[key] with the horn's single arm along `arm` at neutral."""
     origin, tab_x, shaft = g.servo_frame(key)
@@ -130,6 +148,7 @@ def eyes():
     ]:
         parts[name + ":1"] = part(stl("eyes", stem), translate((dx, 0, 0)), printed(stem))
     parts["main bracket v2:1"] = part(stl("mouth", "main bracket v2"), None, printed("main bracket v2"))
+    placements = []
     for s in "LR":
         side = (lambda p: p) if s == "L" else g.mirror_x
         lid_key, eye_key = f"{s.lower()}_lid", f"{s.lower()}_eye"
@@ -145,6 +164,7 @@ def eyes():
             lid_pin = (x,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem} (inferred):1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
+            placements.append(link_placement(name, stem, horn_pin, lid_pin))
             loops.append(
                 rocker_loop(
                     f"{s} {spec['lid']} lid pivot",
@@ -174,11 +194,7 @@ def eyes():
         horns[f"{s} eye horn (inferred)"] = Horn(
             g.PIVOTS[eye_key + "_horn"], limits(eye_key), f"{s} eye horn (inferred):1", [loop], [], None
         )
-    placements = [
-        (f"{s} {p} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[f"{s.lower()}_{p}"]["tab_holes"], TOL_INFERRED_MM)
-        for s in "LR"
-        for p in ("lid", "eye")
-    ]
+    placements += [pl for s in "LR" for p in ("lid", "eye") for pl in servo_placements(f"{s.lower()}_{p}", f"{s} {p}")]
     return Sub(parts, horns, placements)
 
 
@@ -226,13 +242,14 @@ def stack():
         ("wire holder", "PandT wire holder", 0),
     ]:
         parts[name + ":1"] = part(stl("pt", stem), translate((0, 0, dz)), printed(stem))
-    bars = {}
+    bars, placements = {}, []
     for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
         pivot = g.PIVOTS[key + "_horn"]
         pin, lever = g.horn_pin(key)
         parts.update(servo_and_horn(key, key, np.subtract(pin, pivot["point"])))
         parts[f"{key} bar (inferred):1"] = link("pt", stem, pin, lever, pivot["axis"])
         bars[key] = pin, lever
+        placements += [*servo_placements(key, key), link_placement(f"{key} bar (inferred):1", stem, pin, lever)]
     parts.update(electronics(2))
     tilt = rocker_loop(
         "tilt pivot",
@@ -263,10 +280,6 @@ def stack():
         ),
     }
     stand = g.STANDOFFS["pt_base"]
-    placements = [
-        (f"{key} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_INFERRED_MM)
-        for key in ("tilt", "pan")
-    ]
     placements += [
         ("receiver shield 2:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_2"], axis=0))], TOL_MM),
         ("switch board 2 (inferred):1", [g.SWITCH_STEP["hole"]], [stand["switch"][1]], TOL_INFERRED_MM),
@@ -299,7 +312,10 @@ def mouth():
     horns = {
         "jaw horn (inferred)": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn (inferred):1", [loop], [], None)
     }
-    placements = [("jaw servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS["jaw"]["tab_holes"], TOL_INFERRED_MM)]
+    placements = [
+        *servo_placements("jaw", "jaw"),
+        link_placement("connector bar (inferred):1", "jaws connector bar", pin, lever),
+    ]
     return Sub(parts, horns, placements)
 
 
@@ -348,6 +364,8 @@ def assemble(doc, frames, up, context=()):
         placements += [
             (pname, local, [world(f, e) for e in expected], tol) for pname, local, expected, tol in sub.placements
         ]
+    if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
+        placements.append(("main bracket v2:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_INFERRED_MM))
     if doc in g.STEM_IN:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():
