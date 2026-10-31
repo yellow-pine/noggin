@@ -20,9 +20,9 @@ def test_mirror_x_maps_left_eye_to_right():
 
 def test_every_horn_limit_is_ours_with_its_reason():
     assert g.HORN_LIMITS == {
-        "l_lid": (58, 129),
+        "l_lid": (41, 129),
         "l_eye": (68, 112),
-        "r_lid": (58, 129),
+        "r_lid": (41, 129),
         "r_eye": (68, 112),
         "tilt": (30, 150),
         "rotate": (50, 160),
@@ -157,8 +157,8 @@ def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub
     origin, tab_x, shaft = g.servo_frame("jaw")
     assert shaft == (1, 0, 0) and _dist(origin, (71.77, -48.6, 33.67)) < 1e-9  # tab plane inside the mount plate
     pin, lever = g.horn_pin("jaw")
-    # the jaw bar is cranked 13 mm along the pin: horn end under the horn arm, jaw end on the jaw lug's outer face
-    assert pin[0] == 84.92 and lever == (71.92, -58.1, -10.44)
+    # the jaw bar is cranked 13 mm along the pin: horn end flush under the horn arm, jaw end on the jaw lug's outer face
+    assert pin[0] == 84.64 and lever == (71.64, -58.1, -10.44)
     hub = g.PIVOTS["jaw_horn"]["point"]
     assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
     assert abs(_dist(pin[1:], lever[1:]) - g.BARS["jaw_bar"]) < 1e-6

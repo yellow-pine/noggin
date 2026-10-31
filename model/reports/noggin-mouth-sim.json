@@ -5,7 +5,7 @@
  "step_deg": 10,
  "horns": {
   "jaw horn": {
-   "min_mm": 0.27,
+   "min_mm": 0.2,
    "at_deg": -75,
    "pair": [
     "jaw bar:1",
@@ -78,12 +78,12 @@
   ],
   "jaw bar:1": [
    [
-    70.67,
+    70.39,
     -63.92,
     -13.42
    ],
    [
-    86.17,
+    85.89,
     -55.53,
     36.52
    ]
@@ -306,12 +306,12 @@
   ],
   "L lid crank:1": [
    [
-    -30.0,
+    -31.2,
     -2.98,
     -2.36
    ],
    [
-    -24.0,
+    -25.2,
     14.46,
     41.7
    ]
@@ -378,12 +378,12 @@
   ],
   "R lid crank:1": [
    [
-    83.0,
+    84.2,
     -2.98,
     -2.36
    ],
    [
-    89.0,
+    90.2,
     14.46,
     41.7
    ]
@@ -1199,14 +1199,13 @@
   },
   {
    "joint": "jaw horn pin",
-   "kind": "overlap",
+   "kind": "coaxial",
    "parts": [
-    "jaw bar:1",
-    "jaw horn:1"
+    "jaw horn:1",
+    "jaw bar:1"
    ],
-   "mm": 0.28,
-   "ok": false,
-   "inferred": "the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper"
+   "mm": 0.0,
+   "ok": true
   },
   {
    "joint": "jaw bar / bottom jaw lug",
@@ -1354,11 +1353,9 @@
    "ok": true
   }
  ],
- "warnings": [
-  "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
- ],
+ "warnings": [],
  "inputs": {
-  "stamp": "2c867708ffc2ae5de2a8910b65e3ee5b7f9b223bfa061c7a77ac7d2f396f8df4",
+  "stamp": "767f688b008570bffd27f40624aedfef44b95566e44f88719d3b8f56ddcc7307",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

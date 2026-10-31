@@ -58,15 +58,17 @@ the model stabilises.
   (model/electrical.py `pack_a`); each shield alone stays under 3 A. At the pack's 5.8 V cutoff the servos sag to
   3.6 V at stall (`servo_v`, below their 4.8 V minimum); the Cores hold 3.3 V. Needs a second battery box and switch holder.
 - The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
-- From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used):
-  - the eye horns' spline tooth at servo 90: the model takes the STL pose; the rest photo does not settle it
-    (docs/research/2026-10-31-shafts.md), so the calibrated-end collisions stay listed (model/test_report.py); the lid
-    horns' tooth is settled by the calibrated close (geometry.HORN_AT_90, #134);
+- From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
+  values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
+  - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated close (#134), eyes +2 from the
+    program's eye centre (#170); the lid crank's 1.2 mm play along its screw (geometry.CRANK_PLAY_MM, #170); the lids'
+    open ends still collide in the model and are accepted with their reason (model/test_report.py KNOWN_CALIBRATED);
   - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
-    not published) and the Y lead's branches (100 mm each);
-  - the bracket stem's depth in the pan recess (stage 1) and in the tilt arm window (stages 2, 3) (geometry.STEM_AT);
-  - the receiver headers' PWM numbering (geometry.RECEIVER_STEP);
-  - the jaw horn pin's 0.58 mm bar/arm overlap (model/engine/mating.py INFERRED);
+    the typical 9 g figure; the vendor publishes none) and the Y lead's branches (100 mm each);
+  - the bracket stem's depth in the pan recess (stage 1, from the build photos) and in the tilt arm window (stages 2, 3)
+    (geometry.STEM_AT);
+  - the receiver headers' PWM numbering (geometry.RECEIVER_STEP; no numbering changes a result);
+  - the jaw bar seated flush between the jaw lug and the horn arm (geometry.PT_BAR_PLANES, #170);
   - the horn limits, each with its reason (geometry.LIMITS);
   - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan turntable);
   - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).

@@ -92,11 +92,7 @@ JOINTS = [
     ],
 ]
 # joint: why no source settles it (listed in the report, warns instead of failing)
-INFERRED = {
-    "jaw horn pin": "the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs"
-    " under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise;"
-    " the horn's seat on the real spline needs the calliper",
-}
+INFERRED = {}  # none since #170: the jaw bar seats flush on the horn arm (geometry.PT_BAR_PLANES)
 # The part each servo's near tab screw goes into: the servo must touch it.
 MOUNTS = {feats[0][0]: feats[1][0] for name, feats in JOINTS if name.endswith(" near tab screw")}
 
