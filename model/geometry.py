@@ -35,14 +35,15 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
 # reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
 _LID = (
-    "one range for the mirrored lid pair: +30 opens both lids clear of the eyeball (model/engine/lids.py); the real"
-    " Mech closes past -20, at its calibrated ends"
+    "one range for the mirrored lid pair, the model's free travel: the lids shut at -30.7 (model/engine/lids.py) and the"
+    " lid crank meets the eye bracket from -32 (the calibrated lid_closed lands at -31.7 / -31.5, HORN_AT_90); the lower"
+    " lid meets the servo bracket at +39"
 )
 _EYE = "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"
 LIMITS = {
-    "l_lid": ((70, 120), _LID),
+    "l_lid": ((58, 129), _LID),
     "l_eye": ((68, 112), _EYE),
-    "r_lid": ((70, 120), _LID),
+    "r_lid": ((58, 129), _LID),
     "r_eye": ((68, 112), _EYE),
     "tilt": (
         (30, 150),
@@ -250,6 +251,10 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # with the lids in the STLs' pose and the 41 mm bars: 41.14 to the upper lid's pin, 40.86 to the lower one's
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
+# Joint degrees of each lid horn at servo 90: the spline tooth it went on (#134). The rest-top photo read at face value
+# gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md); the calibrated lid_closed shuts the lids (edges meet at
+# -30.7) without the crank entering the bracket (contact from -32) only for L 12.7..14.0, R 5.5..6.8. Eyes: unsettled, 0.
+HORN_AT_90 = {"l_lid": 13, "r_lid": 6}
 LID_LINKS = {
     "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},
     "lid_crank": {"lid": "upper", "x": (-28.5, -25.5)},

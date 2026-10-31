@@ -23,13 +23,13 @@
    "measurements": 98
   },
   "L lid horn": {
-   "min_mm": 0.48,
-   "at_deg": -20,
+   "min_mm": 0.0,
+   "at_deg": -32,
    "pair": [
-    "L lower lid:1",
-    "L eyeball:1"
+    "L lid crank:1",
+    "eye bracket:1"
    ],
-   "measurements": 119
+   "measurements": 167
   },
   "L eye horn": {
    "min_mm": 0.0,
@@ -41,13 +41,13 @@
    "measurements": 128
   },
   "R lid horn": {
-   "min_mm": 0.48,
-   "at_deg": -20,
+   "min_mm": 0.0,
+   "at_deg": -32,
    "pair": [
-    "R lower lid:1",
-    "R eyeball:1"
+    "R lid crank:1",
+    "eye bracket:1"
    ],
-   "measurements": 118
+   "measurements": 165
   },
   "R eye horn": {
    "min_mm": 0.0,
@@ -174,6 +174,22 @@
    ]
   },
   {
+   "horn": "L lid horn",
+   "deg": -32,
+   "pair": [
+    "L lid crank:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 39,
+   "pair": [
+    "L lower lid:1",
+    "L servo bracket:1"
+   ]
+  },
+  {
    "horn": "L eye horn",
    "deg": -22,
    "pair": [
@@ -219,6 +235,22 @@
    "pair": [
     "L eyeball bar:1",
     "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -32,
+   "pair": [
+    "R lid crank:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 39,
+   "pair": [
+    "R lower lid:1",
+    "R servo bracket:1"
    ]
   },
   {
@@ -1015,31 +1047,29 @@
  },
  "calibrated": {
   "L lid horn": {
-   "lo": -54,
-   "hi": 39,
+   "lo": -41,
+   "hi": 52,
    "inferred": false,
    "violations": [
     {
-     "deg": -54,
-     "pair": [
-      "L lid bar:1",
-      "eye bracket:1"
-     ]
-    },
-    {
-     "deg": -54,
+     "deg": -41,
      "pair": [
       "L lid crank:1",
       "eye bracket:1"
      ]
-    }
-   ],
-   "contacts": [
+    },
     {
-     "deg": 39,
+     "deg": 52,
      "pair": [
       "L lower lid:1",
       "L servo bracket:1"
+     ]
+    },
+    {
+     "deg": 52,
+     "pair": [
+      "L upper lid:1",
+      "L eyeball bar:1"
      ]
     }
    ]
@@ -1082,21 +1112,19 @@
    ]
   },
   "R lid horn": {
-   "lo": -46,
-   "hi": 39,
+   "lo": -40,
+   "hi": 45,
    "inferred": false,
    "violations": [
     {
-     "deg": -46,
+     "deg": -40,
      "pair": [
       "R lid crank:1",
       "eye bracket:1"
      ]
-    }
-   ],
-   "contacts": [
+    },
     {
-     "deg": 39,
+     "deg": 45,
      "pair": [
       "R lower lid:1",
       "R servo bracket:1"
@@ -1427,12 +1455,12 @@
    "inertia_g_mm2": 499110
   },
   "L lid horn": {
-   "kgf_cm": 0.002,
-   "at_deg": -20,
+   "kgf_cm": 0.003,
+   "at_deg": -32,
    "limit_kgf_cm": 0.2,
-   "dynamic_kgf_cm": 0.036,
-   "dynamic_at_deg": -20,
-   "inertia_g_mm2": 4755,
+   "dynamic_kgf_cm": 0.042,
+   "dynamic_at_deg": -32,
+   "inertia_g_mm2": 5337,
    "accel_deg_s2": 41060
   },
   "L eye horn": {
@@ -1445,12 +1473,12 @@
    "accel_deg_s2": 25000
   },
   "R lid horn": {
-   "kgf_cm": 0.002,
-   "at_deg": -20,
+   "kgf_cm": 0.003,
+   "at_deg": -32,
    "limit_kgf_cm": 0.2,
-   "dynamic_kgf_cm": 0.042,
-   "dynamic_at_deg": -20,
-   "inertia_g_mm2": 4755,
+   "dynamic_kgf_cm": 0.049,
+   "dynamic_at_deg": -32,
+   "inertia_g_mm2": 5337,
    "accel_deg_s2": 48225
   },
   "R eye horn": {
@@ -1686,54 +1714,78 @@
   "L lid horn": {
    "L lower lid pivot": [
     [
-     -20,
-     23.85
+     -32,
+     40.49
     ],
     [
-     -10,
-     11.34
+     -22,
+     26.5
     ],
     [
-     0,
-     0.0
+     -12,
+     13.74
     ],
     [
-     10,
-     -10.32
+     -2,
+     2.18
     ],
     [
-     20,
-     -19.81
+     8,
+     -8.33
     ],
     [
-     30,
-     -28.68
+     18,
+     -17.97
+    ],
+    [
+     28,
+     -26.94
+    ],
+    [
+     38,
+     -35.48
+    ],
+    [
+     39,
+     -36.32
     ]
    ],
    "L upper lid pivot": [
     [
-     -20,
-     -20.56
+     -32,
+     -32.64
     ],
     [
-     -10,
-     -10.34
+     -22,
+     -22.59
     ],
     [
-     0,
-     -0.0
+     -12,
+     -12.39
     ],
     [
-     10,
-     10.45
+     -2,
+     -2.08
     ],
     [
-     20,
-     21.02
+     8,
+     8.35
     ],
     [
-     30,
-     31.76
+     18,
+     18.9
+    ],
+    [
+     28,
+     29.6
+    ],
+    [
+     38,
+     40.52
+    ],
+    [
+     39,
+     41.62
     ]
    ]
   },
@@ -1768,54 +1820,78 @@
   "R lid horn": {
    "R lower lid pivot": [
     [
-     -20,
-     23.85
+     -32,
+     40.49
     ],
     [
-     -10,
-     11.34
+     -22,
+     26.5
     ],
     [
-     0,
-     0.0
+     -12,
+     13.74
     ],
     [
-     10,
-     -10.32
+     -2,
+     2.18
     ],
     [
-     20,
-     -19.81
+     8,
+     -8.33
     ],
     [
-     30,
-     -28.68
+     18,
+     -17.97
+    ],
+    [
+     28,
+     -26.94
+    ],
+    [
+     38,
+     -35.48
+    ],
+    [
+     39,
+     -36.32
     ]
    ],
    "R upper lid pivot": [
     [
-     -20,
-     -20.56
+     -32,
+     -32.64
     ],
     [
-     -10,
-     -10.34
+     -22,
+     -22.59
     ],
     [
-     0,
-     -0.0
+     -12,
+     -12.39
     ],
     [
-     10,
-     10.45
+     -2,
+     -2.08
     ],
     [
-     20,
-     21.02
+     8,
+     8.35
     ],
     [
-     30,
-     31.76
+     18,
+     18.9
+    ],
+    [
+     28,
+     29.6
+    ],
+    [
+     38,
+     40.52
+    ],
+    [
+     39,
+     41.62
     ]
    ]
   },
@@ -2670,7 +2746,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "864b6be5fd28566b3bff82dac5279db5074ab7521cbef851a094c0701f0c85c5",
+  "stamp": "50b782401bd3d49ac0f89f6199c955235379e2bdbf023c5a44a33f3230dcf671",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -2720,8 +2796,8 @@
    "flagged": []
   },
   "L lid horn": {
-   "hold_kgf_cm": 0.002,
-   "at_deg": -20,
+   "hold_kgf_cm": 0.003,
+   "at_deg": -32,
    "limit_kgf_cm": 0.6,
    "flagged": []
   },
@@ -2732,8 +2808,8 @@
    "flagged": []
   },
   "R lid horn": {
-   "hold_kgf_cm": 0.002,
-   "at_deg": -20,
+   "hold_kgf_cm": 0.003,
+   "at_deg": -32,
    "limit_kgf_cm": 0.6,
    "flagged": []
   },

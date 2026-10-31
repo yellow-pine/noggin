@@ -21,8 +21,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
   `on-hold` (paused by Cansin). Closing an issue removes its state label.
-- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`; `npx skills@1.7.4 experimental_install`
-  restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at.
+- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json` to a commit (`ref`); `npx skills@1.7.4 experimental_install`
+  restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at, and
+  `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
+  workflow re-pins to upstream HEAD (close and reopen its PR to start the checks), Dependabot pins actions by SHA.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
   required `claude` check fails with it when Claude requests changes (a bug, a spec
   miss, a security issue or a breach of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It

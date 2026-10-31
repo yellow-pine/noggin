@@ -66,8 +66,9 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 	ls -R eyes/stock-backup
 flash:           ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh, else USB (USB=1 forces it)
 	@if [ -z "$(USB)" ] && $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
-flash-usb: interrupt ## the cable: the only way boot.py changes, and the way back from anything Wi-Fi cannot fix
+flash-usb: interrupt ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
+	$(MPR) resume mip install hmac
 	$(MPR) resume cp eyes/eyes.py :eyes.py
 	$(MPR) resume cp eyes/gaze_trace.py :gaze_trace.py
 	$(MPR) resume cp eyes/wifi.py :wifi.py

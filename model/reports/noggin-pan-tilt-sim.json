@@ -882,7 +882,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "d7725621368ccd11f91f990a7c8aabc68ee7f68d3f64e9276d6800c6d50ee3d8",
+  "stamp": "685d97c2fbb6d614b46ca194b2d7c3c64bb522adaafe0312f92cd81aa968d08f",
   "sources": {
    "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",

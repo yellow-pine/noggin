@@ -1,4 +1,4 @@
-"""Wi-Fi Link against a fake UDP Core: beacons in, `<tag> <seq> <line>` out, `ok <seq>` back."""
+"""Wi-Fi Link against a fake UDP Core: tagged beacons in, `<tag> <seq> <line>` out, `<tag> ok <seq>` back."""
 
 import json
 import os
@@ -21,6 +21,11 @@ TOKEN = "s3cret"
 FAST = (0.05, 0.1, 0.2, 0.4)  # the real windows, quartered: an unacked line costs 0.75 s, not 3 s
 
 
+def signed(token, name, body):
+    """What a Core sends: `<tag> <body>`, the tag over `<name> <body>`; untagged without a token."""
+    return (body if token is None else f"{tag(token, f'{name} {body}')} {body}").encode()
+
+
 @pytest.fixture
 def fast(monkeypatch):
     monkeypatch.setattr("noggin.wifi.ACK_SECONDS", FAST)
@@ -29,13 +34,25 @@ def fast(monkeypatch):
 class FakeCore(threading.Thread):
     """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first, `busy`
     how long its loop is blocked before it reads the first one. Like the Core, it re-acks its last seq unrun, and
-    flashes files in the working directory with the Core's own code; `rollback` makes its reboot put the .bak back."""
+    flashes files in the working directory with the Core's own code; `rollback` makes its reboot put the .bak back.
+    `beacon_token` and `ack_token` sign what it sends (None: untagged), as a LAN host posing as the Core would."""
 
     def __init__(
-        self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1", stranger=False, busy=0.0, rollback=False
+        self,
+        name="eyes",
+        token=TOKEN,
+        drop=0,
+        ack=True,
+        claim_ip="127.0.0.1",
+        stranger=False,
+        busy=0.0,
+        rollback=False,
+        beacon_token=TOKEN,
+        ack_token=TOKEN,
     ):
         super().__init__(daemon=True)
         self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
+        self.beacon_token, self.ack_token = beacon_token, ack_token
         self.busy, self.last_seq, self.rollback, self.uptime, self.reply = busy, None, rollback, 42, ""
         self.stranger = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if stranger else None  # acks from another port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -49,7 +66,8 @@ class FakeCore(threading.Thread):
         last = 0.0
         while self.running:
             if self.beaconing and self.beacon_to and time.time() - last > 0.1:
-                self.sock.sendto(f"noggin {self.name_} {self.claim_ip} {self.uptime}".encode(), self.beacon_to)
+                beacon = f"noggin {self.name_} {self.claim_ip} {self.uptime}"
+                self.sock.sendto(signed(self.beacon_token, self.name_, beacon), self.beacon_to)
                 last = time.time()
             try:
                 data, addr = self.sock.recvfrom(1024)
@@ -77,9 +95,9 @@ class FakeCore(threading.Thread):
                     self.reboot()
             self.last_seq = seq
             if self.stranger:
-                self.stranger.sendto(f"ok {seq}".encode(), addr)
+                self.stranger.sendto(signed(TOKEN, self.name_, f"ok {seq}"), addr)
             if self.ack:
-                self.sock.sendto(self.reply.encode(), addr)
+                self.sock.sendto(signed(self.ack_token, self.name_, self.reply), addr)
 
     def reboot(self):
         """What boot.py does next: a program that fails puts the .bak files back; either way it reaches ready."""
@@ -118,6 +136,7 @@ def ask(path, text, timeout=1.0):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(path)
     s.sendall(text.encode())
+    s.shutdown(socket.SHUT_WR)  # EOF, as nc gives: the service reads to it, then answers
     s.settimeout(timeout)
     try:
         return s.recv(4096).decode()
@@ -157,11 +176,32 @@ def test_ack_from_another_address_does_not_count(tmp_path, capsys, fast):
     core.running = False
 
 
-def test_beacon_claiming_another_ip_is_reached_at_its_real_source_address(tmp_path):
-    core = FakeCore(claim_ip="10.9.9.9")
+def test_beacon_from_another_address_than_it_claims_is_ignored(tmp_path):
+    core = FakeCore(claim_ip="10.9.9.9")  # a genuine beacon, captured and replayed by another host
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])  # delivered to 127.0.0.1, not 10.9.9.9
-    assert "eyes wifi 127.0.0.1" in ask(sock, "status\n")
+    time.sleep(0.3)
+    assert "eyes offline" in ask(sock, "status\n") and core.datagrams == []
+    s.stop()
+    core.running = False
+
+
+@pytest.mark.parametrize("beacon_token", [None, "forged"])
+def test_untagged_or_forged_beacon_is_ignored(tmp_path, beacon_token):
+    core = FakeCore(beacon_token=beacon_token)
+    s, sock = start(tmp_path, core)
+    time.sleep(0.3)
+    assert "eyes offline" in ask(sock, "status\n") and core.datagrams == []
+    s.stop()
+    core.running = False
+
+
+@pytest.mark.parametrize("ack_token", [None, "forged"])
+def test_untagged_or_forged_ack_does_not_count(tmp_path, capsys, fast, ack_token):
+    core = FakeCore(ack_token=ack_token)  # from the Core's own address and port, as a spoofer would send it
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: len(core.datagrams) == 8)  # 2 lines x 4 tries: no ack counted
+    time.sleep(0.5)
+    assert len(core.datagrams) == 8 and "no ack over wifi" in capsys.readouterr().out
     s.stop()
     core.running = False
 
@@ -384,3 +424,4 @@ def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, stat
     ).stdout
     assert ("FLASHED-OVER-WIFI" in out) == (path == "wifi")
     assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")
+    assert ("mip install hmac" in out) == (path == "usb")  # the Core's hmac comes from micropython-lib, over USB
