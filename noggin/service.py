@@ -1,4 +1,4 @@
-"""noggin Daemon: owns the Link to the Core and a Unix socket for Triggers and the CLI.
+"""noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI.
 Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the Director) or
 plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
 `pose ...` / `exercise <min>` (passed to the Core) / `set <key> <value>` (saved to the calibration
@@ -32,7 +32,7 @@ def open_link():
     return None
 
 
-class Daemon:
+class Service:
     def __init__(self, sock_path=SOCK, open_serial=open_link, mute_file=MUTE_FILE, cal_file=CAL_FILE):
         self.sock_path, self.open_serial, self.mute_file, self.cal_file = sock_path, open_serial, mute_file, cal_file
         self.director = Director()
@@ -115,4 +115,4 @@ class Daemon:
 
 
 if __name__ == "__main__":
-    Daemon().run()
+    Service().run()

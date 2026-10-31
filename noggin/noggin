@@ -1,5 +1,5 @@
 #!/bin/sh
-# Talk to the noggin Daemon socket.
+# Talk to the noggin service socket.
 [ $# -gt 0 ] || { cat >&2 <<'USAGE'
 usage: noggin on|off                     mute / unmute
        noggin eureka|attention|bored|wince <1-3>
@@ -12,4 +12,4 @@ usage: noggin on|off                     mute / unmute
        noggin exercise <minutes>         gentle run-in cycling, mid-range only
 USAGE
 exit 2; }
-printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "daemon not running (make daemon)" >&2; exit 1; }
+printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "noggin not running (make start)" >&2; exit 1; }

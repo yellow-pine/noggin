@@ -1,32 +1,32 @@
 REPO  := $(abspath .)
 PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
-PLIST := $(HOME)/Library/LaunchAgents/com.noggin.eyesd.plist
-LABEL := gui/$(shell id -u)/com.noggin.eyesd
+PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
+LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test install hooks unhooks daemon stop status log interrupt core-info backup-stock flash restore-stock
+.PHONY: venv test install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
 test: venv
 	$(PY) -m pytest -q
-install: venv hooks daemon   ## host side: hooks + launchd daemon
+install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
-	$(PY) daemon/install_hooks.py
+	$(PY) noggin/install_hooks.py
 unhooks:
-	$(PY) daemon/install_hooks.py --remove
-daemon:          ## install + (re)start the launchd Daemon
-	sed 's|__REPO__|$(REPO)|g' daemon/com.noggin.eyesd.plist > $(PLIST)
+	$(PY) noggin/install_hooks.py --remove
+start:           ## install + (re)start the noggin service (launchd)
+	sed 's|__REPO__|$(REPO)|g' noggin/com.noggin.plist > $(PLIST)
 	-launchctl bootout $(LABEL) 2>/dev/null
 	launchctl bootstrap gui/$(shell id -u) $(PLIST)
-stop:            ## stop the Daemon (frees the Link for mpremote); waits until it is really gone
+stop:            ## stop the noggin service (frees the Link for mpremote); waits until it is really gone
 	-launchctl bootout $(LABEL) 2>/dev/null
 	@while launchctl print $(LABEL) >/dev/null 2>&1; do sleep 0.2; done
 status:
 	-launchctl print $(LABEL) | grep -E 'state|pid' | head -3
-	-tail -5 eyesd.log
+	-tail -5 noggin.log
 log:
-	tail -f eyesd.log
+	tail -f noggin.log
 
 interrupt: stop  ## drop the Core to its REPL (the stock app ignores mpremote's own Ctrl-C)
 	$(PY) eyes/interrupt.py

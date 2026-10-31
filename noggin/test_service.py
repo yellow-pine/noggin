@@ -1,5 +1,5 @@
 import json, os, socket, tempfile, threading, time, uuid
-from daemon.eyesd import Daemon
+from noggin.service import Service
 
 class FakeSerial:
     def __init__(self): self.buf = b""
@@ -21,7 +21,7 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     state = tmp_path / "mute"
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"; cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
-    d = Daemon(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
+    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")

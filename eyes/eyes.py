@@ -2,7 +2,7 @@
 # Plays named gestures and background modes (thinking, exercise) on four servos.
 # Servos stay powered: released, the lids and eyes fall under gravity (gravity beats the smooth linkages).
 # Calibration lives in self.cal: defaults below, overridden live by `set key value`
-# lines that the Daemon pushes from eyes/calibration.json.
+# lines that the noggin service pushes from eyes/calibration.json.
 # Importable on CPython for tests (machine is stubbed there).
 import time
 from machine import Pin, PWM
