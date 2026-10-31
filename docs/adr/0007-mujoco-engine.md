@@ -31,7 +31,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   GIFs) stays Blender's style B, posed from MuJoCo's poses instead of the old engine's. MuJoCo's viewer is for local
   checks only, with its built-in toggles: `make view` opens `python -m mujoco.viewer` on a document
   (https://mujoco.readthedocs.io/en/stable/python.html#interactive-viewer). Its visual config is one rgba per part from
-  the colour table the pictures use (model/render/scene.py, Absolute Black drawn #2B2B2E) and a flat skybox in the
+  the colour table the pictures use (model/render/scene.py DRAWN: Absolute Black drawn #2B2B2E, Pure White #E8E8E8) and a flat skybox in the
   pictures' background colour (scene.BG; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
   under a headlight that draws a face toward the camera in its exact colour (ambient 0.5, diffuse 0.5, no specular;
   MuJoCo's default dims and greys every colour).

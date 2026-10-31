@@ -26,13 +26,14 @@ GREYS = {
 
 
 BG = "#F7F4EE"  # the pictures' background (Blender) and the MuJoCo viewer's sky
-BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read (Blender and MuJoCo)
+# Absolute Black and Pure White drawn a touch off their extremes so shading and lines read on them (Blender and MuJoCo)
+DRAWN = {g.SPOOLS["Absolute Black"]: "#2B2B2E", g.SPOOLS["Pure White"]: "#E8E8E8"}
 
 
 def drawn(file):
-    """The colour a picture draws the part in: its colour, Absolute Black lifted."""
+    """The colour a picture draws the part in: its colour, black and white pulled in (DRAWN)."""
     c = colour(file)
-    return BLACK_LIFT if c == g.SPOOLS["Absolute Black"] else c
+    return DRAWN.get(c, c)
 
 
 def colour(file):

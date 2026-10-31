@@ -6,8 +6,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   from the poses the Python engine computes (model/engine): `make render` for the views, `make gifs` for the gestures;
   code in model/render, output in model/build/pictures.
-- Parts carry their real spool's colour (PLA: Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black
-  #000000, drawn #2B2B2E so its shading and lines read, Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
+- Parts carry their real spool's colour (PLA: Milky Pink #F7CED7, Pure White #FFFFFF drawn #E8E8E8, Absolute Black
+  #000000 drawn #2B2B2E: white and black pulled in so their shading and lines read, model/render/scene.py DRAWN;
+  Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
   and the PLA density (1.24 g/cm3). Electronics and servos are neutral greys,
   darker for the boards (model/render/scene.py GREYS).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon

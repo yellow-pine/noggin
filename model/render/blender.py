@@ -109,7 +109,7 @@ def load(parts):
             "pupil" in name
         ):  # the pupil face lies on the eyeball sphere: lifted, it neither z-fights nor dashes its outline
             ob.modifiers.new("lift", "DISPLACE").strength = 0.0003
-        ob.data.materials.append(material(name, p["colour"]))  # Absolute Black already lifted (scene.drawn)
+        ob.data.materials.append(material(name, p["colour"]))  # black and white already pulled in (scene.DRAWN)
         objs[name] = ob
     return objs
 

@@ -36,7 +36,7 @@ def test_a_stage_without_eye_horns_ignores_the_eye_joints():
 def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(STAGE1, tmp_path)
     assert set(manifest) == set(STAGE1.parts)
-    assert manifest["L eyeball:1"]["colour"] == "#FFFFFF"  # Pure White
+    assert manifest["L eyeball:1"]["colour"] == "#E8E8E8"  # Pure White, pulled in so its shading reads
     assert manifest["base plate:1"]["colour"] == "#2B2B2E"  # Absolute Black, lifted so its shading reads
     assert manifest["L upper lid:1"]["colour"] == "#F7CED7"  # Milky Pink
     assert manifest["L lid servo:1"]["colour"] not in geometry.SPOOLS.values()
