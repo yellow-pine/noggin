@@ -14,3 +14,12 @@ daemon and the Claude Code hooks; see `docs/build-notes.md`, `GLOSSARY.md` and
 
 PolyForm Noncommercial 1.0.0. Copyright Yellow Pine. Free for noncommercial
 use; contact Yellow Pine for commercial licensing. See `LICENSE.md`.
+
+## Setup
+
+```
+make test            # unit tests
+scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, calibrate, install hooks + daemon
+daemon/noggin off    # mute (on to resume); daemon/noggin eureka 2 for a manual gesture
+make restore-stock   # put Bambu's remote-control program back on the Core
+```
