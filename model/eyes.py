@@ -91,11 +91,15 @@ def run(_context: str):
         part(name, lib, name, align((dx, 0, 0)))
     part("main bracket", "main bracket v2", "main bracket v2")
 
-    # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
+    # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot. A Port at each servo's
+    # cable exit (SERVO_STEP lead), placed after parts_end.
+    leads = {}
     for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
         origin, tab_x, shaft = servo_frame(key)
         label = key.upper()[0] + (" lid" if "lid" in key else " eye")
-        part(key + "_servo", "servo", f"{label} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+        m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+        part(key + "_servo", "servo", f"{label} servo", m)
+        leads[key + "_servo"] = (f"{label} servo lead", at(m, SERVO_STEP["lead"]))
         arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X  # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
         part(key + "_horn", "horn", f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
@@ -125,6 +129,8 @@ def run(_context: str):
         for occ in reuse.values():  # kept parts the build no longer places
             occ.deleteMe()
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
+        for key, (name, p) in leads.items():
+            port(occs[key], name, p)
         occs["main bracket"].isGrounded = True
         for s in "LR":
             eye = PIVOTS[s.lower() + "_eye"]["point"]

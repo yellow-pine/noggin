@@ -50,7 +50,8 @@ def run(_context: str):
 
     # Jaw servo from the measured mount-lug holes, horn at the inferred seat, the connector bar on the horn pin and the jaw lug.
     origin, tab_x, shaft = servo_frame("jaw")
-    part("jaw servo", "servo", "jaw servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+    servo_m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+    part("jaw servo", "servo", "jaw servo", servo_m)
     seat = PIVOTS["jaw_horn"]["point"]
     pin, lever = horn_pin("jaw")
     part(
@@ -73,6 +74,7 @@ def run(_context: str):
         for occ in reuse.values():  # kept parts the build no longer places
             occ.deleteMe()
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
+        port(occs["jaw servo"], "jaw servo lead", at(servo_m, SERVO_STEP["lead"]))
         # The top jaw is screwed to the bracket (4 screws); the bottom jaw clips onto its pins: the hinge is between the two jaws.
         pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
         lo, hi = HORN_LIMITS["mouth"]

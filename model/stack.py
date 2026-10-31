@@ -64,10 +64,12 @@ def run(_context: str):
         part(name, lib, name, align((0, 0, dz)) if dz else None)
 
     # Servos from the measured tab holes, horns at the inferred shaft, each bar on its horn pin and lever hole.
-    pins = {}
+    pins, leads = {}, []  # leads: (servo, Port name, world point) at each servo's cable exit, placed after parts_end
     for key in ("tilt", "pan"):
         origin, tab_x, shaft = servo_frame(key)
-        part(f"{key} servo", "servo", f"{key} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+        m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+        part(f"{key} servo", "servo", f"{key} servo", m)
+        leads.append((f"{key} servo", f"{key} servo lead", at(m, SERVO_STEP["lead"])))
         seat = PIVOTS[key + "_horn"]["point"]
         pin, lever = horn_pin(key)
         part(
@@ -96,6 +98,8 @@ def run(_context: str):
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
         for occ, name, p in ports:
             port(occ, name, p)
+        for key, name, p in leads:
+            port(occs[key], name, p)
         # The pan base turns on the bearing block (18 x 5.5 in the base recess and the pan base recess, zero clearance by design)
         pivot_joint(root, occs["pan base"], occs["bearing block"], (0.0, 0.0, 3.5), "Z", "pan pivot")
         pivot_joint(root, occs["tilt arm"], occs["upright v2"], PIVOTS["tilt"]["point"], "X", "tilt pivot")

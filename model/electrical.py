@@ -69,37 +69,34 @@ def budget():
 # Lead lengths are not published (docs/research/2026-10-31-electrical.md 1): assumed, the CyberBrick servo lead 250 mm
 # and the XH2.54 leads 100 mm; a lead must reach with SLACK_MM to spare.
 SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
-SERVO_PART = {
-    "l_lid": "L lid servo:1",
-    "l_eye": "L eye servo:1",
-    "r_lid": "R lid servo:1",
-    "r_eye": "R eye servo:1",
-    "tilt": "tilt servo:1",
-    "mouth": "jaw servo:1",
-    "pan": "pan servo:1",
+SERVO_LABEL = {  # the Mech's servo names (the Fusion component "<label> servo")
+    "l_lid": "L lid",
+    "l_eye": "L eye",
+    "r_lid": "R lid",
+    "r_eye": "R eye",
+    "tilt": "tilt",
+    "mouth": "jaw",
+    "pan": "pan",
 }
 
 
 def leads():
-    """(lead, (part, port), (part, port), length mm) for every lead of the Mech: each servo from its shield header
-    (CHANNELS) to where its lead leaves the servo, each pack's lead to its switch board, each switch board's XH lead to
-    its shield. Port names are geometry's (model/engine/mech.PORTS)."""
+    """(lead, Port, Port, length mm) for every lead of the Mech: each servo from its shield header (CHANNELS) to where its
+    lead leaves the servo, each pack's lead to its switch board, each switch board's XH lead to its shield. Port names
+    are the Fusion builds' (model/engine/stages.py ports)."""
     out = []
     for n in (1, 2):
-        shield = f"receiver shield {n}:1"
         for port, name in CHANNELS[f"core{n}"].items():
             out.append(
                 (
                     f"{name} servo -> Core {n} PWM{port}",
-                    (shield, f"PWM{port}"),
-                    (SERVO_PART[name], "lead"),
+                    f"Core {n} servo PWM{port}",
+                    f"{SERVO_LABEL[name]} servo lead",
                     SERVO_LEAD_MM,
                 )
             )
-        switch = f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1"
-        pack = "battery 1:1" if n == 1 else "battery 2 (inferred):1"
-        out.append((f"pack {n} -> switch {n}", (pack, "plug"), (switch, "hole"), XH_LEAD_MM))
-        out.append((f"switch {n} -> shield {n}", (switch, "hole"), (shield, "xh_power"), XH_LEAD_MM))
+        out.append((f"pack {n} -> switch {n}", f"battery {n} lead", f"switch board {n} hole", XH_LEAD_MM))
+        out.append((f"switch {n} -> shield {n}", f"switch board {n} hole", f"Core {n} XH power", XH_LEAD_MM))
     return out
 
 

@@ -285,7 +285,9 @@ def report(doc, parallel=True):
         outline = mech.footprint(placed["PandT base:1"].vertices)
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
         out["cable_reach"] = mech.cable_reach(stage, STEP_DEG)
-    if all(p in stage.parts for p in electrical.SERVO_PART.values()):  # the whole Mech: both Cores
+    if all(
+        f"{label} servo:1" in stage.parts for label in electrical.SERVO_LABEL.values()
+    ):  # the whole Mech: both Cores
         out["electrical"] = electrical.budget()
     for h, by_deg in dynamic.items():
         t = out["torque"][h]

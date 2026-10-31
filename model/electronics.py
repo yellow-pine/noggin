@@ -36,18 +36,9 @@ def electronics(root, n, reuse, ports):
     usb = core_pcb.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core_pcb).boundingBox
     assert usb.minPoint.z * 10 > receiver_m.translation.z * 10, "Core must sit above the shield"
     for header, p in RECEIVER_STEP["headers"].items():
-        w = point(p)
-        w.transformBy(receiver_m)
-        ports.append(
-            (
-                receiver,
-                f"Core {n} servo {header}" + (f" ({CHANNELS[n][header]})" if header in CHANNELS[n] else ""),
-                (w.x * 10, w.y * 10, w.z * 10),
-            )
-        )
-    w = point(RECEIVER_STEP["xh_power"])
-    w.transformBy(receiver_m)
-    ports.append((receiver, f"Core {n} XH power", (w.x * 10, w.y * 10, w.z * 10)))
+        label = f"Core {n} servo {header}" + (f" ({CHANNELS[n][header]})" if header in CHANNELS[n] else "")
+        ports.append((receiver, label, at(receiver_m, p)))
+    ports.append((receiver, f"Core {n} XH power", at(receiver_m, RECEIVER_STEP["xh_power"])))
     ports.append(
         (core, f"Core {n} USB-C", tuple((getattr(usb.minPoint, c) + getattr(usb.maxPoint, c)) * 5 for c in "xyz"))
     )

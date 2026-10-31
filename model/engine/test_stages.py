@@ -32,6 +32,16 @@ def test_every_horn_link_and_the_bracket_stem_has_a_placement_tolerance():
     assert placed["L eyelid bar (inferred):1"] == stages.TOL_INFERRED_MM
 
 
+def test_every_servo_has_a_lead_port_at_its_cable_exit():
+    stage = stages.STAGES["noggin-stage3"]
+    leads = {n: p for n, p in stage.ports.items() if n.endswith(" servo lead")}
+    assert set(leads) == {f"{s} servo lead" for s in ("L lid", "L eye", "R lid", "R eye", "tilt", "pan", "jaw")}
+    for name, (part, local) in leads.items():
+        assert part == name[: -len(" lead")] + ":1" and local == g.SERVO_STEP["lead"]
+    assert stage.ports["Core 2 servo PWM3"] == ("receiver shield 2:1", g.RECEIVER_STEP["headers"]["PWM3"])
+    assert stage.ports["battery 1 lead"] == ("battery 1:1", g.BATTERY_STEP["plug"])
+
+
 def test_a_misplaced_part_is_reported_with_its_tolerance():
     stage = stages.STAGES["noggin-stage1"]
     m = stage.parts["main bracket v2:1"].matrix

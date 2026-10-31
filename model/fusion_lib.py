@@ -520,6 +520,13 @@ def port(occ, name, point_mm):
     return sketch_point(occ, point_mm, name=f"Port: {name}")[1]
 
 
+def at(matrix, p):
+    """World mm of the local point p (mm) under matrix."""
+    w = point(p)
+    w.transformBy(matrix)
+    return (w.x * 10, w.y * 10, w.z * 10)
+
+
 def descendant(occ, prefix):
     """The first nested occurrence (assembly context) whose name starts with `prefix`, depth first."""
     for child in occ.childOccurrences:

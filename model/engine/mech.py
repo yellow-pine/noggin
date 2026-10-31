@@ -10,7 +10,6 @@ import numpy as np
 from scipy.spatial import ConvexHull
 
 from model import electrical
-from model import geometry as g
 from model.engine import linkage, masses, stages
 
 FRAME_S = 0.02  # 50 Hz PWM: the servo sees one new pulse per frame, so the plant is stepped per frame
@@ -167,23 +166,14 @@ def tip_over(stage, table, outline, step):
     return best
 
 
-PORTS = {  # part-local Port points (geometry), by the names electrical.leads() uses
-    **g.RECEIVER_STEP["headers"],
-    "xh_power": g.RECEIVER_STEP["xh_power"],
-    "plug": g.BATTERY_STEP["plug"],
-    "hole": g.SWITCH_STEP["hole"],
-    "lead": g.SERVO_STEP["lead"],
-}
-
-
 def cable_reach(stage, step):
-    """{lead: {max_mm, at, length_mm, limit_mm}}: the longest straight port-to-connector distance of every lead whose
-    two parts are in the document, over the pan x tilt grid; a lead must stay under its length less the slack."""
-    present = [lead for lead in electrical.leads() if lead[1][0] in stage.parts and lead[2][0] in stage.parts]
+    """{lead: {max_mm, at, length_mm, limit_mm}}: the longest straight Port-to-Port distance (stage.ports) of every lead
+    whose two Ports are in the document, over the pan x tilt grid; a lead must stay under its length less the slack."""
+    present = [lead for lead in electrical.leads() if lead[1] in stage.ports and lead[2] in stage.ports]
     out = {}
     for p, t, mats in mech_poses(stage, step):
-        for name, (pa, ka), (pb, kb), length in present:
-            d = math.dist(*(mats[n][:3, :3] @ PORTS[k] + mats[n][:3, 3] for n, k in ((pa, ka), (pb, kb))))
+        for name, a, b, length in present:
+            d = math.dist(*(mats[n][:3, :3] @ local + mats[n][:3, 3] for n, local in (stage.ports[a], stage.ports[b])))
             if name not in out or round(d, 1) > out[name]["max_mm"]:  # a static lead keeps its first pose
                 out[name] = {
                     "max_mm": round(d, 1),
