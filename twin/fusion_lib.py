@@ -23,10 +23,10 @@ def open_or_create(app, name):
     doc = app.documents.open(existing, True) if existing else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
     design = adsk.fusion.Design.cast(app.activeProduct)
     design.designType = adsk.fusion.DesignTypes.ParametricDesignType   # mesh convert only works here
-    root = design.rootComponent
-    for joint in list(root.joints):
-        joint.deleteMe()
-    for occ in list(root.occurrences):
+    if design.timeline.count:          # one rollback + delete: per-occurrence deletes recompute the timeline each time
+        design.timeline.markerPosition = 0
+        design.timeline.deleteAllAfterMarker()
+    for occ in list(design.rootComponent.occurrences):
         occ.deleteMe()
     return doc, design, folder
 
