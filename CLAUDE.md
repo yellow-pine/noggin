@@ -10,7 +10,7 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 
 ## Layout
 
-- `docs/` — original build notes, build photo, ADRs. PurpleShark's PDFs/JSONs are NOT redistributable (MakerWorld Standard Digital File License, no derivatives); they live outside the repo in ~/Documents/cyberbrick-eyes-sources/.
+- `docs/` — original build notes, build photo, ADRs. PurpleShark's PDFs/JSONs are NOT redistributable (MakerWorld Standard Digital File License, no derivatives); they live gitignored in `docs/references/`.
 - Keep it minimal: the `ponytail` plugin (anti-overengineering) and `mattpocock-skills` are installed at user scope and should guide design here. Prefer the smallest thing that works.
 
 ## Hardware facts (researched 2026-10-31)
