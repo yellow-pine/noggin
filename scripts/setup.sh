@@ -200,7 +200,7 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=8
+TOTAL_STAGES=9
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
 MPR=.venv/bin/mpremote
@@ -274,6 +274,19 @@ rm -f core.json
 say "Listening 6 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
 "$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(6); print(s.recv(128).decode())' \
   && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 6 s, or the SSID/password is wrong: re-run this stage"
+pause
+
+stage "Give the Core its keys"
+say "A local CA in ~/.noggin/pki signs the broker, this Mac and each Core for the Link's mutual TLS (EC P-256)."
+note "Re-running keeps every key (the Cores hold copies); '.venv/bin/python -m noggin.pki --rotate' replaces them all."
+PKI=$("$PY" -m noggin.pki)             # needs OpenSSL 3+ on PATH (Homebrew's), not macOS's LibreSSL
+note "Over this USB cable only, never over Wi-Fi; $PKI is outside the repo and .gitignore keeps keys out of git anyway."
+make -s interrupt
+"$MPR" resume cp "$PKI/$CORE_NAME.key.der" :key.der
+"$MPR" resume cp "$PKI/$CORE_NAME.crt.der" :cert.der
+"$MPR" resume cp "$PKI/ca.crt.der" :ca.der
+"$PY" eyes/interrupt.py reset
+say "The $CORE_NAME Core holds key.der, cert.der and ca.der (DER: its own key and certificate, and the CA)."
 pause
 
 stage "Calibrate lids and eyes"

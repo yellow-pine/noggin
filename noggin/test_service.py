@@ -251,3 +251,28 @@ def test_a_stalled_writer_is_dropped_after_the_timeout(tmp_path, capsys):
     assert ask(sock, "status\n").endswith("mode follow\n")
     assert b"thinking" not in fake.buf and "dropped connection: timed out" in capsys.readouterr().out
     s.stop()
+
+
+def test_the_service_starts_watches_and_stops_its_broker(tmp_path):
+    class FakeBroker:
+        calls = []
+
+        def start(self):
+            self.calls.append("start")
+
+        def poll(self):
+            self.calls.append("poll")
+
+        def stop(self):
+            self.calls.append("stop")
+
+    sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
+    b = FakeBroker()
+    d = Service(sock_path=sock, open_serial=lambda: None, mute_file=tmp_path / "m", cal_file=tmp_path / "c.json",
+                beacon_port=0, broker=b)  # fmt: skip
+    t = threading.Thread(target=d.run, daemon=True)
+    t.start()
+    assert wait_for(lambda: "poll" in b.calls)
+    d.stop()
+    t.join(2)
+    assert b.calls[0] == "start" and b.calls[-1] == "stop"
