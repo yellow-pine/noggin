@@ -2,7 +2,7 @@
 
 import cadquery as cq
 
-from model.printed import bars, bearing_block, main_bracket, servo_mount, wire_holder
+from model.printed import bars, bearing_block, main_bracket, pan_base, servo_mount, wire_holder
 
 PARTS = {
     "main bracket v2": main_bracket.build,
@@ -12,6 +12,7 @@ PARTS = {
     "PandT servo mount plain": servo_mount.plain,
     "PandT servo mount cutout": servo_mount.cutout,
     "PandT wire holder": wire_holder.build,
+    "PandT pan base": pan_base.build,
 }
 
 
