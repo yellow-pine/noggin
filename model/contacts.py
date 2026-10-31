@@ -1,7 +1,7 @@
-"""Contact set per Stage (#20): the moving parts plus the bracket and the servos, so dragging a joint in Fusion
+"""Contact set per sub-assembly (#20): the moving parts plus the bracket and the servos, so dragging a joint in Fusion
 stops at contact instead of passing through. Inlined into a build script via `# include: model/contacts.py`
 (after fusion_lib) and called before save(); eyes.py: contact_set(design, root, moving | {"main bracket v2"} |
-{o.name for o in root.occurrences if o.name.endswith("servo")}). Verified calls: twin-notes/fusion-sim-facts.md."""
+{o.name for o in root.occurrences if o.name.endswith("servo")})."""
 
 
 def contact_set(design, root, names):

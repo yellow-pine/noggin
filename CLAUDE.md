@@ -12,7 +12,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Keep it minimal (ponytail is active). Smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
 - No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield.
-- The digital model of the Mech is "the model" (folder model/ after the rename ticket), never "twin".
+- The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 

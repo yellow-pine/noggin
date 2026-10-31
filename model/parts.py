@@ -1,7 +1,8 @@
-"""Build or update the parts library: one Fusion design per printed part (STL, faceted solid) and per hardware STEP in folder `parts` of project Noggin, so the Stage builds insert
-stored solids (fusion_lib.insert_part) instead of converting meshes (docs/research/2026-10-31-fusion-throughput.md
-section 4). The design's root carries the sha256 of its source files (FINGERPRINT_ATTR); a part whose sources are
-unchanged is skipped, `FULL=1 make model-parts` reconverts everything. Runs INSIDE Fusion: `make model-parts`."""
+"""Build or update the parts library: one Fusion design per printed part (STL, faceted solid) and per hardware STEP
+in folder `parts` of project Noggin, so the builds insert stored solids (fusion_lib.insert_part) instead of converting
+meshes (docs/research/2026-10-31-fusion-throughput.md section 4). The design's root carries the sha256 of its source
+files (FINGERPRINT_ATTR); a part whose sources are unchanged is skipped, `FULL=1 make model-parts` reconverts
+everything. Runs INSIDE Fusion: `make model-parts`."""
 
 # include: model/geometry.py
 # include: model/fusion_lib.py
@@ -19,7 +20,7 @@ SERVO_DIR = os.path.join(REF, "cyberbrick-cad/servo/CAD_9g Servo Motor with Clut
 RECEIVER = os.path.join(
     REF, "cyberbrick-cad/receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp"
 )
-STLS = {  # Stage folder: the STL stems the three Stage builds place (the lizard/plain eyes, v1 bracket and bases are not built)
+STLS = {  # designer folder: the STL stems the sub-assembly builds place (the lizard/plain eyes, v1 bracket and bases are not built)
     "01-eyes": [
         "L servo bracket",
         "R servo bracket",

@@ -18,7 +18,7 @@ _RAY = np.array([0.5773, 0.6113, 0.5410])  # off-axis so edges and vertices are 
 
 
 def load(stage, names=None):
-    """{part name: trimesh.Trimesh in its local frame} for the Stage's parts (or just `names`)."""
+    """{part name: trimesh.Trimesh in its local frame} for the document's parts (or just `names`)."""
     out = {}
     for name, part in stage.parts.items():
         if names is not None and name not in names:

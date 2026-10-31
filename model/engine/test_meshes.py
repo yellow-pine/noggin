@@ -1,4 +1,4 @@
-"""Seam: model/engine/meshes.py, mesh loading per Stage and the pairwise distance / penetration judgement."""
+"""Seam: model/engine/meshes.py, mesh loading per document and the pairwise distance / penetration judgement."""
 
 import os
 

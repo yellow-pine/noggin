@@ -1,7 +1,7 @@
-"""Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth Stage owns
+"""Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth sub-assembly owns
 (top and bottom jaw, plain; the jaws servo mount; the connector bar) from the parts library (`make model-parts`,
 fusion_lib.insert_part) in the eyes frame, the jaw servo with its half-arm horn, and the saved `noggin-eyes` design
-inserted as a grounded reference (main bracket v2 and the eyes belong to that Stage: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
+inserted as a grounded reference (main bracket v2 and the eyes belong to that sub-assembly: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
 X through (29.5, -49.6, 8)), the horn on the servo (HORN_LIMITS mouth), the bar on the horn pin and the loop closed at
 the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed from inferred positions carry an
 "(inferred)" suffix: the horn seat, the bar plane and which bar hole is the jaw end (model/geometry.py)."""
@@ -41,7 +41,7 @@ def run(_context: str):
 
     for name, lib in MOUTH_PARTS:
         part(name, lib, name)
-    # The saved noggin-eyes design by reference at identity (both Stages share the eyes frame), grounded below;
+    # The saved noggin-eyes design by reference at identity (both sub-assemblies share the eyes frame), grounded below;
     # re-inserted when noggin-eyes has a newer version (its fingerprint is the version).
     part("eyes", EYES_DOC, EYES_DOC, referenced=True)
 
@@ -100,7 +100,9 @@ def run(_context: str):
             occ.isGrounded = (
                 True  # the top jaw, mount and servo are screwed to the bracket; the eyes reference is static here
             )
-    new_contacts = not design.contactSets.count  # one contact set per Stage (#20): moving parts, their mount and servo
+    new_contacts = (
+        not design.contactSets.count
+    )  # one contact set per sub-assembly (#20): moving parts, their mount and servo
     if new_contacts:  # the eyes reference is left out: untested whether a referenced occurrence can join a contact set
         contact_set(
             design,

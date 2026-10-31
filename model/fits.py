@@ -1,4 +1,4 @@
-"""Pin fits at every pinned joint of a Stage: a circle fitted (least squares) to the designer's STL around the
+"""Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to the designer's STL around the
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
 prints the eyes table. Designer STLs: docs/references (local only)."""
 
@@ -91,7 +91,7 @@ def fit_table(joints):
     return out
 
 
-# Eyes Stage (L side; the R side uses the same STLs mirrored). Hole centres fitted here, not geometry.STL_LOCAL:
+# Eyes sub-assembly (L side; the R side uses the same STLs mirrored). Hole centres fitted here, not geometry.STL_LOCAL:
 # the eyelid bar's holes are at x=+-20.5 (41 mm, as BARS says; STL_LOCAL has +-21.03) and the crank is the same bar with
 # its horn end stepped up 3 mm, both holes along Z (STL_LOCAL has them along Y). `half` spans the part around the hole.
 EYES_JOINTS = [
@@ -131,7 +131,7 @@ EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn
     "outside lid ear / bracket pin": (1.959, 1.735, True),
 }
 
-# Pan-tilt Stage: bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
+# Stack sub-assembly (pan-tilt): bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
 # the levers and the tilt pivot with M2.5 (self-tapping into the r 1.1 holes, as the eyeball bar's horn end).
 PT_JOINTS = [
     ("tilt bar / horn screw", (stl("tilt bar", PT_MODELS), (10, 0, 1.5), "z", 2), M2),
@@ -154,7 +154,7 @@ PT_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31
     "upright / pivot screw": (1.1, 1.25, True),
 }
 
-# Mouth Stage: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
+# Mouth sub-assembly: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
 # self-tapped into the jaw's pivot lug (step 8). The bar's own holes are not fitted: at 960 vertices the hole rings tangle
 # with the tab-end rounding (rms 0.1-0.16); the research note reads them as r ~1.25.
 MOUTH_JOINTS = [

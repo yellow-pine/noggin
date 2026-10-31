@@ -1,4 +1,4 @@
-"""Seam: model/engine/stages.py, the Stage tables (parts, neutral placements, chains) and pose(): every part's rigid
+"""Seam: model/engine/stages.py, the document tables (sub-assemblies, sweep documents, Stage configurations: parts, neutral placements, chains) and pose(): every part's rigid
 transform per horn angle. No meshes are read here."""
 
 import json

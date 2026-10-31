@@ -1,4 +1,4 @@
-"""Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
+"""Fusion helpers shared by the Fusion build scripts, inlined via `# include: model/fusion_lib.py` after
 `# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-model.md."""
 
@@ -228,7 +228,7 @@ _PARTS = {}  # library DataFiles by name; refilled when a name is missing (Fusio
 
 
 def part_file(app, name):
-    """The library design `name` (model/parts.py) or a Stage design at the project root, once the cloud has
+    """The library design `name` (model/parts.py) or a sub-assembly design at the project root, once the cloud has
     finished processing its last save."""
     if name not in _PARTS:
         _PARTS.clear()
@@ -508,7 +508,7 @@ def body_box(occ):
 
 def screenshots(app, root, out, stage, views, width=1600, height=1200):
     """Every view of `views` ({name: (eye_dir, up)}) saved as out/<stage>-<name>.png with the reference canvases
-    (the design's own and those of inserted Stages) hidden and, when there are any, as <stage>-<name>-overlay.png
+    (the design's own and those of inserted designs) hidden and, when there are any, as <stage>-<name>-overlay.png
     with them shown. The canvases stay hidden afterwards, so the saved document opens clean (`make model-canvases`
     toggles them)."""
     canvases = list(root.canvases) + [c for o in root.allOccurrences for c in o.component.canvases]

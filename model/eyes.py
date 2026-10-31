@@ -1,4 +1,4 @@
-"""Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes Stage owns (ADR 0004),
+"""Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes sub-assembly owns (ADR 0004),
 main bracket v2, the eye mech printed parts, the four servos with their horns, placed from the parts library
 (`make model-parts`, fusion_lib.insert_part), and the Pivots as joints. The PandT base and the electronics live in
 noggin-base; the Stage documents (model/stage.py) put the bracket on it. Runs INSIDE Fusion: `make model-eyes`.
@@ -168,7 +168,7 @@ def run(_context: str):
     for occ in root.occurrences:
         if occ.name not in moving:
             occ.isGrounded = True
-    new_contacts = not design.contactSets.count  # one contact set per Stage (#20): moving parts, bracket, servos
+    new_contacts = not design.contactSets.count  # one contact set per sub-assembly (#20): moving parts, bracket, servos
     if new_contacts:
         contact_set(
             design,

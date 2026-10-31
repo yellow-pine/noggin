@@ -1,6 +1,6 @@
-"""Mass, centre of mass and inertia of every part from its mesh (trimesh volume integrals) and the material the Stage
-tables give it: the spool density for printed parts (geometry.PRINTED), the documented servo mass, and STEP volume at a
-PCB-like density for the other hardware (flagged in the source). Gravity torque per horn as model/sim.py: the slope of
+"""Mass, centre of mass and inertia of every part from its mesh (trimesh volume integrals) and the material the engine's
+tables (stages.py) give it: the spool density for printed parts (geometry.PRINTED), the documented servo mass, and STEP
+volume at a PCB-like density for the other hardware (flagged in the source). Gravity torque per horn as model/sim.py: the slope of
 the chain's potential energy over the engine's poses."""
 
 import trimesh
