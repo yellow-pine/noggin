@@ -479,7 +479,9 @@ def body_box(occ):
     """World bounding box (mm) of the occurrence's solid bodies only, children included (occ.boundingBox also counts
     sketches and planes)."""
     lo, hi = [1e9] * 3, [-1e9] * 3
-    for b in list(occ.bRepBodies) + [b for c in occ.childOccurrences for b in c.bRepBodies]:
+    def bodies(o):
+        return list(o.bRepBodies) + [b for c in o.childOccurrences for b in bodies(c)]
+    for b in bodies(occ):
         for i, c in enumerate("xyz"):
             lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
             hi[i] = max(hi[i], getattr(b.boundingBox.maxPoint, c) * 10)

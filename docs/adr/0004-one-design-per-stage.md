@@ -20,3 +20,16 @@ eyes owns main bracket v2 and the eye mech; mouth owns the jaws, the servo mount
 that needs another Stage's geometry inserts that design as a reference (`addByInsert`), never a copy, and the top
 assembly inserts the three Stages once. Underneath, every STL and STEP is converted to a solid once into a parts
 library design and inserted by reference, so builds stop re-converting meshes (docs/research/2026-10-31-fusion-throughput.md).
+
+### Implemented 2026-10-31 (#32): copies for jointed parts, references for context
+
+`make model-parts` converts each STL (with its proxy body, spool appearance and PLA material) and STEP once into
+`parts/`. Measured over the 31 parts: inserting them by reference takes 42 s, as copies 85 s, as references with
+`breakLink` 83 s; the old per-Stage mesh converts took about 60 s plus the timeline growth. A referenced component
+cannot be renamed (`root component name cannot be changed`) and the joint-origin sketches `fusion_lib.joint_origin`
+adds would land in the shared library component, so parts that carry Pivots are inserted as copies
+(`addByInsert(..., isReferencedComponent=False)`: the stored solid, no convert), and grounded context without joints
+(the PandT base in noggin-eyes, noggin-eyes in noggin-mouth) by reference. Moving the Pivot origins into the library
+parts would make everything referenceable; not done. Rebuilds compare the library version plus the placement matrix.
+Chunking: custom events only fire while the build pumps `adsk.doEvents()` (nothing is dispatched once the MCP call
+returns), so `fusion_lib.chunked` fires one part insert per event from inside the call and returns after the last.
