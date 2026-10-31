@@ -45,6 +45,10 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no Bambu STEP meshing,
   no guide sheets. PurpleShark and the Bambu files are credits (README) and history (docs/research) only.
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
+- `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
+  model/build/stl; future prints use ours.
+- `make step` (#98): every part and envelope, and each Stage at neutral (the engine's placements, coloured, one
+  assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
 The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
