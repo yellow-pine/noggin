@@ -168,8 +168,7 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
     s, sock = start(tmp_path, core, open_serial=lambda: fake, stale=0.5)
     assert wait_for(lambda: core.lines[-1:] == ["rest"])
     core.beaconing = False
-    time.sleep(0.6)
-    assert ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\n"
+    assert wait_for(lambda: ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\n")
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n")) and "eureka 2" not in core.lines
     core.beaconing = True
