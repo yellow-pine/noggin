@@ -11,5 +11,9 @@
   "L eyeball": [[-14, -14, -14], [14, 14, 200]],
   "main bracket v2": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
  },
- "violations": [{"horn": "L lid horn", "deg": 120, "mm": 1.2}]
+ "violations": [{"horn": "L lid horn", "deg": 120, "mm": 1.2}],
+ "fits": [{"joint": "eyeball bar / horn screw", "hole_r": 1.05, "pin_r": 1.0, "clearance": 0.05, "ok": false},
+          {"joint": "eyeball bar / eyeball screw", "hole_r": 1.25, "pin_r": 1.0, "clearance": 0.25, "ok": true}],
+ "beams": [{"beam": "eyelid bar", "sf": 1.65, "deflection_mm": 1.939, "ok": false}, {"beam": "eyeball bar", "sf": 2.51, "deflection_mm": 0.554, "ok": true}],
+ "torque": {"L lid horn": {"kgf_cm": 0.31, "at_deg": -20, "limit_kgf_cm": 0.2}, "L eye horn": {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2}}
 }

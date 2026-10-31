@@ -18,6 +18,7 @@ def merge(parts):
 
 def main():
     import fusion_run
+    import beams, fits, sim   # twin/ siblings (sys.path[0] is this folder when run as a script)
     check = open(os.path.join(HERE, "check.py")).read()
     doc = check.split('DOC = "')[1].split('"')[0]
     out = os.path.join(HERE, "build")
@@ -27,8 +28,9 @@ def main():
     for horn in horns:
         print(fusion_run.run_script(check.replace("HORN = None", f"HORN = {horn!r}"))["message"], end="")
     parts = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(out, f"{doc}-*.json"))) if not f.endswith("-report.json")]
+    report = sim.enrich(merge(parts), fits.fit_table(fits.EYES_JOINTS), beams.beam_table(beams.EYES_BEAMS))   # shortcut: eyes tables only, add per-Stage tables with T3/T4
     with open(os.path.join(out, f"{doc}-report.json"), "w") as f:
-        json.dump(merge(parts), f, indent=1)
+        json.dump(report, f, indent=1)
 
 
 if __name__ == "__main__":

@@ -23,6 +23,15 @@ def problems(report):
     for occ, (lo, hi) in report["bboxes"].items():
         if any(a < e[0] or b > e[1] for a, b, e in zip(lo, hi, ENVELOPE)):
             out.append(f"{occ}: bbox {lo}..{hi} outside envelope")
+    for f in report.get("fits", []):           # #20 extras (twin/sim.py), absent from older reports
+        if not f["ok"]:
+            out.append(f"fit {f['joint']}: {f['clearance']} mm radial clearance (hole r {f['hole_r']}, pin r {f['pin_r']})")
+    for b in report.get("beams", []):
+        if not b["ok"]:
+            out.append(f"beam {b['beam']}: SF {b['sf']} (deflection {b['deflection_mm']} mm)")
+    for horn, t in report.get("torque", {}).items():
+        if t["kgf_cm"] > t["limit_kgf_cm"]:
+            out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
     return out
 
 
@@ -40,6 +49,9 @@ FIXTURE_PROBLEMS = {
         "L lid horn: 1.2 mm at 120 deg between ['L inside lid', 'L servo bracket']",
         "interference L eyeball x L pupil: 2.4 mm3 at neutral",
         "L eyeball: bbox [-14, -14, -14]..[14, 14, 200] outside envelope",
+        "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
+        "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
+        "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
     ],
 }
 
