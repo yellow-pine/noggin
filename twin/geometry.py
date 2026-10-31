@@ -143,8 +143,10 @@ EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eye
 
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
 STL_LOCAL = {
-    "eyelid bar": {"holes": [(-21.03, 0.0, 1.5), (21.03, 0.0, 1.5)], "hole_axis": Z},
-    "eyelid bar crank": {"holes": [(-19.85, 0.0, 3.02), (21.36, 0.0, 1.49)], "hole_axis": Y},
+    # Circle fits on the STL holes (twin/fits.py, 2026-10-31): 41 mm pitch; the crank is the eyelid bar with its
+    # horn end stepped up 3 mm, both holes along Z (the earlier Y-axis entry had the crank turned 90 degrees).
+    "eyelid bar": {"holes": [(-20.5, 0.0, 1.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
+    "eyelid bar crank": {"holes": [(-20.5, 0.0, 4.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
 }
 
 # Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the
