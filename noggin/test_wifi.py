@@ -114,7 +114,7 @@ def test_ack_from_another_address_does_not_count(tmp_path, capsys):
     assert wait_for(lambda: len(core.datagrams) == 2)  # sent twice, given up: the stranger's `ok` is not the Core's
     time.sleep(0.3)
     assert len(core.datagrams) == 2
-    assert "no ack, dropped" in capsys.readouterr().out
+    assert "no ack over wifi" in capsys.readouterr().out
     s.stop()
     core.running = False
 
@@ -157,7 +157,7 @@ def test_unacked_command_is_dropped_and_the_next_one_still_goes(tmp_path, capsys
     core.ack = True
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: core.lines[-1:] == ["eureka 2"])
-    assert "no ack, dropped" in capsys.readouterr().out
+    assert "no ack over wifi" in capsys.readouterr().out
     s.stop()
     core.running = False
 
@@ -177,6 +177,19 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
     assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
     ask(sock, "wince 2\n")
     assert wait_for(lambda: core.lines[-1:] == ["wince 2"]) and b"wince" not in fake.buf
+    s.stop()
+    core.running = False
+
+
+def test_unacked_wifi_line_and_the_rest_of_its_batch_go_over_usb(tmp_path, capsys):
+    core, fake = FakeCore(ack=False), FakeSerial()
+    s, sock = start(tmp_path, core, open_serial=lambda: fake)
+    assert wait_for(lambda: len(core.datagrams) == 2)  # discovery: the calibration line tried twice on Wi-Fi
+    assert wait_for(lambda: fake.buf.count(b"set lid_rest 0.28\nrest\n") == 2)  # at USB connect, then the fallback
+    ask(sock, "eureka 2\n")
+    assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n"))
+    out = capsys.readouterr().out
+    assert "no ack over wifi" in out and "no Link, dropped" not in out
     s.stop()
     core.running = False
 

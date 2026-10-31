@@ -123,15 +123,20 @@ class Service:
         self.link = None
 
     def send(self, lines, core="eyes"):
-        """Wi-Fi while the Core's beacon is fresh, else the USB Link (USB_CORE only), else a silent drop."""
+        """Wi-Fi while the Core's beacon is fresh; whatever Wi-Fi did not deliver goes over the USB Link
+        (USB_CORE only), else is dropped with a log line."""
         if not lines:
             return
         if self.wifi.fresh(core, time.time()):
             try:
-                ok = self.wifi.send(core, lines)
-            except OSError as e:  # unroutable address, socket trouble: drop like the USB branch
-                return log("wifi error, dropped", core, repr(e))
-            return log("sent" if ok else "no ack, dropped", core, lines)
+                rest = self.wifi.send(core, lines)
+            except OSError as e:  # unroutable address, socket trouble
+                log("wifi error", core, repr(e))
+                rest = lines  # shortcut: lines acked before the error repeat over USB; errors hit the first sendto
+            if not rest:
+                return log("sent", core, lines)
+            log("no ack over wifi", core, rest)
+            lines = rest
         if core != USB_CORE or self.link is None:
             return log("no Link, dropped", core, lines)
         try:
