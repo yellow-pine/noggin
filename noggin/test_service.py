@@ -11,6 +11,7 @@ from noggin.service import Service
 
 class FakeSerial:
     in_waiting = 0
+    port = ""
 
     def __init__(self):
         self.buf = b""
@@ -47,7 +48,7 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"
     cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
-    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
+    d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal, beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True)
     t.start()
     assert wait_for(lambda: d.ready)
@@ -86,7 +87,11 @@ def test_core_output_is_logged(tmp_path, capsys):
 
     sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
     d = Service(
-        sock_path=sock, open_serial=lambda: ChattySerial(), mute_file=tmp_path / "m", cal_file=tmp_path / "c.json"
+        sock_path=sock,
+        open_serial=lambda: ChattySerial(),
+        mute_file=tmp_path / "m",
+        cal_file=tmp_path / "c.json",
+        beacon_port=0,
     )
     t = threading.Thread(target=d.run, daemon=True)
     t.start()

@@ -11,12 +11,16 @@ import socket
 import time
 from pathlib import Path
 
+from noggin.wifi import BEACON_PORT, COMMAND_PORT, Wifi
 from reactions.director import Director
 
 SOCK = os.path.expanduser("~/.noggin.sock")  # AF_UNIX paths max 104 bytes: keep it short
 MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
+WIFI_FILE = CAL_FILE.with_name("wifi.json")  # the wizard writes it here and copies it to the Core
 PORT_GLOB = "/dev/cu.usbmodem*"
+CORES = ("eyes", "neck")
+USB_CORE = "eyes"  # shortcut: the one USB Link is assumed to be the eyes Core, until a second port is told apart
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
@@ -40,11 +44,33 @@ def open_link():
 
 
 class Service:
-    def __init__(self, sock_path=SOCK, open_serial=open_link, mute_file=MUTE_FILE, cal_file=CAL_FILE):
+    def __init__(
+        self,
+        sock_path=SOCK,
+        open_serial=open_link,
+        mute_file=MUTE_FILE,
+        cal_file=CAL_FILE,
+        wifi_file=WIFI_FILE,
+        beacon_port=BEACON_PORT,
+        command_port=COMMAND_PORT,
+        stale=6.0,
+    ):
         self.sock_path, self.open_serial, self.mute_file, self.cal_file = sock_path, open_serial, mute_file, cal_file
         self.director = Director()
         self.director.muted = self.mute_file.exists()
         self.link, self.last_probe, self.ready, self.running = None, 0.0, False, True
+        token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
+        self.wifi = Wifi(token, beacon_port, command_port, stale)
+
+    def status(self, now):
+        return "".join(f"{name} {self.link_status(name, now)}\n" for name in CORES)
+
+    def link_status(self, name, now):
+        if self.wifi.fresh(name, now):
+            return self.wifi.status(name)
+        if name == USB_CORE and self.link is not None:
+            return f"usb {getattr(self.link, 'port', '')} uptime n/a"  # the USB Link carries no beacon, so no uptime
+        return "offline"
 
     def stop(self):
         self.running = False
@@ -74,11 +100,18 @@ class Service:
             pass
         self.link = None
 
-    def send(self, lines):
-        if not lines or self.link is None:
-            if lines:
-                log("no Link, dropped", lines)
+    def send(self, lines, core="eyes"):
+        """Wi-Fi while the Core's beacon is fresh, else the USB Link (USB_CORE only), else a silent drop."""
+        if not lines:
             return
+        if self.wifi.fresh(core, time.time()):
+            try:
+                ok = self.wifi.send(core, lines)
+            except OSError as e:  # unroutable address, socket trouble: drop like the USB branch
+                return log("wifi error, dropped", core, repr(e))
+            return log("sent" if ok else "no ack, dropped", core, lines)
+        if core != USB_CORE or self.link is None:
+            return log("no Link, dropped", core, lines)
         try:
             self.link.write(("\n".join(lines) + "\n").encode())
             log("sent", lines)
@@ -132,6 +165,10 @@ class Service:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
+            if "eyes" in self.wifi.poll(now):
+                self.send(
+                    self.cal_lines() + [self.director.mode()]
+                )  # a Core (back) on Wi-Fi: calibrate, catch up the mode
             self.send(self.director.tick(now))
             if self.link is not None:
                 self.read_core()
@@ -145,10 +182,13 @@ class Service:
                     data = conn.recv(65536).decode()
                 except (TimeoutError, UnicodeDecodeError):
                     data = ""
-            for line in data.splitlines():
-                if line.strip():
-                    self.command(line.strip(), now)
+                for line in data.splitlines():
+                    if line.strip() == "status":
+                        conn.sendall(self.status(now).encode())
+                    elif line.strip():
+                        self.command(line.strip(), now)
         srv.close()
+        self.wifi.close()
 
 
 if __name__ == "__main__":

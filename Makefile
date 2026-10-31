@@ -43,6 +43,7 @@ stop:            ## stop the noggin service (frees the Link for mpremote); waits
 	@while launchctl print $(LABEL) >/dev/null 2>&1; do sleep 0.2; done
 status:
 	-launchctl print $(LABEL) | grep -E 'state|pid' | head -3
+	-noggin/noggin status
 	-tail -5 noggin.log
 log:
 	tail -f noggin.log
@@ -58,6 +59,7 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 flash: interrupt ## install the eye program and reboot the Core
 	$(MPR) resume cp eyes/eyes.py :eyes.py
 	$(MPR) resume cp eyes/gaze_trace.py :gaze_trace.py
+	$(MPR) resume cp eyes/wifi.py :wifi.py
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(PY) eyes/interrupt.py reset
 restore-stock: interrupt
