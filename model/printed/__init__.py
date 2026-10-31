@@ -20,6 +20,7 @@ from model.printed import (
     top_jaw,
     upright,
     wire_holder,
+    wire_keeper,
 )
 
 PARTS = {
@@ -48,4 +49,5 @@ PARTS = {
     "PandT upright v2": upright.build,
     "PandT tilt arm": tilt_arm.build,
     "PandT base": base.build,
+    "wire keeper": wire_keeper.build,
 }
