@@ -14,7 +14,7 @@ from model.engine import meshes, run, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
 RECORDED = sorted(glob.glob(os.path.join(HERE, "reports", "*-report.json")))
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 CURVE_DEG, DISTANCE_MM = 1.0, 0.3
 # (doc, horn, deg): why the engine cannot express what Fusion recorded there.
 KNOWN = {

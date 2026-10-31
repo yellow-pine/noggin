@@ -1,8 +1,6 @@
 """Seam: model/engine/cables.py, the cable corridors: a tube's clearance from a part, the union of swept tubes the face
 work clears, and every lead's corridor over the sampled poses of a document."""
 
-import os
-
 import numpy as np
 import pytest
 import trimesh
@@ -46,7 +44,7 @@ def test_union_of_swept_tubes_is_one_closed_volume_that_holds_every_tube():
     assert 2 * np.pi * 2.0**2 * 30 * 0.9 < union.volume < 2 * np.pi * 3.5**2 * 30  # two r=2 tubes, voxel-coarse
 
 
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 _swept = {}
 
 

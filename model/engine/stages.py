@@ -22,6 +22,13 @@ MODELS = {
     "mouth": os.path.join(REF, "03-mouth", "models"),
 }
 STEPS = os.path.join(REPO, "model", "build", "steps")  # model/engine/step_mesh.py output (make model-step-meshes)
+OURS = os.path.join(
+    REPO, "model", "build", "ours"
+)  # our printed parts and hardware envelopes (model/ours.py, make ours)
+# The designer's meshes and the tessellated STEPs are local only: without them (CI) every document reads ours instead.
+HAVE_REFERENCES = os.path.isdir(MODELS["eyes"]) and os.path.isfile(os.path.join(STEPS, "horn.stl"))
+if not HAVE_REFERENCES:
+    MODELS, STEPS = dict.fromkeys(MODELS, OURS), OURS
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (+-4 mm pivots, +-3 mm bar planes)
@@ -373,6 +380,13 @@ class _Stages(dict):
 
 
 STAGES = _Stages()  # built on first use: a document per DOCS key
+
+
+def ours(doc):
+    """The document with every part read from our geometry (model/build/ours: the same file names, the same frames)."""
+    return doc._replace(
+        parts={n: p._replace(file=os.path.join(OURS, os.path.basename(p.file))) for n, p in doc.parts.items()}
+    )
 
 
 def world(m, p):

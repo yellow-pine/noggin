@@ -25,19 +25,19 @@ def test_stall_force_at_the_horn_pin():
     assert beams.stall_force_n() == pytest.approx(1.2 * 9.81 * 10 / 12.75, rel=1e-3)  # 1.2 kgf.cm over 12.75 mm
 
 
-@pytest.mark.skipif(not os.path.isdir(beams.fits.EYES_MODELS), reason="docs/references (local only) missing")
+@pytest.mark.skipif(not beams.fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_eyes_stage_beams_are_recorded():
     rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.EYES_BEAMS)}
     assert rows == beams.EYES_RECORDED
 
 
-@pytest.mark.skipif(not os.path.isdir(beams.fits.PT_MODELS), reason="docs/references (local only) missing")
+@pytest.mark.skipif(not beams.fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_pan_tilt_stage_beams_are_recorded():
     rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.PT_BEAMS)}
     assert rows == beams.PT_RECORDED
 
 
-@pytest.mark.skipif(not os.path.isdir(beams.fits.MOUTH_MODELS), reason="docs/references (local only) missing")
+@pytest.mark.skipif(not beams.fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_mouth_stage_beams_are_recorded():
     rows = {r["beam"]: (r["sf"], r["ok"]) for r in beams.beam_table(beams.MOUTH_BEAMS)}
     assert rows == beams.MOUTH_RECORDED

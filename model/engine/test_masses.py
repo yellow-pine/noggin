@@ -10,7 +10,7 @@ import trimesh
 from model.engine import masses, meshes, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 def test_cube_mass_centre_and_inertia_follow_density_and_placement():

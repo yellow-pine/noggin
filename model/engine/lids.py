@@ -6,7 +6,6 @@ Open: both edges have turned far enough that the lid shell's outer surface proje
 (the eyeball's front cap is clear from the front)."""
 
 import math
-import os
 from functools import cache
 
 import numpy as np
@@ -17,7 +16,7 @@ from model.engine import linkage, meshes, stages
 
 DOC = "noggin-eyes"
 COLUMN_MM = 2.0  # half-width of the vertical slab through the eye centre the edges are read on
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"])
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 @cache

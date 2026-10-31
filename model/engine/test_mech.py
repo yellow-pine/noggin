@@ -11,7 +11,7 @@ import trimesh
 from model.engine import linkage, masses, mech, meshes, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 CAL = json.load(open(os.path.join(os.path.dirname(HERE), "eyes", "calibration.json")))
 
 

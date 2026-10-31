@@ -22,12 +22,12 @@ GREYS = {
     "receiver": "#55595E",
     "switch": "#55595E",
     "battery": "#9A9EA3",
-}  # the STEP parts (model/build/steps): neutral greys, darker for the boards
+}  # the hardware (STEP meshes or our envelopes, by file name): neutral greys, darker for the boards
 
 
 def colour(file):
     stem = os.path.basename(file)[:-4]
-    if os.path.dirname(file) == stages.STEPS:
+    if stem in GREYS:
         return GREYS[stem]
     return g.SPOOLS[next(spool for k, (spool, _) in g.PRINTED.items() if k.split(" (")[0] == stem)]
 

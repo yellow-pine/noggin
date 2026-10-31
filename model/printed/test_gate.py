@@ -1,4 +1,5 @@
-"""Seam: the gate (#50). Each part in printed.PARTS stands in for the designer's mesh in every document that places it,
+"""Seam: the gate (#50, #58). Each shape in ours.SHAPES (our printed parts and hardware envelopes) stands in for the
+designer's mesh or the tessellated Bambu STEP in every document that places it,
 and the engine must see the same Mech: transmission identical (every driven joint at every swept pose) and every
 clearance it measures against the part (those under NEAR_MM, as model/engine/run.py) within CLEARANCE_MM of the
 designer's, with no new penetration. Clearances are
@@ -9,11 +10,11 @@ import os
 
 import pytest
 
-from model import printed
+from model import ours
 from model.engine import linkage, meshes, run, stages
 
 CLEARANCE_MM = 0.3
-HAVE_REFERENCES = os.path.isdir(stages.MODELS["eyes"]) and os.path.isfile(stages.step("horn"))
+HAVE_REFERENCES = stages.HAVE_REFERENCES
 pytestmark = pytest.mark.skipif(
     not HAVE_REFERENCES, reason="local references only (docs/references, model/build/steps)"
 )
@@ -27,13 +28,13 @@ def placing(stem):
             yield doc, names
 
 
-CASES = [(stem, doc, names) for stem in printed.PARTS for doc, names in placing(stem)]
+CASES = [(stem, doc, names) for stem in ours.SHAPES for doc, names in placing(stem)]
 
 
 @pytest.fixture(scope="module")
 def exported(tmp_path_factory):
     out = tmp_path_factory.mktemp("printed")
-    return {stem: printed.export(stem, str(out / f"{stem}.stl")) for stem in printed.PARTS}
+    return {stem: ours.export(stem, str(out / f"{stem}.stl")) for stem in ours.SHAPES}
 
 
 @pytest.mark.parametrize("stem, doc, names", CASES, ids=[f"{s}-{d}" for s, d, _ in CASES])
