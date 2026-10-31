@@ -36,3 +36,19 @@ Source: Bambu spec sheet, model B-PG001 (https://cdn.shopify.com/s/files/1/0611/
 - Current protection: power cut after 5 s continuous stall (Chinese text only).
 - Not published: holding torque, and any statement on whether the clutch protects against external back-driving. The sheet gives the clutch only as a torque number. Reading it as a gear-train overload limit that applies in both directions is inference.
 - Not checked: the store page text (JS-rendered, WebFetch returned 402), the Bambu wiki and the MakerWorld listing.
+
+## SPICE inputs (#152, fetched 2026-10-31)
+- Pack internal resistance: not in the PC003 sheet. A 14500 800 mAh cell datasheet gives internal impedance <= 85 mohm
+  (AC 1 kHz; https://www.dnkpower.com/wp-content/uploads/2022/08/14500-battery-datasheet.pdf); the pack's own cells
+  are not named, so model/electrical.py takes 2 x 85 + 40 mohm (protection MOSFETs) as inferred.
+- Switch board XA007 (SW101): max input 12.6 V, XH2.54 2P, 3 A permissible (spec table on
+  https://us.store.bambulab.com/en/products/power-switch-module-with-2pin-xh2-54-connector-1pcs). No contact resistance published.
+- Shield XA004 servo ports: "universal 5V servo" only; Core XA003: VBAT 3.7-12.6 V. Neither regulator is named.
+- ESP32-C3 supply: VDD 3.0-3.6 V recommended (ESP32-C3 datasheet, https://documentation.espressif.com/esp32-c3_datasheet_en.pdf).
+  Brownout reset: ESP-IDF default level 7, "2.51V", with the note that the levels are estimates
+  (https://github.com/espressif/esp-idf/blob/v5.4/components/esp_system/port/soc/esp32c3/Kconfig.system); MicroPython's
+  ports/esp32/boards/sdkconfig.base does not change it. CyberBrick's firmware config is not published.
+- PySpice 1.5 loads `libngspice{}.dylib` / `libngspice{}.so` by bare name, overridden by NGSPICE_LIBRARY_PATH
+  (PySpice/Spice/NgSpice/Shared.py; FAQ https://pyspice.fabrice-salvaire.fr/releases/v1.5/faq.html). Ubuntu's
+  libngspice0 ships only libngspice.so.0; libngspice0-dev adds libngspice.so
+  (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist). Homebrew's libngspice is in /opt/homebrew/lib.

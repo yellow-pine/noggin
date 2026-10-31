@@ -36,7 +36,7 @@ KNOWN_CALIBRATED = {
 
 def problems(report):
     """Every threshold the report fails: penetrations and misplaced parts (violations; a 0 mm contact with nothing
-    inside is designed), fits, beams, torque, tip-over, clutch, cable corridors (path length, clearance), the electrical cap, the calibrated ends and the mating check."""
+    inside is designed), fits, beams, torque, tip-over, clutch, cable corridors (path length, clearance), the electrical cap and sag, the calibrated ends and the mating check."""
     out = [f"violation: {v}" for v in report["violations"]]
     for f in report.get("fits", []):
         if not f["ok"]:
@@ -77,10 +77,22 @@ def problems(report):
             out.append(
                 f"corridor {lead}: tube {-c['clearance_mm']} mm into {c['clearance_part']} at {c['clearance_at']}"
             )
-    e = report.get("electrical")
-    for core, a in (e or {}).get("stall_a", {}).items():
-        if a >= e["cap_a"]:
-            out.append(f"electrical {core}: {a} A with every servo at stall >= the {e['cap_a']} A cap")
+    e = report.get("electrical")  # model/electrical.py: a cut-off pack sags the servos (known), never a Core's reset
+    if e:
+        for core, a in e["nominal"]["shield_a"].items():
+            if a >= e["cap_a"]:
+                out.append(f"electrical {core}: {a} A with every servo at stall >= the {e['cap_a']} A cap")
+        for name, v in e["nominal"]["servo_v"].items():
+            if v < e["servo_min_v"]:
+                out.append(
+                    f"electrical {name} servo: {v} V at stall on a nominal pack < the {e['servo_min_v']} V minimum"
+                )
+        for case in ("nominal", "cutoff"):
+            for core, v in e[case]["core_v"].items():
+                if v < e["brownout_v"]:
+                    out.append(
+                        f"electrical {core}: {v} V on a {e[case]['pack_v']} V pack < the {e['brownout_v']} V brownout"
+                    )
     for horn, c in report.get("calibrated", {}).items():
         # the real Mech runs its calibrated ends (eyes/calibration.json); while the pivot is inferred: run.warnings
         for v in c.get("violations", []) if not c["inferred"] else []:
@@ -137,6 +149,8 @@ FIXTURE_PROBLEMS = {
         " (250 mm lead less 20 slack)",
         "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar:1 at {'tilt horn': -60}",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
+        "electrical tilt servo: 4.7 V at stall on a nominal pack < the 4.8 V minimum",
+        "electrical core2: 2.4 V on a 5.8 V pack < the 2.51 V brownout",
         "calibrated L lid horn: collision at 39 deg between ['L lower lid', 'L servo bracket']",
         "mating L lid servo / L servo bracket upper tab screw: axes 0.35 mm apart > 0.2",
         "mating L lid servo in its mount: 0.4 mm into L servo bracket:1",

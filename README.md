@@ -125,7 +125,7 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 - Four sub-assemblies own the parts once (base, stack, eyes, mouth); three Stages place them at frames:
   Stage 1 = base + eyes, Stage 2 = + stack on the tilt arm, Stage 3 = + mouth (ADR 0004).
 - A Python simulation engine (`model/engine/`, run by `make sim`): planar four-bar solver, rigid mesh
-  transforms, KD-tree contact screen, mass and torque, the electrical budget, in seconds. Blender renders
+  transforms, KD-tree contact screen, mass and torque, the supply's voltage sag in SPICE (PySpice on ngspice), in seconds. Blender renders
   every picture from the engine's poses (ADR 0006).
 - Our own parametric CadQuery parts (`model/printed/`) and hardware envelopes (`model/envelopes.py`), so CI
   simulates the Mech with none of the designers' files; every picture draws them.

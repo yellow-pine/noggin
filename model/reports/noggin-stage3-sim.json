@@ -2746,7 +2746,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "50b782401bd3d49ac0f89f6199c955235379e2bdbf023c5a44a33f3230dcf671",
+  "stamp": "88f9e7a087a120a2307afe62ad757c6209fb2c7d6bf391ccf6cc94eeb83a1159",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -3042,57 +3042,50 @@
   }
  },
  "electrical": {
-  "channels": {
-   "core1": {
-    "1": "l_lid",
-    "2": "l_eye",
-    "3": "r_lid",
-    "4": "r_eye"
-   },
-   "core2": {
-    "1": "tilt",
-    "2": "mouth",
-    "3": "pan"
-   }
-  },
   "cap_a": 3.0,
-  "pack": {
-   "mah": 800,
-   "cutoff_v": 5.8
-  },
-  "stall_a": {
-   "core1": 2.995,
-   "core2": 2.345
-  },
-  "draw_a": {
-   "core1": {
-    "rest": 0.2743333333333334,
-    "session": 0.2798424444444445,
-    "demo": 0.4823333333333334
+  "servo_min_v": 4.8,
+  "brownout_v": 2.51,
+  "nominal": {
+   "pack_v": 7.4,
+   "pack_a": 5.34,
+   "shield_a": {
+    "core1": 2.995,
+    "core2": 2.345
    },
-   "core2": {
-    "rest": 0.24175000000000002,
-    "session": 0.24175000000000002,
-    "demo": 0.39775000000000005
+   "servo_v": {
+    "l_lid": 4.956,
+    "l_eye": 4.956,
+    "r_lid": 4.956,
+    "r_eye": 4.956,
+    "tilt": 4.956,
+    "mouth": 4.956,
+    "pan": 4.956
+   },
+   "core_v": {
+    "core1": 3.3,
+    "core2": 3.3
    }
   },
-  "pack_a": {
-   "rest": 0.5160833333333334,
-   "session": 0.5215924444444445,
-   "demo": 0.8800833333333334,
-   "stall": 5.34
-  },
-  "runtime_h": {
-   "rest": 1.5501372517358305,
-   "session": 1.53376454839581,
-   "demo": 0.9090048290881545
-  },
-  "session_moving_s_per_hour": 95.35,
-  "hold_a_per_servo": 0.024583333333333342,
-  "run_a_per_servo": 0.08458333333333334,
-  "wifi_a": {
-   "rx": 0.084,
-   "tx_peak": 0.335
+  "cutoff": {
+   "pack_v": 5.8,
+   "pack_a": 5.34,
+   "shield_a": {
+    "core1": 2.995,
+    "core2": 2.345
+   },
+   "servo_v": {
+    "l_lid": 3.645,
+    "l_eye": 3.645,
+    "r_lid": 3.645,
+    "r_eye": 3.645,
+    "tilt": 3.662,
+    "mouth": 3.662,
+    "pan": 3.662
+   },
+   "core_v": {
+    "core1": 3.3,
+    "core2": 3.3
+   }
   }
  }
 }

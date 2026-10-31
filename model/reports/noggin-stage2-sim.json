@@ -2453,7 +2453,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "03568ce52f019268b1f299651b81e3c3065f532932f1c1faebf81959ee220132",
+  "stamp": "fc3ef708c3c19be2d809a8363da0772be19ac385959c1cbd6eb17017441d70d5",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
