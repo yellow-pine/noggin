@@ -58,9 +58,9 @@ class Service:
     def read_core(self):
         """Log whatever the Core prints (ready banner, unknown commands, tracebacks after a brownout)."""
         try:
-            n = self.link.in_waiting
+            n = self.link.in_waiting  # pyright: ignore[reportOptionalMemberAccess]
             if n:
-                for line in self.link.read(n).decode(errors="replace").splitlines():
+                for line in self.link.read(n).decode(errors="replace").splitlines():  # pyright: ignore[reportOptionalMemberAccess]
                     if line.strip():
                         log("Core:", line.strip())
         except Exception as e:
@@ -69,7 +69,7 @@ class Service:
     def drop_link(self, e):
         log("Link lost:", e)
         try:
-            self.link.close()
+            self.link.close()  # pyright: ignore[reportOptionalMemberAccess]
         except Exception:
             pass
         self.link = None

@@ -6,10 +6,10 @@
 # Importable on CPython for tests (machine is stubbed there).
 import time
 
-from machine import PWM, Pin
+from machine import PWM, Pin  # pyright: ignore[reportMissingImports]
 
 try:
-    from time import sleep_ms
+    from time import sleep_ms  # pyright: ignore[reportAttributeAccessIssue]
 except ImportError:  # CPython
 
     def sleep_ms(ms):
@@ -172,7 +172,7 @@ class Eyes:
             self.eyes(EYE_CENTER + _s8(samples[i]))
             if i in blinks:
                 self.blink(level=self.cal["lid_think"])
-            sleep_ms(1000 // gaze_trace.HZ)
+            sleep_ms(1000 // gaze_trace.HZ)  # pyright: ignore[reportOptionalMemberAccess]
 
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200)

@@ -26,3 +26,12 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "eyes/eyes.py" = ["B905"]  # MicroPython zip() has no strict=
+
+[tool.pyright]
+typeCheckingMode = "basic"
+include = ["eyes", "noggin", "reactions", "scripts", "conftest.py", "test_vocabulary.py"]
+exclude = ["eyes/stock-backup"]
+extraPaths = ["eyes"]  # conftest puts eyes/ on sys.path: `import eyes` is eyes/eyes.py, the Core program
+venvPath = "."
+venv = ".venv"
+reportMissingModuleSource = false  # pyserial ships no stubs

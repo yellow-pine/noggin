@@ -17,4 +17,4 @@ while True:
             print("ok")
         else:
             e.handle_line(line)
-    e.tick(time.ticks_ms())
+    e.tick(time.ticks_ms())  # pyright: ignore[reportAttributeAccessIssue]

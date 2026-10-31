@@ -27,7 +27,7 @@ class _PWM:
 
 
 machine = types.ModuleType("machine")
-machine.Pin, machine.PWM = _Pin, _PWM
+machine.Pin, machine.PWM = _Pin, _PWM  # pyright: ignore[reportAttributeAccessIssue]
 sys.modules["machine"] = machine
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent / "eyes"))
 
