@@ -13,3 +13,5 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   the overlay screenshots are captured); `make model-canvases` toggles them in the active document.
 - Views: top (looking down -Y, up +Z), side (looking +X, up +Y), front (looking +Z, up +Y) of the eyes frame.
 - Replay GIFs and canvases only for the eyes Stage (80/20 trim); later Stages get the three plain views.
+- README media are Fusion renders and replay GIFs only (coloured parts, no photo canvases); real photos stay in
+  docs/build-photos for the model comparison.
