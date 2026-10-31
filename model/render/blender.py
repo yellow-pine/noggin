@@ -132,7 +132,9 @@ def main(job):
     objs = load(job["parts"])
     for shot in job["shots"]:
         for name, ob in objs.items():
-            ob.matrix_world = Matrix(shot["pose"][name])
+            ob.hide_render = name not in shot["pose"]  # a shot shows only the parts it poses (guide sheets)
+            if not ob.hide_render:
+                ob.matrix_world = Matrix(shot["pose"][name])
         c = shot["camera"]
         cam.matrix_world = Matrix(c["matrix"])
         cam.data.type = "PERSP" if c["lens"] else "ORTHO"
