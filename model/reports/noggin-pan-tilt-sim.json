@@ -72,14 +72,14 @@
   ],
   "switch board 1:1": [
    [
-    3.0,
-    52.5,
-    8.4
+    18.5,
+    105.5,
+    4.4
    ],
    [
-    23.5,
-    84.5,
-    28.16
+    50.5,
+    126.0,
+    24.16
    ]
   ],
   "battery 1:1": [
@@ -351,9 +351,9 @@
  "stage": {
   "total_g": 274.9,
   "com": [
-   -7.4,
-   65.3,
-   10.6
+   -7.2,
+   65.9,
+   10.5
   ]
  },
  "calibrated": {},
@@ -702,7 +702,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "af7026ab5806734812d47ea51564932fbb933d937a0997ebe945a71da9f1d5ba",
+  "stamp": "44af816d58d886daafd7df1e66fb0f01dd987c37df8922f543c7c7e066d8ddad",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
@@ -737,22 +737,22 @@
   }
  },
  "tip_over": {
-  "margin_mm": 52.3,
+  "margin_mm": 52.5,
   "at": {
    "pan": -40,
-   "tilt": 60
+   "tilt": 0
   },
   "com": [
-   -7.7,
-   66.1,
-   10.6
+   -7.5,
+   66.8,
+   10.5
   ]
  },
  "corridors": {
   "pack 1 -> switch 1": {
-   "max_mm": 72.5,
+   "max_mm": 71.6,
    "at": {},
-   "min_mm": 72.5,
+   "min_mm": 71.6,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -764,9 +764,9 @@
    ]
   },
   "switch 1 -> shield 1": {
-   "max_mm": 54.3,
+   "max_mm": 69.0,
    "at": {},
-   "min_mm": 54.3,
+   "min_mm": 69.0,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -774,7 +774,7 @@
    "clearance_at": null,
    "clearance_part": null,
    "waypoints": [
-    "along the plate to the shield's XH socket (inferred)"
+    "from the back-edge holder along the plate's +x edge past shield 2 (inferred)"
    ]
   },
   "tilt servo -> Core 2 PWM1": {

@@ -202,7 +202,7 @@ def electronics(n):
     return {
         shield: part(step("receiver"), receiver_m, board),
         f"Core {n} (flipped onto the shield top, per photo):1": part(step("core"), receiver_m @ flip, board),
-        switch: part(step("switch"), align(g.switch_at(n), *g.SWITCH_AXES, g.SWITCH_STEP["hole"]), board),
+        switch: part(step("switch"), align(*g.switch_at(n), g.SWITCH_STEP["hole"]), board),
         battery: part(step("battery"), align(g.battery_at(n), g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"])),
     }, ports
 
@@ -214,7 +214,7 @@ def base():
     stand = g.STANDOFFS["pt_base"]
     placements = [
         ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
-        ("switch board 1:1", [g.SWITCH_STEP["hole"]], [stand["switch"][0]], TOL_INFERRED_MM),
+        ("switch board 1:1", [g.SWITCH_STEP["hole"]], [stand["switch_post"][0]], TOL_MM),
     ]
     return Sub(parts, {}, placements, ports)
 
