@@ -1,6 +1,7 @@
 """Wi-Fi Link against a fake UDP Core: beacons in, `<token> <seq> <line>` out, `ok <seq>` back."""
 import json, os, socket, tempfile, threading, time, uuid
 from noggin.service import Service
+from noggin.wifi import mac
 from noggin.test_service import FakeSerial, wait_for
 
 TOKEN = "s3cret"
@@ -8,9 +9,9 @@ TOKEN = "s3cret"
 
 class FakeCore(threading.Thread):
     """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first."""
-    def __init__(self, name="eyes", token=TOKEN, drop=0, ack=True):
+    def __init__(self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1"):
         super().__init__(daemon=True)
-        self.name_, self.token, self.drop, self.ack = name, token, drop, ack
+        self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("127.0.0.1", 0)); self.sock.settimeout(0.05)
         self.port = self.sock.getsockname()[1]
@@ -20,13 +21,13 @@ class FakeCore(threading.Thread):
         last = 0.0
         while self.running:
             if self.beaconing and self.beacon_to and time.time() - last > 0.1:
-                self.sock.sendto(f"noggin {self.name_} 127.0.0.1 42".encode(), self.beacon_to); last = time.time()
+                self.sock.sendto(f"noggin {self.name_} {self.claim_ip} 42".encode(), self.beacon_to); last = time.time()
             try: data, addr = self.sock.recvfrom(1024)
             except socket.timeout: continue
             self.datagrams.append(data.decode())
             if self.drop: self.drop -= 1; continue
-            token, seq, line = data.decode().split(" ", 2)
-            if token != self.token: continue
+            tag, seq, line = data.decode().split(" ", 2)
+            if tag != mac(self.token, f"{seq} {line}"): continue
             self.lines.append(line)
             if self.ack: self.sock.sendto(f"ok {seq}".encode(), addr)
 
@@ -59,14 +60,30 @@ def test_beacon_puts_the_core_on_wifi_in_status(tmp_path):
     s.stop(); core.running = False
 
 
-def test_gesture_reaches_the_eyes_core_with_the_token(tmp_path):
+def test_gesture_reaches_the_eyes_core_with_a_mac_not_the_token(tmp_path):
     core = FakeCore()
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])   # calibration + mode on discovery
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: core.lines[-1:] == ["eureka 2"])
-    token, seq, line = core.datagrams[-1].split(" ", 2)
-    assert token == TOKEN and seq.isdigit()
+    tag, seq, line = core.datagrams[-1].split(" ", 2)
+    assert tag == mac(TOKEN, f"{seq} {line}") and TOKEN not in core.datagrams[-1] and seq.isdigit()
+    s.stop(); core.running = False
+
+
+def test_beacon_claiming_another_ip_is_reached_at_its_real_source_address(tmp_path):
+    core = FakeCore(claim_ip="10.9.9.9")
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])   # delivered to 127.0.0.1, not 10.9.9.9
+    assert "eyes wifi 127.0.0.1" in ask(sock, "status\n")
+    s.stop(); core.running = False
+
+
+def test_malformed_beacons_are_ignored(tmp_path):
+    core = FakeCore(claim_ip="not-an-ip"); core.name_ = "eyes;rm"
+    s, sock = start(tmp_path, core)
+    time.sleep(0.3)
+    assert "eyes offline" in ask(sock, "status\n") and core.lines == []
     s.stop(); core.running = False
 
 

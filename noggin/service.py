@@ -86,7 +86,10 @@ class Service:
         if not lines:
             return
         if self.wifi.fresh(core, time.time()):
-            ok = self.wifi.send(core, lines)
+            try:
+                ok = self.wifi.send(core, lines)
+            except OSError as e:                   # unroutable address, socket trouble: drop like the USB branch
+                return log("wifi error, dropped", core, repr(e))
             return log("sent" if ok else "no ack, dropped", core, lines)
         if core != "eyes" or self.link is None:   # shortcut: the one cable is assumed to be the eyes Core
             return log("no Link, dropped", core, lines)

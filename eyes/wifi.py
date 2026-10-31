@@ -1,7 +1,7 @@
 # noggin Core-side Wi-Fi Link (docs/adr/0005): join the home Wi-Fi, beacon on UDP 4711,
 # serve command lines on UDP 4712. Cooperative: poll(now_ms) from the boot.py loop, never blocks.
 # Importable on CPython for tests (network and socket are stubbed there).
-import json
+import hashlib, json
 
 try:
     import network, socket
@@ -10,6 +10,18 @@ except ImportError:  # CPython: tests set these
 
 BEACON_PORT, COMMAND_PORT = 4711, 4712
 BEACON_MS, JOIN_MS = 2000, 10000
+
+
+def mac(token, msg):
+    """HMAC-SHA256 of msg under the shared token, 32 hex chars. Hand-rolled: MicroPython has hashlib, not hmac.
+    The noggin service imports this very function, so both sides always agree."""
+    key = token.encode()
+    if len(key) > 64:
+        key = hashlib.sha256(key).digest()
+    key = key + b"\x00" * (64 - len(key))
+    inner = hashlib.sha256(bytes(b ^ 0x36 for b in key) + msg.encode()).digest()
+    outer = hashlib.sha256(bytes(b ^ 0x5C for b in key) + inner).digest()
+    return "".join("%02x" % b for b in outer)[:32]
 
 
 def start(handle_line):
@@ -63,14 +75,14 @@ class Wifi:
             self.serve(data, addr)
 
     def serve(self, data, addr):
-        """Datagram `<token> <seq> <command line>` -> reply `ok <seq>` or `err <seq> <reason>`. seq must not go
+        """Datagram `<mac> <seq> <command line>` -> reply `ok <seq>` or `err <seq> <reason>`. seq must not go
         backwards (replays are dropped); the highest seq is re-acked without running again."""
         try:
             parts = data.decode().split(" ", 2)
         except (UnicodeError, ValueError):       # junk on the LAN must never stop the loop
             return
-        if len(parts) < 3 or parts[0] != self.cfg["token"] or not parts[1].isdigit():
-            return
+        if len(parts) < 3 or not parts[1].isdigit() or parts[0] != mac(self.cfg["token"], parts[1] + " " + parts[2]):
+            return                                   # the secret never travels: each datagram carries its own MAC
         seq, line = int(parts[1]), parts[2]
         if seq < self.last[0]:
             return

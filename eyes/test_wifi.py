@@ -5,6 +5,11 @@ import wifi as mod
 CFG = {"ssid": "home", "password": "pw", "token": "t0k"}
 
 
+def dg(seq, line):
+    """A command datagram as the noggin service sends it: `<mac> <seq> <line>`."""
+    return f"{mod.mac(CFG['token'], f'{seq} {line}')} {seq} {line}".encode()
+
+
 class FakeWLAN:
     connected = False
     connects = []
@@ -68,13 +73,13 @@ def joined(link):
 
 def test_command_with_the_token_runs_through_the_parser_and_is_acked(link):
     joined(link)
-    FakeSocket.inbox.append((b"t0k 7 eureka 2\n", MAC))
+    FakeSocket.inbox.append((dg(7, "eureka 2\n"), MAC))
     link.poll(1_100)
     assert link.handled == ["eureka 2\n"]
     assert FakeSocket.sent == [(b"ok 7", MAC)]
 
 
-def test_wrong_token_is_ignored(link):
+def test_wrong_mac_is_ignored(link):
     joined(link)
     FakeSocket.inbox.append((b"nope 7 eureka 2", MAC))
     link.poll(1_100)
@@ -83,8 +88,8 @@ def test_wrong_token_is_ignored(link):
 
 def test_repeated_seq_is_acked_again_but_not_replayed(link):
     joined(link)
-    FakeSocket.inbox.append((b"t0k 7 eureka 2", MAC)); link.poll(1_100)
-    FakeSocket.inbox.append((b"t0k 7 eureka 2", MAC)); link.poll(1_200)
+    FakeSocket.inbox.append((dg(7, "eureka 2"), MAC)); link.poll(1_100)
+    FakeSocket.inbox.append((dg(7, "eureka 2"), MAC)); link.poll(1_200)
     assert link.handled == ["eureka 2"]
     assert FakeSocket.sent == [(b"ok 7", MAC), (b"ok 7", MAC)]
 
@@ -92,13 +97,13 @@ def test_repeated_seq_is_acked_again_but_not_replayed(link):
 def test_parser_error_is_reported_with_the_seq(link):
     joined(link)
     link.handle_line = lambda line: 1 / 0
-    FakeSocket.inbox.append((b"t0k 8 eureka 2", MAC)); link.poll(1_100)
+    FakeSocket.inbox.append((dg(8, "eureka 2"), MAC)); link.poll(1_100)
     assert FakeSocket.sent == [(b"err 8 ZeroDivisionError", MAC)]
 
 
 def test_malformed_datagram_is_ignored(link):
     joined(link)
-    FakeSocket.inbox.append((b"t0k", MAC)); FakeSocket.inbox.append((b"t0k x rest", MAC)); link.poll(1_100)
+    FakeSocket.inbox.append((b"deadbeef", MAC)); FakeSocket.inbox.append((b"deadbeef x rest", MAC)); link.poll(1_100)
     assert link.handled == [] and FakeSocket.sent == []
 
 
@@ -119,9 +124,9 @@ def test_start_reads_credentials_and_core_name(tmp_path, monkeypatch, link):
 
 def test_older_seq_is_dropped_newer_runs(link):
     joined(link)
-    FakeSocket.inbox.append((b"t0k 9 eureka 2", MAC)); link.poll(1_100)
-    FakeSocket.inbox.append((b"t0k 5 wink", MAC)); link.poll(1_200)       # replayed old datagram
-    FakeSocket.inbox.append((b"t0k 12 wink", MAC)); link.poll(1_300)
+    FakeSocket.inbox.append((dg(9, "eureka 2"), MAC)); link.poll(1_100)
+    FakeSocket.inbox.append((dg(5, "wink"), MAC)); link.poll(1_200)       # replayed old datagram
+    FakeSocket.inbox.append((dg(12, "wink"), MAC)); link.poll(1_300)
     assert link.handled == ["eureka 2", "wink"]
     assert FakeSocket.sent == [(b"ok 9", MAC), (b"ok 12", MAC)]
 
@@ -136,3 +141,10 @@ def test_start_refuses_an_empty_token(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "wifi.json").write_text('{"ssid": "s", "password": "p", "token": ""}')
     assert mod.start(lambda line: None) is None
+
+
+def test_hmac_is_keyed_and_message_bound():
+    assert mod.mac("t0k", "1 rest") == mod.mac("t0k", "1 rest")
+    assert mod.mac("t0k", "1 rest") != mod.mac("other", "1 rest")
+    assert mod.mac("t0k", "1 rest") != mod.mac("t0k", "2 rest")
+    assert len(mod.mac("t0k", "1 rest")) == 32
