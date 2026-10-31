@@ -149,7 +149,9 @@ def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 
     """Matrix3D taking the local frame (from_*) onto the world frame (to_*), mm. Axes default to identity."""
     def frame(origin, x, z):
         x, z = vector(x), vector(z)
-        x.normalize(); z.normalize()
+        z.normalize()
+        tilt = z.copy(); tilt.scaleBy(x.dotProduct(z)); x.subtract(tilt)   # x in the plane normal to z (stepped links)
+        x.normalize()
         y = z.crossProduct(x)
         return point(origin), x, y, z
     m = adsk.core.Matrix3D.create()
