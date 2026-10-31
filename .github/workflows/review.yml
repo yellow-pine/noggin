@@ -67,6 +67,7 @@ jobs:
             but never block. State the verdict and its reasons at the top of the comment.
             Review only; never push or merge.
           claude_args: |
+            --model claude-sonnet-5-5
             --allowedTools "Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),mcp__github_inline_comment__create_inline_comment"
             --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["approve","request_changes"]},"reasons":{"type":"string"}},"required":["verdict","reasons"]}'
       - name: Verdict
