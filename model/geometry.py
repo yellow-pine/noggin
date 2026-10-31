@@ -35,15 +35,15 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
 # reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
 _LID = (
-    "one range for the mirrored lid pair, the model's free travel: the lids shut at -30.7 (model/engine/lids.py) and the"
-    " lid crank meets the eye bracket from -32 (the calibrated lid_closed lands at -31.7 / -31.5, HORN_AT_90); the lower"
-    " lid meets the servo bracket at +39"
+    "one range for the mirrored lid pair, the model's free travel: the lids shut at -30.7 (model/engine/lids.py) and"
+    " overlap past it (the upper lid inside the lower); the lid bar meets the eye bracket from -50 (the crank rides clear"
+    " of its edge, LID_LINKS); the lower lid meets the servo bracket at +39"
 )
 _EYE = "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"
 LIMITS = {
-    "l_lid": ((58, 129), _LID),
+    "l_lid": ((41, 129), _LID),
     "l_eye": ((68, 112), _EYE),
-    "r_lid": ((58, 129), _LID),
+    "r_lid": ((41, 129), _LID),
     "r_eye": ((68, 112), _EYE),
     "tilt": (
         (30, 150),
@@ -251,13 +251,21 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # with the lids in the STLs' pose and the 41 mm bars: 41.14 to the upper lid's pin, 40.86 to the lower one's
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
-# Joint degrees of each lid horn at servo 90: the spline tooth it went on (#134). The rest-top photo read at face value
+# Joint degrees of each eyes horn at servo 90: the spline tooth it went on (#134, #170). The rest-top photo read at face value
 # gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md); the calibrated lid_closed shuts the lids (edges meet at
-# -30.7) without the crank entering the bracket (contact from -32) only for L 12.7..14.0, R 5.5..6.8. Eyes: unsettled, 0.
-HORN_AT_90 = {"l_lid": 13, "r_lid": 6}
+# -30.7) only for L <= 14.0, R <= 6.8, and the rest photo's lids (model/test_traces.py) for no less. Eyes +2, inferred
+# (#170): the program centres each eye at the mean of its calibrated ends, servo 88 (eyes/eyes.py _eye_angle), and the
+# rest-front photo has both pupils straight ahead there, so servo 88 is the model's neutral; the rest-top reading less
+# its camera tilt gives +3.2 each (docs/research/2026-11-01-best-guesses.md).
+HORN_AT_90 = {"l_lid": 13, "r_lid": 6, "l_eye": 2, "r_eye": 2}
+# The crank rides 1.2 mm out along the M2 screw, inferred (#170): the bar and crank turn on the screw under an unclamped
+# nut, so nothing holds the crank on the bar; flat on it (-27..-30) it would enter the eye bracket's outer edge (x -27..-28)
+# 1.0 mm from -32, which the real Mech runs through to its closed ends (-41 / -40), so the edge pushes it out to 0.2 mm
+# clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin (docs/research/2026-11-01-best-guesses.md).
+CRANK_PLAY_MM = 1.2
 LID_LINKS = {
     "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},
-    "lid_crank": {"lid": "upper", "x": (-28.5, -25.5)},
+    "lid_crank": {"lid": "upper", "x": (-28.5 - CRANK_PLAY_MM, -25.5 - CRANK_PLAY_MM)},
 }
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeball end [M]
 
@@ -270,9 +278,11 @@ EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeb
 # at neutral: tilt horn horizontal toward +Y with the bar vertical (guide step 15), pan horn forward (-Y) with the bar
 # along X, tangent to the lever (step 14).
 # Jaw (eyes frame): the jaw bar is cranked 13 mm along its pins (STL_LOCAL): its larger hole on the outer face of the
-# bottom jaw's pivot lug (x 70.42..73.42; hole r 1.1 along X at (y -58.1, z -10.44), M2.5 self-tapping, guide step 8),
-# its smaller hole under the jaw horn's arm (x 83.42..86.42; the arm's underside is x 85.84: 0.58 overlap no source
-# settles); the horn points down (-Y) at neutral (mouth guide p.14 CAD), clear of the bracket rail (y > -40.6).
+# bottom jaw's pivot lug (hole r 1.1 along X at (y -58.1, z -10.44), M2.5 self-tapping, guide step 8), its smaller hole
+# under the jaw horn's arm (horn seat 11.52, STEP nominal). Flush seating, inferred (#170): with both screws drawn home
+# the bar fills the space between the lug's outer face and the arm's underside; 0.28 inboard of its old planes (which
+# left 0.25 at the lug and put it 0.28 into the arm) it touches both with nothing inside either (bar x 70.39..85.89);
+# the horn points down (-Y) at neutral (mouth guide p.14 CAD), clear of the bracket rail (y > -40.6).
 # PT_BAR_PLANES: (axis, horn-end plane[, lever-end plane when the bar is cranked]).
 TILT_ARM_SHIFT_Z = 5.0
 PT_LEVER_HOLES = {
@@ -280,7 +290,7 @@ PT_LEVER_HOLES = {
     "pan": (-5.5, 25.5, 26.8),
     "jaw": (71.92, -58.1, -10.44),
 }
-PT_BAR_PLANES = {"tilt": ("x", 9.5), "pan": ("z", 28.3), "jaw": ("x", 84.92, 71.92)}
+PT_BAR_PLANES = {"tilt": ("x", 9.5), "pan": ("z", 28.3), "jaw": ("x", 84.64, 71.64)}
 PT_HORN_DIR = {"tilt": (0, 1, 0), "pan": (0, -1, 0), "jaw": (0, -1, 0)}
 HORN_BAR = {"tilt": "tilt_bar", "pan": "pan_bar", "jaw": "jaw_bar"}  # BARS key of each horn's link
 
