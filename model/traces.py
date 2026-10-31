@@ -4,14 +4,17 @@ servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its ra
 joint degrees per 100 ms frame: lids between the model's closed and open angles (model/engine/lids.py), eyes over
 geometry.HORN_LIMITS. No servo degrees: the real servo ends and horn spline offsets are not the model's. Then played
 in Fusion by model/replay.py (one call per gesture, noggin-stage1, a 3/4 and a front capture per frame), the front
-3/4 frames assembled into one GIF per gesture in model/build (docs/model-notes.md).
+frames inked and the 3/4 frames assembled into one cartoon GIF per gesture in model/build (docs/model-notes.md).
 `python model/traces.py [gesture...] [--no-fusion]` (Fusion open with its MCP; --no-fusion re-assembles only)."""
 
+import glob
 import importlib.util
 import json
 import os
 import subprocess
 import sys
+
+import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -93,16 +96,29 @@ def record(gesture):
 
 
 def gif(name):
-    """The README GIF from the gesture's 3/4 captures: 480 wide, 10 fps, at most 128 colours."""
-    palette = "split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse"
-    frames = os.path.join(OUT, "replay", name, "%03d.png")
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", "10", "-i", frames]
-    subprocess.run([*cmd, "-vf", f"scale=480:-2:flags=lanczos,{palette}", os.path.join(OUT, f"{name}.gif")], check=True)
+    """The README GIF from the gesture's transparent 3/4 captures: cartoon style (model/cartoon.py), cropped to the
+    model over all frames, 480 wide, 10 fps, at most 128 colours."""
+    from model import cartoon
+
+    raw = sorted(glob.glob(os.path.join(OUT, "replay", name, "*.png")))
+    imgs = [cartoon.read(p) for p in raw]
+    ys, xs = np.nonzero(np.any([im[..., 3] > 0 for im in imgs], axis=0))
+    m = round(0.05 * max(np.ptp(xs), np.ptp(ys)))
+    y0, y1, x0, x1 = max(ys.min() - m, 0), ys.max() + m, max(xs.min() - m, 0), xs.max() + m
+    out = os.path.join(OUT, "replay", name + "-cartoon")
+    os.makedirs(out, exist_ok=True)
+    for p, im in zip(raw, imgs, strict=True):
+        cartoon.write(os.path.join(out, os.path.basename(p)), cartoon.cartoon(im[y0:y1, x0:x1]))
+    palette = "split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=none"
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", "10", "-i", os.path.join(out, "%03d.png")]
+    subprocess.run([*cmd, "-vf", f"scale=480:-2:flags=area,{palette}", os.path.join(OUT, f"{name}.gif")], check=True)
 
 
 def main(names, fusion=True):
-    """Record, play in Fusion (one call per gesture), assemble the GIFs. fusion=False only re-assembles from the
-    captures already in model/build/replay."""
+    """Record, play in Fusion (one call per gesture), ink the front frames, assemble the GIFs. fusion=False only
+    re-assembles from the captures already in model/build/replay."""
+    from model import cartoon
+
     sys.path.insert(0, os.path.join(REPO, "scripts"))
     import fusion_run
 
@@ -113,6 +129,7 @@ def main(names, fusion=True):
     for g in names:
         if fusion:
             print(fusion_run.run_script(replay.replace("GESTURE = None", f"GESTURE = {g!r}"))["message"], end="")
+        cartoon.main("ink", sorted(glob.glob(os.path.join(OUT, "replay", g + "-front", "*.png"))))
         gif(g)
         print(f"  {g}.gif: {os.path.getsize(os.path.join(OUT, g + '.gif')) // 1024} KB")
 
