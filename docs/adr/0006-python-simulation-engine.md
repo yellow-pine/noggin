@@ -30,3 +30,9 @@ Dependencies added: numpy, scipy, trimesh.
 `make sim` writes model/reports/<doc>-sim.json, committed and stamped with a hash of its inputs (geometry tables,
 engine code, part fingerprints, the Core program's gestures); CI fails on a reported collision, an over-length lead,
 a mating mismatch (#67: holes and shafts coaxial within 0.2 mm, servos in their pockets) or a stale stamp. Every picture is rendered in Blender from the engine's poses (docs/model-notes.md).
+
+## Update 2026-10-31 (#50, #58)
+
+CI runs `make sim` itself on our own geometry: the CadQuery printed parts (model/printed) and hardware envelopes
+(model/envelopes.py), written by `make ours`. Locally, while docs/references exists, `make sim` still reads the
+designer's meshes and STEPs, and the gate holds our parts within 0.3 mm of them.
