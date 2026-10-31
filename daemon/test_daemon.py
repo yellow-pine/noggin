@@ -20,12 +20,12 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")  # AF_UNIX path limit 104 bytes
     state = tmp_path / "mute"
     fake = FakeSerial()
-    cal = tmp_path / "calibration.json"; cal.write_text('{"lid_rest": 0.28, "l_eye_trim": -2}')
+    cal = tmp_path / "calibration.json"; cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
     d = Daemon(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
-    assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\nset l_eye_trim -2\nrest\nthinking\n")   # calibration + mode on connect, then the Trigger
+    assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\nset l_eye_lo 58\nrest\nthinking\n")   # calibration + mode on connect, then the Trigger
     send(sock, "off\n")
     assert wait_for(lambda: state.exists())
     send(sock, json.dumps({"hook_event_name": "Stop", "session_id": "x"}) + "\n")

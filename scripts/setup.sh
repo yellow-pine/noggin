@@ -261,7 +261,7 @@ confirm "With servos at centre: lids about half open, eyes straight? (if not, re
 board_send "wince 2" >/dev/null; sleep 4
 confirm "Did BOTH lids close and reopen?" || warn "a lid runs backwards: after install, 'daemon/noggin set l_lid_flip 0' (or 1), r_lid_flip likewise"
 board_send "eureka 3" >/dev/null; sleep 6
-confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'daemon/noggin set l_eye_trim N' / r_eye_trim, and *_lo / *_hi for travel"
+confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'daemon/noggin set l_eye_lo N' / l_eye_hi (centre = their average), r_eye likewise"
 note "Tuning by eye after install: 'daemon/noggin pose lids 0.3 eyes 95' holds a pose; 'daemon/noggin set lid_rest 0.3' applies + saves."
 note "Lid levels: lid_closed (blink), lid_think, lid_rest, lid_open (eureka). Never set *_lo/*_hi onto a hard stop: clutch servos slip."
 pause

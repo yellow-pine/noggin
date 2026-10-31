@@ -19,14 +19,14 @@ EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
 
 # Known-good values for this Mech (2026-10-31); eyes/calibration.json is the source of truth.
+# Each servo has exact end angles for its side; everything else derives from them: an eye's
+# straight-ahead is the average of its two ends, lid levels are fractions between a lid's ends.
 # Lid ends sit inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled.
-# The lid servos are mirror-mounted, hence the per-lid flip.
+# The lid servos are mirror-mounted, hence the per-lid flip (1: open is the low end).
 DEFAULT_CAL = {
-    "l_lid_lo": 51, "l_lid_hi": 144, "r_lid_lo": 46, "r_lid_hi": 129,
-    "l_eye_lo": 60, "l_eye_hi": 120, "r_eye_lo": 60, "r_eye_hi": 120,
+    "l_lid_lo": 51, "l_lid_hi": 144, "r_lid_lo": 51, "r_lid_hi": 129,
+    "l_eye_lo": 58, "l_eye_hi": 118, "r_eye_lo": 58, "r_eye_hi": 118,
     "l_lid_flip": 1, "r_lid_flip": 0,
-    "l_lid_bias": 0.0, "r_lid_bias": 0.06,
-    "l_eye_trim": -2, "r_eye_trim": -2,
     "lid_rest": 0.28, "lid_think": 0.16, "lid_closed": 0.10, "lid_open": 0.95,
 }
 
@@ -51,13 +51,15 @@ class Eyes:
 
     def _lid_angle(self, pin, f):
         lo, hi = self.range(pin)
-        f = min(1.0, max(0.0, f + self.cal[NAME[pin] + "_bias"]))
+        f = min(1.0, max(0.0, f))
         if self.cal[NAME[pin] + "_flip"]:
             f = 1 - f
         return lo + (hi - lo) * f
 
     def _eye_angle(self, pin, angle):
-        return angle + self.cal[NAME[pin] + "_trim"]
+        """Gesture angles are written around EYE_CENTER; the eye's real centre is the average of its ends."""
+        lo, hi = self.range(pin)
+        return (lo + hi) / 2 + (angle - EYE_CENTER)
 
     # --- servo primitives -------------------------------------------------
     def set(self, targets):

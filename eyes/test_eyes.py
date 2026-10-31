@@ -1,7 +1,7 @@
 import pytest
 import eyes as mod
 
-RANGES = {mod.L_LID: (51, 144), mod.L_EYE: (60, 120), mod.R_LID: (46, 129), mod.R_EYE: (60, 120)}
+RANGES = {mod.L_LID: (51, 144), mod.L_EYE: (58, 118), mod.R_LID: (51, 129), mod.R_EYE: (58, 118)}
 
 def angle(duty):            # inverse of the stock bbl.servos formula; one duty step is 1.76 deg
     return (duty - 25) * 180 / 102
@@ -56,11 +56,10 @@ def last_duty(pwm_log, pin):
     return [d for p, d in pwm_log if p == pin][-1]
 
 def test_set_changes_calibration_live(eyes, pwm_log):
-    eyes.handle_line("set l_eye_trim 7")
+    eyes.handle_line("set l_eye_lo 70"); eyes.handle_line("set l_eye_hi 130")   # centre becomes 100
     eyes.handle_line("rest")
-    assert abs(angle(last_duty(pwm_log, mod.L_EYE) if last_duty(pwm_log, mod.L_EYE) else 0) - 97) < 1.8 or True  # released at end; check the move
     moves = [d for p, d in pwm_log if p == mod.L_EYE and d]
-    assert abs(angle(moves[-1]) - 97) < 1.8
+    assert abs(angle(moves[-1]) - 100) < 1.8
 
 def test_set_rejects_unknown_key(eyes, pwm_log):
     before = dict(eyes.cal)
@@ -73,14 +72,14 @@ def test_blink_glides_to_lid_closed_not_the_stop(eyes, pwm_log):
     eyes.blink()
     lid = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]      # R lid: open = high end
     lo, hi = RANGES[mod.R_LID]
-    assert min(lid) >= lo + (hi - lo) * (0.2 + 0.06) - 1.8          # never past lid_closed (+bias)
+    assert min(lid) >= lo + (hi - lo) * 0.2 - 1.8                  # never past lid_closed
     assert len(lid) >= 4                                            # glided, not snapped
 
 def test_pose_holds_without_release(eyes, pwm_log):
     eyes.handle_line("pose lids 0.4 eyes 100")
     assert last_duty(pwm_log, mod.L_EYE) != 0 and last_duty(pwm_log, mod.L_LID) != 0
     moves = [d for p, d in pwm_log if p == mod.R_EYE and d]
-    assert abs(angle(moves[-1]) - 98) < 1.8                           # 100 + trim -2
+    assert abs(angle(moves[-1]) - 98) < 1.8                           # centre 88 + 10
 
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     eyes.handle_line("exercise 1")
