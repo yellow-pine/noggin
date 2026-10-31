@@ -65,10 +65,11 @@ def swept(doc, routes=None):
 @pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_every_lead_of_the_full_mech_has_a_corridor_longer_than_its_straight_reach():
     report, _ = swept("noggin-stage3")
-    assert len(report) == 7 + 2 + 2
-    # static: pack 1's plug (-32.5, 123.5, 14.65) to switch board 1's hole on its holder post (34.5, 108.5, 9), 68.9 straight
+    assert len(report) == 7 + 1 + 2  # one pack, one switch board, the Y lead's two branches
+    # static, so no slack: the pack's plug at its front end (-39.25, 72.5, 14.65) to switch board 1's input socket
+    # (19, 119.5, 13.5), 74.9 straight, by the build photo's route across the plate
     pack = report["pack 1 -> switch 1"]
-    assert 68.9 < pack["min_mm"] == pack["max_mm"] < pack["limit_mm"] == 80
+    assert 74.9 < pack["min_mm"] == pack["max_mm"] < pack["limit_mm"] == pack["length_mm"] == 100
     lid = report["l_lid servo -> Core 1 PWM1"]
     assert lid["limit_mm"] == 230 and lid["min_mm"] < lid["max_mm"]  # the head moves the clipped waypoints
     assert set(lid["at"]) <= {"pan horn", "tilt horn"}

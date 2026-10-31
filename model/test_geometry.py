@@ -223,16 +223,37 @@ def test_one_channel_table_maps_each_cores_headers_to_its_servos():
     assert g.EYES_SERVOS == tuple(g.CHANNELS["core1"].values())
 
 
-def test_electronics_sets_sit_on_their_standoffs_with_battery_2_on_battery_1():
-    assert g.receiver_at(1) == (38.0, 52.0, 13.0) and g.receiver_at(2) == (38.0, 85.0, 13.0)
-    assert g.battery_at(1) == (-36.0, 71.0, 11.15)  # pocket centre, pack floor on the pocket floor z=3
-    assert g.battery_at(2)[2] == 11.15 + 16.3  # on top of pack 1
+def test_receiver_shields_sit_on_the_base_standoff_tops_with_the_core_under_each():
+    # PandT base STL: the receiver standoffs top at z 16 (r 1.1 pins up to 18); the Core plugs in under the shield as in
+    # the receiver STEP and Cansin's build (docs/build-photos/eyes-top.jpg, references build-photos/eyes-side)
+    assert g.receiver_at(1) == (38.0, 52.0, 16.0) and g.receiver_at(2) == (38.0, 85.0, 16.0)
+    m = g.align_rows(g.receiver_at(1), *g.RECEIVER_AXES)
+    assert _apply(m, g.RECEIVER_STEP["xh_power"]) == (47.75, 52.0, 25.62)  # XH socket toward the plate's +x edge
+    assert _apply(m, (0, -10.68, -13.39)) == (
+        51.39,
+        52.0,
+        5.32,
+    )  # Core USB-C: under the shield, +x, 2.3 above the plate
+
+
+def test_one_pack_and_one_switch_board_feed_both_shields_as_the_pan_tilt_guide_builds_it():
+    # pan-tilt guide p.10 (Y adapter from a single battery) and p.23 (one pack, one switch board, two shields)
+    assert not hasattr(g, "BATTERY_STACK_Z") and not hasattr(g, "CORE_FLIP")  # no pack 2; the Core is not flipped
+    # pack in the box's pocket (STL x -50..-21.5, y 73..125, floor z 3), its lead at the front end (both photos)
+    m = g.align_rows(*g.battery_at())
+    assert _apply(m, (0, 0, g.BATTERY_STEP["floor_z"])) == (-35.75, 125.0, 3.0)
+    assert _apply(m, g.BATTERY_STEP["plug"]) == (-39.25, 72.5, 14.65)
+    # the cable holder of the eyes build on the two posts between the shields and the pack (Cansin's build, guide p.23)
+    assert g.STANDOFFS["pt_base"]["cable_holder"] == [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)]
+    m = g.align_rows(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM)  # the wire keeper STL (eyes frame) onto those posts
+    assert _apply(m, (29.5, -22.6, 51.0)) == (6.0, 68.5, 13.0) and _apply(m, (29.5, -22.6, 75.0)) == (6.0, 92.5, 13.0)
+    assert _apply(m, (29.5, -19.6, 51.0))[2] == 16.0  # 3 mm thick, lying on the post tops
 
 
 def test_switch_board_1_lies_in_the_two_clip_holder_at_the_base_back_edge():
     # PandT base STL (docs/research/2026-10-31-shafts.md): post (34.5, 108.5) and both clip shelves top z 9, clip walls'
     # inner faces x 18 / 51, back wall y 126; eyes guide p.13, pan-tilt guide p.23
-    m = g.align_rows(*g.switch_at(1), g.SWITCH_STEP["hole"])
+    m = g.align_rows(*g.switch_at(), g.SWITCH_STEP["hole"])
     assert _apply(m, g.SWITCH_STEP["hole"]) == (34.5, 108.5, 9.0)
     pcb = [_apply(m, (x, 0, z)) for x in (-7.25, 13.25) for z in (-16, 16)]  # the PCB bottom's corners
     xs, ys, zs = zip(*pcb)
@@ -241,7 +262,12 @@ def test_switch_board_1_lies_in_the_two_clip_holder_at_the_base_back_edge():
     # switch STEP lever tip (-1.76, 15.16, 0): at the back-edge end above the back wall (top z 11), reachable from behind
     # (Cansin's build, docs/build-photos/eyes-top.jpg)
     assert _apply(m, (-1.76, 15.16, 0)) == (34.5, 120.51, 24.16)
-    assert g.switch_at(2) == ((6.0, 92.5, 13.0), (-1, 0, 0), (0, 1, 0))  # set 2 stays on its standoff [I]
+    # the XH sockets at the PCB ends: the pack's lead in at the -x end, the Y lead out at the +x end (the build photo)
+    assert _apply(m, g.SWITCH_STEP["in"]) == (19.0, 119.5, 13.5) and _apply(m, g.SWITCH_STEP["out"]) == (
+        50.0,
+        119.5,
+        13.5,
+    )
 
 
 def test_sub_assembly_parts_tables_name_printed_parts():
@@ -249,3 +275,9 @@ def test_sub_assembly_parts_tables_name_printed_parts():
     for table in (g.EYES_PARTS, g.STACK_PARTS, g.MOUTH_PARTS):
         assert {row[1] for row in table} <= stems
     assert ("tilt arm", "PandT tilt arm", (0, 0, g.TILT_ARM_SHIFT_Z)) in g.STACK_PARTS
+
+
+def test_every_eye_mech_horn_pins_its_bar_at_the_second_hole_from_the_end_and_the_lid_horns_are_drilled_out():
+    # STEP half arm: holes every 2 mm to 14.75, the arm ending at 16.05; eyes guide p.15 step 5 (2 mm drill, 2 horns) and
+    # Cansin's build (the lid horns drilled, the eye horns not)
+    assert g.HORN_STEP["pin"] == 12.75 and g.HORN_STEP["pin_r"] == {"lid": 1.0, "eye": 0.5}
