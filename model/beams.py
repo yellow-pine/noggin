@@ -5,8 +5,9 @@ PLA E 3.5 GPa, yield 50 MPa; threshold SF >= 2 (#20). `python model/beams.py` pr
 import importlib.util
 import math
 import os
-import struct
 import sys
+
+import trimesh
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location(
@@ -41,21 +42,14 @@ def cantilever(F, L, b, h):
 
 def extents(path, keep=lambda v: True):
     """(lo, hi) per axis over the STL vertices `keep` accepts."""
-    vs = [v for v in fits.vertices(path) if keep(v)]
-    return [(min(v[i] for v in vs), max(v[i] for v in vs)) for i in range(3)]
+    vs = fits.vertices(path)
+    vs = vs[[bool(keep(v)) for v in vs]]
+    return [(float(lo), float(hi)) for lo, hi in zip(vs.min(axis=0), vs.max(axis=0))]
 
 
 def mass_g(path):
-    """Printed mass from the mesh volume (signed tetrahedra) at PLA density."""
-    d = open(path, "rb").read()
-    n = struct.unpack_from("<I", d, 80)[0]
-    vol = 0.0
-    for i in range(n):
-        a, b, c = (struct.unpack_from("<3f", d, 84 + i * 50 + 12 + 12 * k) for k in range(3))
-        vol += (
-            a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])
-        ) / 6
-    return abs(vol) / 1000 * DENSITY
+    """Printed mass from the mesh volume at PLA density."""
+    return abs(trimesh.load_mesh(path, process=False).volume) / 1000 * DENSITY
 
 
 def beam_table(beams):

@@ -149,6 +149,9 @@ is ever wanted.
   (trimesh/collision.py L83-92, L186-196, L467-621). Adding `rtree` would let `signed_distance` and `contains`
   replace `to_surface` / `inside` / `pseudo_normal`. Risk: runtime, and the "0 mm designed contact vs penetration"
   semantics. Prototype on the current reports and switch if the numbers agree to 0.01 mm.
+  **Superseded (#139):** the MuJoCo switch (#146) replaces this collision code with convex decomposition, so the
+  prototype was dropped. Its one finished run, on noggin-eyes (287 judged pairs), matched our judge to 1e-15 mm with
+  no penetration flips, but `signed_distance` took 663 s against our 9 s.
 - **Rotation (switch, trivial).** `model/engine/linkage.py:18` is Rodrigues about an axis through a point.
   `trimesh.transformations.rotation_matrix(angle, direction, point)` has the same contract (in radians).
 - **Keep:** the four-bar solver (`linkage.py:30-82`) is the closed-form circle intersection; a numeric solver (sympy,
