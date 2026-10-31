@@ -1,18 +1,30 @@
 from build_trace import resample, saccades
 
+
 def rows(spec):
     """spec: list of (ms, x or 'nan', lab)."""
     return [{"n": str(t), "x": str(x), "val": "4" if x == "nan" else "0", "lab": str(lab)} for t, x, lab in spec]
 
+
 def test_resample_scales_clamps_holds_and_finds_blinks():
-    spec = [(t, 5.0, 1) for t in range(0, 200)] + [(t, "nan", -1) for t in range(200, 300)] + [(t, 30.0, 1) for t in range(300, 400)]
+    spec = (
+        [(t, 5.0, 1) for t in range(0, 200)]
+        + [(t, "nan", -1) for t in range(200, 300)]
+        + [(t, 30.0, 1) for t in range(300, 400)]
+    )
     x, blinks = resample(rows(spec), hz=25, gain=1.6, max_deg=24.0, min_blink_ms=50)
     assert len(x) == 10 and x[0] == 8.0 and x[-1] == 24.0 and x[5] == 8.0
     assert blinks == [5]
 
+
 def test_short_gaps_are_not_blinks():
-    spec = [(t, 0.0, 1) for t in range(0, 100)] + [(t, "nan", -1) for t in range(100, 120)] + [(t, 0.0, 1) for t in range(120, 200)]
+    spec = (
+        [(t, 0.0, 1) for t in range(0, 100)]
+        + [(t, "nan", -1) for t in range(100, 120)]
+        + [(t, 0.0, 1) for t in range(120, 200)]
+    )
     assert resample(rows(spec))[1] == []
+
 
 def test_saccade_profile_runs_from_zero_to_about_one():
     # a 20 deg saccade over 60 ms with a 5% undershoot corrected at 120 ms, then steady
@@ -25,5 +37,6 @@ def test_saccade_profile_runs_from_zero_to_about_one():
 
 def test_calmest_window_finds_the_flat_part():
     from build_trace import calmest
+
     xs = [((i % 7) - 3) * 4.0 for i in range(0, 250)] + [1.0] * 200 + [((i % 5) - 2) * 6.0 for i in range(0, 250)]
     assert 250 <= calmest(xs, hz=25, dur_s=6) <= 275

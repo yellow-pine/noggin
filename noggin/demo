@@ -1,6 +1,7 @@
 #!/bin/sh
 # Play every gesture twice, printing its name as it starts. Run from the repo: noggin/demo
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
+# shellcheck disable=SC2086  # $1 is "gesture level": split on purpose
 play() { printf '%-14s %s\n' "$1" "$2"; noggin/noggin $1; sleep "$3"; }
 for round in 1 2; do
   echo "--- round $round"

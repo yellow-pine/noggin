@@ -6,7 +6,32 @@ requires-python = ">=3.12"
 dependencies = ["pyserial>=3.5"]
 
 [dependency-groups]
-dev = ["pytest>=8", "mpremote>=1.24"]
+dev = [
+    "pytest>=8",
+    "mpremote>=1.24",
+    "ruff>=0.17.3",
+    "pyright>=1.1.414",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["eyes", "reactions", "noggin", "test_vocabulary.py"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace bytes / Bambu's stock program
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"eyes/eyes.py" = ["B905"]  # MicroPython zip() has no strict=
+
+[tool.pyright]
+typeCheckingMode = "basic"
+include = ["eyes", "noggin", "reactions", "scripts", "conftest.py", "test_vocabulary.py"]
+exclude = ["eyes/stock-backup"]
+extraPaths = ["eyes"]  # conftest puts eyes/ on sys.path: `import eyes` is eyes/eyes.py, the Core program
+venvPath = "."
+venv = ".venv"
+reportMissingModuleSource = false  # pyserial ships no stubs
