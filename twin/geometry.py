@@ -34,7 +34,7 @@ def mirror_x(p):
 
 # Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
 HORN_LIMITS = {
-    "l_lid": (70, 120), "l_eye": (60, 120), "r_lid": (70, 120), "r_eye": (60, 120),
+    "l_lid": (70, 120), "l_eye": (65, 115), "r_lid": (70, 120), "r_eye": (65, 115),   # eye +-25: the eyeball bar enters the bracket at +-30 (sweep)
     "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
 }
 

@@ -8,11 +8,11 @@ sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
 
 def merge(parts):
     """One report from per-horn reports: horns and violations accumulate, the rest comes from the first part."""
-    report = dict(parts[0], horns={}, violations=[], interference=[])
+    report = dict(parts[0], horns={}, violations=[], interference=[], contacts=[])
     for p in parts:
         report["horns"].update(p["horns"])
-        report["violations"] += p["violations"]
-        report["interference"] += p["interference"]
+        for key in ("violations", "interference", "contacts"):
+            report[key] += p.get(key, [])
     return report
 
 

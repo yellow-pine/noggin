@@ -77,6 +77,21 @@ def interference(design, occs, pose):
             for r in (results.item(i) for i in range(results.count))]
 
 
+def penetrates(occ_a, occ_b, samples=300):
+    """True when sampled vertices of either part's real body lie inside the other's: a collision, as opposed
+    to a designed contact (coincident faces measure 0 mm too, e.g. the eyeball bar riding on the bracket rail)."""
+    def body(occ):
+        x = real_body(occ)
+        return x if x.objectType.endswith("BRepBody") else max(x.bRepBodies, key=lambda b: b.faces.count)
+    a, b = body(occ_a), body(occ_b)
+    for src, dst in ((a, b), (b, a)):
+        verts = src.vertices
+        for i in range(0, verts.count, max(1, verts.count // samples)):
+            if dst.pointContainment(verts.item(i).geometry) == adsk.fusion.PointContainment.PointInsidePointContainment:
+                return True
+    return False
+
+
 def _mean(pts):
     return tuple(sum(p[i] for p in pts) / len(pts) for i in range(3))
 
@@ -150,7 +165,7 @@ def run(_context: str):
     for h in horns:                                     # neutral pose first
         h.jointMotion.rotationValue = 0.0
     report = {"doc": DOC, "version": doc.dataFile.versionNumber if doc.dataFile else None,
-              "clearance_mm": CLEARANCE_MM, "step_deg": STEP_DEG, "horns": {}, "interference": [],
+              "clearance_mm": CLEARANCE_MM, "step_deg": STEP_DEG, "horns": {}, "interference": [], "contacts": [],
               "bboxes": {o.name: [mm3(o.boundingBox.minPoint), mm3(o.boundingBox.maxPoint)] for o in root.occurrences},
               "violations": placements(root, joints)}
     motion = horn.jointMotion
@@ -185,9 +200,11 @@ def run(_context: str):
                 if worst is None or d < worst["min_mm"]:
                     worst = {"min_mm": round(d, 2), "at_deg": deg, "pair": pair}
                 if d < CLEARANCE_MM:
-                    report["violations"].append({"horn": horn.name, "deg": deg, "mm": round(d, 2), "pair": pair})
-                if d == 0:
-                    report["interference"] += interference(design, [mover, other], f"{horn.name} {deg}")
+                    if penetrates(mover, other):
+                        report["violations"].append({"horn": horn.name, "deg": deg, "mm": round(d, 2), "pair": pair})
+                        report["interference"] += interference(design, [mover, other], f"{horn.name} {deg}")
+                    else:
+                        report["contacts"].append({"horn": horn.name, "deg": deg, "pair": pair})
     motion.rotationValue = 0.0
     report["horns"][horn.name] = worst or {"min_mm": NEAR_MM, "at_deg": None, "pair": None, "note": f"nothing within {NEAR_MM} mm"}
     if incomplete:
