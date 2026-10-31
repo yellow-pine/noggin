@@ -19,6 +19,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: `README.md`.
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
+- Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - PurpleShark's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks: `make check` (CI runs the same). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
