@@ -20,7 +20,7 @@ check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard 
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-sim: venv model/build/steps/horn.stl   ## simulate every document (sub-assemblies + Stage configurations) in Python, then threshold the reports
+sim: venv model/build/steps/horn.stl   ## simulate every document (sub-assemblies + Stage configurations) in Python into model/reports (commit them), then threshold the reports
 	$(PY) -m model.engine.run $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
 model-step-meshes: ## tessellate the Bambu STEPs once into model/build/steps (cadquery-ocp, ephemeral)

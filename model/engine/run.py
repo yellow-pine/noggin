@@ -2,10 +2,13 @@
 configurations) drive each horn from its minimum to its maximum limit in STEP_DEG steps, measure the moving chain
 against every other part (contacts vs penetrations as the Fusion sweep judged them), record the driven joint angles and
 centres of mass per pose, the placements, bounding boxes and masses, then fold in torque, curves, fits and beams
-(model/sim.py) and write model/build/<doc>-sim.json in the shape model/test_report.py reads. The eyes horns are also
-measured at the calibrated servo ends (eyes/calibration.json) past the designer's limits, as check.py did.
+(model/sim.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
+model/test_report.py reads. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
+the designer's limits, as check.py did.
 Usage: python -m model.engine.run [doc ...]"""
 
+import glob
+import hashlib
 import json
 import os
 import sys
@@ -15,7 +18,21 @@ from multiprocessing import get_context
 from model import beams, electrical, fits, sim
 from model.engine import linkage, masses, mech, meshes, stages
 
-OUT = os.path.join(stages.REPO, "model", "build")
+OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
+# Repo files a report depends on (stamp); designer meshes are not in the repo, their fingerprints go in the report.
+INPUTS = [
+    "model/geometry.py",
+    "model/sim.py",
+    "model/fits.py",
+    "model/beams.py",
+    "model/electrical.py",
+    "model/engine/[!t]*.py",  # the engine, not its tests
+    "eyes/calibration.json",
+    "eyes/eyes.py",
+    "eyes/gaze_trace.py",
+    "eyes/replay.py",
+    "eyes/servo.py",
+]
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # as check.py: below 0.1 mm the parts overlap
 TABLES = {
     "noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS),
@@ -28,6 +45,35 @@ EYES_HORNS = {
     "L eye horn (inferred)": "l_eye",
     "R eye horn (inferred)": "r_eye",
 }
+
+
+def fingerprint(path):
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
+
+
+def sources(stage, *tables):
+    """{repo-relative path: fingerprint} of every mesh the document reads: its parts and the STLs its fit and beam
+    tables measure."""
+    paths = {p.file for p in stage.parts.values()}
+    todo = list(tables)
+    while todo:
+        x = todo.pop()
+        if isinstance(x, str) and x.endswith(".stl"):
+            paths.add(x)
+        elif isinstance(x, (list, tuple)):
+            todo.extend(x)
+    return {os.path.relpath(p, stages.REPO): fingerprint(p) for p in sorted(paths)}
+
+
+def stamp(sources):
+    """sha256 of the INPUTS in the repo and the recorded mesh fingerprints: a report whose stamp no longer matches is
+    stale."""
+    h = hashlib.sha256()
+    for pattern in INPUTS:
+        for path in sorted(glob.glob(os.path.join(stages.REPO, pattern))):
+            h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
+    h.update(json.dumps(sources, sort_keys=True).encode())
+    return h.hexdigest()
 
 
 def chain(horn):
@@ -219,6 +265,8 @@ def report(doc, parallel=True):
         links += l
     sim.UP[doc] = stage.up
     out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
+    src = sources(stage, joints, links)
+    out["inputs"] = {"stamp": stamp(src), "sources": src}
     out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
     if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
         outline = mech.footprint(placed["PandT base:1"].vertices)
@@ -243,13 +291,15 @@ def report(doc, parallel=True):
 
 
 def main(docs):
-    os.makedirs(OUT, exist_ok=True)
     for doc in docs:
         t = time.time()
         r = report(doc)
+        horns = ", ".join(  # timings vary per run: printed, not committed
+            f"{h} {v['min_mm']} mm {v.pop('seconds')} s" for h, v in r["horns"].items()
+        )
         with open(os.path.join(OUT, f"{doc}-sim.json"), "w") as f:
             json.dump(r, f, indent=1)
-        horns = ", ".join(f"{h} {v['min_mm']} mm {v['seconds']} s" for h, v in r["horns"].items())
+            f.write("\n")
         print(
             f"{doc}: {time.time() - t:.1f} s; {len(r['violations'])} violations, {len(r['contacts'])} contacts; {horns}"
         )

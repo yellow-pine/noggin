@@ -1,11 +1,13 @@
-"""Seam: the JSON report `make sim` writes (model/engine/run.py, model/build/<doc>-sim.json). The live-report test is
-skipped until `make sim` has run; the fixture test checks the checker itself."""
+"""Seam: the JSON reports `make sim` writes and commits (model/engine/run.py, model/reports/<doc>-sim.json). CI checks
+every committed report: no problems, and its stamp still matches the inputs in the repo (designer meshes are not in the
+repo: their fingerprints recorded at sim time are hashed instead). The fixture test checks the checker itself."""
 
-import glob
 import json
 import os
 
 import pytest
+
+from model.engine import run, stages
 
 HERE = os.path.dirname(__file__)
 MAX_INTERFERENCE_MM3 = 0.5
@@ -17,7 +19,6 @@ ENVELOPE = {
     "noggin-stage2": ((-62, 62), (-52, 136), (-3, 110)),  # + stack, eyes on the tilt arm
     "noggin-stage3": ((-66, 66), (-66, 136), (-3, 110)),  # + mouth
 }
-REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-sim.json")))
 
 
 def problems(report):
@@ -83,11 +84,25 @@ def problems(report):
     return out
 
 
-@pytest.mark.parametrize("path", REPORTS or [None])
-def test_live_report_is_clean(path):
-    if path is None:
-        pytest.skip("no model/build/*-sim.json: run `make sim`")
-    assert problems(json.load(open(path))) == []
+def committed(doc):
+    return json.load(open(os.path.join(HERE, "reports", f"{doc}-sim.json")))
+
+
+@pytest.mark.parametrize("doc", sorted(stages.DOCS))
+def test_committed_report_is_clean(doc):
+    assert problems(committed(doc)) == []
+
+
+@pytest.mark.parametrize("doc", sorted(stages.DOCS))
+def test_committed_report_is_stamped_with_the_inputs_in_the_repo(doc):
+    inputs = committed(doc)["inputs"]
+    assert inputs["stamp"] == run.stamp(inputs["sources"]), "stale: run `make sim` and commit model/reports"
+
+
+def test_stamp_follows_the_recorded_part_fingerprints():
+    sources = {"docs/references/a.stl": "0" * 16}
+    assert run.stamp(sources) == run.stamp(dict(sources))
+    assert run.stamp(sources) != run.stamp({"docs/references/a.stl": "1" * 16})
 
 
 FIXTURE_PROBLEMS = {
