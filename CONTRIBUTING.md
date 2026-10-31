@@ -10,7 +10,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A spec gets one integration branch with one PR into main. Each ticket is built in its own worktree on its own
   branch, with a normal PR into the integration branch opened on the first push; whoever works the ticket keeps that
   PR green and squash-merges it as soon as CI is green, with no approval wait, which deletes the branch. Every PR is
-  squash-merged (the only method the repo allows). Main is protected: a green, up-to-date PR is the only way in. CI
+  squash-merged (the only method the repo allows). Main is protected: a green PR is the only way in (it need not be up to date with main). CI
   runs on pushes to main and on ready (non-draft) PRs. An integration branch takes main by a merge pushed to it. A pushed branch is never merged locally: it lands through its
   own PR. Every branch on GitHub has a PR, except on-hold work.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
