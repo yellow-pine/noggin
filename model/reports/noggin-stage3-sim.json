@@ -26,10 +26,10 @@
    "min_mm": 0.49,
    "at_deg": -20,
    "pair": [
-    "L inside lid:1",
+    "L outside lid:1",
     "L eyeball:1"
    ],
-   "measurements": 145
+   "measurements": 133
   },
   "L eye horn (inferred)": {
    "min_mm": 0.0,
@@ -38,16 +38,16 @@
     "L eyeball bar:1",
     "main bracket v2:1"
    ],
-   "measurements": 128
+   "measurements": 117
   },
   "R lid horn (inferred)": {
    "min_mm": 0.49,
    "at_deg": -20,
    "pair": [
-    "R inside lid:1",
+    "R outside lid:1",
     "R eyeball:1"
    ],
-   "measurements": 145
+   "measurements": 133
   },
   "R eye horn (inferred)": {
    "min_mm": 0.0,
@@ -56,7 +56,7 @@
     "R eyeball bar:1",
     "main bracket v2:1"
    ],
-   "measurements": 128
+   "measurements": 119
   },
   "jaw horn (inferred)": {
    "min_mm": 4.43,
@@ -725,19 +725,7 @@
   ],
   "L eyelid bar (inferred):1": [
    [
-    57.5,
-    -30.06,
-    78.25
-   ],
-   [
-    60.5,
-    14.0,
-    95.7
-   ]
-  ],
-  "L eyelid bar crank (inferred):1": [
-   [
-    50.5,
+    53.5,
     -30.47,
     67.15
    ],
@@ -745,6 +733,18 @@
     56.5,
     14.0,
     83.25
+   ]
+  ],
+  "L eyelid bar crank (inferred):1": [
+   [
+    53.5,
+    -30.06,
+    78.25
+   ],
+   [
+    59.5,
+    14.0,
+    95.7
    ]
   ],
   "R lid servo:1": [
@@ -797,26 +797,26 @@
   ],
   "R eyelid bar (inferred):1": [
    [
-    -60.5,
-    -30.06,
-    78.25
-   ],
-   [
-    -57.5,
-    14.0,
-    95.7
-   ]
-  ],
-  "R eyelid bar crank (inferred):1": [
-   [
     -56.5,
     -30.47,
     67.15
    ],
    [
-    -50.5,
+    -53.5,
     14.0,
     83.25
+   ]
+  ],
+  "R eyelid bar crank (inferred):1": [
+   [
+    -59.5,
+    -30.06,
+    78.25
+   ],
+   [
+    -53.5,
+    14.0,
+    95.7
    ]
   ],
   "top jaw:1": [
@@ -1016,16 +1016,14 @@
    "lo": -54,
    "hi": 39,
    "inferred": true,
-   "contacts": [
+   "violations": [
     {
      "deg": -54,
      "pair": [
       "L eyelid bar (inferred):1",
       "main bracket v2:1"
      ]
-    }
-   ],
-   "violations": [
+    },
     {
      "deg": -54,
      "pair": [
@@ -1081,7 +1079,9 @@
       "R eyelid bar (inferred):1",
       "main bracket v2:1"
      ]
-    },
+    }
+   ],
+   "violations": [
     {
      "deg": -46,
      "pair": [
@@ -1199,36 +1199,36 @@
   },
   {
    "joint": "eyelid bar / horn screw",
-   "hole_r": 1.35,
+   "hole_r": 1.1,
    "pin_r": 1.0,
-   "clearance": 0.35,
+   "clearance": 0.1,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
-   "joint": "eyelid bar / inside lid pin",
-   "hole_r": 1.1,
+   "joint": "eyelid bar / outside lid pin",
+   "hole_r": 1.35,
    "pin_r": 1.0,
-   "clearance": 0.1,
+   "clearance": 0.35,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
    "joint": "eyelid crank / horn screw",
-   "hole_r": 1.35,
+   "hole_r": 1.1,
    "pin_r": 1.0,
-   "clearance": 0.35,
+   "clearance": 0.1,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
-   "joint": "eyelid crank / outside lid pin",
-   "hole_r": 1.1,
+   "joint": "eyelid crank / inside lid pin",
+   "hole_r": 1.35,
    "pin_r": 1.0,
-   "clearance": 0.1,
+   "clearance": 0.35,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
@@ -1410,18 +1410,18 @@
    "kgf_cm": 0.04,
    "at_deg": -60,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 30052,
-   "inertia_g_mm2": 35261
+   "accel_limit_deg_s2": 30014,
+   "inertia_g_mm2": 35281
   },
   "pan horn (inferred)": {
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 2090,
-   "inertia_g_mm2": 537676
+   "accel_limit_deg_s2": 2088,
+   "inertia_g_mm2": 538133
   },
   "L lid horn (inferred)": {
-   "kgf_cm": 0.001,
+   "kgf_cm": 0.002,
    "at_deg": 30,
    "limit_kgf_cm": 0.2,
    "dynamic_kgf_cm": 0.038,
@@ -1439,7 +1439,7 @@
    "accel_deg_s2": 25000
   },
   "R lid horn (inferred)": {
-   "kgf_cm": 0.001,
+   "kgf_cm": 0.002,
    "at_deg": 30,
    "limit_kgf_cm": 0.2,
    "dynamic_kgf_cm": 0.044,
@@ -1678,32 +1678,6 @@
    ]
   },
   "L lid horn (inferred)": {
-   "L inside lid pivot": [
-    [
-     -20,
-     -21.4
-    ],
-    [
-     -10,
-     -10.65
-    ],
-    [
-     0,
-     0.0
-    ],
-    [
-     10,
-     10.61
-    ],
-    [
-     20,
-     21.23
-    ],
-    [
-     30,
-     31.9
-    ]
-   ],
    "L outside lid pivot": [
     [
      -20,
@@ -1728,6 +1702,32 @@
     [
      30,
      -27.97
+    ]
+   ],
+   "L inside lid pivot": [
+    [
+     -20,
+     -21.4
+    ],
+    [
+     -10,
+     -10.65
+    ],
+    [
+     0,
+     0.0
+    ],
+    [
+     10,
+     10.61
+    ],
+    [
+     20,
+     21.23
+    ],
+    [
+     30,
+     31.9
     ]
    ]
   },
@@ -1756,32 +1756,6 @@
    ]
   },
   "R lid horn (inferred)": {
-   "R inside lid pivot": [
-    [
-     -20,
-     -21.4
-    ],
-    [
-     -10,
-     -10.65
-    ],
-    [
-     0,
-     0.0
-    ],
-    [
-     10,
-     10.61
-    ],
-    [
-     20,
-     21.23
-    ],
-    [
-     30,
-     31.9
-    ]
-   ],
    "R outside lid pivot": [
     [
      -20,
@@ -1806,6 +1780,32 @@
     [
      30,
      -27.97
+    ]
+   ],
+   "R inside lid pivot": [
+    [
+     -20,
+     -21.4
+    ],
+    [
+     -10,
+     -10.65
+    ],
+    [
+     0,
+     0.0
+    ],
+    [
+     10,
+     10.61
+    ],
+    [
+     20,
+     21.23
+    ],
+    [
+     30,
+     31.9
     ]
    ]
   },
@@ -1859,16 +1859,18 @@
   }
  },
  "warnings": [
+  "calibrated L lid horn (inferred): collision at -54 deg between ['L eyelid bar (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated L lid horn (inferred): collision at -54 deg between ['L eyelid bar crank (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated L eye horn (inferred): collision at -32 deg between ['L eye horn (inferred):1', 'L servo bracket:1'] (pivot inferred: fails once measured)",
   "calibrated L eye horn (inferred): collision at -32 deg between ['L eye horn (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated L eye horn (inferred): collision at -32 deg between ['L eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated L eye horn (inferred): collision at 28 deg between ['L eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated R lid horn (inferred): collision at -46 deg between ['R eyelid bar crank (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated R eye horn (inferred): collision at -32 deg between ['R eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
   "calibrated R eye horn (inferred): collision at 28 deg between ['R eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)"
  ],
  "inputs": {
-  "stamp": "4ae6ab582eaf39b30a72ae3039f5af75254c8ed08f88235633c971027c283e22",
+  "stamp": "6d81e5bdd70e367a07c5cf8e7643fdab4e388cf138aee825240e370e5d4711ab",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -1948,9 +1950,9 @@
   }
  },
  "tip_over": {
-  "margin_mm": 41.7,
+  "margin_mm": 41.6,
   "at": {
-   "pan": 70,
+   "pan": 60,
    "tilt": 60
   },
   "com": [

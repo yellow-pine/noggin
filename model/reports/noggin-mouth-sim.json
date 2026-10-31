@@ -294,25 +294,25 @@
   ],
   "L eyelid bar (inferred):1": [
    [
-    -31.0,
-    -3.25,
-    -1.56
-   ],
-   [
-    -28.0,
-    14.2,
-    42.5
-   ]
-  ],
-  "L eyelid bar crank (inferred):1": [
-   [
     -27.0,
     -14.35,
     -1.97
    ],
    [
-    -21.0,
+    -24.0,
     1.75,
+    42.5
+   ]
+  ],
+  "L eyelid bar crank (inferred):1": [
+   [
+    -30.0,
+    -3.25,
+    -1.56
+   ],
+   [
+    -24.0,
+    14.2,
     42.5
    ]
   ],
@@ -366,25 +366,25 @@
   ],
   "R eyelid bar (inferred):1": [
    [
-    87.0,
-    -3.25,
-    -1.56
-   ],
-   [
-    90.0,
-    14.2,
-    42.5
-   ]
-  ],
-  "R eyelid bar crank (inferred):1": [
-   [
-    80.0,
+    83.0,
     -14.35,
     -1.97
    ],
    [
     86.0,
     1.75,
+    42.5
+   ]
+  ],
+  "R eyelid bar crank (inferred):1": [
+   [
+    83.0,
+    -3.25,
+    -1.56
+   ],
+   [
+    89.0,
+    14.2,
     42.5
    ]
   ],
@@ -567,36 +567,36 @@
   },
   {
    "joint": "eyelid bar / horn screw",
-   "hole_r": 1.35,
+   "hole_r": 1.1,
    "pin_r": 1.0,
-   "clearance": 0.35,
+   "clearance": 0.1,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
-   "joint": "eyelid bar / inside lid pin",
-   "hole_r": 1.1,
+   "joint": "eyelid bar / outside lid pin",
+   "hole_r": 1.35,
    "pin_r": 1.0,
-   "clearance": 0.1,
+   "clearance": 0.35,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
    "joint": "eyelid crank / horn screw",
-   "hole_r": 1.35,
+   "hole_r": 1.1,
    "pin_r": 1.0,
-   "clearance": 0.35,
+   "clearance": 0.1,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
   },
   {
-   "joint": "eyelid crank / outside lid pin",
-   "hole_r": 1.1,
+   "joint": "eyelid crank / inside lid pin",
+   "hole_r": 1.35,
    "pin_r": 1.0,
-   "clearance": 0.1,
+   "clearance": 0.35,
    "offset": 0.0,
    "rms": 0.0,
    "ok": true
@@ -756,7 +756,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "3aa8a6c9cca53fbd724d3d9619d7da0346606816ff6fe3391685941d7921e557",
+  "stamp": "c34fae526040a067c9732d35551ff4e8241eee1b093de62fa520bf119d4014bd",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",

@@ -75,13 +75,16 @@ def link(stage, stl_key, hole_a, hole_b, normal):
     return part(stl(stage, stl_key), m, printed(stl_key))
 
 
-def link_placement(name, stl_key, hole_a, hole_b):
+def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None):
     """The link's two holes on its pins, in the plane of the loop: along the pin axis a link may sit anywhere on its pin
-    (the crank's horn end is stepped 3 mm)."""
+    (the crank's lid end is stepped 3 mm). pin_axis (0, 1 or 2) is the world pin direction when the two pins sit at
+    different depths along it (the eyelid crank): the expected lid-end point then takes the horn end's depth too."""
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     i = spec["hole_axis"].index(1)
     lb = tuple(la[i] if k == i else c for k, c in enumerate(lb))
+    if pin_axis is not None:
+        hole_b = tuple(hole_a[pin_axis] if k == pin_axis else c for k, c in enumerate(hole_b))
     return (name, [la, lb], [hole_a, hole_b], TOL_INFERRED_MM if "(inferred)" in name else TOL_MM)
 
 
@@ -145,7 +148,7 @@ def eyes():
             lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem} (inferred):1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
-            placements.append(link_placement(name, stem, horn_pin, lid_pin))
+            placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0))  # lid pins run along X
             loops.append(
                 rocker_loop(
                     f"{s} {spec['lid']} lid pivot",
