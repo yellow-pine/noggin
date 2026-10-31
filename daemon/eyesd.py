@@ -11,7 +11,7 @@ SOCK = os.path.expanduser("~/.noggin.sock")      # AF_UNIX paths max 104 bytes: 
 MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
 PORT_GLOB = "/dev/cu.usbmodem*"
-MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "pose", "exercise"}
+MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
 def log(*a):

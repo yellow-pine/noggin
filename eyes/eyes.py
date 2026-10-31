@@ -107,6 +107,10 @@ class Eyes:
         t = {p: self._lid_angle(p, f) for p in LIDS}
         self.glide(ms, t, ease=ease) if ms else self.set(t)
 
+    def lid(self, pin, f, ms=0, ease=False):
+        t = {pin: self._lid_angle(pin, f)}
+        self.glide(ms, t, ease=ease) if ms else self.set(t)
+
     def eyes(self, angle, ms=0):
         t = {p: self._eye_angle(p, angle) for p in EYES}
         self.glide(ms, t) if ms else self.set(t)
@@ -203,7 +207,16 @@ class Eyes:
         self.lids(self.cal["lid_rest"] + 0.1, 200, ease=True); sleep_ms(150)
         self.lids(self.cal["lid_rest"], 300, ease=True)
 
-    GESTURES = {"eureka": eureka, "attention": attention, "bored": bored, "wince": wince}
+    def wink(self, i):
+        """Slow wink: one lid closes over 400 ms, holds, reopens over 600 ms; eyes glance toward that side.
+        1 = mech's left lid (viewer's right), 2 = mech's right lid (viewer's left), 3 = random."""
+        pin = {1: L_LID, 2: R_LID}.get(i, L_LID if self._side() > 0 else R_LID)
+        self.saccade(EYE_CENTER + (8 if pin == L_LID else -8))
+        self.lid(pin, 0.03, 400, ease=True); sleep_ms(500)        # slow, so it can go nearer the stop than a blink
+        self.lid(pin, self.cal["lid_rest"], 600, ease=True); sleep_ms(150)
+        self.saccade(EYE_CENTER)
+
+    GESTURES = {"eureka": eureka, "attention": attention, "bored": bored, "wince": wince, "wink": wink}
 
     # --- commands ----------------------------------------------------------
     def handle_line(self, line):

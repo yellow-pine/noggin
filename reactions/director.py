@@ -2,7 +2,7 @@
 
 TIERS = ((20, 1), (180, 2))  # (max seconds, intensity); longer -> 3
 NOTIFICATIONS = {"permission_prompt": "attention", "idle_prompt": "bored"}
-BUSY_SECONDS = {"eureka": 4.0, "attention": 4.0, "bored": 5.0, "wince": 3.0}
+BUSY_SECONDS = {"eureka": 4.0, "attention": 5.0, "bored": 9.0, "wince": 3.0, "wink": 2.5}
 STALE_TURN_SECONDS = 15 * 60
 
 

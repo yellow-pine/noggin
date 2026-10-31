@@ -3,6 +3,7 @@
 [ $# -gt 0 ] || { cat >&2 <<'USAGE'
 usage: noggin on|off                     mute / unmute
        noggin eureka|attention|bored|wince <1-3>
+       noggin wink 1|2|3                 slow wink: 1 your right lid, 2 your left, 3 random
        noggin thinking|rest              background mode
        noggin release                    unpower the servos (they slump); any command re-powers
        noggin pose lids <0-1> [eyes <angle>]   hold a pose (eyes 90 = straight)
