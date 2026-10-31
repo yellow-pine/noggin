@@ -19,6 +19,8 @@ Dependencies added: numpy, scipy, trimesh.
 - OCCT/FreeCAD headless: rejected, slower than Fusion on faceted bodies (88 s per pair measured).
 - KD-tree only: rejected, a face-to-face overlap between vertices can slip through; exact check on near pairs.
 - Keeping the Fusion sweep as an on-demand referee: rejected (2026-10-31, second pass): a sweep that takes minutes
-  and freezes the window gives false comfort and never gets run. Condition: once `make sim` passes the gate and
-  runs all Stages at least 10x faster than the Fusion sweeps, check.py/sweep.py are deleted, the recorded reports
-  stay as frozen gate fixtures, `make sim` green is the Stage criterion, and Fusion only builds and makes pictures.
+  and freezes the window gives false comfort and never gets run. Condition met 2026-10-31 (T14): the engine passes
+  the gate on the three recorded documents and sweeps them in 8.0 s wall (M-series Mac, 10 cores) against the 150 s
+  the Fusion sweeps recorded (18.8x; all six documents including the Stage configurations in 24 s), so check.py and
+  sweep.py are deleted, the recorded reports stay as frozen gate fixtures (model/engine/test_gate.py), `make sim`
+  green is the Stage criterion, and Fusion only builds and makes pictures.

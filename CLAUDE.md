@@ -12,8 +12,9 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Keep it minimal (ponytail is active). Smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
 - No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield.
-- The digital model of the Mech is "the model" (folder model/ after the rename ticket), never "twin".
+- The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
+- Ground truth for the model, in order: Bambu STEP files, PurpleShark's STLs, guide PDF images, remote configs, Cansin's photos, datasheets. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are
@@ -21,7 +22,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: `README.md`.
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
-- Model rendering rules (spool colours, plain shading, 25 % canvases, clean + overlay views): `docs/model-notes.md`.
+- Model pictures (Blender from the engine poses; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - PurpleShark's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks: `make check` (CI runs the same). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

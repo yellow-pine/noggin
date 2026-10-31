@@ -11,27 +11,13 @@ is inferred rather than measured carry an "(inferred)" suffix. Numbers live in m
 # include: model/contacts.py
 # include: model/electronics.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
 
 DOC = "noggin-stack"
 FULL = False  # `FULL=1 make model-stack` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
-# (component name, library part, z shift mm): the designer exported these in the assembled PT frame, except the tilt arm,
-# still at the v1 height (upright v2 raised the pivot 5 mm, docs/research/2026-10-31-model.md).
-PARTS = [
-    ("bearing block", "PandT bearing block", 0),
-    ("pan base", "PandT pan base", 0),
-    ("upright v2", "PandT upright v2", 0),
-    ("tilt arm", "PandT tilt arm", TILT_ARM_SHIFT_Z),
-    ("servo mount plain", "PandT servo mount plain", 0),
-    ("servo mount cutout", "PandT servo mount cutout", 0),
-    ("wire holder", "PandT wire holder", 0),
-]
 MOVING = {
     "pan base",
     "upright v2",
@@ -60,14 +46,16 @@ def run(_context: str):
     def part(key, lib, name, matrix=None):
         steps.append((name, lambda: occs.__setitem__(key, insert_part(root, lib, name, matrix, reuse=reuse))))
 
-    for name, lib, dz in PARTS:
+    for name, lib, dz in STACK_PARTS:
         part(name, lib, name, align((0, 0, dz)) if dz else None)
 
     # Servos from the measured tab holes, horns at the inferred shaft, each bar on its horn pin and lever hole.
-    pins = {}
+    pins, leads = {}, []  # leads: (servo, Port name, world point) at each servo's cable exit, placed after parts_end
     for key in ("tilt", "pan"):
         origin, tab_x, shaft = servo_frame(key)
-        part(f"{key} servo", "servo", f"{key} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+        m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+        part(f"{key} servo", "servo", f"{key} servo", m)
+        leads.append((f"{key} servo", f"{key} servo lead", at(m, SERVO_STEP["lead"])))
         seat = PIVOTS[key + "_horn"]["point"]
         pin, lever = horn_pin(key)
         part(
@@ -96,6 +84,8 @@ def run(_context: str):
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
         for occ, name, p in ports:
             port(occ, name, p)
+        for key, name, p in leads:
+            port(occs[key], name, p)
         # The pan base turns on the bearing block (18 x 5.5 in the base recess and the pan base recess, zero clearance by design)
         pivot_joint(root, occs["pan base"], occs["bearing block"], (0.0, 0.0, 3.5), "Z", "pan pivot")
         pivot_joint(root, occs["tilt arm"], occs["upright v2"], PIVOTS["tilt"]["point"], "X", "tilt pivot")
@@ -137,8 +127,6 @@ def run(_context: str):
     if new_contacts:
         contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name in ("pan servo",)})
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "stack", {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
     now = summary(root)
     diff = (
         changes(saved_summary(root), now)

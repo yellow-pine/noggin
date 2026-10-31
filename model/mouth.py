@@ -1,7 +1,7 @@
-"""Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth Stage owns
+"""Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth sub-assembly owns
 (top and bottom jaw, plain; the jaws servo mount; the connector bar) from the parts library (`make model-parts`,
 fusion_lib.insert_part) in the eyes frame, the jaw servo with its half-arm horn, and the saved `noggin-eyes` design
-inserted as a grounded reference (main bracket v2 and the eyes belong to that Stage: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
+inserted as a grounded reference (main bracket v2 and the eyes belong to that sub-assembly: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
 X through (29.5, -49.6, 8)), the horn on the servo (HORN_LIMITS mouth), the bar on the horn pin and the loop closed at
 the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed from inferred positions carry an
 "(inferred)" suffix: the horn seat, the bar plane and which bar hole is the jaw end (model/geometry.py)."""
@@ -10,7 +10,6 @@ the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed f
 # include: model/fusion_lib.py
 # include: model/contacts.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
@@ -18,12 +17,7 @@ import adsk.fusion
 DOC = "noggin-mouth"
 EYES_DOC = "noggin-eyes"
 FULL = False  # `FULL=1 make model-mouth` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
 
-# (component name, library part): the designer exported the mouth parts in the assembled eyes frame (jaws closed).
-# Plain jaws: the guide's first variant; the teeth jaws are the same build (guide p.1).
-PARTS = [("top jaw", "top jaw plain"), ("bottom jaw", "bottom jaw plain"), ("jaws servo mount", "jaws servo mount")]
 MOVING = {"bottom jaw", "jaw horn (inferred)", "connector bar (inferred)"}
 
 
@@ -42,15 +36,16 @@ def run(_context: str):
             )
         )
 
-    for name, lib in PARTS:
+    for name, lib in MOUTH_PARTS:
         part(name, lib, name)
-    # The saved noggin-eyes design by reference at identity (both Stages share the eyes frame), grounded below;
+    # The saved noggin-eyes design by reference at identity (both sub-assemblies share the eyes frame), grounded below;
     # re-inserted when noggin-eyes has a newer version (its fingerprint is the version).
     part("eyes", EYES_DOC, EYES_DOC, referenced=True)
 
     # Jaw servo from the measured mount-lug holes, horn at the inferred seat, the connector bar on the horn pin and the jaw lug.
     origin, tab_x, shaft = servo_frame("jaw")
-    part("jaw servo", "servo", "jaw servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+    servo_m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+    part("jaw servo", "servo", "jaw servo", servo_m)
     seat = PIVOTS["jaw_horn"]["point"]
     pin, lever = horn_pin("jaw")
     part(
@@ -73,6 +68,7 @@ def run(_context: str):
         for occ in reuse.values():  # kept parts the build no longer places
             occ.deleteMe()
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
+        port(occs["jaw servo"], "jaw servo lead", at(servo_m, SERVO_STEP["lead"]))
         # The top jaw is screwed to the bracket (4 screws); the bottom jaw clips onto its pins: the hinge is between the two jaws.
         pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
         lo, hi = HORN_LIMITS["mouth"]
@@ -101,7 +97,9 @@ def run(_context: str):
             occ.isGrounded = (
                 True  # the top jaw, mount and servo are screwed to the bracket; the eyes reference is static here
             )
-    new_contacts = not design.contactSets.count  # one contact set per Stage (#20): moving parts, their mount and servo
+    new_contacts = (
+        not design.contactSets.count
+    )  # one contact set per sub-assembly (#20): moving parts, their mount and servo
     if new_contacts:  # the eyes reference is left out: untested whether a referenced occurrence can join a contact set
         contact_set(
             design,
@@ -110,8 +108,6 @@ def run(_context: str):
             | {o.name for o in root.occurrences if o.component.name in ("top jaw", "jaws servo mount", "jaw servo")},
         )
 
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "mouth", {"top": (Y, Z), "side": ((-1, 0, 0), Y), "front": ((0, 0, -1), Y)})
     now = summary(root)
     diff = (
         changes(saved_summary(root), now)

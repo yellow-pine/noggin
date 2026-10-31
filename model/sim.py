@@ -1,12 +1,13 @@
 """Report-side simulation extras (#20), pure Python: static gravity torque per horn from the centre-of-mass samples
 the sweep records at each pose, transmission curves from the driven joints, and the merge of fits, beams, torque
-and curves into the Stage report that model/test_report.py thresholds. Sweep samples (model/check.py):
+and curves into the document's report that model/test_report.py thresholds. Sweep samples (model/engine/run.py):
 horns[name]["poses"] = {deg: {"com": {part: [x, y, z] mm}, "joints": {joint: deg}}}, report["mass"] = {part: g}."""
 
 import math
 
+from model.geometry import EYES_SERVOS
+
 RATED_KGF_CM, TORQUE_SF = 0.4, 2.0  # CyberBrick 9 g servo rated at 6 V (#20 comment), safety factor 2
-UP = {"noggin-pan-tilt": 2}  # index of the up axis per Stage frame: +Z in the PT frame, else +Y (eyes frame)
 
 
 def gravity_torque(poses, masses, up=1):
@@ -36,7 +37,7 @@ def curves(poses):
     return out
 
 
-def enrich(report, fits, beams):
+def enrich(report, fits, beams, up=1):
     """Fold the sweep's pose samples into torque and curves, attach fits and beams. Returns the report."""
     report["fits"], report["beams"], report["torque"], report["curves"] = fits, beams, {}, {}
     for name, h in report["horns"].items():
@@ -44,7 +45,7 @@ def enrich(report, fits, beams):
         if poses:
             poses = {int(d): p for d, p in poses.items()}  # JSON keys are strings
             report["torque"][name] = {
-                **worst(gravity_torque(poses, report["mass"], UP.get(report["doc"], 1))),
+                **worst(gravity_torque(poses, report["mass"], up)),
                 "limit_kgf_cm": RATED_KGF_CM / TORQUE_SF,
             }
             report["curves"][name] = curves(poses)
@@ -61,6 +62,5 @@ def joint_deg(servo, angle, cal):
 def calibrated_extremes(cal):
     """(min, max) joint degrees each horn reaches at the calibrated servo ends."""
     return {
-        s: tuple(sorted((joint_deg(s, cal[s + "_lo"], cal), joint_deg(s, cal[s + "_hi"], cal))))
-        for s in ("l_lid", "r_lid", "l_eye", "r_eye")
+        s: tuple(sorted((joint_deg(s, cal[s + "_lo"], cal), joint_deg(s, cal[s + "_hi"], cal)))) for s in EYES_SERVOS
     }

@@ -17,16 +17,32 @@ def test_mirror_x_maps_left_eye_to_right():
     assert g.mirror_x(g.EYE_L) == g.EYE_R
 
 
-def test_horn_limits_match_designer_config():
+def test_designer_limits_are_the_remote_config():
+    # docs/references/03-mouth/remote-config-eyes-pandt-jaw.json, PWM min_value/max_value per servo
+    assert g.DESIGNER_LIMITS == {
+        "l_lid": (75, 120),
+        "l_eye": (60, 120),
+        "r_lid": (70, 120),
+        "r_eye": (75, 120),
+        "tilt": (20, 150),
+        "rotate": (40, 160),
+        "mouth": (0, 180),
+    }
+
+
+def test_model_limits_deviate_from_the_designer_only_with_a_recorded_reason():
     assert g.HORN_LIMITS == {
         "l_lid": (70, 120),
         "l_eye": (70, 110),
         "r_lid": (70, 120),
         "r_eye": (70, 110),
-        "tilt": (20, 150),
+        "tilt": (30, 150),
         "rotate": (40, 160),
-        "mouth": (50, 90),  # mouth: opening side only (config says 0..180), see geometry.py
+        "mouth": (50, 90),
     }
+    deviated = {k for k in g.HORN_LIMITS if g.HORN_LIMITS[k] != g.DESIGNER_LIMITS[k]}
+    assert deviated == set(g.MODEL_LIMITS)
+    assert all(len(why) > 20 for _, why in g.MODEL_LIMITS.values())
 
 
 def test_bars_are_measured_pivot_spacings():
@@ -150,10 +166,50 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert g.STAGES["noggin-stage1"] == {"noggin-base": pt, "noggin-eyes": g.EYES_ON_BASE}
     assert g.STAGES["noggin-stage2"] == {"noggin-base": pt, "noggin-stack": pt, "noggin-eyes": g.EYES_ON_STACK}
     assert g.STAGES["noggin-stage3"] == {**g.STAGES["noggin-stage2"], "noggin-mouth": g.EYES_ON_STACK}
-    assert g.in_frame(g.EYES_ON_STACK, g.EYE_L) == (29.5, -28.5, 81.5)
-    assert g.in_frame(g.EYES_ON_STACK, g.EYE_R) == (-29.5, -28.5, 81.5)
-    assert g.in_frame(g.EYES_ON_STACK, g.STEM_BOTTOM) == (0.0, -13.0, 35.9)
-    assert g.in_frame(g.EYES_ON_BASE, g.STEM_BOTTOM) == (0.0, 0.0, -7.0)  # through the 5 mm plate, feet on its top
+    on_stack, on_base = (lambda p, f=f: _apply(g.align_rows(*f), p) for f in (g.EYES_ON_STACK, g.EYES_ON_BASE))
+    assert on_stack(g.EYE_L) == (29.5, -28.5, 81.5)
+    assert on_stack(g.EYE_R) == (-29.5, -28.5, 81.5)
+    assert on_stack(g.STEM_BOTTOM) == (0.0, -13.0, 35.9) == g.STEM_AT["noggin-stage2"]
+    assert (
+        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -7.0) == g.STEM_AT["noggin-stage1"]
+    )  # through the 5 mm plate, feet on its top
     assert g.STEM_IN == {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
-        assert all(abs(a - b) < 1e-9 for a, b in zip(g.in_frame(g.EYES_ON_STACK, p), g.eyes_to_pt(p)))
+        assert all(abs(a - b) < 1e-9 for a, b in zip(on_stack(p), g.eyes_to_pt(p)))
+
+
+def _apply(rows, p):
+    return tuple(round(sum(r[i] * c for i, c in enumerate((*p, 1.0))), 9) + 0.0 for r in rows[:3])
+
+
+def test_align_rows_take_a_local_frame_onto_a_world_frame():
+    assert g.align_rows((1, 2, 3)) == [[1, 0, 0, 1], [0, 1, 0, 2], [0, 0, 1, 3], [0, 0, 0, 1]]
+    m = g.align_rows((10, 0, 0), (0, 1, 0), (0, 0, 1))  # local x onto world y, about z
+    assert _apply(m, (1, 0, 0)) == (10.0, 1.0, 0.0) and _apply(m, (0, 1, 0)) == (9.0, 0.0, 0.0)
+    m = g.align_rows((0, 0, 0), (1, 0, 0), (0, 0, 1), from_origin=(5, 5, 0))  # the local point (5, 5) onto the origin
+    assert _apply(m, (5, 5, 0)) == (0.0, 0.0, 0.0)
+    m = g.align_rows((0, 0, 0), (1, 0, 1), (0, 0, 1))  # a stepped link: x is made normal to z
+    assert _apply(m, (1, 0, 0)) == (1.0, 0.0, 0.0)
+
+
+def test_one_channel_table_maps_each_cores_headers_to_its_servos():
+    # docs/build-notes.md (servo ports) and the designer's config JSON for Core 2
+    assert g.CHANNELS == {
+        "core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},
+        "core2": {1: "tilt", 2: "mouth", 3: "pan"},
+    }
+    assert set(g.SERVO_LABEL) == {s for ch in g.CHANNELS.values() for s in ch.values()}
+    assert g.EYES_SERVOS == tuple(g.CHANNELS["core1"].values())
+
+
+def test_electronics_sets_sit_on_their_standoffs_with_battery_2_on_battery_1():
+    assert g.receiver_at(1) == (38.0, 52.0, 13.0) and g.receiver_at(2) == (38.0, 85.0, 13.0)
+    assert g.battery_at(1) == (-36.0, 71.0, 11.15)  # pocket centre, pack floor on the pocket floor z=3
+    assert g.battery_at(2)[2] == 11.15 + 16.3  # on top of pack 1
+
+
+def test_sub_assembly_parts_tables_name_printed_parts():
+    stems = {k.split(" (")[0] for k in g.PRINTED}
+    for table in (g.EYES_PARTS, g.STACK_PARTS, g.MOUTH_PARTS):
+        assert {row[1] for row in table} <= stems
+    assert ("tilt arm", "PandT tilt arm", g.TILT_ARM_SHIFT_Z) in g.STACK_PARTS

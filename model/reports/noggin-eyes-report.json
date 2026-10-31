@@ -395,50 +395,50 @@
   ],
   "L eyelid bar (inferred):1": [
    [
-    -31.01,
-    -3.9,
-    -3.67
+    -27.02,
+    -14.95,
+    -4.5
    ],
    [
-    -27.98,
-    22.03,
-    45.29
+    -23.99,
+    9.27,
+    43.31
    ]
   ],
   "L eyelid bar crank (inferred):1": [
    [
-    -27.01,
-    -14.95,
-    -4.5
-   ],
-   [
-    -20.98,
-    9.27,
-    43.31
-   ]
-  ],
-  "R eyelid bar (inferred):1": [
-   [
-    86.98,
+    -30.02,
     -3.9,
     -3.67
    ],
    [
-    90.01,
+    -23.99,
     22.03,
     45.29
    ]
   ],
-  "R eyelid bar crank (inferred):1": [
+  "R eyelid bar (inferred):1": [
    [
-    79.98,
+    82.99,
     -14.95,
     -4.5
    ],
    [
-    86.01,
+    86.02,
     9.27,
     43.31
+   ]
+  ],
+  "R eyelid bar crank (inferred):1": [
+   [
+    82.99,
+    -3.9,
+    -3.67
+   ],
+   [
+    89.02,
+    22.03,
+    45.29
    ]
   ]
  },
@@ -993,5 +993,8 @@
     ]
    ]
   }
- }
+ },
+ "notes": [
+  "2026-10-31: eyelid bar boxes refreshed from Fusion noggin-eyes v22 after the lid linkage fix (#48); everything else as recorded on v20."
+ ]
 }

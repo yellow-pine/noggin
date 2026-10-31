@@ -1,11 +1,10 @@
-"""Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
+"""Fusion helpers shared by the Fusion build scripts, inlined via `# include: model/fusion_lib.py` after
 `# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-model.md."""
 
 import hashlib
 import json
 import math
-import os
 import time
 import traceback
 
@@ -206,23 +205,12 @@ def save(doc, message, name, folder):
     return doc.dataFile.versionNumber
 
 
-def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
-    """Matrix3D taking the local frame (from_*) onto the world frame (to_*), mm. Axes default to identity."""
-
-    def frame(origin, x, z):
-        x, z = vector(x), vector(z)
-        z.normalize()
-        tilt = z.copy()
-        tilt.scaleBy(x.dotProduct(z))
-        x.subtract(tilt)  # x in the plane normal to z (stepped links)
-        x.normalize()
-        y = z.crossProduct(x)
-        return point(origin), x, y, z
-
+def align(*frames, **kw):
+    """Matrix3D taking the local frame onto the world frame (geometry.align_rows, mm; Fusion's translation is cm)."""
     m = adsk.core.Matrix3D.create()
-    m.setToAlignCoordinateSystems(
-        *frame(from_origin, from_x, from_z), *frame(to_origin, to_x or (1, 0, 0), to_z or (0, 0, 1))
-    )
+    for r, row in enumerate(align_rows(*frames, **kw)):
+        for c, v in enumerate(row):
+            m.setCell(r, c, v / 10 if c == 3 and r < 3 else v)
     return m
 
 
@@ -239,7 +227,7 @@ _PARTS = {}  # library DataFiles by name; refilled when a name is missing (Fusio
 
 
 def part_file(app, name):
-    """The library design `name` (model/parts.py) or a Stage design at the project root, once the cloud has
+    """The library design `name` (model/parts.py) or a sub-assembly design at the project root, once the cloud has
     finished processing its last save."""
     if name not in _PARTS:
         _PARTS.clear()
@@ -269,38 +257,6 @@ def insert_part(root, name, label, matrix=None, reuse=None, referenced=False):
     occ = root.occurrences.addByInsert(df, matrix or adsk.core.Matrix3D.create(), referenced)
     tag(occ, label, fp)
     return occ
-
-
-def proxy_body(occ):
-    """The occurrence's hidden "proxy" body in assembly context, or None."""
-    body = occ.component.bRepBodies.itemByName("proxy")
-    return body.createForAssemblyContext(occ) if body else None
-
-
-def real_body(occ):
-    """The occurrence's full-resolution body in assembly context when it carries a proxy (an occurrence-level
-    measurement would include the proxy), else the occurrence itself."""
-    if not occ.component.bRepBodies.itemByName("proxy"):
-        return occ
-    body = next(b for b in occ.component.bRepBodies if b.name != "proxy")
-    return body.createForAssemblyContext(occ)
-
-
-def world_frame(origin):
-    """World (pivot point mm, Z axis) of a joint origin built by joint_origin(): the sketch point plus the
-    offset along the (possibly flipped) plane normal, carried through the occurrence."""
-    native = origin.nativeObject or origin
-    g = native.geometry
-    p, z = g.origin.copy(), g.primaryAxisVector.copy()
-    if native.isFlipped:
-        z.scaleBy(-1)
-    step = z.copy()
-    step.scaleBy(native.offsetZ.value)
-    p.translateBy(step)
-    if origin.assemblyContext:
-        p.transformBy(origin.assemblyContext.transform2)
-        z.transformBy(origin.assemblyContext.transform2)
-    return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)  # axis: sketch space, see check.placements
 
 
 def local(occ, point_mm, axis):
@@ -361,7 +317,7 @@ def joint_origin(occ, point_mm, axis):
 
 
 def origin_frame(origin):
-    """World (origin mm, Z, X) of a joint origin proxy, for checks."""
+    """World (origin mm, Z, X) of a joint origin in assembly context (the build summary)."""
     t = origin.transform
     o = t.translation
     return (
@@ -462,10 +418,6 @@ def add(a, b):
     return tuple(p + q for p, q in zip(a, b))
 
 
-def mean(points):
-    return tuple(sum(c) / len(points) for c in zip(*points))
-
-
 def side(s, p):
     return p if s == "L" else mirror_x(p)
 
@@ -520,6 +472,13 @@ def port(occ, name, point_mm):
     return sketch_point(occ, point_mm, name=f"Port: {name}")[1]
 
 
+def at(matrix, p):
+    """World mm of the local point p (mm) under matrix."""
+    w = point(p)
+    w.transformBy(matrix)
+    return (w.x * 10, w.y * 10, w.z * 10)
+
+
 def descendant(occ, prefix):
     """The first nested occurrence (assembly context) whose name starts with `prefix`, depth first."""
     for child in occ.childOccurrences:
@@ -544,62 +503,3 @@ def body_box(occ):
             lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
             hi[i] = max(hi[i], getattr(b.boundingBox.maxPoint, c) * 10)
     return lo, hi
-
-
-def screenshots(app, root, out, stage, views, width=1600, height=1200):
-    """Every view of `views` ({name: (eye_dir, up)}) saved as out/<stage>-<name>.png with the reference canvases
-    (the design's own and those of inserted Stages) hidden and, when there are any, as <stage>-<name>-overlay.png
-    with them shown. The canvases stay hidden afterwards, so the saved document opens clean (`make model-canvases`
-    toggles them)."""
-    canvases = list(root.canvases) + [c for o in root.allOccurrences for c in o.component.canvases]
-    for name, (eye_dir, up) in views.items():
-        for c in canvases:
-            c.isLightBulbOn = True
-        if canvases:
-            screenshot(app, os.path.join(out, f"{stage}-{name}-overlay.png"), eye_dir, up, width, height)
-        for c in canvases:
-            c.isLightBulbOn = False
-        screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
-
-
-FOLDERS = (
-    "isJointsFolderLightBulbOn",
-    "isJointOriginsFolderLightBulbOn",
-    "isSketchFolderLightBulbOn",
-    "isConstructionFolderLightBulbOn",
-    "isOriginFolderLightBulbOn",
-)  # glyphs hidden for a capture
-
-
-def screenshot(app, path, eye_dir, up, width=1600, height=1200):
-    """Orthographic shaded view (no mesh edges: the spool appearances carry the shape) of the whole design looking
-    back along eye_dir, saved to path. The joint, sketch, construction and origin glyphs of every component are hidden
-    for the capture and restored after (docs/model-notes.md)."""
-    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
-    comps = [root] + [
-        o.component for o in root.allOccurrences
-    ]  # repeats are harmless; same-named ones can differ (reference versions)
-    was = [(c, f, getattr(c, f)) for c in comps for f in FOLDERS]
-    for c, f, _ in was:
-        setattr(c, f, False)
-    try:
-        _capture(app, path, eye_dir, up, width, height)
-    finally:
-        for c, f, v in was:
-            setattr(c, f, v)
-
-
-def _capture(app, path, eye_dir, up, width, height):
-    viewport = app.activeViewport
-    viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
-    camera = viewport.camera
-    camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
-    target = camera.target
-    camera.eye = adsk.core.Point3D.create(
-        target.x + eye_dir[0] * 100, target.y + eye_dir[1] * 100, target.z + eye_dir[2] * 100
-    )
-    camera.upVector = vector(up)
-    camera.isFitView = True
-    viewport.camera = camera
-    viewport.refresh()
-    viewport.saveAsImageFile(path, width, height)

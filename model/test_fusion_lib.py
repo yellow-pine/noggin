@@ -24,7 +24,7 @@ def test_fingerprint_changes_with_file_content_or_placement_only(tmp_path):
     assert same == lib.fingerprint([str(a)], [1 + 1e-9] + IDENTITY[1:])  # float noise is not a move
     assert same != lib.fingerprint([str(a)], [1, 0, 0, 0.5] + IDENTITY[4:])  # a 5 mm shift is
     assert same != lib.fingerprint([str(b)], IDENTITY)
-    assert same != lib.fingerprint([str(a), str(b)], IDENTITY)  # the proxy counts too
+    assert same != lib.fingerprint([str(a), str(b)], IDENTITY)  # every source counts
 
 
 def test_changes_lists_what_differs_between_two_summaries():

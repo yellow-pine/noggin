@@ -96,8 +96,9 @@ _Avoid_: program, image, OS
 ### Model
 
 **Model**:
-The Fusion 360 assembly of every stage and every piece of hardware, 1:1 with the physical Mech.
-_Avoid_: model, CAD, simulation
+The Mech as code, 1:1 with the physical Mech: Fusion 360 builds its documents (every Sub-assembly and Stage, every
+piece of hardware) and makes the pictures; the Python engine in model/ simulates them (docs/adr/0006).
+_Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
 A cumulative build state of the Mech, each its own Fusion design that inserts Sub-assemblies by reference: Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
@@ -124,3 +125,8 @@ _Avoid_: hinge, axle
 **Port**:
 A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
+
+**Corridor**:
+A lead's route in the Model: a tube from one Port to the other through waypoints clipped to the parts that hold the
+lead, so it rides pan and tilt. The engine checks its path length and its clearance from moving parts at every pose.
+_Avoid_: harness, cable path, routing

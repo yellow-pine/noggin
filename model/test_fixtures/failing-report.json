@@ -6,7 +6,6 @@
   "L lid horn": {"min_mm": 1.2, "at_deg": 120, "pair": ["L inside lid", "L servo bracket"]},
   "L eye horn": {"min_mm": 6.3, "at_deg": 60, "pair": ["L eyeball bar", "main bracket v2"]}
  },
- "interference": [{"a": "L eyeball", "b": "L pupil", "volume_mm3": 2.4, "pose": "neutral"}],
  "bboxes": {
   "L eyeball": [[-14, -14, -14], [14, 14, 200]],
   "main bracket v2": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
@@ -15,7 +14,15 @@
  "fits": [{"joint": "eyeball bar / horn screw", "hole_r": 1.05, "pin_r": 1.0, "clearance": 0.05, "ok": false},
           {"joint": "eyeball bar / eyeball screw", "hole_r": 1.25, "pin_r": 1.0, "clearance": 0.25, "ok": true}],
  "beams": [{"beam": "eyelid bar", "sf": 1.65, "deflection_mm": 1.939, "ok": false}, {"beam": "eyeball bar", "sf": 2.51, "deflection_mm": 0.554, "ok": true}],
- "calibrated": {"L lid horn": {"lo": -54, "hi": 39, "violations": [{"deg": 39, "pair": ["L outside lid", "L servo bracket"]}]},
-                "L eye horn (inferred)": {"lo": -32, "hi": 28, "violations": [{"deg": -32, "pair": ["L eyeball bar", "main bracket v2"]}]}},
- "torque": {"L lid horn": {"kgf_cm": 0.31, "at_deg": -20, "limit_kgf_cm": 0.2}, "L eye horn": {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2}}
+ "calibrated": {"L lid horn": {"lo": -54, "hi": 39, "inferred": false, "violations": [{"deg": 39, "pair": ["L outside lid", "L servo bracket"]}]},
+                "L eye horn (inferred)": {"lo": -32, "hi": 28, "inferred": true, "violations": [{"deg": -32, "pair": ["L eyeball bar", "main bracket v2"]}]}},
+ "torque": {"L lid horn": {"kgf_cm": 0.31, "at_deg": -20, "limit_kgf_cm": 0.2}, "L eye horn": {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2},
+            "R lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.25, "dynamic_at_deg": 30, "inertia_g_mm2": 9000, "accel_deg_s2": 48000}},
+ "clutch": {"L lid horn": {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [20, 30]}},
+ "tip_over": {"margin_mm": -3.2, "at": {"pan": -50, "tilt": 60}, "com": [10.0, -63.2, 40.0]},
+ "corridors": {"l_lid servo -> Core 1 PWM1": {"max_mm": 236.0, "at": {"pan horn (inferred)": 70, "tilt horn (inferred)": 60}, "min_mm": 150.0, "min_at": {}, "length_mm": 250, "limit_mm": 230,
+                                            "clearance_mm": -0.8, "clearance_at": {"tilt horn (inferred)": -60}, "clearance_part": "pan bar (inferred):1", "waypoints": ["behind the lid servo (inferred)"]},
+               "pack 1 -> switch 1": {"max_mm": 72.5, "at": {}, "min_mm": 72.5, "min_at": {}, "length_mm": 100, "limit_mm": 80,
+                                      "clearance_mm": 10.0, "clearance_at": null, "clearance_part": null, "waypoints": ["onto the plate (inferred)"]}},
+ "electrical": {"cap_a": 3.0, "stall_a": {"core1": 3.2, "core2": 2.3}}
 }
