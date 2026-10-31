@@ -36,12 +36,11 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
   - bored: lids droop, slow sleepy blinks, eyes drift down, then Rest.
   - wince: lids snap shut, eyes squint-twitch, slow reopen.
   - thinking: background state, see above.
-- Power: kit 2S 7.4 V Li-ion pack on the X11 shield; USB-C for data (and Core power).
+- Power (settled 2026-10-31): two official 7.4 V 800 mAh 2S packs (blue heat-shrink, look like one cell). One in the holder -> switch board -> shield; the spare charges on the USB-A dongle with the XH2.54 plug, which is a CHARGER, never a supply. USB-C to the Mac for data. The 3xAAA box is too weak; don't use it.
 - Firmware: replace stock `boot.py`. Back up stock filesystem first to `firmware/stock-backup/`; provide restore target.
 - Layout is feature-first, never function-first (directive 2026-10-31): `eyes/` (the eye mech's board program + its tests; later `pan_tilt/`, `mouth/`), `reactions/` (Claude Code events -> gestures: Director + tests), `daemon/` (serial + socket shell, poke hook, launchd plist, CLI + socket test). Tests live beside the code they test. `Makefile` for install / backup-stock / restore-stock. Python both sides; deps: pyserial, mpremote, pytest.
 - Photo of the actual build: `docs/eye-mech-build-photo.jpg` (Core + X11 shield centre, power/switch board top-right, cell holder top-left, 4 MakerWorld 180° servos: 2 eye, 2 lid).
 - Host tooling: system Python is 3.9, `uv` is available at /opt/homebrew/bin/uv. Use `uv` for the host env and to run mpremote.
 - Development cycle: grilling is interview-only, never build during it. After grilling, run the work through the mattpocock skills cycle (grilling -> research/prototype/domain-modeling as needed -> plan -> tdd -> code-review -> pr). Do not install anything into ~/.claude or launchd without an explicit go.
-- Power plan: first try USB only (USB-C to the Core for data/MCU, plus the USB-A -> XH2.54 lead into the shield's power port for 5 V to servos). That is below the shield's 7.4 V spec; if servos brown out, fall back to two 14500 cells in series (printed 2x14500 case or two holders wired in series). No onboard charger.
 - Cycle order agreed 2026-10-31: domain-modeling -> research -> wizard.
 - Status line shows the current dev-cycle step from `~/.claude/.cycle-step` (one line, e.g. `noggin:tdd`). Update that file whenever a cycle step starts.

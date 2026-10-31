@@ -33,8 +33,11 @@ pushing past them, the lids bind at the ends.
   cells in series (2S) are the minimum. Neither the Core nor the shield
   charges cells; charge externally.
 - USB-C on the Core powers only the Core, not the servos.
-- Plan A is to try USB power alone (USB-C to the Core plus the USB-A to
-  XH2.54 lead into the shield's power input for 5 V); plan B is 2S cells.
+- What we have: two official 7.4 V 800 mAh 2S packs (two 14500 cells end to
+  end in blue heat-shrink, so each looks like a single cell) and Bambu's USB
+  charger dongle with an XH2.54 plug. The dongle is a charger only, never a
+  supply for the board. One pack in the holder through the switch board, the
+  spare on charge. USB-C to the Mac carries data and powers the Core only.
 
 ## Talking to the Core
 
