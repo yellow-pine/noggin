@@ -17,7 +17,7 @@ from multiprocessing import get_context
 
 from model import beams, electrical, fits, sim
 from model import geometry as g
-from model.engine import cables, linkage, masses, mech, mating, meshes, stages
+from model.engine import cables, linkage, masses, mating, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
 BUILD = os.path.join(stages.REPO, "model", "build")  # the swept cable corridors (<doc>-corridors.ply), not committed

@@ -18,7 +18,8 @@ _EYE = (
     "the real Mech runs here, past +-22: the eyeball bar rides on main bracket v2 and the model has it 0.26..0.5 mm in"
     " (the eye horn 0.2..0.5 mm into the brackets at -32); the bar and rail heights need the calliper"
 )
-# (horn, calibrated end): why the model still collides where the real Mech runs (listed, never loosened silently).
+# (horn, calibrated end): where the model still collides and the real Mech runs. The build wins (CLAUDE.md): these are
+# model errors to fix once a build measurement settles which geometry (listed, never loosened silently).
 KNOWN_CALIBRATED = {
     ("L lid horn", -54): _LID,
     ("R lid horn", -46): _LID,
