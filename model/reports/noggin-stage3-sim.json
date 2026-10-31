@@ -1964,7 +1964,7 @@
     "L upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -1974,7 +1974,7 @@
     "L upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -2155,7 +2155,7 @@
     "R upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -2165,7 +2165,7 @@
     "R upper lid:1",
     "eye bracket:1"
    ],
-   "mm": 0.005,
+   "mm": 0.009,
    "ok": true
   },
   {
@@ -2336,7 +2336,7 @@
     "bottom jaw:1",
     "top jaw:1"
    ],
-   "mm": 0.0,
+   "mm": 0.001,
    "ok": true
   },
   {
@@ -2346,7 +2346,7 @@
     "bottom jaw:1",
     "top jaw:1"
    ],
-   "mm": 0.0,
+   "mm": 0.001,
    "ok": true
   },
   {
@@ -2486,7 +2486,7 @@
     "upright:1",
     "pan turntable:1"
    ],
-   "mm": 0.043,
+   "mm": 0.0,
    "ok": true
   },
   {
@@ -2677,7 +2677,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "bc1dfc25b5bba6de939446464fce24e5e210339f8d10a93cbce0feebc0f35e92",
+  "stamp": "ec80f33f1ae3b5083e60bbb500394fbba2c9aa6fbe352b467fdfcb54064b2ee7",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

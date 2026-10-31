@@ -795,7 +795,7 @@
     "upright:1",
     "pan turntable:1"
    ],
-   "mm": 0.043,
+   "mm": 0.0,
    "ok": true
   },
   {
@@ -889,7 +889,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "cf0c7db4b6eb5618946ad7bcbdb50f3bdf60d05565c611a36b10fdc05e71c051",
+  "stamp": "305fab0bf9131a2318bb9c1a434861e1cc737a8a532db22b53b392dc54866514",
   "sources": {
    "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
