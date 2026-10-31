@@ -222,10 +222,17 @@ def servo_frame(key):
     return origin, tab_x, shaft
 
 
-# Lid linkage (L side; mirror_x for R). Lid pins r=1 along X on the lid ears [M]; the bar and crank hang on
-# the lid-servo horn pin outside the ears, the straight bar outboard of the crank (guide p.23) [I: x +-3].
+# Lid linkage (L side; mirror_x for R). Lid pins r=1 along X on the lid ears [M]. Per the build (#48, build photos
+# eyes-lid-linkage*.jpg, guide p.21: the top lid is the inside one) the crank joins the inside lid by its stepped end and
+# sits outermost on the horn pin under the nut; the straight bar joins the outside lid, between the horn and the crank.
+# "x": bar mid-planes at (horn pin, lid pin). The lid ears' outer faces are at x=-24 [M], so both lid ends ride on
+# -24..-27; the straight bar is flat, so it stands 4.1 mm off the horn's outer face (x -19.9) on the screw (inferred);
+# the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
-LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -29.5}, "eyelid_crank": {"lid": "outside", "x": -25.5}}
+LID_LINKS = {
+    "eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)},
+    "eyelid_crank": {"lid": "inside", "x": (-28.5, -25.5)},
+}
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeball end [M]
 
 # Pan-tilt linkage. Lever holes fitted on the STLs (model/fits.py) [M]: the tilt bar joins the tilt horn pin to the
@@ -272,10 +279,11 @@ def horn_pin(key):
 
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
 STL_LOCAL = {
-    # Circle fits on the STL holes (model/fits.py, 2026-10-31): 41 mm pitch; the crank is the eyelid bar with its
-    # horn end stepped up 3 mm, both holes along Z (the earlier Y-axis entry had the crank turned 90 degrees).
-    "eyelid bar": {"holes": [(-20.5, 0.0, 1.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
-    "eyelid bar crank": {"holes": [(-20.5, 0.0, 4.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
+    # Circle fits on the STL holes (model/fits.py, 2026-10-31): 41 mm pitch, both holes along Z; horn end first: the
+    # smaller hole (r 1.1, +x end) on the horn screw, the larger (r 1.35) takes the lid screw (guide p.23). The crank is
+    # the eyelid bar with its lid end (-x) stepped up 3 mm (+z, placed toward the lid ear).
+    "eyelid bar": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 1.5)], "hole_axis": Z},
+    "eyelid bar crank": {"holes": [(20.5, 0.0, 1.5), (-20.5, 0.0, 4.5)], "hole_axis": Z},
     # Pan-tilt bars: the smaller hole (r 1.1, +x end) takes the M2 horn screw (guide step 12), the larger (r 1.35) the
     # M2.5 lever screw; listed horn end first.
     "tilt bar": {"holes": [(10.0, 0.0, 1.5), (-10.0, 0.0, 1.5)], "hole_axis": Z},

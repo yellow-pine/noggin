@@ -45,12 +45,12 @@ def lid_loop(key):
     """The L lid four-bar from geometry.py: horn pivot -> horn pin (12.75 along +Y), bar to the lid pin, lid about the eye."""
     spec = g.LID_LINKS[key]
     o2 = g.PIVOTS["l_lid_horn"]["point"]
-    a0 = (spec["x"], o2[1] + g.HORN_STEP["pin"], o2[2])
-    b0 = (spec["x"],) + g.LID_PINS[spec["lid"]][1:]
+    a0 = (spec["x"][0], o2[1] + g.HORN_STEP["pin"], o2[2])
+    b0 = (spec["x"][1],) + g.LID_PINS[spec["lid"]][1:]
     return linkage.four_bar(o2, a0, g.EYE_L, b0, axis=g.X)
 
 
-@pytest.mark.parametrize("key, joint", [("eyelid_bar", "L inside lid pivot"), ("eyelid_crank", "L outside lid pivot")])
+@pytest.mark.parametrize("key, joint", [("eyelid_bar", "L outside lid pivot"), ("eyelid_crank", "L inside lid pivot")])
 def test_lid_linkage_matches_the_recorded_fusion_curve(key, joint):
     curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L lid horn (inferred)"][joint]
     solve = lid_loop(key)
