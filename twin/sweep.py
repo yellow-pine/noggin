@@ -14,6 +14,12 @@ def merge(parts):
         report["calibrated"].update(p.get("calibrated", {}))
         for key in ("violations", "interference", "contacts"):
             report[key] += p.get(key, [])
+    # Hits at the calibrated servo ends (eyes/calibration.json, past the designer's limits) go under calibrated[horn]
+    for key in ("violations", "contacts"):
+        for hit in [h for h in report[key] if h.get("calibrated")]:
+            report[key].remove(hit)
+            report["calibrated"].setdefault(hit["horn"], {}).setdefault(key, []).append({"deg": hit["deg"], "pair": hit["pair"]})
+            report["interference"] = [i for i in report["interference"] if i["pose"] != f"{hit['horn']} {hit['deg']}"]
     return report
 
 
@@ -23,11 +29,12 @@ def main():
     check = open(os.path.join(HERE, "check.py")).read()
     doc = check.split('DOC = "')[1].split('"')[0]
     out = os.path.join(HERE, "build")
-    for f in glob.glob(os.path.join(out, f"{doc}-*.json")):
-        os.remove(f)
-    horns = json.loads(fusion_run.run_script(check.replace("HORN = None", 'HORN = "?"'))["message"])
-    for horn in horns:
-        print(fusion_run.run_script(check.replace("HORN = None", f"HORN = {horn!r}"))["message"], end="")
+    if "--merge-only" not in sys.argv:   # re-threshold the last sweep without Fusion
+        for f in glob.glob(os.path.join(out, f"{doc}-*.json")):
+            os.remove(f)
+        horns = json.loads(fusion_run.run_script(check.replace("HORN = None", 'HORN = "?"'))["message"])
+        for horn in horns:
+            print(fusion_run.run_script(check.replace("HORN = None", f"HORN = {horn!r}"))["message"], end="")
     parts = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(out, f"{doc}-*.json"))) if not f.endswith("-report.json")]
     report = sim.enrich(merge(parts), fits.fit_table(fits.EYES_JOINTS), beams.beam_table(beams.EYES_BEAMS))   # shortcut: eyes tables only, add per-Stage tables with T3/T4
     with open(os.path.join(out, f"{doc}-report.json"), "w") as f:

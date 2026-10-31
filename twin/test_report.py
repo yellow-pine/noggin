@@ -32,6 +32,11 @@ def problems(report):
     for horn, t in report.get("torque", {}).items():
         if t["kgf_cm"] > t["limit_kgf_cm"]:
             out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
+    for horn, c in report.get("calibrated", {}).items():
+        # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
+        # cannot answer where the real Mech's ends are, and it does run them (eyes/calibration.json).
+        for v in c.get("violations", []) if "(inferred)" not in horn else []:
+            out.append(f"calibrated {horn}: collision at {v['deg']} deg between {v['pair']}")
     return out
 
 
@@ -52,6 +57,7 @@ FIXTURE_PROBLEMS = {
         "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
         "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
+        "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
 }
 
@@ -73,9 +79,11 @@ def test_merge_per_horn_reports_and_flags_incomplete_horns():
            "horns": {"L eye horn": {"min_mm": None, "at_deg": None, "pair": None, "incomplete": "budget of 180 s spent at 10 deg"}},
            "interference": [], "violations": [], "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": [],
            "calibrated": {"L eye horn": {"lo": -32, "hi": 28}}}
+    lid["violations"].append({"horn": "L lid horn", "deg": 39, "mm": 0.0, "pair": ["c", "d"], "calibrated": True})
     report = merge([lid, eye])
-    assert report["calibrated"] == {"L eye horn": {"lo": -32, "hi": 28}}
+    assert report["calibrated"] == {"L eye horn": {"lo": -32, "hi": 28}, "L lid horn": {"violations": [{"deg": 39, "pair": ["c", "d"]}]}}
     assert set(report["horns"]) == {"L lid horn", "L eye horn"}
-    assert report["violations"] == lid["violations"] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
+    assert report["violations"] == lid["violations"][:1] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
     assert problems(report) == ["violation: {'horn': 'L lid horn', 'deg': 30, 'mm': 0.0, 'pair': ['a', 'b']}",
-                                "L eye horn: incomplete (budget of 180 s spent at 10 deg)"]
+                                "L eye horn: incomplete (budget of 180 s spent at 10 deg)",
+                                "calibrated L lid horn: collision at 39 deg between ['c', 'd']"]

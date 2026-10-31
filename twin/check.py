@@ -256,7 +256,8 @@ def run(_context: str):
                         hit["calibrated"] = True
                     if penetrates(mover, other):
                         report["violations"].append({**hit, "mm": round(d, 2)})
-                        report["interference"] += interference(design, [mover, other], f"{horn.name} {deg}")
+                        if not calibrated:
+                            report["interference"] += interference(design, [mover, other], f"{horn.name} {deg}")
                     else:
                         report["contacts"].append(hit)
 
