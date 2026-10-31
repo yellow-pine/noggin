@@ -32,7 +32,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "eyes/eyes.py" = ["B905"]  # MicroPython zip() has no strict=
-"model/*.py" = ["F821", "E501", "B905", "UP031", "E741", "E731", "B023"]  # Fusion scripts assembled by `# include:` inlining; names come from the included files
+"model/*.py" = ["E501", "B905", "UP031", "E741", "E731", "B023"]  # the model's long table lines and numeric zips; tightening them is its own change
 
 [tool.pyright]
 typeCheckingMode = "basic"
