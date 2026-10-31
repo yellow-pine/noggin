@@ -1,16 +1,16 @@
 """Build or rebuild the Fusion design `noggin-eyes` (Default Project / noggin): every 01-eyes printed part as a
 faceted solid, the four servos with line-arm horns, the receiver shield with its Core, the switch board and
-the battery, Ports on the connectors, and the Pivots as joints. Runs INSIDE Fusion: `make twin-eyes`.
+the battery, Ports on the connectors, and the Pivots as joints. Runs INSIDE Fusion: `make model-eyes`.
 Components whose position is inferred rather than measured carry an "(inferred)" suffix.
-Numbers live in twin/geometry.py; this file only places things. Parts whose file and placement are unchanged
+Numbers live in model/geometry.py; this file only places things. Parts whose file and placement are unchanged
 since the saved version are reused (fingerprints, fusion_lib); joints, Ports and canvases are recreated, and
 a new version is saved only when something differs from the last one."""
-# include: twin/geometry.py
-# include: twin/fusion_lib.py
+# include: model/geometry.py
+# include: model/fusion_lib.py
 import adsk.core, adsk.fusion, json, math, os
 
 DOC = "noggin-eyes"
-FULL = False   # `FULL=1 make twin-eyes` flips this: empty the document and import everything again
+FULL = False   # `FULL=1 make model-eyes` flips this: empty the document and import everything again
 REPO = os.path.expanduser("~/code/noggin")
 MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
 PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
@@ -24,8 +24,8 @@ STEP = {
     "switch": os.path.join(CAD, "switch/Power Switch Board with 2Pin XH2.54 Connector-XA007/Power Switch Board with 2Pin XH2.54 Connector-XA007.STEP"),
     "battery": os.path.join(CAD, "battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
 }
-OUT = os.path.join(REPO, "twin", "build")
-PROXIES = os.path.join(OUT, "proxies")   # decimated STLs from `make twin-proxies`, measured by the sweep
+OUT = os.path.join(REPO, "model", "build")
+PROXIES = os.path.join(OUT, "proxies")   # decimated STLs from `make model-proxies`, measured by the sweep
 PHOTOS = os.path.join(REPO, "docs", "build-photos")   # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
@@ -245,7 +245,7 @@ def run(_context: str):
     diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse]
     if diff:
         root.attributes.add(*SUMMARY_ATTR, json.dumps(now, sort_keys=True))
-        version = save(doc, f"{DOC}: rebuilt by twin/eyes.py", DOC, folder)
+        version = save(doc, f"{DOC}: rebuilt by model/eyes.py", DOC, folder)
     else:
         version = doc.dataFile.versionNumber
     print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {len(now['ports'])} ports,",

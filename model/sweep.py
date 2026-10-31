@@ -1,5 +1,5 @@
-"""Mac-side driver for the horn sweep (`make twin-check`): one Fusion call per horn so the UI breathes between
-calls and a crash loses one horn, then the per-horn reports are merged into twin/build/<doc>-report.json."""
+"""Mac-side driver for the horn sweep (`make model-check`): one Fusion call per horn so the UI breathes between
+calls and a crash loses one horn, then the per-horn reports are merged into model/build/<doc>-report.json."""
 import glob, json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))

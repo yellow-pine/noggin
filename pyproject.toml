@@ -9,4 +9,4 @@ dependencies = ["pyserial>=3.5"]
 dev = ["pytest>=8", "mpremote>=1.24"]
 
 [tool.pytest.ini_options]
-testpaths = ["eyes", "reactions", "noggin", "twin", "scripts", "test_vocabulary.py"]
+testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "test_vocabulary.py"]

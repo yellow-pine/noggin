@@ -1,6 +1,6 @@
-"""Fusion helpers shared by the Stage scripts, inlined via `# include: twin/fusion_lib.py` after
-`# include: twin/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
-Verified calls: docs/research/2026-10-31-twin.md."""
+"""Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
+`# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
+Verified calls: docs/research/2026-10-31-model.md."""
 import adsk.core, adsk.fusion, hashlib, json, math
 
 PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root

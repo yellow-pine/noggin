@@ -1,6 +1,6 @@
 # One Fusion design per stage, plus a top assembly
 
-The Twin could be a single Fusion design with everything inside, or one design per Stage (eyes, pan-tilt,
+The Model could be a single Fusion design with everything inside, or one design per Stage (eyes, pan-tilt,
 mouth) inserted as Sub-assemblies into a top design `noggin`. We chose the latter: each Stage carries
 its own joints and can be rebuilt and versioned by script on its own, the top assembly only adds the
 joints between Stages (bracket stem into tilt arm, jaw onto bracket), and a future Stage or a redesigned

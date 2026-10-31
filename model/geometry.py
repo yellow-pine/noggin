@@ -1,4 +1,4 @@
-"""Measured Mech geometry as data (mm, degrees). Source: docs/research/2026-10-31-twin.md.
+"""Measured Mech geometry as data (mm, degrees). Source: docs/research/2026-10-31-model.md.
 Eyes frame: L eye centre at origin, +Y up, -Z front. PT frame: Z up, pan axis through (0,0).
 Pure Python, no imports: scripts/fusion_run.py inlines this file into Fusion scripts.
 """
@@ -34,7 +34,7 @@ def mirror_x(p):
 
 # Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
 HORN_LIMITS = {
-    "l_lid": (70, 120), "l_eye": (70, 110), "r_lid": (70, 120), "r_eye": (70, 110),   # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the twin (inferred horn pivot)
+    "l_lid": (70, 120), "l_eye": (70, 110), "r_lid": (70, 120), "r_eye": (70, 110),   # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
     "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
 }
 
@@ -143,7 +143,7 @@ EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eye
 
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
 STL_LOCAL = {
-    # Circle fits on the STL holes (twin/fits.py, 2026-10-31): 41 mm pitch; the crank is the eyelid bar with its
+    # Circle fits on the STL holes (model/fits.py, 2026-10-31): 41 mm pitch; the crank is the eyelid bar with its
     # horn end stepped up 3 mm, both holes along Z (the earlier Y-axis entry had the crank turned 90 degrees).
     "eyelid bar": {"holes": [(-20.5, 0.0, 1.5), (20.5, 0.0, 1.5)], "hole_axis": Z},
     "eyelid bar crank": {"holes": [(-20.5, 0.0, 4.5), (20.5, 0.0, 1.5)], "hole_axis": Z},

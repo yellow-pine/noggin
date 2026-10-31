@@ -1,21 +1,21 @@
-"""Clearance + placement check for one Stage document, run INSIDE Fusion by twin/sweep.py (`make twin-check`),
+"""Clearance + placement check for one Stage document, run INSIDE Fusion by model/sweep.py (`make model-check`),
 one call per horn: HORN = "?" prints the horn joint names; HORN = "<name>" drives that revolute joint from its
 min to its max limit in 10-degree steps, measures the minimum distance between each occurrence in its moving
 chain and every nearby occurrence (0 mm = overlap, which then gets a pairwise interference volume), compares
 the placements in PLACEMENTS with the geometry tables, records top-level bounding boxes at neutral and writes
-twin/build/<DOC>-<horn>.json. Each call stops at BUDGET_S and marks the horn incomplete. Never saves.
+model/build/<DOC>-<horn>.json. Each call stops at BUDGET_S and marks the horn incomplete. Never saves.
 Angles are joint angles relative to the 90-degree neutral the STLs are modelled in. API units: cm."""
-# include: twin/geometry.py
-# include: twin/fusion_lib.py
+# include: model/geometry.py
+# include: model/fusion_lib.py
 import adsk.core, adsk.fusion, json, math, os, time
 
-HORN = None                           # twin/sweep.py substitutes this line per call
+HORN = None                           # model/sweep.py substitutes this line per call
 BUDGET_S = 180
 
 DOC = "noggin-eyes"                   # the coordinator edits this per Stage: noggin-eyes, noggin-pan-tilt, noggin-mouth
 PROJECT_NAME = "Noggin"               # the hub's former Default Project; Stage documents sit at its root
 REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "twin", "build")
+OUT = os.path.join(REPO, "model", "build")
 STEP_DEG, CLEARANCE_MM = 10, 0.1   # below 0.1 mm the parts overlap: a collision (designed sliding gaps are ~0.5 mm)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0
 NEAR_MM = 10.0   # pairs whose bounding boxes are further apart than this are not measured (keeps Fusion responsive)

@@ -1,5 +1,5 @@
-"""Seam: twin/geometry.py public data and functions. Expected values are literals from docs/research/2026-10-31-twin.md."""
-from twin import geometry as g
+"""Seam: model/geometry.py public data and functions. Expected values are literals from docs/research/2026-10-31-model.md."""
+from model import geometry as g
 
 
 def test_bracket_stem_centre_maps_to_tilt_window():

@@ -1,5 +1,5 @@
 """Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit.
-Run: .venv/bin/python twin/electrical.py. budget() is merged into the Mech-wide report (the merge and cable
+Run: .venv/bin/python model/electrical.py. budget() is merged into the Mech-wide report (the merge and cable
 reach come with the top assembly, #17)."""
 import importlib.util, json, os, sys
 
@@ -7,7 +7,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _load(name):
-    spec = importlib.util.spec_from_file_location(name, os.path.join(ROOT, "eyes", name + ".py"))   # by path: twin/ has its own `eyes`
+    spec = importlib.util.spec_from_file_location(name, os.path.join(ROOT, "eyes", name + ".py"))   # by path: model/ has its own `eyes`
     mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
     return mod
 

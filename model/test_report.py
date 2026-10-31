@@ -1,5 +1,5 @@
-"""Seam: the JSON report twin/check.py writes (twin/build/<doc>-report.json). The live-report test is
-skipped until `make twin-check` has run; the fixture test checks the checker itself."""
+"""Seam: the JSON report model/check.py writes (model/build/<doc>-report.json). The live-report test is
+skipped until `make model-check` has run; the fixture test checks the checker itself."""
 import glob, importlib.util, json, os, pytest
 
 HERE = os.path.dirname(__file__)
@@ -29,7 +29,7 @@ def problems(report):
 @pytest.mark.parametrize("path", REPORTS or [None])
 def test_live_report_is_clean(path):
     if path is None:
-        pytest.skip("no twin/build/*-report.json: run `make twin-check` with Fusion open")
+        pytest.skip("no model/build/*-report.json: run `make model-check` with Fusion open")
     assert problems(json.load(open(path))) == []
 
 

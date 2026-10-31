@@ -1,6 +1,6 @@
 """Decimated copies of the printed parts for the Fusion sweep (Fusion measures 10-75k-face faceted bodies at
-seconds per pair; ~1500 faces measure in a blink). Run: Blender -b -P twin/proxies.py -- <models_dir>... <out>
-Writes <out>/<stem>.stl for every STL in the given model folders. `make twin-proxies`."""
+seconds per pair; ~1500 faces measure in a blink). Run: Blender -b -P model/proxies.py -- <models_dir>... <out>
+Writes <out>/<stem>.stl for every STL in the given model folders. `make model-proxies`."""
 import bpy, glob, os, sys
 TARGET = 1500
 args = sys.argv[sys.argv.index("--") + 1:]

@@ -1,4 +1,4 @@
-"""Seam: the pure parts of twin/fusion_lib.py that decide whether a rebuild touches the saved document:
+"""Seam: the pure parts of model/fusion_lib.py that decide whether a rebuild touches the saved document:
 part fingerprints (reuse or re-import) and the summary diff (save a version or print "unchanged")."""
 import importlib.util, os, sys, types
 
