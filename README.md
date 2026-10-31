@@ -20,9 +20,9 @@ noggin uses almost all of its printed parts and hardware exactly as designed, an
 existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
 the Claude Code hooks, the Fusion model and the simulation.
 
-![The full Mech in the Fusion model: eyes on the pan-tilt stack with the mouth, in the real spool colours](docs/images/stage3-front.jpg)
+![The full Mech (Stage 3) rendered from the model: eyes on the pan-tilt stack with the mouth, in the real spool colours](docs/images/stage3-front.jpg)
 
-The gestures, replayed in the model from the Core program's own traces:
+The gestures, posed in the model from the Core program's own commands:
 
 | eureka | attention | bored |
 |---|---|---|
@@ -101,6 +101,8 @@ noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual 
 noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
 noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
 noggin/noggin exercise 10                # gentle run-in, 10 minutes
+make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
+make follow          # follow mode: react to Claude Code again (the default, and the mode after any restart)
 ```
 
 Requirements: macOS, [uv](https://docs.astral.sh/uv/) (Python 3.12 and mpremote come with it),
@@ -115,7 +117,7 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 
 ## The model
 
-![The three Stages in Fusion: stage 1 front (base + eyes), stage 2 side (eyes on the tilt arm), stage 3 side and front (with the mouth)](docs/images/stages.jpg)
+![The three Stages rendered from the model: stage 1 front (base + eyes), stage 2 side (eyes on the tilt arm), stage 3 side and front (with the mouth)](docs/images/stages.jpg)
 
 `model/` builds the Mech in Fusion 360 and simulates it in Python (PR #31):
 
@@ -125,9 +127,10 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
   (`make model-parts`); Stages rebuild from it (`make model-eyes`, `model-pan-tilt`, `model-mouth`).
 - A Python simulation engine (`model/sim.py`, run by pytest): planar four-bar solver, rigid mesh
   transforms, KD-tree contact screen, mass and torque, the electrical budget. Fusion builds the
-  documents and takes the pictures; the sweeps run in seconds without it (ADR 0006).
+  documents; Blender renders every picture from the engine's poses; the sweeps run in seconds without
+  Fusion (ADR 0006).
 
-Rendering rules and the canvases are in `docs/model-notes.md`.
+Rendering rules are in `docs/model-notes.md`.
 
 ## Roadmap
 
