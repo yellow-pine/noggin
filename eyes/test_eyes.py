@@ -17,7 +17,7 @@ def assert_in_range_and_held(pwm_log):
         last[pin] = duty
     assert all(d != 0 for d in last.values()), "servos released: gravity would move the Mech"
 
-@pytest.mark.parametrize("gesture", ["eureka", "attention", "bored", "wince"])
+@pytest.mark.parametrize("gesture", ["eureka", "attention", "bored", "wince", "wink"])
 @pytest.mark.parametrize("intensity", [1, 2, 3])
 def test_every_gesture_stays_in_range_and_ends_held(eyes, pwm_log, gesture, intensity):
     eyes.handle_line(f"{gesture} {intensity}")
@@ -113,3 +113,11 @@ def test_saccade_follows_the_real_profile(eyes, pwm_log):
     eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
     assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 1.8      # 16 profile points, lands on target
     assert eye[3] < eye[-1] - 3                                      # still travelling a third of the way in
+
+
+def test_wink_moves_one_lid_only(eyes, pwm_log):
+    eyes.handle_line("rest"); pwm_log.clear()
+    eyes.handle_line("wink 2")                                      # mech's right lid
+    r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
+    l = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
+    assert max(r) - min(r) > 15 and (not l or max(l) - min(l) < 2)
