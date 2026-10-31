@@ -14,6 +14,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield.
 - The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
+- Ground truth for the model, in order: Bambu STEP files, PurpleShark's STLs, guide PDF images, remote configs, Cansin's photos, datasheets. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are
