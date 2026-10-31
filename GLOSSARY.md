@@ -125,3 +125,8 @@ _Avoid_: hinge, axle
 **Port**:
 A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
+
+**Corridor**:
+A lead's route in the Model: a tube from one Port to the other through waypoints clipped to the parts that hold the
+lead, so it rides pan and tilt. The engine checks its path length and its clearance from moving parts at every pose.
+_Avoid_: harness, cable path, routing

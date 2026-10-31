@@ -693,7 +693,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "7569f12ba3908b15a8206fd3ce74809f05ba03d90764568a1ce3708a02c3a583",
+  "stamp": "c5f59d72bdac85a0a723bdd2695f2911f8b279816a221bab1adcea9b680db560",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
@@ -739,60 +739,99 @@
    10.6
   ]
  },
- "cable_reach": {
+ "corridors": {
   "pack 1 -> switch 1": {
-   "max_mm": 67.2,
-   "at": {
-    "pan": -40,
-    "tilt": -60
-   },
+   "max_mm": 72.5,
+   "at": {},
+   "min_mm": 72.5,
+   "min_at": {},
    "length_mm": 100,
-   "limit_mm": 80
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "out of the battery box's back corner onto the plate (inferred)"
+   ]
   },
   "switch 1 -> shield 1": {
-   "max_mm": 45.9,
-   "at": {
-    "pan": -40,
-    "tilt": -60
-   },
+   "max_mm": 54.3,
+   "at": {},
+   "min_mm": 54.3,
+   "min_at": {},
    "length_mm": 100,
-   "limit_mm": 80
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "along the plate to the shield's XH socket (inferred)"
+   ]
   },
   "tilt servo -> Core 2 PWM1": {
-   "max_mm": 70.3,
+   "max_mm": 75.4,
    "at": {
-    "pan": 60,
-    "tilt": -60
+    "pan horn (inferred)": 60,
+    "tilt horn (inferred)": -60
+   },
+   "min_mm": 52.2,
+   "min_at": {
+    "pan horn (inferred)": -40,
+    "tilt horn (inferred)": -60
    },
    "length_mm": 250,
-   "limit_mm": 230
+   "limit_mm": 230,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "bent down off the tilt servo's cable end, guide step 10 (inferred)"
+   ]
   },
   "pan servo -> Core 2 PWM3": {
-   "max_mm": 87.5,
-   "at": {
-    "pan": -40,
-    "tilt": -60
-   },
+   "max_mm": 87.8,
+   "at": {},
+   "min_mm": 87.8,
+   "min_at": {},
    "length_mm": 250,
-   "limit_mm": 230
+   "limit_mm": 230,
+   "clearance_mm": 9.84,
+   "clearance_at": {
+    "pan horn (inferred)": -40,
+    "tilt horn (inferred)": -20
+   },
+   "clearance_part": "tilt horn (inferred):1",
+   "waypoints": [
+    "under the cable holder, guide steps 8-9 (inferred)"
+   ]
   },
   "pack 2 -> switch 2": {
-   "max_mm": 52.6,
-   "at": {
-    "pan": -40,
-    "tilt": -60
-   },
+   "max_mm": 65.5,
+   "at": {},
+   "min_mm": 65.5,
+   "min_at": {},
    "length_mm": 100,
-   "limit_mm": 80
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "out of the battery box's back corner onto the plate (inferred)"
+   ]
   },
   "switch 2 -> shield 2": {
-   "max_mm": 43.5,
-   "at": {
-    "pan": -40,
-    "tilt": -60
-   },
+   "max_mm": 49.8,
+   "at": {},
+   "min_mm": 49.8,
+   "min_at": {},
    "length_mm": 100,
-   "limit_mm": 80
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "along the plate to the shield's XH socket (inferred)"
+   ]
   }
  }
 }

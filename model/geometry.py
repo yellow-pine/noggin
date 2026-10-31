@@ -144,7 +144,7 @@ SERVO_STEP = {
     "shaft": (16.69, 5.9, -0.65),
     "horn_seat": 10.35,
     # where the lead leaves the servo: the STEP's three wires run straight on to x=42, the real lead is flexible, so the
-    # mesh is cut there (the tab end) and the cable reach measures from there
+    # mesh is cut there (the tab end) and the cable corridor starts there
     "lead": (27.7, 5.9, 11.0),
 }
 HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
@@ -164,7 +164,7 @@ SERVO_LABEL = {
 }
 
 # Receiver STEP Ports: the four servo headers and the XH power socket (top centres); the PWM numbering of the headers is
-# inferred. The switch board's two XH sockets are not located: the cable reach takes its mounting hole for both [I].
+# inferred. The switch board's two XH sockets are not located: the cable corridors take its mounting hole for both [I].
 RECEIVER_STEP = {
     "headers": {
         "PWM1": (4.2, 10.8, 0.4),

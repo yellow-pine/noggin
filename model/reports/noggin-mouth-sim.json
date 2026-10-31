@@ -756,7 +756,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "c34fae526040a067c9732d35551ff4e8241eee1b093de62fa520bf119d4014bd",
+  "stamp": "fa0b5bd07674261db1d5102e24945cb89ee55ca5498e9a94e16b2a236ab15719",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -788,6 +788,96 @@
    "at_deg": 0,
    "limit_kgf_cm": 0.6,
    "flagged": []
+  }
+ },
+ "corridors": {
+  "l_lid servo -> Core 1 PWM1": {
+   "max_mm": 89.8,
+   "at": {},
+   "min_mm": 89.8,
+   "min_at": {},
+   "length_mm": 250,
+   "limit_mm": 230,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
+    "under the wire keeper on the base, eyes guide step 2 (inferred)"
+   ]
+  },
+  "l_eye servo -> Core 1 PWM2": {
+   "max_mm": 88.9,
+   "at": {},
+   "min_mm": 88.9,
+   "min_at": {},
+   "length_mm": 250,
+   "limit_mm": 230,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
+    "under the wire keeper on the base, eyes guide step 2 (inferred)"
+   ]
+  },
+  "r_lid servo -> Core 1 PWM3": {
+   "max_mm": 92.1,
+   "at": {},
+   "min_mm": 92.1,
+   "min_at": {},
+   "length_mm": 250,
+   "limit_mm": 230,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
+    "under the wire keeper on the base, eyes guide step 2 (inferred)"
+   ]
+  },
+  "r_eye servo -> Core 1 PWM4": {
+   "max_mm": 91.3,
+   "at": {},
+   "min_mm": 91.3,
+   "min_at": {},
+   "length_mm": 250,
+   "limit_mm": 230,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
+    "under the wire keeper on the base, eyes guide step 2 (inferred)"
+   ]
+  },
+  "pack 1 -> switch 1": {
+   "max_mm": 72.5,
+   "at": {},
+   "min_mm": 72.5,
+   "min_at": {},
+   "length_mm": 100,
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "out of the battery box's back corner onto the plate (inferred)"
+   ]
+  },
+  "switch 1 -> shield 1": {
+   "max_mm": 54.3,
+   "at": {},
+   "min_mm": 54.3,
+   "min_at": {},
+   "length_mm": 100,
+   "limit_mm": 80,
+   "clearance_mm": 10.0,
+   "clearance_at": null,
+   "clearance_part": null,
+   "waypoints": [
+    "along the plate to the shield's XH socket (inferred)"
+   ]
   }
  }
 }

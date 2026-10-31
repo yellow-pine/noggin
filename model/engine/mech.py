@@ -1,8 +1,8 @@
 """Mech-wide checks over the engine's poses (#24, #22), folded into the report by model/engine/run.py: dynamic torque
 per horn (gravity plus the chain's inertia reflected to the horn axis times the peak horn acceleration of the clocked
 gestures through the servo plant, eyes/replay.py and eyes/servo.py; for the untraced Core 2 horns, the acceleration
-that keeps them under the limit), the clutch margin per pose, and over the pan x tilt grid the tip-over margin and the
-straight-line cable reach of every lead (model/electrical.leads)."""
+that keeps them under the limit), the clutch margin per pose, and over the pan x tilt grid (mech_poses, which the cable
+corridors in model/engine/cables.py also sweep) the tip-over margin."""
 
 import math
 
@@ -164,21 +164,3 @@ def tip_over(stage, table, outline, step):
         if best is None or mm < best["margin_mm"]:
             best = {"margin_mm": round(mm, 1), "at": {"pan": p, "tilt": t}, "com": [round(c, 1) for c in com]}
     return best
-
-
-def cable_reach(stage, step):
-    """{lead: {max_mm, at, length_mm, limit_mm}}: the longest straight Port-to-Port distance (stage.ports) of every lead
-    whose two Ports are in the document, over the pan x tilt grid; a lead must stay under its length less the slack."""
-    present = [lead for lead in electrical.leads() if lead[1] in stage.ports and lead[2] in stage.ports]
-    out = {}
-    for p, t, mats in mech_poses(stage, step):
-        for name, a, b, length in present:
-            d = math.dist(*(mats[n][:3, :3] @ local + mats[n][:3, 3] for n, local in (stage.ports[a], stage.ports[b])))
-            if name not in out or round(d, 1) > out[name]["max_mm"]:  # a static lead keeps its first pose
-                out[name] = {
-                    "max_mm": round(d, 1),
-                    "at": {"pan": p, "tilt": t},
-                    "length_mm": length,
-                    "limit_mm": length - electrical.SLACK_MM,
-                }
-    return out
