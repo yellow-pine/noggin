@@ -1,5 +1,7 @@
 # Sub-assemblies by reference into cumulative Stages
 
+> Superseded 2026-10-31 (#88): Fusion is gone; our CadQuery parts (model/printed, model/envelopes.py) and the Python engine are the model; FreeCAD opens `make step` exports.
+
 The Model could be a single Fusion design with everything inside, or one design per Stage (eyes, pan-tilt,
 mouth) inserted as Sub-assemblies into a top design `noggin`. We chose the latter: each Stage carries
 its own joints and can be rebuilt and versioned by script on its own, the top assembly only adds the

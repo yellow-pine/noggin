@@ -78,7 +78,7 @@ SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
 def leads():
     """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
     shield header (CHANNELS), the pack's lead to the switch board and the Y lead's two branches from the switch board to
-    the shields. Port names are the Fusion builds' (model/engine/stages.py ports); model/engine/cables.py routes each
+    the shields. Port names are model/engine/stages.py's ports; model/engine/cables.py routes each
     from its first Port."""
     out = [("pack 1 -> switch 1", "battery 1 lead", "switch board 1 in", XH_LEAD_MM)]
     for n in (1, 2):

@@ -2382,7 +2382,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "586edba24f6838e6b9b4cc9e10fc85c2926c0eb5c654d40ff11edc03692c6a24",
+  "stamp": "4cbedaf2cb4b26656967aa33541b3a90547ff0bdac26bd0aa71274f167c85c9e",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -2407,10 +2407,10 @@
    "docs/references/02-pan-tilt/models/tilt bar.stl": "0badcc550333e7cd",
    "docs/references/03-mouth/models/main bracket v2.stl": "51e1cda6fc7b7f26",
    "model/build/steps/battery.stl": "d3f2b804a33d1477",
-   "model/build/steps/core.stl": "dd30ef7ac548f1e3",
+   "model/build/steps/core.stl": "594e4cbcf72bbf19",
    "model/build/steps/horn.stl": "f1f26194ebf2f894",
    "model/build/steps/receiver.stl": "06becafb46038cbb",
-   "model/build/steps/servo.stl": "33d8d2b5fdefd5e1",
+   "model/build/steps/servo.stl": "24b910cc3f5e1f35",
    "model/build/steps/switch.stl": "def44612d2b70685"
   }
  },
