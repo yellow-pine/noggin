@@ -7,7 +7,9 @@ EVENTS = {"SessionStart": None, "UserPromptSubmit": None, "Stop": None, "StopFai
 cfg = json.load(open(path)) if os.path.exists(path) else {}
 hooks = cfg.setdefault("hooks", {})
 for event, matcher in EVENTS.items():
-    groups = [g for g in hooks.get(event, []) if not any(h.get("command") == poke for h in g.get("hooks", []))]
+    # drop our own entries (current path, or stale paths from before a rename: anything under this repo)
+    ours = lambda h: h.get("command") == poke or h.get("command", "").startswith(os.path.dirname(os.path.dirname(poke)) + "/")
+    groups = [g for g in hooks.get(event, []) if not any(ours(h) for h in g.get("hooks", []))]
     if "--remove" not in sys.argv:
         group = {"hooks": [{"type": "command", "command": poke, "async": True, "timeout": 2}]}
         if matcher: group["matcher"] = matcher
