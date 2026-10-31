@@ -2,8 +2,11 @@ name: check
 on: [push, pull_request]
 jobs:
   check:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: make check
+      - run: sudo apt-get install -y shellcheck
+      # SC2329 never-invoked wizard-library functions, SC2012 ls glob on /dev, SC2015 A && B || C on purpose
+      - run: shellcheck -e SC2329,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin noggin/demo
