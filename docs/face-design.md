@@ -19,6 +19,11 @@ Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview render
    pan-tilt base and hides boards and batteries.
 3. **Jaw skin** on the mouth mechanism: screws to the bottom jaw, closes the chin.
 
+## Freedom to change the base
+The pan-tilt base and how the stages attach to it may be redesigned (our own base plate,
+standoffs, battery pocket) when that serves the face, collar or wiring. The eyes mech brackets
+and the jaw stay as designed.
+
 ## Measured hardware (from the designer's STLs, see docs/references)
 - Main bracket v2 115 x 54 x 22; stem drops into the tilt arm slot. Side wings at x = -28 and +87 are flat faces.
 - Pan-tilt v2 stack 35.9 mm above the base plate; eye centre about 66-72 mm above the plate.
@@ -34,4 +39,4 @@ one 2S pack + switch, 1 servo), 4 extra PG001 servos (5 total), extra 2S pack ZL
 Second shield is powered by the second 2S pack plugged straight in, no second switch. No filament.
 
 ## Toolchain
-OpenSCAD (brew cask) for source and STL export; Blender 5.2 for preview renders; Bambu Studio for 3MFs.
+OpenSCAD 2026.10 (brew cask `openscad@snapshot`; the plain cask is disabled) for source and STL export; Blender 5.2 for preview renders; Bambu Studio for 3MFs.
