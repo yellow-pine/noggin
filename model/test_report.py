@@ -1,12 +1,20 @@
 """Seam: the JSON report model/check.py writes (model/build/<doc>-report.json). The live-report test is
 skipped until `make model-check` has run; the fixture test checks the checker itself."""
-import glob, importlib.util, json, os, pytest
+
+import glob
+import importlib.util
+import json
+import os
+
+import pytest
 
 HERE = os.path.dirname(__file__)
 MAX_INTERFERENCE_MM3 = 0.5
-ENVELOPE = {"noggin-eyes": ((-60, 120), (-120, 60), (-60, 180)),      # Mech extent per Stage frame, mm (x, y, z)
-            "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60)),       # PandT base 120 x 160, tilt arm top z ~41
-            "noggin-mouth": ((-60, 120), (-120, 60), (-60, 180))}       # the eyes envelope: noggin-eyes is referenced in whole
+ENVELOPE = {
+    "noggin-eyes": ((-60, 120), (-120, 60), (-60, 180)),  # Mech extent per Stage frame, mm (x, y, z)
+    "noggin-pan-tilt": ((-62, 62), (-26, 136), (-3, 60)),  # PandT base 120 x 160, tilt arm top z ~41
+    "noggin-mouth": ((-60, 120), (-120, 60), (-60, 180)),
+}  # the eyes envelope: noggin-eyes is referenced in whole
 REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-report.json")))
 
 
@@ -25,9 +33,11 @@ def problems(report):
     for occ, (lo, hi) in report["bboxes"].items():
         if any(a < e[0] or b > e[1] for a, b, e in zip(lo, hi, ENVELOPE[report["doc"]])):
             out.append(f"{occ}: bbox {lo}..{hi} outside envelope")
-    for f in report.get("fits", []):           # #20 extras (model/sim.py), absent from older reports
+    for f in report.get("fits", []):  # #20 extras (model/sim.py), absent from older reports
         if not f["ok"]:
-            out.append(f"fit {f['joint']}: {f['clearance']} mm radial clearance (hole r {f['hole_r']}, pin r {f['pin_r']})")
+            out.append(
+                f"fit {f['joint']}: {f['clearance']} mm radial clearance (hole r {f['hole_r']}, pin r {f['pin_r']})"
+            )
     for b in report.get("beams", []):
         if not b["ok"]:
             out.append(f"beam {b['beam']}: SF {b['sf']} (deflection {b['deflection_mm']} mm)")
@@ -71,21 +81,54 @@ def test_fixture_reports(name):
 
 
 def test_merge_per_horn_reports_and_flags_incomplete_horns():
-    spec = importlib.util.spec_from_file_location("sweep", os.path.join(HERE, "sweep.py"))   # not on sys.path: eyes/ has its own `eyes` module
-    sweep = importlib.util.module_from_spec(spec); spec.loader.exec_module(sweep); merge = sweep.merge
-    lid = {"doc": "noggin-eyes", "version": 11, "clearance_mm": 3.0, "step_deg": 10,
-           "horns": {"L lid horn": {"min_mm": 4.1, "at_deg": 30, "pair": ["L inside lid", "L servo bracket"]}},
-           "interference": [], "violations": [{"horn": "L lid horn", "deg": 30, "mm": 0.0, "pair": ["a", "b"]}],
-           "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": [{"name": "L eye servo", "ok": True}]}
-    eye = {"doc": "noggin-eyes", "version": 11, "clearance_mm": 3.0, "step_deg": 10,
-           "horns": {"L eye horn": {"min_mm": None, "at_deg": None, "pair": None, "incomplete": "budget of 180 s spent at 10 deg"}},
-           "interference": [], "violations": [], "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": [],
-           "calibrated": {"L eye horn": {"lo": -32, "hi": 28}}}
+    spec = importlib.util.spec_from_file_location(
+        "sweep", os.path.join(HERE, "sweep.py")
+    )  # not on sys.path: eyes/ has its own `eyes` module
+    sweep = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sweep)
+    merge = sweep.merge
+    lid = {
+        "doc": "noggin-eyes",
+        "version": 11,
+        "clearance_mm": 3.0,
+        "step_deg": 10,
+        "horns": {"L lid horn": {"min_mm": 4.1, "at_deg": 30, "pair": ["L inside lid", "L servo bracket"]}},
+        "interference": [],
+        "violations": [{"horn": "L lid horn", "deg": 30, "mm": 0.0, "pair": ["a", "b"]}],
+        "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]},
+        "placements": [{"name": "L eye servo", "ok": True}],
+    }
+    eye = {
+        "doc": "noggin-eyes",
+        "version": 11,
+        "clearance_mm": 3.0,
+        "step_deg": 10,
+        "horns": {
+            "L eye horn": {
+                "min_mm": None,
+                "at_deg": None,
+                "pair": None,
+                "incomplete": "budget of 180 s spent at 10 deg",
+            }
+        },
+        "interference": [],
+        "violations": [],
+        "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]},
+        "placements": [],
+        "calibrated": {"L eye horn": {"lo": -32, "hi": 28}},
+    }
     lid["violations"].append({"horn": "L lid horn", "deg": 39, "mm": 0.0, "pair": ["c", "d"], "calibrated": True})
     report = merge([lid, eye])
-    assert report["calibrated"] == {"L eye horn": {"lo": -32, "hi": 28}, "L lid horn": {"violations": [{"deg": 39, "pair": ["c", "d"]}]}}
+    assert report["calibrated"] == {
+        "L eye horn": {"lo": -32, "hi": 28},
+        "L lid horn": {"violations": [{"deg": 39, "pair": ["c", "d"]}]},
+    }
     assert set(report["horns"]) == {"L lid horn", "L eye horn"}
-    assert report["violations"] == lid["violations"][:1] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
-    assert problems(report) == ["violation: {'horn': 'L lid horn', 'deg': 30, 'mm': 0.0, 'pair': ['a', 'b']}",
-                                "L eye horn: incomplete (budget of 180 s spent at 10 deg)",
-                                "calibrated L lid horn: collision at 39 deg between ['c', 'd']"]
+    assert (
+        report["violations"] == lid["violations"][:1] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
+    )
+    assert problems(report) == [
+        "violation: {'horn': 'L lid horn', 'deg': 30, 'mm': 0.0, 'pair': ['a', 'b']}",
+        "L eye horn: incomplete (budget of 180 s spent at 10 deg)",
+        "calibrated L lid horn: collision at 39 deg between ['c', 'd']",
+    ]

@@ -1,6 +1,8 @@
 """Toggle the reference-photo canvases of the active Fusion document (the Stage builds save them hidden) and print
 the new state. Runs INSIDE Fusion: `make model-canvases`."""
-import adsk.core, adsk.fusion
+
+import adsk.core
+import adsk.fusion
 
 
 def run(_context: str):

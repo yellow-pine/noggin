@@ -1,4 +1,5 @@
 """Seam: model/geometry.py public data and functions. Expected values are literals from docs/research/2026-10-31-model.md."""
+
 from model import geometry as g
 
 
@@ -18,14 +19,25 @@ def test_mirror_x_maps_left_eye_to_right():
 
 def test_horn_limits_match_designer_config():
     assert g.HORN_LIMITS == {
-        "l_lid": (70, 120), "l_eye": (70, 110), "r_lid": (70, 120), "r_eye": (70, 110),
-        "tilt": (20, 150), "rotate": (40, 160), "mouth": (50, 90),   # mouth: opening side only (config says 0..180), see geometry.py
+        "l_lid": (70, 120),
+        "l_eye": (70, 110),
+        "r_lid": (70, 120),
+        "r_eye": (70, 110),
+        "tilt": (20, 150),
+        "rotate": (40, 160),
+        "mouth": (50, 90),  # mouth: opening side only (config says 0..180), see geometry.py
     }
 
 
 def test_bars_are_measured_pivot_spacings():
-    assert g.BARS == {"eyelid_bar": 41.0, "eyelid_crank": 41.0, "tilt_bar": 20.0,
-                      "pan_bar": 15.0, "connector_bar": 31.4, "eyeball_bar": 27.0}
+    assert g.BARS == {
+        "eyelid_bar": 41.0,
+        "eyelid_crank": 41.0,
+        "tilt_bar": 20.0,
+        "pan_bar": 15.0,
+        "connector_bar": 31.4,
+        "eyeball_bar": 27.0,
+    }
 
 
 def _dist(a, b):
@@ -42,8 +54,11 @@ def test_servo_tab_holes_are_27_8_apart():
 
 
 def test_receiver_standoffs_form_23_by_24_rectangle():
-    sets = [g.STANDOFFS["eyes_base"]["receiver"], g.STANDOFFS["pt_base"]["receiver_1"],
-            g.STANDOFFS["pt_base"]["receiver_2"]]
+    sets = [
+        g.STANDOFFS["eyes_base"]["receiver"],
+        g.STANDOFFS["pt_base"]["receiver_1"],
+        g.STANDOFFS["pt_base"]["receiver_2"],
+    ]
     for pts in sets:
         assert len(pts) == 4
         extents = sorted(round(max(c) - min(c), 6) for c in zip(*pts))
@@ -51,9 +66,22 @@ def test_receiver_standoffs_form_23_by_24_rectangle():
 
 
 def test_pivots_name_frame_axis_and_inferred_shafts():
-    assert set(g.PIVOTS) == {"l_lid", "r_lid", "l_eye", "r_eye", "l_lid_horn", "r_lid_horn",
-                             "l_eye_horn", "r_eye_horn", "jaw_hinge", "jaw_horn", "pan", "tilt",
-                             "tilt_horn", "pan_horn"}
+    assert set(g.PIVOTS) == {
+        "l_lid",
+        "r_lid",
+        "l_eye",
+        "r_eye",
+        "l_lid_horn",
+        "r_lid_horn",
+        "l_eye_horn",
+        "r_eye_horn",
+        "jaw_hinge",
+        "jaw_horn",
+        "pan",
+        "tilt",
+        "tilt_horn",
+        "pan_horn",
+    }
     assert g.PIVOTS["tilt"] == {"point": (0.0, -13.0, 33.4), "axis": (1, 0, 0), "frame": "pt"}
     assert g.PIVOTS["jaw_hinge"] == {"point": (29.5, -49.6, 8.0), "axis": (1, 0, 0), "frame": "eyes"}
     assert g.PIVOTS["r_eye"]["point"] == g.mirror_x(g.PIVOTS["l_eye"]["point"])
@@ -93,21 +121,25 @@ def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
         assert abs(_dist(in_plane(pin), in_plane(hub)) - g.HORN_STEP["pin"]) < 1e-6
         assert abs(_dist(pin, lever) - g.BARS[key + "_bar"]) < 1e-6
     tilt_pin, _ = g.horn_pin("tilt")
-    assert tilt_pin[1] > g.PIVOTS["tilt_horn"]["point"][1] + 12   # horn horizontal toward +Y
+    assert tilt_pin[1] > g.PIVOTS["tilt_horn"]["point"][1] + 12  # horn horizontal toward +Y
     pan_pin, _ = g.horn_pin("pan")
-    assert pan_pin[1] < g.PIVOTS["pan_horn"]["point"][1] - 12     # horn forward (-Y)
+    assert pan_pin[1] < g.PIVOTS["pan_horn"]["point"][1] - 12  # horn forward (-Y)
 
 
 def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub():
     origin, tab_x, shaft = g.servo_frame("jaw")
-    assert shaft == (-1, 0, 0) and origin == (75.9, -48.6, 23.1)   # tab plane at the mount lug, the horn seat 10.35 inboard
+    assert shaft == (-1, 0, 0) and origin == (
+        75.9,
+        -48.6,
+        23.1,
+    )  # tab plane at the mount lug, the horn seat 10.35 inboard
     assert abs(g.PIVOTS["jaw_horn"]["point"][0] - (75.9 - g.SERVO_STEP["horn_seat"])) < 1e-9
     pin, lever = g.horn_pin("jaw")
     assert pin[0] == lever[0] == 58.9 and lever[1:] == (-58.1, -10.44)
     hub = g.PIVOTS["jaw_horn"]["point"]
     assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
     assert abs(_dist(pin, lever) - g.BARS["connector_bar"]) < 1e-6
-    assert pin[1] < hub[1] - 10   # horn pointing down (-Y), away from the bracket rail
+    assert pin[1] < hub[1] - 10  # horn pointing down (-Y), away from the bracket rail
 
 
 def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
@@ -121,7 +153,7 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert g.in_frame(g.EYES_ON_STACK, g.EYE_L) == (29.5, -28.5, 81.5)
     assert g.in_frame(g.EYES_ON_STACK, g.EYE_R) == (-29.5, -28.5, 81.5)
     assert g.in_frame(g.EYES_ON_STACK, g.STEM_BOTTOM) == (0.0, -13.0, 35.9)
-    assert g.in_frame(g.EYES_ON_BASE, g.STEM_BOTTOM) == (0.0, 0.0, -7.0)   # through the 5 mm plate, feet on its top
+    assert g.in_frame(g.EYES_ON_BASE, g.STEM_BOTTOM) == (0.0, 0.0, -7.0)  # through the 5 mm plate, feet on its top
     assert g.STEM_IN == {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
         assert all(abs(a - b) < 1e-9 for a, b in zip(g.in_frame(g.EYES_ON_STACK, p), g.eyes_to_pt(p)))

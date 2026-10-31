@@ -3,33 +3,69 @@ decimated "proxy" body) and per hardware STEP in folder `parts` of project Noggi
 stored solids (fusion_lib.insert_part) instead of converting meshes (docs/research/2026-10-31-fusion-throughput.md
 section 4). The design's root carries the sha256 of its source files (FINGERPRINT_ATTR); a part whose sources are
 unchanged is skipped, `FULL=1 make model-parts` reconverts everything. Runs INSIDE Fusion: `make model-parts`."""
+
 # include: model/geometry.py
 # include: model/fusion_lib.py
-import adsk.core, adsk.fusion, hashlib, os, time
+import hashlib
+import os
+import time
 
-FULL = False   # `FULL=1 make model-parts` flips this
+import adsk.core
+import adsk.fusion
+
+FULL = False  # `FULL=1 make model-parts` flips this
 REPO = os.path.expanduser("~/code/noggin")
 REF = os.path.join(REPO, "docs/references")
-PROXIES = os.path.join(REPO, "model/build/proxies")   # decimated STLs from `make model-proxies`
+PROXIES = os.path.join(REPO, "model/build/proxies")  # decimated STLs from `make model-proxies`
 SERVO_DIR = os.path.join(REF, "cyberbrick-cad/servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
-RECEIVER = os.path.join(REF, "cyberbrick-cad/receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp")
-STLS = {   # Stage folder: the STL stems the three Stage builds place (the lizard/plain eyes, v1 bracket and bases are not built)
-    "01-eyes": ["L servo bracket", "R servo bracket", "L eyeball regular", "R eyeball regular", "regular pupil", "inside lid",
-                "outside lid", "eyeball bar", "eyelid bar", "eyelid bar crank"],
-    "02-pan-tilt": ["PandT base", "PandT bearing block", "PandT pan base", "PandT upright v2", "PandT tilt arm",
-                    "PandT servo mount plain", "PandT servo mount cutout", "PandT wire holder", "tilt bar", "PandT bar"],
+RECEIVER = os.path.join(
+    REF, "cyberbrick-cad/receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp"
+)
+STLS = {  # Stage folder: the STL stems the three Stage builds place (the lizard/plain eyes, v1 bracket and bases are not built)
+    "01-eyes": [
+        "L servo bracket",
+        "R servo bracket",
+        "L eyeball regular",
+        "R eyeball regular",
+        "regular pupil",
+        "inside lid",
+        "outside lid",
+        "eyeball bar",
+        "eyelid bar",
+        "eyelid bar crank",
+    ],
+    "02-pan-tilt": [
+        "PandT base",
+        "PandT bearing block",
+        "PandT pan base",
+        "PandT upright v2",
+        "PandT tilt arm",
+        "PandT servo mount plain",
+        "PandT servo mount cutout",
+        "PandT wire holder",
+        "tilt bar",
+        "PandT bar",
+    ],
     "03-mouth": ["main bracket v2", "top jaw plain", "bottom jaw plain", "jaws servo mount", "jaws connector bar"],
 }
 STEPS = {
     "servo": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-PG002-PG001.stp"),
     "horn": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-half arm1-PG002-PG001.stp"),
-    "receiver shield": RECEIVER,   # the receiver STEP minus the Core
-    "Core": RECEIVER,              # the receiver STEP stripped to the Core
-    "switch board": os.path.join(REF, "cyberbrick-cad/switch/Power Switch Board with 2Pin XH2.54 Connector-XA007/Power Switch Board with 2Pin XH2.54 Connector-XA007.STEP"),
-    "battery": os.path.join(REF, "cyberbrick-cad/battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
+    "receiver shield": RECEIVER,  # the receiver STEP minus the Core
+    "Core": RECEIVER,  # the receiver STEP stripped to the Core
+    "switch board": os.path.join(
+        REF,
+        "cyberbrick-cad/switch/Power Switch Board with 2Pin XH2.54 Connector-XA007/Power Switch Board with 2Pin XH2.54 Connector-XA007.STEP",
+    ),
+    "battery": os.path.join(
+        REF, "cyberbrick-cad/battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"
+    ),
 }
-LIBRARY = {stem: [os.path.join(REF, stage, "models", stem + ".stl"), os.path.join(PROXIES, stem + ".stl")]
-           for stage, stems in STLS.items() for stem in stems}
+LIBRARY = {
+    stem: [os.path.join(REF, stage, "models", stem + ".stl"), os.path.join(PROXIES, stem + ".stl")]
+    for stage, stems in STLS.items()
+    for stem in stems
+}
 LIBRARY.update({name: [path] for name, path in STEPS.items()})
 
 
@@ -52,19 +88,25 @@ def strip(occ, keep_core):
             o.deleteMe()
 
 
-
 def spool(design, name):
     """The spool's appearance (a matte plastic from the Fusion Appearance Library in the spool colour) and the
     material (an ABS copy from the Fusion Material Library at the PRINTED density) for printed part `name`."""
     key = next(k for k in PRINTED if k.split(" (")[0] == name)
     colour, material = PRINTED[key]
     libs = adsk.core.Application.get().materialLibraries
-    appearance = design.appearances.addByCopy(libs.itemByName("Fusion Appearance Library").appearances.itemByName("Plastic - Matte (White)"), key.replace(name, colour))
+    appearance = design.appearances.addByCopy(
+        libs.itemByName("Fusion Appearance Library").appearances.itemByName("Plastic - Matte (White)"),
+        key.replace(name, colour),
+    )
     props = appearance.appearanceProperties
     rgb = bytes.fromhex(SPOOLS[colour][1:])
-    next(props.item(i) for i in range(props.count) if props.item(i).name == "Color").value = adsk.core.Color.create(*rgb, 255)
-    physical = design.materials.addByCopy(libs.itemByName("Fusion Material Library").materials.itemByName("ABS Plastic"), material)
-    physical.materialProperties.itemByName("Density").value = MATERIALS[material]["density_g_cm3"] * 1000   # kg/m3
+    next(props.item(i) for i in range(props.count) if props.item(i).name == "Color").value = adsk.core.Color.create(
+        *rgb, 255
+    )
+    physical = design.materials.addByCopy(
+        libs.itemByName("Fusion Material Library").materials.itemByName("ABS Plastic"), material
+    )
+    physical.materialProperties.itemByName("Density").value = MATERIALS[material]["density_g_cm3"] * 1000  # kg/m3
     return appearance, physical
 
 
@@ -106,9 +148,13 @@ def run(_context: str):
     for name in todo:
         t = time.time()
         adsk.doEvents()
-        doc = app.documents.open(files[name], True) if name in files else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+        doc = (
+            app.documents.open(files[name], True)
+            if name in files
+            else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+        )
         design = adsk.fusion.Design.cast(app.activeProduct)
-        design.designType = adsk.fusion.DesignTypes.ParametricDesignType   # mesh convert only works here
+        design.designType = adsk.fusion.DesignTypes.ParametricDesignType  # mesh convert only works here
         root = design.rootComponent
         design.timeline.markerPosition = 0
         design.timeline.deleteAllAfterMarker()

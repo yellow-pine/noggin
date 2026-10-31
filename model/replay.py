@@ -2,11 +2,18 @@
 horn joints of DOC through that gesture's frames (model/build/traces.json, joint degrees per 100 ms) with the joint
 limits off, since the calibrated servo ends lie outside the designer's limits, and saves a front-view screenshot per
 frame to model/build/replay/<gesture>/NNN.png. Limits and the neutral pose are put back; never saves."""
+
 # include: model/geometry.py
 # include: model/fusion_lib.py
-import adsk.core, adsk.fusion, glob, json, math, os
+import glob
+import json
+import math
+import os
 
-GESTURE = None                        # model/traces.py substitutes this line per call
+import adsk.core
+import adsk.fusion
+
+GESTURE = None  # model/traces.py substitutes this line per call
 DOC = "noggin-eyes"
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
@@ -25,13 +32,16 @@ def run(_context: str):
     open_doc(app)
     design = adsk.fusion.Design.cast(app.activeProduct)
     joints = {j.name: j for j in design.rootComponent.allJoints if not j.isSuppressed}
-    horns = {s: next(j for n, j in joints.items() if n.startswith(f"{s[0].upper()} {'lid' if 'lid' in s else 'eye'} horn")) for s in SERVOS}
+    horns = {
+        s: next(j for n, j in joints.items() if n.startswith(f"{s[0].upper()} {'lid' if 'lid' in s else 'eye'} horn"))
+        for s in SERVOS
+    }
     frames = json.load(open(os.path.join(OUT, "traces.json")))[GESTURE]
     folder = os.path.join(OUT, "replay", GESTURE)
     os.makedirs(folder, exist_ok=True)
     for old in glob.glob(os.path.join(folder, "*.png")):
         os.remove(old)
-    contact_was = design.isContactAnalysisEnabled       # the contact set would stop the drive at the designed contacts
+    contact_was = design.isContactAnalysisEnabled  # the contact set would stop the drive at the designed contacts
     design.isContactAnalysisEnabled = False
     limits = [h.jointMotion.rotationLimits for h in horns.values()]
     for lim in limits:
