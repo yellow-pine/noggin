@@ -19,6 +19,7 @@ import mujoco
 import numpy as np
 import trimesh
 
+from model import geometry as g
 from model.engine import stages
 from model.render import scene
 
@@ -27,6 +28,7 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
+VIEW_BLACK = "#5A5A60"  # the viewer draws no outlines: Absolute Black lifted past the pictures' #2B2B2E to read
 
 
 def convex(file, clip=None):
@@ -104,8 +106,10 @@ def spec(doc):
     for name, part in stage.parts.items():
         body = frame.add_body(name=name, pos=part.matrix[:3, 3] * MM, quat=_quat(part.matrix))
         stem = stages.stem(part.file)
-        # make view only has to tell the parts apart: the colour the pictures draw it in, under MuJoCo's own light
-        rgba = [*trimesh.visual.color.hex_to_rgba(scene.drawn(part.file))[:3] / 255, 1]
+        # make view only has to tell the parts apart: the colour the pictures draw it in (black lifted further)
+        drawn = scene.drawn(part.file)
+        drawn = VIEW_BLACK if drawn == scene.DRAWN[g.SPOOLS["Absolute Black"]] else drawn
+        rgba = [*trimesh.visual.color.hex_to_rgba(drawn)[:3] / 255, 1]
         # the drawn mesh carries no mass and touches nothing: the pieces do both
         body.add_geom(type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba)
         for p in pieces[stem]:
