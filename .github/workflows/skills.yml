@@ -1,0 +1,63 @@
+name: skills
+# Weekly: re-pin skills-lock.json to each source's HEAD and open (or refresh) a PR, so the reviewer's skills change
+# only through a reviewed PR. A PR opened with GITHUB_TOKEN starts no workflows
+# (https://docs.github.com/en/actions/concepts/security/github_token): close and reopen it to run its checks.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  lock:
+    name: re-pin
+    # npx runs here with no token or secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      # `skills add <source>#<sha>` rewrites each entry's ref and computedHash in the CLI's own lock format
+      - run: |
+          for src in $(jq -r '[.skills[].source] | unique[]' skills-lock.json); do
+            sha=$(git ls-remote "https://github.com/$src" HEAD | cut -f1)
+            npx -y skills@1.7.4 add "$src#$sha" -a universal -y \
+              --skill $(jq -r --arg s "$src" '.skills | to_entries[] | select(.value.source == $s).key' skills-lock.json)
+          done
+          node scripts/verify_skills.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: lock
+          path: skills-lock.json
+  pr:
+    name: propose
+    needs: lock
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - run: cp skills-lock.json "$RUNNER_TEMP/old.json"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: lock
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git diff --quiet && exit 0
+          # one compare link per moved source, so the review reads the upstream change, not just new SHAs
+          jq -rn --slurpfile o "$RUNNER_TEMP/old.json" --slurpfile n skills-lock.json '
+            ($o[0].skills | map({(.source): .ref}) | add) as $old | $n[0].skills | map({(.source): .ref}) | add
+            | to_entries[] | select($old[.key] != .value) | "- https://github.com/\(.key)/compare/\($old[.key])...\(.value)"' > "$RUNNER_TEMP/body.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C skills-bump
+          git commit -qam "Skills: re-pin skills-lock.json to upstream HEAD"
+          git push -f origin skills-bump
+          gh pr create --head skills-bump --title "Skills: re-pin skills-lock.json to upstream HEAD" \
+            --body-file "$RUNNER_TEMP/body.md" || gh pr edit skills-bump --body-file "$RUNNER_TEMP/body.md"
