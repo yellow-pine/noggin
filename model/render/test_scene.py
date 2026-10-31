@@ -22,14 +22,12 @@ def test_all_horns_at_zero_is_the_modelled_pose():
 def test_each_servo_moves_its_own_chain_as_the_engine_poses_it():
     joints = {"l_lid": 20.0, "l_eye": -15.0, "r_lid": 10.0, "r_eye": 12.0}
     mats = scene.pose(STAGE1, joints)
-    for name, deg in (("L lid horn (inferred)", 20.0), ("L eye horn (inferred)", -15.0)):
+    for name, deg in (("L lid horn", 20.0), ("L eye horn", -15.0)):
         alone = stages.pose(STAGE1, name, deg).parts
         moved = [n for n in alone if not np.allclose(alone[n], STAGE1.parts[n].matrix)]
         assert moved and all(np.allclose(mats[n], alone[n]) for n in moved)
     assert np.allclose(mats["PandT base:1"], STAGE1.parts["PandT base:1"].matrix)
-    assert not np.allclose(
-        mats["R inside lid:1"], stages.pose(STAGE1, "L lid horn (inferred)", 20.0).parts["R inside lid:1"]
-    )
+    assert not np.allclose(mats["R inside lid:1"], stages.pose(STAGE1, "L lid horn", 20.0).parts["R inside lid:1"])
 
 
 def test_a_stage_without_eye_horns_ignores_the_eye_joints():

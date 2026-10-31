@@ -20,9 +20,18 @@ CURVE_DEG, DISTANCE_MM = 1.0, 0.3
 KNOWN = {
     (
         "noggin-pan-tilt",
-        "pan horn (inferred)",
+        "pan horn",
         -50,
     ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"
+}
+
+# Parts #62 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
+# docs/research/2026-10-31-shafts.md) after the recorded Fusion builds: their recorded boxes predate the move. Their
+# curves and distances still meet the gate. Drop a name once its Fusion design is rebuilt and its box re-recorded.
+MOVED = {
+    "noggin-eyes": {f"{s} {k} {p}:1" for s in "LR" for k in ("lid", "eye") for p in ("servo", "horn")},
+    "noggin-mouth": {"jaw servo:1", "jaw horn:1", "connector bar:1"},
+    "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")},
 }
 
 _reports, _scenes = {}, {}
@@ -100,11 +109,24 @@ def test_every_part_sits_inside_its_recorded_fusion_box(doc):
     mine = engine(doc)["bboxes"]
     off = []
     for name in sorted(set(recorded) & set(mine)):
-        (rlo, rhi), (lo, hi) = recorded[name], mine[name]
-        out = max([r - e for r, e in zip(rlo, lo)] + [e - r for r, e in zip(rhi, hi)])
-        if out > (stages.TOL_INFERRED_MM if "(inferred)" in name else stages.TOL_MM):
-            off.append((name, round(out, 2)))
+        if name not in MOVED.get(doc, ()) and _out_of_box(recorded[name], mine[name], name):
+            off.append((name, round(_out_of_box(recorded[name], mine[name], name), 2)))
     assert off == [] and len(set(recorded) & set(mine)) >= len(recorded) - 1  # pan-tilt renamed switch board 1
+
+
+def _out_of_box(rec, got, name):
+    """mm by which a part's box leaves its recorded box past its placement tolerance, else 0."""
+    (rlo, rhi), (lo, hi) = rec, got
+    out = max([r - e for r, e in zip(rlo, lo)] + [e - r for r, e in zip(rhi, hi)])
+    return out if out > (stages.TOL_INFERRED_MM if "(inferred)" in name else stages.TOL_MM) else 0
+
+
+@pytest.mark.parametrize("doc", sorted(MOVED))
+def test_moved_parts_are_still_outside_their_recorded_box(doc):
+    """When a moved part's recorded box is re-recorded from Fusion, drop it from MOVED."""
+    recorded = json.load(open(os.path.join(HERE, "reports", f"{doc}-report.json")))["bboxes"]
+    mine = engine(doc)["bboxes"]
+    assert all(_out_of_box(recorded[n], mine[n], n) for n in MOVED[doc])
 
 
 def test_known_disagreements_are_still_there():

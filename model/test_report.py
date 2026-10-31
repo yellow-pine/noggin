@@ -10,6 +10,23 @@ import pytest
 from model.engine import run, stages
 
 HERE = os.path.dirname(__file__)
+_LID = (
+    "the real Mech closes the lid here, past the designer's end: the eyelid crank's step meets main bracket v2's outer"
+    " edge (x -27..-28) from -38, 1.0 mm deep; the crank's plane needs the calliper"
+)
+_EYE = (
+    "the real Mech runs here, past +-22: the eyeball bar rides on main bracket v2 and the model has it 0.26..0.5 mm in"
+    " (the eye horn 0.2..0.5 mm into the brackets at -32); the bar and rail heights need the calliper"
+)
+# (horn, calibrated end): why the model still collides where the real Mech runs (listed, never loosened silently).
+KNOWN_CALIBRATED = {
+    ("L lid horn", -54): _LID,
+    ("R lid horn", -46): _LID,
+    ("L eye horn", -32): _EYE,
+    ("L eye horn", 28): _EYE,
+    ("R eye horn", -32): _EYE,
+    ("R eye horn", 28): _EYE,
+}
 
 
 def problems(report):
@@ -62,7 +79,8 @@ def problems(report):
     for horn, c in report.get("calibrated", {}).items():
         # the real Mech runs its calibrated ends (eyes/calibration.json); while the pivot is inferred: run.warnings
         for v in c.get("violations", []) if not c["inferred"] else []:
-            out.append(f"calibrated {horn}: collision at {v['deg']} deg between {v['pair']}")
+            if (horn, v["deg"]) not in KNOWN_CALIBRATED:
+                out.append(f"calibrated {horn}: collision at {v['deg']} deg between {v['pair']}")
     return out
 
 
@@ -97,9 +115,9 @@ FIXTURE_PROBLEMS = {
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
         "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
         "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
-        "corridor l_lid servo -> Core 1 PWM1: 236.0 mm at {'pan horn (inferred)': 70, 'tilt horn (inferred)': 60} > 230"
+        "corridor l_lid servo -> Core 1 PWM1: 236.0 mm at {'pan horn': 70, 'tilt horn': 60} > 230"
         " (250 mm lead less 20 slack)",
-        "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar (inferred):1 at {'tilt horn (inferred)': -60}",
+        "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar:1 at {'tilt horn': -60}",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
@@ -117,7 +135,17 @@ def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once
     assert "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']" in problems(report)
     assert not any("L eye horn" in p for p in problems(report))
     assert run.warnings(report) == [
-        "calibrated L eye horn (inferred): collision at -32 deg between ['L eyeball bar', 'main bracket v2']"
+        "calibrated L eye horn: collision at -32 deg between ['L eyeball bar', 'main bracket v2']"
         " (pivot inferred: fails once measured)"
     ]
-    assert committed("noggin-eyes")["warnings"] == run.warnings(committed("noggin-eyes")) != []
+    assert (
+        committed("noggin-eyes")["warnings"] == run.warnings(committed("noggin-eyes")) == []
+    )  # no pivot inferred (#62)
+
+
+def test_known_calibrated_collisions_are_still_there():
+    """When the model changes so a KNOWN_CALIBRATED entry no longer collides, drop it."""
+    found = {
+        (h, v["deg"]) for c in ("noggin-eyes",) for h, r in committed(c)["calibrated"].items() for v in r["violations"]
+    }
+    assert set(KNOWN_CALIBRATED) == found

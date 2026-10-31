@@ -75,7 +75,7 @@ def link(stage, stl_key, hole_a, hole_b, normal):
     return part(stl(stage, stl_key), m, printed(stl_key))
 
 
-def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None):
+def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None, tol=None):
     """The link's two holes on its pins, in the plane of the loop: along the pin axis a link may sit anywhere on its pin
     (the crank's lid end is stepped 3 mm). pin_axis (0, 1 or 2) is the world pin direction when the two pins sit at
     different depths along it (the eyelid crank): the expected lid-end point then takes the horn end's depth too."""
@@ -85,14 +85,15 @@ def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None):
     lb = tuple(la[i] if k == i else c for k, c in enumerate(lb))
     if pin_axis is not None:
         hole_b = tuple(hole_a[pin_axis] if k == pin_axis else c for k, c in enumerate(hole_b))
-    return (name, [la, lb], [hole_a, hole_b], TOL_INFERRED_MM if "(inferred)" in name else TOL_MM)
+    return (name, [la, lb], [hole_a, hole_b], tol or (TOL_INFERRED_MM if "(inferred)" in name else TOL_MM))
 
 
 def servo_placements(key, label):
-    """The servo's tab holes on the measured pair and its horn's hub on the horn pivot (both inferred, +-4 mm)."""
+    """The servo's tab holes on its pair and its horn's hub (spline-side face) on the horn pivot."""
+    hub = (*g.HORN_STEP["hub"][:2], g.HORN_STEP["height"])
     return [
-        (f"{label} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_INFERRED_MM),
-        (f"{label} horn (inferred):1", [g.HORN_STEP["hub"]], [g.PIVOTS[key + "_horn"]["point"]], TOL_INFERRED_MM),
+        (f"{label} servo:1", g.SERVO_STEP["tab_holes"], g.SERVOS[key]["tab_holes"], TOL_MM),
+        (f"{label} horn:1", [hub], [g.PIVOTS[key + "_horn"]["point"]], TOL_MM),
     ]
 
 
@@ -112,8 +113,13 @@ def servo_and_horn(key, label, arm):
             (SERVO_G, "documented"),
             ("x", g.SERVO_STEP["lead"][0]),
         ),
-        f"{label} horn (inferred):1": part(
-            step("horn"), align(seat, arm, shaft, g.HORN_STEP["hub"]), (STEP_G_CM3, "step volume x 1.9 g/cm3")
+        f"{label} horn:1": part(
+            # spline side (local z 4.15) on the seat, the arm on the outer face (docs/research/2026-10-31-shafts.md)
+            step("horn"),
+            align(
+                np.add(seat, np.multiply(g.HORN_STEP["height"], shaft)), arm, [-c for c in shaft], g.HORN_STEP["hub"]
+            ),
+            (STEP_G_CM3, "step volume x 1.9 g/cm3"),
         ),
     }
 
@@ -146,9 +152,10 @@ def eyes():
             hx, lx = (side((x, 0, 0))[0] for x in spec["x"])
             horn_pin = (hx, lid_horn[1] + g.HORN_STEP["pin"], lid_horn[2])
             lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
-            name = f"{s} {stem} (inferred):1"
+            name = f"{s} {stem}:1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
-            placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0))  # lid pins run along X
+            # lid pins run along X; the lid STLs' pose is not the neutral one (41.6 / 41.9 mm from the horn pin for 41 mm bars)
+            placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0, tol=TOL_INFERRED_MM))
             loops.append(
                 rocker_loop(
                     f"{s} {spec['lid']} lid pivot",
@@ -161,9 +168,7 @@ def eyes():
                     [f"{s} {spec['lid']} lid:1"],
                 )
             )
-        horns[f"{s} lid horn (inferred)"] = Horn(
-            g.PIVOTS[lid_key + "_horn"], limits(lid_key), f"{s} lid horn (inferred):1", loops, [], None
-        )
+        horns[f"{s} lid horn"] = Horn(g.PIVOTS[lid_key + "_horn"], limits(lid_key), f"{s} lid horn:1", loops, [], None)
         arm_end, eye_end = (side(p) for p in g.EYEBALL_BAR_PINS)
         loop = rocker_loop(
             f"{s} eyeball pivot",
@@ -175,9 +180,7 @@ def eyes():
             f"{s} eyeball bar:1",
             [f"{s} eyeball:1", f"{s} pupil:1"],
         )
-        horns[f"{s} eye horn (inferred)"] = Horn(
-            g.PIVOTS[eye_key + "_horn"], limits(eye_key), f"{s} eye horn (inferred):1", [loop], [], None
-        )
+        horns[f"{s} eye horn"] = Horn(g.PIVOTS[eye_key + "_horn"], limits(eye_key), f"{s} eye horn:1", [loop], [], None)
     placements += [pl for s in "LR" for p in ("lid", "eye") for pl in servo_placements(f"{s.lower()}_{p}", f"{s} {p}")]
     ports = {n: p for s in "LR" for k in ("lid", "eye") for n, p in servo_port(f"{s} {k}").items()}
     return Sub(parts, horns, placements, ports)
@@ -226,9 +229,9 @@ def stack():
         pivot = g.PIVOTS[key + "_horn"]
         pin, lever = g.horn_pin(key)
         parts.update(servo_and_horn(key, key, np.subtract(pin, pivot["point"])))
-        parts[f"{key} bar (inferred):1"] = link("pt", stem, pin, lever, pivot["axis"])
+        parts[f"{key} bar:1"] = link("pt", stem, pin, lever, pivot["axis"])
         bars[key] = pin, lever
-        placements += [*servo_placements(key, key), link_placement(f"{key} bar (inferred):1", stem, pin, lever)]
+        placements += [*servo_placements(key, key), link_placement(f"{key} bar:1", stem, pin, lever)]
     set2, ports = electronics(2)
     parts.update(set2)
     ports.update({**servo_port("tilt"), **servo_port("pan")})
@@ -239,7 +242,7 @@ def stack():
         g.PIVOTS["tilt"]["point"],
         bars["tilt"][1],
         g.X,
-        "tilt bar (inferred):1",
+        "tilt bar:1",
         ["tilt arm:1"],
     )
     pan = rocker_loop(
@@ -249,16 +252,12 @@ def stack():
         g.PIVOTS["pan"]["point"],
         bars["pan"][1],
         g.Z,
-        "pan bar (inferred):1",
-        ["pan base:1", "upright v2:1", "tilt servo:1", "tilt arm:1", "tilt horn (inferred):1", "tilt bar (inferred):1"],
+        "pan bar:1",
+        ["pan base:1", "upright v2:1", "tilt servo:1", "tilt arm:1", "tilt horn:1", "tilt bar:1"],
     )
     horns = {
-        "tilt horn (inferred)": Horn(
-            g.PIVOTS["tilt_horn"], limits("tilt"), "tilt horn (inferred):1", [tilt], ["pan pivot"], None
-        ),
-        "pan horn (inferred)": Horn(
-            g.PIVOTS["pan_horn"], limits("rotate"), "pan horn (inferred):1", [pan], ["tilt pivot"], None
-        ),
+        "tilt horn": Horn(g.PIVOTS["tilt_horn"], limits("tilt"), "tilt horn:1", [tilt], ["pan pivot"], None),
+        "pan horn": Horn(g.PIVOTS["pan_horn"], limits("rotate"), "pan horn:1", [pan], ["tilt pivot"], None),
     }
     stand = g.STANDOFFS["pt_base"]
     placements += [
@@ -275,7 +274,7 @@ def mouth():
         parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
-    parts["connector bar (inferred):1"] = link("mouth", "jaws connector bar", pin, lever, g.X)
+    parts["connector bar:1"] = link("mouth", "jaws connector bar", pin, lever, g.X)
     loop = rocker_loop(
         "jaw hinge",
         g.PIVOTS["jaw_horn"]["point"],
@@ -283,15 +282,13 @@ def mouth():
         g.PIVOTS["jaw_hinge"]["point"],
         lever,
         g.X,
-        "connector bar (inferred):1",
+        "connector bar:1",
         ["bottom jaw:1"],
     )
-    horns = {
-        "jaw horn (inferred)": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn (inferred):1", [loop], [], None)
-    }
+    horns = {"jaw horn": Horn(g.PIVOTS["jaw_horn"], limits("mouth"), "jaw horn:1", [loop], [], None)}
     placements = [
         *servo_placements("jaw", "jaw"),
-        link_placement("connector bar (inferred):1", "jaws connector bar", pin, lever),
+        link_placement("connector bar:1", "jaws connector bar", pin, lever, pin_axis=0),  # cranked 13 mm along X
     ]
     return Sub(parts, horns, placements, servo_port("jaw"))
 
