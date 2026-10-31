@@ -19,6 +19,8 @@ def start(handle_line):
             cfg = json.load(f)
     except OSError:
         return None
+    if not cfg.get("token"):                 # no shared secret: refuse to serve the LAN
+        return None
     try:
         with open("core.json") as f:
             name = json.load(f)["name"]          # shortcut: "ports" ignored, the eye pins are fixed until the neck Core exists
@@ -35,7 +37,7 @@ class Wifi:
         self.join_at = None
         self.beacon = self.cmd = None
         self.next_beacon = 0
-        self.last = (None, None)                     # (seq, reply): a retried seq is acked again, not replayed
+        self.last = (-1, None)                       # (highest seq, its reply): a retried seq is acked again, an older one dropped
 
     def poll(self, now_ms):
         if not self.wlan.isconnected():
@@ -61,16 +63,22 @@ class Wifi:
             self.serve(data, addr)
 
     def serve(self, data, addr):
-        """Datagram `<token> <seq> <command line>` -> reply `ok <seq>` or `err <seq> <reason>`."""
-        parts = data.decode().split(" ", 2)
+        """Datagram `<token> <seq> <command line>` -> reply `ok <seq>` or `err <seq> <reason>`. seq must not go
+        backwards (replays are dropped); the highest seq is re-acked without running again."""
+        try:
+            parts = data.decode().split(" ", 2)
+        except (UnicodeError, ValueError):       # junk on the LAN must never stop the loop
+            return
         if len(parts) < 3 or parts[0] != self.cfg["token"] or not parts[1].isdigit():
             return
-        seq, line = parts[1], parts[2]
-        if seq != self.last[0]:
+        seq, line = int(parts[1]), parts[2]
+        if seq < self.last[0]:
+            return
+        if seq > self.last[0]:
             try:
                 self.handle_line(line)
-                reply = "ok " + seq
+                reply = "ok %d" % seq
             except Exception as e:
-                reply = "err %s %s" % (seq, type(e).__name__)
+                reply = "err %d %s" % (seq, type(e).__name__)
             self.last = (seq, reply)
         self.cmd.sendto(self.last[1].encode(), addr)
