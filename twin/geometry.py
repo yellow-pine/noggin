@@ -19,10 +19,11 @@ def pt_to_eyes(p):
 
 
 def pt_to_eyes_standalone(p):
-    """PandT base point -> eyes frame for the eyes-only build (no neck): the bracket v2 stem sits in the pan
-    bearing recess at the PT origin (builder-confirmed), its bottom 1.5 below the plate top [I: +-3 mm]."""
+    """PandT base point -> eyes frame for the eyes-only build (no neck): the bracket v2 stem drops through the
+    pan bearing recess at the PT origin (builder-confirmed) and the servo brackets' feet rest on the plate top
+    (side photo), so plate top z=3 is y=-35.6."""
     x, y, z = p
-    return (29.5 - x, z - 44.1, y + 15.5)
+    return (29.5 - x, z - 38.6, y + 15.5)
 
 
 def mirror_x(p):

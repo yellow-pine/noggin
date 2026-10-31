@@ -45,10 +45,10 @@ RECEIVER_PORTS = {"servo PWM1": (4.2, 10.8, 0.4), "servo PWM2": (4.2, 10.8, 4.6)
 # side of the model: (file, root plane, plane offset mm, 2x3 transform taking the unit image square to the
 # plane in cm; u runs right, v runs UP from the image's bottom-left). Fusion's canvas rows per plane (measured
 # 2026-10-31): xZ -> (z, x), yZ -> (y, z), xY -> (x, y). Anchored on the eye centres measured in each image
-# (top 2993x2154 at 22 px/mm along z and 18.5 across, the shot is oblique; side 1336x3901 at 22 px/mm;
+# (top 2993x2154 at 17.2 px/mm along z (plate end at z=150.5) and 18.5 across; side 1336x3901 at 22 px/mm;
 # front 1911x1371 at 17.1 px/mm). Perspective remains: parts nearer the camera read larger.
 CANVASES = {
-    "photo top (reference)": ("eyes-top.png", "xZConstructionPlane", 50.0, [[13.6, 0, -1.85], [0, 11.64, -2.97]]),
+    "photo top (reference)": ("eyes-top.png", "xZConstructionPlane", 50.0, [[17.4, 0, -2.36], [0, 11.64, -2.97]]),
     "photo side (reference)": ("eyes-side.png", "yZConstructionPlane", -45.0, [[-6.07, 0, 2.28], [0, 17.73, -2.53]]),
     "photo front (reference)": ("eyes-front.png", "xYConstructionPlane", -45.0, [[-11.18, 0, 8.46], [0, 8.02, -3.95]]),
 }
