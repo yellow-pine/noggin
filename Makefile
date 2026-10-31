@@ -4,13 +4,19 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
+.PHONY: venv test lint fmt check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
 test: venv
 	$(PY) -m pytest -q
-check: test       ## everything CI runs: tests, wizard syntax, plist validity, hook script syntax
+lint: venv       ## ruff
+	$(PY) -m ruff check
+fmt: venv        ## ruff format, in place
+	$(PY) -m ruff format
+check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard syntax, plist validity, hook script syntax
+	$(PY) -m ruff format --check
+	$(PY) -m pyright
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
