@@ -4,7 +4,7 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
+.PHONY: venv test check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock twin-eyes
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -47,3 +47,6 @@ flash: interrupt ## install the eye program and reboot the Core
 restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
+
+twin-eyes: venv   ## rebuild + save the noggin-eyes Fusion design (Fusion open with its MCP)
+	$(PY) scripts/fusion_run.py twin/eyes.py

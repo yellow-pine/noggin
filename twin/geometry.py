@@ -118,3 +118,19 @@ def servo_frame(key):
     along = sum((p - q) * c for p, q, c in zip(a, pivot["point"], shaft))
     origin = tuple(p + along * c for p, c in zip(pivot["point"], shaft))
     return origin, tab_x, shaft
+
+# Lid linkage (L side; mirror_x for R). Lid pins r=1 along X on the lid ears [M]; the bar and crank hang on
+# the lid-servo horn pin, outside the ears, stacked along X (bar nearer the ear) [I].
+LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
+LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -25.5}, "eyelid_crank": {"lid": "outside", "x": -29.5}}
+EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eyeball end [M]
+
+# Designer STLs that are in local frames: pivot holes (mm) and the hole axis.
+STL_LOCAL = {
+    "eyelid bar": {"holes": [(-21.03, 0.0, 1.5), (21.03, 0.0, 1.5)], "hole_axis": Z},
+    "eyelid bar crank": {"holes": [(-19.85, 0.0, 3.02), (21.36, 0.0, 1.49)], "hole_axis": Y},
+}
+
+# Eyes base pockets [M] and the battery STEP's pack floor (its lead is part of the body, +Y local).
+BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
+BATTERY_STEP = {"floor_z": -8.15}
