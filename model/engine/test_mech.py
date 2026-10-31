@@ -4,6 +4,7 @@ clocked gestures through the servo plant, reflected inertia about a horn axis, a
 import json
 import os
 
+import numpy as np
 import pytest
 import trimesh
 
@@ -53,3 +54,23 @@ def test_dynamic_torque_adds_the_inertia_term_to_gravity_at_every_pose():
 def test_clutch_flags_the_poses_whose_holding_load_eats_the_1_5x_margin_on_0_9():
     by_deg = {-20: {"gravity_kgf_cm": 0.1}, 0: {"gravity_kgf_cm": 0.59}, 30: {"gravity_kgf_cm": 0.7}}
     assert mech.clutch(by_deg) == {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [30]}
+
+
+def test_footprint_margin_is_the_distance_to_the_nearest_edge_of_the_plan_hull():
+    plate = [(x, y, z) for x in (0, 10) for y in (0, 10) for z in (0, 3)] + [(5, 5, 1)]
+    outline = mech.footprint(plate)
+    assert mech.margin(outline, (2.0, 5.0)) == pytest.approx(2.0)
+    assert mech.margin(outline, (12.0, 5.0)) == pytest.approx(-2.0)
+
+
+@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
+def test_mech_poses_turn_the_tilted_head_about_the_pan_axis():
+    stage = stages.STAGES["noggin-stage2"]
+    poses = {(p, t): m for p, t, m in mech.mech_poses(stage, 10)}
+    tilted = stages.pose(stage, "tilt horn (inferred)", 30).parts
+    eye = lambda m: m["L eyeball:1"][:3, 3]
+    assert np.allclose(poses[(0, 30)]["L eyeball:1"], tilted["L eyeball:1"])  # pan neutral: the tilt pose itself
+    for p in (-30, 30, 60):  # the pan turns the tilted head about Z through the origin: radius and height kept
+        a, b = eye(poses[(p, 30)]), eye(tilted)
+        assert np.hypot(*a[:2]) == pytest.approx(np.hypot(*b[:2])) and a[2] == pytest.approx(b[2])
+        assert not np.allclose(a, b)

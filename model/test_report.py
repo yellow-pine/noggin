@@ -53,6 +53,12 @@ def problems(report):
                 )
         elif t["kgf_cm"] > t["limit_kgf_cm"]:
             out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
+    tip = report.get("tip_over")
+    if tip and tip["margin_mm"] <= 0:
+        out.append(
+            f"tip-over: centre of mass {-tip['margin_mm']} mm outside the base footprint at pan {tip['at']['pan']} "
+            f"tilt {tip['at']['tilt']}"
+        )
     for horn, c in report.get("clutch", {}).items():
         if c["flagged"]:
             out.append(
@@ -85,6 +91,7 @@ FIXTURE_PROBLEMS = {
         "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
+        "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
         "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],

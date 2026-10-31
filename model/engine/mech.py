@@ -1,11 +1,12 @@
 """Mech-wide checks over the engine's poses (#24, #22), folded into the report by model/engine/run.py: dynamic torque
 per horn (gravity plus the chain's inertia reflected to the horn axis times the peak horn acceleration of the clocked
 gestures through the servo plant, eyes/replay.py and eyes/servo.py; for the untraced Core 2 horns, the acceleration
-that keeps them under the limit) and the clutch margin per pose."""
+that keeps them under the limit), the clutch margin per pose, and over the pan x tilt grid the tip-over margin."""
 
 import math
 
 import numpy as np
+from scipy.spatial import ConvexHull
 
 from model import electrical
 from model.engine import linkage, masses, stages
@@ -115,3 +116,50 @@ def clutch(by_deg):
         "limit_kgf_cm": round(limit, 3),
         "flagged": [d for d in sorted(by_deg) if by_deg[d]["gravity_kgf_cm"] > limit],
     }
+
+
+def footprint(points):
+    """The base plate's plan outline: the convex hull of its vertices in XY as line equations, inside <= 0."""
+    return ConvexHull(np.asarray(points, float)[:, :2]).equations
+
+
+def margin(outline, xy):
+    """mm from a plan point to the outline: positive inside (the nearest edge), negative outside."""
+    return float(-(outline[:, :2] @ np.asarray(xy, float) + outline[:, 2]).max())
+
+
+PAN, TILT = "pan horn (inferred)", "tilt horn (inferred)"
+
+
+def mech_poses(stage, step):
+    """(pan deg, tilt deg, {part: 4x4}) over the pan x tilt grid at `step` within the limits (unreachable angles
+    skipped): the tilt pose carried by the pan's turn, which moves every tilt-chain part rigidly."""
+    neutral = {n: p.matrix for n, p in stage.parts.items()}
+
+    def sampled(h):
+        lo, hi = stage.horns[h].limits
+        out = {}
+        for d in [*range(lo, hi, step), hi]:
+            try:
+                out[d] = stages.pose(stage, h, d).parts
+            except linkage.Unreachable:
+                pass
+        return out
+
+    tilts = sampled(TILT)
+    for p, pm in sampled(PAN).items():
+        carry = {n: pm[n] @ np.linalg.inv(neutral[n]) for n in pm}
+        for t, tm in tilts.items():
+            yield p, t, {n: carry[n] @ tm[n] for n in tm}
+
+
+def tip_over(stage, table, outline, step):
+    """The Mech's centre of mass against the base footprint at every pan/tilt pose: the smallest margin (mm)."""
+    total = sum(m["g"] for m in table.values())
+    best = None
+    for p, t, mats in mech_poses(stage, step):
+        com = sum(m["g"] * (mats[n][:3, :3] @ m["com"] + mats[n][:3, 3]) for n, m in table.items()) / total
+        mm = margin(outline, com[:2])
+        if best is None or mm < best["margin_mm"]:
+            best = {"margin_mm": round(mm, 1), "at": {"pan": p, "tilt": t}, "com": [round(c, 1) for c in com]}
+    return best

@@ -220,6 +220,9 @@ def report(doc, parallel=True):
     sim.UP[doc] = stage.up
     out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
     out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
+    if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
+        outline = mech.footprint(placed["PandT base:1"].vertices)
+        out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
     for h, by_deg in dynamic.items():
         t = out["torque"][h]
         if mech.HORN_SERVO[h] not in peak:  # untraced (Core 2): what its choreography may reach

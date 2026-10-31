@@ -13,5 +13,6 @@
  },
  "violations": [],
  "torque": {"L lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.05, "dynamic_at_deg": 30, "inertia_g_mm2": 1500, "accel_deg_s2": 48000}},
- "clutch": {"L lid horn": {"hold_kgf_cm": 0.01, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": []}}
+ "clutch": {"L lid horn": {"hold_kgf_cm": 0.01, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": []}},
+ "tip_over": {"margin_mm": 25.0, "at": {"pan": 70, "tilt": -60}, "com": [-4.9, 36.6, 32.9]}
 }
