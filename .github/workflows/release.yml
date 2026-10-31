@@ -2,6 +2,9 @@ name: release
 on:
   push:
     tags: ["v*"]
+concurrency:   # one run per tag, never cancelled
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
