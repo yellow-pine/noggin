@@ -1,0 +1,44 @@
+name: review
+# Claude reviews every ready PR: mattpocock code-review (standards + spec) and ponytail (smallest complete change).
+# Needs the CLAUDE_CODE_OAUTH_TOKEN secret (`claude setup-token`); see CONTRIBUTING.md.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:
+  group: review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+  id-token: write
+jobs:
+  review:
+    # ready PRs from this repo only (forks and dependabot get no secrets)
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: |
+            https://github.com/anthropics/claude-plugins-official.git
+            https://github.com/DietrichGebert/ponytail.git
+          plugins: |
+            mattpocock-skills@claude-plugins-official
+            ponytail@ponytail
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }} (base `${{ github.event.pull_request.base.ref }}`).
+            The issue tracker is GitHub issues (`gh issue view`); the spec is the issue the PR body closes or names.
+            1. Call the Skill tool with `mattpocock-skills:code-review`, fixed point `origin/${{ github.event.pull_request.base.ref }}`.
+               Standards sources: CLAUDE.md, CONTRIBUTING.md, GLOSSARY.md, docs/adr/, docs/model-notes.md.
+            2. Call the Skill tool with `ponytail:ponytail-review` on the same diff: what could be smaller, deleted or reused.
+            3. Post ONE PR comment (`gh pr comment`) with the sections Standards, Spec and Ponytail, each finding with
+               file:line and a one-line fix, worst first, under 500 words; inline comments only for concrete line fixes.
+            Review only; never push, approve or merge.
+          claude_args: |
+            --allowedTools "Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),mcp__github_inline_comment__create_inline_comment"
