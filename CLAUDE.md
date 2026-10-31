@@ -11,10 +11,10 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Feature-first layout, never function-first; tests beside the code.
 - Keep it minimal (ponytail is active). Smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
-- No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield.
+- No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield is a planned edit (docs/model-notes.md), not in the model yet.
 - The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
-- Ground truth for the model, in order: Bambu STEP files, PurpleShark's STLs, guide PDF images, remote configs, Cansin's photos, datasheets. Record every conflict with both sources; inference only fills what none settles, marked inferred.
+- Ground truth for the model, in order: Cansin's current build (the real Mech, photos, measurements), then PurpleShark's stock version (Bambu STEP files, STLs, guide PDF images, remote configs). Anything else, including our planned edits, goes in notes only, never into the model, until it stabilises. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are
