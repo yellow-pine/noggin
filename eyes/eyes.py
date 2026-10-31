@@ -11,7 +11,8 @@ except ImportError:  # CPython
 
 # shield port 1..4 -> GPIO 3,2,1,0. Ranges from the designer's remote config.
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
-RANGE = {L_LID: (45, 150), L_EYE: (60, 120), R_LID: (40, 135), R_EYE: (60, 120)}  # calibrated 2026-10-31
+# Lid ends sit 6 deg inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled against a stop.
+RANGE = {L_LID: (51, 144), L_EYE: (60, 120), R_LID: (46, 129), R_EYE: (60, 120)}  # calibrated 2026-10-31
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 # Horn offsets differ per eye; added to every eye target so 90 looks straight ahead. Set by calibration.

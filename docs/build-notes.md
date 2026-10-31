@@ -57,3 +57,18 @@ motors,servos,sleepModule}.py`. So `bbl` lives on the filesystem, not frozen,
 and the file list matches the GitHub repo's `src/app_rc/`. Local copy with
 md5s: `docs/references/stock-program-manifest.json`. Still verify on the real
 board with `mpremote ls` before replacing anything.
+
+## Servo calibration lessons (2026-10-31)
+
+- The MakerWorld 9 g servos have a slip clutch. Driving a lid into its
+  mechanical stop makes the clutch slip and the calibration drifts, which looks
+  like the horn sliding on the spline. Keep every range end a few degrees
+  inside the stop; the eye program's lid ranges sit 6° inside.
+- Fit horns with all servos held at centre (90): lids half open, eyes straight
+  ahead. Push fully home, then the short screw from the servo pack. A horn that
+  has been refitted several times is worn; use a fresh one.
+- The two lid servos are mirror-mounted: open is the low end for the mech's
+  left lid and the high end for the right. The eye program handles that with
+  `LID_FLIP`.
+- Calibrated values live at the top of `eyes/eyes.py` (`RANGE`, `LID_FLIP`,
+  `EYE_TRIM`, `LID_REST`, `LID_THINK`).
