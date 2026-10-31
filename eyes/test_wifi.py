@@ -135,4 +135,4 @@ def test_undecodable_datagram_does_not_crash_the_loop(link):
 def test_start_refuses_an_empty_token(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "wifi.json").write_text('{"ssid": "s", "password": "p", "token": ""}')
-    assert wifi.start(lambda line: None) is None
+    assert mod.start(lambda line: None) is None
