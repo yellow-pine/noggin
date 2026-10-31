@@ -8,7 +8,7 @@ import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
-MAX_EDGE_MM = 2.0   # the exact pass only needs vertices within (vertex-vertex bound + longest edge) of each other
+MAX_EDGE_MM = 4.0   # faces are bisected to this: the exact pass needs each mesh's reach small, not tiny (size classes handle the rest)
 NEAR_MM = 10.0      # pairs whose boxes are further apart are not measured (check.py NEAR_MM)
 EXACT_MM = 5.0      # the exact pass runs when the vertex screen is under this; above, the screen (at most ~1.5 mm high) is reported
 DEPTH_MM = 0.02     # a vertex counts as inside only this deep: coincident faces are a contact, not a collision
@@ -61,8 +61,13 @@ class Placed:
         self.lo, self.hi = self.vertices.min(axis=0), self.vertices.max(axis=0)
         tri = self.vertices[self.faces]
         self.centroids = tri.mean(axis=1)
-        self.reach = float(np.linalg.norm(tri - self.centroids[:, None], axis=2).max())   # every point of a face is this close to its centroid
-        self._ctree = None
+        reach = np.linalg.norm(tri - self.centroids[:, None], axis=2).max(axis=1)   # every point of a face is this close to its centroid
+        self.reach = float(reach.max())
+        # faces in size classes, each with its own centroid tree: a few large faces must not widen every query
+        edges = np.unique(np.r_[0.25, 0.5, 1.0, 2.0, self.reach + 1e-9])
+        cls = np.searchsorted(edges, reach, side="left")
+        self.classes = [(np.flatnonzero(cls == c), float(reach[cls == c].max())) for c in np.unique(cls)]
+        self._ctrees = None
         n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
         self.normals = n / np.maximum(np.linalg.norm(n, axis=1), 1e-12)[:, None]
         # pseudo-normals for the inside test: angle-weighted at vertices, the two faces' sum on edges
@@ -73,10 +78,10 @@ class Placed:
         self._tree = None
 
     @property
-    def ctree(self):
-        if self._ctree is None:
-            self._ctree = cKDTree(self.centroids)
-        return self._ctree
+    def ctrees(self):
+        if self._ctrees is None:
+            self._ctrees = [(idx, reach, cKDTree(self.centroids[idx])) for idx, reach in self.classes]
+        return self._ctrees
 
     @property
     def tree(self):
@@ -95,10 +100,14 @@ def to_surface(pts, b, bounds):
     face, i.e. inside b."""
     out = np.array(bounds, float)
     depth = np.zeros(len(pts))
-    hits = b.ctree.query_ball_point(pts, out + b.reach)
-    counts = np.fromiter((len(h) for h in hits), int, len(hits))
-    fi = np.concatenate(hits).astype(int) if counts.any() else np.zeros(0, int)
-    pi = np.repeat(np.arange(len(pts)), counts)
+    pi, fi = [], []
+    for idx, reach, tree in b.ctrees:
+        hits = tree.query_ball_point(pts, out + reach)
+        counts = np.fromiter((len(h) for h in hits), int, len(hits))
+        if counts.any():
+            fi.append(idx[np.concatenate(hits).astype(int)])
+            pi.append(np.repeat(np.arange(len(pts)), counts))
+    pi, fi = (np.concatenate(pi), np.concatenate(fi)) if pi else (np.zeros(0, int), np.zeros(0, int))
     if len(pi):
         away = pts[pi] - trimesh.triangles.closest_point(b.vertices[b.faces[fi]], pts[pi])
         d = np.linalg.norm(away, axis=1)
@@ -145,29 +154,41 @@ def pseudo_normal(b, faces, pts):
     return n
 
 
-def _one_way(a, b, bound):
-    """(min distance, confirmed penetration) from a's vertices to b, complete below `bound`."""
-    d, _ = b.tree.query(a.vertices, distance_upper_bound=bound + b.reach)
+def _near_box(a, b, margin):
+    """a's vertices within `margin` of b's box: the only ones that can be closer than margin to b."""
+    v = a.vertices
+    return v[((v > b.lo - margin) & (v < b.hi + margin)).all(axis=1)]
+
+
+def _one_way(pts, b, bound):
+    """(min distance, confirmed depth) from the points to b, complete below `bound`; depth > 0 when a point lies
+    inside b (the deepest candidates confirmed by ray parity)."""
+    d, _ = b.tree.query(pts, distance_upper_bound=bound + b.reach)
     near = np.flatnonzero(np.isfinite(d))
     if not len(near):
-        return bound, False
-    pts = a.vertices[near]
+        return bound, 0.0
+    pts = pts[near]
     dist, depth = to_surface(pts, b, np.minimum(d[near], bound))
     deep = np.flatnonzero(depth > DEPTH_MM)
     deep = deep[np.argsort(-depth[deep])][:CONFIRM]
-    return min(bound, float(dist.min())), bool(len(deep)) and bool(inside(pts[deep], b).any())
+    confirmed = inside(pts[deep], b) if len(deep) else np.zeros(0, bool)
+    return min(bound, float(dist.min())), float(depth[deep][confirmed].max()) if confirmed.any() else 0.0
 
 
 def judge(a, b):
-    """(minimum distance mm, penetrates) for two Placed meshes: 0 mm when they touch or overlap; penetrating when
-    a vertex of either sits inside the other (else a 0 is a designed contact)."""
-    bound = float(b.tree.query(a.vertices)[0].min())
+    """(minimum distance mm, depth mm) for two Placed meshes: 0 mm when they touch or overlap; depth > 0 when a
+    vertex of either sits that deep inside the other, a penetration (a 0 with no depth is a designed contact).
+    Above NEAR_MM the pair is not measured (NEAR_MM comes back)."""
+    va, vb = _near_box(a, b, NEAR_MM), _near_box(b, a, NEAR_MM)
+    if not len(va) or not len(vb):
+        return NEAR_MM, 0.0
+    bound = float(b.tree.query(va)[0].min())
     if bound > EXACT_MM:
-        return bound, False
-    d_ab, in_ab = _one_way(a, b, bound)
-    d_ba, in_ba = _one_way(b, a, d_ab)
-    deep = in_ab or in_ba
-    return (0.0 if deep else d_ba), deep
+        return bound, 0.0
+    d_ab, depth_ab = _one_way(va, b, bound)
+    d_ba, depth_ba = _one_way(vb, a, d_ab)
+    depth = max(depth_ab, depth_ba)
+    return (0.0 if depth else d_ba), depth
 
 
 def distance(a, b):
@@ -175,4 +196,4 @@ def distance(a, b):
 
 
 def penetrates(a, b):
-    return judge(a, b)[1]
+    return judge(a, b)[1] > 0

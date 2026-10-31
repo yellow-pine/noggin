@@ -193,31 +193,33 @@ def mouth():
 SUBS = {"noggin-base": base, "noggin-stack": stack, "noggin-eyes": eyes, "noggin-mouth": mouth}
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = g.pt_to_eyes_standalone((0, 0, 0)), (-1, 0, 0), g.Y   # the base as the eyes/mouth sweep documents carried it (context)
-# Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames)
-# and the Stage configurations (geometry.STAGES, PT frame). Frames are (origin, x axis, z axis) as fusion_lib.align.
-DOCS = {"noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1),
-        "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2),
-        "noggin-mouth": ({"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1),
-        **{doc: (frames, 2) for doc, frames in g.STAGES.items()}}
+# Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames,
+# with the sub-assemblies they carried as grounded context: no horns swept, as Fusion sweeps root joints only) and the
+# Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as fusion_lib.align.
+DOCS = {"noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
+        "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
+        "noggin-mouth": ({"noggin-mouth": EYES_FRAME, "noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-eyes", "noggin-base"}),
+        **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()}}
 
 
-def assemble(doc, frames, up):
+def assemble(doc, frames, up, context=()):
     """One document: each sub-assembly's parts and horns carried to its frame (parts static there unless a horn moves
-    them). Part names are unique across the sub-assemblies by construction."""
+    them); `context` sub-assemblies bring parts only. Part names are unique across the sub-assemblies by construction."""
     parts, horns, placements = {}, {}, []
     for name, frame in frames.items():
         sub, f = SUBS[name](), align(*frame)
         for pname, p in sub.parts.items():
             assert pname not in parts, pname
             parts[pname] = Part(p.file, f @ p.matrix, p.material, p.clip)
-        horns.update({h: Horn(*horn[:5], f) for h, horn in sub.horns.items()})
+        if name not in context:
+            horns.update({h: Horn(*horn[:5], f) for h, horn in sub.horns.items()})
         placements += [(pname, local, [world(f, e) for e in expected], tol) for pname, local, expected, tol in sub.placements]
     return Stage(doc, parts, horns, placements, up)
 
 
 def stage(doc):
-    frames, up = DOCS[doc]
-    return assemble(doc, frames, up)
+    frames, up, context = DOCS[doc]
+    return assemble(doc, frames, up, context)
 
 
 class _Stages(dict):

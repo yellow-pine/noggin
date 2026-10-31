@@ -4,7 +4,7 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases
+.PHONY: venv test check sim model-step-meshes model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases
 DOC ?= noggin-eyes   ## Stage document for model-check: noggin-eyes, noggin-pan-tilt or noggin-mouth
 
 venv:            ## .venv with pyserial, pytest, mpremote
@@ -15,6 +15,12 @@ check: test       ## everything CI runs: tests, wizard syntax, plist validity, h
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
+sim: venv model/build/steps/horn.stl   ## simulate every document (recorded sweeps + Stage configurations) in Python: model/build/<doc>-sim.json
+	$(PY) -m model.engine.run $(SIM_DOCS)
+model-step-meshes: ## tessellate the Bambu STEPs once into model/build/steps (cadquery-ocp, ephemeral)
+	uv run --with cadquery-ocp python model/engine/step_mesh.py
+model/build/steps/horn.stl: model/engine/step_mesh.py
+	$(MAKE) model-step-meshes
 model-check: venv  ## sweep every horn joint of $(DOC) (Fusion open, MCP on); writes model/build/
 	$(PY) model/sweep.py $(DOC)
 	$(PY) -m pytest -q model/test_report.py

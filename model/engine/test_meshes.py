@@ -15,7 +15,7 @@ def test_gap_between_two_cubes_is_their_face_to_face_distance():
     a, b = cube((0, 0, 0)), cube((10.4, 3.0, 2.0))   # faces 0.4 mm apart, offset so no vertices face each other
     assert meshes.distance(a, b) == pytest.approx(0.4, abs=1e-6)
     assert meshes.bbox_gap(a, b) == pytest.approx(0.4, abs=1e-6)
-    assert meshes.distance(a, cube((30, 0, 0))) == pytest.approx(20.0, abs=1e-6)
+    assert meshes.distance(a, cube((30, 0, 0))) == meshes.NEAR_MM   # beyond NEAR_MM a pair is not measured (check.py)
 
 
 def test_touching_cubes_are_a_contact_and_overlapping_ones_a_penetration():
