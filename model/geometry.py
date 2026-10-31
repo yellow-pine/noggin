@@ -33,8 +33,8 @@ def mirror_x(p):
 
 
 # Absolute servo angle limits in degrees, neutral 90. Designer: PurpleShark's remote config (PWM min/max, the same in
-# every config under docs/references). Model: where the model sweeps instead, each with its reason ([I]: until the
-# inferred horn pivots are measured).
+# every config under docs/references). Model: where the model sweeps instead, each with its reason (re-checked against
+# the settled shafts, docs/research/2026-10-31-shafts.md).
 DESIGNER_LIMITS = {
     "l_lid": (75, 120),
     "l_eye": (60, 120),
@@ -45,18 +45,19 @@ DESIGNER_LIMITS = {
     "mouth": (0, 180),
 }
 MODEL_LIMITS = {
-    "l_lid": ((70, 120), "one range for the mirrored lid pair: the L lid is swept to the R lid's 70 [I]"),
-    "l_eye": ((70, 110), "+-20 [I]: the eyeball bar enters the bracket at +-25 with the inferred eye horn pivot"),
-    "r_eye": ((70, 110), "+-20 [I]: the eyeball bar enters the bracket at +-25 with the inferred eye horn pivot"),
+    "l_lid": ((70, 120), "one range for the mirrored lid pair: the L lid is swept to the R lid's 70"),
+    "l_eye": ((68, 112), "+-22: the eyeball bar rides on main bracket v2 and enters it 0.1 mm at +-24, 0.26 at +-28"),
+    "r_eye": ((68, 112), "+-22: the eyeball bar rides on main bracket v2 and enters it 0.1 mm at +-24, 0.26 at +-28"),
     "tilt": (
         (30, 150),
-        "[I] at 20..29 the inferred tilt horn and bar sweep into the pan base's front chord (contact from horn -61 deg,"
-        " 1.05 mm deep at -70): the lower end stops at 30 until the tilt servo shaft is measured",
+        "at 20..27 the tilt horn and bar sweep into the pan base's front chord (0.06 mm clear at -62, 0.38 mm deep at"
+        " -66, 1.16 at -70): the lower end stops at 30, which keeps the pan x tilt grid on neutral",
     ),
     "mouth": (
-        (50, 90),
-        "[I] the jaws are modelled closed at neutral and the connector-bar four-bar only has solutions on the opening"
-        " side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only",
+        (15, 90),
+        "the jaws are modelled closed at neutral: horn +1..+22 drives the bottom jaw further shut into the top jaw (the"
+        " hinge pair, not swept) and past +22 the connector-bar four-bar has no solution; on the opening side the bar"
+        " enters the jaw servo past -75 (0.28 mm at -80): horn -75..0 = jaw -58..0 deg",
     ),
 }
 HORN_LIMITS = {**DESIGNER_LIMITS, **{k: v for k, (v, _) in MODEL_LIMITS.items()}}
@@ -67,43 +68,47 @@ X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 def _pivot(point, axis, frame="eyes", inferred=False):
     p = {"point": point, "axis": axis, "frame": frame}
     if inferred:
-        p["inferred"] = True  # servo shaft offset from guides/photos, not the STLs
+        p["inferred"] = True  # a position no source settles
     return p
 
 
-# Revolute axes. Points on the axis; "inferred" marks positions still open (+-4 mm).
+# Revolute axes. Points on the axis. Horn pivots sit at the horn seat (its inner face) on the servo shaft: shaft 8.56 from
+# the near tab hole (SERVO_STEP), flange on the printed lug face, near hole and direction from the guide pictures and the
+# loop closing at neutral (docs/research/2026-10-31-shafts.md, one line each below).
 PIVOTS = {
     "l_lid": _pivot(EYE_L, X),
     "r_lid": _pivot(EYE_R, X),
     "l_eye": _pivot(EYE_L, Y),
     "r_eye": _pivot(EYE_R, Y),
-    "l_lid_horn": _pivot((-16.0, -13.5, 40.0), X, inferred=True),
-    "r_lid_horn": _pivot((75.0, -13.5, 40.0), X, inferred=True),
-    "l_eye_horn": _pivot((2.9, 0.0, 26.9), Y, inferred=True),
-    "r_eye_horn": _pivot((56.1, 0.0, 26.9), Y, inferred=True),
+    # lid: upper hole (guide p.32 photo, hub 10 mm under the upper screw), shaft outboard, tab on the lug's outer face x -7.42
+    "l_lid_horn": _pivot((-19.59, -13.21, 40.0), X),
+    "r_lid_horn": _pivot((78.59, -13.21, 40.0), X),
+    # eye: outboard hole (only it reaches the eyeball bar pin), shaft up, tab under the lug (y -11.5; guide step 6)
+    "l_eye_horn": _pivot((2.56, -1.63, 26.9), Y),
+    "r_eye_horn": _pivot((56.44, -1.63, 26.9), Y),
     "jaw_hinge": _pivot((CENTRE_X, -49.6, 8.0), X),
-    # Jaw horn at the servo's horn seat: tab plane x=75.9 (the mount lug's mid-plane) minus SERVO_STEP horn_seat, shaft -X
-    # (body outboard through the lug window), shaft 5.34 below the body centre (z 23.1; 33.6 if the servo is the other way up) [I].
-    "jaw_horn": _pivot((65.55, -48.6, 23.1), X, inferred=True),
+    # jaw: upper hole, shaft outboard through the mount plate (mouth guide step 3 photo, p.14 CAD), tab inside it (x 73.42)
+    "jaw_horn": _pivot((83.29, -48.6, 33.67), X),
     "pan": _pivot((0.0, 0.0, 0.0), Z, "pt"),
     "tilt": _pivot((0.0, -13.0, 33.4), X, "pt"),
-    # PT horn pivots at the horn seat (tab plane + SERVO_STEP horn_seat), shaft offset 5.34 from the tab-hole midpoint
-    # toward the near hole, as the eyes servos: tilt shaft -X on the pan-base tower, pan shaft +Z on the mounts [I].
-    "tilt_horn": _pivot((12.15, 14.1, 18.4), X, "pt", inferred=True),
-    "pan_horn": _pivot((-20.5, 38.1, 25.35), Z, "pt", inferred=True),
+    # tilt: lever-end hole, shaft -X (pan-tilt guide p.7 CAD), tab on the tower's outer face x 25 (the horn clears the lever)
+    "tilt_horn": _pivot((15.13, 13.98, 18.38), X, "pt"),
+    # pan: pan-base end hole (p.7 CAD; the far end leaves the bar at full stretch), shaft up, tabs on the mount tops z 15
+    "pan_horn": _pivot((-20.5, 38.11, 27.17), Z, "pt"),
 }
 
 SERVO_TAB_SPACING = 27.8  # SG90 mounting tab hole pitch
 
-# Measured servo tab-hole pairs (the two mounting screw holes).
+# The servo's tab holes: on the printed lug's measured hole axes, at the SERVO_STEP tab plane (z -0.65) where the flange
+# rests on the lug face (docs/research/2026-10-31-shafts.md).
 SERVOS = {
-    "l_lid": {"tab_holes": [(-5.4, -32.35, 40.0), (-5.4, -4.65, 40.0)], "frame": "eyes"},
-    "r_lid": {"tab_holes": [(64.4, -32.35, 40.0), (64.4, -4.65, 40.0)], "frame": "eyes"},
-    "l_eye": {"tab_holes": [(-6.0, -9.0, 26.9), (21.8, -9.0, 26.9)], "frame": "eyes"},
-    "r_eye": {"tab_holes": [(65.0, -9.0, 26.9), (37.2, -9.0, 26.9)], "frame": "eyes"},
-    "tilt": {"tab_holes": [(22.5, -5.04, 18.38), (22.5, 22.54, 18.38)], "frame": "pt"},
-    "pan": {"tab_holes": [(-20.5, 29.55, 15.0), (-20.5, 57.35, 15.0)], "frame": "pt"},
-    "jaw": {"tab_holes": [(75.9, -48.6, 14.43), (75.9, -48.6, 42.23)], "frame": "eyes"},
+    "l_lid": {"tab_holes": [(-8.07, -32.35, 40.0), (-8.07, -4.65, 40.0)], "frame": "eyes"},
+    "r_lid": {"tab_holes": [(67.07, -32.35, 40.0), (67.07, -4.65, 40.0)], "frame": "eyes"},
+    "l_eye": {"tab_holes": [(-6.0, -13.15, 26.9), (21.8, -13.15, 26.9)], "frame": "eyes"},
+    "r_eye": {"tab_holes": [(65.0, -13.15, 26.9), (37.2, -13.15, 26.9)], "frame": "eyes"},
+    "tilt": {"tab_holes": [(26.65, -5.04, 18.38), (26.65, 22.54, 18.38)], "frame": "pt"},
+    "pan": {"tab_holes": [(-20.5, 29.55, 15.65), (-20.5, 57.35, 15.65)], "frame": "pt"},
+    "jaw": {"tab_holes": [(71.77, -48.6, 14.43), (71.77, -48.6, 42.23)], "frame": "eyes"},
 }
 
 # Standoff tops. Receiver shield pattern is 23 x 24 [M]. Eyes base: the (29.5, 51/75) pair carries the wire
@@ -130,24 +135,24 @@ BARS = {
     "eyelid_crank": 41.0,
     "tilt_bar": 20.0,
     "pan_bar": 15.0,
-    "connector_bar": 31.4,
+    "connector_bar": 44.1,
     "eyeball_bar": 27.0,
 }
 
-# Bambu STEP files, local mm (measured in Fusion 2026-10-31). Servo: tab holes along +X on the tab mid-plane,
-# shaft at x=16.69 pointing -Z, horn seats on the boss top 10.35 beyond the tab plane. Horn = the kit's short
-# single arm ("half arm1"): hub at (0,20,0), bore along Z, arm along +X with holes every 2 mm; the build pins
-# the bars at the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24
-# holes, Core under the PCB.
+# Bambu STEP files, local mm (measured in Fusion 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
+# z -2.3..0, tab holes along +X, shaft at x=16.69 pointing -Z; the horn's inner face sits 11.52 beyond the z -0.65 plane
+# (spline tip z -14.52 on the 2.35 deep bore). Horn = the kit's short single arm ("half arm1"): hub at (0,20,0), 4.15
+# tall, spline side z 4.15, arm (1.6 thick, holes every 2 mm along +X) on the outer face z 0; the build pins the bars at
+# the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24 holes, Core under the PCB.
 SERVO_STEP = {
     "tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)],
     "shaft": (16.69, 5.9, -0.65),
-    "horn_seat": 10.35,
+    "horn_seat": 11.52,
     # where the lead leaves the servo: the STEP's three wires run straight on to x=42, the real lead is flexible, so the
     # mesh is cut there (the tab end) and the cable corridor starts there
     "lead": (27.7, 5.9, 11.0),
 }
-HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
+HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15}
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}  # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
 # The servos by the names the remote config and calibration use, and their Mech labels (Fusion components "<label> servo").
 # Core 1 drives the eyes (docs/build-notes.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
@@ -226,8 +231,8 @@ def servo_frame(key):
 # eyes-lid-linkage*.jpg, guide p.21: the top lid is the inside one) the crank joins the inside lid by its stepped end and
 # sits outermost on the horn pin under the nut; the straight bar joins the outside lid, between the horn and the crank.
 # "x": bar mid-planes at (horn pin, lid pin). The lid ears' outer faces are at x=-24 [M], so both lid ends ride on
-# -24..-27; the straight bar is flat, so it stands 4.1 mm off the horn's outer face (x -19.9) on the screw (inferred);
-# the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
+# -24..-27; the straight bar is flat, so it stands 0.26 off the horn's outer face (x -23.74, docs/research/2026-10-31-
+# shafts.md); the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
 LID_LINKS = {
     "eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)},
@@ -238,24 +243,31 @@ EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeb
 # Pan-tilt linkage. Lever holes fitted on the STLs (model/fits.py) [M]: the tilt bar joins the tilt horn pin to the
 # tilt arm's lever (x 3..8 slab, hole along X; the arm STL is at the v1 height, upright v2 raises it 5 mm); the pan bar
 # joins the pan horn pin to the upright v2's lever (x -8..-3, hole along Z through its top z=26.8). The research note's
-# "pan-bar post at (18,19)" is the pan-base tower corner. Bar mid-planes [I]: the horn is 4.15 thick from its seat
-# along the shaft (tilt x 8.0..12.15, pan z 25.35..29.5), the bar rides on the horn's outer face: tilt bar x 10.1..13.1
-# (the arm lever, x 3..8, is bridged by the M2.5 screw), pan bar z 29.5..32.5 (the upright lever top is z=26.8). Horn direction at neutral [I]: tilt horn horizontal toward
-# +Y with the bar vertical (guide step 15), pan horn forward (-Y) with the bar along X, tangent to the lever (step 14).
-# Jaw (eyes frame) [I]: the connector bar rides on the jaw horn's outer face (x 56.4..61.4) against the bottom jaw's pivot lug
-# (x 61.5..70.5, hole r 1.1 along X at (y -58.1, z -10.44), M2.5 self-tapping through the bar's larger hole, guide step 8); the
-# horn points down (-Y) at neutral, clear of the bracket rail (y > -40.6) the +Y solution would run into.
+# "pan-bar post at (18,19)" is the pan-base tower corner. Bar mid-planes (docs/research/2026-10-31-shafts.md): the tilt
+# bar fills the 2.98 between the lever face x 8.0 and the horn arm (outer face x 10.98): x 8..11; the pan bar sits on the
+# upright lever top z 26.8 under the horn arm (underside z 29.72, pan-tilt guide p.7 CAD): z 26.8..29.8. Horn direction
+# at neutral: tilt horn horizontal toward +Y with the bar vertical (guide step 15), pan horn forward (-Y) with the bar
+# along X, tangent to the lever (step 14).
+# Jaw (eyes frame): the connector bar is cranked 13 mm along its pins (STL_LOCAL): its larger hole on the outer face of the
+# bottom jaw's pivot lug (x 70.42..73.42; hole r 1.1 along X at (y -58.1, z -10.44), M2.5 self-tapping, guide step 8),
+# its smaller hole under the jaw horn's arm (x 83.42..86.42; the arm's underside is x 85.84: 0.58 overlap no source
+# settles); the horn points down (-Y) at neutral (mouth guide p.14 CAD), clear of the bracket rail (y > -40.6).
+# PT_BAR_PLANES: (axis, horn-end plane[, lever-end plane when the bar is cranked]).
 TILT_ARM_SHIFT_Z = 5.0
-PT_LEVER_HOLES = {"tilt": (8.0, 26.5, 33.4 + TILT_ARM_SHIFT_Z), "pan": (-5.5, 25.5, 26.8), "jaw": (58.9, -58.1, -10.44)}
-PT_BAR_PLANES = {"tilt": ("x", 11.6), "pan": ("z", 31.0), "jaw": ("x", 58.9)}
+PT_LEVER_HOLES = {
+    "tilt": (8.0, 26.5, 33.4 + TILT_ARM_SHIFT_Z),
+    "pan": (-5.5, 25.5, 26.8),
+    "jaw": (71.92, -58.1, -10.44),
+}
+PT_BAR_PLANES = {"tilt": ("x", 9.5), "pan": ("z", 28.3), "jaw": ("x", 84.92, 71.92)}
 PT_HORN_DIR = {"tilt": (0, 1, 0), "pan": (0, -1, 0), "jaw": (0, -1, 0)}
 HORN_BAR = {"tilt": "tilt_bar", "pan": "pan_bar", "jaw": "connector_bar"}  # BARS key of each horn's link
 
 
 def horn_pin(key):
-    """(pin, lever) world points in the bar's mid-plane for the tilt, pan or jaw link at neutral: the pin HORN_STEP['pin']
-    from the horn pivot and BARS[HORN_BAR[key]] from the lever hole, on the side PT_HORN_DIR says."""
-    axis, plane = PT_BAR_PLANES[key]
+    """(pin, lever) world points in the bar's mid-plane(s) for the tilt, pan or jaw link at neutral: the pin HORN_STEP['pin']
+    from the horn pivot and BARS[HORN_BAR[key]] from the lever hole (in the loop plane), on the side PT_HORN_DIR says."""
+    axis, plane, *lever_plane = PT_BAR_PLANES[key]
     i = "xyz".index(axis)
     u, v = [k for k in range(3) if k != i]
     hub, hole = PIVOTS[key + "_horn"]["point"], PT_LEVER_HOLES[key]
@@ -273,7 +285,7 @@ def horn_pin(key):
         if best is None or score > best[0]:
             best = (score, tuple(pin))
     lever = list(hole)
-    lever[i] = plane
+    lever[i] = (lever_plane or [plane])[0]
     return best[1], tuple(lever)
 
 
@@ -288,9 +300,9 @@ STL_LOCAL = {
     # M2.5 lever screw; listed horn end first.
     "tilt bar": {"holes": [(10.0, 0.0, 1.5), (-10.0, 0.0, 1.5)], "hole_axis": Z},
     "PandT bar": {"holes": [(7.5, 0.0, 1.5), (-7.5, 0.0, 1.5)], "hole_axis": Z},
-    # Jaws connector bar: a 50 x 15.5 x 5 Z-shaped plate, holes along its thickness (research note); which hole is the
-    # larger (jaw) one is inferred: horn end first [I].
-    "jaws connector bar": {"holes": [(16.0, -2.5, -6.0), (-13.0, -2.5, 6.0)], "hole_axis": Y},
+    # Jaws connector bar: a 3 mm strip cranked 13 mm along its pins (fits.py, docs/research/2026-10-31-shafts.md); horn end
+    # first: the smaller hole (r 1.1) on the horn, the larger (r 1.35) on the jaw (mouth guide step 8).
+    "jaws connector bar": {"holes": [(-22.05, -2.5, 6.5), (22.05, -2.5, -6.5)], "hole_axis": Z},
 }
 
 # Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the

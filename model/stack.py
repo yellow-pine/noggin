@@ -3,8 +3,8 @@ the origin, tilt axis X at (0,-13,33.4)): bearing block, pan base, upright v2, t
 from the parts library (`make model-parts`, fusion_lib.insert_part), the tilt and pan servos with their half-arm horns, the
 tilt and pan bars closing the two loops, electronics set 2 (receiver shield 2 with its Core on the back standoffs, switch
 board 2, battery 2) with Ports, and the Pivots as joints. The PandT base plate it sits on is `noggin-base`; the Stage
-documents (model/stage.py) insert both by reference. Runs INSIDE Fusion: `make model-stack`. Components whose position
-is inferred rather than measured carry an "(inferred)" suffix. Numbers live in model/geometry.py; reuse as in eyes.py."""
+documents (model/stage.py) insert both by reference. Runs INSIDE Fusion: `make model-stack`. Numbers live in
+model/geometry.py; reuse as in eyes.py."""
 
 # include: model/geometry.py
 # include: model/fusion_lib.py
@@ -23,10 +23,10 @@ MOVING = {
     "upright v2",
     "tilt servo",
     "tilt arm",
-    "tilt horn (inferred)",
-    "tilt bar (inferred)",
-    "pan horn (inferred)",
-    "pan bar (inferred)",
+    "tilt horn",
+    "tilt bar",
+    "pan horn",
+    "pan bar",
 }
 BAR_STL = {"tilt": "tilt bar", "pan": "PandT bar"}
 LEVER = {"tilt": "tilt arm", "pan": "upright v2"}
@@ -49,7 +49,8 @@ def run(_context: str):
     for name, lib, dz in STACK_PARTS:
         part(name, lib, name, align((0, 0, dz)) if dz else None)
 
-    # Servos from the measured tab holes, horns at the inferred shaft, each bar on its horn pin and lever hole.
+    # Servos from the measured tab holes, horns at the shaft, each bar on its horn pin and lever hole.
+    # The horn's spline side on the seat, its arm outermost (docs/research/2026-10-31-shafts.md).
     pins, leads = {}, []  # leads: (servo, Port name, world point) at each servo's cable exit, placed after parts_end
     for key in ("tilt", "pan"):
         origin, tab_x, shaft = servo_frame(key)
@@ -59,12 +60,17 @@ def run(_context: str):
         seat = PIVOTS[key + "_horn"]["point"]
         pin, lever = horn_pin(key)
         part(
-            f"{key} horn (inferred)",
+            f"{key} horn",
             "horn",
-            f"{key} horn (inferred)",
-            align(seat, [p - q for p, q in zip(pin, seat)], shaft, HORN_STEP["hub"]),
+            f"{key} horn",
+            align(
+                tuple(p + HORN_STEP["height"] * c for p, c in zip(seat, shaft)),
+                [p - q for p, q in zip(pin, seat)],
+                [-c for c in shaft],
+                HORN_STEP["hub"],
+            ),
         )
-        name = f"{key} bar (inferred)"
+        name = f"{key} bar"
         steps.append(
             (
                 name,
@@ -94,23 +100,23 @@ def run(_context: str):
             lo, hi = HORN_LIMITS[HORN_RANGE[key]]
             pivot_joint(
                 root,
-                occs[f"{key} horn (inferred)"],
+                occs[f"{key} horn"],
                 occs[f"{key} servo"],
                 PIVOTS[key + "_horn"]["point"],
                 axis,
-                f"{key} horn (inferred)",
+                f"{key} horn",
                 (lo - 90, hi - 90),
             )
             pin, lever = pins[key]
             pivot_joint(
                 root,
-                occs[f"{key} bar (inferred)"],
-                occs[f"{key} horn (inferred)"],
+                occs[f"{key} bar"],
+                occs[f"{key} horn"],
                 pin,
                 axis,
-                f"{key} bar / arm pin (inferred)",
+                f"{key} bar / arm pin",
             )
-            close_loop(root, occs[f"{key} bar (inferred)"], occs[LEVER[key]], lever, axis, f"{key} bar / lever screw")
+            close_loop(root, occs[f"{key} bar"], occs[LEVER[key]], lever, axis, f"{key} bar / lever screw")
         group = adsk.core.ObjectCollection.create()  # screwed together: the pan mechanism turns as one
         for name in ("pan base", "upright v2", "tilt servo"):
             group.add(occs[name])

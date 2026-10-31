@@ -25,4 +25,4 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Model pictures (Blender from the engine poses; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - PurpleShark's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
-- Checks: `make check` (CI runs the same). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
+- Checks: `make check` (CI runs it plus shellcheck). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

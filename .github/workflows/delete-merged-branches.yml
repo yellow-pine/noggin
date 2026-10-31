@@ -1,6 +1,5 @@
 name: delete merged branches
-# Ticket branches never get a PR (they merge into an integration branch), so GitHub's
-# "delete head branches" setting never sees them. When an integration branch (main, or a
+# GitHub deletes PR heads on merge; this catches branches merged any other way. When an integration branch (main, or a
 # branch with an open PR) is pushed, delete branches that are fully contained in it.
 # Kept: main, branches with an open PR, parked work (face-*), and any branch whose tip is
 # the pushed tip itself (a fresh ticket branch before its first commit). Fails closed.

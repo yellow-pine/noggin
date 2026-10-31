@@ -126,14 +126,15 @@ PT_RECORDED = {
     "pan bar": (81.23, True),
 }  # read 2026-10-31: the same 3 x 5 mm section as the eyes bars
 
-# Mouth sub-assembly: the connector bar as an axial link across its 31.4 mm pivot spacing; section from its lower tab (x > 8: the
+# Mouth sub-assembly: the connector bar as an axial link across its 44.1 mm in-plane pivot spacing (the 13 mm crank along
+# the pins is not modelled); section from its lower tab (x > 8: the
 # 5 x 3 tab plus its edge rounding, since the STL carries no vertices on the tab's flat top).
 MOUTH_BEAMS = [
     (
         "connector bar",
         "axial",
         stall_force_n,
-        31.4,
+        44.1,
         (fits.stl("jaws connector bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
