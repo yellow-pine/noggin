@@ -2,11 +2,12 @@ REPO  := $(abspath .)
 PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
 BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
+NOGGIN := noggin/noggin
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock render gifs lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash flash-usb restore-stock render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -63,7 +64,10 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 	mkdir -p eyes/stock-backup
 	cd eyes/stock-backup && for f in $$($(MPR) resume exec "import os; print(' '.join(os.listdir()))"); do $(MPR) resume cp -r :$$f . ; done
 	ls -R eyes/stock-backup
-flash: interrupt ## install the eye program and reboot the Core
+flash:           ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh, else USB (USB=1 forces it)
+	@if [ -z "$(USB)" ] && $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
+flash-usb: interrupt ## the cable: the only way boot.py changes, and the way back from anything Wi-Fi cannot fix
+	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
 	$(MPR) resume cp eyes/eyes.py :eyes.py
 	$(MPR) resume cp eyes/gaze_trace.py :gaze_trace.py
 	$(MPR) resume cp eyes/wifi.py :wifi.py

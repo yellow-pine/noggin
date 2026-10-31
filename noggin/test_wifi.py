@@ -3,12 +3,15 @@
 import json
 import os
 import socket
+import subprocess
 import tempfile
 import threading
 import time
 import uuid
+from pathlib import Path
 
 import pytest
+import wifi as core_wifi  # eyes/wifi.py: the fake Core flashes with the Core's own code
 
 from noggin.service import Service
 from noggin.test_service import FakeSerial, wait_for
@@ -25,12 +28,15 @@ def fast(monkeypatch):
 
 class FakeCore(threading.Thread):
     """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first, `busy`
-    how long its loop is blocked before it reads the first one. Like the Core, it re-acks its last seq unrun."""
+    how long its loop is blocked before it reads the first one. Like the Core, it re-acks its last seq unrun, and
+    flashes files in the working directory with the Core's own code; `rollback` makes its reboot put the .bak back."""
 
-    def __init__(self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1", stranger=False, busy=0.0):
+    def __init__(
+        self, name="eyes", token=TOKEN, drop=0, ack=True, claim_ip="127.0.0.1", stranger=False, busy=0.0, rollback=False
+    ):
         super().__init__(daemon=True)
         self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
-        self.busy, self.last_seq = busy, None
+        self.busy, self.last_seq, self.rollback, self.uptime, self.reply = busy, None, rollback, 42, ""
         self.stranger = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if stranger else None  # acks from another port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("127.0.0.1", 0))
@@ -43,7 +49,7 @@ class FakeCore(threading.Thread):
         last = 0.0
         while self.running:
             if self.beaconing and self.beacon_to and time.time() - last > 0.1:
-                self.sock.sendto(f"noggin {self.name_} {self.claim_ip} 42".encode(), self.beacon_to)
+                self.sock.sendto(f"noggin {self.name_} {self.claim_ip} {self.uptime}".encode(), self.beacon_to)
                 last = time.time()
             try:
                 data, addr = self.sock.recvfrom(1024)
@@ -61,11 +67,27 @@ class FakeCore(threading.Thread):
                 continue
             if seq != self.last_seq:
                 self.lines.append(line)
+                self.reply = f"ok {seq}"
+                if line.startswith(("put ", "commit ")):
+                    try:
+                        core_wifi.flash(line)
+                    except Exception as e:
+                        self.reply = f"err {seq} {type(e).__name__}"
+                elif line == "reboot":
+                    self.reboot()
             self.last_seq = seq
             if self.stranger:
                 self.stranger.sendto(f"ok {seq}".encode(), addr)
             if self.ack:
-                self.sock.sendto(f"ok {seq}".encode(), addr)
+                self.sock.sendto(self.reply.encode(), addr)
+
+    def reboot(self):
+        """What boot.py does next: a program that fails puts the .bak files back; either way it reaches ready."""
+        self.uptime, self.last_seq = 0, None
+        if self.rollback:
+            for n in open("flash.trial").read().split():
+                os.replace(n + ".bak", n)
+        os.remove("flash.trial")
 
 
 def start(tmp_path, core, open_serial=lambda: None, stale=6.0, wifi=True):
@@ -92,11 +114,11 @@ def start(tmp_path, core, open_serial=lambda: None, stale=6.0, wifi=True):
     return s, sock
 
 
-def ask(path, text):
+def ask(path, text, timeout=1.0):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(path)
     s.sendall(text.encode())
-    s.settimeout(1.0)
+    s.settimeout(timeout)
     try:
         return s.recv(4096).decode()
     finally:
@@ -285,3 +307,80 @@ def test_seq_is_milliseconds_since_the_epoch_and_strictly_increases(tmp_path):
     assert before <= seqs[0] < seqs[1] <= int(time.time() * 1000) + 1
     s.stop()
     core.running = False
+
+
+PROGRAM = {"eyes.py": b"eye program " * 40, "gaze_trace.py": bytes(range(256)) * 3, "wifi.py": b"# link\n"}
+
+
+def flashing(tmp_path, monkeypatch, core):
+    """The program files beside calibration.json on the Mac, an older eye program on the fake Core."""
+    (tmp_path / "core").mkdir()
+    monkeypatch.chdir(tmp_path / "core")
+    for name, data in PROGRAM.items():
+        (tmp_path / name).write_bytes(data)
+        (tmp_path / "core" / name).write_bytes(b"old " + name.encode())
+    (tmp_path / "core" / "boot.py").write_bytes(b"usb only")
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
+    return s, sock
+
+
+def test_flash_over_wifi_swaps_the_program_in_reboots_and_recalibrates(tmp_path, monkeypatch):
+    core = FakeCore()
+    s, sock = flashing(tmp_path, monkeypatch, core)
+    reply = ask(sock, "flash\n", timeout=30)
+    assert reply.startswith("flashed eyes") and "uptime 0s" in reply, reply
+    on_core = {p.name: p.read_bytes() for p in (tmp_path / "core").iterdir()}
+    assert on_core == {
+        **PROGRAM,
+        **{f"{n}.bak": b"old " + n.encode() for n in PROGRAM},
+        "boot.py": b"usb only",
+    }  # boot.py never travels over Wi-Fi
+    assert max(len(d) for d in core.datagrams) <= 256  # the Core reads each datagram into 256 bytes
+    assert wait_for(lambda: core.lines[-2:] == ["set lid_rest 0.28", "rest"])  # the rebooted Core, calibrated again
+    s.stop()
+    core.running = False
+
+
+def test_flash_says_when_the_core_fell_back_to_the_bak_files(tmp_path, monkeypatch):
+    core = FakeCore(rollback=True)
+    s, sock = flashing(tmp_path, monkeypatch, core)
+    reply = ask(sock, "flash\n", timeout=30)
+    assert reply.startswith("flash failed") and ".bak" in reply, reply
+    assert (tmp_path / "core" / "eyes.py").read_bytes() == b"old eyes.py"
+    s.stop()
+    core.running = False
+
+
+def test_flash_needs_the_core_on_wifi(tmp_path, monkeypatch):
+    core = FakeCore()
+    core.beaconing = False
+    s, sock = start(tmp_path, core)
+    assert ask(sock, "flash\n").startswith("flash failed: eyes is not on Wi-Fi")
+    assert core.datagrams == []
+    s.stop()
+    core.running = False
+
+
+@pytest.mark.parametrize(
+    "status, usb, path",
+    [
+        ("eyes wifi 192.168.1.42 uptime 9s", "", "wifi"),
+        ("eyes usb /dev/cu.usbmodem1 uptime n/a", "", "usb"),
+        ("eyes offline", "", "usb"),
+        ("eyes wifi 192.168.1.42 uptime 9s", "1", "usb"),  # USB=1 forces the cable
+    ],
+)
+def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, status, usb, path):
+    cli = tmp_path / "noggin"
+    cli.write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "{status}"\n[ "$1" = flash ] && echo FLASHED-OVER-WIFI\n')
+    cli.chmod(0o755)
+    out = subprocess.run(  # -n: the USB path is only printed, never run (no mpremote, no launchctl)
+        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}"],
+        cwd=Path(__file__).resolve().parent.parent,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert ("FLASHED-OVER-WIFI" in out) == (path == "wifi")
+    assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")

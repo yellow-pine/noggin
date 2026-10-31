@@ -3,8 +3,9 @@ Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the D
 plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
 `pose ...` / `exercise <min>` (passed to the Core) / `set <key> <value>` (saved to the calibration
 file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
-dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart). The whole calibration
-file is pushed whenever the Link connects."""
+dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart) / `flash` (the eye program to the
+eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is pushed whenever the
+Link connects."""
 
 import glob
 import json
@@ -28,6 +29,7 @@ GESTURES = ("eureka", "attention", "bored", "wince", "wink")
 DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"}
 SEQUENCE = ["eureka 1", "eureka 2", "eureka 3", "attention 2", "bored 2", "wince 2", "wink 3", "thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
+FLASH_FILES = ("eyes.py", "gaze_trace.py", "wifi.py")  # boot.py too over USB (the Makefile's flash-usb), never on Wi-Fi
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
@@ -146,6 +148,19 @@ class Service:
         except Exception as e:  # pyserial raises SerialException(IOError)
             self.drop_link(e)
 
+    def flash(self):
+        """The eye program, from beside the calibration file, to the eyes Core over Wi-Fi; the outcome as a line."""
+        if not self.wifi.fresh("eyes", time.time()):
+            msg = "flash failed: eyes is not on Wi-Fi (USB=1 make flash)"
+        else:
+            try:
+                msg = self.wifi.flash("eyes", {f: (self.cal_file.parent / f).read_bytes() for f in FLASH_FILES})
+            except (RuntimeError, OSError) as e:
+                msg = f"flash failed: {e}"
+            self.send(self.cal_lines() + [self.director.mode()])  # a rebooted Core starts uncalibrated
+        log(msg)
+        return msg + "\n"
+
     def start_demo(self, text):
         line = text.removeprefix("demo").strip()
         if line in ("", "once"):
@@ -249,6 +264,8 @@ class Service:
                 for line in data.splitlines():
                     if line.strip() == "status":
                         conn.sendall(self.status(now).encode())
+                    elif line.strip() == "flash":
+                        conn.sendall(self.flash().encode())
                     elif line.strip():
                         self.command(line.strip(), now)
         srv.close()

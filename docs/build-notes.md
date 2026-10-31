@@ -53,7 +53,8 @@ pushing past them, the lids bind at the ends.
 
 - ESP32-C3 running the vendor's MicroPython build. USB-C is the REPL at 115200,
   enumerating on macOS as `/dev/cu.usbmodem*`.
-- Upload files with `mpremote`. Never flash firmware with esptool or any
+- Upload files with `make flash`: over the Wi-Fi Link while the Core beacons, else `mpremote` over USB
+  (`USB=1` forces the cable; boot.py only ever goes that way). Never flash firmware with esptool or any
   third-party tool: the vendor states this bricks the board.
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
