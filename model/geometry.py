@@ -179,7 +179,10 @@ def servo_frame(key):
 # -24..-27; the straight bar is flat, so it stands 4.1 mm off the horn's outer face (x -19.9) on the screw (inferred);
 # the crank's plain end sits on it (-27..-30) and its 3 mm step brings the other end back to the ear.
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
-LID_LINKS = {"eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)}, "eyelid_crank": {"lid": "inside", "x": (-28.5, -25.5)}}
+LID_LINKS = {
+    "eyelid_bar": {"lid": "outside", "x": (-25.5, -25.5)},
+    "eyelid_crank": {"lid": "inside", "x": (-28.5, -25.5)},
+}
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]  # eye-horn end, eyeball end [M]
 
 # Pan-tilt linkage. Lever holes fitted on the STLs (model/fits.py) [M]: the tilt bar joins the tilt horn pin to the
