@@ -99,8 +99,9 @@ Seen live on the eyes Core: the Wi-Fi Link gave up on the startup calibration ba
 but logged `no ack`. Two causes. A gesture blocks the Core for about a second, and the Core used to ack only after the
 line had run, past the noggin service's 2 x 200 ms window. And WLAN power save was on (MicroPython's default, ping RTT
 about 60 ms), so the access point held the first datagrams and ARP after a quiet spell. The Core now acks on receipt
-and sets `pm=PM_NONE`, and a line that Wi-Fi does not deliver goes over USB when the cable is in (ADR 0005). Not yet
-checked on the Mech with the cable out (calibration arrives, `wink 3` acked); record the result here.
+and sets `pm=PM_NONE`, and a line that Wi-Fi does not deliver goes over USB when the cable is in (ADR 0005). Checked on the
+Mech 2026-10-31 (eyes Core at 192.168.68.55, cable out, noggin service restarted): the calibration batch is acked
+over Wi-Fi, `wink 3` is acked and the left eye winks, and the six gestures played over Wi-Fi alone (`demo once`).
 
 ## Second Core (tilt, mouth, pan)
 

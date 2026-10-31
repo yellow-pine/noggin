@@ -129,14 +129,14 @@ class Service:
             return
         if self.wifi.fresh(core, time.time()):
             try:
-                rest = self.wifi.send(core, lines)
+                undelivered = self.wifi.send(core, lines)
             except OSError as e:  # unroutable address, socket trouble
                 log("wifi error", core, repr(e))
-                rest = lines  # shortcut: lines acked before the error repeat over USB; errors hit the first sendto
-            if not rest:
+                undelivered = lines  # shortcut: lines acked before the error repeat over USB; errors hit the first sendto
+            if not undelivered:
                 return log("sent", core, lines)
-            log("no ack over wifi", core, rest)
-            lines = rest
+            log("no ack over wifi", core, undelivered)
+            lines = undelivered
         if core != USB_CORE or self.link is None:
             return log("no Link, dropped", core, lines)
         try:
