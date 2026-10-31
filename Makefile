@@ -4,20 +4,23 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
+.PHONY: venv test check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
 test: venv
 	$(PY) -m pytest -q
+check: test       ## everything CI runs: tests, wizard syntax, plist validity, hook script syntax
+	bash -n scripts/setup.sh
+	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
+	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
 	$(PY) noggin/install_hooks.py
 unhooks:
 	$(PY) noggin/install_hooks.py --remove
-start:           ## install + (re)start the noggin service (launchd)
+start: stop      ## install + (re)start the noggin service (launchd)
 	sed 's|__REPO__|$(REPO)|g' noggin/com.noggin.plist > $(PLIST)
-	-launchctl bootout $(LABEL) 2>/dev/null
 	launchctl bootstrap gui/$(shell id -u) $(PLIST)
 stop:            ## stop the noggin service (frees the Link for mpremote); waits until it is really gone
 	-launchctl bootout $(LABEL) 2>/dev/null

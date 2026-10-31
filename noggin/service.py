@@ -48,6 +48,23 @@ class Service:
     def cal_lines(self):
         return [f"set {k} {v}" for k, v in self.calibration().items()]
 
+    def read_core(self):
+        """Log whatever the Core prints (ready banner, unknown commands, tracebacks after a brownout)."""
+        try:
+            n = self.link.in_waiting
+            if n:
+                for line in self.link.read(n).decode(errors="replace").splitlines():
+                    if line.strip():
+                        log("Core:", line.strip())
+        except Exception as e:
+            self.drop_link(e)
+
+    def drop_link(self, e):
+        log("Link lost:", e)
+        try: self.link.close()
+        except Exception: pass
+        self.link = None
+
     def send(self, lines):
         if not lines or self.link is None:
             if lines: log("no Link, dropped", lines)
@@ -56,10 +73,7 @@ class Service:
             self.link.write(("\n".join(lines) + "\n").encode())
             log("sent", lines)
         except Exception as e:  # pyserial raises SerialException(IOError)
-            log("Link lost:", e)
-            try: self.link.close()
-            except Exception: pass
-            self.link = None
+            self.drop_link(e)
 
     def command(self, text, now):
         if text == "off":
@@ -100,6 +114,8 @@ class Service:
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])   # calibrate, then catch up the mode
             self.send(self.director.tick(now))
+            if self.link is not None:
+                self.read_core()
             try:
                 conn, _ = srv.accept()
             except socket.timeout:

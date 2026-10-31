@@ -2,8 +2,10 @@ import json, os, socket, tempfile, threading, time, uuid
 from noggin.service import Service
 
 class FakeSerial:
+    in_waiting = 0
     def __init__(self): self.buf = b""
     def write(self, b): self.buf += b
+    def read(self, n): return b""
     def close(self): pass
 
 def send(path, text):
@@ -39,3 +41,16 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     send(sock, "set bogus 1\n"); time.sleep(0.2)
     assert "bogus" not in cal.read_text()
     d.stop()
+
+def test_core_output_is_logged(tmp_path, capsys):
+    class ChattySerial(FakeSerial):
+        pending = b"noggin ready\r\nTraceback (most recent call last):\r\n"
+        @property
+        def in_waiting(self): return len(self.pending)
+        def read(self, n): out, self.pending = self.pending[:n], self.pending[n:]; return out
+    sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
+    d = Service(sock_path=sock, open_serial=lambda: ChattySerial(), mute_file=tmp_path / "m", cal_file=tmp_path / "c.json")
+    t = threading.Thread(target=d.run, daemon=True); t.start()
+    assert wait_for(lambda: d.ready); time.sleep(0.6); d.stop(); t.join(2)
+    out = capsys.readouterr().out
+    assert "Core: noggin ready" in out and "Core: Traceback" in out
