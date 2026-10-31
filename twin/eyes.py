@@ -22,8 +22,8 @@ STEP = {
 OUT = os.path.join(REPO, "twin", "build")
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
-# (component name, STL, x shift mm). Lids, eyeball bar and the pupils are modelled at one eye; the alternate
-# eye styles sit at x=50 on the R side (should be 59). Alternates are imported hidden.
+# (component name, STL, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
+# the regular eye; the lizard and plain eye STLs are not imported.
 PARTS = [
     ("main bracket", "main bracket", 0), ("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
     ("base", "base", 0), ("wire keeper", "wire keeper", 0),
@@ -32,9 +32,6 @@ PARTS = [
     ("L inside lid", "inside lid", 0), ("L outside lid", "outside lid", 0),
     ("R inside lid", "inside lid", 59), ("R outside lid", "outside lid", 59),
     ("L eyeball bar", "eyeball bar", 0), ("R eyeball bar", "eyeball bar", 79),
-    ("L lizard eye (alternate)", "L lizard eye", 0), ("R lizard eye (alternate)", "R Lizard eye", 9),
-    ("L plain eye (alternate)", "L plain eye", 0), ("R plain eye (alternate)", "R plain eye", 9),
-    ("L lizard pupil (alternate)", "lizard pupil", 0), ("R lizard pupil (alternate)", "lizard pupil", 59),
 ]
 # Receiver STEP, local mm: the four servo headers and the XH power socket (top centres). PWM numbering is inferred.
 RECEIVER_PORTS = {"servo PWM1": (4.2, 10.8, 0.4), "servo PWM2": (4.2, 10.8, 4.6), "servo PWM3": (-4.2, 10.8, 0.4),
@@ -64,7 +61,7 @@ def close_loop(root, occ_a, occ_b, point_mm, axis, name):
         joint = revolute(root, a, b, name)
     except Exception:            # over-constrained loop: the fallback agreed in #11
         joint = None
-    if joint is not None and joint.healthState == adsk.fusion.HealthStates.HealthyHealthState:
+    if joint is not None and joint.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState:
         return joint
     if joint is not None:
         joint.deleteMe()
@@ -79,6 +76,19 @@ def link(root, name, stl_key, hole_a, hole_b, normal):
     return import_stl(root, os.path.join(MODELS, stl_key + ".stl"), name, m)
 
 
+def strip_lead(battery):
+    """The battery STEP fuses the lead into the pack body: split at the pack end and drop the lead."""
+    comp = battery.component
+    cut = comp.constructionPlanes.createInput()
+    cut.setByOffset(comp.xZConstructionPlane, adsk.core.ValueInput.createByReal(BATTERY_STEP["lead_y"] / 10))
+    plane = comp.constructionPlanes.add(cut)
+    split = comp.features.splitBodyFeatures
+    split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
+    for body in list(comp.bRepBodies):
+        if body.boundingBox.minPoint.y * 10 >= BATTERY_STEP["lead_y"] - 0.1:
+            body.deleteMe()
+
+
 def run(_context: str):
     app = adsk.core.Application.get()
     doc, design, folder = open_or_create(app, DOC)
@@ -86,8 +96,6 @@ def run(_context: str):
     occs = {}
     for name, stl, dx in PARTS:
         occs[name] = import_stl(root, os.path.join(MODELS, stl + ".stl"), name, align((dx, 0, 0)))
-        if "(alternate)" in name:
-            occs[name].isLightBulbOn = False
     occs["main bracket"].isGrounded = True
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
@@ -108,6 +116,7 @@ def run(_context: str):
     flip = adsk.core.Matrix3D.create()
     flip.setToRotation(math.pi, vector(X), point(add(receiver_at, (0, 0.8, 0))))   # about the PCB mid-plane
     t = core.transform2.copy(); t.transformBy(flip); core.transform2 = t
+    capture_position(app)
     core.component.name = "Core (inferred: flipped onto the shield top)"
     usb = core.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core).boundingBox
     assert core.boundingBox.minPoint.y * 10 > receiver_at[1], "Core must sit above the shield"
@@ -119,7 +128,9 @@ def run(_context: str):
     import_step(root, STEP["switch"], "switch board (inferred)", align(add(switch_at, (-3.0, 0, 0))))
     pocket = BATTERY_POCKET
     battery_at = ((pocket["x"][0] + pocket["x"][1]) / 2, pocket["floor_y"] - BATTERY_STEP["floor_z"], pocket["z"][0])
-    import_step(root, STEP["battery"], "battery (inferred)", align(battery_at, (-1, 0, 0), Y))
+    battery = import_step(root, STEP["battery"], "battery (inferred)", align(battery_at, (-1, 0, 0), Y))
+    strip_lead(battery)
+    port(battery, "battery lead", add(battery_at, (-3.5, BATTERY_STEP["lead_y"], 3.5)))   # the pack's plug; wiring is out of scope
 
     # Linkage parts (local-frame STLs) at their pins, then the joints.
     for s in "LR":
@@ -163,5 +174,8 @@ def run(_context: str):
     ports = sum(1 for o in root.occurrences for sk in o.component.sketches if sk.name.startswith("Port:"))
     print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {ports} ports")
     for j in root.joints:
-        state = "ok" if j.healthState == adsk.fusion.HealthStates.HealthyHealthState else j.errorOrWarningMessage
+        state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage
         print(f"  joint {j.name}: {state}")
+    for o in root.occurrences:
+        lo, hi = o.boundingBox.minPoint, o.boundingBox.maxPoint
+        print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (o.name, lo.x * 10, hi.x * 10, lo.y * 10, hi.y * 10, lo.z * 10, hi.z * 10))

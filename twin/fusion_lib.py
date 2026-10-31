@@ -3,7 +3,7 @@
 Verified calls: docs/research/2026-10-31-twin.md."""
 import adsk.core, adsk.fusion, math
 
-PROJECT_NAME, FOLDER_NAME = "Default Project", "noggin"
+PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root
 _PLANE_FOR_AXIS = {"X": "yZConstructionPlane", "Y": "xZConstructionPlane", "Z": "xYConstructionPlane"}
 
 
@@ -16,11 +16,9 @@ def vector(v):
 
 
 def open_or_create(app, name):
-    """Open the design `name` in Default Project / noggin (or a new one), parametric, emptied of occurrences.
+    """Open the design `name` in project Noggin (or a new one), parametric, emptied of occurrences.
     Returns (document, design, folder); pass the folder to save()."""
-    project = next(p for p in app.data.activeHub.dataProjects if p.name == PROJECT_NAME)
-    root_folder = project.rootFolder
-    folder = next((f for f in root_folder.dataFolders if f.name == FOLDER_NAME), None) or root_folder.dataFolders.add(FOLDER_NAME)
+    folder = next(p for p in app.data.activeHub.dataProjects if p.name == PROJECT_NAME).rootFolder
     existing = next((f for f in folder.dataFiles if f.name == name), None)
     doc = app.documents.open(existing, True) if existing else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
     design = adsk.fusion.Design.cast(app.activeProduct)
@@ -74,7 +72,15 @@ def import_step(component, path, name, matrix=None):
     occ.component.name = name
     if matrix:
         occ.transform2 = matrix
+        capture_position(app)
     return occ
+
+
+def capture_position(app):
+    """Persist occurrence moves (transform2) in a parametric design; uncaptured moves are dropped."""
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    if design.snapshots.hasPendingSnapshot:
+        design.snapshots.add()
 
 
 def local(occ, point_mm, axis):
@@ -137,6 +143,7 @@ def port(occ, name, point_mm):
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
     """Orthographic view of the whole design looking back along eye_dir, saved to path."""
     viewport = app.activeViewport
+    viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
     camera = viewport.camera
     camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
     target = camera.target

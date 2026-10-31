@@ -131,6 +131,7 @@ STL_LOCAL = {
     "eyelid bar crank": {"holes": [(-19.85, 0.0, 3.02), (21.36, 0.0, 1.49)], "hole_axis": Y},
 }
 
-# Eyes base pockets [M] and the battery STEP's pack floor (its lead is part of the body, +Y local).
+# Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the
+# pack body beyond y=56 (plug at y 50..55).
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
-BATTERY_STEP = {"floor_z": -8.15}
+BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
