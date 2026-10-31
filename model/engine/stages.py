@@ -45,13 +45,8 @@ def translate(p):
 
 
 def stl(stem):
-    """Our printed part's mesh."""
+    """Our part's mesh (make ours): a printed part or a hardware envelope."""
     return os.path.join(OURS, stem + ".stl")
-
-
-def step(key):
-    """Our hardware envelope's mesh (model/envelopes.py)."""
-    return os.path.join(OURS, key + ".stl")
 
 
 def printed(stem):
@@ -64,7 +59,7 @@ def part(file, matrix=None, material=None, clip=None):
     return Part(file, np.eye(4) if matrix is None else matrix, material, clip)
 
 
-def link(stage, stl_key, hole_a, hole_b, normal):
+def link(stl_key, hole_a, hole_b, normal):
     """The local-frame link STL with its holes on hole_a/hole_b (world mm), hole axis along normal."""
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
@@ -105,14 +100,14 @@ def servo_and_horn(key, label, arm):
     seat = np.add(origin, np.multiply(g.SERVO_STEP["horn_seat"], shaft))
     return {
         f"{label} servo:1": part(
-            step("servo"),
+            stl("servo"),
             align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]),
             (SERVO_G, "documented"),
             ("x", g.SERVO_STEP["lead"][0]),
         ),
         f"{label} horn:1": part(
             # spline side (local z 4.15) on the seat, the arm on the outer face (docs/research/2026-10-31-shafts.md)
-            step("horn"),
+            stl("horn"),
             align(
                 np.add(seat, np.multiply(g.HORN_STEP["height"], shaft)), arm, [-c for c in shaft], g.HORN_STEP["hub"]
             ),
@@ -150,7 +145,7 @@ def eyes():
             horn_pin = (hx, *(c + g.HORN_STEP["pin"] * a for c, a in zip(lid_horn[1:], g.LID_HORN_ARM[1:])))
             lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem}:1"
-            parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
+            parts[name] = link(stem, horn_pin, lid_pin, normal)
             # lid pins run along X; the horn pin is 41.14 / 40.86 from them for 41 mm bars (geometry.LID_HORN_ARM)
             placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0))
             loops.append(
@@ -191,11 +186,11 @@ def electronics(n):
     shield = f"receiver shield {n}:1"
     ports = {f"Core {n} servo {h}": (shield, p) for h, p in g.RECEIVER_STEP["headers"].items()}
     ports[f"Core {n} XH power"] = (shield, g.RECEIVER_STEP["xh_power"])
-    parts = {shield: part(step("receiver"), receiver_m, board), f"Core {n}:1": part(step("core"), receiver_m, board)}
+    parts = {shield: part(stl("receiver"), receiver_m, board), f"Core {n}:1": part(stl("core"), receiver_m, board)}
     if n == 1:
         switch_m = align(*g.switch_at(), g.SWITCH_STEP["hole"])
-        parts["switch board 1:1"] = part(step("switch"), switch_m, board)
-        parts["battery 1:1"] = part(step("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
+        parts["switch board 1:1"] = part(stl("switch"), switch_m, board)
+        parts["battery 1:1"] = part(stl("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
         parts["cable holder:1"] = part(
             stl("wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
         )
@@ -228,7 +223,7 @@ def stack():
         pivot = g.PIVOTS[key + "_horn"]
         pin, lever = g.horn_pin(key)
         parts.update(servo_and_horn(key, key, np.subtract(pin, pivot["point"])))
-        parts[f"{key} bar:1"] = link("pt", stem, pin, lever, pivot["axis"])
+        parts[f"{key} bar:1"] = link(stem, pin, lever, pivot["axis"])
         bars[key] = pin, lever
         placements += [*servo_placements(key, key), link_placement(f"{key} bar:1", stem, pin, lever)]
     set2, ports = electronics(2)
@@ -270,7 +265,7 @@ def mouth():
         parts[name + ":1"] = part(stl(stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
-    parts["jaw bar:1"] = link("mouth", "jaw bar", pin, lever, g.X)
+    parts["jaw bar:1"] = link("jaw bar", pin, lever, g.X)
     loop = rocker_loop(
         "jaw hinge",
         g.PIVOTS["jaw_horn"]["point"],
