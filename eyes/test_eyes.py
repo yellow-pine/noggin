@@ -96,3 +96,12 @@ def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     assert min(eye) >= lo + (hi - lo) * 0.15 - 1.8 and max(eye) <= lo + (hi - lo) * 0.85 + 1.8
     assert eyes.mode == "rest"
     assert_in_range_and_held(pwm_log)
+
+
+def test_think_trace_replays_the_recording_when_enabled(eyes, pwm_log):
+    import gaze_trace
+    eyes.handle_line("set think_trace 1"); eyes.handle_line("thinking"); pwm_log.clear()
+    for t in range(0, 2000, 10):
+        eyes.tick(t)
+    eye = [d for p, d in pwm_log if p == mod.L_EYE and d]
+    assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2    # one eye write per trace sample
