@@ -69,7 +69,8 @@ class FakeSocket:
 
 
 @pytest.fixture
-def link(monkeypatch):
+def link(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)  # the Core's filesystem: link.seq, flashed files
     fake_net = type("net", (), {"WLAN": FakeWLAN, "STA_IF": 0})
     fake_sock = type(
         "sock", (), {"socket": FakeSocket, "AF_INET": 2, "SOCK_DGRAM": 2, "SOL_SOCKET": 1, "SO_BROADCAST": 6}
@@ -290,7 +291,7 @@ def test_a_hash_mismatch_swaps_nothing_and_is_reported(link, tmp_path, monkeypat
     replies = run(link, [*puts("eyes.py", b"new program"), commit("eyes.py", b"something else")])
     assert replies == ["ok 100", "err 101 ValueError"]
     assert (tmp_path / "eyes.py").read_bytes() == b"old program"
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py", "link.seq"]
 
 
 def test_boot_py_only_changes_over_usb(link, tmp_path, monkeypatch):
@@ -326,7 +327,7 @@ def test_commit_of_a_file_already_in_place_is_ok_without_a_swap(link, tmp_path, 
     joined(link)
     replies = run(link, [commit("eyes.py", b"running"), commit("eyes.py", b"other")])
     assert replies[0] == "ok 100" and replies[1].startswith("err 101 ")
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py"]  # the Mac's check after the reboot
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py", "link.seq"]  # the Mac's check after the reboot
 
 
 def test_reboot_is_acked_then_resets_the_core(link, monkeypatch):
@@ -335,3 +336,18 @@ def test_reboot_is_acked_then_resets_the_core(link, monkeypatch):
     monkeypatch.setattr(mod, "reset", lambda: events.append(list(FakeSocket.sent)))
     assert run(link, ["reboot"]) == ["ok 100"]
     assert events == [[(b"ok 100", MAC)]] and link.handled == []
+
+
+def test_a_datagram_seen_before_a_reboot_is_not_replayable_after_it(link, monkeypatch):
+    resets = []
+    monkeypatch.setattr(mod, "reset", lambda: resets.append(1))
+    joined(link)
+    FakeSocket.inbox.append((dg(7, "reboot"), MAC))
+    link.poll(1_100)
+    rebooted = joined(mod.Wifi(link.handled.append, "eyes", CFG))  # the same filesystem, a fresh program
+    FakeSocket.inbox.extend([(dg(7, "reboot"), MAC), (dg(5, "eureka 2"), MAC)])  # captured before the reboot
+    rebooted.poll(1_100)
+    assert resets == [1] and link.handled == [] and FakeSocket.sent == []
+    FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
+    rebooted.poll(1_200)
+    assert link.handled == ["eureka 2"] and FakeSocket.sent == [(b"ok 8", MAC)]

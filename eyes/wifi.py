@@ -127,7 +127,11 @@ class Wifi:
         self.beacon = self.cmd = None
         self.next_beacon = 0
         self.uptime_ms, self.last_ms = 0, 0  # accumulated with ticks_diff: ticks_ms wraps every ~12 days
-        self.last = (-1, None)  # (highest seq, its reply): a retried seq is acked again, an older one dropped
+        try:  # (highest seq, its reply): a retried seq is acked again, an older one dropped, even across a reboot
+            with open("link.seq") as f:
+                self.last = (int(f.read()), None)
+        except (OSError, ValueError):
+            self.last = (-1, None)
 
     def poll(self, now_ms):
         self.uptime_ms += ticks_diff(now_ms, self.last_ms)
@@ -157,8 +161,8 @@ class Wifi:
     def serve(self, data, addr):
         """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then the line runs (and a parser exception
         follows as `err <seq> <reason>`); `put` and `commit` (flash) are answered once they ran, `ok` or `err`, and
-        `reboot` resets the Core after its ack. seq must not go backwards (replays are dropped); the highest seq is
-        re-acked with its last reply, never run again."""
+        `reboot` resets the Core after its ack. seq must not go backwards (replays are dropped, and link.seq keeps
+        the highest across a reboot); the highest seq is re-acked with its last reply, never run again."""
         try:
             parts = data.decode().split(" ", 2)
         except (UnicodeError, ValueError):  # junk on the LAN must never stop the loop
@@ -173,8 +177,12 @@ class Wifi:
         if seq < self.last[0]:
             return
         if seq == self.last[0]:
-            self.cmd.sendto(self.last[1].encode(), addr)
+            if self.last[1]:  # None: seen before a reboot, nothing to ack again
+                self.cmd.sendto(self.last[1].encode(), addr)
             return
+        if not line.startswith("put "):  # saved before it acts; a put only stages a .new, which commit hash-checks
+            with open("link.seq", "w") as f:
+                f.write(str(seq))
         if line.startswith(("put ", "commit ")):  # quick, and the Mac must know they took: answered once they ran
             try:
                 flash(line)
