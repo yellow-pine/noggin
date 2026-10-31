@@ -37,7 +37,7 @@ Unused on the desk: 1 Core (the remote's, becomes Core 2), 1 switch module, 1 pa
 180 servo (the 360 one is continuous rotation, not positional). Pan bearing: the printed bearing block (Bambu
 no longer lists the F10-18M thrust bearing).
 
-Still to buy (Bambu EU store only): Receiver Shield XA004 x1; servo PG001 x3 (2 needed + 1 spare); battery
+Ordered 2026-10-31 (Bambu EU store): Receiver Shield XA004 x1; servo PG001 x3 (2 needed + 1 spare); battery
 PC003 x1 (one pack per shield + a spare on charge); M2x12 screws x1 pack and M2 nuts x1 pack (shell halves
 and mask); one pack of longer M2 (x16 or x20, whichever is listed) for the mask + skull stack on the wings;
 M2.5x6 screws x1 pack if listed (the remaining stages need 26 of the kit's M2.5). No filament: the shell is
