@@ -1,4 +1,5 @@
-"""Our own printed parts (#50): independent parametric CadQuery designs, by the designer's STL stem each stands in for."""
+"""Our own printed parts (#50): independent parametric CadQuery designs, by the designer's STL stem each stands in for,
+and the features each declares for the mating check (model/engine/mating.py)."""
 
 from model.printed import (
     bars,
@@ -50,4 +51,28 @@ PARTS = {
     "PandT tilt arm": tilt_arm.build,
     "PandT base": base.build,
     "wire keeper": wire_keeper.build,
+}
+FEATURES = {
+    "main bracket v2": main_bracket.features(),
+    "eyelid bar": eyelid_bar.features(),
+    "eyelid bar crank": eyelid_bar.features(crank=True),
+    "eyeball bar": eyeball_bar.features(),
+    "L eyeball regular": eyeball.features("L"),
+    "R eyeball regular": eyeball.features("R"),
+    "inside lid": lid.features("inside"),
+    "outside lid": lid.features("outside"),
+    "L servo bracket": servo_bracket.features("L"),
+    "R servo bracket": servo_bracket.features("R"),
+    "jaws servo mount": jaws_servo_mount.features(),
+    "jaws connector bar": jaws_connector_bar.features(),
+    "top jaw plain": top_jaw.features(),
+    "bottom jaw plain": bottom_jaw.features(),
+    "tilt bar": bars.features(bars.TILT_PITCH),
+    "PandT bar": bars.features(bars.PAN_PITCH),
+    "PandT servo mount plain": servo_mount.features(servo_mount.PLAIN),
+    "PandT servo mount cutout": servo_mount.features(servo_mount.CUTOUT),
+    "PandT pan base": pan_base.features(),
+    "PandT upright v2": upright.features(),
+    "PandT tilt arm": tilt_arm.features(),
+    "PandT base": base.features(),
 }

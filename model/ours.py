@@ -1,6 +1,6 @@
 """Our geometry as STLs (`make ours`): every printed part (printed.PARTS, by the designer's STL stem) and every hardware
 envelope (envelopes.ENVELOPES, by the STEP mesh's name) in model/build/ours (stages.OURS), each in the frame of the mesh
-it stands in for. The engine reads them where docs/references is absent (CI) and the renders always do. Run it as its
+it stands in for. The engine (make sim, everywhere) and the renders read them. Run it as its
 own process before the engine: CadQuery's OCCT threads must not be running when the sweep forks its workers."""
 
 import os

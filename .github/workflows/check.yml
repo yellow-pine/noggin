@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - run: make check
-      - run: make sim   # no docs/references here: simulates our own parts and hardware envelopes (model/ours.py)
+      - run: make sim   # on our own parts and hardware envelopes (model/ours.py), as everywhere
       - run: sudo apt-get install -y shellcheck
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin

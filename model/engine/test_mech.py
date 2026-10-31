@@ -11,7 +11,6 @@ import trimesh
 from model.engine import linkage, masses, mech, meshes, stages
 
 HERE = os.path.dirname(os.path.dirname(__file__))
-HAVE_REFERENCES = stages.HAVE_REFERENCES
 CAL = json.load(open(os.path.join(os.path.dirname(HERE), "eyes", "calibration.json")))
 
 
@@ -37,7 +36,6 @@ def test_reflected_inertia_of_a_cube_swung_on_a_lever_is_m_r2_plus_its_own():
     assert inertia == pytest.approx(1.24 * 20**2 + 1.24 * 200 / 12, rel=1e-4)  # parallel axes: m r^2 + m (b^2+c^2)/12
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_dynamic_torque_adds_the_inertia_term_to_gravity_at_every_pose():
     stage = stages.STAGES["noggin-stage2"]
     table = masses.table(stage, meshes.load(stage))
@@ -63,7 +61,6 @@ def test_footprint_margin_is_the_distance_to_the_nearest_edge_of_the_plan_hull()
     assert mech.margin(outline, (12.0, 5.0)) == pytest.approx(-2.0)
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_mech_poses_turn_the_tilted_head_about_the_pan_axis():
     stage = stages.STAGES["noggin-stage2"]
     poses = {(p, t): m for p, t, m in mech.mech_poses(stage, 10)}

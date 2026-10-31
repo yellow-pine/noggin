@@ -18,20 +18,7 @@ def test_mirror_x_maps_left_eye_to_right():
     assert g.mirror_x(g.EYE_L) == g.EYE_R
 
 
-def test_designer_limits_are_the_remote_config():
-    # docs/references/03-mouth/remote-config-eyes-pandt-jaw.json, PWM min_value/max_value per servo
-    assert g.DESIGNER_LIMITS == {
-        "l_lid": (75, 120),
-        "l_eye": (60, 120),
-        "r_lid": (70, 120),
-        "r_eye": (75, 120),
-        "tilt": (20, 150),
-        "rotate": (40, 160),
-        "mouth": (0, 180),
-    }
-
-
-def test_model_limits_deviate_from_the_designer_only_with_a_recorded_reason():
+def test_every_horn_limit_is_ours_with_its_reason():
     assert g.HORN_LIMITS == {
         "l_lid": (70, 120),
         "l_eye": (68, 112),
@@ -41,9 +28,8 @@ def test_model_limits_deviate_from_the_designer_only_with_a_recorded_reason():
         "rotate": (40, 160),
         "mouth": (15, 90),
     }
-    deviated = {k for k in g.HORN_LIMITS if g.HORN_LIMITS[k] != g.DESIGNER_LIMITS[k]}
-    assert deviated == set(g.MODEL_LIMITS)
-    assert all(len(why) > 20 for _, why in g.MODEL_LIMITS.values())
+    assert g.LIMITS.keys() == g.HORN_LIMITS.keys()
+    assert all(rng == g.HORN_LIMITS[k] and len(why) > 20 for k, (rng, why) in g.LIMITS.items())
 
 
 def test_bars_are_measured_pivot_spacings():

@@ -16,7 +16,6 @@ from model.engine import linkage, meshes, stages
 
 DOC = "noggin-eyes"
 COLUMN_MM = 2.0  # half-width of the vertical slab through the eye centre the edges are read on
-HAVE_REFERENCES = stages.HAVE_REFERENCES
 
 
 @cache

@@ -1,6 +1,6 @@
 """Seam: the JSON reports `make sim` writes and commits (model/engine/run.py, model/reports/<doc>-sim.json). CI checks
-every committed report: no problems, and its stamp still matches the inputs in the repo (designer meshes are not in the
-repo: their fingerprints recorded at sim time are hashed instead). The fixture test checks the checker itself."""
+every committed report: no problems, and its stamp still matches the inputs in the repo (our meshes are built, not
+committed: their fingerprints recorded at sim time are hashed instead). The fixture test checks the checker itself."""
 
 import json
 import os
@@ -114,9 +114,9 @@ def test_committed_report_is_stamped_with_the_inputs_in_the_repo(doc):
 
 
 def test_stamp_follows_the_recorded_part_fingerprints():
-    sources = {"docs/references/a.stl": "0" * 16}
+    sources = {"model/build/ours/a.stl": "0" * 16}
     assert run.stamp(sources) == run.stamp(dict(sources))
-    assert run.stamp(sources) != run.stamp({"docs/references/a.stl": "1" * 16})
+    assert run.stamp(sources) != run.stamp({"model/build/ours/a.stl": "1" * 16})
 
 
 FIXTURE_PROBLEMS = {

@@ -5,6 +5,7 @@ docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
+from model import fits
 from model.printed.main_bracket import box
 
 WALL = {"x": (73.42, 78.42), "y": (-52.6, -30.6), "z": (12.0, 44.66)}
@@ -29,3 +30,12 @@ def build():
     return out.cut(
         cq.Workplane("XY", origin=(0, 0, FOOT["z"][0] - 1)).pushPoints(FEET["xy"]).circle(FEET["r"]).extrude(depth)
     )
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    x, half = fits.slab(*WALL["x"])
+    z, foot_half = fits.slab(*FOOT["z"])
+    (far, near), r = TABS["yz"], TABS["r"]
+    tabs = {"near tab hole": ((x, *near), "x", r, half), "far tab hole": ((x, *far), "x", r, half)}
+    return {**tabs, **{f"foot {s}": ((*xy, z), "z", FEET["r"], foot_half) for s, xy in zip("LR", FEET["xy"])}}

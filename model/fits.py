@@ -1,6 +1,6 @@
-"""Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to the designer's STL around the
+"""Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to our part's STL around the
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
-prints the eyes table. Designer STLs: docs/references (local only)."""
+prints the eyes table. Our printed parts' STLs: model/build/ours (make ours)."""
 
 import functools
 import math
@@ -11,14 +11,18 @@ import sys
 CLEARANCE = (0.1, 0.4)  # mm radial, agreed in #20
 M2 = 2.0  # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EYES_MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
-PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
-MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
-# without the designer's STLs (CI) read ours (model/ours.py), as model/engine/stages.py does
-HAVE_REFERENCES = os.path.isdir(EYES_MODELS) and os.path.isfile(os.path.join(REPO, "model/build/steps/horn.stl"))
-if not HAVE_REFERENCES:
-    EYES_MODELS = PT_MODELS = MOUTH_MODELS = os.path.join(REPO, "model/build/ours")
+# our printed parts (model/ours.py, make ours); one folder, the three names kept for the sub-assemblies' tables
+EYES_MODELS = PT_MODELS = MOUTH_MODELS = os.path.join(REPO, "model/build/ours")
 M2_5 = 2.5  # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
+
+
+# Fit bands (x r) for a declared feature: a plain hole; a bore or pin with a wall or counterbore close outside it.
+HOLE, BORE = (0.6, 1.8), (0.8, 1.3)
+
+
+def slab(lo, hi):
+    """(centre, half) of a feature running lo..hi along its axis: the slab reaches just past its two mouth rings."""
+    return (lo + hi) / 2, (hi - lo) / 2 + 0.1
 
 
 def stl(name, folder=EYES_MODELS):
@@ -34,7 +38,7 @@ def vertices(path):
     return {tuple(float(t) for t in l.split()[1:]) for l in d.decode().splitlines() if l.strip().startswith("vertex")}
 
 
-def fit_circle(path, centre, axis, half, expect_r, within=(0.6, 1.8)):
+def fit_circle(path, centre, axis, half, expect_r, within=HOLE):
     """Least-squares circle (Kasa) through the STL vertices within `half` mm of `centre` along `axis` and within
     `within` x expect_r of it radially (a hole's wall vertices sit on its two mouth rings, so `half` spans the part).
     Returns r, the fitted centre, its offset from `centre` and the rms radial residual (large = not round: slot or
@@ -142,8 +146,8 @@ EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn
     "eyelid crank / inside lid pin": (1.35, 1.0, True),
     "eyeball bar / horn screw": (1.05, 1.0, True),
     "eyeball bar / eyeball screw": (1.25, 1.0, True),
-    "inside lid ear / bracket pin": (1.998, 1.735, True),
-    "outside lid ear / bracket pin": (1.959, 1.735, True),
+    "inside lid ear / bracket pin": (1.985, 1.75, True),
+    "outside lid ear / bracket pin": (1.95, 1.75, True),
 }
 
 # Stack sub-assembly (pan-tilt): bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
@@ -190,8 +194,8 @@ MOUTH_JOINTS = [
         "self_tapping",
     ),
 ]
-MOUTH_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the L pin reads 1.72 (coarser facets than the R pin's 1.75)
-    "L hinge / top jaw pin": (2.0, 1.72, True),
+MOUTH_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the L pin reads 1.71 (its slab takes in the domed tip)
+    "L hinge / top jaw pin": (2.0, 1.71, True),
     "R hinge / top jaw pin": (2.0, 1.75, True),
     "jaw pivot lug / M2.5": (1.1, 1.25, True),
 }

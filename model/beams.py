@@ -1,5 +1,5 @@
 """Hand beam estimates (no FEA on the personal license): each link as a cantilever under the servo stall force at
-the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from the designer's STLs.
+the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from our parts' STLs.
 PLA E 3.5 GPa, yield 50 MPa; threshold SF >= 2 (#20). `python model/beams.py` prints the eyes table."""
 
 import importlib.util
@@ -138,7 +138,7 @@ MOUTH_BEAMS = [
         (fits.stl("jaws connector bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
-MOUTH_RECORDED = {"connector bar": (92.29, True)}  # read 2026-10-31 (5 x 3.4 tab)
+MOUTH_RECORDED = {"connector bar": (81.23, True)}  # read 2026-10-31 on ours
 
 
 if __name__ == "__main__":

@@ -34,5 +34,15 @@ a mating mismatch (#67: holes and shafts coaxial within 0.2 mm, servos in their 
 ## Update 2026-10-31 (#50, #58)
 
 CI runs `make sim` itself on our own geometry: the CadQuery printed parts (model/printed) and hardware envelopes
-(model/envelopes.py), written by `make ours`. Locally, while docs/references exists, `make sim` still reads the
-designer's meshes and STEPs, and the gate holds our parts within 0.3 mm of them.
+(model/envelopes.py), written by `make ours`.
+
+## Update 2026-10-31 (#97): our model is the source
+
+Once our parts matched the designer's meshes within 0.3 mm with every joint mated (tag `stock-parity`), the model
+stopped checking itself against them. The gate (model/printed/test_gate.py and model/engine/test_gate.py, the latter
+on the recorded Fusion reports), the Bambu STEP meshing (model/build/steps) and the guide sheets are deleted, and
+nothing reads docs/references. `make sim` runs on our geometry everywhere, so the committed reports are ours. The
+mating check fits the features our parts declare (each part's features(), model/envelopes.py FEATURES) on our meshes,
+and the horn limits are our own, each with its reason (geometry.LIMITS). The recorded Fusion reports that stay
+(noggin-eyes, noggin-pan-tilt) are linkage and mass fixtures
+(the Fusion documents, history).

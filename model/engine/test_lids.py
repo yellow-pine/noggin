@@ -5,8 +5,6 @@ import pytest
 from model import geometry as g
 from model.engine import lids
 
-pytestmark = pytest.mark.skipif(not lids.HAVE_REFERENCES, reason="local references only")
-
 
 @pytest.mark.parametrize("side", "LR")
 def test_closed_and_open_lie_either_side_of_the_fusion_renders(side):

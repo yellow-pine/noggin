@@ -5,8 +5,6 @@ import trimesh
 
 from model.engine import meshes, stages
 
-HAVE_REFERENCES = stages.HAVE_REFERENCES
-
 
 def cube(at, size=10.0):
     return meshes.Placed(trimesh.creation.box((size, size, size)), stages.translate(at))
@@ -26,9 +24,6 @@ def test_touching_cubes_are_a_contact_and_overlapping_ones_a_penetration():
     assert meshes.distance(a, overlapping) == pytest.approx(0.0, abs=1e-9) and meshes.penetrates(a, overlapping)
 
 
-@pytest.mark.skipif(
-    not HAVE_REFERENCES, reason="designer STLs and STEP meshes are local only (docs/references, make model-step-meshes)"
-)
 def test_eyeball_bar_rides_the_bracket_rail_at_neutral():
     stage = stages.STAGES["noggin-eyes"]
     loaded = meshes.load(stage, ["L eyeball bar:1", "main bracket v2:1"])
@@ -36,7 +31,6 @@ def test_eyeball_bar_rides_the_bracket_rail_at_neutral():
     assert meshes.distance(bar, bracket) < 0.1 and not meshes.penetrates(bar, bracket)
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_loaded_meshes_are_subdivided_and_the_battery_lead_is_cut():
     stage = stages.STAGES["noggin-pan-tilt"]
     loaded = meshes.load(stage, ["PandT base:1", "battery 1:1"])
@@ -44,7 +38,6 @@ def test_loaded_meshes_are_subdivided_and_the_battery_lead_is_cut():
     assert loaded["battery 1:1"].bounds[1][1] <= 56.0 + 1e-6
 
 
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
 def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral():
     """Engine findings 2026-10-31 (#24): the tilt horn and bar swept into the pan base at the config's tilt end, and the
     tilt servo's straight lead stub sank into receiver shield 1 at neutral."""

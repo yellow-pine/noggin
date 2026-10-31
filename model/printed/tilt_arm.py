@@ -5,6 +5,7 @@ bar's screw. Interfaces exact, envelope within 1 mm. Measured numbers: docs/rese
 
 import cadquery as cq
 
+from model import fits
 from model.printed.pan_base import box
 from model.printed.upright import rod_x
 
@@ -31,3 +32,13 @@ def build():
         out = out.union(ear)
     out = out.cut(rod_x((x0 - 1, x1 + 1), (PIVOT["y"], PIVOT["z"]), PIVOT["r"]))
     return out.cut(rod_x((lx0 - 1, lx1 + 1), (LEVER_HOLE["y"], LEVER_HOLE["z"]), LEVER_HOLE["r"]))
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    lever_x, lever_half = fits.slab(*LEVER["x"])
+    x, half = fits.slab(EARS["x"][0][0], EARS["x"][1][1])
+    return {
+        "lever": ((lever_x, LEVER_HOLE["y"], LEVER_HOLE["z"]), "x", LEVER_HOLE["r"], lever_half),
+        "pivot": ((x, PIVOT["y"], PIVOT["z"]), "x", PIVOT["r"], half),
+    }

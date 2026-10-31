@@ -6,6 +6,7 @@ cosmetic detail dropped. Measured numbers: docs/research/2026-10-31-model.md [M]
 
 import cadquery as cq
 
+from model import fits
 from model import geometry as g
 
 PLATE_Z = (13.0, 18.0)
@@ -63,3 +64,25 @@ def rod(x0, x1, r, yz):
 
 def box(x, y, z):
     return cq.Workplane("XY").box(x[1] - x[0], y[1] - y[0], z[1] - z[0], centered=False).translate((x[0], y[0], z[0]))
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    z, half = fits.slab(*PLATE_Z)
+    x, pin_half = fits.slab(*LID_PIN["x"][::-1])
+    fork_y, fork_half = fits.slab(*FORK["y"])
+    left = {
+        "L foot outer": ((*HOLES[0], z), "z", HOLE_R, half),
+        "L foot inner": ((*HOLES[1], z), "z", HOLE_R, half),
+        "L outer lid pin": ((g.EYE_L[0] - x, *g.EYE_L[1:]), "x", LID_PIN["r"], pin_half, fits.BORE),
+        "L inner lid pin": ((g.EYE_L[0] + x, *g.EYE_L[1:]), "x", LID_PIN["r"], pin_half, fits.BORE),
+        "L fork": ((g.EYE_L[0], fork_y, g.EYE_L[2]), "y", FORK["hole_r"], fork_half),
+    }
+    stem = {f"{s} foot stem": ((g.CENTRE_X, y, z), "z", HOLE_R, half) for s, y in (("L", -31.6), ("R", -21.6))}
+    rail = {f"rail {s}": ((x, -35.6, z), "z", HOLE_R, half) for s, x in (("L", 65.92), ("R", 70.92))}
+    return {**left, **{"R" + k[1:]: v for k, v in mirrored(left).items()}, **stem, **rail}
+
+
+def mirrored(features):
+    """Declared features of the L side, mirrored onto the R side (geometry.mirror_x)."""
+    return {k: (g.mirror_x(c), *rest) for k, (c, *rest) in features.items()}

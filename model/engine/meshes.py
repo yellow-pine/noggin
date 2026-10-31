@@ -1,4 +1,4 @@
-"""Meshes for the engine: the designer STLs and the tessellated STEPs (model/build/steps), subdivided once so no
+"""Meshes for the engine: our parts and envelopes (model/build/ours, make ours), subdivided once so no
 edge is longer than MAX_EDGE_MM, posed by rigid transform, and the pairwise judgement of a sweep:
 minimum distance (scipy cKDTree vertex screen, then exact point-to-triangle on the near candidates, both ways:
 ADR 0006) and contact vs penetration: a vertex behind the other mesh's surface by more than DEPTH_MM is inside it
