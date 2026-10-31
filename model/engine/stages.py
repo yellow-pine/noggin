@@ -336,7 +336,7 @@ def assemble(doc, frames, up, context=()):
         ]
         ports.update(sub.ports)  # part-local: they ride their part
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
-        placements.append(("eye bracket:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_INFERRED_MM))
+        placements.append(("eye bracket:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_MM))
     if doc in g.STEM_IN:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():

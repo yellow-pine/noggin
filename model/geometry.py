@@ -52,8 +52,10 @@ LIMITS = {
         " arm sweeps clear",
     ),
     "rotate": (
-        (40, 160),
-        "pan -50..+70: the pan four-bar sweeps clear over the whole range (the pan servo is 'rotate')",
+        (50, 160),
+        "pan -40..+70 (the pan servo is 'rotate'): the stock pan four-bar toggles at -43.4 (bar and lever in line), so the"
+        " designer's 40 cannot close; -40 keeps a 23 deg transmission angle and gives the mouth GIF's 46 deg end to end"
+        " (docs/research/2026-10-31-neck.md)",
     ),
     "mouth": (
         (15, 90),
@@ -456,7 +458,8 @@ MOUTH_PARTS = [
 # Stage configurations put the sub-assemblies, each at an (origin, x axis, z axis) frame
 # in the PT frame (align_rows takes the same triple). The eye bracket stem (eyes x 23.5..35.5, z 13..18, bottom
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
-# pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].
+# pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt): the stem below the bracket's
+# rail is 5.0 long, the window 5.0 deep, so the rail lies on the arm top and the stem is flush below [M].
 EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
 EYES_ON_STACK = ((29.5, -28.5, 81.5), (-1, 0, 0), (0, 1, 0))
 STEM_BOTTOM = (29.5, -45.6, 15.5)  # centre of the stem's bottom face, eyes frame
@@ -476,5 +479,5 @@ STAGES = {
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
-# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3). Research note; depth [I].
+# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
 STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

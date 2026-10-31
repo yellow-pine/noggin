@@ -1154,14 +1154,7 @@
    ]
   }
  },
- "unreachable": {
-  "pan horn": [
-   {
-    "deg": -50,
-    "why": "crank -50 deg: pin 42.55 mm from the rocker pivot, coupler 15.00, rocker 26.09"
-   }
-  ]
- },
+ "unreachable": {},
  "fits": [
   {
    "joint": "tilt bar / horn screw",
@@ -1458,8 +1451,8 @@
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 2093,
-   "inertia_g_mm2": 537010
+   "accel_limit_deg_s2": 2252,
+   "inertia_g_mm2": 499110
   },
   "L lid horn": {
    "kgf_cm": 0.003,
@@ -2753,7 +2746,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['jaw bar:1', 'jaw horn:1'] (inferred: the jaw bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "4315a80ba2ddecef99036986859188de5bf5dfc6b54f07b34981b0f80a805c93",
+  "stamp": "50b782401bd3d49ac0f89f6199c955235379e2bdbf023c5a44a33f3230dcf671",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
