@@ -14,12 +14,13 @@ CAD = os.path.join(REPO, "docs/references/cyberbrick-cad")
 SERVO_DIR = os.path.join(CAD, "servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
 STEP = {
     "servo": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-PG002-PG001.stp"),
-    "horn": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-line arm-PG002-PG001.stp"),
+    "horn": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-half arm1-PG002-PG001.stp"),
     "receiver": os.path.join(CAD, "receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp"),
     "switch": os.path.join(CAD, "switch/Power Switch Board with 2Pin XH2.54 Connector-XA007/Power Switch Board with 2Pin XH2.54 Connector-XA007.STEP"),
     "battery": os.path.join(CAD, "battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
 }
 OUT = os.path.join(REPO, "twin", "build")
+PHOTOS = os.path.join(REPO, "docs", "references", "build-photos")   # originals, background blurred (local only)
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
 # (component name, STL, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
@@ -36,6 +37,35 @@ PARTS = [
 # Receiver STEP, local mm: the four servo headers and the XH power socket (top centres). PWM numbering is inferred.
 RECEIVER_PORTS = {"servo PWM1": (4.2, 10.8, 0.4), "servo PWM2": (4.2, 10.8, 4.6), "servo PWM3": (-4.2, 10.8, 0.4),
                   "servo PWM4": (-4.2, 10.8, 4.6), "XH power": (0.0, 9.62, -9.75)}
+
+
+# Reference photos (background removed, docs/references/build-photos, local only) as canvases on the camera
+# side of the model: (file, root plane, plane offset mm, 2x3 transform taking the unit image square to the
+# plane in cm; u runs right, v runs UP from the image's bottom-left). Fusion's canvas rows per plane (measured
+# 2026-10-31): xZ -> (z, x), yZ -> (y, z), xY -> (x, y). Anchored on the eye centres measured in each image
+# (top 2993x2154 at 22 px/mm along z and 18.5 across, the shot is oblique; side 1336x3901 at 22 px/mm;
+# front 1911x1371 at 17.1 px/mm). Perspective remains: parts nearer the camera read larger.
+CANVASES = {
+    "photo top (reference)": ("eyes-top.png", "xZConstructionPlane", 50.0, [[13.6, 0, -1.85], [0, 11.64, -2.97]]),
+    "photo side (reference)": ("eyes-side.png", "yZConstructionPlane", -45.0, [[-6.07, 0, 2.28], [0, 17.73, -2.53]]),
+    "photo front (reference)": ("eyes-front.png", "xYConstructionPlane", -45.0, [[-11.18, 0, 8.46], [0, 8.02, -3.95]]),
+}
+
+
+def canvas(root, name, path, plane_name, offset_mm, cells):
+    cut = root.constructionPlanes.createInput()
+    cut.setByOffset(getattr(root, plane_name), adsk.core.ValueInput.createByReal(offset_mm / 10))
+    plane = root.constructionPlanes.add(cut)
+    plane.name = name + " plane"
+    inp = root.canvases.createInput(path, plane)
+    m = adsk.core.Matrix2D.create()
+    for r, row in enumerate(cells):
+        for c, v in enumerate(row):
+            m.setCell(r, c, v)
+    inp.transform = m
+    inp.opacity = 60
+    inp.isDisplayedThrough = False
+    root.canvases.add(inp).name = name
 
 
 def add(a, b):
@@ -87,7 +117,7 @@ def strip_lead(battery):
     split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
     for body in list(comp.bRepBodies):
         if body.boundingBox.minPoint.y * 10 >= BATTERY_STEP["lead_y"] - 0.1:
-            body.deleteMe()
+            comp.features.removeFeatures.add(body)
 
 
 def run(_context: str):
@@ -104,7 +134,7 @@ def run(_context: str):
         origin, tab_x, shaft = servo_frame(key)
         label = key.upper()[0] + (" lid" if "lid" in key else " eye")
         occs[key + "_servo"] = import_step(root, STEP["servo"], f"{label} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
-        arm = Y if "lid" in key else X
+        arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X   # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
         occs[key + "_horn"] = import_step(root, STEP["horn"], f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
 
@@ -112,25 +142,30 @@ def run(_context: str):
     # underneath; the build photo shows it on top), switch board centred on its standoffs, battery in its pocket.
     stand = STANDOFFS["eyes_base"]
     receiver_at = mean(stand["receiver"])
-    receiver = import_step(root, STEP["receiver"], "receiver shield + Core", align(receiver_at))
-    core = next(o for o in receiver.component.occurrences if o.name.startswith("CORE"))   # receiver-local
+    # Shield turned a quarter about Y so the XH socket faces -X and the Core's USB-C the side (build photos).
+    receiver_m = align(receiver_at, (0, 0, -1), X)
+    receiver = import_step(root, STEP["receiver"], "receiver shield", receiver_m)
+    next(o for o in receiver.component.occurrences if o.name.startswith("CORE")).deleteMe()
+    # The Core as a second import of the receiver STEP stripped to the Core, flipped about the PCB mid-plane
+    # (the STEP has it under the shield; the build photos show it on top).
     flip = adsk.core.Matrix3D.create()
-    flip.setToRotation(math.pi, vector(X), point((0, 0.8, 0)))   # about the PCB mid-plane, receiver frame
-    t = flip.copy(); t.transformBy(core.transform2)   # transformBy post-multiplies: flip after the Core's own placement
-    core = reoccur(core, t)
-    core.component.name = "Core (inferred: flipped onto the shield top)"
-    core = next(o for o in receiver.childOccurrences if o.name.startswith("Core"))      # root-context proxy
-    usb = core.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core).boundingBox
-    assert core.boundingBox.minPoint.y * 10 > receiver_at[1], "Core must sit above the shield"
+    flip.setToRotation(math.pi, vector(Z), point((0, 0.8, 0)))   # about Z: the USB-C keeps facing -X (side photo)
+    core = import_step(root, STEP["receiver"], "Core (flipped onto the shield top, per photo)", matmul(receiver_m, flip))
+    for o in list(core.component.occurrences):
+        if not o.name.startswith("CORE"):
+            o.deleteMe()
+    core_proxy = core.childOccurrences.item(0)
+    usb = core_proxy.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core_proxy).boundingBox
+    assert core_proxy.boundingBox.minPoint.y * 10 > receiver_at[1], "Core must sit above the shield"
     for name, p in RECEIVER_PORTS.items():
-        port(receiver, name, add(receiver_at, p))
+        w = point(p); w.transformBy(receiver_m)
+        port(receiver, name, (w.x * 10, w.y * 10, w.z * 10))
     usb_centre = tuple((getattr(usb.minPoint, c) + getattr(usb.maxPoint, c)) * 5 for c in "xyz")
-    port(receiver, "USB-C", usb_centre)
-    switch_at = mean(stand["switch"])
-    import_step(root, STEP["switch"], "switch board (inferred)", align(add(switch_at, (-3.0, 0, 0))))
+    port(core, "USB-C", usb_centre)
+    import_step(root, STEP["switch"], "switch board", align(stand["switch"][0], (0, 0, -1), X, SWITCH_STEP["hole"]))
     pocket = BATTERY_POCKET
     battery_at = ((pocket["x"][0] + pocket["x"][1]) / 2, pocket["floor_y"] - BATTERY_STEP["floor_z"], pocket["z"][0])
-    battery = import_step(root, STEP["battery"], "battery (inferred)", align(battery_at, (-1, 0, 0), Y))
+    battery = import_step(root, STEP["battery"], "battery", align(battery_at, (-1, 0, 0), Y))
     strip_lead(battery)
     port(battery, "battery lead", add(battery_at, (-3.5, 3.5, 52.5)))   # the pack's plug; wiring is out of scope
 
@@ -143,7 +178,7 @@ def run(_context: str):
         for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = LID_LINKS[key]
             x = side(s, (spec["x"], 0, 0))[0]
-            horn_pin = (x, lid_horn[1] + HORN_STEP["hole"], lid_horn[2])
+            horn_pin = (x, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
             lid_pin = (x,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl} (inferred)"
             occs[name] = link(root, name, stl, horn_pin, lid_pin, normal)
@@ -169,9 +204,13 @@ def run(_context: str):
         if occ.name not in moving:
             occ.isGrounded = True
 
+    for name, (photo, plane, offset_mm, cells) in CANVASES.items():
+        canvas(root, name, os.path.join(PHOTOS, photo), plane, offset_mm, cells)
+
     os.makedirs(OUT, exist_ok=True)
     screenshot(app, os.path.join(OUT, "eyes-top.png"), Y, Z)
     screenshot(app, os.path.join(OUT, "eyes-side.png"), (-1, 0, 0), Y)
+    screenshot(app, os.path.join(OUT, "eyes-front.png"), (0, 0, -1), Y)
     version = save(doc, f"{DOC}: rebuilt by twin/eyes.py", DOC, folder)
     ports = sum(1 for o in root.occurrences for sk in o.component.sketches if sk.name.startswith("Port:"))
     print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {ports} ports")
@@ -179,7 +218,7 @@ def run(_context: str):
     for j in root.joints:
         state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage
         print(f"  joint {j.name}: {state}")
-    for o in list(root.occurrences) + list(receiver.childOccurrences):
+    for o in list(root.occurrences) + list(receiver.childOccurrences) + list(core.childOccurrences):
         lo, hi = body_box(o)
         print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (o.name, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
     for o in root.occurrences:

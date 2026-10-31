@@ -71,11 +71,14 @@ SERVOS = {
     "jaw": {"tab_holes": [(75.9, -48.6, 14.43), (75.9, -48.6, 42.23)], "frame": "eyes"},
 }
 
-# Standoff tops. Receiver shield pattern is 23 x 24; switch board is a single pair.
+# Standoff tops. Receiver shield pattern is 23 x 24 [M]. Eyes base: the (29.5, 51/75) pair carries the wire
+# keeper and the switch board hangs on the short post at the back edge (build photos 2026-10-31); its top y
+# is inferred (+-2 mm).
 STANDOFFS = {
     "eyes_base": {
         "receiver": [(-14.8, -25.6, 51.0), (8.2, -25.6, 51.0), (-14.8, -25.6, 75.0), (8.2, -25.6, 75.0)],
-        "switch": [(29.5, -25.6, 51.0), (29.5, -25.6, 75.0)],
+        "wire_keeper": [(29.5, -25.6, 51.0), (29.5, -25.6, 75.0)],
+        "switch": [(8.24, -30.6, 92.5)],
     },
     "pt_base": {
         "receiver_1": [(26.0, 40.5, 13.0), (50.0, 40.5, 13.0), (26.0, 63.5, 13.0), (50.0, 63.5, 13.0)],
@@ -89,11 +92,14 @@ BARS = {"eyelid_bar": 41.0, "eyelid_crank": 41.0, "tilt_bar": 20.0, "pan_bar": 1
         "connector_bar": 31.4, "eyeball_bar": 27.0}
 
 # Bambu STEP files, local mm (measured in Fusion 2026-10-31). Servo: tab holes along +X on the tab mid-plane,
-# shaft at x=16.69 pointing -Z, horn seats on the boss top 10.35 beyond the tab plane. Line-arm horn: hub at
-# (0,20,0), bore along Z, arm holes at x=+-14.15. Receiver: PCB bottom y=0, 23 x 24 holes, Core under the PCB.
+# shaft at x=16.69 pointing -Z, horn seats on the boss top 10.35 beyond the tab plane. Horn = the kit's short
+# single arm ("half arm1"): hub at (0,20,0), bore along Z, arm along +X with holes every 2 mm; the build pins
+# the bars at the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24
+# holes, Core under the PCB.
 SERVO_STEP = {"tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)], "shaft": (16.69, 5.9, -0.65),
               "horn_seat": 10.35}
-HORN_STEP = {"hub": (0.0, 20.0, 0.0), "hole": 14.15}
+HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
+SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}   # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
 
 
 def _dist(a, b):
@@ -120,9 +126,9 @@ def servo_frame(key):
     return origin, tab_x, shaft
 
 # Lid linkage (L side; mirror_x for R). Lid pins r=1 along X on the lid ears [M]; the bar and crank hang on
-# the lid-servo horn pin, outside the ears, stacked along X (bar nearer the ear) [I].
+# the lid-servo horn pin outside the ears, the straight bar outboard of the crank (guide p.23) [I: x +-3].
 LID_PINS = {"inside": (-22.0, 12.0, 0.0), "outside": (-22.0, -12.0, 0.0)}
-LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -25.5}, "eyelid_crank": {"lid": "outside", "x": -29.5}}
+LID_LINKS = {"eyelid_bar": {"lid": "inside", "x": -29.5}, "eyelid_crank": {"lid": "outside", "x": -25.5}}
 EYEBALL_BAR_PINS = [(-10.0, 4.0, 27.0), (-10.0, 4.0, 0.0)]   # eye-horn end, eyeball end [M]
 
 # Designer STLs that are in local frames: pivot holes (mm) and the hole axis.

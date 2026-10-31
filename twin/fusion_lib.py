@@ -52,6 +52,15 @@ def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 
     return m
 
 
+def matmul(a, b):
+    """a x b as a new Matrix3D (explicit, since Matrix3D.transformBy's order is easy to get wrong)."""
+    m = adsk.core.Matrix3D.create()
+    for r in range(4):
+        for c in range(4):
+            m.setCell(r, c, sum(a.getCell(r, k) * b.getCell(k, c) for k in range(4)))
+    return m
+
+
 def import_stl(component, path, name, matrix=None, convert=True):
     """Mesh body in its own component (faceted solid when convert). Returns the occurrence."""
     occ = component.occurrences.addNewComponent(matrix or adsk.core.Matrix3D.create())
