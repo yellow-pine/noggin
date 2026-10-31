@@ -44,3 +44,5 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 - Development cycle: grilling is interview-only, never build during it. After grilling, run the work through the mattpocock skills cycle (grilling -> research/prototype/domain-modeling as needed -> plan -> tdd -> code-review -> pr). Do not install anything into ~/.claude or launchd without an explicit go.
 - Cycle order agreed 2026-10-31: domain-modeling -> research -> wizard.
 - Status line shows the current dev-cycle step from `~/.claude/.cycle-step` (one line, e.g. `noggin:tdd`). Update that file whenever a cycle step starts.
+- Calibration (grilled 2026-10-31, round 3): lives in `eyes/calibration.json` (committed, this mech's known-good), pushed by the daemon over the Link as `set key value` lines on connect; `noggin set k v` applies live and saves; `noggin pose ...` holds a pose; `noggin exercise N` runs in 15-85% for N minutes. Blink/wince glide to `lid_closed` (10%), never the hard stop; eureka's wide snap is `lid_open` (95%). Gesture timings stay in code. Wizard calibrate stage uses pose/set.
+- Process: review fixes and the calibration work go as two separate PRs.
