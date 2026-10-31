@@ -571,10 +571,11 @@ FOLDERS = (
 )  # glyphs hidden for a capture
 
 
-def screenshot(app, path, eye_dir, up, width=1600, height=1200):
-    """Orthographic shaded view (no mesh edges: the spool appearances carry the shape) of the whole design looking
-    back along eye_dir, saved to path. The joint, sketch, construction and origin glyphs of every component are hidden
-    for the capture and restored after (docs/model-notes.md)."""
+def screenshot(app, path, eye_dir, up, width=1600, height=1200, aim=None):
+    """Shaded view (no mesh edges: the spool appearances carry the shape) looking back along eye_dir, saved to path:
+    orthographic and fitted to the whole design, or with aim = (target mm, distance mm) a perspective camera that far
+    from the target. The joint, sketch, construction and origin glyphs of every component are hidden for the capture
+    and restored after (docs/model-notes.md)."""
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     comps = [root] + [
         o.component for o in root.allOccurrences
@@ -583,23 +584,36 @@ def screenshot(app, path, eye_dir, up, width=1600, height=1200):
     for c, f, _ in was:
         setattr(c, f, False)
     try:
-        _capture(app, path, eye_dir, up, width, height)
+        _capture(app, path, eye_dir, up, width, height, aim)
     finally:
         for c, f, v in was:
             setattr(c, f, v)
 
 
-def _capture(app, path, eye_dir, up, width, height):
+def _capture(app, path, eye_dir, up, width, height, aim=None):
     viewport = app.activeViewport
     viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
     camera = viewport.camera
-    camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
-    target = camera.target
-    camera.eye = adsk.core.Point3D.create(
-        target.x + eye_dir[0] * 100, target.y + eye_dir[1] * 100, target.z + eye_dir[2] * 100
-    )
     camera.upVector = vector(up)
-    camera.isFitView = True
+    if aim:
+        camera.cameraType = adsk.core.CameraTypes.PerspectiveCameraType
+        camera.isFitView = False
+        target, dist = point(aim[0]), aim[1] / 10
+        camera.target = target
+    else:
+        camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
+        target, dist = camera.target, 100
+    camera.eye = adsk.core.Point3D.create(
+        target.x + eye_dir[0] * dist, target.y + eye_dir[1] * dist, target.z + eye_dir[2] * dist
+    )
+    camera.isFitView = not aim
     viewport.camera = camera
+    if aim:  # switching to perspective moves the eye to keep the old extents: set it again on the new camera
+        camera = viewport.camera
+        camera.target, camera.upVector = target, vector(up)
+        camera.eye = adsk.core.Point3D.create(
+            target.x + eye_dir[0] * dist, target.y + eye_dir[1] * dist, target.z + eye_dir[2] * dist
+        )
+        viewport.camera = camera
     viewport.refresh()
     viewport.saveAsImageFile(path, width, height)
