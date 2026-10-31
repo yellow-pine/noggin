@@ -1,10 +1,11 @@
 REPO  := $(abspath .)
 PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
+BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check sim model-step-meshes model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases lint fmt
+.PHONY: venv test check sim model-step-meshes model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -62,9 +63,11 @@ restore-stock: interrupt
 	$(PY) eyes/interrupt.py reset
 
 model-proxies:   ## decimated STLs for the sweep (Blender), into model/build/proxies
-	/Applications/Blender.app/Contents/MacOS/Blender -b -P model/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models model/build/proxies | grep -v '^Blender'
-model-canvases: venv   ## show/hide the reference-photo canvases of the active Fusion document
-	$(PY) scripts/fusion_run.py model/canvases.py
+	$(BLENDER) -b -P model/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models model/build/proxies | grep -v '^Blender'
+render: venv model/build/steps/horn.stl   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
+	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
+gifs: venv model/build/steps/horn.stl     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
+	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
 model-parts: venv model-proxies   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/parts.py | $(PY) scripts/fusion_run.py /dev/stdin
 model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
