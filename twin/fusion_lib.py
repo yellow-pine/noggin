@@ -193,7 +193,7 @@ def body_box(occ):
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
     """Orthographic view of the whole design looking back along eye_dir, saved to path."""
     viewport = app.activeViewport
-    viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
+    viewport.visualStyle = adsk.core.VisualStyles.ShadedWithVisibleEdgesOnlyVisualStyle
     camera = viewport.camera
     camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
     target = camera.target

@@ -22,7 +22,7 @@ STEP = {
     "battery": os.path.join(CAD, "battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
 }
 OUT = os.path.join(REPO, "twin", "build")
-PHOTOS = os.path.join(REPO, "docs", "references", "build-photos")   # originals, background blurred (local only)
+PHOTOS = os.path.join(REPO, "docs", "build-photos")   # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
 # (component name, STL, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
@@ -41,16 +41,16 @@ RECEIVER_PORTS = {"servo PWM1": (4.2, 10.8, 0.4), "servo PWM2": (4.2, 10.8, 4.6)
                   "servo PWM4": (-4.2, 10.8, 4.6), "XH power": (0.0, 9.62, -9.75)}
 
 
-# Reference photos (background removed, docs/references/build-photos, local only) as canvases on the camera
+# Reference photos (docs/build-photos, already turned to match the model views) as canvases on the camera
 # side of the model: (file, root plane, plane offset mm, 2x3 transform taking the unit image square to the
 # plane in cm; u runs right, v runs UP from the image's bottom-left). Fusion's canvas rows per plane (measured
 # 2026-10-31): xZ -> (z, x), yZ -> (y, z), xY -> (x, y). Anchored on the eye centres measured in each image
 # (top 2993x2154 at 17.2 px/mm along z (plate end at z=150.5) and 18.5 across; side 1336x3901 at 22 px/mm;
 # front 1911x1371 at 17.1 px/mm). Perspective remains: parts nearer the camera read larger.
 CANVASES = {
-    "photo top (reference)": ("eyes-top.png", "xZConstructionPlane", 50.0, [[17.4, 0, -2.36], [0, 11.64, -2.97]]),
-    "photo side (reference)": ("eyes-side.png", "yZConstructionPlane", -45.0, [[-6.07, 0, 2.28], [0, 17.73, -2.53]]),
-    "photo front (reference)": ("eyes-front.png", "xYConstructionPlane", -45.0, [[-11.18, 0, 8.46], [0, 8.02, -3.95]]),
+    "photo top (reference)": ("eyes-top.jpg", "xZConstructionPlane", 50.0, [[0, 17.4, -2.36], [-11.64, 0, 8.67]]),
+    "photo side (reference)": ("eyes-side.jpg", "yZConstructionPlane", -45.0, [[0, 6.07, -3.79], [17.73, 0, -2.53]]),
+    "photo front (reference)": ("eyes-front.jpg", "xYConstructionPlane", -45.0, [[-11.18, 0, 8.46], [0, 8.02, -3.95]]),
 }
 
 
