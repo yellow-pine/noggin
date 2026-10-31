@@ -28,3 +28,11 @@ Abbrevs: SERVO = https://uk.store.bambulab.com/products/9g-servo-motor-with-clut
 ## 5. Core (CORE, MAN)
 - Type-C input DC 5 V; separate VBAT input 3.7-12.6 V (via shield). Docs never say USB reaches the servo rail; the Core/shield split implies it does not, matching docs/build-notes.md, but this is inference plus the board's observed behaviour, not a stated primary fact.
 - LEDC: ESP32-C3 has 6 channels, 4 timers (MicroPython esp32 quickref, quoted in research B4). Four servos at 50 Hz fit.
+## Clutch
+Source: Bambu spec sheet, model B-PG001 (https://cdn.shopify.com/s/files/1/0611/4036/9460/files/9g_Servo_Motor_with_Clutch_Protection.pdf, fetched 2026-10-31), items 5, 7, 28:
+- Clutch Protection: ">=0.9 kgf.cm at 4.8V" (about 88 mN.m). This is the only slip figure published. No 6.0 V value.
+- Rated torque: >=0.32 kgf.cm at 4.8 V, >=0.4 kgf.cm at 6.0 V.
+- Stall torque: >=1.0 kgf.cm at 4.8 V, >=1.2 kgf.cm at 6.0 V.
+- Current protection: power cut after 5 s continuous stall (Chinese text only).
+- Not published: holding torque, and any statement on whether the clutch protects against external back-driving. The sheet gives the clutch only as a torque number. Reading it as a gear-train overload limit that applies in both directions is inference.
+- Not checked: the store page text (JS-rendered, WebFetch returned 402), the Bambu wiki and the MakerWorld listing.
