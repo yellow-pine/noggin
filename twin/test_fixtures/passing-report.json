@@ -1,0 +1,15 @@
+{
+ "doc": "noggin-eyes",
+ "version": 3,
+ "clearance_mm": 3.0,
+ "horns": {
+  "L lid horn": {"min_mm": 4.1, "at_deg": 120, "pair": ["L inside lid", "L servo bracket"]},
+  "L eye horn": {"min_mm": 6.3, "at_deg": 60, "pair": ["L eyeball bar", "main bracket v2"]}
+ },
+ "interference": [{"a": "L eyeball", "b": "L pupil", "volume_mm3": 0.2, "pose": "neutral"}],
+ "bboxes": {
+  "L eyeball": [[-14.0, -14.0, -14.0], [14.0, 14.0, 14.0]],
+  "main bracket v2": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
+ },
+ "violations": []
+}
