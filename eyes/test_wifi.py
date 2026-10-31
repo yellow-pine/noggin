@@ -84,7 +84,9 @@ def link(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # the Core's filesystem: link.seq, flashed files
     fake_net = type("net", (), {"WLAN": FakeWLAN, "STA_IF": 0})
     fake_sock = type(
-        "sock", (), {"socket": FakeSocket, "AF_INET": 2, "SOCK_DGRAM": 2, "SOL_SOCKET": 1, "SO_BROADCAST": 6}
+        "sock",
+        (),
+        {"socket": FakeSocket, "AF_INET": 2, "SOCK_DGRAM": 2, "SOL_SOCKET": 1, "SO_BROADCAST": 6, "SO_REUSEADDR": 4},
     )
     monkeypatch.setattr(mod, "network", fake_net)
     monkeypatch.setattr(mod, "socket", fake_sock)
@@ -400,3 +402,18 @@ def test_after_a_power_cut_no_line_seen_before_it_runs_again(link):
     FakeSocket.inbox.append((dg(1_010_001, "wink"), MAC))  # past the saved ceiling: the margin is spent
     rebooted.poll(1_200)
     assert link.handled[-1] == "wink" and sent() == [("ok 1010001", MAC)]
+
+
+def test_core_code_avoids_cpython_only_calls():
+    """The Core runs MicroPython, where str.startswith/endswith take no tuple; the tests here run under CPython."""
+    import pathlib
+    import re
+
+    core = [p for p in pathlib.Path(__file__).parent.glob("*.py") if not p.name.startswith("test_")]
+    hits = [
+        f"{p.name}:{n}"
+        for p in core
+        for n, line in enumerate(p.read_text().splitlines(), 1)
+        if re.search(r"\.(startswith|endswith)\(\(", line)
+    ]
+    assert not hits, hits

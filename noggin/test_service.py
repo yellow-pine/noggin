@@ -137,6 +137,18 @@ def test_a_fresh_service_follows_and_status_says_so(tmp_path):
     s.stop()
 
 
+def test_a_client_that_hangs_up_before_its_answer_leaves_the_service_running(tmp_path):
+    s, sock, _ = start(tmp_path)
+    c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    c.connect(sock)
+    c.sendall(b"status\n")
+    c.shutdown(socket.SHUT_WR)
+    c.close()  # gone before the answer, as `nc -w 1` can be
+    time.sleep(0.3)
+    assert ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
 def test_demo_gesture_repeats_it_until_follow(tmp_path):
     s, sock, fake = start(tmp_path, duration=lambda line, cal: 0.0, pause=0.0)
     ask(sock, "demo bored 2\n")

@@ -277,12 +277,15 @@ class Service:
                     log("dropped connection:", e)
                     data = ""
                 for line in data.splitlines():
-                    if line.strip() == "status":
-                        conn.sendall(self.status(now).encode())
-                    elif line.strip() == "flash":
-                        conn.sendall(self.flash().encode())
-                    elif line.strip():
-                        self.command(line.strip(), now)
+                    try:
+                        if line.strip() == "status":
+                            conn.sendall(self.status(now).encode())
+                        elif line.strip() == "flash":
+                            conn.sendall(self.flash().encode())
+                        elif line.strip():
+                            self.command(line.strip(), now)
+                    except OSError as e:  # the client hung up before its answer (nc -w): never take the service down
+                        log("client gone:", e)
         srv.close()
         self.wifi.close()
 
