@@ -11,7 +11,7 @@ from model.engine import mating, run, stages
 
 HERE = os.path.dirname(__file__)
 _LID = (
-    "the real Mech closes the lid here, past the designer's end: the eyelid crank's step meets main bracket v2's outer"
+    "the real Mech closes the lid here, past the model's -20 end: the eyelid crank's step meets main bracket v2's outer"
     " edge (x -27..-28) from -38, 1.0 mm deep; the crank's plane needs the calliper"
 )
 _EYE = (
@@ -24,9 +24,6 @@ KNOWN_CALIBRATED = {
     ("L lid horn", -54): _LID,
     ("R lid horn", -46): _LID,
     ("L eye horn", -32): _EYE,
-    ("L eye horn", 28): _EYE,
-    ("R eye horn", -32): _EYE,
-    ("R eye horn", 28): _EYE,
 }
 
 
@@ -165,11 +162,8 @@ def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once
 
 
 def test_known_calibrated_collisions_are_still_there():
-    """When the model changes so a KNOWN_CALIBRATED entry no longer collides, drop it. They are the designer meshes'
-    (the committed reports): a report simulated on our geometry (CI's `make sim`) is not held to them."""
+    """When the model changes so a KNOWN_CALIBRATED entry no longer collides, drop it."""
     report = committed("noggin-eyes")
-    if any(s.startswith("model/build/ours/") for s in report["inputs"]["sources"]):
-        pytest.skip("simulated on our geometry: our parts clear the calibrated ends")
     found = {(h, v["deg"]) for h, r in report["calibrated"].items() for v in r.get("violations", [])}
     assert set(KNOWN_CALIBRATED) == found
 
