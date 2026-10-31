@@ -1,7 +1,7 @@
 """Wi-Fi Link: learn each Core from its UDP beacon (`noggin <name> <ip> <uptime s>`, trusted only for the
 sender's real address) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>` under
 the shared token, so the secret never travels), each acked with `ok <seq>` from that Core's address and command port
-(retried once, then dropped)."""
+(retried once, then handed back to the noggin service, which tries USB)."""
 
 import importlib.util
 import ipaddress
@@ -65,9 +65,9 @@ class Wifi:
         return f"wifi {ip} uptime {uptime}s"
 
     def send(self, name, lines):
-        """Deliver each line in turn; True when every one was acked."""
+        """Deliver each line in turn, stopping at the first unacked one; return the lines not delivered."""
         ip = self.cores[name][0]
-        for line in lines:
+        for i, line in enumerate(lines):
             self.seq = max(
                 self.seq + 1, int(time.time() * 1000)
             )  # the Core drops any seq below its highest: survive restarts
@@ -77,8 +77,8 @@ class Wifi:
                 if self.acked(self.seq, ip):
                     break
             else:
-                return False
-        return True
+                return lines[i:]
+        return []
 
     def acked(self, seq, ip):
         end = time.time() + ACK_SECONDS
