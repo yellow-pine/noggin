@@ -2,4 +2,4 @@
 __pycache__/
 *.log
 docs/references/
-firmware/stock-backup/
+eyes/stock-backup/

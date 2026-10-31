@@ -1,4 +1,4 @@
-from host.director import Director
+from reactions.director import Director
 
 def prompt(sid="s1"):
     return {"hook_event_name": "UserPromptSubmit", "session_id": sid}

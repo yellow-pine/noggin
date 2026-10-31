@@ -38,7 +38,7 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
   - thinking: background state, see above.
 - Power: kit 2S 7.4 V Li-ion pack on the X11 shield; USB-C for data (and Core power).
 - Firmware: replace stock `boot.py`. Back up stock filesystem first to `firmware/stock-backup/`; provide restore target.
-- Layout: `firmware/` (MicroPython), `host/` (daemon, hook, launchd plist), `Makefile` with install / backup-stock / restore-stock. Python both sides; deps: pyserial, mpremote.
+- Layout is feature-first, never function-first (directive 2026-10-31): `eyes/` (the eye mech's board program + its tests; later `pan_tilt/`, `mouth/`), `reactions/` (Claude Code events -> gestures: Director + tests), `daemon/` (serial + socket shell, poke hook, launchd plist, CLI + socket test). Tests live beside the code they test. `Makefile` for install / backup-stock / restore-stock. Python both sides; deps: pyserial, mpremote, pytest.
 - Photo of the actual build: `docs/eye-mech-build-photo.jpg` (Core + X11 shield centre, power/switch board top-right, cell holder top-left, 4 MakerWorld 180° servos: 2 eye, 2 lid).
 - Host tooling: system Python is 3.9, `uv` is available at /opt/homebrew/bin/uv. Use `uv` for the host env and to run mpremote.
 - Development cycle: grilling is interview-only, never build during it. After grilling, run the work through the mattpocock skills cycle (grilling -> research/prototype/domain-modeling as needed -> plan -> tdd -> code-review -> pr). Do not install anything into ~/.claude or launchd without an explicit go.
