@@ -1,5 +1,5 @@
 """Seam: model/sim.py's report-side helpers: gravity torque per horn from the sweep's centre-of-mass samples,
-transmission curves, and the merge into the Stage report."""
+transmission curves, and the merge into the document report."""
 
 import importlib.util
 import math

@@ -1,4 +1,4 @@
-"""Pin fits at every pinned joint of a Stage: a circle fitted (least squares) to the designer's STL around the
+"""Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to the designer's STL around the
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. Pure Python; `python model/fits.py`
 prints the eyes table. Designer STLs: docs/references (local only)."""
 
@@ -91,21 +91,21 @@ def fit_table(joints):
     return out
 
 
-# Eyes Stage (L side; the R side uses the same STLs mirrored). Hole centres fitted here, not geometry.STL_LOCAL:
-# the eyelid bar's holes are at x=+-20.5 (41 mm, as BARS says; STL_LOCAL has +-21.03) and the crank is the same bar with
-# its horn end stepped up 3 mm, both holes along Z (STL_LOCAL has them along Y). `half` spans the part around the hole.
+# Eyes sub-assembly (L side; the R side uses the same STLs mirrored). Hole centres fitted here, not geometry.STL_LOCAL.
+# Both bars take the horn screw in their smaller hole (+x end) and the lid in the larger (-x end; guide p.23); the
+# crank's lid end is stepped up 3 mm. The crank goes to the inside (top) lid, the straight bar to the outside one (#48).
 EYES_JOINTS = [
-    ("eyelid bar / horn screw", (stl("eyelid bar"), (-20.5, 0, 1.5), "z", 2), M2),
+    ("eyelid bar / horn screw", (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2), M2),
     (
-        "eyelid bar / inside lid pin",
-        (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2),
-        (stl("inside lid"), (-22, 12, 0), "x", 3),
-    ),
-    ("eyelid crank / horn screw", (stl("eyelid bar crank"), (-20.5, 0, 4.5), "z", 2), M2),
-    (
-        "eyelid crank / outside lid pin",
-        (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2),
+        "eyelid bar / outside lid pin",
+        (stl("eyelid bar"), (-20.5, 0, 1.5), "z", 2),
         (stl("outside lid"), (-22, -12, 0), "x", 3),
+    ),
+    ("eyelid crank / horn screw", (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2), M2),
+    (
+        "eyelid crank / inside lid pin",
+        (stl("eyelid bar crank"), (-20.5, 0, 4.5), "z", 2),
+        (stl("inside lid"), (-22, 12, 0), "x", 3),
     ),
     ("eyeball bar / horn screw", (stl("eyeball bar"), (-10, 4, 27), "y", 2), M2, "self_tapping"),
     ("eyeball bar / eyeball screw", (stl("eyeball bar"), (-10, 4, 0), "y", 2), M2),
@@ -121,17 +121,17 @@ EYES_JOINTS = [
     ),
 ]
 EYES_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end (0.05 mm) self-taps by design
-    "eyelid bar / horn screw": (1.35, 1.0, True),
-    "eyelid bar / inside lid pin": (1.1, 1.0, True),
-    "eyelid crank / horn screw": (1.35, 1.0, True),
-    "eyelid crank / outside lid pin": (1.1, 1.0, True),
+    "eyelid bar / horn screw": (1.1, 1.0, True),
+    "eyelid bar / outside lid pin": (1.35, 1.0, True),
+    "eyelid crank / horn screw": (1.1, 1.0, True),
+    "eyelid crank / inside lid pin": (1.35, 1.0, True),
     "eyeball bar / horn screw": (1.05, 1.0, True),
     "eyeball bar / eyeball screw": (1.25, 1.0, True),
     "inside lid ear / bracket pin": (1.998, 1.735, True),
     "outside lid ear / bracket pin": (1.959, 1.735, True),
 }
 
-# Pan-tilt Stage: bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
+# Stack sub-assembly (pan-tilt): bars pinned to the horns with M2 screws and nuts at the smaller hole (guide step 12), screwed to
 # the levers and the tilt pivot with M2.5 (self-tapping into the r 1.1 holes, as the eyeball bar's horn end).
 PT_JOINTS = [
     ("tilt bar / horn screw", (stl("tilt bar", PT_MODELS), (10, 0, 1.5), "z", 2), M2),
@@ -154,7 +154,7 @@ PT_RECORDED = {  # (hole_r, pin_r, ok) read 2026-10-31
     "upright / pivot screw": (1.1, 1.25, True),
 }
 
-# Mouth Stage: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
+# Mouth sub-assembly: the top jaw's pins in the bottom jaw's hinge holes (clipped on, guide step 7) and the connector bar's M2.5
 # self-tapped into the jaw's pivot lug (step 8). The bar's own holes are not fitted: at 960 vertices the hole rings tangle
 # with the tab-end rounding (rms 0.1-0.16); the research note reads them as r ~1.25.
 MOUTH_JOINTS = [

@@ -1,5 +1,5 @@
 """Seam: model/fits.py's fit table (hole radius fitted to the designer's STL vs the fastener). The synthetic test
-is the spec; the live test records the designer's eyes-Stage parts and is skipped without docs/references."""
+is the spec; the live test records the designer's eyes sub-assembly parts and is skipped without docs/references."""
 
 import importlib.util
 import math

@@ -92,7 +92,7 @@ def _lid_weight(name):
     return lambda: mass_g(fits.stl(name)) / 1000 * G / 2  # half the lid on each ear
 
 
-# Eyes Stage. Links: full stall force across the pivot spacing (BARS), axial (pinned both ends, decided 2026-10-31);
+# Eyes sub-assembly. Links: full stall force across the pivot spacing (BARS), axial (pinned both ends, decided 2026-10-31);
 # the cantilever bound (bending about the pin axis, depth h = in-plane width) is reported alongside. Ears: the lug from
 # the lid body to the pin (~5 mm) as a cantilever under half the lid, bending about the pin, depth across the lug.
 EYES_BEAMS = [
@@ -116,7 +116,7 @@ EYES_RECORDED = {  # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are fa
     "outside lid ear": (999, True),
 }
 
-# Pan-tilt Stage: the two bars as axial links under the stall force across their pivot spacing.
+# Stack sub-assembly (pan-tilt): the two bars as axial links under the stall force across their pivot spacing.
 PT_BEAMS = [
     ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar", fits.PT_MODELS), lambda v: True, "z", "y")),
     ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("PandT bar", fits.PT_MODELS), lambda v: True, "z", "y")),
@@ -126,7 +126,7 @@ PT_RECORDED = {
     "pan bar": (81.23, True),
 }  # read 2026-10-31: the same 3 x 5 mm section as the eyes bars
 
-# Mouth Stage: the connector bar as an axial link across its 31.4 mm pivot spacing; section from its lower tab (x > 8: the
+# Mouth sub-assembly: the connector bar as an axial link across its 31.4 mm pivot spacing; section from its lower tab (x > 8: the
 # 5 x 3 tab plus its edge rounding, since the STL carries no vertices on the tab's flat top).
 MOUTH_BEAMS = [
     (

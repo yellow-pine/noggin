@@ -1,75 +1,23 @@
-"""Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes Stage owns (ADR 0004),
+"""Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes sub-assembly owns (ADR 0004),
 main bracket v2, the eye mech printed parts, the four servos with their horns, placed from the parts library
 (`make model-parts`, fusion_lib.insert_part), and the Pivots as joints. The PandT base and the electronics live in
 noggin-base; the Stage documents (model/stage.py) put the bracket on it. Runs INSIDE Fusion: `make model-eyes`.
 Components whose position is inferred rather than measured carry an "(inferred)" suffix.
 Numbers live in model/geometry.py; this file only places things. Parts whose library version and placement are
-unchanged since the saved version are reused (fingerprints, fusion_lib); joints and canvases are recreated, and
+unchanged since the saved version are reused (fingerprints, fusion_lib); joints are recreated, and
 a new version is saved only when something differs from the last one."""
 
 # include: model/geometry.py
 # include: model/fusion_lib.py
 # include: model/contacts.py
 import json
-import os
 
 import adsk.core
 import adsk.fusion
 
 DOC = "noggin-eyes"
 FULL = False  # `FULL=1 make model-eyes` flips this: empty the document and import everything again
-REPO = os.path.expanduser("~/code/noggin")
-OUT = os.path.join(REPO, "model", "build")
-PHOTOS = os.path.join(REPO, "docs", "build-photos")  # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
-
-# (component name, library part, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
-# the regular eye and the "updated main bracket and base" profile: main bracket v2 (03-mouth) on the PandT
-# base (noggin-base, placed by the Stage documents); the lizard and plain eye STLs and the v1 base are not built.
-PARTS = [
-    ("L servo bracket", "L servo bracket", 0),
-    ("R servo bracket", "R servo bracket", 0),
-    ("L eyeball", "L eyeball regular", 0),
-    ("R eyeball", "R eyeball regular", 0),
-    ("L pupil", "regular pupil", -59),
-    ("R pupil", "regular pupil", 0),
-    ("L inside lid", "inside lid", 0),
-    ("L outside lid", "outside lid", 0),
-    ("R inside lid", "inside lid", 59),
-    ("R outside lid", "outside lid", 59),
-    ("L eyeball bar", "eyeball bar", 0),
-    ("R eyeball bar", "eyeball bar", 79),
-]
-
-
-# Reference photos (docs/build-photos, already turned to match the model views) as canvases on the camera
-# side of the model: (file, root plane, plane offset mm, 2x3 transform taking the unit image square to the
-# plane in cm; u runs right, v runs UP from the image's bottom-left). Fusion's canvas rows per plane (measured
-# 2026-10-31): xZ -> (z, x), yZ -> (y, z), xY -> (x, y). Anchored on the eye centres measured in each image
-# (top 2993x2154 at 17.2 px/mm along z (plate end at z=150.5) and 18.5 across; side 1336x3901 at 22 px/mm;
-# front 1911x1371 at 17.1 px/mm). Perspective remains: parts nearer the camera read larger.
-CANVASES = {
-    "photo top (reference)": ("eyes-top.jpg", "xZConstructionPlane", 50.0, [[0, 17.4, -2.36], [-11.64, 0, 8.67]]),
-    "photo side (reference)": ("eyes-side.jpg", "yZConstructionPlane", -45.0, [[0, 6.07, -3.79], [17.73, 0, -2.53]]),
-    "photo front (reference)": ("eyes-front.jpg", "xYConstructionPlane", -45.0, [[-11.18, 0, 8.46], [0, 8.02, -3.95]]),
-}
-
-
-def canvas(root, name, path, plane_name, offset_mm, cells):
-    cut = root.constructionPlanes.createInput()
-    cut.setByOffset(getattr(root, plane_name), adsk.core.ValueInput.createByReal(offset_mm / 10))
-    plane = root.constructionPlanes.add(cut)
-    plane.name = name + " plane"
-    plane.isLightBulbOn = False
-    inp = root.canvases.createInput(path, plane)
-    m = adsk.core.Matrix2D.create()
-    for r, row in enumerate(cells):
-        for c, v in enumerate(row):
-            m.setCell(r, c, v)
-    inp.transform = m
-    inp.opacity = 25
-    inp.isDisplayedThrough = False
-    root.canvases.add(inp).name = name
 
 
 def run(_context: str):
@@ -87,15 +35,19 @@ def run(_context: str):
             )
         )
 
-    for name, lib, dx in PARTS:
+    for name, lib, dx in EYES_PARTS:
         part(name, lib, name, align((dx, 0, 0)))
     part("main bracket", "main bracket v2", "main bracket v2")
 
-    # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
-    for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
+    # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot. A Port at each servo's
+    # cable exit (SERVO_STEP lead), placed after parts_end.
+    leads = {}
+    for key in EYES_SERVOS:
         origin, tab_x, shaft = servo_frame(key)
         label = key.upper()[0] + (" lid" if "lid" in key else " eye")
-        part(key + "_servo", "servo", f"{label} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+        m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
+        part(key + "_servo", "servo", f"{label} servo", m)
+        leads[key + "_servo"] = (f"{label} servo lead", at(m, SERVO_STEP["lead"]))
         arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X  # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
         part(key + "_horn", "horn", f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
@@ -104,12 +56,12 @@ def run(_context: str):
     pins = {}
     for s in "LR":
         lid_horn = PIVOTS[s.lower() + "_lid_horn"]["point"]
-        normal = (-1, 0, 0) if s == "L" else (1, 0, 0)
+        normal = (1, 0, 0) if s == "L" else (-1, 0, 0)  # inboard: the crank's step toward the lid ear
         for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = LID_LINKS[key]
-            x = side(s, (spec["x"], 0, 0))[0]
-            horn_pin = (x, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
-            lid_pin = (x,) + side(s, LID_PINS[spec["lid"]])[1:]
+            hx, lx = (side(s, (x, 0, 0))[0] for x in spec["x"])
+            horn_pin = (hx, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
+            lid_pin = (lx,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl} (inferred)"
             steps.append(
                 (
@@ -125,6 +77,8 @@ def run(_context: str):
         for occ in reuse.values():  # kept parts the build no longer places
             occ.deleteMe()
         parts_end(design)  # everything below is cheap and recreated by every build: no insert may follow this line
+        for key, (name, p) in leads.items():
+            port(occs[key], name, p)
         occs["main bracket"].isGrounded = True
         for s in "LR":
             eye = PIVOTS[s.lower() + "_eye"]["point"]
@@ -180,7 +134,7 @@ def run(_context: str):
     for occ in root.occurrences:
         if occ.name not in moving:
             occ.isGrounded = True
-    new_contacts = not design.contactSets.count  # one contact set per Stage (#20): moving parts, bracket, servos
+    new_contacts = not design.contactSets.count  # one contact set per sub-assembly (#20): moving parts, bracket, servos
     if new_contacts:
         contact_set(
             design,
@@ -193,11 +147,6 @@ def run(_context: str):
             },
         )
 
-    for name, (photo, plane, offset_mm, cells) in CANVASES.items():
-        canvas(root, name, os.path.join(PHOTOS, photo), plane, offset_mm, cells)
-
-    os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "eyes", {"top": (Y, Z), "side": ((-1, 0, 0), Y), "front": ((0, 0, -1), Y)})
     now = summary(root)
     diff = (
         changes(saved_summary(root), now)

@@ -1,10 +1,12 @@
-"""Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit.
-Run: .venv/bin/python model/electrical.py. budget() is merged into the Mech-wide report (the merge and cable
-reach come with the top assembly, #17)."""
+"""Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit, and the
+leads the cable corridors route. Run: .venv/bin/python -m model.electrical. budget() is merged into the Mech-wide
+(noggin-stage3) report and leads() routed by model/engine/cables.py."""
 
 import importlib.util
 import json
 import os
+
+from model.geometry import CHANNELS, SERVO_LABEL
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,16 +22,13 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")
 
-CHANNELS = {
-    "core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},  # docs/build-notes.md, servo ports
-    "core2": {1: "tilt", 2: "mouth", 3: "pan"},
-}  # second Core, designer's config JSON
 CAP_A = min(3.0, 3.0)  # shield max, pack continuous discharge: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
-# Wi-Fi station idle + a 2 s beacon (eyes/wifi.py): ~100 mA averaged. Assumption, no measurement on the Core yet;
-# docs/research/2026-10-31-radio.md records no draw figure. The Core is a Link on every scenario, so it is always on.
-WIFI_A = 0.100
+# Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet figures, not in docs/research
+# (assumed): receive 84 mA while listening, transmit up to 335 mA (802.11b at 21 dBm) for a beacon or an ack burst.
+# Added in amps at the pack as if through a linear regulator (the Core's supply path is not published).
+WIFI_RX_A, WIFI_TX_A = 0.084, 0.335
 # Holding allowance: a held servo is not spinning (no no-load current), only the torque current for the load.
 # Worst moving chain is an eyeball plus its bar, ~10 g on a ~3 cm lever = 0.03 kgf.cm; 0.05 leaves margin
 # until #20 measures the real gravity torque. 0.05 / 2.03 kgf.cm per A = 25 mA.
@@ -52,16 +51,41 @@ def budget():
         "session_moving_s_per_hour": moving_s,
         "hold_a_per_servo": HOLD_A,
         "run_a_per_servo": RUN_A,
-        "wifi_a": WIFI_A,
+        "wifi_a": {"rx": WIFI_RX_A, "tx_peak": WIFI_TX_A},
     }
     for core, ch in CHANNELS.items():
         n = len(ch)
-        rest = SHIELD_STANDBY_A + WIFI_A + n * (servo.STANDBY_A + HOLD_A)
-        demo = SHIELD_STANDBY_A + WIFI_A + n * RUN_A
+        rest = SHIELD_STANDBY_A + n * (servo.STANDBY_A + HOLD_A) + WIFI_RX_A
+        demo = SHIELD_STANDBY_A + n * RUN_A + WIFI_RX_A
         session = rest + (demo - rest) * (moving_s / 3600 if core == "core1" else 0)  # core2 has no choreography yet
-        out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"]
+        out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"] + SHIELD_STANDBY_A + WIFI_TX_A  # all at once
         out["draw_a"][core] = {"rest": rest, "session": session, "demo": demo}
         out["runtime_h"][core] = {k: PACK["mah"] / 1000 / a for k, a in out["draw_a"][core].items()}
+    return out
+
+
+# Lead lengths are not published (docs/research/2026-10-31-electrical.md 1): assumed, the CyberBrick servo lead 250 mm
+# and the XH2.54 leads 100 mm; a lead must reach with SLACK_MM to spare.
+SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
+
+
+def leads():
+    """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
+    shield header (CHANNELS), each pack's lead to its switch board, each switch board's XH lead to its shield. Port names
+    are the Fusion builds' (model/engine/stages.py ports); model/engine/cables.py routes each from its first Port."""
+    out = []
+    for n in (1, 2):
+        for port, name in CHANNELS[f"core{n}"].items():
+            out.append(
+                (
+                    f"{name} servo -> Core {n} PWM{port}",
+                    f"{SERVO_LABEL[name]} servo lead",
+                    f"Core {n} servo PWM{port}",
+                    SERVO_LEAD_MM,
+                )
+            )
+        out.append((f"pack {n} -> switch {n}", f"battery {n} lead", f"switch board {n} hole", XH_LEAD_MM))
+        out.append((f"switch {n} -> shield {n}", f"switch board {n} hole", f"Core {n} XH power", XH_LEAD_MM))
     return out
 
 
