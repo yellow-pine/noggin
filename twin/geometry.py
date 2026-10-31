@@ -18,6 +18,13 @@ def pt_to_eyes(p):
     return (29.5 - x, z - 81.5, y + 28.5)
 
 
+def pt_to_eyes_standalone(p):
+    """PandT base point -> eyes frame for the eyes-only build (no neck): the bracket v2 stem sits in the pan
+    bearing recess at the PT origin (builder-confirmed), its bottom 1.5 below the plate top [I: +-3 mm]."""
+    x, y, z = p
+    return (29.5 - x, z - 44.1, y + 15.5)
+
+
 def mirror_x(p):
     """Reflect an eyes-frame point about the mech centreline x=29.5 (L side -> R side)."""
     x, y, z = p
@@ -84,6 +91,8 @@ STANDOFFS = {
         "receiver_1": [(26.0, 40.5, 13.0), (50.0, 40.5, 13.0), (26.0, 63.5, 13.0), (50.0, 63.5, 13.0)],
         "receiver_2": [(26.0, 73.5, 13.0), (50.0, 73.5, 13.0), (26.0, 96.5, 13.0), (50.0, 96.5, 13.0)],
         "switch": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
+        "switch_post": [(34.5, 108.5, 7.7)],   # the single back post the eyes-only build hangs the switch on (photo)
+        "wire_keeper": [(-7.5, 40.5, 7.7), (7.5, 40.5, 7.7)],
     },
 }
 
@@ -140,4 +149,5 @@ STL_LOCAL = {
 # Eyes base pockets [M]. Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0, lead fused to the
 # pack body beyond y=56 (plug at y 50..55).
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
+BATTERY_POCKET_PT = {"x": (-48.0, -24.0), "y": (71.0, 127.0), "floor_z": 3.0}   # PandT base, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}

@@ -10,6 +10,8 @@ import adsk.core, adsk.fusion, math, os
 DOC = "noggin-eyes"
 REPO = os.path.expanduser("~/code/noggin")
 MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
+PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
+MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
 CAD = os.path.join(REPO, "docs/references/cyberbrick-cad")
 SERVO_DIR = os.path.join(CAD, "servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
 STEP = {
@@ -24,10 +26,10 @@ PHOTOS = os.path.join(REPO, "docs", "references", "build-photos")   # originals,
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
 # (component name, STL, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
-# the regular eye; the lizard and plain eye STLs are not imported.
+# the regular eye and the "updated main bracket and base" profile: main bracket v2 (03-mouth) on the PandT
+# base (02-pan-tilt, placed below); the lizard and plain eye STLs and the v1 base are not imported.
 PARTS = [
-    ("main bracket", "main bracket", 0), ("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
-    ("base", "base", 0), ("wire keeper", "wire keeper", 0),
+    ("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
     ("L eyeball", "L eyeball regular", 0), ("R eyeball", "R eyeball regular", 0),
     ("L pupil", "regular pupil", -59), ("R pupil", "regular pupil", 0),
     ("L inside lid", "inside lid", 0), ("L outside lid", "outside lid", 0),
@@ -127,7 +129,13 @@ def run(_context: str):
     occs = {}
     for name, stl, dx in PARTS:
         occs[name] = import_stl(root, os.path.join(MODELS, stl + ".stl"), name, align((dx, 0, 0)))
+    occs["main bracket"] = import_stl(root, os.path.join(MOUTH_MODELS, "main bracket v2.stl"), "main bracket v2")
     occs["main bracket"].isGrounded = True
+    pt0 = pt_to_eyes_standalone((0, 0, 0))
+    import_stl(root, os.path.join(PT_MODELS, "PandT base.stl"), "PandT base",
+               align(pt0, (-1, 0, 0), Y))
+    keeper_y = pt_to_eyes_standalone(STANDOFFS["pt_base"]["wire_keeper"][0])[1]
+    import_stl(root, os.path.join(MODELS, "wire keeper.stl"), "wire keeper (inferred)", align((0, keeper_y + 22.6, 0)))
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
     for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
@@ -140,8 +148,8 @@ def run(_context: str):
 
     # Boards and battery on the base: shield on its standoffs with the Core flipped on top (the STEP has it
     # underneath; the build photo shows it on top), switch board centred on its standoffs, battery in its pocket.
-    stand = STANDOFFS["eyes_base"]
-    receiver_at = mean(stand["receiver"])
+    stand = STANDOFFS["pt_base"]
+    receiver_at = mean([pt_to_eyes_standalone(p) for p in stand["receiver_1"]])
     # Shield turned a quarter about Y so the XH socket faces -X and the Core's USB-C the side (build photos).
     receiver_m = align(receiver_at, (0, 0, -1), X)
     receiver = import_step(root, STEP["receiver"], "receiver shield", receiver_m)
@@ -162,9 +170,10 @@ def run(_context: str):
         port(receiver, name, (w.x * 10, w.y * 10, w.z * 10))
     usb_centre = tuple((getattr(usb.minPoint, c) + getattr(usb.maxPoint, c)) * 5 for c in "xyz")
     port(core, "USB-C", usb_centre)
-    import_step(root, STEP["switch"], "switch board", align(stand["switch"][0], (0, 0, -1), X, SWITCH_STEP["hole"]))
-    pocket = BATTERY_POCKET
-    battery_at = ((pocket["x"][0] + pocket["x"][1]) / 2, pocket["floor_y"] - BATTERY_STEP["floor_z"], pocket["z"][0])
+    import_step(root, STEP["switch"], "switch board", align(pt_to_eyes_standalone(stand["switch_post"][0]), (0, 0, -1), X, SWITCH_STEP["hole"]))
+    pocket = BATTERY_POCKET_PT
+    near, far = pt_to_eyes_standalone((pocket["x"][1], pocket["y"][0], pocket["floor_z"])), pt_to_eyes_standalone((pocket["x"][0], pocket["y"][1], pocket["floor_z"]))
+    battery_at = ((near[0] + far[0]) / 2, near[1] - BATTERY_STEP["floor_z"], near[2])
     battery = import_step(root, STEP["battery"], "battery", align(battery_at, (-1, 0, 0), Y))
     strip_lead(battery)
     port(battery, "battery lead", add(battery_at, (-3.5, 3.5, 52.5)))   # the pack's plug; wiring is out of scope
