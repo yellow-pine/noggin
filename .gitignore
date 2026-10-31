@@ -6,3 +6,6 @@ eyes/stock-backup/
 model/build/
 .DS_Store
 eyes/wifi.json
+
+# skills restored from skills-lock.json (npx skills experimental_install); .claude/skills links here
+.agents/
