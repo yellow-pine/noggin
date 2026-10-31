@@ -177,6 +177,7 @@ def run(_context: str):
                     continue   # exact distance is at least the box gap: skip far pairs
                 d = app.measureManager.measureMinimumDistance(proxy_body(mover) or mover, proxy_body(other) or other).value * 10
                 measured += 1
+                adsk.doEvents()   # let the UI repaint and take input between measurements
                 if d < CLEARANCE_MM and (proxy_body(mover) or proxy_body(other)):   # decimation can close slots: confirm on the real bodies
                     d = app.measureManager.measureMinimumDistance(mover, other).value * 10
                     measured += 1
