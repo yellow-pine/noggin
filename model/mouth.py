@@ -52,7 +52,7 @@ def run(_context: str):
         pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
         lo, hi = HORN_LIMITS["mouth"]
         pivot_joint(root, occs["jaw horn (inferred)"], occs["jaw servo"], seat, "X", "jaw horn (inferred)", (lo - 90, hi - 90))
-        pivot_joint(root, occs["connector bar (inferred)"], occs["jaw horn (inferred)"], pin, "X", "connector bar / horn pin (inferred)")
+        pivot_joint(root, occs["connector bar (inferred)"], occs["jaw horn (inferred)"], pin, "X", "connector bar / arm pin (inferred)")
         close_loop(root, occs["connector bar (inferred)"], occs["bottom jaw"], lever, "X", "connector bar / jaw lug screw")
     steps.append(("joints", joints))
     progress = chunked(steps)

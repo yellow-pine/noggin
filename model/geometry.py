@@ -35,7 +35,10 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
 HORN_LIMITS = {
     "l_lid": (70, 120), "l_eye": (70, 110), "r_lid": (70, 120), "r_eye": (70, 110),   # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
-    "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
+    "tilt": (20, 150), "rotate": (40, 160),
+    # mouth [I]: the config says 0..180, but the jaws are modelled closed at neutral and the connector-bar four-bar only
+    # has solutions on the opening side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only.
+    "mouth": (50, 90),
 }
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
