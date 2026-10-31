@@ -2,9 +2,9 @@
 
 import cadquery as cq
 
-from model.printed import main_bracket
+from model.printed import bars, main_bracket
 
-PARTS = {"main bracket v2": main_bracket.build}
+PARTS = {"main bracket v2": main_bracket.build, "tilt bar": bars.tilt, "PandT bar": bars.pan}
 
 
 def export(stem, path):
