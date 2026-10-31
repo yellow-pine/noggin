@@ -38,4 +38,4 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 - Development cycle: grilling is interview-only, never build during it. After grilling, run the work through the mattpocock skills cycle (grilling -> research/prototype/domain-modeling as needed -> plan -> tdd -> code-review -> pr). Do not install anything into ~/.claude or launchd without an explicit go.
 - Power plan: first try USB only (USB-C to the Core for data/MCU, plus the USB-A -> XH2.54 lead into the shield's power port for 5 V to servos). That is below the shield's 7.4 V spec; if servos brown out, fall back to two 14500 cells in series (printed 2x14500 case or two holders wired in series). No onboard charger.
 - Cycle order agreed 2026-10-31: domain-modeling -> research -> wizard.
-- Status line shows the current dev-cycle step from `~/.claude/.cycle-step` (one line, e.g. `noggin: tdd`). Update that file whenever a cycle step starts.
+- Status line shows the current dev-cycle step from `~/.claude/.cycle-step` (one line, e.g. `noggin:tdd`). Update that file whenever a cycle step starts.
