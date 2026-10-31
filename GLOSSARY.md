@@ -7,7 +7,7 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 ### Hardware
 
 **Mech**:
-The physical animatronic: two eyeballs, two eyelid pairs, four servos and the boards, built from PurpleShark's CyberBrick Eyes design.
+The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from PurpleShark's CyberBrick eyes, pan-and-tilt and mouth designs.
 _Avoid_: robot, head, beast, eye mech
 
 **Core**:
@@ -15,11 +15,11 @@ The CyberBrick controller board (ESP32-C3 running MicroPython) that drives the s
 _Avoid_: board, receiver, controller, ESP
 
 **Shield**:
-The CyberBrick X11 expansion board the Core sits on; carries the four servo ports and the power input.
+The CyberBrick X11 expansion board the Core sits on; carries the servo ports and the power input; one per Core.
 _Avoid_: receiver, receiver shield, X11
 
 **Servo**:
-One of the four actuators, named by what it moves: left lid, left eye, right lid, right eye.
+One of the seven actuators, named by what it moves: left lid, left eye, right lid, right eye (eyes Core); tilt, mouth, pan (neck Core).
 _Avoid_: channel, PWM, actuator, motor
 
 **Link**:
@@ -97,7 +97,7 @@ _Avoid_: program, image, OS
 
 **Model**:
 The Mech as code, 1:1 with the physical Mech: Fusion 360 builds its documents (every Sub-assembly and Stage, every
-piece of hardware) and makes the pictures; the Python engine in model/ simulates them (docs/adr/0006).
+piece of hardware); the Python engine in model/ simulates them (docs/adr/0006) and Blender renders the pictures from its poses.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:

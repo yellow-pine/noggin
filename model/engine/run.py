@@ -80,7 +80,7 @@ def chain(horn):
 def linked(stage, horn):
     """Pairs that touch by construction (a joint or a rigid group): the horn on its servo, bars on their pins, rockers on
     their pivots and rigid groups (eyeball + pupil, the pan mechanism): not measured."""
-    out = {frozenset((horn.crank, horn.crank.replace(" horn (inferred)", " servo")))}
+    out = {frozenset((horn.crank, horn.crank.replace(" horn", " servo")))}
     for loop in horn.loops:
         out.add(frozenset((loop.coupler, horn.crank)))
         out.update(frozenset((loop.coupler, r)) for r in loop.rockers)

@@ -22,11 +22,12 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")
 
-CAP_A = min(3.0, 3.0)  # shield max, pack continuous discharge: one pack per shield
+CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
-# Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet figures, not in docs/research
-# (assumed): receive 84 mA while listening, transmit up to 335 mA (802.11b at 21 dBm) for a beacon or an ack burst.
+# Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet Table 5-7 (chip peak at 3.3 V,
+# docs/research/2026-10-31-shafts.md): receive 84 mA while listening, transmit up to 335 mA (802.11b at 21 dBm) for a
+# beacon or an ack burst.
 # Added in amps at the pack as if through a linear regulator (the Core's supply path is not published).
 WIFI_RX_A, WIFI_TX_A = 0.084, 0.335
 # Holding allowance: a held servo is not spinning (no no-load current), only the torque current for the load.
@@ -64,8 +65,8 @@ def budget():
     return out
 
 
-# Lead lengths are not published (docs/research/2026-10-31-electrical.md 1): assumed, the CyberBrick servo lead 250 mm
-# and the XH2.54 leads 100 mm; a lead must reach with SLACK_MM to spare.
+# The servo lead length is not published (docs/research/2026-10-31-electrical.md 1, -shafts.md): assumed 250 mm; the
+# XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list); a lead must reach with SLACK_MM to spare.
 SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
 
 

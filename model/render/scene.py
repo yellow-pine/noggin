@@ -9,10 +9,10 @@ from model import geometry as g
 from model.engine import run, stages
 
 HORNS = {
-    "l_lid": "L lid horn (inferred)",
-    "l_eye": "L eye horn (inferred)",
-    "r_lid": "R lid horn (inferred)",
-    "r_eye": "R eye horn (inferred)",
+    "l_lid": "L lid horn",
+    "l_eye": "L eye horn",
+    "r_lid": "R lid horn",
+    "r_eye": "R eye horn",
 }
 
 GREYS = {

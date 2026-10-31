@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # the Core program files that `make flash` copies, plus the setup wizard
-      - run: zip noggin-${{ github.ref_name }}.zip eyes/eyes.py eyes/gaze_trace.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
+      - run: zip noggin-${{ github.ref_name }}.zip eyes/eyes.py eyes/gaze_trace.py eyes/wifi.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - run: gh release create ${{ github.ref_name }} noggin-${{ github.ref_name }}.zip --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
