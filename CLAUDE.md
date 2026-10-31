@@ -25,7 +25,7 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 ## Design decisions (grilled 2026-10-31)
 
 - Host: this Mac. launchd LaunchAgent runs a Python daemon that owns the serial port and listens on a Unix socket.
-- Events (grilled 2026-10-31, supersedes the earlier Stop+Notification-only plan): UserPromptSubmit (silent: starts thinking + timer), Stop -> eureka, Notification permission_prompt -> attention, Notification idle_prompt -> bored, StopFailure -> wince, SessionEnd (silent: ends thinking). Hooks are async one-liners in user-level `~/.claude/settings.json`. Claude Code only.
+- Events (grilled 2026-10-31, supersedes the earlier Stop+Notification-only plan): SessionStart -> wink (hello), UserPromptSubmit (silent: starts thinking + timer), Stop -> eureka, Notification permission_prompt -> attention, Notification idle_prompt -> bored, StopFailure -> wince, SessionEnd (silent: ends thinking). Hooks are async one-liners in user-level `~/.claude/settings.json`. Claude Code only.
 - Eureka intensity by work duration (UserPromptSubmit to Stop): <20 s small, 20 s to 3 min normal, >3 min big. Other gestures fixed intensity. Mapping lives in the daemon; board gestures take an intensity 1-3.
 - Thinking: alive during a turn (lids half, eye drift every 3-6 s, occasional blink, servos released between moves). Ends at Stop, SessionEnd, or 15 min without events from that session. Gestures interrupt thinking and it resumes after if the session is still mid-turn. Rest (still, released) when no session is mid-turn.
 - Sessions: per-session timers keyed by session_id; any session's events drive the one mech; Busy drops overlapping gestures (no queue, no pre-emption).

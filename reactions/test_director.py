@@ -118,3 +118,6 @@ def test_reconnect_resends_mode():
     assert d.mode() == "rest"
     d.handle(prompt(), now=1.0)
     assert d.mode() == "thinking"
+
+def test_session_start_winks():
+    assert Director().handle({"hook_event_name": "SessionStart", "session_id": "s1"}, now=1.0) == ["wink 3"]

@@ -43,6 +43,8 @@ class Director:
             return self._gesture(f"eureka {intensity}", now) + self._end_turn(sid)
         if kind == "StopFailure":
             return self._gesture("wince 2", now) + self._end_turn(sid)
+        if kind == "SessionStart":
+            return self._gesture("wink 3", now)
         if kind == "SessionEnd":
             return self._end_turn(sid) if sid in self.turns else []
         if kind == "Notification" and event.get("notification_type") in NOTIFICATIONS:

@@ -2,7 +2,7 @@
 import json, os, sys
 path = os.path.expanduser("~/.claude/settings.json")
 poke = os.path.abspath(os.path.join(os.path.dirname(__file__), "hook.sh"))
-EVENTS = {"UserPromptSubmit": None, "Stop": None, "StopFailure": None, "SessionEnd": None,
+EVENTS = {"SessionStart": None, "UserPromptSubmit": None, "Stop": None, "StopFailure": None, "SessionEnd": None,
           "Notification": "permission_prompt|idle_prompt"}
 cfg = json.load(open(path)) if os.path.exists(path) else {}
 hooks = cfg.setdefault("hooks", {})
