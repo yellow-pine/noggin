@@ -1,32 +1,57 @@
 {
  "doc": "noggin-pan-tilt",
- "version": 3,
+ "version": 5,
  "clearance_mm": 0.1,
  "step_deg": 10,
  "horns": {
   "pan horn (inferred)": {
-   "min_mm": 0.5,
-   "at_deg": 70,
+   "min_mm": 0.0,
+   "at_deg": -50,
    "pair": [
-    "pan base:1",
-    "PandT base:1"
+    "tilt servo:1",
+    "receiver shield 1:1"
    ],
-   "measurements": 271,
-   "seconds": 12.7
+   "measurements": 381,
+   "seconds": 37.7
   },
   "tilt horn (inferred)": {
    "min_mm": 0.2,
    "at_deg": -70,
    "pair": [
-    "tilt horn (inferred):2",
+    "tilt horn (inferred):1",
     "PandT base:1"
    ],
-   "measurements": 279,
-   "seconds": 13.7
+   "measurements": 296,
+   "seconds": 19.9
   }
  },
  "interference": [],
- "contacts": [],
+ "contacts": [
+  {
+   "horn": "pan horn (inferred)",
+   "deg": -50,
+   "pair": [
+    "tilt servo:1",
+    "receiver shield 1:1"
+   ]
+  },
+  {
+   "horn": "pan horn (inferred)",
+   "deg": -10,
+   "pair": [
+    "tilt servo:1",
+    "receiver shield 1:1"
+   ]
+  },
+  {
+   "horn": "pan horn (inferred)",
+   "deg": 0,
+   "pair": [
+    "tilt servo:1",
+    "receiver shield 1:1"
+   ]
+  }
+ ],
  "bboxes": {
   "PandT base:1": [
    [
@@ -124,7 +149,7 @@
     12.01
    ]
   ],
-  "tilt servo:2": [
+  "tilt servo:1": [
    [
     8.62,
     -7.5,
@@ -136,7 +161,7 @@
     24.41
    ]
   ],
-  "tilt horn (inferred):2": [
+  "tilt horn (inferred):1": [
    [
     7.99,
     10.46,
@@ -160,7 +185,7 @@
     41.08
    ]
   ],
-  "pan servo:2": [
+  "pan servo:1": [
    [
     -26.51,
     12.78,
@@ -172,7 +197,7 @@
     28.88
    ]
   ],
-  "pan horn (inferred):2": [
+  "pan horn (inferred):1": [
    [
     -24.14,
     22.04,
@@ -196,7 +221,55 @@
     32.51
    ]
   ],
-  "receiver shield:2": [
+  "receiver shield 1:1": [
+   [
+    22.99,
+    37.47,
+    8.67
+   ],
+   [
+    53.03,
+    66.53,
+    23.81
+   ]
+  ],
+  "Core 1 (flipped onto the shield top, per photo):1": [
+   [
+    23.49,
+    40.38,
+    16.88
+   ],
+   [
+    51.41,
+    63.62,
+    26.42
+   ]
+  ],
+  "switch board 1 (inferred):1": [
+   [
+    2.99,
+    52.49,
+    8.37
+   ],
+   [
+    23.51,
+    84.52,
+    28.19
+   ]
+  ],
+  "battery 1:1": [
+   [
+    -50.21,
+    70.99,
+    2.99
+   ],
+   [
+    -21.79,
+    127.01,
+    20.17
+   ]
+  ],
+  "receiver shield 2:1": [
    [
     22.99,
     70.47,
@@ -208,7 +281,7 @@
     23.81
    ]
   ],
-  "Core (flipped onto the shield top, per photo):2": [
+  "Core 2 (flipped onto the shield top, per photo):1": [
    [
     23.49,
     73.38,
@@ -220,28 +293,28 @@
     26.42
    ]
   ],
-  "switch board (inferred):2": [
+  "switch board 2 (inferred):1": [
    [
-    -4.26,
-    64.49,
+    2.99,
+    76.49,
     8.37
    ],
    [
-    16.26,
-    96.52,
+    23.51,
+    108.52,
     28.19
    ]
   ],
-  "battery:2": [
+  "battery 2 (inferred):1": [
    [
     -50.21,
     70.99,
-    2.99
+    19.29
    ],
    [
     -21.79,
     127.01,
-    20.17
+    36.47
    ]
   ]
  },
@@ -255,43 +328,51 @@
   "servo mount plain:1": 1.42,
   "servo mount cutout:1": 1.12,
   "wire holder:1": 0.4,
-  "tilt servo:2": 16.0,
-  "tilt horn (inferred):2": 0.24,
+  "tilt servo:1": 16.0,
+  "tilt horn (inferred):1": 1.53,
   "tilt bar (inferred):1": 0.41,
-  "pan servo:2": 16.0,
-  "pan horn (inferred):2": 0.24,
+  "pan servo:1": 16.0,
+  "pan horn (inferred):1": 1.53,
   "pan bar (inferred):1": 0.32,
-  "receiver shield:2": 17.13,
-  "Core (flipped onto the shield top, per photo):2": 11.73,
-  "switch board (inferred):2": 13.69,
-  "battery:2": 163.38
+  "receiver shield 1:1": 17.13,
+  "Core 1 (flipped onto the shield top, per photo):1": 11.73,
+  "switch board 1 (inferred):1": 13.69,
+  "battery 1:1": 163.38,
+  "receiver shield 2:1": 17.13,
+  "Core 2 (flipped onto the shield top, per photo):1": 11.73,
+  "switch board 2 (inferred):1": 13.69,
+  "battery 2 (inferred):1": 163.38
  },
  "mass_source": {
-  "PandT base:1": "pla",
-  "bearing block:1": "pla",
-  "pan base:1": "pla",
-  "upright v2:1": "pla",
-  "tilt arm:1": "pla",
-  "servo mount plain:1": "pla",
-  "servo mount cutout:1": "pla",
-  "wire holder:1": "pla",
-  "tilt servo:2": "documented",
-  "tilt horn (inferred):2": "pla",
-  "tilt bar (inferred):1": "pla",
-  "pan servo:2": "documented",
-  "pan horn (inferred):2": "pla",
-  "pan bar (inferred):1": "pla",
-  "receiver shield:2": "step material",
-  "Core (flipped onto the shield top, per photo):2": "step material",
-  "switch board (inferred):2": "step material",
-  "battery:2": "step material"
+  "PandT base:1": "material",
+  "bearing block:1": "material",
+  "pan base:1": "material",
+  "upright v2:1": "material",
+  "tilt arm:1": "material",
+  "servo mount plain:1": "material",
+  "servo mount cutout:1": "material",
+  "wire holder:1": "material",
+  "tilt servo:1": "documented",
+  "tilt horn (inferred):1": "material",
+  "tilt bar (inferred):1": "material",
+  "pan servo:1": "documented",
+  "pan horn (inferred):1": "material",
+  "pan bar (inferred):1": "material",
+  "receiver shield 1:1": "material",
+  "Core 1 (flipped onto the shield top, per photo):1": "material",
+  "switch board 1 (inferred):1": "material",
+  "battery 1:1": "material",
+  "receiver shield 2:1": "material",
+  "Core 2 (flipped onto the shield top, per photo):1": "material",
+  "switch board 2 (inferred):1": "material",
+  "battery 2 (inferred):1": "material"
  },
  "stage": {
-  "total_g": 381.4,
+  "total_g": 589.9,
   "com": [
-   -11.9,
-   74.0,
-   9.4
+   -15.3,
+   79.1,
+   15.0
   ]
  },
  "calibrated": {},
@@ -407,7 +488,7 @@
    "limit_kgf_cm": 0.2
   },
   "tilt horn (inferred)": {
-   "kgf_cm": 0.001,
+   "kgf_cm": 0.002,
    "at_deg": -10,
    "limit_kgf_cm": 0.2
   }
@@ -475,27 +556,27 @@
     ],
     [
      -40,
-     -0.0
+     0.0
     ],
     [
      -30,
-     -0.0
+     0.0
     ],
     [
      -20,
-     -0.0
+     0.0
     ],
     [
      -10,
-     -0.0
+     0.0
     ],
     [
      0,
-     -0.0
+     0.0
     ],
     [
      10,
-     -0.0
+     0.0
     ],
     [
      20,
@@ -527,59 +608,59 @@
    "pan pivot": [
     [
      -70,
-     -0.0
+     0.0
     ],
     [
      -60,
-     -0.0
+     0.0
     ],
     [
      -50,
-     -0.0
+     0.0
     ],
     [
      -40,
-     -0.0
+     0.0
     ],
     [
      -30,
-     -0.0
+     0.0
     ],
     [
      -20,
-     -0.0
+     0.0
     ],
     [
      -10,
-     -0.0
+     0.0
     ],
     [
      0,
-     -0.0
+     0.0
     ],
     [
      10,
-     -0.0
+     0.0
     ],
     [
      20,
-     -0.0
+     0.0
     ],
     [
      30,
-     -0.0
+     0.0
     ],
     [
      40,
-     -0.0
+     0.0
     ],
     [
      50,
-     -0.0
+     0.0
     ],
     [
      60,
-     -0.0
+     0.0
     ]
    ],
    "tilt pivot": [
@@ -613,7 +694,7 @@
     ],
     [
      0,
-     -0.0
+     0.0
     ],
     [
      10,

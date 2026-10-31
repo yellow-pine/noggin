@@ -1,9 +1,10 @@
-"""Build or rebuild the Fusion design `noggin-eyes` (Default Project / noggin): every 01-eyes printed part as a
-faceted solid, the four servos with line-arm horns, the receiver shield with its Core, the switch board and
-the battery, Ports on the connectors, and the Pivots as joints. Runs INSIDE Fusion: `make model-eyes`.
+"""Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes Stage owns (ADR 0004),
+main bracket v2, the eye mech printed parts, the four servos with their horns, placed from the parts library
+(`make model-parts`, fusion_lib.insert_part) with the PandT base inserted as grounded context, and the Pivots as
+joints. The electronics live in noggin-pan-tilt. Runs INSIDE Fusion: `make model-eyes`.
 Components whose position is inferred rather than measured carry an "(inferred)" suffix.
-Numbers live in model/geometry.py; this file only places things. Parts whose file and placement are unchanged
-since the saved version are reused (fingerprints, fusion_lib); joints, Ports and canvases are recreated, and
+Numbers live in model/geometry.py; this file only places things. Parts whose library version and placement are
+unchanged since the saved version are reused (fingerprints, fusion_lib); joints and canvases are recreated, and
 a new version is saved only when something differs from the last one."""
 # include: model/geometry.py
 # include: model/fusion_lib.py
@@ -13,26 +14,13 @@ import adsk.core, adsk.fusion, json, math, os
 DOC = "noggin-eyes"
 FULL = False   # `FULL=1 make model-eyes` flips this: empty the document and import everything again
 REPO = os.path.expanduser("~/code/noggin")
-MODELS = os.path.join(REPO, "docs/references/01-eyes/models")
-PT_MODELS = os.path.join(REPO, "docs/references/02-pan-tilt/models")
-MOUTH_MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
-CAD = os.path.join(REPO, "docs/references/cyberbrick-cad")
-SERVO_DIR = os.path.join(CAD, "servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
-STEP = {
-    "servo": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-PG002-PG001.stp"),
-    "horn": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-half arm1-PG002-PG001.stp"),
-    "receiver": os.path.join(CAD, "receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp"),
-    "switch": os.path.join(CAD, "switch/Power Switch Board with 2Pin XH2.54 Connector-XA007/Power Switch Board with 2Pin XH2.54 Connector-XA007.STEP"),
-    "battery": os.path.join(CAD, "battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
-}
 OUT = os.path.join(REPO, "model", "build")
-PROXIES = os.path.join(OUT, "proxies")   # decimated STLs from `make model-proxies`, measured by the sweep
 PHOTOS = os.path.join(REPO, "docs", "build-photos")   # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
-# (component name, STL, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
+# (component name, library part, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
 # the regular eye and the "updated main bracket and base" profile: main bracket v2 (03-mouth) on the PandT
-# base (02-pan-tilt, placed below); the lizard and plain eye STLs and the v1 base are not imported.
+# base (02-pan-tilt, placed below); the lizard and plain eye STLs and the v1 base are not built.
 PARTS = [
     ("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
     ("L eyeball", "L eyeball regular", 0), ("R eyeball", "R eyeball regular", 0),
@@ -41,9 +29,6 @@ PARTS = [
     ("R inside lid", "inside lid", 59), ("R outside lid", "outside lid", 59),
     ("L eyeball bar", "eyeball bar", 0), ("R eyeball bar", "eyeball bar", 79),
 ]
-# Receiver STEP, local mm: the four servo headers and the XH power socket (top centres). PWM numbering is inferred.
-RECEIVER_PORTS = {"servo PWM1": (4.2, 10.8, 0.4), "servo PWM2": (4.2, 10.8, 4.6), "servo PWM3": (-4.2, 10.8, 0.4),
-                  "servo PWM4": (-4.2, 10.8, 4.6), "XH power": (0.0, 9.62, -9.75)}
 
 
 # Reference photos (docs/build-photos, already turned to match the model views) as canvases on the camera
@@ -64,13 +49,14 @@ def canvas(root, name, path, plane_name, offset_mm, cells):
     cut.setByOffset(getattr(root, plane_name), adsk.core.ValueInput.createByReal(offset_mm / 10))
     plane = root.constructionPlanes.add(cut)
     plane.name = name + " plane"
+    plane.isLightBulbOn = False
     inp = root.canvases.createInput(path, plane)
     m = adsk.core.Matrix2D.create()
     for r, row in enumerate(cells):
         for c, v in enumerate(row):
             m.setCell(r, c, v)
     inp.transform = m
-    inp.opacity = 60
+    inp.opacity = 25
     inp.isDisplayedThrough = False
     root.canvases.add(inp).name = name
 
@@ -80,57 +66,22 @@ def run(_context: str):
     doc, design, folder = open_or_create(app, DOC, keep_parts=not FULL)
     root = design.rootComponent
     reuse = kept_parts(root)   # the build pops what it places; the rest is stale
-    occs = {}
-    def stl(folder, stem, name, matrix=None):
-        return import_stl(root, os.path.join(folder, stem + ".stl"), name, matrix, proxy=os.path.join(PROXIES, stem + ".stl"), reuse=reuse)
-    def step(key, name, matrix):
-        return import_step(root, STEP[key], name, matrix, reuse=reuse)
-    for name, stem, dx in PARTS:
-        occs[name] = stl(MODELS, stem, name, align((dx, 0, 0)))
-    occs["main bracket"] = stl(MOUTH_MODELS, "main bracket v2", "main bracket v2")
-    occs["main bracket"].isGrounded = True
-    pt0 = pt_to_eyes_standalone((0, 0, 0))
-    stl(PT_MODELS, "PandT base", "PandT base", align(pt0, (-1, 0, 0), Y))
-    keeper_y = pt_to_eyes_standalone(STANDOFFS["pt_base"]["wire_keeper"][0])[1]
-    stl(MODELS, "wire keeper", "wire keeper (inferred)", align((0, keeper_y + 22.6, 0)))
+    occs, steps = {}, []   # one chunk per part insert, then one for the joints (fusion_lib.chunked)
+    def part(key, lib, name, matrix=None, referenced=False):
+        steps.append((name, lambda: occs.__setitem__(key, insert_part(root, lib, name, matrix, reuse=reuse, referenced=referenced))))
+    for name, lib, dx in PARTS:
+        part(name, lib, name, align((dx, 0, 0)))
+    part("main bracket", "main bracket v2", "main bracket v2")
+    part("base", "PandT base", "PandT base", align(pt_to_eyes_standalone((0, 0, 0)), (-1, 0, 0), Y), referenced=True)   # context: owned by noggin-pan-tilt
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
     for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
         origin, tab_x, shaft = servo_frame(key)
         label = key.upper()[0] + (" lid" if "lid" in key else " eye")
-        occs[key + "_servo"] = step("servo", f"{label} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
+        part(key + "_servo", "servo", f"{label} servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
         arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X   # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
-        occs[key + "_horn"] = step("horn", f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
-
-    # Boards and battery on the base: shield on its standoffs with the Core flipped on top (the STEP has it
-    # underneath; the build photo shows it on top), switch board centred on its standoffs, battery in its pocket.
-    stand = STANDOFFS["pt_base"]
-    receiver_at = mean([pt_to_eyes_standalone(p) for p in stand["receiver_1"]])
-    # Shield turned a quarter about Y so the XH socket faces -X and the Core's USB-C the side (build photos).
-    receiver_m = align(receiver_at, (0, 0, -1), X)
-    receiver = step("receiver", "receiver shield", receiver_m)
-    for o in list(receiver.component.occurrences):
-        if o.name.startswith("CORE"):
-            o.deleteMe()
-    # The Core as a second import of the receiver STEP stripped to the Core, flipped about the PCB mid-plane
-    # (the STEP has it under the shield; the build photos show it on top).
-    flip = adsk.core.Matrix3D.create()
-    flip.setToRotation(math.pi, vector(Z), point((0, 0.8, 0)))   # about Z: the USB-C keeps facing -X (side photo)
-    core = step("receiver", "Core (flipped onto the shield top, per photo)", matmul(receiver_m, flip))
-    for o in list(core.component.occurrences):
-        if not o.name.startswith("CORE"):
-            o.deleteMe()
-    core_proxy = core.childOccurrences.item(0)
-    usb = core_proxy.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core_proxy).boundingBox
-    assert core_proxy.boundingBox.minPoint.y * 10 > receiver_at[1], "Core must sit above the shield"
-    usb_centre = tuple((getattr(usb.minPoint, c) + getattr(usb.maxPoint, c)) * 5 for c in "xyz")
-    step("switch", "switch board", align(pt_to_eyes_standalone(stand["switch_post"][0]), (0, 0, -1), X, SWITCH_STEP["hole"]))
-    pocket = BATTERY_POCKET_PT
-    near, far = pt_to_eyes_standalone((pocket["x"][1], pocket["y"][0], pocket["floor_z"])), pt_to_eyes_standalone((pocket["x"][0], pocket["y"][1], pocket["floor_z"]))
-    battery_at = ((near[0] + far[0]) / 2, near[1] - BATTERY_STEP["floor_z"], near[2])
-    battery = step("battery", "battery", align(battery_at, (-1, 0, 0), Y))
-    strip_lead(battery)
+        part(key + "_horn", "horn", f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
 
     # Linkage parts (local-frame STLs) at their pins. The pins are also the joint points below.
     pins = {}
@@ -143,38 +94,38 @@ def run(_context: str):
             horn_pin = (x, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
             lid_pin = (x,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl} (inferred)"
-            occs[name] = link(root, name, stl, horn_pin, lid_pin, normal, reuse, MODELS, PROXIES)
+            steps.append((name, lambda name=name, stl=stl, a=horn_pin, b=lid_pin, n=normal: occs.__setitem__(name, link(root, name, stl, a, b, n, reuse))))
             pins[s, key] = horn_pin, lid_pin
-    for occ in reuse.values():   # kept parts the build no longer places
-        occ.deleteMe()
-    parts_end(design)   # everything below is cheap and recreated by every build: no import may follow this line
-    for name, p in RECEIVER_PORTS.items():
-        w = point(p); w.transformBy(receiver_m)
-        port(receiver, name, (w.x * 10, w.y * 10, w.z * 10))
-    port(core, "USB-C", usb_centre)
-    port(battery, "battery lead", add(battery_at, (-3.5, 3.5, 52.5)))   # the pack's plug; wiring is out of scope
-    for s in "LR":
-        eye = PIVOTS[s.lower() + "_eye"]["point"]
-        for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
-            spec = LID_LINKS[key]
-            horn_pin, lid_pin = pins[s, key]
-            name = f"{s} {stl} (inferred)"
-            lid = occs[f"{s} {spec['lid']} lid"]
-            pivot_joint(root, occs[name], occs[f"{s.lower()}_lid_horn"], horn_pin, "X", f"{s} {stl} / arm pin (inferred)")
-            close_loop(root, occs[name], lid, lid_pin, "X", f"{s} {stl} / {spec['lid']} lid pin")
-        pivot_joint(root, occs[f"{s} inside lid"], occs["main bracket"], eye, "X", f"{s} inside lid pivot")
-        pivot_joint(root, occs[f"{s} outside lid"], occs["main bracket"], eye, "X", f"{s} outside lid pivot")
-        pivot_joint(root, occs[f"{s} eyeball"], occs["main bracket"], eye, "Y", f"{s} eyeball pivot")
-        for part, axis in (("lid", "X"), ("eye", "Y")):
-            lo, hi = HORN_LIMITS[f"{s.lower()}_{part}"]
-            pivot_joint(root, occs[f"{s.lower()}_{part}_horn"], occs[f"{s.lower()}_{part}_servo"], PIVOTS[f"{s.lower()}_{part}_horn"]["point"],
-                        axis, f"{s} {part} horn (inferred)", (lo - 90, hi - 90))
-        arm_end, eye_end = (side(s, p) for p in EYEBALL_BAR_PINS)
-        pivot_joint(root, occs[f"{s} eyeball bar"], occs[f"{s.lower()}_eye_horn"], arm_end, "Y", f"{s} eyeball bar / arm pin (inferred)")
-        close_loop(root, occs[f"{s} eyeball bar"], occs[f"{s} eyeball"], eye_end, "Y", f"{s} eyeball bar / eyeball pin")
-        group = adsk.core.ObjectCollection.create()
-        group.add(occs[f"{s} eyeball"]); group.add(occs[f"{s} pupil"])
-        root.rigidGroups.add(group, True)
+
+    def joints():
+        for occ in reuse.values():   # kept parts the build no longer places
+            occ.deleteMe()
+        parts_end(design)   # everything below is cheap and recreated by every build: no insert may follow this line
+        occs["main bracket"].isGrounded = True
+        for s in "LR":
+            eye = PIVOTS[s.lower() + "_eye"]["point"]
+            for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
+                spec = LID_LINKS[key]
+                horn_pin, lid_pin = pins[s, key]
+                name = f"{s} {stl} (inferred)"
+                lid = occs[f"{s} {spec['lid']} lid"]
+                pivot_joint(root, occs[name], occs[f"{s.lower()}_lid_horn"], horn_pin, "X", f"{s} {stl} / arm pin (inferred)")
+                close_loop(root, occs[name], lid, lid_pin, "X", f"{s} {stl} / {spec['lid']} lid pin")
+            pivot_joint(root, occs[f"{s} inside lid"], occs["main bracket"], eye, "X", f"{s} inside lid pivot")
+            pivot_joint(root, occs[f"{s} outside lid"], occs["main bracket"], eye, "X", f"{s} outside lid pivot")
+            pivot_joint(root, occs[f"{s} eyeball"], occs["main bracket"], eye, "Y", f"{s} eyeball pivot")
+            for part, axis in (("lid", "X"), ("eye", "Y")):
+                lo, hi = HORN_LIMITS[f"{s.lower()}_{part}"]
+                pivot_joint(root, occs[f"{s.lower()}_{part}_horn"], occs[f"{s.lower()}_{part}_servo"], PIVOTS[f"{s.lower()}_{part}_horn"]["point"],
+                            axis, f"{s} {part} horn (inferred)", (lo - 90, hi - 90))
+            arm_end, eye_end = (side(s, p) for p in EYEBALL_BAR_PINS)
+            pivot_joint(root, occs[f"{s} eyeball bar"], occs[f"{s.lower()}_eye_horn"], arm_end, "Y", f"{s} eyeball bar / arm pin (inferred)")
+            close_loop(root, occs[f"{s} eyeball bar"], occs[f"{s} eyeball"], eye_end, "Y", f"{s} eyeball bar / eyeball pin")
+            group = adsk.core.ObjectCollection.create()
+            group.add(occs[f"{s} eyeball"]); group.add(occs[f"{s} pupil"])
+            root.rigidGroups.add(group, True)
+    steps.append(("joints", joints))
+    progress = chunked(steps)
 
     moving = {o.name for o in root.occurrences if "servo" not in o.component.name and any(w in o.component.name for w in ("lid", "eyeball", "pupil", "horn", "bar", "crank"))}
     for occ in root.occurrences:
@@ -188,9 +139,7 @@ def run(_context: str):
         canvas(root, name, os.path.join(PHOTOS, photo), plane, offset_mm, cells)
 
     os.makedirs(OUT, exist_ok=True)
-    screenshot(app, os.path.join(OUT, "eyes-top.png"), Y, Z)
-    screenshot(app, os.path.join(OUT, "eyes-side.png"), (-1, 0, 0), Y)
-    screenshot(app, os.path.join(OUT, "eyes-front.png"), (0, 0, -1), Y)
+    screenshots(app, root, OUT, "eyes", {"top": (Y, Z), "side": ((-1, 0, 0), Y), "front": ((0, 0, -1), Y)})
     now = summary(root)
     diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse] + (["contact set"] if new_contacts else [])
     if diff:
@@ -198,17 +147,12 @@ def run(_context: str):
         version = save(doc, f"{DOC}: rebuilt by model/eyes.py", DOC, folder)
     else:
         version = doc.dataFile.versionNumber
-    print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {len(now['ports'])} ports,",
+    print("\n".join(progress))
+    print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints,",
           "saved: " + "; ".join(diff) if diff else "unchanged")
-    print("  project files:", [(f.name, f.versionNumber) for f in folder.dataFiles])
     for j in root.joints:
         state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage
         print(f"  joint {j.name}: {state}")
-    for o in list(root.occurrences) + list(receiver.childOccurrences) + list(core.childOccurrences):
+    for o in root.occurrences:
         lo, hi = body_box(o)
         print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (o.name, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
-    for o in root.occurrences:
-        for sk in o.component.sketches:
-            if sk.name.startswith("Port:"):
-                p = sk.sketchPoints.item(sk.sketchPoints.count - 1).worldGeometry.copy(); p.transformBy(o.transform2)
-                print("  %-42s (%.1f, %.1f, %.1f)" % (sk.name, p.x * 10, p.y * 10, p.z * 10))

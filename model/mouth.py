@@ -1,9 +1,7 @@
-"""WIP: written against the pan_tilt.py pattern but NOT yet run in Fusion (Cansin paused Fusion work for #32, the
-parts-library refactor, which will rebuild this document through referenced parts); expect first-run fixes.
-Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth Stage owns
-(top and bottom jaw, plain; the jaws servo mount; the connector bar) as faceted solids in the eyes frame, the jaw servo
-with its half-arm horn, and the saved `noggin-eyes` design inserted as a grounded reference (main bracket v2 and the
-eyes belong to that Stage: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
+"""Build or rebuild the Fusion design `noggin-mouth` (project Noggin): the 03-mouth printed parts the mouth Stage owns
+(top and bottom jaw, plain; the jaws servo mount; the connector bar) from the parts library (`make model-parts`,
+fusion_lib.insert_part) in the eyes frame, the jaw servo with its half-arm horn, and the saved `noggin-eyes` design
+inserted as a grounded reference (main bracket v2 and the eyes belong to that Stage: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
 X through (29.5, -49.6, 8)), the horn on the servo (HORN_LIMITS mouth), the bar on the horn pin and the loop closed at
 the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed from inferred positions carry an
 "(inferred)" suffix: the horn seat, the bar plane and which bar hole is the jaw end (model/geometry.py)."""
@@ -16,32 +14,12 @@ DOC = "noggin-mouth"
 EYES_DOC = "noggin-eyes"
 FULL = False   # `FULL=1 make model-mouth` flips this: empty the document and import everything again
 REPO = os.path.expanduser("~/code/noggin")
-MODELS = os.path.join(REPO, "docs/references/03-mouth/models")
-SERVO_DIR = os.path.join(REPO, "docs/references/cyberbrick-cad/servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
-STEP = {
-    "servo": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-PG002-PG001.stp"),
-    "horn": os.path.join(SERVO_DIR, "9g Servo Motor with Clutch Protection-half arm1-PG002-PG001.stp"),
-}
 OUT = os.path.join(REPO, "model", "build")
-PROXIES = os.path.join(OUT, "proxies")   # decimated STLs from `make model-proxies`, measured by the sweep
 
-# (component name, STL stem): the designer exported the mouth parts in the assembled eyes frame (jaws closed).
+# (component name, library part): the designer exported the mouth parts in the assembled eyes frame (jaws closed).
 # Plain jaws: the guide's first variant; the teeth jaws are the same build (guide p.1).
 PARTS = [("top jaw", "top jaw plain"), ("bottom jaw", "bottom jaw plain"), ("jaws servo mount", "jaws servo mount")]
 MOVING = {"bottom jaw", "jaw horn (inferred)", "connector bar (inferred)"}
-
-
-def eyes_reference(app, root, reuse):
-    """The saved noggin-eyes design inserted at identity (both Stages share the eyes frame), grounded. Reused across
-    builds by its component name; a reference cannot be tagged, so it is never fingerprinted."""
-    name = next((n for n in reuse if n.startswith(EYES_DOC)), None)
-    if name:
-        return reuse.pop(name)
-    folder = next(p for p in app.data.activeHub.dataProjects if p.name == PROJECT_NAME).rootFolder
-    data_file = next(f for f in folder.dataFiles if f.name == EYES_DOC)
-    assert data_file.isComplete, f"{EYES_DOC} is still uploading"
-    FRESH.append(EYES_DOC)
-    return root.occurrences.addByInsert(data_file, adsk.core.Matrix3D.create(), False)
 
 
 def run(_context: str):
@@ -49,30 +27,36 @@ def run(_context: str):
     doc, design, folder = open_or_create(app, DOC, keep_parts=not FULL)
     root = design.rootComponent
     reuse = kept_parts(root)   # the build pops what it places; the rest is stale
-    occs = {}
-    def stl(stem, name, matrix=None):
-        return import_stl(root, os.path.join(MODELS, stem + ".stl"), name, matrix, proxy=os.path.join(PROXIES, stem + ".stl"), reuse=reuse)
-    for name, stem in PARTS:
-        occs[name] = stl(stem, name)
-    eyes = eyes_reference(app, root, reuse)
+    occs, steps = {}, []   # one chunk per part insert, then one for the joints (fusion_lib.chunked)
+    def part(key, lib, name, matrix=None, referenced=False):
+        steps.append((name, lambda: occs.__setitem__(key, insert_part(root, lib, name, matrix, reuse=reuse, referenced=referenced))))
+    for name, lib in PARTS:
+        part(name, lib, name)
+    # The saved noggin-eyes design by reference at identity (both Stages share the eyes frame), grounded below;
+    # re-inserted when noggin-eyes has a newer version (its fingerprint is the version).
+    part("eyes", EYES_DOC, EYES_DOC, referenced=True)
 
     # Jaw servo from the measured mount-lug holes, horn at the inferred seat, the connector bar on the horn pin and the jaw lug.
     origin, tab_x, shaft = servo_frame("jaw")
-    occs["jaw servo"] = import_step(root, STEP["servo"], "jaw servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]), reuse=reuse)
+    part("jaw servo", "servo", "jaw servo", align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"]))
     seat = PIVOTS["jaw_horn"]["point"]
     pin, lever = horn_pin("jaw")
-    occs["jaw horn (inferred)"] = import_step(root, STEP["horn"], "jaw horn (inferred)", align(seat, [p - q for p, q in zip(pin, seat)], shaft, HORN_STEP["hub"]), reuse=reuse)
-    occs["connector bar (inferred)"] = link(root, "connector bar (inferred)", "jaws connector bar", pin, lever, X, reuse, MODELS, PROXIES)
-    for occ in reuse.values():   # kept parts the build no longer places
-        occ.deleteMe()
-    parts_end(design)   # everything below is cheap and recreated by every build: no import may follow this line
+    part("jaw horn (inferred)", "horn", "jaw horn (inferred)", align(seat, [p - q for p, q in zip(pin, seat)], shaft, HORN_STEP["hub"]))
+    steps.append(("connector bar (inferred)", lambda: occs.__setitem__("connector bar (inferred)", link(root, "connector bar (inferred)", "jaws connector bar", pin, lever, X, reuse))))
 
-    # The top jaw is screwed to the bracket (4 screws); the bottom jaw clips onto its pins: the hinge is between the two jaws.
-    pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
-    lo, hi = HORN_LIMITS["mouth"]
-    pivot_joint(root, occs["jaw horn (inferred)"], occs["jaw servo"], seat, "X", "jaw horn (inferred)", (lo - 90, hi - 90))
-    pivot_joint(root, occs["connector bar (inferred)"], occs["jaw horn (inferred)"], pin, "X", "connector bar / horn pin (inferred)")
-    close_loop(root, occs["connector bar (inferred)"], occs["bottom jaw"], lever, "X", "connector bar / jaw lug screw")
+    def joints():
+        for occ in reuse.values():   # kept parts the build no longer places
+            occ.deleteMe()
+        parts_end(design)   # everything below is cheap and recreated by every build: no insert may follow this line
+        # The top jaw is screwed to the bracket (4 screws); the bottom jaw clips onto its pins: the hinge is between the two jaws.
+        pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
+        lo, hi = HORN_LIMITS["mouth"]
+        pivot_joint(root, occs["jaw horn (inferred)"], occs["jaw servo"], seat, "X", "jaw horn (inferred)", (lo - 90, hi - 90))
+        pivot_joint(root, occs["connector bar (inferred)"], occs["jaw horn (inferred)"], pin, "X", "connector bar / arm pin (inferred)")
+        close_loop(root, occs["connector bar (inferred)"], occs["bottom jaw"], lever, "X", "connector bar / jaw lug screw")
+    steps.append(("joints", joints))
+    progress = chunked(steps)
+    eyes = occs["eyes"]
 
     moving = {o.name for o in root.occurrences if o.component.name in MOVING}
     for occ in root.occurrences:
@@ -83,9 +67,7 @@ def run(_context: str):
         contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name in ("top jaw", "jaws servo mount", "jaw servo")})
 
     os.makedirs(OUT, exist_ok=True)
-    screenshot(app, os.path.join(OUT, "mouth-top.png"), Y, Z)
-    screenshot(app, os.path.join(OUT, "mouth-side.png"), (-1, 0, 0), Y)
-    screenshot(app, os.path.join(OUT, "mouth-front.png"), (0, 0, -1), Y)
+    screenshots(app, root, OUT, "mouth", {"top": (Y, Z), "side": ((-1, 0, 0), Y), "front": ((0, 0, -1), Y)})
     now = summary(root)
     diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse] + (["contact set"] if new_contacts else [])
     if diff:
@@ -93,7 +75,8 @@ def run(_context: str):
         version = save(doc, f"{DOC}: rebuilt by model/mouth.py", DOC, folder)
     else:
         version = doc.dataFile.versionNumber
-    print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {len(now['ports'])} ports,",
+    print("\n".join(progress))
+    print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints,",
           "saved: " + "; ".join(diff) if diff else "unchanged")
     for j in root.joints:
         state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage

@@ -35,7 +35,10 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees from the designer's remote config; neutral is 90.
 HORN_LIMITS = {
     "l_lid": (70, 120), "l_eye": (70, 110), "r_lid": (70, 120), "r_eye": (70, 110),   # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
-    "tilt": (20, 150), "rotate": (40, 160), "mouth": (0, 180),
+    "tilt": (20, 150), "rotate": (40, 160),
+    # mouth [I]: the config says 0..180, but the jaws are modelled closed at neutral and the connector-bar four-bar only
+    # has solutions on the opening side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only.
+    "mouth": (50, 90),
 }
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
@@ -206,3 +209,19 @@ STL_LOCAL = {
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
 BATTERY_POCKET_PT = {"x": (-48.0, -24.0), "y": (71.0, 127.0), "floor_z": 3.0}   # PandT base, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
+
+
+# Printed parts: spool and material per STL stem (model/parts.py gives each library part the spool's appearance and a
+# physical material of that density; check.py and beams.py take masses from it). Spools are Bambu PLA Pure; the density
+# is Bambu Studio's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
+# "(colour inferred)" where an STL name does not map cleanly onto a named part.
+SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
+MATERIALS = {"PLA Pure": {"density_g_cm3": 1.24}}   # PETG possible later, per part
+PRINTED = {stem: (spool, "PLA Pure") for spool, stems in {
+    "Milky Pink": ["L servo bracket", "R servo bracket", "main bracket v2", "inside lid", "outside lid", "eyeball bar",
+                   "eyelid bar", "eyelid bar crank", "wire keeper"],
+    "Pure White": ["L eyeball regular", "R eyeball regular", "tilt bar", "PandT bar", "PandT servo mount plain",
+                   "PandT servo mount cutout", "top jaw plain", "bottom jaw plain", "jaws connector bar", "jaws servo mount"],
+    "Absolute Black": ["regular pupil", "PandT base", "PandT tilt arm", "PandT bearing block", "PandT wire holder (colour inferred)"],
+    "Apricot": ["PandT upright v2", "PandT pan base (colour inferred)"],   # the pan base reads beige in the guide photos (p.18)
+}.items() for stem in stems}

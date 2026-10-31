@@ -27,3 +27,10 @@ def test_changes_lists_what_differs_between_two_summaries():
     assert lib.changes(old, old) == []
     assert lib.changes(old, new) == ["joints L lid horn: {'limits': [-20, 30]} -> {'limits': [-20, 20]}", "joints gone: removed", "joints new: added"]
     assert lib.changes(None, new) == ["no previous summary"]
+
+
+def test_inserted_part_fingerprint_follows_the_library_version_and_placement():
+    v3 = lib.fingerprint([], IDENTITY, "servo@v3")
+    assert v3 == lib.fingerprint([], IDENTITY, "servo@v3")
+    assert v3 != lib.fingerprint([], IDENTITY, "servo@v4")                  # the library part was reconverted
+    assert v3 != lib.fingerprint([], [1, 0, 0, 0.5] + IDENTITY[4:], "servo@v3")   # or moved
