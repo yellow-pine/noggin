@@ -43,6 +43,8 @@ class Eyes:
         self.pos = {}
         self.mode = "rest"
         self.next_drift = 0
+        self.next_blink = 0
+        self.think_side = 1
         self.until = 0
         self.rand = 12345
 
@@ -72,11 +74,15 @@ class Eyes:
             self.pwm[pin].duty(_duty(angle))
             self.pos[pin] = angle
 
-    def glide(self, ms, targets, step=20):
+    def glide(self, ms, targets, step=20, ease=False):
+        """Linear move, or ease-out (fast first, asymptotic) like an eyelid reopening."""
         start = {p: self.pos.get(p, self._eye_angle(p, EYE_CENTER) if p in EYES else self._lid_angle(p, self.cal["lid_rest"])) for p in targets}
         n = max(1, ms // step)
         for i in range(1, n + 1):
-            self.set({p: start[p] + (targets[p] - start[p]) * i / n for p in targets})
+            f = i / n
+            if ease:
+                f = 1 - (1 - f) ** 2
+            self.set({p: start[p] + (targets[p] - start[p]) * f for p in targets})
             sleep_ms(step)
 
     def release(self):
@@ -84,52 +90,73 @@ class Eyes:
             p.deinit()
         self.pwm.clear()
 
-    def lids(self, f, ms=0):
+    def lids(self, f, ms=0, ease=False):
         t = {p: self._lid_angle(p, f) for p in LIDS}
-        self.glide(ms, t) if ms else self.set(t)
+        self.glide(ms, t, ease=ease) if ms else self.set(t)
 
     def eyes(self, angle, ms=0):
         t = {p: self._eye_angle(p, angle) for p in EYES}
         self.glide(ms, t) if ms else self.set(t)
 
-    def blink(self, hold=90):
-        # glide, never snap: a snap into the closed end slams the stop and slips the clutch
-        self.lids(self.cal["lid_closed"], 80); sleep_ms(hold); self.lids(self.cal["lid_rest"], 80); sleep_ms(120)
+    def _side(self):
+        self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
+        return 1 if self.rand & 1 else -1
+
+    # Kinematics from docs/research/2026-10-31-natural-eye-motion.md. The 9 g servos slew ~60 deg
+    # per 100 ms, about the speed of a real blink close or a 20 deg saccade, so closes and saccades
+    # are commanded as steps; only openings and returns are glided.
+    def blink(self, level=None, hold=55, open_ms=300):
+        """Close as a step, hold, reopen with ease-out (real blinks close ~3x faster than they open)."""
+        self.lids(self.cal["lid_closed"]); sleep_ms(80 + hold)
+        self.lids(self.cal["lid_rest"] if level is None else level, open_ms, ease=True)
+
+    def saccade(self, angle):
+        """Step to ~93% of the way, pause, then the corrective saccade (D = 21 + 2.2*A ms is below servo slew)."""
+        cur = self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0)
+        self.eyes(cur + (angle - cur) * 0.93); sleep_ms(120); self.eyes(angle); sleep_ms(60)
 
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200); self.eyes(EYE_CENTER, 200)
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):
-        self.lids(self.cal["lid_open"], 60)
-        if i == 1:
-            self.eyes(105, 150); sleep_ms(300); self.eyes(EYE_CENTER, 200); self.blink()
-            return
-        self.eyes(118); sleep_ms(600 if i == 2 else 900)
+        """Surprise: lids wide, eyes dart aside, hold, back to centre, double blink, lids ease to rest."""
+        side = self._side()
+        amp, hold = {1: (12, 300), 2: (22, 550), 3: (25, 800)}[i]
+        self.lids(self.cal["lid_open"])                          # AU5: widen, as a step
+        self.saccade(EYE_CENTER + side * amp); sleep_ms(hold)
         if i == 3:
-            self.eyes(62, 150); sleep_ms(500)  # double-take
-        self.eyes(EYE_CENTER, 250); self.blink(); self.blink()
-        self.lids(self.cal["lid_think"], 150); self.lids(self.cal["lid_rest"], 250)
+            self.saccade(EYE_CENTER - side * amp); sleep_ms(500)  # double-take
+        self.saccade(EYE_CENTER)
+        self.blink(level=self.cal["lid_open"], open_ms=250)
+        if i >= 2:
+            sleep_ms(200); self.blink(level=self.cal["lid_open"], open_ms=250)
+        self.lids(self.cal["lid_rest"], 300, ease=True)
 
     def attention(self, i):
+        """Needs you: half lids, two slow pursuit sweeps (~40 deg/s), centre, lids open, one blink."""
         self.lids(self.cal["lid_think"], 200)
+        self.eyes(EYE_CENTER - 25, 600)
         for _ in range(2):
-            self.eyes(65, 600); self.eyes(115, 600)
-        self.eyes(EYE_CENTER, 400); sleep_ms(300)
-        self.lids(self.cal["lid_rest"], 300)
+            self.eyes(EYE_CENTER + 25, 1250); self.eyes(EYE_CENTER - 25, 1250)
+        self.eyes(EYE_CENTER, 600)
+        self.lids(self.cal["lid_rest"], 300, ease=True); sleep_ms(200); self.blink()
 
     def bored(self, i):
-        self.lids(self.cal["lid_think"], 600); self.eyes(80, 800)
+        """Drowsy: lids droop, slow heavy blinks, one long closure, settle."""
+        self.lids(0.35 * self.cal["lid_rest"] / 0.28, 500); self.eyes(EYE_CENTER - 6, 800)
         for _ in range(2):
-            self.lids(self.cal["lid_closed"], 300); sleep_ms(250); self.lids(self.cal["lid_think"], 400); sleep_ms(600)
-        self.rest_pose()
+            self.lids(self.cal["lid_closed"], 200); sleep_ms(500)
+            self.lids(0.35 * self.cal["lid_rest"] / 0.28, 900, ease=True); sleep_ms(700)
+        self.lids(self.cal["lid_closed"], 250); sleep_ms(2000)                 # the long one
+        self.lids(self.cal["lid_rest"], 1200, ease=True); self.eyes(EYE_CENTER, 600)
 
     def wince(self, i):
-        self.lids(self.cal["lid_closed"], 80)
-        for _ in range(3):
-            self.eyes(84); sleep_ms(60); self.eyes(96); sleep_ms(60)
-        self.eyes(EYE_CENTER); sleep_ms(400)
-        self.lids(self.cal["lid_rest"], 700)
+        """Both lids snap shut, hold, reopen fast to ~80%, settle to rest."""
+        self.eyes(EYE_CENTER)
+        self.lids(self.cal["lid_closed"]); sleep_ms(400)
+        self.lids(self.cal["lid_rest"] + 0.1, 200, ease=True); sleep_ms(150)
+        self.lids(self.cal["lid_rest"], 300, ease=True)
 
     GESTURES = {"eureka": eureka, "attention": attention, "bored": bored, "wince": wince}
 
@@ -143,8 +170,11 @@ class Eyes:
             self.mode = cmd
             if cmd == "rest":
                 self.rest_pose()
-            else:
-                self.lids(self.cal["lid_think"], 300); self.next_drift = 0
+            else:                                       # gaze-evoked blink with the saccade aside
+                self.think_side = self._side()
+                self.lids(self.cal["lid_closed"]); self.eyes(EYE_CENTER + self.think_side * 18); sleep_ms(100)
+                self.lids(self.cal["lid_think"], 250, ease=True)
+                self.next_drift = 0; self.next_blink = 0
         elif cmd == "release":                          # unpower (e.g. muted overnight); next command re-powers
             self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
@@ -176,11 +206,16 @@ class Eyes:
             self.eyes(lo + (hi - lo) * (0.30 + 0.40 * (self.rand % 997) / 997), 600)   # 30%-70% of the eye range
             self.next_drift = now_ms + 1500
             return
-        if self.mode != "thinking" or now_ms < self.next_drift:
+        if self.mode != "thinking":
+            return
+        if now_ms >= self.next_blink:                   # sparse blinks while thinking: one per 5-8 s
+            self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
+            if self.next_blink:
+                self.blink(level=self.cal["lid_think"])
+            self.next_blink = now_ms + 5000 + self.rand % 3000
+        if now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
-        if self.rand % 4 == 0:            # occasional blink
-            self.blink(); self.lids(self.cal["lid_think"])
-        else:
-            self.eyes(70 + self.rand % 41, 500)
-        self.next_drift = now_ms + 3000 + self.rand % 3000
+        shift = (self.rand % 7) - 3                    # micro-shifts of a few degrees around the averted gaze
+        self.eyes(EYE_CENTER + self.think_side * 18 + shift * 1.5)
+        self.next_drift = now_ms + 400 + self.rand % 500   # fixations 0.4-0.9 s

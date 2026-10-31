@@ -46,3 +46,4 @@ Animatronic head (Bambu Lab CyberBrick, PurpleShark three-part series: eyes, pan
 - Status line shows the current dev-cycle step from `~/.claude/.cycle-step` (one line, e.g. `noggin:tdd`). Update that file whenever a cycle step starts.
 - Calibration (grilled 2026-10-31, round 3): lives in `eyes/calibration.json` (committed, this mech's known-good), pushed by the daemon over the Link as `set key value` lines on connect; `noggin set k v` applies live and saves; `noggin pose ...` holds a pose; `noggin exercise N` runs in 15-85% for N minutes. Blink/wince glide to `lid_closed` (10%), never the hard stop; eureka's wide snap is `lid_open` (95%). Gesture timings stay in code. Wizard calibrate stage uses pose/set.
 - Process: review fixes and the calibration work go as two separate PRs.
+- Directive 2026-10-31: don't spend effort on license checks for datasets/references going forward; Cansin takes that on.
