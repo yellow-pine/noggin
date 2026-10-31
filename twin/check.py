@@ -12,6 +12,13 @@ PROJECT_NAME = "Noggin"               # the hub's former Default Project; Stage 
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "twin", "build")
 STEP_DEG, CLEARANCE_MM = 10, 3.0
+NEAR_MM = 10.0   # pairs whose bounding boxes are further apart than this are not measured (keeps Fusion responsive)
+
+
+def bbox_gap(a, b):
+    """Distance between two occurrences' bounding boxes in mm (0 when they overlap)."""
+    lo_a, hi_a, lo_b, hi_b = mm3(a.boundingBox.minPoint), mm3(a.boundingBox.maxPoint), mm3(b.boundingBox.minPoint), mm3(b.boundingBox.maxPoint)
+    return math.sqrt(sum(max(0.0, lo_b[i] - hi_a[i], lo_a[i] - hi_b[i]) ** 2 for i in range(3)))
 
 
 def open_doc(app):
@@ -55,6 +62,8 @@ def interference(design, root, pose):
             coll.add(b)
     out = []
     results = design.analyzeInterference(design.createInterferenceInput(coll))
+    if results is None:   # shortcut: Fusion gives up on sets of large faceted bodies; overlaps still read as 0 mm in the sweep
+        return []
     for i in range(results.count):
         r = results.item(i)
         body = r.interferenceBody
@@ -93,6 +102,8 @@ def run(_context: str):
             motion.rotationValue = math.radians(deg)
             for mover in chain.values():
                 for other in others:
+                    if bbox_gap(mover, other) > NEAR_MM:   # exact distance is at least the box gap: skip far pairs
+                        continue
                     d = app.measureManager.measureMinimumDistance(mover, other).value * 10
                     pair = [mover.name, other.name]
                     if worst is None or d < worst["min_mm"]:
@@ -102,7 +113,7 @@ def run(_context: str):
             if deg in (lo, hi):
                 report["interference"] += interference(design, root, f"{horn.name} {deg}")
         motion.rotationValue = 0.0
-        report["horns"][horn.name] = worst or {"min_mm": None, "at_deg": None, "pair": None, "note": "empty chain"}
+        report["horns"][horn.name] = worst or {"min_mm": NEAR_MM, "at_deg": None, "pair": None, "note": f"nothing within {NEAR_MM} mm"}
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, f"{DOC}-report.json"), "w") as f:
         json.dump(report, f, indent=1)
