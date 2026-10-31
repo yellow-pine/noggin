@@ -53,6 +53,12 @@ def problems(report):
                 )
         elif t["kgf_cm"] > t["limit_kgf_cm"]:
             out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
+    for horn, c in report.get("clutch", {}).items():
+        if c["flagged"]:
+            out.append(
+                f"clutch {horn}: holding load over {c['limit_kgf_cm']} kgf.cm (0.9 / 1.5, decalibration risk) at "
+                f"{c['flagged']} deg, worst {c['hold_kgf_cm']} at {c['at_deg']}"
+            )
     for horn, c in report.get("calibrated", {}).items():
         # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
         # cannot answer where the real Mech's ends are, and it does run them (eyes/calibration.json).
@@ -79,6 +85,7 @@ FIXTURE_PROBLEMS = {
         "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
+        "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
 }

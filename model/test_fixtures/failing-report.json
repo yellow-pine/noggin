@@ -18,5 +18,6 @@
  "calibrated": {"L lid horn": {"lo": -54, "hi": 39, "violations": [{"deg": 39, "pair": ["L outside lid", "L servo bracket"]}]},
                 "L eye horn (inferred)": {"lo": -32, "hi": 28, "violations": [{"deg": -32, "pair": ["L eyeball bar", "main bracket v2"]}]}},
  "torque": {"L lid horn": {"kgf_cm": 0.31, "at_deg": -20, "limit_kgf_cm": 0.2}, "L eye horn": {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2},
-            "R lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.25, "dynamic_at_deg": 30, "inertia_g_mm2": 9000, "accel_deg_s2": 48000}}
+            "R lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.25, "dynamic_at_deg": 30, "inertia_g_mm2": 9000, "accel_deg_s2": 48000}},
+ "clutch": {"L lid horn": {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [20, 30]}}
 }

@@ -12,5 +12,6 @@
   "main bracket v2": [[-28.0, -45.6, -4.0], [87.0, 8.5, 18.0]]
  },
  "violations": [],
- "torque": {"L lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.05, "dynamic_at_deg": 30, "inertia_g_mm2": 1500, "accel_deg_s2": 48000}}
+ "torque": {"L lid horn": {"kgf_cm": 0.01, "at_deg": 0, "limit_kgf_cm": 0.2, "dynamic_kgf_cm": 0.05, "dynamic_at_deg": 30, "inertia_g_mm2": 1500, "accel_deg_s2": 48000}},
+ "clutch": {"L lid horn": {"hold_kgf_cm": 0.01, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": []}}
 }

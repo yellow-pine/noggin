@@ -1,7 +1,7 @@
 """Mech-wide checks over the engine's poses (#24, #22), folded into the report by model/engine/run.py: dynamic torque
 per horn (gravity plus the chain's inertia reflected to the horn axis times the peak horn acceleration of the clocked
 gestures through the servo plant, eyes/replay.py and eyes/servo.py; for the untraced Core 2 horns, the acceleration
-that keeps them under the limit)."""
+that keeps them under the limit) and the clutch margin per pose."""
 
 import math
 
@@ -12,6 +12,7 @@ from model.engine import linkage, masses, stages
 
 FRAME_S = 0.02  # 50 Hz PWM: the servo sees one new pulse per frame, so the plant is stepped per frame
 KGF_CM = 0.0980665  # N.m
+CLUTCH_KGF_CM, CLUTCH_MARGIN = 0.9, 1.5  # B-PG001 clutch protection at 4.8 V (docs/research/2026-10-31-electrical.md)
 HORN_SERVO = {
     "L lid horn (inferred)": "l_lid",
     "L eye horn (inferred)": "l_eye",
@@ -67,7 +68,7 @@ def inertia(mats_a, mats_b, table, dtheta_deg):
 
 
 def dynamic_torque(stage, table, horn_name, degs, accel_deg_s2, half_step=0.5):
-    """{deg: {kgf_cm, inertia_g_mm2}}: gravity (masses.gravity_torque) plus the reflected inertia times the peak
+    """{deg: {kgf_cm, gravity_kgf_cm, inertia_g_mm2}}: gravity (masses.gravity_torque) plus the reflected inertia times the peak
     acceleration, at each sampled horn angle. The inertia is a central difference, one-sided where the loop cannot
     close."""
     gravity = masses.gravity_torque(stage, horn_name, table, degs)
@@ -86,16 +87,31 @@ def dynamic_torque(stage, table, horn_name, degs, accel_deg_s2, half_step=0.5):
         i = inertia(pa, pb, table, b - a)
         out[d] = {
             "kgf_cm": gravity[d] + i * 1e-9 * math.radians(accel_deg_s2) / KGF_CM,
+            "gravity_kgf_cm": gravity[d],
             "inertia_g_mm2": i,
         }
     return out
 
 
 def accel_limit(by_deg, limit_kgf_cm):
-    """deg/s2 the horn may reach at every pose and stay under limit_kgf_cm: min over poses of (limit - gravity) / inertia,
-    from dynamic_torque(..., accel 0)."""
+    """deg/s2 the horn may reach at every pose and stay under limit_kgf_cm: min over poses of (limit - gravity) /
+    inertia, from dynamic_torque."""
     return min(
-        math.degrees((limit_kgf_cm - t["kgf_cm"]) * KGF_CM / (t["inertia_g_mm2"] * 1e-9))
+        math.degrees((limit_kgf_cm - t["gravity_kgf_cm"]) * KGF_CM / (t["inertia_g_mm2"] * 1e-9))
         for t in by_deg.values()
         if t["inertia_g_mm2"] > 0
     )
+
+
+def clutch(by_deg):
+    """Holding load per pose against the clutch: gravity at rest only. A horn held against its stop (a lid closed) adds
+    the servo's own stall-limited push, which the clutch does not see as a back-driving load, so a stop is its static
+    load too. Poses over 0.9 / 1.5 kgf.cm are flagged as a decalibration risk."""
+    limit = CLUTCH_KGF_CM / CLUTCH_MARGIN
+    deg = max(by_deg, key=lambda d: by_deg[d]["gravity_kgf_cm"])
+    return {
+        "hold_kgf_cm": round(by_deg[deg]["gravity_kgf_cm"], 3),
+        "at_deg": deg,
+        "limit_kgf_cm": round(limit, 3),
+        "flagged": [d for d in sorted(by_deg) if by_deg[d]["gravity_kgf_cm"] > limit],
+    }

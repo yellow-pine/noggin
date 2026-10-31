@@ -219,6 +219,7 @@ def report(doc, parallel=True):
         links += l
     sim.UP[doc] = stage.up
     out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
+    out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
     for h, by_deg in dynamic.items():
         t = out["torque"][h]
         if mech.HORN_SERVO[h] not in peak:  # untraced (Core 2): what its choreography may reach

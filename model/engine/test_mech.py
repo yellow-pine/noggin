@@ -23,7 +23,7 @@ def test_peak_acceleration_is_the_rated_slew_reached_within_one_pwm_frame():
 
 
 def test_acceleration_limit_is_the_torque_headroom_over_the_inertia():
-    by_deg = {0: {"kgf_cm": 0.1, "inertia_g_mm2": 1e5}, 10: {"kgf_cm": 0.05, "inertia_g_mm2": 1e5}}
+    by_deg = {0: {"gravity_kgf_cm": 0.1, "inertia_g_mm2": 1e5}, 10: {"gravity_kgf_cm": 0.05, "inertia_g_mm2": 1e5}}
     # 0.1 kgf.cm headroom = 0.00980665 N.m over 1e-4 kg.m2 = 98.07 rad/s2
     assert mech.accel_limit(by_deg, 0.2) == pytest.approx(5618.8, abs=0.5)
 
@@ -47,4 +47,9 @@ def test_dynamic_torque_adds_the_inertia_term_to_gravity_at_every_pose():
     still = mech.dynamic_torque(stage, table, horn, degs, 0.0)
     for d in degs:
         assert torque[d]["kgf_cm"] > gravity[d] and torque[d]["inertia_g_mm2"] > 1000  # the eyes ride the tilt arm
-        assert still[d]["kgf_cm"] == pytest.approx(gravity[d])  # no acceleration: the static figure
+        assert still[d]["kgf_cm"] == pytest.approx(gravity[d]) == torque[d]["gravity_kgf_cm"]  # no accel: static
+
+
+def test_clutch_flags_the_poses_whose_holding_load_eats_the_1_5x_margin_on_0_9():
+    by_deg = {-20: {"gravity_kgf_cm": 0.1}, 0: {"gravity_kgf_cm": 0.59}, 30: {"gravity_kgf_cm": 0.7}}
+    assert mech.clutch(by_deg) == {"hold_kgf_cm": 0.7, "at_deg": 30, "limit_kgf_cm": 0.6, "flagged": [30]}
