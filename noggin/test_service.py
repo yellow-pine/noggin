@@ -6,7 +6,7 @@ import threading
 import time
 import uuid
 
-from noggin.service import Service, gesture_seconds
+from noggin.service import READ_CAP, READ_SECONDS, Service, gesture_seconds
 
 
 class FakeSerial:
@@ -123,6 +123,7 @@ def ask(path, text):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(path)
     s.sendall(text.encode())
+    s.shutdown(socket.SHUT_WR)  # EOF, as nc gives on its stdin's end: the service reads to it, then answers
     s.settimeout(1.0)
     try:
         return s.recv(4096).decode()
@@ -132,6 +133,18 @@ def ask(path, text):
 
 def test_a_fresh_service_follows_and_status_says_so(tmp_path):
     s, sock, _ = start(tmp_path)
+    assert ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
+def test_a_client_that_hangs_up_before_its_answer_leaves_the_service_running(tmp_path):
+    s, sock, _ = start(tmp_path)
+    c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    c.connect(sock)
+    c.sendall(b"status\n")
+    c.shutdown(socket.SHUT_WR)
+    c.close()  # gone before the answer, as `nc -w 1` can be
+    time.sleep(0.3)
     assert ask(sock, "status\n").endswith("mode follow\n")
     s.stop()
 
@@ -206,3 +219,35 @@ def test_hooks_are_dropped_and_logged_in_demo(tmp_path, capsys):
 def test_gesture_seconds_come_from_the_core_programs_clock():
     assert gesture_seconds("thinking", {}) == 8.0  # a mode: held, not played out
     assert 1.5 < gesture_seconds("eureka 2", {}) < 3 < gesture_seconds("bored 2", {})  # replayed: about 2 s and 12 s
+
+
+def test_a_long_prompt_larger_than_one_read_still_reaches_the_board(tmp_path):
+    s, sock, fake = start(tmp_path)
+    prompt = {"hook_event_name": "UserPromptSubmit", "session_id": "x", "prompt": "paste " * 50_000}
+    send(sock, json.dumps(prompt) + "\n")  # ~300 KB, several reads
+    assert wait_for(lambda: fake.buf.endswith(b"rest\nthinking\n"))
+    s.stop()
+
+
+def test_a_connection_over_the_cap_is_dropped_and_the_service_carries_on(tmp_path, capsys):
+    s, sock, fake = start(tmp_path)
+    prompt = {"hook_event_name": "UserPromptSubmit", "session_id": "x", "prompt": "x" * READ_CAP}
+    try:
+        send(sock, json.dumps(prompt) + "\n")
+    except OSError:  # the service hangs up mid-write
+        pass
+    assert ask(sock, "status\n").endswith("mode follow\n")
+    assert b"thinking" not in fake.buf and "dropped connection: over" in capsys.readouterr().out
+    s.stop()
+
+
+def test_a_stalled_writer_is_dropped_after_the_timeout(tmp_path, capsys):
+    s, sock, fake = start(tmp_path)
+    c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    c.connect(sock)
+    c.sendall(json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}).encode() + b"\n")
+    time.sleep(READ_SECONDS + 0.3)  # never sends EOF in time
+    c.close()
+    assert ask(sock, "status\n").endswith("mode follow\n")
+    assert b"thinking" not in fake.buf and "dropped connection: timed out" in capsys.readouterr().out
+    s.stop()

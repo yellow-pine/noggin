@@ -30,11 +30,26 @@ DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"
 SEQUENCE = ["eureka 1", "eureka 2", "eureka 3", "attention 2", "bored 2", "wince 2", "wink 3", "thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
 FLASH_FILES = ("eyes.py", "gaze_trace.py", "wifi.py")  # boot.py too over USB (the Makefile's flash-usb), never on Wi-Fi
+READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
+READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
 def log(*a):
     print(time.strftime("%H:%M:%S"), *a, flush=True)
+
+
+def read_all(conn):
+    """A connection's bytes up to EOF; raises TimeoutError past READ_SECONDS, ValueError past READ_CAP."""
+    end, data = time.monotonic() + READ_SECONDS, b""
+    while True:
+        conn.settimeout(max(end - time.monotonic(), 0.001))
+        chunk = conn.recv(65536)
+        if not chunk:
+            return data
+        data += chunk
+        if len(data) > READ_CAP:
+            raise ValueError(f"over {READ_CAP} bytes")
 
 
 def gesture_seconds(line, cal):
@@ -256,18 +271,21 @@ class Service:
             except TimeoutError:
                 continue
             with conn:
-                conn.settimeout(0.5)
                 try:
-                    data = conn.recv(65536).decode()
-                except (TimeoutError, UnicodeDecodeError):
+                    data = read_all(conn).decode()
+                except (OSError, ValueError) as e:  # timeout or a writer gone mid-line; bad UTF-8 is a ValueError
+                    log("dropped connection:", e)
                     data = ""
                 for line in data.splitlines():
-                    if line.strip() == "status":
-                        conn.sendall(self.status(now).encode())
-                    elif line.strip() == "flash":
-                        conn.sendall(self.flash().encode())
-                    elif line.strip():
-                        self.command(line.strip(), now)
+                    try:
+                        if line.strip() == "status":
+                            conn.sendall(self.status(now).encode())
+                        elif line.strip() == "flash":
+                            conn.sendall(self.flash().encode())
+                        elif line.strip():
+                            self.command(line.strip(), now)
+                    except OSError as e:  # the client hung up before its answer (nc -w): never take the service down
+                        log("client gone:", e)
         srv.close()
         self.wifi.close()
 

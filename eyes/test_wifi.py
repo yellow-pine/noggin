@@ -3,6 +3,7 @@
 
 import base64
 import hashlib
+import hmac
 
 import pytest
 import wifi as mod
@@ -13,6 +14,16 @@ CFG = {"ssid": "home", "password": "pw", "token": "t0k"}
 def dg(seq, line, name="eyes"):
     """A command datagram as the noggin service sends it: `<tag> <seq> <line>`, the tag bound to the Core's name."""
     return f"{mod.tag(CFG['token'], f'{name} {seq} {line}')} {seq} {line}".encode()
+
+
+def sent(name="eyes"):
+    """What the Core sent, as (body, addr): each datagram is `<tag> <body>`, checked here against stdlib hmac."""
+    out = []
+    for data, addr in FakeSocket.sent:
+        t, body = data.decode().split(" ", 1)
+        assert t == hmac.new(CFG["token"].encode(), f"{name} {body}".encode(), hashlib.sha256).hexdigest()[:32], data
+        out.append((body, addr))
+    return out
 
 
 class FakeWLAN:
@@ -73,7 +84,9 @@ def link(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # the Core's filesystem: link.seq, flashed files
     fake_net = type("net", (), {"WLAN": FakeWLAN, "STA_IF": 0})
     fake_sock = type(
-        "sock", (), {"socket": FakeSocket, "AF_INET": 2, "SOCK_DGRAM": 2, "SOL_SOCKET": 1, "SO_BROADCAST": 6}
+        "sock",
+        (),
+        {"socket": FakeSocket, "AF_INET": 2, "SOCK_DGRAM": 2, "SOL_SOCKET": 1, "SO_BROADCAST": 6, "SO_REUSEADDR": 4},
     )
     monkeypatch.setattr(mod, "network", fake_net)
     monkeypatch.setattr(mod, "socket", fake_sock)
@@ -104,9 +117,9 @@ def test_beacons_name_ip_and_uptime_every_2s_once_joined(link):
     link.poll(7_000)
     link.poll(8_000)
     link.poll(9_100)
-    assert FakeSocket.sent == [
-        (b"noggin eyes 192.168.1.42 7", ("255.255.255.255", 4711)),
-        (b"noggin eyes 192.168.1.42 9", ("255.255.255.255", 4711)),
+    assert sent() == [
+        ("noggin eyes 192.168.1.42 7", ("255.255.255.255", 4711)),
+        ("noggin eyes 192.168.1.42 9", ("255.255.255.255", 4711)),
     ]
 
 
@@ -126,7 +139,7 @@ def test_command_with_the_token_runs_through_the_parser_and_is_acked(link):
     FakeSocket.inbox.append((dg(7, "eureka 2\n"), MAC))
     link.poll(1_100)
     assert link.handled == ["eureka 2\n"]
-    assert FakeSocket.sent == [(b"ok 7", MAC)]
+    assert sent() == [("ok 7", MAC)]
 
 
 def test_power_save_is_off_so_datagrams_are_not_held_at_the_access_point(link):
@@ -136,10 +149,10 @@ def test_power_save_is_off_so_datagrams_are_not_held_at_the_access_point(link):
 def test_ack_goes_out_before_the_line_runs(link):
     joined(link)
     sent_when_run = []
-    link.handle_line = lambda line: sent_when_run.extend(FakeSocket.sent)  # a gesture blocks for about a second
+    link.handle_line = lambda line: sent_when_run.extend(sent())  # a gesture blocks for about a second
     FakeSocket.inbox.append((dg(7, "wink 3"), MAC))
     link.poll(1_100)
-    assert sent_when_run == [(b"ok 7", MAC)]
+    assert sent_when_run == [("ok 7", MAC)]
 
 
 def test_wrong_tag_is_ignored(link):
@@ -163,7 +176,7 @@ def test_repeated_seq_is_acked_again_but_not_replayed(link):
     FakeSocket.inbox.append((dg(7, "eureka 2"), MAC))
     link.poll(1_200)
     assert link.handled == ["eureka 2"]
-    assert FakeSocket.sent == [(b"ok 7", MAC), (b"ok 7", MAC)]
+    assert sent() == [("ok 7", MAC), ("ok 7", MAC)]
 
 
 def test_parser_error_is_reported_with_the_seq(link):
@@ -171,10 +184,10 @@ def test_parser_error_is_reported_with_the_seq(link):
     link.handle_line = lambda line: 1 / 0
     FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
     link.poll(1_100)
-    assert FakeSocket.sent == [(b"ok 8", MAC), (b"err 8 ZeroDivisionError", MAC)]
+    assert sent() == [("ok 8", MAC), ("err 8 ZeroDivisionError", MAC)]
     FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
     link.poll(1_200)  # a retry of it is answered with what happened, not run again
-    assert FakeSocket.sent[-1] == (b"err 8 ZeroDivisionError", MAC)
+    assert sent()[-1] == ("err 8 ZeroDivisionError", MAC)
 
 
 def test_malformed_datagram_is_ignored(link):
@@ -199,7 +212,7 @@ def test_start_reads_credentials_and_core_name(tmp_path, monkeypatch, link):
     FakeWLAN.connected = True
     w.poll(2_000)
     assert FakeWLAN.connects == [("home", "pw")]
-    assert FakeSocket.sent[0][0].startswith(b"noggin neck ")
+    assert sent("neck")[0][0].startswith("noggin neck 192.168.1.42 ")
 
 
 def test_older_seq_is_dropped_newer_runs(link):
@@ -211,7 +224,7 @@ def test_older_seq_is_dropped_newer_runs(link):
     FakeSocket.inbox.append((dg(12, "wink"), MAC))
     link.poll(1_300)
     assert link.handled == ["eureka 2", "wink"]
-    assert FakeSocket.sent == [(b"ok 9", MAC), (b"ok 12", MAC)]
+    assert sent() == [("ok 9", MAC), ("ok 12", MAC)]
 
 
 def test_undecodable_datagram_does_not_crash_the_loop(link):
@@ -227,12 +240,26 @@ def test_start_refuses_an_empty_token(tmp_path, monkeypatch):
     assert mod.start(lambda line: None) is None
 
 
+def test_tag_is_hmac_sha256_truncated_to_128_bits():
+    # RFC 4231 test case 2 (key "Jefe"), its first 32 hex characters
+    assert mod.tag("Jefe", "what do ya want for nothing?") == "5bdcc146bf60754e6a042426089575c7"
+
+
 def test_tag_is_keyed_and_message_bound():
-    assert mod.tag("t0k", "eyes 1 rest") == mod.tag("t0k", "eyes 1 rest")
     assert mod.tag("t0k", "eyes 1 rest") != mod.tag("other", "eyes 1 rest")
     assert mod.tag("t0k", "eyes 1 rest") != mod.tag("t0k", "eyes 2 rest")
     assert mod.tag("t0k", "eyes 1 rest") != mod.tag("t0k", "neck 1 rest")
     assert len(mod.tag("t0k", "eyes 1 rest")) == 32
+
+
+@pytest.mark.parametrize("stdlib", [True, False])  # False: micropython-lib's hmac, which has no compare_digest
+def test_tags_compare_equal_only_when_identical(monkeypatch, stdlib):
+    if not stdlib:
+        monkeypatch.delattr(mod.hmac, "compare_digest")
+    assert mod.same(b"5bdcc146", b"5bdcc146")
+    assert not mod.same(b"5bdcc146", b"5bdcc147")
+    assert not mod.same(b"5bdcc146", b"5bdcc14")
+    assert not mod.same(b"", b"5")
 
 
 def test_uptime_survives_the_ticks_wrap(link, monkeypatch):
@@ -243,7 +270,7 @@ def test_uptime_survives_the_ticks_wrap(link, monkeypatch):
     link.poll(WRAP // 2 - 1_000)
     link.poll(WRAP - 1_500)  # ... 1.5 s before the wrap
     link.poll(500)  # 2 s later, ticks wrapped
-    assert [int(m.split()[-1]) for m, _ in FakeSocket.sent] == [
+    assert [int(m.split()[-1]) for m, _ in sent()] == [
         (WRAP // 2 - 1_000) // 1000,
         (WRAP - 1_500) // 1000,
         (WRAP + 500) // 1000,
@@ -267,7 +294,7 @@ def run(link, lines, seq=100):
     for i, line in enumerate(lines):
         FakeSocket.inbox.append((dg(seq + i, line), MAC))
         link.poll(1_100 + i)
-    return [m.decode() for m, _ in FakeSocket.sent]
+    return [body for body, _ in sent()]
 
 
 def test_put_and_commit_swap_the_new_file_in_and_keep_the_old_one_as_bak(link, tmp_path, monkeypatch):
@@ -299,7 +326,7 @@ def test_boot_py_only_changes_over_usb(link, tmp_path, monkeypatch):
     joined(link)
     for name in ("boot.py", "../boot.py", "wifi.json"):
         assert run(link, puts(name, b"x")) == ["err 100 ValueError"]
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.iterdir()] == ["link.seq"]
 
 
 def test_a_chunk_out_of_order_is_refused(link, tmp_path, monkeypatch):
@@ -333,9 +360,9 @@ def test_commit_of_a_file_already_in_place_is_ok_without_a_swap(link, tmp_path, 
 def test_reboot_is_acked_then_resets_the_core(link, monkeypatch):
     joined(link)
     events = []
-    monkeypatch.setattr(mod, "reset", lambda: events.append(list(FakeSocket.sent)))
+    monkeypatch.setattr(mod, "reset", lambda: events.append(sent()))
     assert run(link, ["reboot"]) == ["ok 100"]
-    assert events == [[(b"ok 100", MAC)]] and link.handled == []
+    assert events == [[("ok 100", MAC)]] and link.handled == []
 
 
 def test_a_datagram_seen_before_a_reboot_is_not_replayable_after_it(link, monkeypatch):
@@ -350,4 +377,43 @@ def test_a_datagram_seen_before_a_reboot_is_not_replayable_after_it(link, monkey
     assert resets == [1] and link.handled == [] and FakeSocket.sent == []
     FakeSocket.inbox.append((dg(8, "eureka 2"), MAC))
     rebooted.poll(1_200)
-    assert link.handled == ["eureka 2"] and FakeSocket.sent == [(b"ok 8", MAC)]
+    assert link.handled == ["eureka 2"] and sent() == [("ok 8", MAC)]
+
+
+def test_link_seq_is_written_at_most_once_per_10_s_of_seq(link, tmp_path):
+    joined(link)
+    saved = []
+    for seq in (1_000_000, 1_004_000, 1_009_999, 1_010_001):  # the Mac's seq: milliseconds since the epoch
+        FakeSocket.inbox.append((dg(seq, "wink"), MAC))
+        link.poll(1_100)
+        saved.append((tmp_path / "link.seq").read_text())
+    assert saved == ["1010000", "1010000", "1010000", "1020001"]  # a ceiling: no seq at or below it runs again
+    assert link.handled == ["wink"] * 4
+
+
+def test_after_a_power_cut_no_line_seen_before_it_runs_again(link):
+    joined(link)
+    FakeSocket.inbox.extend([(dg(1_000_000, "eureka 2"), MAC), (dg(1_004_000, "set lid_rest 0.9"), MAC)])
+    link.poll(1_100)
+    rebooted = joined(mod.Wifi(link.handled.append, "eyes", CFG))  # the same filesystem, no reboot line
+    FakeSocket.inbox.append((dg(1_004_000, "set lid_rest 0.9"), MAC))  # captured before the cut
+    rebooted.poll(1_100)
+    assert link.handled == ["eureka 2", "set lid_rest 0.9"] and sent() == []
+    FakeSocket.inbox.append((dg(1_010_001, "wink"), MAC))  # past the saved ceiling: the margin is spent
+    rebooted.poll(1_200)
+    assert link.handled[-1] == "wink" and sent() == [("ok 1010001", MAC)]
+
+
+def test_core_code_avoids_cpython_only_calls():
+    """The Core runs MicroPython, where str.startswith/endswith take no tuple; the tests here run under CPython."""
+    import pathlib
+    import re
+
+    core = [p for p in pathlib.Path(__file__).parent.glob("*.py") if not p.name.startswith("test_")]
+    hits = [
+        f"{p.name}:{n}"
+        for p in core
+        for n, line in enumerate(p.read_text().splitlines(), 1)
+        if re.search(r"\.(startswith|endswith)\(\(", line)
+    ]
+    assert not hits, hits
