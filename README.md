@@ -20,9 +20,15 @@ noggin uses almost all of its printed parts and hardware exactly as designed, an
 existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
 the Claude Code hooks, the Fusion model and the simulation.
 
-![The eyes Stage: two pink printed eyeballs with lids on a bracket](docs/images/eyes-front.jpg)
+![The full Mech in the Fusion model: eyes on the pan-tilt stack with the mouth, in the real spool colours](docs/images/stage3-front.jpg)
 
-![Eureka: the lids snap open and the eyes jump up](docs/images/eureka.gif)
+The gestures, replayed in the model from the Core program's own traces:
+
+| eureka | attention | bored |
+|---|---|---|
+| ![eureka](docs/images/eureka.gif) | ![attention](docs/images/attention.gif) | ![bored](docs/images/bored.gif) |
+| **wince** | **wink** | **thinking** |
+| ![wince](docs/images/wince.gif) | ![wink](docs/images/wink.gif) | ![thinking](docs/images/thinking.gif) |
 
 ## What it does
 
@@ -83,8 +89,6 @@ Stage, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core a
 lessons are in `docs/build-notes.md`; the parts to buy, and the Morty face that goes over all three
 Stages, in `docs/face-design.md`. The printed parts are not in this repo: get them from MakerWorld.
 
-![Photo of the eyes next to the Fusion model, plain and with the photo overlaid](docs/images/photo-vs-model.jpg)
-
 ## Setup
 
 ```
@@ -111,7 +115,7 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 
 ## The model
 
-![The model in Fusion with the real spool colours: eyes front, eyes with the photo overlay, pan-tilt side, mouth side](docs/images/stages.jpg)
+![The three Stages in Fusion: stage 1 front (base + eyes), stage 2 side (eyes on the tilt arm), stage 3 side and front (with the mouth)](docs/images/stages.jpg)
 
 `model/` builds the Mech in Fusion 360 and simulates it in Python (PR #31):
 
