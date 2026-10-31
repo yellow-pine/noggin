@@ -1,10 +1,8 @@
 """Seam: inline_includes(text, repo_root) replaces '# include: <path>' lines with that file's contents."""
 
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from fusion_run import inline_includes  # noqa: E402
+from model.fusion_run import inline_includes
 
 REPO = Path(__file__).resolve().parents[1]
 

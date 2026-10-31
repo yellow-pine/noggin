@@ -1,6 +1,6 @@
 """Measured Mech geometry as data (mm, degrees). Source: docs/research/2026-10-31-model.md.
 Eyes frame: L eye centre at origin, +Y up, -Z front. PT frame: Z up, pan axis through (0,0).
-Pure Python, no imports: scripts/fusion_run.py inlines this file into Fusion scripts.
+Pure Python, no imports: model/fusion_run.py inlines this file into Fusion scripts.
 """
 
 EYE_L = (0.0, 0.0, 0.0)

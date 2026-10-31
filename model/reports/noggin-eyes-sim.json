@@ -1009,7 +1009,7 @@
   "calibrated R eye horn (inferred): collision at 28 deg between ['R eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)"
  ],
  "inputs": {
-  "stamp": "42d2ea75cc33e6c147f3cde83482f51bb26250956032af024cb6eaeede0ab6de",
+  "stamp": "569d5862a54900e0901079c45d123230aaa7892fdf75c5699851234d9e875ca8",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",

@@ -5,7 +5,7 @@ BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 # $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
-fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) scripts/fusion_run.py /dev/stdin
+fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) model/fusion_run.py /dev/stdin
 
 .PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
 
