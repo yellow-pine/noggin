@@ -22,7 +22,7 @@ def _eyes():
                 (),
                 {
                     "__init__": lambda self, pin, freq=50: None,
-                    "duty": lambda self, d: None,
+                    "duty_ns": lambda self, ns: None,
                     "deinit": lambda self: None,
                 },
             )
