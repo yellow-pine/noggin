@@ -3,10 +3,12 @@
 
 import json
 import os
+import shutil
 import sys
 
 args = sys.argv[1:]
 path = os.path.expanduser(args[args.index("--settings") + 1] if "--settings" in args else "~/.claude/settings.json")
+path = os.path.realpath(path)  # swap the file a dotfiles symlink points at, not the link
 hook = os.path.abspath(os.path.join(os.path.dirname(__file__), "hook.sh"))
 repo = os.path.dirname(os.path.dirname(hook)) + "/"
 EVENTS = {
@@ -36,6 +38,13 @@ for event, matcher in EVENTS.items():
         hooks[event] = groups
     else:
         hooks.pop(event, None)
-json.dump(cfg, open(path, "w"), indent=2)
-open(path, "a").write("\n")
+tmp = path + ".tmp"  # write beside it, then swap in: a crash mid-write leaves the old settings whole
+with open(tmp, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+    f.flush()
+    os.fsync(f.fileno())
+if os.path.exists(path):
+    shutil.copymode(path, tmp)  # keep its permissions
+os.replace(tmp, path)
 print("hooks", "removed from" if "--remove" in args else "installed in", path)
