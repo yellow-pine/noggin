@@ -50,6 +50,28 @@ def mass_com(occ):
     return round(sum(b.getPhysicalProperties(ACCURACY).mass for b in bs) * 1000, 2), com, "material"
 
 
+def targets(occ, real=False):
+    """What to measure for an occurrence: its proxy (the real body when `real`), else the occurrence when it holds
+    bodies, else its bodies in assembly context (a STEP part's bodies sit in a nested occurrence, and measuring
+    the bodiless top occurrence fails)."""
+    if proxy_body(occ):
+        return [real_body(occ) if real else proxy_body(occ)]
+    return [occ] if occ.bRepBodies.count else bodies(occ)
+
+
+def distance(app, a, b, real=False):
+    """Minimum distance between two occurrences in mm (see targets)."""
+    return min(app.measureManager.measureMinimumDistance(x, y).value for x in targets(a, real) for y in targets(b, real)) * 10
+
+
+def top_parts(root):
+    """Top-level occurrences, an inserted Stage (noggin-eyes in the mouth) expanded into its parts so their proxies get measured."""
+    out = []
+    for o in root.occurrences:
+        out += list(o.childOccurrences) if o.isReferencedComponent and any(proxy_body(c) for c in o.childOccurrences) else [o]
+    return out
+
+
 def bbox_gap(a, b):
     """Distance between two occurrences' bounding boxes in mm (0 when they overlap)."""
     lo_a, hi_a, lo_b, hi_b = mm3(a.boundingBox.minPoint), mm3(a.boundingBox.maxPoint), mm3(b.boundingBox.minPoint), mm3(b.boundingBox.maxPoint)
@@ -71,8 +93,8 @@ def moving_chain(horn, joints, groups=()):
     chain, todo = {}, [horn.occurrenceOne]
     while todo:
         occ = todo.pop()
-        if occ is None or occ.isGrounded or occ.fullPathName in stop or occ.fullPathName in chain:
-            continue
+        if occ is None or occ.assemblyContext or occ.isGrounded or occ.fullPathName in stop or occ.fullPathName in chain:
+            continue   # nested occurrences (a STEP part's inner assembly, via includeChildren rigid groups) ride with their top-level parent
         chain[occ.fullPathName] = occ
         for g in groups:
             if any(m.fullPathName == occ.fullPathName for m in g):
@@ -99,9 +121,8 @@ def interference(design, occs, pose):
     large faceted bodies, so this is only called for pairs that measured 0 mm)."""
     coll = adsk.core.ObjectCollection.create()
     for occ in occs:
-        for b in occ.bRepBodies:
-            if b.isSolid:
-                coll.add(b)
+        for b in bodies(occ):
+            coll.add(b)
     results = design.analyzeInterference(design.createInterferenceInput(coll))
     if results is None:
         return [{"a": occs[0].name, "b": occs[1].name, "volume_mm3": None, "pose": pose, "note": "analyzeInterference returned None"}]
@@ -115,7 +136,7 @@ def penetrates(occ_a, occ_b, samples=300):
     to a designed contact (coincident faces measure 0 mm too, e.g. the eyeball bar riding on the bracket rail)."""
     def body(occ):
         x = real_body(occ)
-        return x if x.objectType.endswith("BRepBody") else max(x.bRepBodies, key=lambda b: b.faces.count)
+        return x if x.objectType.endswith("BRepBody") else max(bodies(occ), key=lambda b: b.faces.count)
     a, b = body(occ_a), body(occ_b)
     for src, dst in ((a, b), (b, a)):
         verts = src.vertices
@@ -196,7 +217,7 @@ def run(_context: str):
     doc = open_doc(app)
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
-    joints = [j for j in root.allJoints if not j.isSuppressed]
+    joints = [j for j in root.joints if not j.isSuppressed]   # the document's own: a referenced Stage's horns are swept in its own document
     horns = [j for j in joints if j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType
              and "horn" in j.name.lower()]
     if not horns:
@@ -218,7 +239,7 @@ def run(_context: str):
     degs = list(range(lo, hi, STEP_DEG)) + [hi]
     groups = [[g.occurrences.item(i) for i in range(g.occurrences.count)] for g in root.rigidGroups]
     chain = moving_chain(horn, joints, groups)
-    others = [o for o in root.allOccurrences if o.bRepBodies.count and o.fullPathName not in chain]
+    others = [o for o in top_parts(root) if o.fullPathName not in chain and (proxy_body(o) or bodies(o))]
     linked = set()   # pairs that touch by construction: they share a joint or a rigid group
     for j in joints:
         if j.occurrenceOne and j.occurrenceTwo:
@@ -255,11 +276,11 @@ def run(_context: str):
             for other in others:
                 if frozenset((mover.fullPathName, other.fullPathName)) in linked or bbox_gap(mover, other) > NEAR_MM:
                     continue   # exact distance is at least the box gap: skip far pairs
-                d = app.measureManager.measureMinimumDistance(proxy_body(mover) or mover, proxy_body(other) or other).value * 10
+                d = distance(app, mover, other)
                 state["measured"] += 1
                 adsk.doEvents()   # let the UI repaint and take input between measurements
                 if d < CLEARANCE_MM and (proxy_body(mover) or proxy_body(other)):   # decimation can close slots: confirm on the real bodies
-                    d = app.measureManager.measureMinimumDistance(real_body(mover), real_body(other)).value * 10
+                    d = distance(app, mover, other, real=True)
                     state["measured"] += 1
                 pair = [mover.name, other.name]
                 if not calibrated and (state["worst"] is None or d < state["worst"]["min_mm"]):

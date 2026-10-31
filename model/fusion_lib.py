@@ -490,16 +490,18 @@ def body_box(occ):
 
 def screenshots(app, root, out, stage, views, width=1600, height=1200):
     """Every view of `views` ({name: (eye_dir, up)}) saved as out/<stage>-<name>.png with the reference canvases
-    hidden and, when the design has canvases, as <stage>-<name>-overlay.png with them shown."""
-    canvases = list(root.canvases)
+    (the design's own and those of inserted Stages) hidden and, when there are any, as <stage>-<name>-overlay.png
+    with them shown. The canvases stay hidden afterwards, so the saved document opens clean (`make model-canvases`
+    toggles them)."""
+    canvases = list(root.canvases) + [c for o in root.allOccurrences for c in o.component.canvases]
     for name, (eye_dir, up) in views.items():
+        for c in canvases:
+            c.isLightBulbOn = True
+        if canvases:
+            screenshot(app, os.path.join(out, f"{stage}-{name}-overlay.png"), eye_dir, up, width, height)
         for c in canvases:
             c.isLightBulbOn = False
         screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
-        if canvases:
-            for c in canvases:
-                c.isLightBulbOn = True
-            screenshot(app, os.path.join(out, f"{stage}-{name}-overlay.png"), eye_dir, up, width, height)
 
 
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
