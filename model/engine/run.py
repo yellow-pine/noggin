@@ -1,9 +1,9 @@
 """The simulation (`make sim`, ADR 0006): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) drive each horn from its minimum to its maximum limit in STEP_DEG steps, measure the moving chain
 against every other part (contacts vs penetrations as the Fusion sweep judged them), record the driven joint angles and
-centres of mass per pose, the placements, bounding boxes and masses, then fold in torque, curves, fits and beams
-(model/sim.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
-model/test_report.py reads. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
+centres of mass per pose, the placements, bounding boxes and masses, the cable corridors (model/engine/cables.py), then
+fold in torque, curves, fits and beams (model/sim.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
+model/test_report.py reads, and model/build/<doc>-corridors.ply. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
 the designer's limits.
 Usage: python -m model.engine.run [doc ...]"""
 
@@ -17,9 +17,10 @@ from multiprocessing import get_context
 
 from model import beams, electrical, fits, sim
 from model import geometry as g
-from model.engine import linkage, masses, mech, meshes, stages
+from model.engine import cables, linkage, masses, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
+BUILD = os.path.join(stages.REPO, "model", "build")  # the swept cable corridors (<doc>-corridors.ply), not committed
 # Repo files a report depends on (stamp); designer meshes are not in the repo, their fingerprints go in the report.
 INPUTS = [
     "model/geometry.py",
@@ -279,7 +280,7 @@ def report(doc, parallel=True):
     if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
         outline = mech.footprint(placed["PandT base:1"].vertices)
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
-        out["cable_reach"] = mech.cable_reach(stage, STEP_DEG)
+    out["corridors"], out["swept"] = cables.corridors(stage, placed, STEP_DEG)  # swept: written by main, not committed
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.budget()
     for h, by_deg in dynamic.items():
@@ -305,6 +306,10 @@ def main(docs):
         horns = ", ".join(  # timings vary per run: printed, not committed
             f"{h} {v['min_mm']} mm {v.pop('seconds')} s" for h, v in r["horns"].items()
         )
+        swept = r.pop("swept")
+        if swept:
+            os.makedirs(BUILD, exist_ok=True)
+            cables.union(swept, cables.RADIUS_MM).export(os.path.join(BUILD, f"{doc}-corridors.ply"))
         with open(os.path.join(OUT, f"{doc}-sim.json"), "w") as f:
             json.dump(r, f, indent=1)
             f.write("\n")
