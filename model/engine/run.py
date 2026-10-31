@@ -2,7 +2,7 @@
 configurations) drive each horn from its minimum to its maximum limit in STEP_DEG steps, measure the moving chain
 against every other part (contacts vs penetrations as the Fusion sweep judged them), record the driven joint angles and
 centres of mass per pose, the placements, bounding boxes and masses, the cable corridors (model/engine/cables.py), then
-fold in torque, curves, fits and beams (model/sim.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
+fold in torque, curves, fits and beams (model/sim.py), the mating check (model/engine/mating.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
 model/test_report.py reads, and model/build/<doc>-corridors.ply. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
 the designer's limits.
 Usage: python -m model.engine.run [doc ...]"""
@@ -17,7 +17,7 @@ from multiprocessing import get_context
 
 from model import beams, electrical, fits, sim
 from model import geometry as g
-from model.engine import cables, linkage, masses, mech, meshes, stages
+from model.engine import cables, linkage, masses, mech, mating, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
 BUILD = os.path.join(stages.REPO, "model", "build")  # the swept cable corridors (<doc>-corridors.ply), not committed
@@ -177,12 +177,17 @@ def sweep_jobs(stage, cal):
 
 def warnings(report):
     """Collisions at the calibrated servo ends of a horn whose pivot is still inferred (+-4 mm, geometry.PIVOTS): it cannot
-    answer where the real Mech's ends are, so they warn; once measured model/test_report.py fails them."""
+    answer where the real Mech's ends are, so they warn; once measured model/test_report.py fails them. Likewise every
+    mating mismatch no source settles (mating.INFERRED)."""
     return [
         f"calibrated {h}: collision at {v['deg']} deg between {v['pair']} (pivot inferred: fails once measured)"
         for h, c in report["calibrated"].items()
         if c["inferred"]
         for v in c.get("violations", [])
+    ] + [
+        f"mating {m['joint']}: {m['kind']} {m['mm']} mm between {m['parts']} (inferred: {m['inferred']})"
+        for m in report.get("mating", [])
+        if m.get("inferred") and not m["ok"]
     ]
 
 
@@ -272,6 +277,7 @@ def report(doc, parallel=True):
         joints += j
         links += l
     out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links), stage.up)
+    out["mating"] = mating.check(stage, placed)
     out["warnings"] = warnings(out)
     src = sources(stage, joints, links)
     out["inputs"] = {"stamp": stamp(src), "sources": src}
