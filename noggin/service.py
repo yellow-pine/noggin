@@ -29,7 +29,7 @@ GESTURES = ("eureka", "attention", "bored", "wince", "wink")
 DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"}
 SEQUENCE = ["eureka 1", "eureka 2", "eureka 3", "attention 2", "bored 2", "wince 2", "wink 3", "thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
-FLASH_FILES = ("eyes.py", "gaze_trace.py", "wifi.py")  # boot.py too over USB (the Makefile's flash-usb), never on Wi-Fi
+FLASH_FILES = ("eyes.mpy", "gaze_trace.mpy", "wifi.mpy")  # eyes/build (make mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
@@ -164,12 +164,13 @@ class Service:
             self.drop_link(e)
 
     def flash(self):
-        """The eye program, from beside the calibration file, to the eyes Core over Wi-Fi; the outcome as a line."""
+        """The eye program, compiled into build/ beside calibration.json, to the eyes Core over Wi-Fi; the outcome."""
         if not self.wifi.fresh("eyes", time.time()):
             msg = "flash failed: eyes is not on Wi-Fi (USB=1 make flash)"
         else:
             try:
-                msg = self.wifi.flash("eyes", {f: (self.cal_file.parent / f).read_bytes() for f in FLASH_FILES})
+                build = self.cal_file.parent / "build"
+                msg = self.wifi.flash("eyes", {f: (build / f).read_bytes() for f in FLASH_FILES})
             except (RuntimeError, OSError) as e:
                 msg = f"flash failed: {e}"
             self.send(self.cal_lines() + [self.director.mode()])  # a rebooted Core starts uncalibrated

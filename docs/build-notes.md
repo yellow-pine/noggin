@@ -53,8 +53,17 @@ pushing past them, the lids bind at the ends.
 
 - ESP32-C3 running the vendor's MicroPython build. USB-C is the REPL at 115200,
   enumerating on macOS as `/dev/cu.usbmodem*`.
+- Its MicroPython is 1.23.0 preview (`sys.implementation._mpy` 774: .mpy version 6.3, no native arch), pinned once
+  as `[tool.noggin] micropython` in pyproject.toml. pyright checks the Core's files against
+  `micropython-esp32-esp32_generic_c3-stubs` 1.23 as the standard library (`eyes/test_micropython.py`; the stubs
+  still take a tuple in `str.startswith`, so `eyes/test_wifi.py` keeps its own check), and `mpy-cross` 1.23 compiles
+  them. Bytecode-only .mpy files load on any 6.x ([mpyfiles](https://docs.micropython.org/en/v1.23.0/reference/mpyfiles.html)).
+  The setup wizard warns when the board reports another version.
 - Upload files with `make flash`: over the Wi-Fi Link while the Core beacons, else `mpremote` over USB
-  (`USB=1` forces the cable; boot.py only ever goes that way). Never flash firmware with esptool or any
+  (`USB=1` forces the cable; boot.py only ever goes that way). Both send `eyes.mpy`, `gaze_trace.mpy` and `wifi.mpy`
+  (`make mpy`, into eyes/build): less RAM to import than the .py. boot.py stays .py (the Core runs boot.py only).
+  A .py shadows its .mpy (import looks for the .py first), so `flash-usb` removes them and Wi-Fi takes only .mpy;
+  a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB. Never flash firmware with esptool or any
   third-party tool: the vendor states this bricks the board.
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.

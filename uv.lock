@@ -1064,6 +1064,27 @@ wheels = [
 ]
 
 [[package]]
+name = "micropython-esp32-esp32-generic-c3-stubs"
+version = "1.23.0.post2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "micropython-stdlib-stubs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bf/3d/4155859398b17233721c9cbaf6836d66c348b92cb8edeb1ff7aa4f6f881d/micropython_esp32_esp32_generic_c3_stubs-1.23.0.post2.tar.gz", hash = "sha256:12ec72ed9f157bce99e13d9b775818e35917f5936c99791989683bfbae2c1c97", size = 120676, upload-time = "2024-09-08T21:46:10.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/12/23bab07fcac9495e1f374d531e29090068565565dfe5e0e2eb10e2afe6bf/micropython_esp32_esp32_generic_c3_stubs-1.23.0.post2-py3-none-any.whl", hash = "sha256:7b074c4cfcb3e2eb0389ea050714b71bbe39e244a0a3a4cfe0fe2b74a0473119", size = 161635, upload-time = "2024-09-08T21:46:08.686Z" },
+]
+
+[[package]]
+name = "micropython-stdlib-stubs"
+version = "1.23.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/b5/c9a0518cad50af1e9e34bb7d2ef8b2449132962277d21ab57dbbcdfa1e92/micropython_stdlib_stubs-1.23.0.tar.gz", hash = "sha256:8c497e1aa0ae0dba67d16ec9334399e9b5248cd143f2ac47a3d8a5eada434953", size = 93189, upload-time = "2024-10-31T23:43:44.605Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cc/a9/8828adcceaababfe50fbe1f3739de41691ca408a1c36cf4c6482a1c3eb6b/micropython_stdlib_stubs-1.23.0-py3-none-any.whl", hash = "sha256:b80888c94e76b16c54eb2909ca2453f8ea032d1401ccf2461cc3c41595ee3b2a", size = 116620, upload-time = "2024-10-31T23:43:43.433Z" },
+]
+
+[[package]]
 name = "more-itertools"
 version = "11.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1083,6 +1104,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/b7/8c44eb606b0e53517fd6ddda3f598b3bdb180c181f4e0bcbb9b7743f4cb5/mpremote-1.29.0.tar.gz", hash = "sha256:ab0b6f21059698e573ca076fe9a0299e5fe7bbc3ca3f5b2f00007e22e51c7b80", size = 33808, upload-time = "2026-08-24T13:54:53.108Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/85/f68fbcfe4d1ce32a7f2154a48f68195d4f256e3700b69ad0d5b758ee3b37/mpremote-1.29.0-py3-none-any.whl", hash = "sha256:dedac688bcd65b9d4d5b7a66119332f2830000088321107994959333f53e41c8", size = 38653, upload-time = "2026-08-24T13:54:51.674Z" },
+]
+
+[[package]]
+name = "mpy-cross"
+version = "1.23.0.post2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/bb/cf34b587413449a0ffde92be3ef5943dd44a5bf13b65a074e26b3afeab20/mpy_cross-1.23.0.post2-py2.py3-none-macosx_11_0_universal2.whl", hash = "sha256:88e3cb401e4e59e70ccdb15ae1a462e9c1e4f157086c098ed0ce0b4b36254257", size = 1434359, upload-time = "2024-06-22T14:20:18.705Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/9a/42ab29d9a37816531ec93677973a4d9b3ec23ba9c81bb2f1c7ddfff25087/mpy_cross-1.23.0.post2-py2.py3-none-manylinux1_i686.whl", hash = "sha256:d159fb014de046b2081be692daa1ebdf2ff568a9c19a562db082ce523bbd0fd5", size = 894468, upload-time = "2024-06-22T14:20:21.856Z" },
+    { url = "https://files.pythonhosted.org/packages/07/05/fc63fbbcbeacbe5858d0bf962e812bea547d65ee2850957339c02b2e91e8/mpy_cross-1.23.0.post2-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:98667192865efc63a1e4aba5858873b5f0f1908f1318f16fe792866187855075", size = 899635, upload-time = "2024-06-22T14:20:23.811Z" },
+    { url = "https://files.pythonhosted.org/packages/98/43/14cf6bc672286e65ab1974ceb130f365c4d25d8910929c7c628a3221cb81/mpy_cross-1.23.0.post2-py2.py3-none-manylinux2014_aarch64.whl", hash = "sha256:42e5b5f455370dd4d57f3000376c1d22ef6c3b5d7115f90ecefc251b5f64c590", size = 965563, upload-time = "2024-06-22T14:20:26.25Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/85/36213207d40bb338ef232d95a6f06757b27aa85c88a713a3b46242ad3c6a/mpy_cross-1.23.0.post2-py2.py3-none-manylinux2014_armv7l.whl", hash = "sha256:0bc132de4f5736c9796522a0ab4beefa5e01f0b328d76198a492a46427f602e2", size = 899363, upload-time = "2024-06-22T14:20:28.755Z" },
+    { url = "https://files.pythonhosted.org/packages/00/11/5224e8fd5104409c96fcec22d13637e10136282a0dc1c25d39dd6015253d/mpy_cross-1.23.0.post2-py2.py3-none-win32.whl", hash = "sha256:63d211fc31e086e953ff9d0a83e097346e24787bf3c984fe345047e30e76da3d", size = 927228, upload-time = "2024-06-22T14:20:31.282Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/9f/80636bb7f2453b1df4a94d853c1689f611f6acb388036813dfce6209711b/mpy_cross-1.23.0.post2-py2.py3-none-win_amd64.whl", hash = "sha256:a3c8a542013943f6a9f570b46fdce0d84efd0c30eea73699b389451bad9bd53a", size = 999179, upload-time = "2024-06-22T14:20:33.754Z" },
 ]
 
 [[package]]
@@ -1397,7 +1432,10 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "micropython-esp32-esp32-generic-c3-stubs" },
+    { name = "micropython-stdlib-stubs" },
     { name = "mpremote" },
+    { name = "mpy-cross" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1417,7 +1455,10 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "micropython-esp32-esp32-generic-c3-stubs", specifier = "==1.23.*" },
+    { name = "micropython-stdlib-stubs", specifier = "==1.23.*" },
     { name = "mpremote", specifier = ">=1.24" },
+    { name = "mpy-cross", specifier = "==1.23.*" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.17.3" },

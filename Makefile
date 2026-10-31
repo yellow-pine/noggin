@@ -1,6 +1,7 @@
 REPO  := $(abspath .)
 PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
+MPYC  := $(REPO)/.venv/bin/mpy-cross
 BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 NOGGIN := noggin/noggin
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
@@ -8,7 +9,7 @@ LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash flash-usb restore-stock render gifs view lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs view lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -65,15 +66,21 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 	mkdir -p eyes/stock-backup
 	cd eyes/stock-backup && for f in $$($(MPR) resume exec "import os; print(' '.join(os.listdir()))"); do $(MPR) resume cp -r :$$f . ; done
 	ls -R eyes/stock-backup
-flash:           ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh, else USB (USB=1 forces it)
+mpy: venv        ## the eye program as .mpy for the Core's MicroPython (pyproject [tool.noggin]) in eyes/build: what both flashes send
+	mkdir -p eyes/build
+	$(MPYC) -o eyes/build/eyes.mpy eyes/eyes.py
+	$(MPYC) -o eyes/build/gaze_trace.mpy eyes/gaze_trace.py
+	$(MPYC) -o eyes/build/wifi.mpy eyes/wifi.py
+flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh, else USB (USB=1 forces it)
 	@if [ -z "$(USB)" ] && $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
-flash-usb: interrupt ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
+flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
 	$(MPR) resume mip install hmac
-	$(MPR) resume cp eyes/eyes.py :eyes.py
-	$(MPR) resume cp eyes/gaze_trace.py :gaze_trace.py
-	$(MPR) resume cp eyes/wifi.py :wifi.py
+	$(MPR) resume cp eyes/build/eyes.mpy :eyes.mpy
+	$(MPR) resume cp eyes/build/gaze_trace.mpy :gaze_trace.mpy
+	$(MPR) resume cp eyes/build/wifi.mpy :wifi.mpy
 	$(MPR) resume cp eyes/boot.py :boot.py
+	$(MPR) resume exec "import os; [os.remove(f) for f in ('eyes.py', 'gaze_trace.py', 'wifi.py') if f in os.listdir()]"  # a .py shadows its .mpy
 	$(PY) eyes/interrupt.py reset
 restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
