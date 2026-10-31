@@ -1,19 +1,18 @@
 # Build notes: eyes (part 1 of 3)
 
-Original notes in our own words. The printed parts, assembly instructions and
-remote-control config are PurpleShark's **CyberBrick Eyes Animatronic Mechanism**
-on MakerWorld (model 1718839, Standard Digital File License). Get those files
-there; they are not redistributed here. Parts 2 and 3 of the series are the
-Pan & Tilt base (model 1766064) and the mouth (model 1861301).
+Original notes in our own words. The mechanism, its assembly instructions and
+remote-control config are the designer's (credits: README "Acknowledgements"); those
+files are not redistributed here. Parts 2 and 3 of the series are the pan & tilt base
+and the mouth. What to buy: "Parts to buy" below.
 
 ## What we built
 
 Photo: `eye-mech-build-photo.jpg`. Two eyeballs with eyelids on a base plate,
-four MakerWorld 180° 9 g servos, a CyberBrick Core on an X11 shield, a power
-switch board and a 14500 cell holder. Our board is mounted rotated 90° relative
+four 180° 9 g servos, a Core on a Shield, a switch
+board and a 14500 cell holder. Our board is mounted rotated 90° relative
 to the designer's photos, which changes nothing electrically.
 
-## Servo ports (X11 shield)
+## Servo ports (Shield)
 
 | Port | GPIO | Servo     | Angle range | Neutral |
 |------|------|-----------|-------------|---------|
@@ -34,7 +33,7 @@ pushing past them, the lids bind at the ends.
   charges cells; charge externally.
 - USB-C on the Core powers only the Core, not the servos.
 - What we have: two official 7.4 V 800 mAh 2S packs (two 14500 cells end to
-  end in blue heat-shrink, so each looks like a single cell) and Bambu's USB
+  end in blue heat-shrink, so each looks like a single cell) and the kit's USB
   charger dongle with an XH2.54 plug. The dongle is a charger only, never a
   supply for the board. One pack in the holder through the switch board, the
   spare on charge. USB-C to the Mac carries data and powers the Core only.
@@ -52,17 +51,17 @@ pushing past them, the lids bind at the ends.
   target goes through it, then uses `mpremote resume`.
 - Servos stay powered at rest: released, the lids and eyes fall under gravity.
 
-- ESP32-C3 running Bambu's MicroPython build. USB-C is the REPL at 115200,
+- ESP32-C3 running the vendor's MicroPython build. USB-C is the REPL at 115200,
   enumerating on macOS as `/dev/cu.usbmodem*`.
 - Upload files with `make flash`: over the Wi-Fi Link while the Core beacons, else `mpremote` over USB
   (`USB=1` forces the cable; boot.py only ever goes that way). Never flash firmware with esptool or any
-  third-party tool: Bambu states this bricks the board.
+  third-party tool: the vendor states this bricks the board.
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
 
-## Stock program on the Core (from the MakerWorld rc_mpy manifest)
+## Stock program on the Core (from the designer's rc_mpy manifest)
 
-The designer's MakerWorld page ships a manifest of the stock RC program it
+The designer's project page ships a manifest of the stock RC program it
 expects on the Core: `boot.py`, `app/rc_main.py`, compiled `app/control.mpy`,
 `app/devices.mpy`, `app/parser.mpy`, and `bbl/{__init__,buzzer,executor,leds,
 motors,servos,sleepModule}.py`. So `bbl` lives on the filesystem, not frozen,
@@ -72,7 +71,7 @@ board with `mpremote ls` before replacing anything.
 
 ## Servo calibration lessons (2026-10-31)
 
-- The MakerWorld 9 g servos have a slip clutch. Driving a lid into its
+- The 9 g servos have a slip clutch. Driving a lid into its
   mechanical stop makes the clutch slip and the calibration drifts, which looks
   like the horn sliding on the spline. Keep every range end a few degrees
   inside the stop; the eye program's lid ranges sit 6° inside.
@@ -106,10 +105,27 @@ over Wi-Fi, `wink 3` is acked and the left eye winks, and the six gestures playe
 
 ## Second Core (tilt, mouth, pan)
 
-The designer runs two Cores on two X11 shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
+The designer runs two Cores on two Shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
 config JSON; the mouth guide's "3rd position" wording is ambiguous). Both Cores join the Wi-Fi and are addressed
 directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Each shield
 gets its own pack and switch board (one pack cannot feed two shields at stall: 2 x 2.6 A > 3 A). Electrical figures:
 docs/research/2026-10-31-electrical.md.
 
-Inventory and the remaining buy list: docs/face-design.md "Hardware" (2026-10-31).
+## Parts to buy
+
+The one place the shop's names and codes appear (2026-10-31, grilled). Electronics are Bambu Lab's CyberBrick
+range, filament is Bambu PLA Pure.
+
+- Owned: Beginner Hardware Kit ZK004 (2 Cores, an X11 receiver shield + a transmitter shield, switch module, 2S pack,
+  charger, one 180 and one 360 servo), Battery Upgrade Kit ZL003 (second switch module + second pack), 4 PG001
+  servos, M3x10, M2x12, M2 nuts (20 each). Used by the eyes: 4 servos, 1 Core, 1 Shield, 1 switch board, 1 pack.
+  Unused on the desk: 1 Core (the remote's, becomes Core 2), 1 switch board, 1 pack (spare on charge), one 180
+  servo (the 360 one is continuous rotation, not positional). Pan bearing: the printed bearing block (the shop no
+  longer lists the F10-18M thrust bearing).
+- Ordered 2026-10-31 (Bambu EU store): X11 Receiver Shield XA004 x1; servo PG001 x3 (2 needed + 1 spare); battery
+  PC003 x1 (one pack per Shield + a spare on charge); M2x12 screws x1 pack and M2 nuts x1 pack (shell halves and
+  mask); one pack of longer M2 (x16 or x20, whichever is listed) for the mask + skull stack on the wings; M2.5x6
+  screws x1 pack if listed (the remaining stages need 26 of the kit's M2.5).
+- Filament, all owned, Bambu PLA Pure: Milky Pink, Pure White, Absolute Black, Apricot (hex and density:
+  docs/research/2026-10-31-filament.md). No more needed: the face shell is a thin hollow skin, about 180 g Apricot
+  in total and about 80 g Black.

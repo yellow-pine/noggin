@@ -3,21 +3,19 @@
 [![check](https://github.com/yellow-pine/noggin/actions/workflows/check.yml/badge.svg)](https://github.com/yellow-pine/noggin/actions/workflows/check.yml)
 [![license](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue)](LICENSE.md)
 [![python](https://img.shields.io/badge/python-3.12-blue)](pyproject.toml)
-[![micropython](https://img.shields.io/badge/MicroPython-CyberBrick-green)](docs/build-notes.md)
+[![micropython](https://img.shields.io/badge/MicroPython-ESP32--C3-green)](docs/build-notes.md)
 [![claude code](https://img.shields.io/badge/reacts%20to-Claude%20Code-orange)](https://docs.claude.com/en/docs/claude-code/hooks)
 
 An animatronic Mech on the desk that reacts to Claude Code. A pair of printed eyes with lids
 winks when a session starts, drifts while Claude thinks, lights up with a "just thought of
 something great" gesture when a response lands, scans the room when Claude needs you, and gets
 bored when you walk away. Claude Code hooks feed a small Mac service; the service talks to a
-CyberBrick Core that plays the gestures on four servos. The pan-and-tilt base and the mouth are
-the next two Stages.
+Core that plays the gestures on four servos. The pan-and-tilt base and the mouth are the next
+two Stages.
 
-The mechanism is [PurpleShark](https://makerworld.com/en/@PurpleShark)'s three-part CyberBrick
-animatronic series on MakerWorld ([eyes](https://makerworld.com/en/models/1718839),
-[pan & tilt](https://makerworld.com/en/models/1766064), [mouth](https://makerworld.com/en/models/1861301)):
-noggin uses almost all of its printed parts and hardware exactly as designed, and owes its
-existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
+The mechanism is a published three-part animatronic series (eyes, pan & tilt, mouth; credits in
+[Acknowledgements](#acknowledgements)): noggin uses almost all of its printed parts and hardware
+exactly as designed, and owes its existence to that work. What this repo adds is the behaviour: the Core program, the Mac service,
 the Claude Code hooks, the model and the simulation.
 
 ![The full Mech (Stage 3) rendered from the model: eyes on the pan-tilt stack with the mouth, in the real spool colours](docs/images/stage3-front.jpg)
@@ -62,9 +60,9 @@ flowchart LR
     C2 --> S2[servos: pan, tilt, jaw]
 ```
 
-- **Core program** (`eyes/`): MicroPython on the CyberBrick Core. Holds every gesture and plays it to
+- **Core program** (`eyes/`): MicroPython on the Core. Holds every gesture and plays it to
   completion on a one-word command, so motion stays smooth whatever the Mac does (ADR 0001). It replaces
-  Bambu's stock remote-control program on the Core's filesystem; the firmware is never touched (ADR 0002).
+  the stock remote-control program on the Core's filesystem; the firmware is never touched (ADR 0002).
 - **noggin service** (`noggin/`, `reactions/`): a launchd process that owns the Link, listens on a Unix
   socket, times each Turn to pick a Tier, and drops Triggers while Busy (ADR 0003). Hooks write one line and exit.
 - **Links**: Wi-Fi first, USB-C as the automatic fallback; each Core beacons on the LAN and is addressed
@@ -76,18 +74,18 @@ Vocabulary is in `GLOSSARY.md`; decisions in `docs/adr/`.
 
 ## Hardware
 
-PurpleShark's three-part CyberBrick animatronic series on MakerWorld:
+The three-part animatronic series credited below:
 
-| Part | MakerWorld model | Stage |
-|---|---|---|
-| Eyes Animatronic Mechanism | 1718839 | 1, built |
-| Pan & Tilt base | 1766064 | 2, printed |
-| Mouth | 1861301 | 3, printed |
+| Part | Stage |
+|---|---|
+| Eyes | 1, built |
+| Pan & tilt base | 2, printed |
+| Mouth | 3, printed |
 
-Electronics are Bambu Lab's CyberBrick kit: a Core (ESP32-C3, MicroPython) on an X11 shield per
-Core (eyes, neck), one pack and switch board each, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core and the calibration
-lessons are in `docs/build-notes.md`; the parts to buy, and the Morty face that goes over all three
-Stages, in `docs/face-design.md`. Our own parametric versions of PurpleShark's printed parts live in
+Electronics: a Core (ESP32-C3, MicroPython) on a Shield per Core (eyes, neck), one pack and switch
+board each, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core, the calibration
+lessons and the parts to buy are in `docs/build-notes.md`; the Morty face that goes over all three
+Stages is in `docs/face-design.md`. Our own parametric versions of the designer's printed parts live in
 `model/printed/`: `make stl` writes print-ready STLs to `model/build/stl` (`make step`: STEP files of each part and
 Stage, for FreeCAD).
 
@@ -98,7 +96,7 @@ scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join 
 make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
 make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons, else USB (USB=1 forces it)
-make restore-stock   # put Bambu's remote-control program back on the Core
+make restore-stock   # put the stock remote-control program back on the Core
 noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
@@ -155,5 +153,5 @@ Rendering rules are in `docs/model-notes.md`.
 [PolyForm Noncommercial 1.0.0](LICENSE.md), copyright Yellow Pine. You may use, change and share
 noggin for any noncommercial purpose; contact hello@yellowpine.com for commercial licensing.
 
-The MakerWorld models carry their own licences and are not redistributed here; `docs/references/`
+The credited designs carry their own licences and are not redistributed here; `docs/references/`
 (the designers' files and the GazeBase cache) is local only and gitignored.

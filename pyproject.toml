@@ -1,7 +1,7 @@
 [project]
 name = "noggin"
 version = "0.1.0"
-description = "Animatronic CyberBrick head that reacts to Claude Code"
+description = "Animatronic Mech that reacts to Claude Code"
 requires-python = ">=3.12"
 dependencies = [
     "cadquery>=2.8.0",
@@ -25,7 +25,7 @@ testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "test_vocabulary
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace bytes / Bambu's stock program
+extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace bytes / the stock program
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

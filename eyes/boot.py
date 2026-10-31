@@ -1,5 +1,5 @@
 # pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
-# noggin: replaces Bambu's stock boot.py. Reads one command per line on USB serial;
+# noggin: replaces the stock boot.py. Reads one command per line on USB serial;
 # with wifi.json present, also beacons and serves the same commands over UDP (eyes/wifi.py).
 # After a Wi-Fi flash (flash.trial lists the files it swapped in) the new program has 10 s to reach `noggin ready`,
 # or their .bak files go back and the Core reboots. This file is the fallback, so it only ever changes over USB.
