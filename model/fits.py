@@ -5,8 +5,10 @@ prints the eyes table. Our printed parts' STLs: model/build/ours (make ours)."""
 import functools
 import math
 import os
-import struct
 import sys
+
+import numpy as np
+import trimesh
 
 CLEARANCE = (0.1, 0.4)  # mm radial, agreed in #20
 M2 = 2.0  # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
@@ -30,11 +32,8 @@ def stl(name):
 
 @functools.cache
 def vertices(path):
-    d = open(path, "rb").read()
-    n = struct.unpack_from("<I", d, 80)[0]
-    if 84 + n * 50 == len(d):  # binary
-        return {struct.unpack_from("<3f", d, 84 + i * 50 + 12 + 12 * k) for i in range(n) for k in range(3)}
-    return {tuple(float(t) for t in l.split()[1:]) for l in d.decode().splitlines() if l.strip().startswith("vertex")}
+    """The STL's distinct vertices (binary or ASCII), mm, as an (n, 3) array."""
+    return np.unique(trimesh.load_mesh(path, process=False).vertices, axis=0)
 
 
 def fit_circle(path, centre, axis, half, expect_r, within=HOLE):
@@ -44,37 +43,17 @@ def fit_circle(path, centre, axis, half, expect_r, within=HOLE):
     countersink)."""
     i = "xyz".index(axis)
     u, v = [k for k in range(3) if k != i]
-    pts = [(p[u] - centre[u], p[v] - centre[v]) for p in vertices(path) if abs(p[i] - centre[i]) <= half]
-    pts = [p for p in pts if within[0] * expect_r <= math.hypot(*p) <= within[1] * expect_r]
+    d = vertices(path) - np.asarray(centre, float)
+    pts = d[np.abs(d[:, i]) <= half][:, [u, v]]
+    radial = np.hypot(*pts.T)
+    pts = pts[(within[0] * expect_r <= radial) & (radial <= within[1] * expect_r)]
     if len(pts) < 3:
         raise ValueError(f"{os.path.basename(path)}: no vertices around {centre} {axis}")
-    # x^2 + y^2 + a x + b y + c = 0, normal equations solved by elimination
-    m = [
-        [
-            sum(x * x for x, _ in pts),
-            sum(x * y for x, y in pts),
-            sum(x for x, _ in pts),
-            -sum(x * (x * x + y * y) for x, y in pts),
-        ],
-        [
-            sum(x * y for x, y in pts),
-            sum(y * y for _, y in pts),
-            sum(y for _, y in pts),
-            -sum(y * (x * x + y * y) for x, y in pts),
-        ],
-        [sum(x for x, _ in pts), sum(y for _, y in pts), len(pts), -sum(x * x + y * y for x, y in pts)],
-    ]
-    for r in range(3):
-        p = max(range(r, 3), key=lambda k: abs(m[k][r]))
-        m[r], m[p] = m[p], m[r]
-        for k in range(3):
-            if k != r:
-                f = m[k][r] / m[r][r]
-                m[k] = [a - f * b for a, b in zip(m[k], m[r])]
-    a, b, c = (m[k][3] / m[k][k] for k in range(3))
+    # x^2 + y^2 + a x + b y + c = 0 in least squares
+    a, b, c = map(float, np.linalg.lstsq(np.c_[pts, np.ones(len(pts))], -(pts**2).sum(axis=1), rcond=None)[0])
     x0, y0 = -a / 2, -b / 2
     r = math.sqrt(x0 * x0 + y0 * y0 - c)
-    rms = math.sqrt(sum((math.hypot(x - x0, y - y0) - r) ** 2 for x, y in pts) / len(pts))
+    rms = math.sqrt(np.mean((np.hypot(*(pts - (x0, y0)).T) - r) ** 2))
     c = list(centre)
     c[u], c[v] = centre[u] + x0, centre[v] + y0
     return {
