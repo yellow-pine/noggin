@@ -5,6 +5,7 @@ file id 27039812). 1 kHz gaze in degrees of visual angle; blinks are NaN gaps; `
 Outputs, all horizontal only (the Mech's eyes pan):
   THINK   video viewing (VD1), 60 s at 25 Hz, scaled to fill the eye travel, plus blink sample indices
   SCAN    horizontal saccade task (HSS), 4 s at 25 Hz, replayed by the attention gesture
+  CALM    the calmest 6 s of the viewing session (lowest gaze variance), replayed by bored
   SACCADE real saccade shapes from the random-saccade task (RAN): progress 0..1 per 10 ms, by amplitude
 Usage: .venv/bin/python eyes/build_trace.py"""
 import csv, io, subprocess, zipfile, zlib
@@ -74,6 +75,17 @@ def fill_gain(rows, frac=0.9):
     return 2 * MAX_DEG * frac / span
 
 
+def calmest(xs, hz=HZ, dur_s=6):
+    """Start index of the dur_s window with the lowest variance (lazy, drifting gaze)."""
+    n = dur_s * hz
+    best, best_var = 0, None
+    for i in range(0, len(xs) - n, hz):
+        w = xs[i:i + n]; m = sum(w) / n; var = sum((v - m) ** 2 for v in w) / n
+        if best_var is None or var < best_var:
+            best, best_var = i, var
+    return best
+
+
 def saccades(rows, amps=SACCADE_AMPS):
     """Real horizontal saccade shapes: for each target amplitude the closest-amplitude saccade (30-120 ms),
     as progress 0..1 sampled every 10 ms from onset to 150 ms (so the post-saccadic correction is included)."""
@@ -109,6 +121,7 @@ def main():
     vd1, hss, ran = rows("VD1"), rows("HSS"), rows("RAN")
     think, think_blinks = resample(vd1, gain=fill_gain(vd1))
     scan, _ = resample(hss, gain=fill_gain(hss), start_s=5, dur_s=4)
+    c0 = calmest(think); calm = [v - sum(think[c0:c0 + 6 * HZ]) / (6 * HZ) for v in think[c0:c0 + 6 * HZ]]   # centred
     sac = saccades(ran)
     enc = lambda xs: bytes(int(round(v * 2)) & 0xFF for v in xs)   # signed int8 half-degrees
     (HERE / "gaze_trace.py").write_text(
@@ -116,8 +129,10 @@ def main():
         f"HZ = {HZ}\n"
         f"THINK = {enc(think)!r}\nTHINK_BLINKS = {tuple(think_blinks)}\n"
         f"SCAN = {enc(scan)!r}\n"
+        f"CALM = {enc(calm)!r}\n"
         f"SACCADE = {sac!r}  # amplitude deg -> progress per 10 ms from onset\n")
-    print(f"think {len(think)/HZ:.0f} s {len(think_blinks)} blinks | scan {len(scan)/HZ:.0f} s | saccades {sorted(sac)}")
+    print(f"think {len(think)/HZ:.0f} s {len(think_blinks)} blinks | scan {len(scan)/HZ:.0f} s | calm {len(calm)/HZ:.0f} s "
+          f"range {min(calm):.1f}..{max(calm):.1f} | saccades {sorted(sac)}")
 
 
 if __name__ == "__main__":
