@@ -13,7 +13,7 @@ ENVELOPE_MM = 1.0
 
 @functools.cache
 def solid():
-    """Built when the first test runs, not at collection: CadQuery's booleans start OCCT threads, and the engine's gate
+    """Built when the first test runs, not at collection: CadQuery's booleans start OCCT threads, and the engine
     forks its sweep workers (a fork after threads start can deadlock)."""
     return eye_bracket.build().val()
 

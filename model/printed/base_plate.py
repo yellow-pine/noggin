@@ -6,6 +6,7 @@ envelope within 1 mm, the underside lettering dropped. Measured numbers: docs/re
 
 import cadquery as cq
 
+from model import fits
 from model.printed.pan_turntable import box
 
 PLATE_Z = (-2.0, 3.0)
@@ -84,3 +85,12 @@ def rounded(pts, r, z):
 
 def cyl(xy, r, z):
     return cq.Workplane("XY", origin=(*xy, z[0])).circle(r).extrude(z[1] - z[0])
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    z, half = fits.slab(*PLATE_Z)
+    names = ("near foot outer", "near foot inner", "far foot outer", "far foot inner")
+    feet = {k: ((*xy, z), "z", HOLE_R, half) for k, xy in zip(names, MOUNT_HOLES)}
+    pivot_z, pivot_half = fits.slab(PLATE_Z[0], BOSS["top"])
+    return {**feet, "pan pivot": ((0.0, 0.0, pivot_z), "z", PIVOT_R, pivot_half)}

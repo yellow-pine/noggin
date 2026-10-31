@@ -4,7 +4,7 @@ against every other part (contacts vs penetrations), record the driven joint ang
 centres of mass per pose, the placements, bounding boxes and masses, the cable corridors (model/engine/cables.py), then
 fold in torque, curves, fits and beams (model/sim.py), the mating check (model/engine/mating.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
 model/test_report.py reads, and model/build/<doc>-corridors.ply. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
-the designer's limits.
+the model's limits.
 Usage: python -m model.engine.run [doc ...]"""
 
 import glob
@@ -21,14 +21,16 @@ from model.engine import cables, linkage, masses, mating, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
 BUILD = os.path.join(stages.REPO, "model", "build")  # the swept cable corridors (<doc>-corridors.ply), not committed
-# Repo files a report depends on (stamp); designer meshes are not in the repo, their fingerprints go in the report.
+# Repo files a report depends on (stamp); the meshes (make ours) are not committed, their fingerprints go in the report.
 INPUTS = [
     "model/geometry.py",
     "model/sim.py",
     "model/fits.py",
     "model/beams.py",
     "model/electrical.py",
-    "model/engine/[!t]*.py",  # the engine, not its tests
+    "model/engine/*.py",  # the engine (stamp() skips the tests)
+    "model/printed/*.py",  # our parts and the features they declare (the mating check)
+    "model/envelopes.py",
     "eyes/calibration.json",
     "eyes/eyes.py",
     "eyes/gaze_trace.py",
@@ -68,6 +70,8 @@ def stamp(sources):
     h = hashlib.sha256()
     for pattern in INPUTS:
         for path in sorted(glob.glob(os.path.join(stages.REPO, pattern))):
+            if os.path.basename(path).startswith("test_"):
+                continue
             h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
     h.update(json.dumps(sources, sort_keys=True).encode())
     return h.hexdigest()
@@ -164,7 +168,7 @@ def _job(args):
 
 
 def sweep_jobs(stage, cal):
-    """(horn, deg, calibrated) for every pose of every horn: the designer's limits in STEP_DEG steps, then the
+    """(horn, deg, calibrated) for every pose of every horn: the model's limits (geometry.LIMITS) in STEP_DEG steps, then the
     calibrated servo ends (eyes/calibration.json) past them."""
     jobs = []
     for h, horn in stage.horns.items():

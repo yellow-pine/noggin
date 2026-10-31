@@ -16,7 +16,7 @@ DESIGNER = {"L": (-20.5, -20.5, -18.5, 20.5, 20.28, 5.0), "R": (38.5, -20.5, -18
 
 @functools.cache
 def solid(side):
-    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
+    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the sweep's forks)."""
     return eyeball.build(side).val()
 
 

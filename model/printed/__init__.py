@@ -1,4 +1,5 @@
-"""Our own printed parts (#50): independent parametric CadQuery designs, by our part name (GLOSSARY.md)."""
+"""Our own printed parts (#50): independent parametric CadQuery designs, by our part name (GLOSSARY.md), and the
+features each declares for the mating check (model/engine/mating.py)."""
 
 from model.printed import (
     bars,
@@ -50,4 +51,28 @@ PARTS = {
     "tilt arm": tilt_arm.build,
     "base plate": base_plate.build,
     "wire keeper": wire_keeper.build,
+}
+FEATURES = {
+    "eye bracket": eye_bracket.features(),
+    "lid bar": lid_bar.features(),
+    "lid crank": lid_bar.features(crank=True),
+    "eyeball bar": eyeball_bar.features(),
+    "L eyeball": eyeball.features("L"),
+    "R eyeball": eyeball.features("R"),
+    "upper lid": lid.features("upper"),
+    "lower lid": lid.features("lower"),
+    "L servo bracket": servo_bracket.features("L"),
+    "R servo bracket": servo_bracket.features("R"),
+    "jaw servo mount": jaw_servo_mount.features(),
+    "jaw bar": jaw_bar.features(),
+    "top jaw": top_jaw.features(),
+    "bottom jaw": bottom_jaw.features(),
+    "tilt bar": bars.features(bars.TILT_PITCH),
+    "pan bar": bars.features(bars.PAN_PITCH),
+    "pan servo tail mount": pan_servo_mount.features(pan_servo_mount.TAIL),
+    "pan servo lead mount": pan_servo_mount.features(pan_servo_mount.LEAD),
+    "pan turntable": pan_turntable.features(),
+    "upright": upright.features(),
+    "tilt arm": tilt_arm.features(),
+    "base plate": base_plate.features(),
 }

@@ -1,7 +1,6 @@
 """Seam: model/render/scene.py, a Stage posed at the eye program's joint degrees and exported for Blender."""
 
 import numpy as np
-import pytest
 import trimesh
 
 from model import geometry
@@ -34,10 +33,6 @@ def test_a_stage_without_eye_horns_ignores_the_eye_joints():
     assert all(np.allclose(mats[n], p.matrix) for n, p in stack.parts.items())
 
 
-HAVE_REFERENCES = stages.HAVE_REFERENCES
-
-
-@pytest.mark.skipif(not HAVE_REFERENCES, reason="designer STLs and STEP meshes are local only")
 def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(STAGE1, tmp_path)
     assert set(manifest) == set(STAGE1.parts)

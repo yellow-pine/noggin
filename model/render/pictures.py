@@ -50,7 +50,7 @@ def metres(mats):
 def prepare(name, frames):
     """(stage, manifest with absolute PLY paths, hull points per part) for one picture's parts, exported once. Always
     our geometry (model/build/ours, `make ours`), never the designer's meshes."""
-    stage = stages.ours(stages.assemble(name, frames, 2))
+    stage = stages.assemble(name, frames, 2)
     folder = os.path.join(OUT, "meshes", name)
     os.makedirs(folder, exist_ok=True)
     manifest = scene.export(stage, folder)

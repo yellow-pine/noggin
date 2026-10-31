@@ -6,6 +6,8 @@ exact, envelope within 1 mm, cosmetic fillets dropped. Measured numbers: docs/re
 
 import cadquery as cq
 
+from model import fits
+
 PLATE_Z = (3.5, 8.5)
 # the plate outline (z), the 45 degree cut from (-25, -10) to the y 17 back edge; (corner, fillet r)
 OUTLINE = [(-25, -25), (25, -25), (25, 26), (20, 26), (20, 17), (2, 17), (-25, -10)]
@@ -38,3 +40,17 @@ def build():
 
 def box(x, y, z):
     return cq.Workplane("XY").box(x[1] - x[0], y[1] - y[0], z[1] - z[0], centered=False).translate((x[0], y[0], z[0]))
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    x, half = fits.slab(*TOWER["x"])
+    pivot_z, pivot_half = fits.slab(RECESS["top"], BOSS["top"])
+    (far, near), tab_z, r = TAB["y"], TAB["z"], TAB["r"]
+    return {
+        "tilt near": ((x, near, tab_z), "x", r, half),
+        "tilt far": ((x, far, tab_z), "x", r, half),
+        # its mouth on the plate top: underneath it opens into the bearing recess, whose rim the fit must not take in
+        "upright screw": ((*KEY["xy"], PLATE_Z[1]), "z", KEY["r"], 0.5),
+        "pan pivot": ((0.0, 0.0, pivot_z), "z", PIVOT_R, pivot_half),
+    }

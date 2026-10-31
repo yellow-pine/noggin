@@ -7,8 +7,9 @@ docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
+from model import fits
 from model import geometry as g
-from model.printed.eye_bracket import box
+from model.printed.eye_bracket import box, mirrored
 
 PLATE_Z = (18.0, 21.0)
 PLATE = [(-3.42, -35.6), (19.24, -35.6), (19.24, -16.5), (24.24, -11.5), (25.16, -11.5), (25.16, -6.5), (24.24, -6.5)]
@@ -67,3 +68,22 @@ def rounded(part, near):
 def prism_x(yz, x):
     """A YZ polygon extruded along X from x[0] to x[1]."""
     return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(yz).close().extrude(x[1] - x[0])
+
+
+def features(side):
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    z, half = fits.slab(*PLATE_Z)
+    lid_x, lid_half = fits.slab(*TONGUE_X)
+    eye_y, eye_half = fits.slab(*WALL_Y)
+    (_, far_y, lid_z), (_, near_y, _) = g.SERVOS["l_lid"]["tab_holes"]
+    (near_x, _, eye_z), (far_x, _, _) = g.SERVOS["l_eye"]["tab_holes"]
+    left = {
+        "lid near": ((lid_x, near_y, lid_z), "x", TAB_R, lid_half),
+        "lid far": ((lid_x, far_y, lid_z), "x", TAB_R, lid_half),
+        "eye near": ((near_x, eye_y, eye_z), "y", TAB_R, eye_half),
+        "eye far": ((far_x, eye_y, eye_z), "y", TAB_R, eye_half),
+        "foot outer": ((*FEET[0], z), "z", FOOT_R, half),
+        "foot inner": ((*FEET[1], z), "z", FOOT_R, half),
+        "foot stem": ((g.CENTRE_X, sum(TAB[side]) / 2, z), "z", FOOT_R, half),
+    }
+    return left if side == "L" else mirrored(left)

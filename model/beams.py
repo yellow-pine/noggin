@@ -1,5 +1,5 @@
 """Hand beam estimates (no FEA on the personal license): each link as a cantilever under the servo stall force at
-the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from the designer's STLs.
+the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from our parts' STLs.
 PLA E 3.5 GPa, yield 50 MPa; threshold SF >= 2 (#20). `python model/beams.py` prints the eyes table."""
 
 import importlib.util
@@ -118,8 +118,8 @@ EYES_RECORDED = {  # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are fa
 
 # Stack sub-assembly (pan-tilt): the two bars as axial links under the stall force across their pivot spacing.
 PT_BEAMS = [
-    ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar", fits.PT_MODELS), lambda v: True, "z", "y")),
-    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar", fits.PT_MODELS), lambda v: True, "z", "y")),
+    ("tilt bar", "axial", stall_force_n, 20.0, (fits.stl("tilt bar"), lambda v: True, "z", "y")),
+    ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar"), lambda v: True, "z", "y")),
 ]
 PT_RECORDED = {
     "tilt bar": (81.23, True),
@@ -135,10 +135,10 @@ MOUTH_BEAMS = [
         "axial",
         stall_force_n,
         44.1,
-        (fits.stl("jaw bar", fits.MOUTH_MODELS), lambda v: v[0] > 8, "y", "z"),
+        (fits.stl("jaw bar"), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
-MOUTH_RECORDED = {"jaw bar": (92.29, True)}  # read 2026-10-31 (5 x 3.4 tab)
+MOUTH_RECORDED = {"jaw bar": (81.23, True)}  # read 2026-10-31 on ours
 
 
 if __name__ == "__main__":

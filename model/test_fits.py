@@ -1,5 +1,5 @@
-"""Seam: model/fits.py's fit table (hole radius fitted to the designer's STL vs the fastener). The synthetic test
-is the spec; the live test records the designer's eyes sub-assembly parts and is skipped without docs/references."""
+"""Seam: model/fits.py's fit table (hole radius fitted to our part's STL vs the fastener). The synthetic test
+is the spec; the live tests record our sub-assemblies' parts."""
 
 import importlib.util
 import math
@@ -67,19 +67,16 @@ def test_fit_table_flags_clearance_outside_the_window(tmp_path):
     assert table[3]["tag"] == "self_tapping"
 
 
-@pytest.mark.skipif(not fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_eyes_stage_fits_are_recorded():
     rows = {r["joint"]: (r["hole_r"], r["pin_r"], r["ok"]) for r in fits.fit_table(fits.EYES_JOINTS)}
     assert rows == fits.EYES_RECORDED
 
 
-@pytest.mark.skipif(not fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_pan_tilt_stage_fits_are_recorded():
     rows = {r["joint"]: (r["hole_r"], r["pin_r"], r["ok"]) for r in fits.fit_table(fits.PT_JOINTS)}
     assert rows == fits.PT_RECORDED
 
 
-@pytest.mark.skipif(not fits.HAVE_REFERENCES, reason="docs/references (local only) missing")
 def test_mouth_stage_fits_are_recorded():
     rows = {r["joint"]: (r["hole_r"], r["pin_r"], r["ok"]) for r in fits.fit_table(fits.MOUTH_JOINTS)}
     assert rows == fits.MOUTH_RECORDED
