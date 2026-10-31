@@ -6,10 +6,10 @@ passes when it touches the mount its tab screws go into and enters no part (the 
 spline is simplified). Results go in the report as "mating" (model/test_report.py fails a mismatch). A joint no source
 settles is listed in INFERRED with its reason: it warns (run.warnings) instead of failing.
 
-FEATURES is the interface a part supplies, by mesh stem: {feature: (centre, axis, r, half[, band])} in the part's own
+FEATURES is the interface a part supplies, by part name: {feature: (centre, axis, r, half[, band])} in the part's own
 frame (the designer's STL frame, the STEP's local frame): centre on the axis, `half` the slab along it that holds the
 feature's wall, `band` the radial window of the fit (x r). Our printed parts (model/printed) export in the designer's
-frame under the same stem, so the same table reads them; once they declare their features exactly they take these
+frame, so the same table reads them; once they declare their features exactly they take these
 entries' place."""
 
 import numpy as np
