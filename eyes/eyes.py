@@ -174,18 +174,32 @@ class Eyes:
         self.lids(self.cal["lid_rest"], 300, ease=True); sleep_ms(200); self.blink()
 
     def bored(self, i):
-        """Drowsy: lids droop, slow heavy blinks, one long closure, settle."""
-        self.lids(0.35 * self.cal["lid_rest"] / 0.28, 500); self.eyes(EYE_CENTER - 6, 800)
-        for _ in range(2):
-            self.lids(self.cal["lid_closed"], 200); sleep_ms(500)
-            self.lids(0.35 * self.cal["lid_rest"] / 0.28, 900, ease=True); sleep_ms(700)
-        self.lids(self.cal["lid_closed"], 250); sleep_ms(2000)                 # the long one
-        self.lids(self.cal["lid_rest"], 1200, ease=True); self.eyes(EYE_CENTER, 600)
+        """Drowsy: lids droop, lazy real gaze drift, slow heavy blinks, one long closure, settle."""
+        droop = 0.35 * self.cal["lid_rest"] / 0.28
+        self.lids(droop, 500)
+        if gaze_trace is not None:                      # the calmest 6 s of a real viewing session, with heavy blinks on top
+            calm, n = gaze_trace.CALM, len(gaze_trace.CALM)
+            for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 2000))):
+                start = 0 if k == 0 else [n // 4, n // 2][k - 1]
+                for j in range(start, blink_at):
+                    self.eyes(EYE_CENTER + _s8(calm[j])); sleep_ms(1000 // gaze_trace.HZ)
+                self.lids(self.cal["lid_closed"], 200 if hold < 2000 else 250); sleep_ms(hold)
+                self.lids(droop if hold < 2000 else self.cal["lid_rest"], 900 if hold < 2000 else 1200, ease=True)
+        else:
+            self.eyes(EYE_CENTER - 6, 800)
+            for _ in range(2):
+                self.lids(self.cal["lid_closed"], 200); sleep_ms(500)
+                self.lids(droop, 900, ease=True); sleep_ms(700)
+            self.lids(self.cal["lid_closed"], 250); sleep_ms(2000)
+            self.lids(self.cal["lid_rest"], 1200, ease=True)
+        self.saccade(EYE_CENTER)
 
     def wince(self, i):
-        """Both lids snap shut, hold, reopen fast to ~80%, settle to rest."""
-        self.eyes(EYE_CENTER)
-        self.lids(self.cal["lid_closed"]); sleep_ms(400)
+        """Both lids snap shut, eyes twitch (small real saccades), hold, reopen fast to ~80%, settle."""
+        self.lids(self.cal["lid_closed"])
+        for a in (4, -4, 3):
+            self.saccade(EYE_CENTER + a)
+        self.saccade(EYE_CENTER); sleep_ms(150)
         self.lids(self.cal["lid_rest"] + 0.1, 200, ease=True); sleep_ms(150)
         self.lids(self.cal["lid_rest"], 300, ease=True)
 

@@ -21,3 +21,9 @@ def test_saccade_profile_runs_from_zero_to_about_one():
     spec += [(161 + k, 19.0, 1) for k in range(0, 59)] + [(220 + k, 20.0, 1) for k in range(0, 300)]
     prof = saccades(rows(spec), amps=(20,))[20]
     assert len(prof) == 16 and prof[0] == 0.0 and 0.9 <= prof[6] <= 1.0 and abs(prof[-1] - 1.0) < 0.06
+
+
+def test_calmest_window_finds_the_flat_part():
+    from build_trace import calmest
+    xs = [((i % 7) - 3) * 4.0 for i in range(0, 250)] + [1.0] * 200 + [((i % 5) - 2) * 6.0 for i in range(0, 250)]
+    assert 250 <= calmest(xs, hz=25, dur_s=6) <= 275
