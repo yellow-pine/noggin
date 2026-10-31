@@ -4,7 +4,7 @@ min to its max limit in 10-degree steps, measures the minimum distance between e
 chain and every nearby occurrence (0 mm = overlap, which then gets a pairwise interference volume), compares
 the placements in PLACEMENTS with the geometry tables, records top-level bounding boxes at neutral and writes
 model/build/<DOC>-<horn>.json. Each call stops at BUDGET_S and marks the horn incomplete. Never saves.
-Also (#20): the mass and centre of mass of every part (PLA for printed parts, documented masses for hardware),
+Also (#20): the mass and centre of mass of every part (the library's spool material for printed parts, documented masses for hardware),
 the chain's centres of mass and driven joint angles at every pose (model/sim.py turns them into gravity torque and
 transmission curves), and the two calibrated servo ends from eyes/calibration.json measured past the designer's limits.
 Angles are joint angles relative to the 90-degree neutral the STLs are modelled in. API units: cm."""
@@ -23,7 +23,6 @@ OUT = os.path.join(REPO, "model", "build")
 STEP_DEG, CLEARANCE_MM = 10, 0.1   # below 0.1 mm the parts overlap: a collision (designed sliding gaps are ~0.5 mm)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0
 NEAR_MM = 10.0   # pairs whose bounding boxes are further apart than this are not measured (keeps Fusion responsive)
-PLA_G_CM3 = 1.24
 HARDWARE_G = {"servo": 16.0}   # docs/research/2026-10-31-electrical.md; other hardware keeps its STEP material's mass
 ACCURACY = adsk.fusion.CalculationAccuracy.LowCalculationAccuracy   # +-1 %
 
@@ -37,8 +36,9 @@ def bodies(occ):
 
 
 def mass_com(occ):
-    """(g, [x, y, z] mm, source) of an occurrence: printed parts (mesh converts) at PLA density, hardware by its
-    documented mass, else the STEP material's. Centre of mass is volume-weighted over the bodies (root context)."""
+    """(g, [x, y, z] mm, source) of an occurrence: hardware by its documented mass, else the body material's (the
+    parts library gives printed parts their spool's PLA, geometry.PRINTED; STEP parts keep the STEP material).
+    Centre of mass is volume-weighted over the bodies (root context)."""
     bs = bodies(occ)
     vol = sum(b.volume for b in bs)
     if not vol:
@@ -47,9 +47,7 @@ def mass_com(occ):
     kind = next((k for k in HARDWARE_G if occ.component.name.endswith(" " + k)), None)
     if kind:
         return HARDWARE_G[kind], com, "documented"
-    if occ.component.features.meshConvertFeatures.count or "horn" in occ.name:
-        return round(vol * PLA_G_CM3, 2), com, "pla"
-    return round(sum(b.getPhysicalProperties(ACCURACY).mass for b in bs) * 1000, 2), com, "step material"
+    return round(sum(b.getPhysicalProperties(ACCURACY).mass for b in bs) * 1000, 2), com, "material"
 
 
 def bbox_gap(a, b):
@@ -137,15 +135,15 @@ PLACEMENTS = {
     "noggin-eyes": {
         "parts": [(f"{s} {part} servo", SERVO_STEP["tab_holes"], SERVOS[f"{s.lower()}_{part}"]["tab_holes"], TOL_INFERRED_MM)
                   for s in "LR" for part in ("lid", "eye")]
-                 + [("receiver shield", [(0, 0, 0)], [_mean([pt_to_eyes_standalone(p) for p in STANDOFFS["pt_base"]["receiver_1"]])], TOL_MM),
-                    ("switch board", [SWITCH_STEP["hole"]], [pt_to_eyes_standalone(STANDOFFS["pt_base"]["switch_post"][0])], TOL_INFERRED_MM)],
+                 + [("PandT base", [(0, 0, 0)], [pt_to_eyes_standalone((0, 0, 0))], TOL_MM)],   # context, by reference
         "pivots": [(f"{s} inside lid pivot", f"{s.lower()}_lid") for s in "LR"]
                   + [(f"{s} eyeball pivot", f"{s.lower()}_eye") for s in "LR"]
                   + [(f"{s} {part} horn (inferred)", f"{s.lower()}_{part}_horn") for s in "LR" for part in ("lid", "eye")],
     },
     "noggin-pan-tilt": {
         "parts": [(f"{key} servo", SERVO_STEP["tab_holes"], SERVOS[key]["tab_holes"], TOL_INFERRED_MM) for key in ("tilt", "pan")]
-                 + [("receiver shield", [(0, 0, 0)], [_mean(STANDOFFS["pt_base"]["receiver_2"])], TOL_MM)],
+                 + [(f"receiver shield {n}", [(0, 0, 0)], [_mean(STANDOFFS["pt_base"][f"receiver_{n}"])], TOL_MM) for n in (1, 2)]
+                 + [(f"switch board {n} (inferred)", [SWITCH_STEP["hole"]], [STANDOFFS["pt_base"]["switch"][n - 1]], TOL_INFERRED_MM) for n in (1, 2)],
         "pivots": [("pan pivot", "pan"), ("tilt pivot", "tilt"), ("tilt horn (inferred)", "tilt_horn"), ("pan horn (inferred)", "pan_horn")],
     },
     "noggin-mouth": {

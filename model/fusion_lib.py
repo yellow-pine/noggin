@@ -1,7 +1,7 @@
 """Fusion helpers shared by the Stage scripts, inlined via `# include: model/fusion_lib.py` after
 `# include: model/geometry.py`. Points and lengths come in as mm; Fusion's API takes cm and radians.
 Verified calls: docs/research/2026-10-31-model.md."""
-import adsk.core, adsk.fusion, hashlib, json, math, os
+import adsk.core, adsk.fusion, hashlib, json, math, os, time, traceback
 
 PROJECT_NAME = "Noggin"   # the hub's former Default Project, renamed; Stage documents sit at its root
 _PLANE_FOR_AXIS = {"X": "yZConstructionPlane", "Y": "xZConstructionPlane", "Z": "xYConstructionPlane"}
@@ -26,11 +26,9 @@ def open_or_create(app, name, keep_parts=False):
     """Open the design `name` in project Noggin (or a new one), parametric. Emptied of occurrences unless
     keep_parts: then the timeline is cut where the last build's parts_end() put it, so only the cheap features
     every build recreates (Ports, pivots, joints, rigid groups, canvases) go and the occurrences stay for
-    import_stl/import_step to reuse.
+    insert_part to reuse.
     Returns (document, design, folder); pass the folder to save()."""
-    projects = app.data.activeHub.dataProjects
-    project = next((p for p in projects if p.name == PROJECT_NAME), None) or projects.add(PROJECT_NAME)   # new hub/account
-    folder = project.rootFolder
+    folder = project_root(app)
     existing = next((f for f in folder.dataFiles if f.name == name), None)
     doc = app.documents.open(existing, True) if existing else app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
     design = adsk.fusion.Design.cast(app.activeProduct)
@@ -51,15 +49,46 @@ def open_or_create(app, name, keep_parts=False):
     return doc, design, folder
 
 
+def project_root(app):
+    projects = app.data.activeHub.dataProjects
+    project = next((p for p in projects if p.name == PROJECT_NAME), None) or projects.add(PROJECT_NAME)   # new hub/account
+    return project.rootFolder
+
+
+def parts_folder(app):
+    """The `parts` folder of project Noggin (created when missing): one design per library part (model/parts.py)."""
+    root = project_root(app)
+    return next((f for f in root.dataFolders if f.name == "parts"), None) or root.dataFolders.add("parts")
+
+
+def stored_fingerprint(app, data_file):
+    """The FINGERPRINT_ATTR a library part's root carries, read from the saved design without showing it."""
+    for attempt in range(3):   # right after a save the cloud copy can refuse the open ("Missing key for PIMOpenWorkflowTracker")
+        try:
+            doc = app.documents.open(data_file, False)
+            break
+        except RuntimeError:
+            if attempt == 2:
+                raise
+            time.sleep(2)
+    try:
+        root = adsk.fusion.Design.cast(doc.products.itemByProductType("DesignProductType")).rootComponent
+        a = root.attributes.itemByName(*FINGERPRINT_ATTR)
+        return a.value if a else None
+    finally:
+        doc.close(False)
+
+
 def parts_end(design):
     """Builds call this after their last import (and stale-part deletion): the next keep_parts build cuts here."""
     design.rootComponent.attributes.add(*PARTS_END_ATTR, str(design.timeline.count))
 
 
-def fingerprint(paths, cells):
-    """What a placed part depends on: sha256 of its source files and the placement matrix (16 cells, rounded so
-    float noise is not a change). Stored on the component (FINGERPRINT_ATTR); a match on rebuild skips the import."""
-    h = hashlib.sha256()
+def fingerprint(paths, cells, key=""):
+    """What a placed part depends on: sha256 of its source files (or `key`: the library part and its version) and
+    the placement matrix (16 cells, rounded so float noise is not a change). Stored on the component
+    (FINGERPRINT_ATTR); a match on rebuild keeps the occurrence."""
+    h = hashlib.sha256(key.encode())
     for p in paths:
         h.update(open(p, "rb").read())
     h.update(json.dumps([float(round(c, 4)) for c in cells]).encode())
@@ -68,30 +97,33 @@ def fingerprint(paths, cells):
 
 def kept_parts(root):
     """Occurrences a previous build placed, by part name (open_or_create keep_parts leaves them in place).
-    An untagged occurrence (hand-added, or from before T9) goes by its component name and is never reused."""
+    An untagged occurrence (hand-added, or from before T13) goes by its component name and is never reused."""
     parts = {}
     for o in root.occurrences:
-        a = o.component.attributes.itemByName(*PART_ATTR)
+        a = o.attributes.itemByName(*PART_ATTR)
         parts[a.value if a else o.component.name] = o
     return parts
 
 
 def tag(occ, name, fp):
-    occ.component.name = name
-    occ.component.attributes.add(*PART_ATTR, name)
-    occ.component.attributes.add(*FINGERPRINT_ATTR, fp)
+    """Name and fingerprint on the occurrence (a referenced component is shared and cannot be renamed)."""
+    if occ.component.name != name:
+        occ.component.name = name
+    occ.attributes.add(*PART_ATTR, name)
+    occ.attributes.add(*FINGERPRINT_ATTR, fp)
 
 
-def reusable(reuse, name, paths, matrix):
+def reusable(reuse, name, paths, matrix, key=""):
     """The kept occurrence `name` when its fingerprint matches, else None (a stale one is deleted and the name
     goes on FRESH). Pops from `reuse`, so it ends up holding only the parts the build no longer places."""
-    fp = fingerprint(paths, (matrix or adsk.core.Matrix3D.create()).asArray())
+    fp = fingerprint(paths, (matrix or adsk.core.Matrix3D.create()).asArray(), key)
     occ = reuse.pop(name, None) if reuse is not None else None
     if occ is not None:
-        stored = occ.component.attributes.itemByName(*FINGERPRINT_ATTR)
+        stored = occ.attributes.itemByName(*FINGERPRINT_ATTR)
         if stored and stored.value == fp:
             return occ, fp
-        occ.component.name = name + " (stale)"   # else the re-import is named "<name> (1)" until the component is gone
+        if not occ.isReferencedComponent:
+            occ.component.name = name + " (stale)"   # else the re-insert is named "<name> (1)" until the component is gone
         occ.deleteMe()
     FRESH.append(name)
     return None, fp
@@ -169,28 +201,39 @@ def matmul(a, b):
     return m
 
 
-def import_stl(component, path, name, matrix=None, convert=True, proxy=None, reuse=None):
-    """Mesh body in its own component (faceted solid when convert). `proxy`: a decimated STL of the same part,
-    added as a hidden second body named "proxy" that the sweep measures instead. `reuse`: kept occurrences by
-    component name (open_or_create keep_parts); a fingerprint match returns the kept one. Returns the occurrence."""
-    kept, fp = reusable(reuse, name, [p for p in (path, proxy) if p], matrix)
+_PARTS = {}   # library DataFiles by name; refilled when a name is missing (Fusion keeps globals between calls)
+
+
+def part_file(app, name):
+    """The library design `name` (model/parts.py) or a Stage design at the project root, once the cloud has
+    finished processing its last save."""
+    if name not in _PARTS:
+        _PARTS.clear()
+        _PARTS.update({f.name: f for f in parts_folder(app).dataFiles})
+        _PARTS.update({f.name: f for f in project_root(app).dataFiles})
+    if name not in _PARTS:
+        raise KeyError(f"{name}: not in the parts library (make model-parts)")
+    df = _PARTS[name]
+    while not df.isComplete:
+        time.sleep(1)
+        adsk.doEvents()
+    return df
+
+
+def insert_part(root, name, label, matrix=None, reuse=None, referenced=False):
+    """Library part `name` inserted at `matrix` as component `label`: the stored solid loads without a mesh convert.
+    A copy (default) can be renamed and carries the joint-origin sketches of its Pivots; a reference loads about
+    twice as fast (measured 2026-10-31) but keeps the library name and would put those sketches into the shared
+    library component, so `referenced` is for grounded context without joints. `reuse`: kept occurrences by part
+    name; a fingerprint (library version + matrix) match returns the kept one. Returns the occurrence."""
+    app = adsk.core.Application.get()
+    df = part_file(app, name)
+    kept, fp = reusable(reuse, label, [], matrix, f"{name}@v{df.versionNumber}")
     if kept:
         return kept
     adsk.doEvents()   # keep the UI responsive during long builds
-    occ = component.occurrences.addNewComponent(matrix or adsk.core.Matrix3D.create())
-    tag(occ, name, fp)
-    for p, body_name in ((path, None), (proxy, "proxy")):
-        if p is None:
-            continue
-        mesh = occ.component.meshBodies.add(p, adsk.fusion.MeshUnits.MillimeterMeshUnit).item(0)
-        if convert:
-            features = occ.component.features.meshConvertFeatures
-            if features.add(features.createInput([mesh])) is None:
-                raise RuntimeError(f"mesh convert failed for {name}")
-            if body_name:
-                body = occ.component.bRepBodies.item(occ.component.bRepBodies.count - 1)
-                body.name = body_name
-                body.isLightBulbOn = False
+    occ = root.occurrences.addByInsert(df, matrix or adsk.core.Matrix3D.create(), referenced)
+    tag(occ, label, fp)
     return occ
 
 
@@ -222,30 +265,6 @@ def world_frame(origin):
     if origin.assemblyContext:
         p.transformBy(origin.assemblyContext.transform2); z.transformBy(origin.assemblyContext.transform2)
     return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)   # axis: sketch space, see check.placements
-
-
-def import_step(component, path, name, matrix=None, reuse=None):
-    """STEP in its own component at `matrix`; see import_stl for `reuse` (a reused part already carries its
-    post-import edits, so keep those idempotent). Returns the occurrence."""
-    kept, fp = reusable(reuse, name, [path], matrix)
-    if kept:
-        return kept
-    adsk.doEvents()   # keep the UI responsive during long builds
-    app = adsk.core.Application.get()
-    options = app.importManager.createSTEPImportOptions(path)
-    options.isViewFit = False
-    occ = app.importManager.importToTarget2(options, component).item(0)
-    tag(occ, name, fp)
-    return reoccur(occ, matrix) if matrix else occ
-
-
-def reoccur(occ, matrix):
-    """The same component as a new occurrence at `matrix`, replacing `occ` (setting transform2 on an imported
-    occurrence is silently dropped for the first STEP in a design; a fresh occurrence keeps its transform)."""
-    parent = occ.assemblyContext.component if occ.assemblyContext else occ.sourceComponent
-    placed = parent.occurrences.addExistingComponent(occ.component, matrix)
-    occ.deleteMe()
-    return placed
 
 
 def local(occ, point_mm, axis):
@@ -333,6 +352,58 @@ def cylindrical(root, origin_a, origin_b, name):
     return _joint(root, origin_a, origin_b, name, "setAsCylindricalJointMotion")
 
 
+# Chunked builds: one part insert (or joint group) per custom event. Custom events are only dispatched while the
+# script pumps adsk.doEvents() (measured 2026-10-31: nothing fires once the MCP call has returned), so chunked()
+# fires the first chunk, each chunk fires the next, and the call returns after the last one; between chunks Fusion
+# repaints and takes input. Progress: Text Commands palette (app.log) and the returned lines.
+EVENT_ID = "noggin-build"
+STALL_S = 600
+_JOB = {}
+
+
+class _Chunk(adsk.core.CustomEventHandler):
+    def notify(self, args):
+        app = adsk.core.Application.get()
+        ui = app.userInterface
+        if ui.activeCommand != "SelectCommand":   # a chunk adds undo steps: end whatever command the user is in
+            ui.commandDefinitions.itemById("SelectCommand").execute()
+        label, fn = _JOB["steps"][_JOB["i"]]
+        t = time.time()
+        try:
+            fn()
+        except Exception:
+            _JOB["error"] = f"chunk {label}: " + traceback.format_exc()
+            return
+        _JOB["i"] += 1
+        _JOB["at"] = time.time()
+        line = f"[{_JOB['i']}/{len(_JOB['steps'])}] {label}: {time.time() - t:.1f} s"
+        _JOB["lines"].append(line)
+        app.log("noggin " + line)
+        if _JOB["i"] < len(_JOB["steps"]):
+            app.fireCustomEvent(EVENT_ID, "")
+
+
+def chunked(steps):
+    """Run the (label, fn) steps one per custom event; returns the progress lines, raises on the first failing chunk."""
+    app = adsk.core.Application.get()
+    app.unregisterCustomEvent(EVENT_ID)
+    event = app.registerCustomEvent(EVENT_ID)
+    handler = _Chunk()
+    event.add(handler)
+    _JOB.clear()
+    _JOB.update(steps=steps, i=0, lines=[], error=None, at=time.time(), event=event, handler=handler)   # kept alive here
+    app.fireCustomEvent(EVENT_ID, "")
+    while _JOB["i"] < len(steps) and not _JOB["error"]:
+        adsk.doEvents()
+        time.sleep(0.02)
+        if time.time() - _JOB["at"] > STALL_S:
+            _JOB["error"] = f"no chunk finished in {STALL_S} s (after {_JOB['i']}/{len(steps)})"
+    app.unregisterCustomEvent(EVENT_ID)
+    if _JOB["error"]:
+        raise RuntimeError(_JOB["error"])
+    return _JOB["lines"]
+
+
 # Shared by the Stage builds (eyes.py, pan_tilt.py): linkage placement, pivots and loop closure, the battery lead.
 def add(a, b):
     return tuple(p + q for p, q in zip(a, b))
@@ -364,13 +435,13 @@ def close_loop(root, occ_a, occ_b, point_mm, axis, name):
     return cylindrical(root, a, b, name + " (cylindrical: loop)")
 
 
-def link(root, name, stl_key, hole_a, hole_b, normal, reuse, models, proxies):
-    """Place the local-frame link STL `models/<stl_key>.stl` (STL_LOCAL) so its two holes land on hole_a/hole_b
-    (world mm), hole axis along normal."""
+def link(root, name, stl_key, hole_a, hole_b, normal, reuse):
+    """Place the local-frame link part `stl_key` (STL_LOCAL) so its two holes land on hole_a/hole_b (world mm),
+    hole axis along normal."""
     spec = STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     m = align(hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"])
-    return import_stl(root, os.path.join(models, stl_key + ".stl"), name, m, proxy=os.path.join(proxies, stl_key + ".stl"), reuse=reuse)
+    return insert_part(root, stl_key, name, m, reuse=reuse)
 
 
 def strip_lead(battery):
@@ -395,20 +466,47 @@ def port(occ, name, point_mm):
     return sketch_point(occ, point_mm, name=f"Port: {name}")[1]
 
 
+def descendant(occ, prefix):
+    """The first nested occurrence (assembly context) whose name starts with `prefix`, depth first."""
+    for child in occ.childOccurrences:
+        if child.name.startswith(prefix):
+            return child
+        found = descendant(child, prefix)
+        if found:
+            return found
+    return None
+
+
 def body_box(occ):
-    """World bounding box (mm) of the occurrence's solid bodies only (occ.boundingBox also counts sketches and planes)."""
+    """World bounding box (mm) of the occurrence's solid bodies only, children included (occ.boundingBox also counts
+    sketches and planes)."""
     lo, hi = [1e9] * 3, [-1e9] * 3
-    for b in occ.bRepBodies:
+    for b in list(occ.bRepBodies) + [b for c in occ.childOccurrences for b in c.bRepBodies]:
         for i, c in enumerate("xyz"):
             lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
             hi[i] = max(hi[i], getattr(b.boundingBox.maxPoint, c) * 10)
     return lo, hi
 
 
+def screenshots(app, root, out, stage, views, width=1600, height=1200):
+    """Every view of `views` ({name: (eye_dir, up)}) saved as out/<stage>-<name>.png with the reference canvases
+    hidden and, when the design has canvases, as <stage>-<name>-overlay.png with them shown."""
+    canvases = list(root.canvases)
+    for name, (eye_dir, up) in views.items():
+        for c in canvases:
+            c.isLightBulbOn = False
+        screenshot(app, os.path.join(out, f"{stage}-{name}.png"), eye_dir, up, width, height)
+        if canvases:
+            for c in canvases:
+                c.isLightBulbOn = True
+            screenshot(app, os.path.join(out, f"{stage}-{name}-overlay.png"), eye_dir, up, width, height)
+
+
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):
-    """Orthographic view of the whole design looking back along eye_dir, saved to path."""
+    """Orthographic shaded view (no mesh edges: the spool appearances carry the shape) of the whole design looking
+    back along eye_dir, saved to path."""
     viewport = app.activeViewport
-    viewport.visualStyle = adsk.core.VisualStyles.ShadedWithVisibleEdgesOnlyVisualStyle
+    viewport.visualStyle = adsk.core.VisualStyles.ShadedVisualStyle
     camera = viewport.camera
     camera.cameraType = adsk.core.CameraTypes.OrthographicCameraType
     target = camera.target
