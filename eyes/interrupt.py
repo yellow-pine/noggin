@@ -11,7 +11,7 @@ import serial
 ports = sorted(glob.glob("/dev/cu.usbmodem*"))
 if not ports:
     sys.exit("no Core on USB")
-for attempt in range(15):  # the noggin service may still be letting go of the Link
+for _attempt in range(15):  # the noggin service may still be letting go of the Link
     try:
         s = serial.Serial(ports[0], 115200, timeout=0.5, exclusive=True)
         break

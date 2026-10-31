@@ -147,5 +147,5 @@ def test_wink_moves_one_lid_only(eyes, pwm_log):
     pwm_log.clear()
     eyes.handle_line("wink 2")  # mech's right lid
     r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
-    l = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
-    assert max(r) - min(r) > 15 and (not l or max(l) - min(l) < 2)
+    left = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
+    assert max(r) - min(r) > 15 and (not left or max(left) - min(left) < 2)

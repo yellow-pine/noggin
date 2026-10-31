@@ -19,7 +19,12 @@ EVENTS = {
 }
 cfg = json.load(open(path)) if os.path.exists(path) else {}
 hooks = cfg.setdefault("hooks", {})
-ours = lambda h: h.get("command", "").startswith(repo)  # current path, or a stale path from before a rename
+
+
+def ours(h):  # current path, or a stale path from before a rename
+    return h.get("command", "").startswith(repo)
+
+
 for event, matcher in EVENTS.items():
     groups = [g for g in hooks.get(event, []) if not any(ours(h) for h in g.get("hooks", []))]
     if "--remove" not in args:

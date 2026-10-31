@@ -23,3 +23,6 @@ extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace 
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"eyes/eyes.py" = ["B905"]  # MicroPython zip() has no strict=

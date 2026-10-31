@@ -5,6 +5,8 @@ import pathlib
 import sys
 import types
 
+import pytest
+
 
 class _Pin:
     def __init__(self, n):
@@ -28,8 +30,6 @@ machine = types.ModuleType("machine")
 machine.Pin, machine.PWM = _Pin, _PWM
 sys.modules["machine"] = machine
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent / "eyes"))
-
-import pytest
 
 
 @pytest.fixture
