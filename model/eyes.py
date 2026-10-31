@@ -1,7 +1,7 @@
 """Build or rebuild the Fusion design `noggin-eyes` (project Noggin): the parts the eyes Stage owns (ADR 0004),
 main bracket v2, the eye mech printed parts, the four servos with their horns, placed from the parts library
-(`make model-parts`, fusion_lib.insert_part) with the PandT base inserted as grounded context, and the Pivots as
-joints. The electronics live in noggin-pan-tilt. Runs INSIDE Fusion: `make model-eyes`.
+(`make model-parts`, fusion_lib.insert_part), and the Pivots as joints. The PandT base and the electronics live in
+noggin-base; the Stage documents (model/stage.py) put the bracket on it. Runs INSIDE Fusion: `make model-eyes`.
 Components whose position is inferred rather than measured carry an "(inferred)" suffix.
 Numbers live in model/geometry.py; this file only places things. Parts whose library version and placement are
 unchanged since the saved version are reused (fingerprints, fusion_lib); joints and canvases are recreated, and
@@ -20,7 +20,7 @@ AXIS = {X: "X", Y: "Y", Z: "Z"}
 
 # (component name, library part, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
 # the regular eye and the "updated main bracket and base" profile: main bracket v2 (03-mouth) on the PandT
-# base (02-pan-tilt, placed below); the lizard and plain eye STLs and the v1 base are not built.
+# base (noggin-base, placed by the Stage documents); the lizard and plain eye STLs and the v1 base are not built.
 PARTS = [
     ("L servo bracket", "L servo bracket", 0), ("R servo bracket", "R servo bracket", 0),
     ("L eyeball", "L eyeball regular", 0), ("R eyeball", "R eyeball regular", 0),
@@ -72,7 +72,6 @@ def run(_context: str):
     for name, lib, dx in PARTS:
         part(name, lib, name, align((dx, 0, 0)))
     part("main bracket", "main bracket v2", "main bracket v2")
-    part("base", "PandT base", "PandT base", align(pt_to_eyes_standalone((0, 0, 0)), (-1, 0, 0), Y), referenced=True)   # context: owned by noggin-pan-tilt
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
     for key in ("l_lid", "r_lid", "l_eye", "r_eye"):

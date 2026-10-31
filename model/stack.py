@@ -1,25 +1,25 @@
-"""Build or rebuild the Fusion design `noggin-pan-tilt` (project Noggin): every 02-pan-tilt printed part (v2 upright)
-from the parts library (`make model-parts`, fusion_lib.insert_part) in the PT frame (pan axis Z through the origin,
-tilt axis X at (0,-13,33.4)), the tilt and pan servos with their half-arm horns, the tilt and pan bars closing the
-two loops, and the electronics this Stage owns (ADR 0004): both receiver shields with their Cores on the base's two
-standoff sets (receiver 1 front, 2 back: guide p.19), both switch boards and both batteries, Ports on the connectors,
-and the Pivots as joints. Runs INSIDE Fusion: `make model-pan-tilt`. Components whose position is inferred rather than
-measured carry an "(inferred)" suffix. Numbers live in model/geometry.py; reuse as in eyes.py (fingerprints, fusion_lib).
-The eyes Stage is NOT here: the bracket stem into the tilt arm window is the top assembly's job (#17)."""
+"""Build or rebuild the Fusion design `noggin-stack` (project Noggin): the pan-tilt neck in the PT frame (pan axis Z through
+the origin, tilt axis X at (0,-13,33.4)): bearing block, pan base, upright v2, tilt arm, the pan servo mounts and wire holder
+from the parts library (`make model-parts`, fusion_lib.insert_part), the tilt and pan servos with their half-arm horns, the
+tilt and pan bars closing the two loops, electronics set 2 (receiver shield 2 with its Core on the back standoffs, switch
+board 2, battery 2) with Ports, and the Pivots as joints. The PandT base plate it sits on is `noggin-base`; the Stage
+documents (model/stage.py) insert both by reference. Runs INSIDE Fusion: `make model-stack`. Components whose position
+is inferred rather than measured carry an "(inferred)" suffix. Numbers live in model/geometry.py; reuse as in eyes.py."""
 # include: model/geometry.py
 # include: model/fusion_lib.py
 # include: model/contacts.py
-import adsk.core, adsk.fusion, json, math, os
+# include: model/electronics.py
+import adsk.core, adsk.fusion, json, os
 
-DOC = "noggin-pan-tilt"
-FULL = False   # `FULL=1 make model-pan-tilt` flips this: empty the document and import everything again
+DOC = "noggin-stack"
+FULL = False   # `FULL=1 make model-stack` flips this: empty the document and import everything again
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
 
 # (component name, library part, z shift mm): the designer exported these in the assembled PT frame, except the tilt arm,
 # still at the v1 height (upright v2 raised the pivot 5 mm, docs/research/2026-10-31-model.md).
 PARTS = [
-    ("PandT base", "PandT base", 0), ("bearing block", "PandT bearing block", 0), ("pan base", "PandT pan base", 0),
+    ("bearing block", "PandT bearing block", 0), ("pan base", "PandT pan base", 0),
     ("upright v2", "PandT upright v2", 0), ("tilt arm", "PandT tilt arm", TILT_ARM_SHIFT_Z),
     ("servo mount plain", "PandT servo mount plain", 0), ("servo mount cutout", "PandT servo mount cutout", 0),
     ("wire holder", "PandT wire holder", 0),
@@ -29,16 +29,6 @@ MOVING = {"pan base", "upright v2", "tilt servo", "tilt arm", "tilt horn (inferr
 BAR_STL = {"tilt": "tilt bar", "pan": "PandT bar"}
 LEVER = {"tilt": "tilt arm", "pan": "upright v2"}
 HORN_RANGE = {"tilt": "tilt", "pan": "rotate"}   # HORN_LIMITS keys: the remote config names the pan servo "rotate"
-# Receiver STEP, local mm: the four servo headers and the XH power socket (top centres); the PWM numbering of the
-# headers is inferred. Core 1 drives the eyes (docs/build-notes.md), Core 2 tilt/mouth/pan (guide step 10, config JSON).
-HEADERS = {"PWM1": (4.2, 10.8, 0.4), "PWM2": (4.2, 10.8, 4.6), "PWM3": (-4.2, 10.8, 0.4), "PWM4": (-4.2, 10.8, 4.6)}
-XH_POWER = (0.0, 9.62, -9.75)
-CHANNELS = {1: {"PWM1": "L lid", "PWM2": "L eye", "PWM3": "R lid", "PWM4": "R eye"}, 2: {"PWM1": "tilt", "PWM2": "mouth", "PWM3": "pan"}}
-# Our build runs one pack and one switch board per shield (docs/build-notes.md); the base has one battery box and one
-# pair of switch standoffs, so set 2 is inferred: switch boards hang one per standoff (as the eyes-only build hangs
-# its switch on a single post), battery 2 lies on top of battery 1 in the box.
-SWITCH_AT = {1: STANDOFFS["pt_base"]["switch"][0], 2: STANDOFFS["pt_base"]["switch"][1]}   # [I]
-BATTERY_STACK_Z = 16.3   # pack height: the second pack's floor sits on the first pack's top [I]
 
 
 def run(_context: str):
@@ -64,32 +54,8 @@ def run(_context: str):
         steps.append((name, lambda name=name, k=key, a=pin, b=lever: occs.__setitem__(name, link(root, name, BAR_STL[k], a, b, PIVOTS[k + "_horn"]["axis"], reuse))))
         pins[key] = pin, lever
 
-    # Both electronics sets on the PandT base, oriented as the designer's build (XH socket to the front, Core on top:
-    # the STEP has the Core under the shield, flipped about the PCB mid-plane). Port points are taken now, placed after parts_end.
-    stand = STANDOFFS["pt_base"]
-    ports = []   # (occurrence, Port name, world point)
-    flip = adsk.core.Matrix3D.create()
-    flip.setToRotation(math.pi, vector(Z), point((0, 0.8, 0)))
-    def electronics(n):
-        receiver_m = align(mean(stand[f"receiver_{n}"]), (0, -1, 0), (-1, 0, 0))
-        receiver = insert_part(root, "receiver shield", f"receiver shield {n}", receiver_m, reuse=reuse)
-        core = insert_part(root, "Core", f"Core {n} (flipped onto the shield top, per photo)", matmul(receiver_m, flip), reuse=reuse)
-        core_pcb = descendant(core, "CORE")
-        usb = core_pcb.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core_pcb).boundingBox
-        assert usb.minPoint.z * 10 > receiver_m.translation.z * 10, "Core must sit above the shield"
-        for header, p in HEADERS.items():
-            w = point(p); w.transformBy(receiver_m)
-            ports.append((receiver, f"Core {n} servo {header}" + (f" ({CHANNELS[n][header]})" if header in CHANNELS[n] else ""), (w.x * 10, w.y * 10, w.z * 10)))
-        w = point(XH_POWER); w.transformBy(receiver_m)
-        ports.append((receiver, f"Core {n} XH power", (w.x * 10, w.y * 10, w.z * 10)))
-        ports.append((core, f"Core {n} USB-C", tuple((getattr(usb.minPoint, c) + getattr(usb.maxPoint, c)) * 5 for c in "xyz")))
-        insert_part(root, "switch board", f"switch board {n} (inferred)", align(SWITCH_AT[n], (-1, 0, 0), Y, SWITCH_STEP["hole"]), reuse=reuse)   # hole on the standoff top
-        pocket = BATTERY_POCKET_PT
-        battery_at = (sum(pocket["x"]) / 2, pocket["y"][0], pocket["floor_z"] - BATTERY_STEP["floor_z"] + (n - 1) * BATTERY_STACK_Z)
-        battery = insert_part(root, "battery", "battery 1" if n == 1 else "battery 2 (inferred)", align(battery_at, X, Z), reuse=reuse)
-        ports.append((battery, f"battery {n} lead", add(battery_at, (3.5, 52.5, 3.5))))   # the pack's plug; wiring is out of scope
-    for n in (1, 2):
-        steps.append((f"electronics set {n}", lambda n=n: electronics(n)))
+    ports = []   # (occurrence, Port name, world point), placed after parts_end
+    steps.append(("electronics set 2", lambda: electronics(root, 2, reuse, ports)))
 
     def joints():
         for occ in reuse.values():   # kept parts the build no longer places
@@ -118,17 +84,17 @@ def run(_context: str):
     for occ in root.occurrences:
         if occ.name not in moving:
             occ.isGrounded = True
-    new_contacts = not design.contactSets.count   # one contact set per Stage (#20): moving parts, base, servos
+    new_contacts = not design.contactSets.count   # one contact set per design (#20): moving parts, the pan servo
     if new_contacts:
-        contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name in ("PandT base", "pan servo")})
+        contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name in ("pan servo",)})
 
     os.makedirs(OUT, exist_ok=True)
-    screenshots(app, root, OUT, "pan-tilt", {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
+    screenshots(app, root, OUT, "stack", {"top": (Z, Y), "side": (X, Z), "front": ((0, -1, 0), Z)})
     now = summary(root)
     diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse] + (["contact set"] if new_contacts else [])
     if diff:
         root.attributes.add(*SUMMARY_ATTR, json.dumps(now, sort_keys=True))
-        version = save(doc, f"{DOC}: rebuilt by model/pan_tilt.py", DOC, folder)
+        version = save(doc, f"{DOC}: rebuilt by model/stack.py", DOC, folder)
     else:
         version = doc.dataFile.versionNumber
     print("\n".join(progress))
