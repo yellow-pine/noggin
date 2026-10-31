@@ -1,7 +1,8 @@
 """Mech-wide checks over the engine's poses (#24, #22), folded into the report by model/engine/run.py: dynamic torque
 per horn (gravity plus the chain's inertia reflected to the horn axis times the peak horn acceleration of the clocked
 gestures through the servo plant, eyes/replay.py and eyes/servo.py; for the untraced Core 2 horns, the acceleration
-that keeps them under the limit), the clutch margin per pose, and over the pan x tilt grid the tip-over margin."""
+that keeps them under the limit), the clutch margin per pose, and over the pan x tilt grid the tip-over margin and the
+straight-line cable reach of every lead (model/electrical.leads)."""
 
 import math
 
@@ -9,6 +10,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 
 from model import electrical
+from model import geometry as g
 from model.engine import linkage, masses, stages
 
 FRAME_S = 0.02  # 50 Hz PWM: the servo sees one new pulse per frame, so the plant is stepped per frame
@@ -163,3 +165,30 @@ def tip_over(stage, table, outline, step):
         if best is None or mm < best["margin_mm"]:
             best = {"margin_mm": round(mm, 1), "at": {"pan": p, "tilt": t}, "com": [round(c, 1) for c in com]}
     return best
+
+
+PORTS = {  # part-local Port points (geometry), by the names electrical.leads() uses
+    **g.RECEIVER_STEP["headers"],
+    "xh_power": g.RECEIVER_STEP["xh_power"],
+    "plug": g.BATTERY_STEP["plug"],
+    "hole": g.SWITCH_STEP["hole"],
+    "lead": g.SERVO_STEP["lead"],
+}
+
+
+def cable_reach(stage, step):
+    """{lead: {max_mm, at, length_mm, limit_mm}}: the longest straight port-to-connector distance of every lead whose
+    two parts are in the document, over the pan x tilt grid; a lead must stay under its length less the slack."""
+    present = [lead for lead in electrical.leads() if lead[1][0] in stage.parts and lead[2][0] in stage.parts]
+    out = {}
+    for p, t, mats in mech_poses(stage, step):
+        for name, (pa, ka), (pb, kb), length in present:
+            d = math.dist(*(mats[n][:3, :3] @ PORTS[k] + mats[n][:3, 3] for n, k in ((pa, ka), (pb, kb))))
+            if name not in out or round(d, 1) > out[name]["max_mm"]:  # a static lead keeps its first pose
+                out[name] = {
+                    "max_mm": round(d, 1),
+                    "at": {"pan": p, "tilt": t},
+                    "length_mm": length,
+                    "limit_mm": length - electrical.SLACK_MM,
+                }
+    return out

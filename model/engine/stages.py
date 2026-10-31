@@ -95,7 +95,7 @@ def servo_and_horn(key, label, arm):
             step("servo"),
             align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]),
             (SERVO_G, "documented"),
-            ("x", g.SERVO_STEP["lead_x"]),
+            ("x", g.SERVO_STEP["lead"][0]),
         ),
         f"{label} horn (inferred):1": part(
             step("horn"), align(seat, arm, shaft, g.HORN_STEP["hub"]), (STEP_G_CM3, "step volume x 1.9 g/cm3")

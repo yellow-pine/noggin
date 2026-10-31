@@ -7,10 +7,8 @@ import math
 import adsk.core
 import adsk.fusion
 
-# Receiver STEP, local mm: the four servo headers and the XH power socket (top centres); the PWM numbering of the
-# headers is inferred. Core 1 drives the eyes (docs/build-notes.md), Core 2 tilt/mouth/pan (guide step 10, config JSON).
-HEADERS = {"PWM1": (4.2, 10.8, 0.4), "PWM2": (4.2, 10.8, 4.6), "PWM3": (-4.2, 10.8, 0.4), "PWM4": (-4.2, 10.8, 4.6)}
-XH_POWER = (0.0, 9.62, -9.75)
+# Ports on the receiver STEP: geometry.RECEIVER_STEP. Core 1 drives the eyes (docs/build-notes.md), Core 2
+# tilt/mouth/pan (guide step 10, config JSON).
 CHANNELS = {
     1: {"PWM1": "L lid", "PWM2": "L eye", "PWM3": "R lid", "PWM4": "R eye"},
     2: {"PWM1": "tilt", "PWM2": "mouth", "PWM3": "pan"},
@@ -37,7 +35,7 @@ def electronics(root, n, reuse, ports):
     core_pcb = descendant(core, "CORE")
     usb = core_pcb.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core_pcb).boundingBox
     assert usb.minPoint.z * 10 > receiver_m.translation.z * 10, "Core must sit above the shield"
-    for header, p in HEADERS.items():
+    for header, p in RECEIVER_STEP["headers"].items():
         w = point(p)
         w.transformBy(receiver_m)
         ports.append(
@@ -47,7 +45,7 @@ def electronics(root, n, reuse, ports):
                 (w.x * 10, w.y * 10, w.z * 10),
             )
         )
-    w = point(XH_POWER)
+    w = point(RECEIVER_STEP["xh_power"])
     w.transformBy(receiver_m)
     ports.append((receiver, f"Core {n} XH power", (w.x * 10, w.y * 10, w.z * 10)))
     ports.append(
@@ -70,5 +68,5 @@ def electronics(root, n, reuse, ports):
         root, "battery", "battery 1" if n == 1 else "battery 2 (inferred)", align(battery_at, X, Z), reuse=reuse
     )
     ports.append(
-        (battery, f"battery {n} lead", add(battery_at, (3.5, 52.5, 3.5)))
+        (battery, f"battery {n} lead", add(battery_at, BATTERY_STEP["plug"]))
     )  # the pack's plug; wiring is out of scope

@@ -17,10 +17,30 @@ def test_channel_map_matches_the_build_notes():
     assert B["channels"]["core2"] == {1: "tilt", 2: "mouth", 3: "pan"}
 
 
-def test_all_servos_at_stall_stay_under_the_3a_cap_on_each_shield():
+def test_all_servos_at_stall_with_the_shield_and_a_wifi_burst_stay_under_the_3a_cap_on_each_shield():
     assert B["cap_a"] == 3.0
-    assert abs(B["stall_a"]["core1"] - 4 * 0.65) < 1e-9 and abs(B["stall_a"]["core2"] - 3 * 0.65) < 1e-9
+    # servos at stall + shield standby 60 mA + an ESP32-C3 Wi-Fi transmit burst 335 mA
+    assert abs(B["stall_a"]["core1"] - (4 * 0.65 + 0.060 + 0.335)) < 1e-9
+    assert abs(B["stall_a"]["core2"] - (3 * 0.65 + 0.060 + 0.335)) < 1e-9
     assert all(a < B["cap_a"] for a in B["stall_a"].values())
+
+
+def test_both_cores_listen_on_wifi_in_every_scenario():
+    hold = B["hold_a_per_servo"]
+    assert abs(B["draw_a"]["core2"]["rest"] - (0.060 + 3 * (0.008 + hold) + 0.084)) < 1e-9  # + Wi-Fi receive
+
+
+def test_leads_run_every_servo_to_its_header_and_each_pack_through_its_switch_to_its_shield():
+    leads = {name: (a, b, mm) for name, a, b, mm in electrical.leads()}
+    assert len(leads) == 7 + 2 + 2
+    assert leads["l_eye servo -> Core 1 PWM2"] == (("receiver shield 1:1", "PWM2"), ("L eye servo:1", "lead"), 250)
+    assert leads["pan servo -> Core 2 PWM3"][1] == ("pan servo:1", "lead")
+    assert leads["pack 2 -> switch 2"] == (
+        ("battery 2 (inferred):1", "plug"),
+        ("switch board 2 (inferred):1", "hole"),
+        100,
+    )
+    assert leads["switch 1 -> shield 1"][1:] == (("receiver shield 1:1", "xh_power"), 100)
 
 
 def test_runtime_orders_the_scenarios_and_uses_the_gesture_durations():

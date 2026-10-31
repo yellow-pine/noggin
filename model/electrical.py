@@ -1,6 +1,6 @@
-"""Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit.
-Run: .venv/bin/python model/electrical.py. budget() is merged into the Mech-wide report (the merge and cable
-reach come with the top assembly, #17)."""
+"""Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit, and the
+leads the cable reach measures. Run: .venv/bin/python model/electrical.py. budget() is merged into the Mech-wide
+(noggin-stage3) report and leads() swept by model/engine/mech.py."""
 
 import importlib.util
 import json
@@ -27,6 +27,10 @@ CHANNELS = {
 CAP_A = min(3.0, 3.0)  # shield max, pack continuous discharge: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
+# Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet figures, not in docs/research
+# (assumed): receive 84 mA while listening, transmit up to 335 mA (802.11b at 21 dBm) for a beacon or an ack burst.
+# Added in amps at the pack as if through a linear regulator (the Core's supply path is not published).
+WIFI_RX_A, WIFI_TX_A = 0.084, 0.335
 # Holding allowance: a held servo is not spinning (no no-load current), only the torque current for the load.
 # Worst moving chain is an eyeball plus its bar, ~10 g on a ~3 cm lever = 0.03 kgf.cm; 0.05 leaves margin
 # until #20 measures the real gravity torque. 0.05 / 2.03 kgf.cm per A = 25 mA.
@@ -49,15 +53,53 @@ def budget():
         "session_moving_s_per_hour": moving_s,
         "hold_a_per_servo": HOLD_A,
         "run_a_per_servo": RUN_A,
+        "wifi_a": {"rx": WIFI_RX_A, "tx_peak": WIFI_TX_A},
     }
     for core, ch in CHANNELS.items():
         n = len(ch)
-        rest = SHIELD_STANDBY_A + n * (servo.STANDBY_A + HOLD_A)
-        demo = SHIELD_STANDBY_A + n * RUN_A
+        rest = SHIELD_STANDBY_A + n * (servo.STANDBY_A + HOLD_A) + WIFI_RX_A
+        demo = SHIELD_STANDBY_A + n * RUN_A + WIFI_RX_A
         session = rest + (demo - rest) * (moving_s / 3600 if core == "core1" else 0)  # core2 has no choreography yet
-        out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"]
+        out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"] + SHIELD_STANDBY_A + WIFI_TX_A  # all at once
         out["draw_a"][core] = {"rest": rest, "session": session, "demo": demo}
         out["runtime_h"][core] = {k: PACK["mah"] / 1000 / a for k, a in out["draw_a"][core].items()}
+    return out
+
+
+# Lead lengths are not published (docs/research/2026-10-31-electrical.md 1): assumed, the CyberBrick servo lead 250 mm
+# and the XH2.54 leads 100 mm; a lead must reach with SLACK_MM to spare.
+SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
+SERVO_PART = {
+    "l_lid": "L lid servo:1",
+    "l_eye": "L eye servo:1",
+    "r_lid": "R lid servo:1",
+    "r_eye": "R eye servo:1",
+    "tilt": "tilt servo:1",
+    "mouth": "jaw servo:1",
+    "pan": "pan servo:1",
+}
+
+
+def leads():
+    """(lead, (part, port), (part, port), length mm) for every lead of the Mech: each servo from its shield header
+    (CHANNELS) to where its lead leaves the servo, each pack's lead to its switch board, each switch board's XH lead to
+    its shield. Port names are geometry's (model/engine/mech.PORTS)."""
+    out = []
+    for n in (1, 2):
+        shield = f"receiver shield {n}:1"
+        for port, name in CHANNELS[f"core{n}"].items():
+            out.append(
+                (
+                    f"{name} servo -> Core {n} PWM{port}",
+                    (shield, f"PWM{port}"),
+                    (SERVO_PART[name], "lead"),
+                    SERVO_LEAD_MM,
+                )
+            )
+        switch = f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1"
+        pack = "battery 1:1" if n == 1 else "battery 2 (inferred):1"
+        out.append((f"pack {n} -> switch {n}", (pack, "plug"), (switch, "hole"), XH_LEAD_MM))
+        out.append((f"switch {n} -> shield {n}", (switch, "hole"), (shield, "xh_power"), XH_LEAD_MM))
     return out
 
 

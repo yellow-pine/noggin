@@ -65,6 +65,16 @@ def problems(report):
                 f"clutch {horn}: holding load over {c['limit_kgf_cm']} kgf.cm (0.9 / 1.5, decalibration risk) at "
                 f"{c['flagged']} deg, worst {c['hold_kgf_cm']} at {c['at_deg']}"
             )
+    for lead, c in report.get("cable_reach", {}).items():
+        if c["max_mm"] > c["limit_mm"]:
+            out.append(
+                f"cable {lead}: {c['max_mm']} mm at pan {c['at']['pan']} tilt {c['at']['tilt']} > {c['limit_mm']} "
+                f"({c['length_mm']} mm lead less 20 slack)"
+            )
+    e = report.get("electrical")
+    for core, a in (e or {}).get("stall_a", {}).items():
+        if a >= e["cap_a"]:
+            out.append(f"electrical {core}: {a} A with every servo at stall >= the {e['cap_a']} A cap")
     for horn, c in report.get("calibrated", {}).items():
         # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
         # cannot answer where the real Mech's ends are, and it does run them (eyes/calibration.json).
@@ -93,6 +103,8 @@ FIXTURE_PROBLEMS = {
         "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
         "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
         "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
+        "cable l_lid servo -> Core 1 PWM1: 236.0 mm at pan 70 tilt 60 > 230 (250 mm lead less 20 slack)",
+        "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
 }

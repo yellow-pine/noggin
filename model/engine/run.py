@@ -12,7 +12,7 @@ import sys
 import time
 from multiprocessing import get_context
 
-from model import beams, fits, sim
+from model import beams, electrical, fits, sim
 from model.engine import linkage, masses, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "build")
@@ -223,6 +223,9 @@ def report(doc, parallel=True):
     if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
         outline = mech.footprint(placed["PandT base:1"].vertices)
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
+        out["cable_reach"] = mech.cable_reach(stage, STEP_DEG)
+    if all(p in stage.parts for p in electrical.SERVO_PART.values()):  # the whole Mech: both Cores
+        out["electrical"] = electrical.budget()
     for h, by_deg in dynamic.items():
         t = out["torque"][h]
         if mech.HORN_SERVO[h] not in peak:  # untraced (Core 2): what its choreography may reach

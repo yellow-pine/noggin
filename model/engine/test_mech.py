@@ -74,3 +74,14 @@ def test_mech_poses_turn_the_tilted_head_about_the_pan_axis():
         a, b = eye(poses[(p, 30)]), eye(tilted)
         assert np.hypot(*a[:2]) == pytest.approx(np.hypot(*b[:2])) and a[2] == pytest.approx(b[2])
         assert not np.allclose(a, b)
+
+
+@pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
+def test_cable_reach_measures_every_lead_over_the_pan_tilt_grid():
+    reach = mech.cable_reach(stages.STAGES["noggin-stage3"], 30)
+    assert len(reach) == 11
+    # static: pack 1's plug (-32.5, 123.5, 14.65) to switch board 1's hole on its standoff (6, 68.5, 13)
+    assert reach["pack 1 -> switch 1"]["max_mm"] == pytest.approx(67.2, abs=0.05)
+    assert reach["pack 1 -> switch 1"]["limit_mm"] == 80
+    assert reach["l_lid servo -> Core 1 PWM1"]["limit_mm"] == 230
+    assert reach["l_lid servo -> Core 1 PWM1"]["at"] != reach["pan servo -> Core 2 PWM3"]["at"]  # the head moves
