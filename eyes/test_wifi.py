@@ -299,32 +299,32 @@ def run(link, lines, seq=100):
 
 def test_put_and_commit_swap_the_new_file_in_and_keep_the_old_one_as_bak(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "eyes.py").write_bytes(b"old program")
+    (tmp_path / "eyes.mpy").write_bytes(b"old program")
     new = bytes(range(256)) * 2  # several chunks, every byte value
     joined(link)
-    replies = run(link, [*puts("eyes.py", new), commit("eyes.py", new)])
+    replies = run(link, [*puts("eyes.mpy", new), commit("eyes.mpy", new)])
     assert replies == [f"ok {100 + i}" for i in range(len(replies))] and len(replies) == 6
-    assert (tmp_path / "eyes.py").read_bytes() == new
-    assert (tmp_path / "eyes.py.bak").read_bytes() == b"old program"
-    assert not (tmp_path / "eyes.py.new").exists()
-    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.py"]  # boot.py's cue: on probation
+    assert (tmp_path / "eyes.mpy").read_bytes() == new
+    assert (tmp_path / "eyes.mpy.bak").read_bytes() == b"old program"
+    assert not (tmp_path / "eyes.mpy.new").exists()
+    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.mpy"]  # boot.py's cue: on probation
     assert link.handled == []  # flash lines never reach the eye program's parser
 
 
 def test_a_hash_mismatch_swaps_nothing_and_is_reported(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "eyes.py").write_bytes(b"old program")
+    (tmp_path / "eyes.mpy").write_bytes(b"old program")
     joined(link)
-    replies = run(link, [*puts("eyes.py", b"new program"), commit("eyes.py", b"something else")])
+    replies = run(link, [*puts("eyes.mpy", b"new program"), commit("eyes.mpy", b"something else")])
     assert replies == ["ok 100", "err 101 ValueError"]
-    assert (tmp_path / "eyes.py").read_bytes() == b"old program"
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py", "link.seq"]
+    assert (tmp_path / "eyes.mpy").read_bytes() == b"old program"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.mpy", "link.seq"]
 
 
-def test_boot_py_only_changes_over_usb(link, tmp_path, monkeypatch):
+def test_boot_py_and_sources_only_change_over_usb(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     joined(link)
-    for name in ("boot.py", "../boot.py", "wifi.json"):
+    for name in ("boot.py", "../boot.py", "wifi.json", "eyes.py"):  # a .py would shadow its .mpy
         assert run(link, puts(name, b"x")) == ["err 100 ValueError"]
     assert [p.name for p in tmp_path.iterdir()] == ["link.seq"]
 
@@ -332,29 +332,29 @@ def test_boot_py_only_changes_over_usb(link, tmp_path, monkeypatch):
 def test_a_chunk_out_of_order_is_refused(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     joined(link)
-    first, _, third = puts("eyes.py", b"a" * 360)
+    first, _, third = puts("eyes.mpy", b"a" * 360)
     assert run(link, [first, third]) == ["ok 100", "err 101 ValueError"]
-    assert (tmp_path / "eyes.py.new").read_bytes() == b"a" * 120
+    assert (tmp_path / "eyes.mpy.new").read_bytes() == b"a" * 120
 
 
 def test_flashing_again_before_a_reboot_keeps_the_bak_that_last_booted(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "eyes.py").write_bytes(b"good")
+    (tmp_path / "eyes.mpy").write_bytes(b"good")
     joined(link)
-    run(link, [*puts("eyes.py", b"first try"), commit("eyes.py", b"first try")], seq=100)
-    run(link, [*puts("eyes.py", b"second try"), commit("eyes.py", b"second try")], seq=200)
-    assert (tmp_path / "eyes.py").read_bytes() == b"second try"
-    assert (tmp_path / "eyes.py.bak").read_bytes() == b"good"
-    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.py"]
+    run(link, [*puts("eyes.mpy", b"first try"), commit("eyes.mpy", b"first try")], seq=100)
+    run(link, [*puts("eyes.mpy", b"second try"), commit("eyes.mpy", b"second try")], seq=200)
+    assert (tmp_path / "eyes.mpy").read_bytes() == b"second try"
+    assert (tmp_path / "eyes.mpy.bak").read_bytes() == b"good"
+    assert (tmp_path / "flash.trial").read_text().split() == ["eyes.mpy"]
 
 
 def test_commit_of_a_file_already_in_place_is_ok_without_a_swap(link, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "eyes.py").write_bytes(b"running")
+    (tmp_path / "eyes.mpy").write_bytes(b"running")
     joined(link)
-    replies = run(link, [commit("eyes.py", b"running"), commit("eyes.py", b"other")])
+    replies = run(link, [commit("eyes.mpy", b"running"), commit("eyes.mpy", b"other")])
     assert replies[0] == "ok 100" and replies[1].startswith("err 101 ")
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.py", "link.seq"]  # the Mac's check after the reboot
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["eyes.mpy", "link.seq"]  # the Mac's check after the reboot
 
 
 def test_reboot_is_acked_then_resets_the_core(link, monkeypatch):
