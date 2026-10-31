@@ -225,3 +225,26 @@ PRINTED = {stem: (spool, "PLA Pure") for spool, stems in {
     "Absolute Black": ["regular pupil", "PandT base", "PandT tilt arm", "PandT bearing block", "PandT wire holder (colour inferred)"],
     "Apricot": ["PandT upright v2", "PandT pan base (colour inferred)"],   # the pan base reads beige in the guide photos (p.18)
 }.items() for stem in stems}
+
+
+# Stage documents (model/stage.py) insert the sub-assembly designs by reference, each at an (origin, x axis, z axis) frame
+# in the PT frame (fusion_lib.align takes the same triple). The bracket v2 stem (eyes x 23.5..35.5, z 13..18, bottom
+# y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
+# pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].
+EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
+EYES_ON_STACK = ((29.5, -28.5, 81.5), (-1, 0, 0), (0, 1, 0))
+STEM_BOTTOM = (29.5, -45.6, 15.5)   # centre of the stem's bottom face, eyes frame
+STAGES = {
+    "noggin-stage1": {"noggin-base": ((0, 0, 0), X, Z), "noggin-eyes": EYES_ON_BASE},
+    "noggin-stage2": {"noggin-base": ((0, 0, 0), X, Z), "noggin-stack": ((0, 0, 0), X, Z), "noggin-eyes": EYES_ON_STACK},
+    "noggin-stage3": {"noggin-base": ((0, 0, 0), X, Z), "noggin-stack": ((0, 0, 0), X, Z), "noggin-eyes": EYES_ON_STACK,
+                      "noggin-mouth": EYES_ON_STACK},
+}
+STEM_IN = {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
+
+
+def in_frame(frame, p):
+    """A point of a sub-assembly's own frame in the PT frame: origin + x*px + y*py + z*pz with y = z cross x."""
+    origin, x, z = frame
+    y = (z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0])
+    return tuple(o + x[i] * p[0] + y[i] * p[1] + z[i] * p[2] for i, o in enumerate(origin))
