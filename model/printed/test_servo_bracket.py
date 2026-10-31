@@ -55,9 +55,9 @@ def test_eye_servo_tabs_screw_along_y_into_the_walls():
 
 
 def test_lid_servo_tabs_screw_along_x_into_the_tongues():
-    """r 1.1 holes along X at the lid servo's tab holes, into the tongues (x -7.4..-3.4 on the L side)."""
-    for side, key in (("L", "l_lid"), ("R", "r_lid")):
-        for x, y, z in g.SERVOS[key]["tab_holes"]:
+    """r 1.1 holes along X at the lid servo's tab holes (y, z), into the tongues (x -7.42..-3.42 on the L side)."""
+    for side, key, x in (("L", "l_lid", -5.42), ("R", "r_lid", g.mirror_x((-5.42, 0, 0))[0])):
+        for _, y, z in g.SERVOS[key]["tab_holes"]:
             for dx in (-1.8, 0, 1.8):
                 assert not inside(side, x + dx, y, z) and not inside(side, x + dx, y + 0.9, z)
                 assert inside(side, x + dx, y, z + 1.3) and inside(side, x + dx, y - 1.3, z), (side, y, dx)
