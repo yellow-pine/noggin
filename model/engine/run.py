@@ -16,6 +16,7 @@ import time
 from multiprocessing import get_context
 
 from model import beams, electrical, fits, sim
+from model import geometry as g
 from model.engine import linkage, masses, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "reports")  # committed: CI thresholds them (model/test_report.py)
@@ -178,6 +179,17 @@ def sweep_jobs(stage, cal):
     return jobs
 
 
+def warnings(report):
+    """Collisions at the calibrated servo ends of a horn whose pivot is still inferred (+-4 mm, geometry.PIVOTS): it cannot
+    answer where the real Mech's ends are, so they warn; once measured model/test_report.py fails them."""
+    return [
+        f"calibrated {h}: collision at {v['deg']} deg between {v['pair']} (pivot inferred: fails once measured)"
+        for h, c in report["calibrated"].items()
+        if c["inferred"]
+        for v in c.get("violations", [])
+    ]
+
+
 def report(doc, parallel=True):
     """The full report for one document, in the shape of model/reports/*.json."""
     stage = stages.STAGES[doc]
@@ -230,7 +242,8 @@ def report(doc, parallel=True):
             "seconds": 0.0,
         }
         if h in cal:
-            out["calibrated"][h] = {"lo": cal[h][0], "hi": cal[h][1]}
+            inferred = bool(g.PIVOTS[EYES_HORNS[h] + "_horn"].get("inferred"))
+            out["calibrated"][h] = {"lo": cal[h][0], "hi": cal[h][1], "inferred": inferred}
     for r in results:
         h, horn = r["horn"], out["horns"][r["horn"]]
         horn["measurements"] += r["measurements"]
@@ -264,6 +277,7 @@ def report(doc, parallel=True):
         links += l
     sim.UP[doc] = stage.up
     out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
+    out["warnings"] = warnings(out)
     src = sources(stage, joints, links)
     out["inputs"] = {"stamp": stamp(src), "sources": src}
     out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
@@ -302,6 +316,8 @@ def main(docs):
         print(
             f"{doc}: {time.time() - t:.1f} s; {len(r['violations'])} violations, {len(r['contacts'])} contacts; {horns}"
         )
+        for w in r["warnings"]:
+            print(f"  warning: {w}")
 
 
 if __name__ == "__main__":

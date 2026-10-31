@@ -57,9 +57,8 @@ def problems(report):
         if a >= e["cap_a"]:
             out.append(f"electrical {core}: {a} A with every servo at stall >= the {e['cap_a']} A cap")
     for horn, c in report.get("calibrated", {}).items():
-        # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
-        # cannot answer where the real Mech's ends are, and it does run them (eyes/calibration.json).
-        for v in c.get("violations", []) if "(inferred)" not in horn else []:
+        # the real Mech runs its calibrated ends (eyes/calibration.json); while the pivot is inferred: run.warnings
+        for v in c.get("violations", []) if not c["inferred"] else []:
             out.append(f"calibrated {horn}: collision at {v['deg']} deg between {v['pair']}")
     return out
 
@@ -106,3 +105,14 @@ FIXTURE_PROBLEMS = {
 def test_fixture_reports(name):
     report = json.load(open(os.path.join(HERE, "test_fixtures", f"{name}-report.json")))
     assert problems(report) == FIXTURE_PROBLEMS[name]
+
+
+def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once_measured():
+    report = json.load(open(os.path.join(HERE, "test_fixtures", "failing-report.json")))
+    assert "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']" in problems(report)
+    assert not any("L eye horn" in p for p in problems(report))
+    assert run.warnings(report) == [
+        "calibrated L eye horn (inferred): collision at -32 deg between ['L eyeball bar', 'main bracket v2']"
+        " (pivot inferred: fails once measured)"
+    ]
+    assert committed("noggin-eyes")["warnings"] == run.warnings(committed("noggin-eyes")) != []

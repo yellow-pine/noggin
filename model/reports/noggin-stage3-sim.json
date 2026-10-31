@@ -1015,6 +1015,7 @@
   "L lid horn (inferred)": {
    "lo": -54,
    "hi": 39,
+   "inferred": true,
    "contacts": [
     {
      "deg": -54,
@@ -1037,6 +1038,7 @@
   "L eye horn (inferred)": {
    "lo": -32,
    "hi": 28,
+   "inferred": true,
    "violations": [
     {
      "deg": -32,
@@ -1071,6 +1073,7 @@
   "R lid horn (inferred)": {
    "lo": -46,
    "hi": 39,
+   "inferred": true,
    "contacts": [
     {
      "deg": -46,
@@ -1091,6 +1094,7 @@
   "R eye horn (inferred)": {
    "lo": -32,
    "hi": 28,
+   "inferred": true,
    "violations": [
     {
      "deg": -32,
@@ -1854,8 +1858,17 @@
    ]
   }
  },
+ "warnings": [
+  "calibrated L lid horn (inferred): collision at -54 deg between ['L eyelid bar crank (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated L eye horn (inferred): collision at -32 deg between ['L eye horn (inferred):1', 'L servo bracket:1'] (pivot inferred: fails once measured)",
+  "calibrated L eye horn (inferred): collision at -32 deg between ['L eye horn (inferred):1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated L eye horn (inferred): collision at -32 deg between ['L eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated L eye horn (inferred): collision at 28 deg between ['L eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated R eye horn (inferred): collision at -32 deg between ['R eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)",
+  "calibrated R eye horn (inferred): collision at 28 deg between ['R eyeball bar:1', 'main bracket v2:1'] (pivot inferred: fails once measured)"
+ ],
  "inputs": {
-  "stamp": "80ba5dbdbbc58c85b3410c54e31d8411b069eccae2eec2d45206bba4a6750d68",
+  "stamp": "c4c03a1bc9fbca6fc0be04ad5619ace718048a2ea5a6afe705982eccced184be",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
