@@ -7,7 +7,7 @@ LABEL := gui/$(shell id -u)/com.noggin
 # $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
 fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) model/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
+.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log demo follow interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts render gifs lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -21,7 +21,7 @@ check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard 
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	bash -n scripts/setup.sh
-	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
+	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 sim: venv model/build/steps/horn.stl   ## simulate every document (sub-assemblies + Stage configurations) in Python into model/reports (commit them), then threshold the reports
 	$(PY) -m model.engine.run $(SIM_DOCS)
@@ -47,6 +47,10 @@ status:
 	-tail -5 noggin.log
 log:
 	tail -f noggin.log
+demo:            ## loop every gesture with a 5 s pause, hooks ignored (ARGS=once, or ARGS="bored 2" for one gesture)
+	noggin/noggin demo $(ARGS)
+follow:          ## back to reacting to Claude Code (the mode after any restart)
+	noggin/noggin follow
 
 interrupt: stop  ## drop the Core to its REPL (the stock app ignores mpremote's own Ctrl-C)
 	$(PY) eyes/interrupt.py
