@@ -20,9 +20,9 @@ def test_mirror_x_maps_left_eye_to_right():
 
 def test_every_horn_limit_is_ours_with_its_reason():
     assert g.HORN_LIMITS == {
-        "l_lid": (58, 129),
+        "l_lid": (41, 129),
         "l_eye": (68, 112),
-        "r_lid": (58, 129),
+        "r_lid": (41, 129),
         "r_eye": (68, 112),
         "tilt": (30, 150),
         "rotate": (50, 160),
@@ -157,8 +157,8 @@ def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub
     origin, tab_x, shaft = g.servo_frame("jaw")
     assert shaft == (1, 0, 0) and _dist(origin, (71.77, -48.6, 33.67)) < 1e-9  # tab plane inside the mount plate
     pin, lever = g.horn_pin("jaw")
-    # the jaw bar is cranked 13 mm along the pin: horn end under the horn arm, jaw end on the jaw lug's outer face
-    assert pin[0] == 84.92 and lever == (71.92, -58.1, -10.44)
+    # the jaw bar is cranked 13 mm along the pin: horn end flush under the horn arm, jaw end on the jaw lug's outer face
+    assert pin[0] == 84.64 and lever == (71.64, -58.1, -10.44)
     hub = g.PIVOTS["jaw_horn"]["point"]
     assert abs(_dist(pin[1:], hub[1:]) - g.HORN_STEP["pin"]) < 1e-6
     assert abs(_dist(pin[1:], lever[1:]) - g.BARS["jaw_bar"]) < 1e-6
@@ -167,7 +167,7 @@ def test_jaw_servo_frame_and_horn_pin_close_the_connector_bar_loop_below_the_hub
 
 def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     # Research note: the stem (eyes x 23.5..35.5, z 13..18, bottom y=-45.6) drops through the pan recess at the PT origin in
-    # the desk build (plate top z=3 is y=-40.6, the rail on it) and into the tilt arm window (0, -13) in the neck build, where the eye centres
+    # the desk build (plate top z=3 is y=-35.6) and into the tilt arm window (0, -13) in the neck build, where the eye centres
     # sit 78.5 above the plate top; the Mech centreline x=29.5 (eyes) is the pan axis. The mouth rides in the eyes frame.
     pt = ((0, 0, 0), g.X, g.Z)
     assert g.STAGES["noggin-stage1"] == {"noggin-base": pt, "noggin-eyes": g.EYES_ON_BASE}
@@ -178,8 +178,8 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert on_stack(g.EYE_R) == (-29.5, -28.5, 81.5)
     assert on_stack(g.STEM_BOTTOM) == (0.0, -13.0, 35.9) == g.STEM_AT["noggin-stage2"]
     assert (
-        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -2.0) == g.STEM_AT["noggin-stage1"]
-    )  # through the 5 mm plate, flush with its bottom, the rail on its top
+        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -7.0) == g.STEM_AT["noggin-stage1"]
+    )  # through the 5 mm plate, feet on its top
     assert g.STEM_IN == {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
         assert all(abs(a - b) < 1e-9 for a, b in zip(on_stack(p), g.eyes_to_pt(p)))

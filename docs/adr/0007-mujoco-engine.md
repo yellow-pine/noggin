@@ -31,19 +31,19 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   GIFs) stays Blender's style B, posed from MuJoCo's poses instead of the old engine's. MuJoCo's viewer is for local
   checks only, with its built-in toggles: `make view` opens `python -m mujoco.viewer` on a document
   (https://mujoco.readthedocs.io/en/stable/python.html#interactive-viewer). Its visual settings are one rgba per
-  part from the colour table the pictures use (model/render/scene.py DRAWN: Absolute Black drawn #2B2B2E, Pure White
-  #E8E8E8; the viewer, without the pictures' outlines, lifts black further to #5A5A60) and a flat skybox in the
-  pictures' background colour (scene.BG; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
+  part, its spool's colour with black and white pulled in to #5A5A60 and #E8E8E8 (model/mjcf.py VIEW; the viewer has
+  no outlines), and a flat skybox in the
+  pictures' background colour (#F7F4EE; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
   under a headlight that draws a face toward the camera in its exact colour (ambient 0.5, diffuse 0.5, no specular;
   MuJoCo's default dims and greys every colour).
 - **Z-up, in metres.** The eyes-frame documents (noggin-eyes, noggin-mouth) are carried into the PT frame by one
   `<frame>` (stages.BASE_IN_EYES undone), so every model is Z-up as the Stages are, gravity along -Z; inside it the
   bodies keep the document's numbers.
-- **The old engine retires** (#151) once the new one covers it. Until then both run. The first ticket's gate (model/test_mjcf.py): in
-  every document each body sits where the old engine's pose puts it, within 0.1 mm, and no two parts that are not
+- **The old engine retires** (#151) once the new one covers it. Until then both run. The first ticket's gate
+  (model/test_mjcf.py): in every document each body sits where the old engine's pose puts it, within 0.1 mm, and no two parts that are not
   mounted to each other overlap at rest by more than 0.05 mm (MuJoCo's distance between their pieces; the pairs the
-  pieces make overlap though the parts do not are listed with their measured clearance). That guard found the eyes
-  sunk 5 mm into the desk base (stage 1: the bracket rail inside the plate); #147 lifts them onto the rail.
+  pieces make overlap though the parts do not are listed with their measured clearance). That guard found the eyes'
+  rail 5 mm deep in the desk base (stage 1), recorded as an open conflict with Cansin's photo (docs/model-notes.md).
 
 Dependencies added: mujoco, coacd.
 

@@ -62,12 +62,12 @@ def test_servo_to_joint_mapping_follows_the_calibration_flips():
         "l_lid_flip": 1,
         "r_lid_flip": 0,
     }
-    # lids: plus the horn's spline tooth at servo 90 (geometry.HORN_AT_90: L +13, R +6)
-    assert sim.joint_deg("l_eye", 118, cal) == 28 and sim.joint_deg("r_lid", 44, cal) == -40
+    # plus the horn's spline tooth at servo 90 (geometry.HORN_AT_90: lids L +13, R +6; eyes +2, centred at servo 88)
+    assert sim.joint_deg("l_eye", 118, cal) == 30 and sim.joint_deg("r_lid", 44, cal) == -40
     assert sim.joint_deg("l_lid", 51, cal) == 52  # flipped lid: the low servo end is the open (positive) side
     assert sim.calibrated_extremes(cal) == {
         "l_lid": (-41, 52),
         "r_lid": (-40, 45),
-        "l_eye": (-32, 28),
-        "r_eye": (-32, 28),
+        "l_eye": (-30, 30),
+        "r_eye": (-30, 30),
     }

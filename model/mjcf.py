@@ -28,7 +28,9 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
-VIEW_BLACK = "#5A5A60"  # the viewer draws no outlines: Absolute Black lifted past the pictures' #2B2B2E to read
+# the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
+SKY = "#F7F4EE"  # the pictures' background (model/render/blender.py BG, which runs inside Blender: not importable)
+VIEW = {g.SPOOLS["Absolute Black"]: "#5A5A60", g.SPOOLS["Pure White"]: "#E8E8E8"}
 
 
 def convex(file, clip=None):
@@ -87,7 +89,7 @@ def spec(doc):
         s.add_mesh(name=stem, file=os.path.relpath(file, BUILD), scale=[MM] * 3)
         for p in pieces[stem]:
             s.add_mesh(name=f"{stem} {stages.stem(p)}", file=os.path.relpath(p, BUILD), scale=[MM] * 3)
-    rgb = trimesh.visual.color.hex_to_rgba(scene.BG)[:3] / 255
+    rgb = trimesh.visual.color.hex_to_rgba(SKY)[:3] / 255
     # the pictures' background as the sky: a flat skybox (XMLreference.html#asset-texture, builtin "flat")
     s.add_texture(
         type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
@@ -106,10 +108,9 @@ def spec(doc):
     for name, part in stage.parts.items():
         body = frame.add_body(name=name, pos=part.matrix[:3, 3] * MM, quat=_quat(part.matrix))
         stem = stages.stem(part.file)
-        # make view only has to tell the parts apart: the colour the pictures draw it in (black lifted further)
-        drawn = scene.drawn(part.file)
-        drawn = VIEW_BLACK if drawn == scene.DRAWN[g.SPOOLS["Absolute Black"]] else drawn
-        rgba = [*trimesh.visual.color.hex_to_rgba(drawn)[:3] / 255, 1]
+        # make view only has to tell the parts apart: the part's colour, black and white pulled in (VIEW)
+        colour = scene.colour(part.file)
+        rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh carries no mass and touches nothing: the pieces do both
         body.add_geom(type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba)
         for p in pieces[stem]:

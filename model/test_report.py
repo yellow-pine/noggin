@@ -10,27 +10,19 @@ import pytest
 from model.engine import mating, run, stages
 
 HERE = os.path.dirname(__file__)
-_LID_SHUT = (
-    "the real Mech's closed end, 9 servo deg past the lid_closed that shuts the lids (#134): in the model the lid crank"
-    " meets the eye bracket's outer edge (x -27..-28) from -32, 1.0 mm deep here; the crank's plane needs the calliper"
-)
 _LID_OPEN = (
-    "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90, #134): in the model the lower lid meets the"
-    " servo bracket from +39, 1.3 mm deep at 45, 2.0 at 52 (and the upper lid 0.35 mm into the eyeball bar there); the"
-    " model's lid travel (71 deg) is short of the build's (85..93 servo deg)"
+    "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90): in the model the lower lid's back rim meets the"
+    " servo bracket's front face from +39, 1.3 mm deep at 45, 2.0 at 52 (and the upper lid 0.35 mm into the eyeball bar"
+    " there). Best guess (#170, docs/research/2026-11-01-best-guesses.md): the build runs it, so the model's lid travel"
+    " (88 deg free) is short of the build's (93 / 85 servo deg) by a lid or bracket shape error no tolerance in the sources"
+    " reaches: the tooth is held by the shut lids and the rest photo, the servo's 180 +-10 deg spec moves the end 3 deg at"
+    " most, a print tolerance of 0.2 mm 1.3 deg. Accepted, not a measurement to wait for"
 )
-_EYE = (
-    "the real Mech runs here, past +-22: the eyeball bar rides on the eye bracket and the model has it 0.26..0.5 mm in"
-    " (the eye horn 0.2..0.5 mm into the brackets at -32); the bar and rail heights need the calliper"
-)
-# (horn, calibrated end): where the model still collides and the real Mech runs. The build wins (CLAUDE.md): these are
-# model errors to fix once a build measurement settles which geometry (listed, never loosened silently).
+# (horn, calibrated end): where the model still collides and the real Mech runs, each with the reason it is accepted.
+# The build wins (CLAUDE.md): listed, never loosened silently.
 KNOWN_CALIBRATED = {
-    ("L lid horn", -41): _LID_SHUT,
-    ("R lid horn", -40): _LID_SHUT,
     ("L lid horn", 52): _LID_OPEN,
     ("R lid horn", 45): _LID_OPEN,
-    ("L eye horn", -32): _EYE,
 }
 
 
@@ -187,6 +179,12 @@ def test_known_calibrated_collisions_are_still_there():
     report = committed("noggin-eyes")
     found = {(h, v["deg"]) for h, r in report["calibrated"].items() for v in r.get("violations", [])}
     assert set(KNOWN_CALIBRATED) == found
+
+
+def test_no_listed_collision_or_mating_joint_waits_for_a_measurement():
+    """Cansin cannot measure (#170): every value is a documented best guess, nothing defers to a calliper."""
+    assert not [r for r in [*KNOWN_CALIBRATED.values(), *mating.INFERRED.values()] if "calliper" in r]
+    assert mating.INFERRED == {}  # the jaw bar seats flush (geometry.PT_BAR_PLANES)
 
 
 def test_inferred_mating_joints_still_mismatch():
