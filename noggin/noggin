@@ -10,6 +10,10 @@ usage: noggin on|off                     mute / unmute
        noggin set <key> <value>          live calibration, saved to eyes/calibration.json
        noggin reload                     resend eyes/calibration.json to the Core
        noggin exercise <minutes>         gentle run-in cycling, mid-range only
+       noggin demo [once]                loop every gesture, 5 s apart, hooks ignored (once: one round, then follow)
+       noggin demo <gesture> [level]     repeat one gesture, 5 s apart, for tuning
+       noggin follow                     back to reacting to Claude Code (the mode after any restart)
+       noggin status                     per Core: wifi <ip> uptime / usb <port> / offline; then the mode
 USAGE
 exit 2; }
 printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "noggin not running (make start)" >&2; exit 1; }
