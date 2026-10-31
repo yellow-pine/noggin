@@ -10,6 +10,7 @@ concurrency:   # one run per workflow and PR; a new push cancels the one in prog
 permissions: {}
 jobs:
   skills:
+    name: fetch skills
     # ready PRs from this repo only, dependabot's included (its runs read the Dependabot copy of the secret); npx runs
     # here, with no token and no secrets, and the review job only gets the restored files
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -27,6 +28,7 @@ jobs:
           path: .agents/skills
           include-hidden-files: true
   review:
+    name: claude
     needs: skills
     permissions:
       contents: read
