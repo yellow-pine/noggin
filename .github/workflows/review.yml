@@ -4,25 +4,46 @@ name: review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-concurrency:
-  group: review-${{ github.event.pull_request.number }}
+concurrency:   # one run per workflow and PR; a new push cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
-permissions:
-  contents: read
-  pull-requests: write
-  issues: read
-  id-token: write
+permissions: {}
 jobs:
-  review:
-    # ready PRs from this repo only (forks and dependabot get no secrets)
+  skills:
+    # ready PRs from this repo only (forks and dependabot get no secrets); npx runs here, with no token and no
+    # secrets, and the review job only gets the restored files
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: npx -y skills@1.7.4 experimental_install   # skills-lock.json into .agents/skills
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skills
+          path: .agents/skills
+          include-hidden-files: true
+  review:
+    needs: skills
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - run: npx -y skills@1.7.4 experimental_install   # skills-lock.json into .agents/skills (.claude/skills links there)
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: skills
+          path: .agents/skills   # .claude/skills links here
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
