@@ -70,17 +70,16 @@ def import_step(component, path, name, matrix=None):
     options.isViewFit = False
     occ = app.importManager.importToTarget2(options, component).item(0)
     occ.component.name = name
-    if matrix:
-        occ.transform2 = matrix
-        capture_position(app)
-    return occ
+    return reoccur(occ, matrix) if matrix else occ
 
 
-def capture_position(app):
-    """Persist occurrence moves (transform2) in a parametric design; uncaptured moves are dropped."""
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if design.snapshots.hasPendingSnapshot:
-        design.snapshots.add()
+def reoccur(occ, matrix):
+    """The same component as a new occurrence at `matrix`, replacing `occ` (setting transform2 on an imported
+    occurrence is silently dropped for the first STEP in a design; a fresh occurrence keeps its transform)."""
+    parent = occ.assemblyContext.component if occ.assemblyContext else occ.sourceComponent
+    placed = parent.occurrences.addExistingComponent(occ.component, matrix)
+    occ.deleteMe()
+    return placed
 
 
 def local(occ, point_mm, axis):
@@ -92,25 +91,57 @@ def local(occ, point_mm, axis):
     return p, a
 
 
-def sketch_point(occ, point_mm, axis="Z", name=None):
-    """Named sketch holding one point at the world position, on the component plane normal to `axis`
-    (world axis, mapped into the component). Returns (sketch, sketch point)."""
-    p, a = local(occ, point_mm, (1, 0, 0) if axis == "X" else (0, 1, 0) if axis == "Y" else (0, 0, 1))
+_NEXT = {"X": "Y", "Y": "Z", "Z": "X"}
+_UNIT = {"X": (1, 0, 0), "Y": (0, 1, 0), "Z": (0, 0, 1)}
+
+
+def _local_axis(occ, axis):
+    """(name, sign) of the component axis that the world axis maps onto."""
+    _, a = local(occ, (0, 0, 0), _UNIT[axis])
     comps = {"X": a.x, "Y": a.y, "Z": a.z}
-    local_axis = max(comps, key=lambda k: abs(comps[k]))
-    if abs(comps[local_axis]) < 0.999:
-        raise ValueError(f"{occ.name}: axis {axis} is not along a component axis")
-    sketch = occ.component.sketches.add(getattr(occ.component, _PLANE_FOR_AXIS[local_axis]))
+    name = max(comps, key=lambda k: abs(comps[k]))
+    if abs(comps[name]) < 0.999:
+        raise ValueError(f"{occ.name}: world {axis} is not along a component axis")
+    return name, (1 if comps[name] > 0 else -1)
+
+
+def sketch_point(occ, point_mm, axis="Z", name=None):
+    """Named sketch on the component plane normal to the world `axis`, holding one point at the world position.
+    Returns (sketch, sketch point)."""
+    p, _ = local(occ, point_mm, _UNIT[axis])
+    plane_axis, _ = _local_axis(occ, axis)
+    sketch = occ.component.sketches.add(getattr(occ.component, _PLANE_FOR_AXIS[plane_axis]))
     if name:
         sketch.name = name
     return sketch, sketch.sketchPoints.add(sketch.modelToSketchSpace(p))
 
 
 def joint_origin(occ, point_mm, axis):
-    """Joint origin on `occ` at the world point whose Z is the world axis ("X", "Y" or "Z"), in assembly context."""
-    _, sp = sketch_point(occ, point_mm, axis)
-    origin = occ.component.jointOrigins.add(occ.component.jointOrigins.createInput(adsk.fusion.JointGeometry.createByPoint(sp)))
+    """Joint origin on `occ` at the world point, Z along the world axis ("X", "Y" or "Z") and X along the next
+    world axis, in assembly context. Fusion aligns both frames when it adds a joint, so two origins built this
+    way at the same point leave the parts where they are."""
+    plane_axis, sign = _local_axis(occ, axis)
+    p, _ = local(occ, point_mm, _UNIT[axis])
+    _, ref = local(occ, (0, 0, 0), _UNIT[_NEXT[axis]])
+    height = getattr(p, plane_axis.lower())
+    setattr(p, plane_axis.lower(), 0.0)          # in-plane point; the out-of-plane part goes in offsetZ
+    sketch = occ.component.sketches.add(getattr(occ.component, _PLANE_FOR_AXIS[plane_axis]))
+    start = sketch.sketchPoints.add(sketch.modelToSketchSpace(p))
+    q = p.copy(); q.translateBy(ref)
+    line = sketch.sketchCurves.sketchLines.addByTwoPoints(start, sketch.modelToSketchSpace(q))
+    inp = occ.component.jointOrigins.createInput(adsk.fusion.JointGeometry.createByPoint(start))
+    inp.xAxisEntity = line
+    inp.isFlipped = sign < 0                     # Z along the world axis; offsetZ then runs along the flipped Z
+    inp.offsetZ = adsk.core.ValueInput.createByReal(height * sign)
+    origin = occ.component.jointOrigins.add(inp)
     return origin.createForAssemblyContext(occ)
+
+
+def origin_frame(origin):
+    """World (origin mm, Z, X) of a joint origin proxy, for checks."""
+    t = origin.transform
+    o = t.translation
+    return (round(o.x * 10, 2), round(o.y * 10, 2), round(o.z * 10, 2)), tuple(round(c, 2) for c in origin.primaryAxisVector.asArray()), tuple(round(c, 2) for c in origin.secondaryAxisVector.asArray())
 
 
 def _joint(root, origin_a, origin_b, name, motion):
@@ -138,6 +169,16 @@ def cylindrical(root, origin_a, origin_b, name):
 def port(occ, name, point_mm):
     """Named Port: a sketch point where a cable plugs in."""
     return sketch_point(occ, point_mm, name=f"Port: {name}")[1]
+
+
+def body_box(occ):
+    """World bounding box (mm) of the occurrence's solid bodies only (occ.boundingBox also counts sketches and planes)."""
+    lo, hi = [1e9] * 3, [-1e9] * 3
+    for b in occ.bRepBodies:
+        for i, c in enumerate("xyz"):
+            lo[i] = min(lo[i], getattr(b.boundingBox.minPoint, c) * 10)
+            hi[i] = max(hi[i], getattr(b.boundingBox.maxPoint, c) * 10)
+    return lo, hi
 
 
 def screenshot(app, path, eye_dir, up, width=1600, height=1200):

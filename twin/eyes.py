@@ -82,6 +82,7 @@ def strip_lead(battery):
     cut = comp.constructionPlanes.createInput()
     cut.setByOffset(comp.xZConstructionPlane, adsk.core.ValueInput.createByReal(BATTERY_STEP["lead_y"] / 10))
     plane = comp.constructionPlanes.add(cut)
+    plane.isLightBulbOn = False
     split = comp.features.splitBodyFeatures
     split.add(split.createInput(comp.bRepBodies.itemByName("Body1"), plane, True))
     for body in list(comp.bRepBodies):
@@ -112,12 +113,13 @@ def run(_context: str):
     stand = STANDOFFS["eyes_base"]
     receiver_at = mean(stand["receiver"])
     receiver = import_step(root, STEP["receiver"], "receiver shield + Core", align(receiver_at))
-    core = next(o for o in receiver.childOccurrences if o.name.startswith("CORE"))   # root-context proxy
+    core = next(o for o in receiver.component.occurrences if o.name.startswith("CORE"))   # receiver-local
     flip = adsk.core.Matrix3D.create()
-    flip.setToRotation(math.pi, vector(X), point(add(receiver_at, (0, 0.8, 0))))   # about the PCB mid-plane
-    t = core.transform2.copy(); t.transformBy(flip); core.transform2 = t
-    capture_position(app)
+    flip.setToRotation(math.pi, vector(X), point((0, 0.8, 0)))   # about the PCB mid-plane, receiver frame
+    t = flip.copy(); t.transformBy(core.transform2)   # transformBy post-multiplies: flip after the Core's own placement
+    core = reoccur(core, t)
     core.component.name = "Core (inferred: flipped onto the shield top)"
+    core = next(o for o in receiver.childOccurrences if o.name.startswith("Core"))      # root-context proxy
     usb = core.component.bRepBodies.itemByName("Body3").createForAssemblyContext(core).boundingBox
     assert core.boundingBox.minPoint.y * 10 > receiver_at[1], "Core must sit above the shield"
     for name, p in RECEIVER_PORTS.items():
@@ -130,7 +132,7 @@ def run(_context: str):
     battery_at = ((pocket["x"][0] + pocket["x"][1]) / 2, pocket["floor_y"] - BATTERY_STEP["floor_z"], pocket["z"][0])
     battery = import_step(root, STEP["battery"], "battery (inferred)", align(battery_at, (-1, 0, 0), Y))
     strip_lead(battery)
-    port(battery, "battery lead", add(battery_at, (-3.5, BATTERY_STEP["lead_y"], 3.5)))   # the pack's plug; wiring is out of scope
+    port(battery, "battery lead", add(battery_at, (-3.5, 3.5, 52.5)))   # the pack's plug; wiring is out of scope
 
     # Linkage parts (local-frame STLs) at their pins, then the joints.
     for s in "LR":
@@ -173,9 +175,15 @@ def run(_context: str):
     version = save(doc, f"{DOC}: rebuilt by twin/eyes.py", DOC, folder)
     ports = sum(1 for o in root.occurrences for sk in o.component.sketches if sk.name.startswith("Port:"))
     print(f"{DOC} v{version}: {root.occurrences.count} components, {root.joints.count} joints, {ports} ports")
+    print("  project files:", [(f.name, f.versionNumber) for f in folder.dataFiles])
     for j in root.joints:
         state = "ok" if j.healthState == adsk.fusion.FeatureHealthStates.HealthyFeatureHealthState else j.errorOrWarningMessage
         print(f"  joint {j.name}: {state}")
+    for o in list(root.occurrences) + list(receiver.childOccurrences):
+        lo, hi = body_box(o)
+        print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (o.name, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
     for o in root.occurrences:
-        lo, hi = o.boundingBox.minPoint, o.boundingBox.maxPoint
-        print("  %-42s x %6.1f..%6.1f  y %6.1f..%6.1f  z %6.1f..%6.1f" % (o.name, lo.x * 10, hi.x * 10, lo.y * 10, hi.y * 10, lo.z * 10, hi.z * 10))
+        for sk in o.component.sketches:
+            if sk.name.startswith("Port:"):
+                p = sk.sketchPoints.item(sk.sketchPoints.count - 1).worldGeometry.copy(); p.transformBy(o.transform2)
+                print("  %-42s (%.1f, %.1f, %.1f)" % (sk.name, p.x * 10, p.y * 10, p.z * 10))
