@@ -1,4 +1,13 @@
 #!/bin/sh
-# noggin on|off|<gesture> <1-3>|thinking|rest  -> talk to the daemon socket
-[ $# -gt 0 ] || { echo "usage: noggin on|off|thinking|rest|<eureka|attention|bored|wince> <1-3>" >&2; exit 2; }
+# Talk to the noggin Daemon socket.
+[ $# -gt 0 ] || { cat >&2 <<'USAGE'
+usage: noggin on|off                     mute / unmute
+       noggin eureka|attention|bored|wince <1-3>
+       noggin thinking|rest              background mode
+       noggin pose lids <0-1> [eyes <angle>]   hold a pose (eyes 90 = straight)
+       noggin set <key> <value>          live calibration, saved to eyes/calibration.json
+       noggin reload                     resend eyes/calibration.json to the Core
+       noggin exercise <minutes>         gentle run-in cycling, mid-range only
+USAGE
+exit 2; }
 printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "daemon not running (make daemon)" >&2; exit 1; }

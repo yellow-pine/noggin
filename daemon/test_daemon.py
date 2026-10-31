@@ -20,16 +20,22 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")  # AF_UNIX path limit 104 bytes
     state = tmp_path / "mute"
     fake = FakeSerial()
-    d = Daemon(sock_path=sock, open_serial=lambda: fake, mute_file=state)
+    cal = tmp_path / "calibration.json"; cal.write_text('{"lid_rest": 0.28, "l_eye_trim": -2}')
+    d = Daemon(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal)
     t = threading.Thread(target=d.run, daemon=True); t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
-    assert wait_for(lambda: fake.buf == b"rest\nthinking\n")   # rest on connect, then the Trigger
+    assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\nset l_eye_trim -2\nrest\nthinking\n")   # calibration + mode on connect, then the Trigger
     send(sock, "off\n")
     assert wait_for(lambda: state.exists())
     send(sock, json.dumps({"hook_event_name": "Stop", "session_id": "x"}) + "\n")
     time.sleep(0.3)
-    assert fake.buf == b"rest\nthinking\nrest\n"   # mute rests the Core; the Stop is dropped
+    assert fake.buf.endswith(b"thinking\nrest\n")   # mute rests the Core; the Stop is dropped
     send(sock, "on\n"); send(sock, "eureka 2\n")   # manual gesture for the wizard
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n"))
+    send(sock, "set lid_rest 0.3\n")                 # live tune: Core gets it, file keeps it
+    assert wait_for(lambda: fake.buf.endswith(b"set lid_rest 0.3\n"))
+    assert json.loads(cal.read_text())["lid_rest"] == 0.3
+    send(sock, "set bogus 1\n"); time.sleep(0.2)
+    assert "bogus" not in cal.read_text()
     d.stop()

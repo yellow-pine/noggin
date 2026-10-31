@@ -21,5 +21,8 @@ use; contact Yellow Pine for commercial licensing. See `LICENSE.md`.
 make test            # unit tests
 scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, calibrate, install hooks + daemon
 daemon/noggin off    # mute (on to resume); daemon/noggin eureka 2 for a manual gesture
+daemon/noggin pose lids 0.3 eyes 95     # hold a pose while you look
+daemon/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
+daemon/noggin exercise 10                # gentle run-in, 10 minutes
 make restore-stock   # put Bambu's remote-control program back on the Core
 ```
