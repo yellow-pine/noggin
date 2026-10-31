@@ -93,18 +93,18 @@ _Avoid_: firmware, app, code, sketch
 The MicroPython image flashed into the Core by Bambu's tools. Never modified by this project.
 _Avoid_: program, image, OS
 
-### Twin
+### Model
 
-**Twin**:
+**Model**:
 The Fusion 360 assembly of every stage and every piece of hardware, 1:1 with the physical Mech.
 _Avoid_: model, CAD, simulation
 
 **Stage**:
-One of the designer's three builds, eyes, pan-tilt or mouth, each its own Fusion design.
-_Avoid_: part, module, phase
+A cumulative build state of the Mech, each its own Fusion design that inserts Sub-assemblies by reference: Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
+_Avoid_: part, module, phase, top assembly
 
 **Sub-assembly**:
-A Stage's design as inserted into the top assembly.
+An ownership unit: a Fusion design that owns its parts exactly once (base, stack, eyes, mouth) and is inserted into Stages by reference.
 
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.
@@ -118,7 +118,7 @@ _Avoid_: rod, linkage
 The bent eyelid bar that turns Horn rotation into lid rotation.
 
 **Pivot**:
-A revolute axis between two parts; in the Twin, a Fusion joint.
+A revolute axis between two parts; in the Model, a Fusion joint.
 _Avoid_: hinge, axle
 
 **Port**:

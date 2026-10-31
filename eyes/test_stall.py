@@ -1,7 +1,11 @@
 """Stall-time rule: the clutch servos slip (and decalibrate) when held against a mechanical stop, so no gesture
 may keep a servo within STOP_MARGIN_DEG of a range end for more than MAX_HOLD_MS, and the poses the program holds
 indefinitely (rest, thinking) must sit clear of the margin. Uses the real eyes/calibration.json."""
-import json, os, pytest
+
+import json
+import os
+
+import pytest
 import replay
 
 CAL = json.load(open(os.path.join(os.path.dirname(__file__), "calibration.json")))

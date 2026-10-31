@@ -4,19 +4,26 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check twin-check twin-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock twin-eyes
+.PHONY: venv test check model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases lint fmt
+DOC ?= noggin-eyes   ## Stage document for model-check: noggin-eyes, noggin-pan-tilt or noggin-mouth
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
 test: venv
 	$(PY) -m pytest -q
-check: test       ## everything CI runs: tests, wizard syntax, plist validity, hook script syntax
+lint: venv       ## ruff
+	$(PY) -m ruff check
+fmt: venv        ## ruff format, in place
+	$(PY) -m ruff format
+check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard syntax, plist validity, hook script syntax
+	$(PY) -m ruff format --check
+	$(PY) -m pyright
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-twin-check: venv  ## sweep every horn joint of the DOC named in twin/check.py (Fusion open, MCP on); writes twin/build/
-	$(PY) twin/sweep.py
-	$(PY) -m pytest -q twin/test_report.py
+model-check: venv  ## sweep every horn joint of $(DOC) (Fusion open, MCP on); writes model/build/
+	$(PY) model/sweep.py $(DOC)
+	$(PY) -m pytest -q model/test_report.py
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
 	$(PY) noggin/install_hooks.py
@@ -53,7 +60,19 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-twin-proxies:   ## decimated STLs for the sweep (Blender), into twin/build/proxies
-	/Applications/Blender.app/Contents/MacOS/Blender -b -P twin/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models twin/build/proxies | grep -v '^Blender'
-twin-eyes: venv twin-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' twin/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-proxies:   ## decimated STLs for the sweep (Blender), into model/build/proxies
+	/Applications/Blender.app/Contents/MacOS/Blender -b -P model/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models model/build/proxies | grep -v '^Blender'
+model-canvases: venv   ## show/hide the reference-photo canvases of the active Fusion document
+	$(PY) scripts/fusion_run.py model/canvases.py
+model-parts: venv model-proxies   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/parts.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-base: venv model-proxies   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/base.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-stack: venv model-proxies   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/stack.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-mouth: venv model-proxies   ## rebuild the noggin-mouth Fusion design the same way
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/mouth.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-stage1 model-stage2 model-stage3: venv   ## rebuild a Stage document from the saved sub-assemblies (noggin-stage1: base + eyes; 2: + stack; 3: + mouth)
+	sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' -e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/' model/stage.py | $(PY) scripts/fusion_run.py /dev/stdin

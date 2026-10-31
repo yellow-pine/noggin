@@ -1,4 +1,5 @@
 """Seam: inline_includes(text, repo_root) replaces '# include: <path>' lines with that file's contents."""
+
 import sys
 from pathlib import Path
 
@@ -9,7 +10,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 def test_include_line_is_replaced_by_file_contents():
-    out = inline_includes("a = 1\n# include: twin/geometry.py\nprint(EYE_R)\n", REPO)
+    out = inline_includes("a = 1\n# include: model/geometry.py\nprint(EYE_R)\n", REPO)
     assert out.startswith("a = 1\n")
     assert "EYE_R = (59.0, 0.0, 0.0)" in out
     assert out.endswith("print(EYE_R)\n")

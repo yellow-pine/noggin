@@ -1,10 +1,13 @@
 import pytest
+
 import eyes as mod
 
 RANGES = {mod.L_LID: (51, 144), mod.L_EYE: (58, 118), mod.R_LID: (51, 129), mod.R_EYE: (58, 118)}
 
-def angle(duty):            # inverse of the stock bbl.servos formula; one duty step is 1.76 deg
+
+def angle(duty):  # inverse of the stock bbl.servos formula; one duty step is 1.76 deg
     return (duty - 25) * 180 / 102
+
 
 def assert_in_range_and_held(pwm_log):
     assert pwm_log, "nothing moved"
@@ -17,31 +20,42 @@ def assert_in_range_and_held(pwm_log):
         last[pin] = duty
     assert all(d != 0 for d in last.values()), "servos released: gravity would move the Mech"
 
+
 @pytest.mark.parametrize("gesture", ["eureka", "attention", "bored", "wince", "wink"])
 @pytest.mark.parametrize("intensity", [1, 2, 3])
 def test_every_gesture_stays_in_range_and_ends_held(eyes, pwm_log, gesture, intensity):
     eyes.handle_line(f"{gesture} {intensity}")
     assert_in_range_and_held(pwm_log)
 
+
 def test_bigger_eureka_moves_more(eyes, pwm_log):
-    eyes.handle_line("eureka 1"); small = len(pwm_log); pwm_log.clear()
-    eyes.handle_line("eureka 3"); big = len(pwm_log)
+    eyes.handle_line("eureka 1")
+    small = len(pwm_log)
+    pwm_log.clear()
+    eyes.handle_line("eureka 3")
+    big = len(pwm_log)
     assert big > small
 
+
 def test_unknown_line_does_nothing(eyes, pwm_log):
-    eyes.handle_line("dance 2"); eyes.handle_line(""); eyes.handle_line("eureka")
+    eyes.handle_line("dance 2")
+    eyes.handle_line("")
+    eyes.handle_line("eureka")
     assert pwm_log == []
+
 
 def test_thinking_drifts_and_rest_stops_it(eyes, pwm_log):
     eyes.handle_line("thinking")
     for t in range(0, 30_000, 100):
         eyes.tick(t)
     assert_in_range_and_held(pwm_log)
-    drifts = len(pwm_log); pwm_log.clear()
+    drifts = len(pwm_log)
+    pwm_log.clear()
     eyes.handle_line("rest")
     for t in range(30_000, 60_000, 100):
         eyes.tick(t)
-    assert len(pwm_log) < drifts / 4   # rest pose once, then nothing
+    assert len(pwm_log) < drifts / 4  # rest pose once, then nothing
+
 
 def test_thinking_blinks_occasionally(eyes, pwm_log):
     eyes.handle_line("thinking")
@@ -55,37 +69,46 @@ def test_thinking_blinks_occasionally(eyes, pwm_log):
 def last_duty(pwm_log, pin):
     return [d for p, d in pwm_log if p == pin][-1]
 
+
 def test_set_changes_calibration_live(eyes, pwm_log):
-    eyes.handle_line("set l_eye_lo 70"); eyes.handle_line("set l_eye_hi 130")   # centre becomes 100
+    eyes.handle_line("set l_eye_lo 70")
+    eyes.handle_line("set l_eye_hi 130")  # centre becomes 100
     eyes.handle_line("rest")
     moves = [d for p, d in pwm_log if p == mod.L_EYE and d]
     assert abs(angle(moves[-1]) - 100) < 1.8
+
 
 def test_set_rejects_unknown_key(eyes, pwm_log):
     before = dict(eyes.cal)
     eyes.handle_line("set nonsense 3")
     assert eyes.cal == before
 
+
 def test_blink_glides_to_lid_closed_not_the_stop(eyes, pwm_log):
     eyes.handle_line("set lid_closed 0.2")
-    eyes.handle_line("rest"); pwm_log.clear()
+    eyes.handle_line("rest")
+    pwm_log.clear()
     eyes.blink()
-    lid = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]      # R lid: open = high end
+    lid = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]  # R lid: open = high end
     lo, hi = RANGES[mod.R_LID]
-    assert min(lid) >= lo + (hi - lo) * 0.2 - 1.8                  # never past lid_closed
-    assert len(lid) >= 4                                            # glided, not snapped
+    assert min(lid) >= lo + (hi - lo) * 0.2 - 1.8  # never past lid_closed
+    assert len(lid) >= 4  # glided, not snapped
+
 
 def test_release_unpowers_and_next_command_repowers(eyes, pwm_log):
-    eyes.handle_line("rest"); eyes.handle_line("release")
+    eyes.handle_line("rest")
+    eyes.handle_line("release")
     assert last_duty(pwm_log, mod.L_EYE) == 0 and last_duty(pwm_log, mod.L_LID) == 0
     eyes.handle_line("rest")
     assert last_duty(pwm_log, mod.L_EYE) != 0
+
 
 def test_pose_holds(eyes, pwm_log):
     eyes.handle_line("pose lids 0.4 eyes 100")
     assert last_duty(pwm_log, mod.L_EYE) != 0 and last_duty(pwm_log, mod.L_LID) != 0
     moves = [d for p, d in pwm_log if p == mod.R_EYE and d]
-    assert abs(angle(moves[-1]) - 98) < 1.8                           # centre 88 + 10
+    assert abs(angle(moves[-1]) - 98) < 1.8  # centre 88 + 10
+
 
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     eyes.handle_line("exercise 1")
@@ -100,40 +123,52 @@ def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
 
 def test_think_trace_replays_the_recording_when_enabled(eyes, pwm_log):
     import gaze_trace
-    eyes.handle_line("set think_trace 1"); eyes.handle_line("thinking"); pwm_log.clear()
+
+    eyes.handle_line("set think_trace 1")
+    eyes.handle_line("thinking")
+    pwm_log.clear()
     for t in range(0, 2000, 10):
         eyes.tick(t)
     eye = [d for p, d in pwm_log if p == mod.L_EYE and d]
-    assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2    # at least one eye write per trace sample
+    assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2  # at least one eye write per trace sample
 
 
 def test_saccade_follows_the_real_profile(eyes, pwm_log):
-    eyes.handle_line("rest"); pwm_log.clear()
+    eyes.handle_line("rest")
+    pwm_log.clear()
     eyes.saccade(110)
     eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
-    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 1.8      # 16 profile points, lands on target
-    assert eye[3] < eye[-1] - 3                                      # still travelling a third of the way in
+    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 1.8  # 16 profile points, lands on target
+    assert eye[3] < eye[-1] - 3  # still travelling a third of the way in
 
 
 def test_wink_moves_one_lid_only(eyes, pwm_log):
-    eyes.handle_line("rest"); pwm_log.clear()
-    eyes.handle_line("wink 2")                                      # mech's right lid
+    eyes.handle_line("rest")
+    pwm_log.clear()
+    eyes.handle_line("wink 2")  # mech's right lid
     r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
-    l = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
-    assert max(r) - min(r) > 15 and (not l or max(l) - min(l) < 2)
+    left = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
+    assert max(r) - min(r) > 15 and (not left or max(left) - min(left) < 2)
 
 
 def test_core_json_ports_pick_the_gpio_per_servo_name(tmp_path, monkeypatch, pwm_log):
-    monkeypatch.chdir(tmp_path); monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
-    (tmp_path / "core.json").write_text('{"name": "eyes", "ports": {"1": "r_eye", "2": "r_lid", "3": "l_eye", "4": "l_lid"}}')
-    e = mod.Eyes(); pwm_log.clear()
-    e.handle_line("pose lids 0.5")                      # lids on ports 2 and 4 -> GPIO 2 and 0
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    (tmp_path / "core.json").write_text(
+        '{"name": "eyes", "ports": {"1": "r_eye", "2": "r_lid", "3": "l_eye", "4": "l_lid"}}'
+    )
+    e = mod.Eyes()
+    pwm_log.clear()
+    e.handle_line("pose lids 0.5")  # lids on ports 2 and 4 -> GPIO 2 and 0
     assert {pin for pin, _ in pwm_log} == {2, 0}
 
 
 def test_neck_core_never_drives_the_eye_pins(tmp_path, monkeypatch, pwm_log):
-    monkeypatch.chdir(tmp_path); monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
     (tmp_path / "core.json").write_text('{"name": "neck", "ports": {"1": "tilt", "2": "mouth", "3": "pan"}}')
-    e = mod.Eyes(); pwm_log.clear()
-    e.handle_line("eureka 2"); e.handle_line("wink 1")   # eye servo names unknown here: skipped, not crashed
+    e = mod.Eyes()
+    pwm_log.clear()
+    e.handle_line("eureka 2")
+    e.handle_line("wink 1")  # eye servo names unknown here: skipped, not crashed
     assert pwm_log == []

@@ -1,9 +1,14 @@
 """Seam: electrical.budget(), the dict the Mech-wide report merges (channel map, current caps, stall worst case,
 battery runtime per scenario)."""
-import importlib.util, os
 
-spec = importlib.util.spec_from_file_location("electrical", os.path.join(os.path.dirname(__file__), "electrical.py"))   # by path: eyes/ owns `eyes`
-electrical = importlib.util.module_from_spec(spec); spec.loader.exec_module(electrical)
+import importlib.util
+import os
+
+spec = importlib.util.spec_from_file_location(
+    "electrical", os.path.join(os.path.dirname(__file__), "electrical.py")
+)  # by path: eyes/ owns `eyes`
+electrical = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(electrical)
 B = electrical.budget()
 
 
@@ -21,12 +26,16 @@ def test_all_servos_at_stall_stay_under_the_3a_cap_on_each_shield():
 def test_runtime_orders_the_scenarios_and_uses_the_gesture_durations():
     h = B["runtime_h"]["core1"]
     assert h["rest"] > h["session"] > h["demo"] > 1.0
-    assert abs(B["session_moving_s_per_hour"] - (20 * 2.120 + 10 * 5.295)) < 0.01   # eureka 2, attention 1 (eyes/replay.py)
+    assert (
+        abs(B["session_moving_s_per_hour"] - (20 * 2.120 + 10 * 5.295)) < 0.01
+    )  # eureka 2, attention 1 (eyes/replay.py)
     assert B["pack"] == {"mah": 800, "cutoff_v": 5.8}
 
 
 def test_runtime_includes_the_radio_draw():
     assert B["wifi_a"] == 0.100
     h = {core: {k: round(v, 2) for k, v in hours.items()} for core, hours in B["runtime_h"].items()}
-    assert h == {"core1": {"rest": 2.76, "session": 2.70, "demo": 1.61},
-                 "core2": {"rest": 3.10, "session": 3.10, "demo": 1.93}}
+    assert h == {
+        "core1": {"rest": 2.76, "session": 2.70, "demo": 1.61},
+        "core2": {"rest": 3.10, "session": 3.10, "demo": 1.93},
+    }

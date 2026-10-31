@@ -100,3 +100,5 @@ config JSON; the mouth guide's "3rd position" wording is ambiguous). Both Cores 
 directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Each shield
 gets its own pack and switch board (one pack cannot feed two shields at stall: 2 x 2.6 A > 3 A). Electrical figures:
 docs/research/2026-10-31-electrical.md.
+
+Inventory and the remaining buy list: docs/face-design.md "Hardware" (2026-10-31).

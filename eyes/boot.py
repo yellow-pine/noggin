@@ -1,8 +1,13 @@
+# pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 # noggin: replaces Bambu's stock boot.py. Reads one command per line on USB serial;
 # with wifi.json present, also beacons and serves the same commands over UDP (eyes/wifi.py).
-import sys, select, time
-from eyes import Eyes
+import select
+import sys
+import time
+
 import wifi
+
+from eyes import Eyes
 
 e = Eyes()
 poll = select.poll()

@@ -23,8 +23,8 @@ def fit(volts=6.0):
     s = SPEC[volts]
     r = volts / s["stall_a"]
     i0 = s["running_a"]
-    kt = s["stall_kgfcm"] / (s["stall_a"] - i0)          # kgf.cm per A
-    ke = (volts - i0 * r) / rate(volts)                   # V per deg/s
+    kt = s["stall_kgfcm"] / (s["stall_a"] - i0)  # kgf.cm per A
+    ke = (volts - i0 * r) / rate(volts)  # V per deg/s
     return {"r_ohm": r, "i0_a": i0, "kt_kgfcm_per_a": kt, "ke_v_per_deg_s": ke}
 
 
