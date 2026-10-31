@@ -1,8 +1,8 @@
 """Build or rebuild the Fusion design `noggin-stack` (project Noggin): the pan-tilt neck in the PT frame (pan axis Z through
 the origin, tilt axis X at (0,-13,33.4)): bearing block, pan base, upright v2, tilt arm, the pan servo mounts and wire holder
 from the parts library (`make model-parts`, fusion_lib.insert_part), the tilt and pan servos with their half-arm horns, the
-tilt and pan bars closing the two loops, electronics set 2 (receiver shield 2 with its Core on the back standoffs, switch
-board 2, battery 2) with Ports, and the Pivots as joints. The PandT base plate it sits on is `noggin-base`; the Stage
+tilt and pan bars closing the two loops, receiver shield 2 with its Core on the back standoffs (fed by the
+base's one pack through the Y lead) with Ports, and the Pivots as joints. The PandT base plate it sits on is `noggin-base`; the Stage
 documents (model/stage.py) insert both by reference. Runs INSIDE Fusion: `make model-stack`. Numbers live in
 model/geometry.py; reuse as in eyes.py."""
 

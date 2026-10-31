@@ -32,6 +32,7 @@ STLS = {  # designer folder: the STL stems the sub-assembly builds place (the li
         "eyeball bar",
         "eyelid bar",
         "eyelid bar crank",
+        "wire keeper",  # the cable holder, moved onto the PandT base (model/electronics.py)
     ],
     "02-pan-tilt": [
         "PandT base",

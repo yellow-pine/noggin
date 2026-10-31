@@ -22,7 +22,7 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")
 
-CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A: one pack per shield
+CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
 # Both Cores stay on the Wi-Fi as stations (ADR 0005), no power save: ESP32-C3 datasheet Table 5-7 (chip peak at 3.3 V,
@@ -48,6 +48,7 @@ def budget():
         "pack": PACK,
         "stall_a": {},
         "draw_a": {},
+        "pack_a": {},
         "runtime_h": {},
         "session_moving_s_per_hour": moving_s,
         "hold_a_per_servo": HOLD_A,
@@ -61,21 +62,27 @@ def budget():
         session = rest + (demo - rest) * (moving_s / 3600 if core == "core1" else 0)  # core2 has no choreography yet
         out["stall_a"][core] = n * servo.SPEC[6.0]["stall_a"] + SHIELD_STANDBY_A + WIFI_TX_A  # all at once
         out["draw_a"][core] = {"rest": rest, "session": session, "demo": demo}
-        out["runtime_h"][core] = {k: PACK["mah"] / 1000 / a for k, a in out["draw_a"][core].items()}
+    out["pack_a"] = {k: sum(d[k] for d in out["draw_a"].values()) for k in ("rest", "session", "demo")}
+    out["pack_a"]["stall"] = sum(out["stall_a"].values())
+    out["runtime_h"] = {k: PACK["mah"] / 1000 / out["pack_a"][k] for k in ("rest", "session", "demo")}
     return out
 
 
 # The servo lead length is not published (docs/research/2026-10-31-electrical.md 1, -shafts.md): assumed 250 mm; the
-# XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list); a lead must reach with SLACK_MM to spare.
+# XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list); a lead that moves must reach with SLACK_MM to spare. The Y
+# lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
+# board is taken as 100 [I] (the battery box lead's length is not published).
 SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
 
 
 def leads():
     """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
-    shield header (CHANNELS), each pack's lead to its switch board, each switch board's XH lead to its shield. Port names
-    are the Fusion builds' (model/engine/stages.py ports); model/engine/cables.py routes each from its first Port."""
-    out = []
+    shield header (CHANNELS), the pack's lead to the switch board and the Y lead's two branches from the switch board to
+    the shields. Port names are the Fusion builds' (model/engine/stages.py ports); model/engine/cables.py routes each
+    from its first Port."""
+    out = [("pack 1 -> switch 1", "battery 1 lead", "switch board 1 in", XH_LEAD_MM)]
     for n in (1, 2):
+        out.append((f"switch 1 -> shield {n}", "switch board 1 out", f"Core {n} XH power", XH_LEAD_MM))
         for port, name in CHANNELS[f"core{n}"].items():
             out.append(
                 (
@@ -85,8 +92,6 @@ def leads():
                     SERVO_LEAD_MM,
                 )
             )
-        out.append((f"pack {n} -> switch {n}", f"battery {n} lead", f"switch board {n} hole", XH_LEAD_MM))
-        out.append((f"switch {n} -> shield {n}", f"switch board {n} hole", f"Core {n} XH power", XH_LEAD_MM))
     return out
 
 

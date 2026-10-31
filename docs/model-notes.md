@@ -28,3 +28,22 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Guide sheets (#68, `make guide-sheets`): each step of PurpleShark's three guides (model/render/guide.py STEPS: page,
   picture, parts, camera matched by eye) as a row of guide page, guide picture and the model with only that step's parts,
   one sheet per guide in model/build/pictures/guide. Visual output, never committed; the PR records which steps match.
+
+## Planned edits (notes only, never in the model; #81)
+The model follows Cansin's build, then PurpleShark's stock version (CLAUDE.md). What we plan to change stays here until
+the model stabilises.
+- One pack and one switch board per shield (CLAUDE.md, ADR 0005), instead of stock's one pack and a Y lead to both: the
+  one pack's worst case (every servo at stall, both shields, a Wi-Fi burst each) is 5.34 A against its 3 A continuous
+  (model/electrical.py `pack_a`); each shield alone stays under 3 A. Needs a second battery box and switch holder.
+- The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
+- From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used):
+  - the horns' spline tooth at servo 90: the model takes the STL pose; the rest photo does not settle it
+    (docs/research/2026-10-31-shafts.md), so the calibrated-end collisions stay listed (model/test_report.py);
+  - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
+    not published) and the Y lead's branches (100 mm each);
+  - the bracket stem's depth in the pan recess (stage 1) and in the tilt arm window (stages 2, 3) (geometry.STEM_AT);
+  - the receiver headers' PWM numbering (geometry.RECEIVER_STEP);
+  - the jaw horn pin's 0.58 mm bar/arm overlap (model/engine/mating.py INFERRED);
+  - the model limits where the model collides before the designer's ends (geometry.MODEL_LIMITS, each with its reason);
+  - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan base);
+  - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).
