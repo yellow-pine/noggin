@@ -8,7 +8,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   model/geometry.py. Electronics and servos keep their STEP appearances.
 - Screenshots use plain shading, no mesh edges (fusion_lib.screenshot). Each view is saved twice: `<stage>-<view>.png`
   clean and `<stage>-<view>-overlay.png` with the reference-photo canvases shown.
-- Reference-photo canvases sit at 25 % opacity, in model/build only (never committed); the model must stay legible
-  through them.
+- Reference-photo canvases sit at 25 % opacity and are hidden by default in the saved document (shown only while
+  the overlay screenshots are captured); `make model-canvases` toggles them in the active document.
 - Views: top (looking down -Y, up +Z), side (looking +X, up +Y), front (looking +Z, up +Y) of the eyes frame.
 - Replay GIFs and canvases only for the eyes Stage (80/20 trim); later Stages get the three plain views.
