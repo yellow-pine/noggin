@@ -33,7 +33,7 @@ FRESH = []  # names imported by the current build (reset by open_or_create; Fusi
 def open_or_create(app, name, keep_parts=False):
     """Open the design `name` in project Noggin (or a new one), parametric. Emptied of occurrences unless
     keep_parts: then the timeline is cut where the last build's parts_end() put it, so only the cheap features
-    every build recreates (Ports, pivots, joints, rigid groups, canvases) go and the occurrences stay for
+    every build recreates (Ports, pivots, joints, rigid groups) go and the occurrences stay for
     insert_part to reuse.
     Returns (document, design, folder); pass the folder to save()."""
     folder = project_root(app)

@@ -1,4 +1,4 @@
-# Model notes (Fusion documents of the Mech)
+# Model notes
 
 Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); structure: docs/adr/0004.
 
