@@ -34,8 +34,8 @@ Horn = namedtuple(
 Sub = namedtuple(
     "Sub", "parts horns placements ports"
 )  # ports: {Port name: (part, local mm)}, as the Fusion builds name them
-Stage = namedtuple(
-    "Stage", "doc parts horns placements up ports"
+Doc = namedtuple(
+    "Doc", "doc parts horns placements up ports"
 )  # up: index of the document frame's up axis (gravity torque)
 Pose = namedtuple("Pose", "parts joints")
 
@@ -361,7 +361,7 @@ def assemble(doc, frames, up, context=()):
                             todo.append(n)
                 loops.append(loop._replace(rockers=rockers))
             horns[h] = horn._replace(loops=loops)
-    return Stage(doc, parts, horns, placements, up, ports)
+    return Doc(doc, parts, horns, placements, up, ports)
 
 
 def stage(doc):
