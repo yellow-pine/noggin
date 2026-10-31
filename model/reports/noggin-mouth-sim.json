@@ -426,14 +426,14 @@
   ],
   "switch board 1:1": [
    [
-    6.0,
-    -30.2,
-    68.0
+    -21.0,
+    -34.2,
+    121.0
    ],
    [
-    26.5,
-    -10.44,
-    100.0
+    11.0,
+    -14.44,
+    141.5
    ]
   ],
   "battery 1:1": [
@@ -529,9 +529,9 @@
  "stage": {
   "total_g": 369.3,
   "com": [
-   34.9,
+   34.7,
    -25.2,
-   48.7
+   49.2
   ]
  },
  "calibrated": {},
@@ -1344,7 +1344,7 @@
   "mating jaw horn pin: overlap 0.28 mm between ['connector bar:1', 'jaw horn:1'] (inferred: the connector bar's horn end (13 mm crank from its jaw end on the jaw lug's outer face, STL) runs under the horn arm (seat 11.52 past the tab plane, STEP): 0.58 mm across, no source places either otherwise; the horn's seat on the real spline needs the calliper)"
  ],
  "inputs": {
-  "stamp": "d725daf820af332480aa0dced7a6b4d043c9a15ba87c0150fa0b736c311a9118",
+  "stamp": "4fbd3da594834190811f3167010518b9f8171fff73a8db5c71c627c8b5b52dfb",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -1440,9 +1440,9 @@
    ]
   },
   "pack 1 -> switch 1": {
-   "max_mm": 72.5,
+   "max_mm": 71.6,
    "at": {},
-   "min_mm": 72.5,
+   "min_mm": 71.6,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -1454,9 +1454,9 @@
    ]
   },
   "switch 1 -> shield 1": {
-   "max_mm": 54.3,
+   "max_mm": 69.0,
    "at": {},
-   "min_mm": 54.3,
+   "min_mm": 69.0,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -1464,7 +1464,7 @@
    "clearance_at": null,
    "clearance_part": null,
    "waypoints": [
-    "along the plate to the shield's XH socket (inferred)"
+    "from the back-edge holder along the plate's +x edge past shield 2 (inferred)"
    ]
   }
  }

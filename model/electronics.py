@@ -34,9 +34,9 @@ def electronics(root, n, reuse, ports):
         root,
         "switch board",
         f"switch board {n}" + (" (inferred)" if n == 2 else ""),
-        align(switch_at(n), *SWITCH_AXES, SWITCH_STEP["hole"]),
+        align(*switch_at(n), SWITCH_STEP["hole"]),
         reuse=reuse,
-    )  # hole on the standoff top
+    )  # hole on its post top
     battery_pos = battery_at(n)
     battery = insert_part(
         root, "battery", "battery 1" if n == 1 else "battery 2 (inferred)", align(battery_pos, X, Z), reuse=reuse

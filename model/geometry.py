@@ -126,7 +126,7 @@ STANDOFFS = {
         "receiver_1": [(26.0, 40.5, 13.0), (50.0, 40.5, 13.0), (26.0, 63.5, 13.0), (50.0, 63.5, 13.0)],
         "receiver_2": [(26.0, 73.5, 13.0), (50.0, 73.5, 13.0), (26.0, 96.5, 13.0), (50.0, 96.5, 13.0)],
         "switch": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
-        "switch_post": [(34.5, 108.5, 7.7)],  # the single back post the eyes-only build hangs the switch on (photo)
+        "switch_post": [(34.5, 108.5, 9.0)],  # switch board 1's post in the two-clip holder at the back edge [M]
         "wire_keeper": [(-7.5, 40.5, 7.7), (7.5, 40.5, 7.7)],
     },
 }
@@ -319,12 +319,14 @@ BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
 # Electronics set n on the PandT base (model/electronics.py, model/engine/stages.py), PT frame, oriented as the designer's
 # build: the receiver's XH socket to the front and the Core on top (the STEP has the Core under the shield: flipped about
-# the PCB mid-plane). Our build runs one pack and one switch board per shield (docs/build-notes.md); the base has one
-# battery box and one pair of switch standoffs, so set 2 is inferred: the switch boards hang one per standoff (as the
-# eyes-only build hangs its switch on a single post) and battery 2 lies on top of battery 1 in the box.
+# the PCB mid-plane). Switch board 1 lies in the base's two-clip holder at the back edge, slide switch lever up at the
+# back, reachable from behind (Cansin's build, docs/build-photos/eyes-top.jpg; eyes guide p.13, pan-tilt guide p.23):
+# PCB bottom on the clip shelves and the post (all top z 9), between the clip walls (x 18 / 51) against the back wall
+# (y 126), the slide switch's underside dropping between the shelves [M]. Set 2 (switch board 2 on the standoff at
+# (6, 92.5), battery 2 on top of battery 1 in the box) is inferred.
 RECEIVER_AXES = ((0, -1, 0), (-1, 0, 0))  # (x, z) of the receiver STEP
 CORE_FLIP = ((0, 0, 1), 180, (0, 0.8, 0))  # (axis, deg, about local mm)
-SWITCH_AXES = ((-1, 0, 0), (0, 1, 0))  # (x, z) of the switch STEP, its hole on the standoff top
+SWITCH_AXES = {1: ((0, -1, 0), (-1, 0, 0)), 2: ((-1, 0, 0), (0, 1, 0))}  # (x, z) of the switch STEP per set
 BATTERY_STACK_Z = 16.3  # pack height: the second pack's floor sits on the first pack's top [I]
 
 
@@ -334,7 +336,9 @@ def receiver_at(n):
 
 
 def switch_at(n):
-    return STANDOFFS["pt_base"]["switch"][n - 1]  # [I] for set 2
+    """(point, x, z): switch board n's mounting hole on its post top and its STEP's axes, align's first arguments."""
+    point = STANDOFFS["pt_base"]["switch_post"][0] if n == 1 else STANDOFFS["pt_base"]["switch"][1]  # [I] for set 2
+    return point, *SWITCH_AXES[n]
 
 
 def battery_at(n):

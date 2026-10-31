@@ -66,9 +66,9 @@ def swept(doc, routes=None):
 def test_every_lead_of_the_full_mech_has_a_corridor_longer_than_its_straight_reach():
     report, _ = swept("noggin-stage3")
     assert len(report) == 7 + 2 + 2
-    # static: pack 1's plug (-32.5, 123.5, 14.65) to switch board 1's hole on its standoff (6, 68.5, 13), 67.2 straight
+    # static: pack 1's plug (-32.5, 123.5, 14.65) to switch board 1's hole on its holder post (34.5, 108.5, 9), 68.9 straight
     pack = report["pack 1 -> switch 1"]
-    assert 67.2 < pack["min_mm"] == pack["max_mm"] < pack["limit_mm"] == 80
+    assert 68.9 < pack["min_mm"] == pack["max_mm"] < pack["limit_mm"] == 80
     lid = report["l_lid servo -> Core 1 PWM1"]
     assert lid["limit_mm"] == 230 and lid["min_mm"] < lid["max_mm"]  # the head moves the clipped waypoints
     assert set(lid["at"]) <= {"pan horn", "tilt horn"}

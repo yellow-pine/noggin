@@ -83,18 +83,18 @@ ROUTES = {
         ]
         for n in (1, 2)
     },
-    **{
-        f"switch {n} -> shield {n}": [
-            [
-                (
-                    "PandT base:1",
-                    (25.0, 52.0 + 33.0 * (n - 1), 6.0),
-                    "along the plate to the shield's XH socket (inferred)",
-                )
-            ]
+    "switch 1 -> shield 1": [
+        [
+            (
+                "PandT base:1",
+                (55.0, 85.0, 6.0),
+                "from the back-edge holder along the plate's +x edge past shield 2 (inferred)",
+            )
         ]
-        for n in (1, 2)
-    },
+    ],
+    "switch 2 -> shield 2": [
+        [("PandT base:1", (25.0, 85.0, 6.0), "along the plate to the shield's XH socket (inferred)")]
+    ],
 }
 # The part each clip is mounted on: exempt with it (a lead lies against what holds it).
 CARRIER = {
