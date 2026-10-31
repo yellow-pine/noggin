@@ -29,8 +29,8 @@ def test_every_horn_link_and_the_bracket_stem_has_a_placement_tolerance():
         if "horn" in part or (" bar:1" in part and "eyeball" not in part) or "crank" in part or "servo:1" in part:
             assert part in placed, part
     assert placed["main bracket v2:1"] == stages.TOL_INFERRED_MM  # the stem in the tilt arm window, depth inferred
-    # its holes on the pins: the lid STLs' pose is not the neutral one, 41.6 mm apart against the bar's 41
-    assert placed["L eyelid bar:1"] == stages.TOL_INFERRED_MM
+    # its holes on the pins: the lid horn's neutral fits both lid loops within 0.14 (geometry.LID_HORN_ARM)
+    assert placed["L eyelid bar:1"] == stages.TOL_MM
 
 
 def test_sub_assemblies_place_the_geometry_parts_tables():
@@ -80,7 +80,7 @@ def test_stage_documents_place_the_sub_assemblies_once_at_their_frames():
         "jaw horn",
     }
     moved = stages.pose(s3, "L lid horn", 20)  # the eyes chain still closes in the PT frame
-    assert moved.joints == pytest.approx({"L inside lid pivot": 21.24, "L outside lid pivot": -19.33}, abs=0.01)
+    assert moved.joints == pytest.approx({"L inside lid pivot": 21.02, "L outside lid pivot": -19.81}, abs=0.01)
     for name in ("L servo bracket:1", "PandT base:1", "tilt arm:1"):
         assert np.allclose(moved.parts[name], s3.parts[name].matrix)
 
@@ -106,13 +106,14 @@ def test_lid_horn_pose_moves_the_crank_bars_and_lids_as_one_closed_loop():
     local_bar, local_lid = np.linalg.inv(bar0) @ [*lid_pin, 1], np.linalg.inv(lid0) @ [*lid_pin, 1]
     assert np.allclose(bar @ local_bar, lid @ local_lid, atol=1e-6)  # the loop closes
     assert np.allclose(bar @ local_bar, [*lid_pin, 1]) is False  # and it moved
-    horn_pin = (-28.5, g.PIVOTS["l_lid_horn"]["point"][1] + g.HORN_STEP["pin"], 40.0)
+    _, y, z = g.PIVOTS["l_lid_horn"]["point"]
+    horn_pin = (-28.5, y + g.HORN_STEP["pin"] * g.LID_HORN_ARM[1], z + g.HORN_STEP["pin"] * g.LID_HORN_ARM[2])
     assert np.allclose(
         moved.parts["L lid horn:1"] @ (np.linalg.inv(neutral.parts["L lid horn:1"]) @ [*horn_pin, 1]),
         bar @ (np.linalg.inv(bar0) @ [*horn_pin, 1]),
         atol=1e-6,
     )
-    assert moved.joints == pytest.approx({"L inside lid pivot": 21.24, "L outside lid pivot": -19.33}, abs=0.01)
+    assert moved.joints == pytest.approx({"L inside lid pivot": 21.02, "L outside lid pivot": -19.81}, abs=0.01)
 
 
 def test_pan_pose_carries_the_whole_tilt_mechanism_round_the_pan_axis():
@@ -171,11 +172,11 @@ def test_lid_linkage_topology_follows_the_build(s):
     m = stage.parts[crank].matrix
     stepped, plain = world(m, (-20.5, 0, 4.5)), world(m, (20.5, 0, 1.5))  # the crank STL's raised end and plain end
     # the link is placed by its horn hole and aligned toward the lid pin: the holes' 41 mm pitch leaves the far hole
-    # within 1 mm of the pin (the joints meet at the pins, as Fusion's do)
-    assert plain == pytest.approx((x(-28.5), -0.46, 40.0))  # horn pin, outermost
+    # within 0.2 mm of the pin (the joints meet at the pins, as Fusion's do; geometry.LID_HORN_ARM)
+    assert plain == pytest.approx((x(-28.5), -0.485, 39.202), abs=1e-3)  # horn pin, outermost
     assert stepped[0] == pytest.approx(x(-25.5))  # bar 3 thick on the inside lid's ear face (x -24)
-    assert math.dist(stepped[1:], (12.0, 0.0)) < 1.0  # at the inside (top) lid's pin
+    assert math.dist(stepped[1:], (12.0, 0.0)) < 0.2  # at the inside (top) lid's pin
     straight_horn_end = world(stage.parts[bar].matrix, (20.5, 0, 1.5))
-    assert straight_horn_end == pytest.approx((x(-25.5), -0.46, 40.0))
+    assert straight_horn_end == pytest.approx((x(-25.5), -0.485, 39.202), abs=1e-3)
     horn_x = world(stage.parts[f"{s} lid horn:1"].matrix, g.HORN_STEP["hub"])[0]
     assert out * horn_x < out * straight_horn_end[0] < out * plain[0]  # horn, straight bar, crank (under the nut)

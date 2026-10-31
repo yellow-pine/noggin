@@ -24,5 +24,11 @@
                                             "clearance_mm": -0.8, "clearance_at": {"tilt horn": -60}, "clearance_part": "pan bar:1", "waypoints": ["behind the lid servo (inferred)"]},
                "pack 1 -> switch 1": {"max_mm": 72.5, "at": {}, "min_mm": 72.5, "min_at": {}, "length_mm": 100, "limit_mm": 80,
                                       "clearance_mm": 10.0, "clearance_at": null, "clearance_part": null, "waypoints": ["onto the plate (inferred)"]}},
- "electrical": {"cap_a": 3.0, "stall_a": {"core1": 3.2, "core2": 2.3}}
+ "electrical": {"cap_a": 3.0, "stall_a": {"core1": 3.2, "core2": 2.3}},
+ "mating": [{"joint": "L lid servo / L servo bracket upper tab screw", "kind": "coaxial", "parts": ["L lid servo:1", "L servo bracket:1"], "mm": 0.35, "ok": false},
+            {"joint": "L eye horn / L eyeball bar pin", "kind": "coaxial", "parts": ["L eye horn:1", "L eyeball bar:1"], "mm": 0.21, "ok": false, "inferred": "no source settles it"},
+            {"joint": "L lid servo in its mount", "kind": "overlap", "parts": ["L lid servo:1", "L servo bracket:1"], "mm": 0.4, "ok": false},
+            {"joint": "R lid servo in its mount", "kind": "seat", "parts": ["R lid servo:1", "R servo bracket:1"], "mm": 0.3, "ok": false},
+            {"joint": "pan servo lead exit", "kind": "lead", "parts": ["pan servo:1", "servo mount plain:1"], "mm": null, "ok": false},
+            {"joint": "jaw servo / jaws servo mount lower tab screw", "kind": "coaxial", "parts": ["jaw servo:1", "jaws servo mount:1"], "mm": null, "ok": false, "missing": "jaws servo mount:1"}]
 }

@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from model.engine import run, stages
+from model.engine import mating, run, stages
 
 HERE = os.path.dirname(__file__)
 _LID = (
@@ -18,7 +18,8 @@ _EYE = (
     "the real Mech runs here, past +-22: the eyeball bar rides on main bracket v2 and the model has it 0.26..0.5 mm in"
     " (the eye horn 0.2..0.5 mm into the brackets at -32); the bar and rail heights need the calliper"
 )
-# (horn, calibrated end): why the model still collides where the real Mech runs (listed, never loosened silently).
+# (horn, calibrated end): where the model still collides and the real Mech runs. The build wins (CLAUDE.md): these are
+# model errors to fix once a build measurement settles which geometry (listed, never loosened silently).
 KNOWN_CALIBRATED = {
     ("L lid horn", -54): _LID,
     ("R lid horn", -46): _LID,
@@ -31,7 +32,7 @@ KNOWN_CALIBRATED = {
 
 def problems(report):
     """Every threshold the report fails: penetrations and misplaced parts (violations; a 0 mm contact with nothing
-    inside is designed), fits, beams, torque, tip-over, clutch, cable corridors (path length, clearance), the electrical cap and the calibrated ends."""
+    inside is designed), fits, beams, torque, tip-over, clutch, cable corridors (path length, clearance), the electrical cap, the calibrated ends and the mating check."""
     out = [f"violation: {v}" for v in report["violations"]]
     for f in report.get("fits", []):
         if not f["ok"]:
@@ -81,6 +82,19 @@ def problems(report):
         for v in c.get("violations", []) if not c["inferred"] else []:
             if (horn, v["deg"]) not in KNOWN_CALIBRATED:
                 out.append(f"calibrated {horn}: collision at {v['deg']} deg between {v['pair']}")
+    for m in report.get("mating", []):  # model/engine/mating.py; an inferred joint warns instead (run.warnings)
+        if m["ok"] or m.get("inferred"):
+            continue
+        if "missing" in m:
+            out.append(f"mating {m['joint']}: no hole feature found on {m['missing']}")
+        elif m["kind"] == "overlap":
+            out.append(f"mating {m['joint']}: {m['mm']} mm into {m['parts'][1]}")
+        elif m["kind"] == "lead":
+            out.append(f"mating {m['joint']}: the lead runs into {m['parts'][1]}")
+        elif m["kind"] == "seat":
+            out.append(f"mating {m['joint']}: {m['mm']} mm off {m['parts'][1]}")
+        else:
+            out.append(f"mating {m['joint']}: axes {m['mm']} mm apart > {mating.COAXIAL_MM}")
     return out
 
 
@@ -120,6 +134,11 @@ FIXTURE_PROBLEMS = {
         "corridor l_lid servo -> Core 1 PWM1: tube 0.8 mm into pan bar:1 at {'tilt horn': -60}",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
+        "mating L lid servo / L servo bracket upper tab screw: axes 0.35 mm apart > 0.2",
+        "mating L lid servo in its mount: 0.4 mm into L servo bracket:1",
+        "mating R lid servo in its mount: 0.3 mm off R servo bracket:1",
+        "mating pan servo lead exit: the lead runs into servo mount plain:1",
+        "mating jaw servo / jaws servo mount lower tab screw: no hole feature found on jaws servo mount:1",
     ],
 }
 
@@ -136,7 +155,9 @@ def test_calibrated_end_collisions_warn_while_the_horn_is_inferred_and_fail_once
     assert not any("L eye horn" in p for p in problems(report))
     assert run.warnings(report) == [
         "calibrated L eye horn: collision at -32 deg between ['L eyeball bar', 'main bracket v2']"
-        " (pivot inferred: fails once measured)"
+        " (pivot inferred: fails once measured)",
+        "mating L eye horn / L eyeball bar pin: coaxial 0.21 mm between ['L eye horn:1', 'L eyeball bar:1'] (inferred:"
+        " no source settles it)",
     ]
     assert (
         committed("noggin-eyes")["warnings"] == run.warnings(committed("noggin-eyes")) == []
@@ -149,3 +170,9 @@ def test_known_calibrated_collisions_are_still_there():
         (h, v["deg"]) for c in ("noggin-eyes",) for h, r in committed(c)["calibrated"].items() for v in r["violations"]
     }
     assert set(KNOWN_CALIBRATED) == found
+
+
+def test_inferred_mating_joints_still_mismatch():
+    """When the model changes so a mating.INFERRED joint lines up, drop it."""
+    found = {m["joint"] for doc in stages.DOCS for m in committed(doc).get("mating", []) if not m["ok"]}
+    assert set(mating.INFERRED) <= found
