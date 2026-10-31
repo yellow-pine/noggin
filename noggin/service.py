@@ -3,11 +3,17 @@ Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the D
 plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
 `pose ...` / `exercise <min>` (passed to the Core) / `set <key> <value>` (saved to the calibration
 file and sent) / `reload` (resend the file). The whole file is pushed whenever the Link connects."""
-import glob, json, os, socket, sys, time
+
+import glob
+import json
+import os
+import socket
+import time
 from pathlib import Path
+
 from reactions.director import Director
 
-SOCK = os.path.expanduser("~/.noggin.sock")      # AF_UNIX paths max 104 bytes: keep it short
+SOCK = os.path.expanduser("~/.noggin.sock")  # AF_UNIX paths max 104 bytes: keep it short
 MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
 PORT_GLOB = "/dev/cu.usbmodem*"
@@ -20,6 +26,7 @@ def log(*a):
 
 def open_link():
     import serial
+
     for dev in sorted(glob.glob(PORT_GLOB)):
         try:
             ser = serial.Serial(dev, 115200, timeout=0.2, exclusive=True)
@@ -61,13 +68,16 @@ class Service:
 
     def drop_link(self, e):
         log("Link lost:", e)
-        try: self.link.close()
-        except Exception: pass
+        try:
+            self.link.close()
+        except Exception:
+            pass
         self.link = None
 
     def send(self, lines):
         if not lines or self.link is None:
-            if lines: log("no Link, dropped", lines)
+            if lines:
+                log("no Link, dropped", lines)
             return
         try:
             self.link.write(("\n".join(lines) + "\n").encode())
@@ -77,10 +87,13 @@ class Service:
 
     def command(self, text, now):
         if text == "off":
-            self.mute_file.touch(); log("muted")
-            return self.send(self.director.mute() + ["release"])   # muted: unpower, let it slump
+            self.mute_file.touch()
+            log("muted")
+            return self.send(self.director.mute() + ["release"])  # muted: unpower, let it slump
         if text == "on":
-            self.director.muted = False; self.mute_file.unlink(missing_ok=True); log("unmuted")
+            self.director.muted = False
+            self.mute_file.unlink(missing_ok=True)
+            log("unmuted")
             return
         if text == "reload":
             return self.send(self.cal_lines())
@@ -93,18 +106,24 @@ class Service:
             self.cal_file.write_text(json.dumps(cal, indent=1) + "\n")
             return self.send([text])
         if text.startswith("{"):
-            try: event = json.loads(text)
-            except ValueError: return log("bad json")
+            try:
+                event = json.loads(text)
+            except ValueError:
+                return log("bad json")
             return self.send(self.director.handle(event, now))
         if text.split()[0] in MANUAL:
             return self.send([text])
         log("ignored", repr(text))
 
     def run(self):
-        try: os.unlink(self.sock_path)
-        except FileNotFoundError: pass
+        try:
+            os.unlink(self.sock_path)
+        except FileNotFoundError:
+            pass
         srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        srv.bind(self.sock_path); srv.listen(8); srv.settimeout(0.2)
+        srv.bind(self.sock_path)
+        srv.listen(8)
+        srv.settimeout(0.2)
         log("listening on", self.sock_path, "muted" if self.director.muted else "")
         self.ready = True
         while self.running:
@@ -112,18 +131,20 @@ class Service:
             if self.link is None and now - self.last_probe > 2.0:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
-                    self.send(self.cal_lines() + [self.director.mode()])   # calibrate, then catch up the mode
+                    self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
             self.send(self.director.tick(now))
             if self.link is not None:
                 self.read_core()
             try:
                 conn, _ = srv.accept()
-            except socket.timeout:
+            except TimeoutError:
                 continue
             with conn:
                 conn.settimeout(0.5)
-                try: data = conn.recv(65536).decode()
-                except (socket.timeout, UnicodeDecodeError): data = ""
+                try:
+                    data = conn.recv(65536).decode()
+                except (TimeoutError, UnicodeDecodeError):
+                    data = ""
             for line in data.splitlines():
                 if line.strip():
                     self.command(line.strip(), now)

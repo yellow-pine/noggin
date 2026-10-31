@@ -1,5 +1,8 @@
 # noggin: replaces Bambu's stock boot.py. Reads one command per line on USB serial.
-import sys, select, time
+import select
+import sys
+import time
+
 from eyes import Eyes
 
 e = Eyes()
