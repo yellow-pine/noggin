@@ -112,8 +112,7 @@ def test_vendor_and_designer_names_only_in_credits():
     files = [
         f
         for f in tracked
-        # CLAUDE.md is the agents' instructions, like GLOSSARY's avoid lists it names what to keep out
-        if f not in {"test_vocabulary.py", "CLAUDE.md"}
+        if f not in {"test_vocabulary.py"}
         and not re.match(r"docs/research/\d{4}-\d\d-\d\d-", f)
         and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
         and (ROOT / f).is_file()
