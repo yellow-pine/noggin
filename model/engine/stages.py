@@ -26,7 +26,7 @@ SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances, as check.py
 
-Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery lead
+Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
 Horn = namedtuple(
     "Horn", "pivot limits crank loops still frame"
@@ -92,7 +92,10 @@ def servo_and_horn(key, label, arm):
     seat = np.add(origin, np.multiply(g.SERVO_STEP["horn_seat"], shaft))
     return {
         f"{label} servo:1": part(
-            step("servo"), align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]), (SERVO_G, "documented")
+            step("servo"),
+            align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]),
+            (SERVO_G, "documented"),
+            ("x", g.SERVO_STEP["lead"][0]),
         ),
         f"{label} horn (inferred):1": part(
             step("horn"), align(seat, arm, shaft, g.HORN_STEP["hub"]), (STEP_G_CM3, "step volume x 1.9 g/cm3")

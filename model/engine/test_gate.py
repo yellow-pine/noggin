@@ -57,6 +57,7 @@ pytestmark = pytest.mark.skipif(
 def test_curves_within_a_degree(doc):
     recorded = json.load(open(os.path.join(HERE, "reports", f"{doc}-report.json")))
     mine = engine(doc)["curves"]
+    stage = stages.STAGES[doc]
     off = []
     for horn, curves in recorded["curves"].items():
         for joint, pts in curves.items():
@@ -64,8 +65,10 @@ def test_curves_within_a_degree(doc):
             for deg, rec in pts:
                 if (doc, horn, deg) in KNOWN:
                     continue
-                if deg not in got or abs(got[deg] - rec) > CURVE_DEG:
-                    off.append((horn, joint, deg, rec, got.get(deg)))
+                if deg not in got:  # recorded past a limit narrowed since (geometry.HORN_LIMITS [I]): pose it directly
+                    got[deg] = stages.pose(stage, horn, deg).joints[joint]
+                if abs(got[deg] - rec) > CURVE_DEG:
+                    off.append((horn, joint, deg, rec, got[deg]))
     assert off == []
 
 

@@ -27,7 +27,7 @@ def load(stage, names=None):
         v, f = mesh.vertices, mesh.faces
         if (
             part.clip
-        ):  # shortcut: faces past the cut are dropped, no cap (the battery lead; the pack is grounded context)
+        ):  # shortcut: faces past the cut are dropped, no cap (the battery and servo leads: flexible, not rigid stubs)
             axis, cut = part.clip
             f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
         mesh = trimesh.Trimesh(*bisect(v, f, MAX_EDGE_MM))

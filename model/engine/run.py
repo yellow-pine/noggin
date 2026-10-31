@@ -12,8 +12,8 @@ import sys
 import time
 from multiprocessing import get_context
 
-from model import beams, fits, sim
-from model.engine import linkage, masses, meshes, stages
+from model import beams, electrical, fits, sim
+from model.engine import linkage, masses, mech, meshes, stages
 
 OUT = os.path.join(stages.REPO, "model", "build")
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # as check.py: below 0.1 mm the parts overlap
@@ -206,13 +206,40 @@ def report(doc, parallel=True):
                     )
                 else:
                     out[key].append(hit)
+    peak = mech.peak_accel(json.load(open(os.path.join(stages.REPO, "eyes", "calibration.json"))))
+    dynamic = {
+        h: mech.dynamic_torque(stage, table, h, sorted(int(d) for d in v["poses"]), peak.get(mech.HORN_SERVO[h], 0.0))
+        for h, v in out["horns"].items()
+        if v["poses"]
+    }
     joints, links = [], []
     for sub in stages.DOCS[doc][0]:  # fits and beams of the sub-assemblies present
         j, l = TABLES.get(sub, ([], []))
         joints += j
         links += l
     sim.UP[doc] = stage.up
-    return sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
+    out = sim.enrich(out, fits.fit_table(joints), beams.beam_table(links))
+    out["clutch"] = {h: mech.clutch(by_deg) for h, by_deg in dynamic.items()}
+    if {mech.PAN, mech.TILT} <= set(stage.horns):  # the neck on the base: the Mech can tip
+        outline = mech.footprint(placed["PandT base:1"].vertices)
+        out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
+        out["cable_reach"] = mech.cable_reach(stage, STEP_DEG)
+    if all(p in stage.parts for p in electrical.SERVO_PART.values()):  # the whole Mech: both Cores
+        out["electrical"] = electrical.budget()
+    for h, by_deg in dynamic.items():
+        t = out["torque"][h]
+        if mech.HORN_SERVO[h] not in peak:  # untraced (Core 2): what its choreography may reach
+            t["accel_limit_deg_s2"] = round(mech.accel_limit(by_deg, t["limit_kgf_cm"]))
+            t["inertia_g_mm2"] = round(max(v["inertia_g_mm2"] for v in by_deg.values()))
+            continue
+        deg = max(by_deg, key=lambda d: by_deg[d]["kgf_cm"])
+        t.update(
+            dynamic_kgf_cm=round(by_deg[deg]["kgf_cm"], 3),
+            dynamic_at_deg=deg,
+            inertia_g_mm2=round(by_deg[deg]["inertia_g_mm2"]),
+            accel_deg_s2=round(peak[mech.HORN_SERVO[h]]),
+        )
+    return out
 
 
 def main(docs):

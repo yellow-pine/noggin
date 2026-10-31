@@ -4,8 +4,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: make check
       - run: sudo apt-get install -y shellcheck
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose

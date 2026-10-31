@@ -23,7 +23,7 @@ def test_horn_limits_match_designer_config():
         "l_eye": (70, 110),
         "r_lid": (70, 120),
         "r_eye": (70, 110),
-        "tilt": (20, 150),
+        "tilt": (30, 150),  # tilt: 20 in the config; the inferred horn reaches the pan base below 30, see geometry.py
         "rotate": (40, 160),
         "mouth": (50, 90),  # mouth: opening side only (config says 0..180), see geometry.py
     }

@@ -38,7 +38,9 @@ HORN_LIMITS = {
     "l_eye": (70, 110),
     "r_lid": (70, 120),
     "r_eye": (70, 110),  # eye +-20 [I]: the eyeball bar enters the bracket at +-25 in the model (inferred horn pivot)
-    "tilt": (20, 150),
+    # tilt [I]: the config says 20, but at 20..29 the inferred tilt horn and bar sweep into the pan base's front chord
+    # (contact from horn -61 deg, 1.05 mm deep at -70): the lower end stops at 30 until the tilt servo shaft is measured.
+    "tilt": (30, 150),
     "rotate": (40, 160),
     # mouth [I]: the config says 0..180, but the jaws are modelled closed at neutral and the connector-bar four-bar only
     # has solutions on the opening side (horn -45..0 = jaw -40..0 deg; driven past 0 Fusion flips the jaw): one side only.
@@ -123,9 +125,27 @@ BARS = {
 # single arm ("half arm1"): hub at (0,20,0), bore along Z, arm along +X with holes every 2 mm; the build pins
 # the bars at the second-from-last hole (guide p.15), 12.75 from the hub. Receiver: PCB bottom y=0, 23 x 24
 # holes, Core under the PCB.
-SERVO_STEP = {"tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)], "shaft": (16.69, 5.9, -0.65), "horn_seat": 10.35}
+SERVO_STEP = {
+    "tab_holes": [(-2.55, 5.9, -0.65), (25.25, 5.9, -0.65)],
+    "shaft": (16.69, 5.9, -0.65),
+    "horn_seat": 10.35,
+    # where the lead leaves the servo: the STEP's three wires run straight on to x=42, the real lead is flexible, so the
+    # mesh is cut there (the tab end) and the cable reach measures from there
+    "lead": (27.7, 5.9, 11.0),
+}
 HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}  # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
+# Receiver STEP Ports: the four servo headers and the XH power socket (top centres); the PWM numbering of the headers is
+# inferred. The switch board's two XH sockets are not located: the cable reach takes its mounting hole for both [I].
+RECEIVER_STEP = {
+    "headers": {
+        "PWM1": (4.2, 10.8, 0.4),
+        "PWM2": (4.2, 10.8, 4.6),
+        "PWM3": (-4.2, 10.8, 0.4),
+        "PWM4": (-4.2, 10.8, 4.6),
+    },
+    "xh_power": (0.0, 9.62, -9.75),
+}
 
 
 def _dist(a, b):
@@ -219,7 +239,7 @@ STL_LOCAL = {
 # pack body beyond y=56 (plug at y 50..55).
 BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
 BATTERY_POCKET_PT = {"x": (-48.0, -24.0), "y": (71.0, 127.0), "floor_z": 3.0}  # PandT base, PT frame [M]
-BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
+BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
 
 # Printed parts: spool and material per STL stem (model/parts.py gives each library part the spool's appearance and a

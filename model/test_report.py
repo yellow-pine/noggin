@@ -44,8 +44,37 @@ def problems(report):
         if not b["ok"]:
             out.append(f"beam {b['beam']}: SF {b['sf']} (deflection {b['deflection_mm']} mm)")
     for horn, t in report.get("torque", {}).items():
-        if t["kgf_cm"] > t["limit_kgf_cm"]:
+        if (
+            "dynamic_kgf_cm" in t
+        ):  # gravity + inertia x peak acceleration (model/engine/mech.py) replaces the static figure
+            if t["dynamic_kgf_cm"] > t["limit_kgf_cm"]:
+                out.append(
+                    f"torque {horn}: {t['dynamic_kgf_cm']} kgf.cm dynamic at {t['dynamic_at_deg']} deg > {t['limit_kgf_cm']}"
+                )
+        elif t["kgf_cm"] > t["limit_kgf_cm"]:
             out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
+    tip = report.get("tip_over")
+    if tip and tip["margin_mm"] <= 0:
+        out.append(
+            f"tip-over: centre of mass {-tip['margin_mm']} mm outside the base footprint at pan {tip['at']['pan']} "
+            f"tilt {tip['at']['tilt']}"
+        )
+    for horn, c in report.get("clutch", {}).items():
+        if c["flagged"]:
+            out.append(
+                f"clutch {horn}: holding load over {c['limit_kgf_cm']} kgf.cm (0.9 / 1.5, decalibration risk) at "
+                f"{c['flagged']} deg, worst {c['hold_kgf_cm']} at {c['at_deg']}"
+            )
+    for lead, c in report.get("cable_reach", {}).items():
+        if c["max_mm"] > c["limit_mm"]:
+            out.append(
+                f"cable {lead}: {c['max_mm']} mm at pan {c['at']['pan']} tilt {c['at']['tilt']} > {c['limit_mm']} "
+                f"({c['length_mm']} mm lead less 20 slack)"
+            )
+    e = report.get("electrical")
+    for core, a in (e or {}).get("stall_a", {}).items():
+        if a >= e["cap_a"]:
+            out.append(f"electrical {core}: {a} A with every servo at stall >= the {e['cap_a']} A cap")
     for horn, c in report.get("calibrated", {}).items():
         # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
         # cannot answer where the real Mech's ends are, and it does run them (eyes/calibration.json).
@@ -71,6 +100,11 @@ FIXTURE_PROBLEMS = {
         "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
         "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
+        "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
+        "tip-over: centre of mass 3.2 mm outside the base footprint at pan -50 tilt 60",
+        "clutch L lid horn: holding load over 0.6 kgf.cm (0.9 / 1.5, decalibration risk) at [20, 30] deg, worst 0.7 at 30",
+        "cable l_lid servo -> Core 1 PWM1: 236.0 mm at pan 70 tilt 60 > 230 (250 mm lead less 20 slack)",
+        "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
 }
