@@ -6,8 +6,9 @@ the bar at y 2.5, its screw r 1.1) go in; the top screw's r 3 hole through the t
 
 import cadquery as cq
 
+from model import fits
 from model import geometry as g
-from model.printed.eye_bracket import box
+from model.printed.eye_bracket import box, mirrored
 from model.printed.lid import ball
 
 R, WALL, Z, TOP_Y = 20.5, 3.0, (-18.5, 5.0), 20.28
@@ -34,3 +35,14 @@ def left():
 def along_y(x, z, r, y):
     """A cylinder along Y from y[0] to y[1] through (x, z)."""
     return cq.Workplane("XZ", origin=(x, y[1], z)).circle(r).extrude(y[1] - y[0])
+
+
+def features(side):
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    bx, _, bz = g.EYEBALL_BAR_PINS[1]
+    pivot_y, pivot_half = fits.slab(HOLE_FLOOR_Y, -1.0)  # up from the hole's floor to the hollow
+    left = {
+        "screw hole": ((bx, BOSS["top"] - 0.5, bz), "y", BOSS["hole_r"], 1.0),  # its mouth on the boss top
+        "pivot": ((0.0, pivot_y, 0.0), "y", PIVOT_R, pivot_half, fits.BORE),
+    }
+    return left if side == "L" else mirrored(left)

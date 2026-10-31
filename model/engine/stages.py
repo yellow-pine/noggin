@@ -14,20 +14,9 @@ from model import geometry as g
 from model.engine import linkage
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-REF = os.path.join(REPO, "docs", "references")
-MODELS = {
-    "eyes": os.path.join(REF, "01-eyes", "models"),
-    "pt": os.path.join(REF, "02-pan-tilt", "models"),
-    "mouth": os.path.join(REF, "03-mouth", "models"),
-}
-STEPS = os.path.join(REPO, "model", "build", "steps")  # model/engine/step_mesh.py output (make model-step-meshes)
 OURS = os.path.join(
     REPO, "model", "build", "ours"
 )  # our printed parts and hardware envelopes (model/ours.py, make ours)
-# The designer's meshes and the tessellated STEPs are local only: without them (CI) every document reads ours instead.
-HAVE_REFERENCES = os.path.isdir(MODELS["eyes"]) and os.path.isfile(os.path.join(STEPS, "horn.stl"))
-if not HAVE_REFERENCES:
-    MODELS, STEPS = dict.fromkeys(MODELS, OURS), OURS
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (+-4 mm pivots, +-3 mm bar planes)
@@ -55,55 +44,14 @@ def translate(p):
     return align(p)
 
 
-# The one place the designer's file names live: each part's PurpleShark STL stem under docs/references (local only).
-REFERENCE = {
-    "eye bracket": "main bracket v2",
-    "L servo bracket": "L servo bracket",
-    "R servo bracket": "R servo bracket",
-    "L eyeball": "L eyeball regular",
-    "R eyeball": "R eyeball regular",
-    "pupil": "regular pupil",
-    "upper lid": "inside lid",
-    "lower lid": "outside lid",
-    "eyeball bar": "eyeball bar",
-    "lid bar": "eyelid bar",
-    "lid crank": "eyelid bar crank",
-    "wire keeper": "wire keeper",
-    "base plate": "PandT base",
-    "bearing block": "PandT bearing block",
-    "pan turntable": "PandT pan base",
-    "upright": "PandT upright v2",
-    "tilt arm": "PandT tilt arm",
-    "pan servo tail mount": "PandT servo mount plain",
-    "pan servo lead mount": "PandT servo mount cutout",
-    "wire holder": "PandT wire holder",
-    "tilt bar": "tilt bar",
-    "pan bar": "PandT bar",
-    "top jaw": "top jaw plain",
-    "bottom jaw": "bottom jaw plain",
-    "jaw servo mount": "jaws servo mount",
-    "jaw bar": "jaws connector bar",
-}
+def stl(stem):
+    """Our part's mesh (make ours): a printed part or a hardware envelope."""
+    return os.path.join(OURS, stem + ".stl")
 
 
-def mesh_name(name):
-    """The file stem a printed part's mesh is under: the designer's with the references, ours (model/build/ours)
-    without. Hardware keeps its name (the tessellated STEPs are named ours)."""
-    return REFERENCE.get(name, name) if HAVE_REFERENCES else name
-
-
-def part_name(file):
-    """Our name for the part a mesh file holds (mesh_name's inverse)."""
-    stem = os.path.splitext(os.path.basename(file))[0]
-    return next((n for n, s in REFERENCE.items() if s == stem), stem)
-
-
-def stl(stage, name):
-    return os.path.join(MODELS[stage], mesh_name(name) + ".stl")
-
-
-def step(key):
-    return os.path.join(STEPS, key + ".stl")
+def stem(file):
+    """The part a mesh file holds (stl's inverse)."""
+    return os.path.splitext(os.path.basename(file))[0]
 
 
 def printed(stem):
@@ -116,12 +64,12 @@ def part(file, matrix=None, material=None, clip=None):
     return Part(file, np.eye(4) if matrix is None else matrix, material, clip)
 
 
-def link(stage, stl_key, hole_a, hole_b, normal):
+def link(stl_key, hole_a, hole_b, normal):
     """The local-frame link STL with its holes on hole_a/hole_b (world mm), hole axis along normal."""
     spec = g.STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     m = align(hole_a, np.subtract(hole_b, hole_a), normal, la, np.subtract(lb, la), spec["hole_axis"])
-    return part(stl(stage, stl_key), m, printed(stl_key))
+    return part(stl(stl_key), m, printed(stl_key))
 
 
 def link_placement(name, stl_key, hole_a, hole_b, pin_axis=None, tol=None):
@@ -157,14 +105,14 @@ def servo_and_horn(key, label, arm):
     seat = np.add(origin, np.multiply(g.SERVO_STEP["horn_seat"], shaft))
     return {
         f"{label} servo:1": part(
-            step("servo"),
+            stl("servo"),
             align(origin, tab_x, [-c for c in shaft], g.SERVO_STEP["shaft"]),
             (SERVO_G, "documented"),
             ("x", g.SERVO_STEP["lead"][0]),
         ),
         f"{label} horn:1": part(
             # spline side (local z 4.15) on the seat, the arm on the outer face (docs/research/2026-10-31-shafts.md)
-            step("horn"),
+            stl("horn"),
             align(
                 np.add(seat, np.multiply(g.HORN_STEP["height"], shaft)), arm, [-c for c in shaft], g.HORN_STEP["hub"]
             ),
@@ -185,8 +133,8 @@ def limits(key):
 def eyes():
     parts, horns = {}, {}
     for name, stem, dx in g.EYES_PARTS:
-        parts[name + ":1"] = part(stl("eyes", stem), translate((dx, 0, 0)), printed(stem))
-    parts["eye bracket:1"] = part(stl("mouth", "eye bracket"), None, printed("eye bracket"))
+        parts[name + ":1"] = part(stl(stem), translate((dx, 0, 0)), printed(stem))
+    parts["eye bracket:1"] = part(stl("eye bracket"), None, printed("eye bracket"))
     placements = []
     for s in "LR":
         side = (lambda p: p) if s == "L" else g.mirror_x
@@ -202,7 +150,7 @@ def eyes():
             horn_pin = (hx, *(c + g.HORN_STEP["pin"] * a for c, a in zip(lid_horn[1:], g.LID_HORN_ARM[1:])))
             lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem}:1"
-            parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
+            parts[name] = link(stem, horn_pin, lid_pin, normal)
             # lid pins run along X; the horn pin is 41.14 / 40.86 from them for 41 mm bars (geometry.LID_HORN_ARM)
             placements.append(link_placement(name, stem, horn_pin, lid_pin, pin_axis=0))
             loops.append(
@@ -243,13 +191,13 @@ def electronics(n):
     shield = f"receiver shield {n}:1"
     ports = {f"Core {n} servo {h}": (shield, p) for h, p in g.RECEIVER_STEP["headers"].items()}
     ports[f"Core {n} XH power"] = (shield, g.RECEIVER_STEP["xh_power"])
-    parts = {shield: part(step("receiver"), receiver_m, board), f"Core {n}:1": part(step("core"), receiver_m, board)}
+    parts = {shield: part(stl("receiver"), receiver_m, board), f"Core {n}:1": part(stl("core"), receiver_m, board)}
     if n == 1:
         switch_m = align(*g.switch_at(), g.SWITCH_STEP["hole"])
-        parts["switch board 1:1"] = part(step("switch"), switch_m, board)
-        parts["battery 1:1"] = part(step("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
+        parts["switch board 1:1"] = part(stl("switch"), switch_m, board)
+        parts["battery 1:1"] = part(stl("battery"), align(*g.battery_at()), board, ("y", g.BATTERY_STEP["lead_y"]))
         parts["cable holder:1"] = part(
-            stl("eyes", "wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
+            stl("wire keeper"), align(*g.CABLE_HOLDER_AT, **g.CABLE_HOLDER_FROM), printed("wire keeper")
         )
         ports["battery 1 lead"] = ("battery 1:1", g.BATTERY_STEP["plug"])
         ports["switch board 1 in"] = ("switch board 1:1", g.SWITCH_STEP["in"])
@@ -260,7 +208,7 @@ def electronics(n):
 def base():
     """noggin-base: the base plate with the shield 1 set, the switch board, the pack and the cable holder, PT frame."""
     set1, ports = electronics(1)
-    parts = {"base plate:1": part(stl("pt", "base plate"), None, printed("base plate")), **set1}
+    parts = {"base plate:1": part(stl("base plate"), None, printed("base plate")), **set1}
     stand = g.STANDOFFS["pt_base"]
     placements = [
         ("receiver shield 1:1", [(0, 0, 0)], [tuple(np.mean(stand["receiver_1"], axis=0))], TOL_MM),
@@ -274,13 +222,13 @@ def stack():
     """noggin-stack: the pan-tilt neck with receiver shield 2 and Core 2, PT frame."""
     parts = {}
     for name, stem, shift in g.STACK_PARTS:
-        parts[name + ":1"] = part(stl("pt", stem), translate(shift), printed(stem))
+        parts[name + ":1"] = part(stl(stem), translate(shift), printed(stem))
     bars, placements = {}, []
     for key, stem in (("tilt", "tilt bar"), ("pan", "pan bar")):
         pivot = g.PIVOTS[key + "_horn"]
         pin, lever = g.horn_pin(key)
         parts.update(servo_and_horn(key, key, np.subtract(pin, pivot["point"])))
-        parts[f"{key} bar:1"] = link("pt", stem, pin, lever, pivot["axis"])
+        parts[f"{key} bar:1"] = link(stem, pin, lever, pivot["axis"])
         bars[key] = pin, lever
         placements += [*servo_placements(key, key), link_placement(f"{key} bar:1", stem, pin, lever)]
     set2, ports = electronics(2)
@@ -319,10 +267,10 @@ def mouth():
     """noggin-mouth's own parts, eyes frame (its context copy of the eyes is assembled separately)."""
     parts = {}
     for name, stem in g.MOUTH_PARTS:
-        parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
+        parts[name + ":1"] = part(stl(stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))
-    parts["jaw bar:1"] = link("mouth", "jaw bar", pin, lever, g.X)
+    parts["jaw bar:1"] = link("jaw bar", pin, lever, g.X)
     loop = rocker_loop(
         "jaw hinge",
         g.PIVOTS["jaw_horn"]["point"],
@@ -348,7 +296,7 @@ BASE_IN_EYES = (
     (-1, 0, 0),
     g.Y,
 )  # the base as the eyes/mouth sweep documents carried it (context)
-# Documents the engine simulates: the recorded sweep documents (the gate fixtures in model/reports, in their own frames,
+# Documents the engine simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
 # Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {
@@ -421,13 +369,6 @@ class _Stages(dict):
 
 
 STAGES = _Stages()  # built on first use: a document per DOCS key
-
-
-def ours(doc):
-    """The document with every part read from our geometry (model/build/ours: our names, the same frames)."""
-    return doc._replace(
-        parts={n: p._replace(file=os.path.join(OURS, part_name(p.file) + ".stl")) for n, p in doc.parts.items()}
-    )
 
 
 def world(m, p):

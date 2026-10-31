@@ -14,7 +14,7 @@ ENVELOPE_MM = 1.0
 
 @functools.cache
 def solid():
-    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the gate's forks)."""
+    """Built when the first test runs, not at collection (CadQuery's OCCT threads vs the sweep's forks)."""
     return pupil.build().val()
 
 

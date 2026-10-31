@@ -5,6 +5,8 @@ docs/research/2026-10-31-model.md [M]."""
 
 import cadquery as cq
 
+from model import fits
+
 Y = (-5.0, 0.0)
 # The XZ profile: the -x tab (z 4.75..7.75) to x -13, the band, the +x tab (z -7.75..-4.75) from x 16.
 PROFILE_XZ = [(-25, 4.75), (-25, 7.75), (-13, 7.75), (16, -4.75), (25, -4.75), (25, -7.75), (16, -7.75), (-13, 4.75)]
@@ -18,3 +20,11 @@ def build():
     for xy, r in HOLES:
         out = out.cut(cq.Workplane("XY", origin=(*xy, -10)).circle(r).extrude(20))
     return out
+
+
+def features():
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    (horn, horn_r), (jaw, jaw_r) = HOLES
+    horn_z, half = fits.slab(PROFILE_XZ[0][1], PROFILE_XZ[1][1])  # the -x tab
+    jaw_z, _ = fits.slab(PROFILE_XZ[5][1], PROFILE_XZ[4][1])  # the +x tab
+    return {"horn hole": ((*horn, horn_z), "z", horn_r, half), "jaw hole": ((*jaw, jaw_z), "z", jaw_r, half)}

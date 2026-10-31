@@ -32,35 +32,36 @@ def mirror_x(p):
     return (2 * CENTRE_X - x, y, z)
 
 
-# Absolute servo angle limits in degrees, neutral 90. Designer: PurpleShark's remote config (PWM min/max, the same in
-# every config under docs/references). Model: where the model sweeps instead, each with its reason (re-checked against
-# the settled shafts, docs/research/2026-10-31-shafts.md).
-DESIGNER_LIMITS = {
-    "l_lid": (75, 120),
-    "l_eye": (60, 120),
-    "r_lid": (70, 120),
-    "r_eye": (75, 120),
-    "tilt": (20, 150),
-    "rotate": (40, 160),
-    "mouth": (0, 180),
-}
-MODEL_LIMITS = {
-    "l_lid": ((70, 120), "one range for the mirrored lid pair: the L lid is swept to the R lid's 70"),
-    "l_eye": ((68, 112), "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"),
-    "r_eye": ((68, 112), "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"),
+# Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
+# reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
+_LID = (
+    "one range for the mirrored lid pair: +30 opens both lids clear of the eyeball (model/engine/lids.py); the real"
+    " Mech closes past -20, at its calibrated ends"
+)
+_EYE = "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"
+LIMITS = {
+    "l_lid": ((70, 120), _LID),
+    "l_eye": ((68, 112), _EYE),
+    "r_lid": ((70, 120), _LID),
+    "r_eye": ((68, 112), _EYE),
     "tilt": (
         (30, 150),
         "at 20..27 the tilt horn and bar sweep into the pan turntable's front chord (0.06 mm clear at -62, 0.38 mm deep at"
-        " -66, 1.16 at -70): the lower end stops at 30, which keeps the pan x tilt grid on neutral",
+        " -66, 1.16 at -70): the lower end stops at 30, which keeps the pan x tilt grid on neutral; up to +60 the"
+        " arm sweeps clear",
+    ),
+    "rotate": (
+        (40, 160),
+        "pan -50..+70: the pan four-bar sweeps clear over the whole range (the pan servo is 'rotate')",
     ),
     "mouth": (
         (15, 90),
         "the jaws are modelled closed at neutral: horn +1..+22 drives the bottom jaw further shut into the top jaw (the"
-        " hinge pair, not swept) and past +22 the connector-bar four-bar has no solution; on the opening side the bar"
+        " hinge pair, not swept) and past +22 the jaw bar's four-bar has no solution; on the opening side the bar"
         " enters the jaw servo past -75 (0.28 mm at -80): horn -75..0 = jaw -58..0 deg",
     ),
 }
-HORN_LIMITS = {**DESIGNER_LIMITS, **{k: v for k, (v, _) in MODEL_LIMITS.items()}}
+HORN_LIMITS = {k: v for k, (v, _) in LIMITS.items()}
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 

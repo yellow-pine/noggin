@@ -4,16 +4,19 @@ for the M2 horn screw, r 1.35 for the M2.5 lever screw. Measured numbers: docs/r
 
 import cadquery as cq
 
+from model import fits
+
 WIDTH, THICK = 5.0, 3.0
 HORN_R, LEVER_R = 1.1, 1.35
+TILT_PITCH, PAN_PITCH = 20.0, 15.0  # the holes apart
 
 
 def tilt():
-    return bar(20.0)
+    return bar(TILT_PITCH)
 
 
 def pan():
-    return bar(15.0)
+    return bar(PAN_PITCH)
 
 
 def bar(pitch):
@@ -22,3 +25,9 @@ def bar(pitch):
     return out.cut(cq.Workplane("XY").pushPoints([(h, 0)]).circle(HORN_R).extrude(THICK)).cut(
         cq.Workplane("XY").pushPoints([(-h, 0)]).circle(LEVER_R).extrude(THICK)
     )
+
+
+def features(pitch):
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    z, half = fits.slab(0, THICK)
+    return {"horn hole": ((pitch / 2, 0, z), "z", HORN_R, half), "lever hole": ((-pitch / 2, 0, z), "z", LEVER_R, half)}

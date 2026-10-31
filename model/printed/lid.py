@@ -10,6 +10,8 @@ import math
 
 import cadquery as cq
 
+from model import fits
+
 R_IN, R_OUT, BACK_Z = 21.0, 24.0, 5.0
 BROW = 3.0  # the shell stops at the 45 deg plane z - side * y = 3, the one the ears' top chamfer lies on
 SQRT2 = math.sqrt(2)
@@ -72,3 +74,12 @@ def rod(r, yz=(0, 0)):
 def clip(part, sx, x0, x1):
     """The part between |x| x0 and x1 on the sx side."""
     return part.intersect(cq.Workplane("XY").box(x1 - x0, 60, 60).translate((sx * (x0 + x1) / 2, 0, 0)))
+
+
+def features(which):
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    _, split, outer = EAR_X
+    y, z, r = BAR_HOLE
+    x, half = fits.slab(split, outer)
+    ears = {f"{e} ear": ((s * split, 0, 0), "x", PIVOT_R, 2.0, fits.BORE) for e, s in (("outer", -1), ("inner", 1))}
+    return {**ears, "pin": ((-x, SIDE[which] * y, z), "x", r, half)}  # the pin's mouth on the outer ear face

@@ -25,28 +25,25 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
   servo degrees), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
-- Guide sheets (#68, `make guide-sheets`): each step of PurpleShark's three guides (model/render/guide.py STEPS: page,
-  picture, parts, camera matched by eye) as a row of guide page, guide picture and the model with only that step's parts,
-  one sheet per guide in model/build/pictures/guide. Visual output, never committed; the PR records which steps match.
 
 ## Our printed parts (#50)
-- Every printed part gets an independent parametric CadQuery design in model/printed/ (never traced from the
-  designer's mesh, which stays local under docs/references): interfaces exact, envelope within 1 mm, in the designer's
-  frame, registered in `model/printed/__init__.py` PARTS by our part name (GLOSSARY.md); `model/engine/stages.py`
-  REFERENCE alone maps each name to the designer's file (#96).
+- Every printed part gets an independent parametric CadQuery design in model/printed/: interfaces exact, in the
+  designer's frame, registered in `model/printed/__init__.py` PARTS by our part name (GLOSSARY.md), with the
+  features it declares for the mating check (its features(), in FEATURES).
 - Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
-  its envelope; `model/printed/test_gate.py` swaps it for the designer's mesh in every document that places it and
-  requires identical transmission and every clearance within 0.3 mm (local only: skipped without docs/references).
+  its envelope; model/engine/test_mating.py checks that our mesh carries every declared feature.
 
 ## Our hardware envelopes and CI (#58)
-- The Bambu STEPs (servo, horn, Shield, Core, switch board, battery) stay local too: model/envelopes.py draws a simple
-  CadQuery envelope of each in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the
-  STEP's numbers (model/test_envelopes.py); the gate holds them to the tessellated STEPs like the printed parts.
+- model/envelopes.py draws a simple CadQuery envelope of each piece of hardware (servo, horn, Shield, Core, switch
+  board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
+  numbers (model/test_envelopes.py).
 - `make ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede the sweep's fork). Without docs/references the engine reads those
-  (model/engine/stages.py HAVE_REFERENCES): CI runs `make check` and then `make sim` on our geometry alone. Locally
-  `make sim` keeps the designer's meshes and STEPs, so the committed reports are theirs, and the gate checks ours
-  against them.
+  (CadQuery's threads must not precede the sweep's fork). The engine always reads those: `make test` and `make sim`
+  build them first, and the committed reports are simulated on our geometry, locally and in CI.
+
+## Our model is the source (#88, #97)
+- Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no Bambu STEP meshing,
+  no guide sheets. PurpleShark and the Bambu files are credits (README) and history (docs/research) only.
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
 - `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
   model/build/stl; future prints use ours.
@@ -54,7 +51,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
-The model follows Cansin's build, then PurpleShark's stock version (CLAUDE.md). What we plan to change stays here until
+The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
 the model stabilises.
 - One pack and one switch board per shield (CLAUDE.md, ADR 0005), instead of stock's one pack and a Y lead to both: the
   one pack's worst case (every servo at stall, both shields, a Wi-Fi burst each) is 5.34 A against its 3 A continuous
@@ -68,6 +65,6 @@ the model stabilises.
   - the bracket stem's depth in the pan recess (stage 1) and in the tilt arm window (stages 2, 3) (geometry.STEM_AT);
   - the receiver headers' PWM numbering (geometry.RECEIVER_STEP);
   - the jaw horn pin's 0.58 mm bar/arm overlap (model/engine/mating.py INFERRED);
-  - the model limits where the model collides before the designer's ends (geometry.MODEL_LIMITS, each with its reason);
+  - the horn limits, each with its reason (geometry.LIMITS);
   - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan turntable);
   - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).

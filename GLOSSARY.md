@@ -124,7 +124,7 @@ _Avoid_: rod, linkage
 The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation into upper lid rotation.
 
 **Printed part**:
-A part we print, by our name (the designer's file names stay in model/engine/stages.py REFERENCE, nowhere else):
+A part we print, by our name (the designer's file names are history: README credits, docs/research):
 - eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
 - L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;
 - L / R eyeball: turns in the eye bracket's fork; pupil: the disc on its front;

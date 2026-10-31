@@ -132,7 +132,7 @@ def main(job):
     objs = load(job["parts"])
     for shot in job["shots"]:
         for name, ob in objs.items():
-            ob.hide_render = name not in shot["pose"]  # a shot shows only the parts it poses (guide sheets)
+            ob.hide_render = name not in shot["pose"]  # a shot shows only the parts it poses
             if not ob.hide_render:
                 ob.matrix_world = Matrix(shot["pose"][name])
         c = shot["camera"]
