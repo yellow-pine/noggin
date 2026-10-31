@@ -24,3 +24,14 @@ def test_no_avoid_words_in_code():
                 if re.search(rf"\b{w}\b", line, re.I) and not any(a in line for a in ALLOWED.get(w, [])):
                     hits.append(f"{f.relative_to(ROOT)}:{n}: {w}")
     assert not hits, "\n".join(hits)
+
+
+def test_the_model_is_never_called_twin():
+    files = [p for p in (ROOT / "model").rglob("*.py")] + [ROOT / "Makefile"]
+    hits = [
+        f"{f.relative_to(ROOT)}:{n}"
+        for f in files
+        for n, line in enumerate(f.read_text().splitlines(), 1)
+        if re.search(r"twin", line, re.I)
+    ]
+    assert not hits, "\n".join(hits)

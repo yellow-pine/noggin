@@ -217,14 +217,14 @@ class Eyes:
         self.lids(droop, 500)
         if gaze_trace is not None:  # the calmest 6 s of a real viewing session, with heavy blinks on top
             calm, n = gaze_trace.CALM, len(gaze_trace.CALM)
-            for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 2000))):
+            for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 1800))):
                 start = 0 if k == 0 else [n // 4, n // 2][k - 1]
                 for j in range(start, blink_at):
                     self.eyes(EYE_CENTER + _s8(calm[j]))
                     sleep_ms(1000 // gaze_trace.HZ)
-                self.lids(self.cal["lid_closed"], 200 if hold < 2000 else 250)
+                self.lids(self.cal["lid_closed"], 200 if hold < 1800 else 250)
                 sleep_ms(hold)
-                self.lids(droop if hold < 2000 else self.cal["lid_rest"], 900 if hold < 2000 else 1200, ease=True)
+                self.lids(droop if hold < 1800 else self.cal["lid_rest"], 900 if hold < 1800 else 1200, ease=True)
         else:
             self.eyes(EYE_CENTER - 6, 800)
             for _ in range(2):
@@ -233,7 +233,7 @@ class Eyes:
                 self.lids(droop, 900, ease=True)
                 sleep_ms(700)
             self.lids(self.cal["lid_closed"], 250)
-            sleep_ms(2000)
+            sleep_ms(1800)  # the stall-time rule (test_stall.py) caps closures at 2 s
             self.lids(self.cal["lid_rest"], 1200, ease=True)
         self.saccade(EYE_CENTER)
 

@@ -3,7 +3,12 @@ name = "noggin"
 version = "0.1.0"
 description = "Animatronic CyberBrick head that reacts to Claude Code"
 requires-python = ">=3.12"
-dependencies = ["pyserial>=3.5"]
+dependencies = [
+    "numpy>=2.5.4",
+    "pyserial>=3.5",
+    "scipy>=1.18.1",
+    "trimesh>=5.2.0",
+]
 
 [dependency-groups]
 dev = [
@@ -14,7 +19,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["eyes", "reactions", "noggin", "test_vocabulary.py"]
+testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "test_vocabulary.py"]
 
 [tool.ruff]
 line-length = 120
@@ -26,6 +31,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "eyes/eyes.py" = ["B905"]  # MicroPython zip() has no strict=
+"model/*.py" = ["F821", "E501", "B905", "UP031", "E741", "E731", "B023"]  # Fusion scripts assembled by `# include:` inlining; names come from the included files
 
 [tool.pyright]
 typeCheckingMode = "basic"

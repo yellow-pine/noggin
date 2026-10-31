@@ -92,3 +92,13 @@ dart and return, undershoot and correction included), a 4 s horizontal-scan clip
 60 s video-viewing session (thinking, when `think_trace` is 1). Lids are not in the data; blink and
 lid timing come from the literature in `docs/research/2026-10-31-natural-eye-motion.md`. Fixational
 jitter (±0.5°) is below one servo step and was dropped.
+
+## Second Core (tilt, mouth, pan)
+
+The designer runs two Cores on two X11 shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
+config JSON; the mouth guide's "3rd position" wording is ambiguous). Both Cores join the Wi-Fi and are addressed
+directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Each shield
+gets its own pack and switch board (one pack cannot feed two shields at stall: 2 x 2.6 A > 3 A). Electrical figures:
+docs/research/2026-10-31-electrical.md.
+
+Inventory and the remaining buy list: docs/face-design.md "Hardware" (2026-10-31).
