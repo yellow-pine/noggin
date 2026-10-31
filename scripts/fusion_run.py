@@ -14,14 +14,22 @@ def post(p):
     raw=r.read().decode()
     if raw.lstrip().startswith(("event:","data:")): raw="".join(l[5:] for l in raw.splitlines() if l.startswith("data:"))
     return json.loads(raw) if raw.strip() else {}
-def main():
-    post({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"noggin","version":"0"}}})
-    post({"jsonrpc":"2.0","method":"notifications/initialized"})
-    obj={"script": inline_includes(open(sys.argv[1]).read(), Path(__file__).resolve().parents[1])}
-    if len(sys.argv) > 2: obj["readOnly"] = True
+def run_script(text, readonly=False):
+    """Run script text (includes inlined) in Fusion; returns the parsed result dict ({"message":..., "success":...}). Raises on error."""
+    if not SESSION.get("id"):
+        post({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"noggin","version":"0"}}})
+        post({"jsonrpc":"2.0","method":"notifications/initialized"})
+    obj={"script": inline_includes(text, Path(__file__).resolve().parents[1])}
+    if readonly: obj["readOnly"] = True
     r=post({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"fusion_mcp_execute","arguments":{"featureType":"script","object":obj}}})
     res=r.get("result", r)
-    for c in res.get("content", []):
-        print(c.get("text", c))
-    if res.get("isError"): sys.exit(1)
+    texts=[c.get("text", "") for c in res.get("content", [])]
+    if res.get("isError"): raise RuntimeError("\n".join(texts))
+    out=json.loads(texts[0]) if texts and texts[0].lstrip().startswith("{") else {"message": "\n".join(texts), "success": True}
+    if not out.get("success", True): raise RuntimeError(out.get("error", out))
+    return out
+def main():
+    try: out=run_script(open(sys.argv[1]).read(), readonly=len(sys.argv) > 2)
+    except RuntimeError as e: print(e); sys.exit(1)
+    print(out.get("message", out), end="")
 if __name__=="__main__": main()

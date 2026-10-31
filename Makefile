@@ -4,7 +4,7 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check twin-check install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock twin-eyes
+.PHONY: venv test check twin-check twin-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock twin-eyes
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -15,7 +15,7 @@ check: test       ## everything CI runs: tests, wizard syntax, plist validity, h
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 twin-check: venv  ## sweep every horn joint of the DOC named in twin/check.py (Fusion open, MCP on); writes twin/build/
-	$(PY) scripts/fusion_run.py twin/check.py
+	$(PY) twin/sweep.py
 	$(PY) -m pytest -q twin/test_report.py
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
@@ -51,5 +51,7 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-twin-eyes: venv   ## rebuild + save the noggin-eyes Fusion design (Fusion open with its MCP)
+twin-proxies:   ## decimated STLs for the sweep (Blender), into twin/build/proxies
+	/Applications/Blender.app/Contents/MacOS/Blender -b -P twin/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models twin/build/proxies | grep -v '^Blender'
+twin-eyes: venv twin-proxies   ## rebuild + save the noggin-eyes Fusion design (Fusion open with its MCP)
 	$(PY) scripts/fusion_run.py twin/eyes.py

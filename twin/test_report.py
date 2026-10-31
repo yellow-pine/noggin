@@ -4,7 +4,7 @@ import glob, json, os, sys, pytest
 sys.path.insert(0, os.path.dirname(__file__))
 
 HERE = os.path.dirname(__file__)
-CLEARANCE_MM, MAX_INTERFERENCE_MM3 = 3.0, 0.5
+MAX_INTERFERENCE_MM3 = 0.5
 ENVELOPE = ((-60, 120), (-120, 60), (-60, 180))  # Mech extent in the eyes frame, mm (x, y, z)
 REPORTS = sorted(glob.glob(os.path.join(HERE, "build", "*-report.json")))
 
@@ -14,10 +14,10 @@ def problems(report):
     for name, h in report["horns"].items():
         if h.get("incomplete"):
             out.append(f"{name}: incomplete ({h['incomplete']})")
-        elif h["min_mm"] < CLEARANCE_MM - 0.1:
+        elif h["min_mm"] < report["clearance_mm"] - 0.1:
             out.append(f"{name}: {h['min_mm']} mm at {h['at_deg']} deg between {h['pair']}")
     for i in report["interference"]:
-        if i["volume_mm3"] > MAX_INTERFERENCE_MM3:
+        if i["volume_mm3"] is None or i["volume_mm3"] > MAX_INTERFERENCE_MM3:
             out.append(f"interference {i['a']} x {i['b']}: {i['volume_mm3']} mm3 at {i['pose']}")
     if not report["bboxes"]:
         out.append("no bboxes")

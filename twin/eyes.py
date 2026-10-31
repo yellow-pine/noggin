@@ -22,6 +22,7 @@ STEP = {
     "battery": os.path.join(CAD, "battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"),
 }
 OUT = os.path.join(REPO, "twin", "build")
+PROXIES = os.path.join(OUT, "proxies")   # decimated STLs from `make twin-proxies`, measured by the sweep
 PHOTOS = os.path.join(REPO, "docs", "build-photos")   # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
@@ -105,7 +106,7 @@ def link(root, name, stl_key, hole_a, hole_b, normal):
     spec = STL_LOCAL[stl_key]
     la, lb = spec["holes"]
     m = align(hole_a, [q - p for p, q in zip(hole_a, hole_b)], normal, la, [q - p for p, q in zip(la, lb)], spec["hole_axis"])
-    return import_stl(root, os.path.join(MODELS, stl_key + ".stl"), name, m)
+    return import_stl(root, os.path.join(MODELS, stl_key + ".stl"), name, m, proxy=os.path.join(PROXIES, stl_key + ".stl"))
 
 
 def strip_lead(battery):
@@ -127,15 +128,16 @@ def run(_context: str):
     doc, design, folder = open_or_create(app, DOC)
     root = design.rootComponent
     occs = {}
-    for name, stl, dx in PARTS:
-        occs[name] = import_stl(root, os.path.join(MODELS, stl + ".stl"), name, align((dx, 0, 0)))
-    occs["main bracket"] = import_stl(root, os.path.join(MOUTH_MODELS, "main bracket v2.stl"), "main bracket v2")
+    def stl(folder, stem, name, matrix=None):
+        return import_stl(root, os.path.join(folder, stem + ".stl"), name, matrix, proxy=os.path.join(PROXIES, stem + ".stl"))
+    for name, stem, dx in PARTS:
+        occs[name] = stl(MODELS, stem, name, align((dx, 0, 0)))
+    occs["main bracket"] = stl(MOUTH_MODELS, "main bracket v2", "main bracket v2")
     occs["main bracket"].isGrounded = True
     pt0 = pt_to_eyes_standalone((0, 0, 0))
-    import_stl(root, os.path.join(PT_MODELS, "PandT base.stl"), "PandT base",
-               align(pt0, (-1, 0, 0), Y))
+    stl(PT_MODELS, "PandT base", "PandT base", align(pt0, (-1, 0, 0), Y))
     keeper_y = pt_to_eyes_standalone(STANDOFFS["pt_base"]["wire_keeper"][0])[1]
-    import_stl(root, os.path.join(MODELS, "wire keeper.stl"), "wire keeper (inferred)", align((0, keeper_y + 22.6, 0)))
+    stl(MODELS, "wire keeper", "wire keeper (inferred)", align((0, keeper_y + 22.6, 0)))
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot.
     for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
