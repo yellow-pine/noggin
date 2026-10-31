@@ -11,7 +11,8 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Feature-first layout, never function-first; tests beside the code.
 - Keep it minimal (ponytail is active). Smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
-- No remote-control build; the Core is driven over USB-C from this Mac.
+- No remote-control build; Core 1 is driven over USB-C from this Mac and relays to Core 2 (tilt, mouth, pan) by ESP-NOW. One pack and switch board per shield.
+- The digital model of the Mech is "the model" (folder model/ after the rename ticket), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
