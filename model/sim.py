@@ -5,7 +5,7 @@ horns[name]["poses"] = {deg: {"com": {part: [x, y, z] mm}, "joints": {joint: deg
 
 import math
 
-from model.geometry import EYES_SERVOS
+from model.geometry import EYES_SERVOS, HORN_AT_90
 
 RATED_KGF_CM, TORQUE_SF = 0.4, 2.0  # the 9 g servo rated at 6 V (#20 comment), safety factor 2
 
@@ -54,9 +54,10 @@ def enrich(report, fits, beams, up=1):
 
 def joint_deg(servo, angle, cal):
     """Horn joint angle (relative to the 90-degree neutral the STLs are modelled in) for a servo angle, with the
-    mirror-mounted lids' flips from eyes/calibration.json (flip 1: the low servo end is the open side)."""
+    mirror-mounted lids' flips from eyes/calibration.json (flip 1: the low servo end is the open side) and the horn's
+    spline tooth (geometry.HORN_AT_90)."""
     sign = -1 if cal.get(servo + "_flip") else 1
-    return sign * (angle - 90)
+    return sign * (angle - 90) + HORN_AT_90.get(servo, 0)
 
 
 def calibrated_extremes(cal):
