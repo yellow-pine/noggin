@@ -22,8 +22,8 @@ def test_gravity_torque_is_the_potential_energy_slope():
 
 
 def test_curves_and_torque_merge_into_the_report():
-    report = {"doc": "x", "horns": {"L lid horn": {"min_mm": 1.0, "poses": poses_for(20.0, [-20, -10, 0, 10, 20])}},
-              "mass": {"m": 10.0}}
+    poses = {str(d): p for d, p in poses_for(20.0, [-20, -10, 0, 10, 20]).items()}   # as json.load gives them
+    report = {"doc": "x", "horns": {"L lid horn": {"min_mm": 1.0, "poses": poses}}, "mass": {"m": 10.0}}
     out = sim.enrich(report, fits=[{"joint": "a", "ok": True}], beams=[{"beam": "b", "ok": True}])
     assert out["torque"]["L lid horn"] == {"kgf_cm": 0.02, "at_deg": 0, "limit_kgf_cm": 0.2}
     assert out["curves"]["L lid horn"] == {"lid": [[-20, -40], [-10, -20], [0, 0], [10, 20], [20, 40]]}
@@ -34,3 +34,11 @@ def test_curves_and_torque_merge_into_the_report():
 def test_enrich_without_poses_adds_nothing_dynamic():
     out = sim.enrich({"doc": "x", "horns": {"h": {"min_mm": 1.0}}}, fits=[], beams=[])
     assert out["torque"] == {} and out["curves"] == {}
+
+
+def test_servo_to_joint_mapping_follows_the_calibration_flips():
+    cal = {"l_lid_lo": 51, "l_lid_hi": 144, "r_lid_lo": 44, "r_lid_hi": 129, "l_eye_lo": 58, "l_eye_hi": 118,
+           "r_eye_lo": 58, "r_eye_hi": 118, "l_lid_flip": 1, "r_lid_flip": 0}
+    assert sim.joint_deg("l_eye", 118, cal) == 28 and sim.joint_deg("r_lid", 44, cal) == -46
+    assert sim.joint_deg("l_lid", 51, cal) == 39      # flipped lid: the low servo end is the open (positive) side
+    assert sim.calibrated_extremes(cal) == {"l_lid": (-54, 39), "r_lid": (-46, 39), "l_eye": (-32, 28), "r_eye": (-32, 28)}

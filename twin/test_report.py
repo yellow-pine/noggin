@@ -71,8 +71,10 @@ def test_merge_per_horn_reports_and_flags_incomplete_horns():
            "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": [{"name": "L eye servo", "ok": True}]}
     eye = {"doc": "noggin-eyes", "version": 11, "clearance_mm": 3.0, "step_deg": 10,
            "horns": {"L eye horn": {"min_mm": None, "at_deg": None, "pair": None, "incomplete": "budget of 180 s spent at 10 deg"}},
-           "interference": [], "violations": [], "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": []}
+           "interference": [], "violations": [], "bboxes": {"L eyeball": [[-14, -14, -14], [14, 14, 14]]}, "placements": [],
+           "calibrated": {"L eye horn": {"lo": -32, "hi": 28}}}
     report = merge([lid, eye])
+    assert report["calibrated"] == {"L eye horn": {"lo": -32, "hi": 28}}
     assert set(report["horns"]) == {"L lid horn", "L eye horn"}
     assert report["violations"] == lid["violations"] and report["bboxes"] == lid["bboxes"] and report["version"] == 11
     assert problems(report) == ["violation: {'horn': 'L lid horn', 'deg': 30, 'mm': 0.0, 'pair': ['a', 'b']}",

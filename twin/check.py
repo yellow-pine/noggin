@@ -4,9 +4,13 @@ min to its max limit in 10-degree steps, measures the minimum distance between e
 chain and every nearby occurrence (0 mm = overlap, which then gets a pairwise interference volume), compares
 the placements in PLACEMENTS with the geometry tables, records top-level bounding boxes at neutral and writes
 twin/build/<DOC>-<horn>.json. Each call stops at BUDGET_S and marks the horn incomplete. Never saves.
+Also (#20): the mass and centre of mass of every part (PLA for printed parts, documented masses for hardware),
+the chain's centres of mass and driven joint angles at every pose (twin/sim.py turns them into gravity torque and
+transmission curves), and the two calibrated servo ends from eyes/calibration.json measured past the designer's limits.
 Angles are joint angles relative to the 90-degree neutral the STLs are modelled in. API units: cm."""
 # include: twin/geometry.py
 # include: twin/fusion_lib.py
+# include: twin/sim.py
 import adsk.core, adsk.fusion, json, math, os, time
 
 HORN = None                           # twin/sweep.py substitutes this line per call
@@ -19,6 +23,33 @@ OUT = os.path.join(REPO, "twin", "build")
 STEP_DEG, CLEARANCE_MM = 10, 0.1   # below 0.1 mm the parts overlap: a collision (designed sliding gaps are ~0.5 mm)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0
 NEAR_MM = 10.0   # pairs whose bounding boxes are further apart than this are not measured (keeps Fusion responsive)
+PLA_G_CM3 = 1.24
+HARDWARE_G = {"servo": 16.0}   # docs/research/2026-10-31-electrical.md; other hardware keeps its STEP material's mass
+ACCURACY = adsk.fusion.CalculationAccuracy.LowCalculationAccuracy   # +-1 %
+
+
+def bodies(occ):
+    """Solid bodies of an occurrence and its children in assembly context, without the sweep proxies."""
+    out = [b for b in occ.bRepBodies if b.isSolid and b.name != "proxy"]
+    for child in occ.childOccurrences:
+        out += bodies(child)
+    return out
+
+
+def mass_com(occ):
+    """(g, [x, y, z] mm, source) of an occurrence: printed parts (mesh converts) at PLA density, hardware by its
+    documented mass, else the STEP material's. Centre of mass is volume-weighted over the bodies (root context)."""
+    bs = bodies(occ)
+    vol = sum(b.volume for b in bs)
+    if not vol:
+        return 0.0, [0.0, 0.0, 0.0], "empty"
+    com = [sum(getattr(b.physicalProperties.centerOfMass, c) * b.volume for b in bs) / vol * 10 for c in "xyz"]
+    kind = next((k for k in HARDWARE_G if k in occ.name and "horn" not in occ.name), None)
+    if kind:
+        return HARDWARE_G[kind], com, "documented"
+    if occ.component.features.meshConvertFeatures.count or "horn" in occ.name:
+        return round(vol * PLA_G_CM3, 2), com, "pla"
+    return round(sum(b.getPhysicalProperties(ACCURACY).mass for b in bs) * 1000, 2), com, "step material"
 
 
 def bbox_gap(a, b):
@@ -181,32 +212,62 @@ def run(_context: str):
     for g in root.rigidGroups:
         names = [g.occurrences.item(i).fullPathName for i in range(g.occurrences.count)]
         linked.update(frozenset((a, b)) for a in names for b in names if a != b)
-    worst, incomplete, measured = None, None, 0
-    for deg in degs:
-        if time.time() - t0 > BUDGET_S:
-            incomplete = f"budget of {BUDGET_S} s spent at {deg} deg after {measured} measurements"; break
+    driven = [j for j in joints if j is not horn and j.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType
+              and "pivot" in j.name and any(e is not None and e.fullPathName in chain for e in (j.occurrenceOne, j.occurrenceTwo))]
+    parts = {o.name: mass_com(o) for o in root.occurrences if o.bRepBodies.count or o.childOccurrences.count}
+    report["mass"] = {n: m[0] for n, m in parts.items()}
+    report["mass_source"] = {n: m[2] for n, m in parts.items()}
+    total = sum(m[0] for m in parts.values())
+    report["stage"] = {"total_g": round(total, 1), "com": [round(sum(m[0] * m[1][i] for m in parts.values()) / total, 1) for i in range(3)]}
+    state = {"worst": None, "measured": 0}
+    poses = {}
+
+    def measure(deg, calibrated=False):
         motion.rotationValue = math.radians(deg)
+        poses[deg] = {"com": {m.name: [round(c, 2) for c in mass_com(m)[1]] for m in chain.values()},
+                      "joints": {j.name: round(math.degrees(j.jointMotion.rotationValue), 2) for j in driven}}
         for mover in chain.values():
             for other in others:
                 if frozenset((mover.fullPathName, other.fullPathName)) in linked or bbox_gap(mover, other) > NEAR_MM:
                     continue   # exact distance is at least the box gap: skip far pairs
                 d = app.measureManager.measureMinimumDistance(proxy_body(mover) or mover, proxy_body(other) or other).value * 10
-                measured += 1
+                state["measured"] += 1
                 adsk.doEvents()   # let the UI repaint and take input between measurements
                 if d < CLEARANCE_MM and (proxy_body(mover) or proxy_body(other)):   # decimation can close slots: confirm on the real bodies
                     d = app.measureManager.measureMinimumDistance(real_body(mover), real_body(other)).value * 10
-                    measured += 1
+                    state["measured"] += 1
                 pair = [mover.name, other.name]
-                if worst is None or d < worst["min_mm"]:
-                    worst = {"min_mm": round(d, 2), "at_deg": deg, "pair": pair}
+                if not calibrated and (state["worst"] is None or d < state["worst"]["min_mm"]):
+                    state["worst"] = {"min_mm": round(d, 2), "at_deg": deg, "pair": pair}
                 if d < CLEARANCE_MM:
+                    hit = {"horn": horn.name, "deg": deg, "pair": pair}
+                    if calibrated:
+                        hit["calibrated"] = True
                     if penetrates(mover, other):
-                        report["violations"].append({"horn": horn.name, "deg": deg, "mm": round(d, 2), "pair": pair})
+                        report["violations"].append({**hit, "mm": round(d, 2)})
                         report["interference"] += interference(design, [mover, other], f"{horn.name} {deg}")
                     else:
-                        report["contacts"].append({"horn": horn.name, "deg": deg, "pair": pair})
+                        report["contacts"].append(hit)
+
+    incomplete = None
+    for deg in degs:
+        if time.time() - t0 > BUDGET_S:
+            incomplete = f"budget of {BUDGET_S} s spent at {deg} deg after {state['measured']} measurements"; break
+        measure(deg)
+    # The calibrated servo ends (eyes/calibration.json) lie outside the designer's limits: measure them with the
+    # limits off, then put the limits back (nothing is saved).
+    key = horn.name[0].lower() + ("_lid" if "lid" in horn.name else "_eye")
+    cal_lo, cal_hi = calibrated_extremes(json.load(open(os.path.join(REPO, "eyes", "calibration.json"))))[key]
+    lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = False
+    for deg in (cal_lo, cal_hi):
+        if deg not in poses and not incomplete:
+            measure(deg, calibrated=True)
+    lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = True
     motion.rotationValue = 0.0
+    worst, measured = state["worst"], state["measured"]
     report["horns"][horn.name] = worst or {"min_mm": NEAR_MM, "at_deg": None, "pair": None, "note": f"nothing within {NEAR_MM} mm"}
+    report["horns"][horn.name]["poses"] = {d: p for d, p in poses.items() if lo <= d <= hi}
+    report["calibrated"] = {horn.name: {"lo": cal_lo, "hi": cal_hi}}
     if incomplete:
         report["horns"][horn.name]["incomplete"] = incomplete
     report["horns"][horn.name]["measurements"] = measured

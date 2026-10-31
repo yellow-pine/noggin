@@ -41,6 +41,19 @@ def enrich(report, fits, beams):
     for name, h in report["horns"].items():
         poses = h.pop("poses", None)
         if poses:
+            poses = {int(d): p for d, p in poses.items()}   # JSON keys are strings
             report["torque"][name] = {**worst(gravity_torque(poses, report["mass"])), "limit_kgf_cm": RATED_KGF_CM / TORQUE_SF}
             report["curves"][name] = curves(poses)
     return report
+
+
+def joint_deg(servo, angle, cal):
+    """Horn joint angle (relative to the 90-degree neutral the STLs are modelled in) for a servo angle, with the
+    mirror-mounted lids' flips from eyes/calibration.json (flip 1: the low servo end is the open side)."""
+    sign = -1 if cal.get(servo + "_flip") else 1
+    return sign * (angle - 90)
+
+
+def calibrated_extremes(cal):
+    """(min, max) joint degrees each horn reaches at the calibrated servo ends."""
+    return {s: tuple(sorted((joint_deg(s, cal[s + "_lo"], cal), joint_deg(s, cal[s + "_hi"], cal)))) for s in ("l_lid", "r_lid", "l_eye", "r_eye")}
