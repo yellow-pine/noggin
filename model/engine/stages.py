@@ -136,13 +136,13 @@ def eyes():
         parts.update(servo_and_horn(lid_key, f"{s} lid", g.Y))
         parts.update(servo_and_horn(eye_key, f"{s} eye", (-1, 0, 0) if s == "L" else g.X))
         lid_horn = g.PIVOTS[lid_key + "_horn"]["point"]
-        normal = (-1, 0, 0) if s == "L" else (1, 0, 0)
+        normal = (1, 0, 0) if s == "L" else (-1, 0, 0)  # inboard: the crank's step toward the lid ear
         loops = []
         for key, stem in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = g.LID_LINKS[key]
-            x = side((spec["x"], 0, 0))[0]
-            horn_pin = (x, lid_horn[1] + g.HORN_STEP["pin"], lid_horn[2])
-            lid_pin = (x,) + side(g.LID_PINS[spec["lid"]])[1:]
+            hx, lx = (side((x, 0, 0))[0] for x in spec["x"])
+            horn_pin = (hx, lid_horn[1] + g.HORN_STEP["pin"], lid_horn[2])
+            lid_pin = (lx,) + side(g.LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stem} (inferred):1"
             parts[name] = link("eyes", stem, horn_pin, lid_pin, normal)
             loops.append(

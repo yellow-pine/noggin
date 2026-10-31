@@ -104,12 +104,12 @@ def run(_context: str):
     pins = {}
     for s in "LR":
         lid_horn = PIVOTS[s.lower() + "_lid_horn"]["point"]
-        normal = (-1, 0, 0) if s == "L" else (1, 0, 0)
+        normal = (1, 0, 0) if s == "L" else (-1, 0, 0)  # inboard: the crank's step toward the lid ear
         for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
             spec = LID_LINKS[key]
-            x = side(s, (spec["x"], 0, 0))[0]
-            horn_pin = (x, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
-            lid_pin = (x,) + side(s, LID_PINS[spec["lid"]])[1:]
+            hx, lx = (side(s, (x, 0, 0))[0] for x in spec["x"])
+            horn_pin = (hx, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
+            lid_pin = (lx,) + side(s, LID_PINS[spec["lid"]])[1:]
             name = f"{s} {stl} (inferred)"
             steps.append(
                 (
