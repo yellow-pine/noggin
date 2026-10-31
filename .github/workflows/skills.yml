@@ -42,10 +42,22 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      - run: cp skills-lock.json "$RUNNER_TEMP/old.json"
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: lock
+          path: ${{ runner.temp }}/lock
+      # the artifact comes from the job that ran npx: take its one file, and only if it changes nothing but each
+      # entry's ref (a commit) and computedHash (a sha256)
+      - run: |
+          [ "$(ls -A "$RUNNER_TEMP/lock")" = skills-lock.json ]
+          jq -e --slurpfile n "$RUNNER_TEMP/lock/skills-lock.json" '
+            def shape: del(.skills[].ref, .skills[].computedHash);
+            shape == ($n[0] | shape) and ($n[0].skills | all(
+              (.ref | test("^[0-9a-f]{40}$")) and (.computedHash | test("^[0-9a-f]{64}$"))))' skills-lock.json
+          cp skills-lock.json "$RUNNER_TEMP/old.json"
+          cp "$RUNNER_TEMP/lock/skills-lock.json" skills-lock.json
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -54,10 +66,11 @@ jobs:
           jq -rn --slurpfile o "$RUNNER_TEMP/old.json" --slurpfile n skills-lock.json '
             ($o[0].skills | map({(.source): .ref}) | add) as $old | $n[0].skills | map({(.source): .ref}) | add
             | to_entries[] | select($old[.key] != .value) | "- https://github.com/\(.key)/compare/\($old[.key])...\(.value)"' > "$RUNNER_TEMP/body.md"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C skills-bump
-          git commit -qam "Skills: re-pin skills-lock.json to upstream HEAD"
-          git push -f origin skills-bump
+          git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Skills: re-pin skills-lock.json to upstream HEAD" skills-lock.json
+          # force: skills-bump is this workflow's own branch, rebuilt from main each run
+          git -c core.hooksPath=/dev/null push -qf "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" skills-bump
           gh pr create --head skills-bump --title "Skills: re-pin skills-lock.json to upstream HEAD" \
             --body-file "$RUNNER_TEMP/body.md" || gh pr edit skills-bump --body-file "$RUNNER_TEMP/body.md"
