@@ -71,7 +71,7 @@ def test_every_lead_of_the_full_mech_has_a_corridor_longer_than_its_straight_rea
     assert 67.2 < pack["min_mm"] == pack["max_mm"] < pack["limit_mm"] == 80
     lid = report["l_lid servo -> Core 1 PWM1"]
     assert lid["limit_mm"] == 230 and lid["min_mm"] < lid["max_mm"]  # the head moves the clipped waypoints
-    assert set(lid["at"]) <= {"pan horn (inferred)", "tilt horn (inferred)"}
+    assert set(lid["at"]) <= {"pan horn", "tilt horn"}
     assert all("(inferred)" in w for c in report.values() for w in c["waypoints"])
 
 

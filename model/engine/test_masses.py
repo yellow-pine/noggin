@@ -28,7 +28,7 @@ def test_cube_mass_centre_and_inertia_follow_density_and_placement():
 def test_printed_part_masses_match_the_recorded_fusion_masses():
     recorded = json.load(open(os.path.join(HERE, "reports", "noggin-eyes-report.json")))["mass"]
     stage = stages.STAGES["noggin-eyes"]
-    names = ["L eyeball:1", "L servo bracket:1", "L eyelid bar (inferred):1", "L lid servo:1"]
+    names = ["L eyeball:1", "L servo bracket:1", "L eyelid bar:1", "L lid servo:1"]
     table = masses.table(stage, meshes.load(stage, names))
     for name in names:
         assert table[name]["g"] == pytest.approx(recorded[name], rel=0.02), name
@@ -40,7 +40,7 @@ def test_gravity_torque_of_the_tilt_horn_is_tiny_at_neutral_and_grows_with_the_a
     stage = stages.STAGES["noggin-pan-tilt"]
     table = masses.table(stage, meshes.load(stage))
     torque = masses.gravity_torque(
-        stage, "tilt horn (inferred)", table, [-70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60]
+        stage, "tilt horn", table, [-70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60]
     )
     assert set(torque) == set(range(-70, 70, 10)) and all(t >= 0 for t in torque.values())
     assert max(torque.values()) < 0.2  # the arm alone, no eyes on it: well under the servo's derated 0.2 kgf.cm

@@ -69,7 +69,7 @@ flowchart LR
   socket, times each Turn to pick a Tier, and drops Triggers while Busy (ADR 0003). Hooks write one line and exit.
 - **Links**: Wi-Fi first, USB-C as the automatic fallback; each Core beacons on the LAN and is addressed
   directly (ADR 0005, PR #30). USB stays the only path for flashing.
-- **The model** (`model/`): the Mech in Fusion 360, one design per Stage, with a Python simulation engine
+- **The model** (`model/`): four Sub-assemblies inserted by reference into three cumulative Stages in Fusion 360, with a Python simulation engine
   that sweeps every linkage before a part is printed (ADRs 0004 and 0006, PR #31).
 
 Vocabulary is in `GLOSSARY.md`; decisions in `docs/adr/`.
@@ -85,18 +85,19 @@ PurpleShark's three-part CyberBrick animatronic series on MakerWorld:
 | Mouth | 1861301 | 3, printed |
 
 Electronics are Bambu Lab's CyberBrick kit: a Core (ESP32-C3, MicroPython) on an X11 shield per
-Stage, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core and the calibration
+Core (eyes, neck), one pack and switch board each, 9 g servos, 2S 14500 packs. Servo ports, power, how to talk to the Core and the calibration
 lessons are in `docs/build-notes.md`; the parts to buy, and the Morty face that goes over all three
 Stages, in `docs/face-design.md`. The printed parts are not in this repo: get them from MakerWorld.
 
 ## Setup
 
 ```
-scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, calibrate, install hooks + the noggin service
+scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
 make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
 make flash           # install the eye program on the Core and reboot it
 make restore-stock   # put Bambu's remote-control program back on the Core
+noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
 noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
@@ -124,8 +125,9 @@ beside the code (`eyes/test_eyes.py`, `noggin/test_service.py`, ...). Work runs 
 - Four sub-assemblies own the parts once (base, stack, eyes, mouth); three Stage designs insert them
   by reference: Stage 1 = base + eyes, Stage 2 = + stack on the tilt arm, Stage 3 = + mouth (ADR 0004).
 - A parts library: every STL and STEP converted once, with the real spool colours and PLA density
-  (`make model-parts`); Stages rebuild from it (`make model-eyes`, `model-pan-tilt`, `model-mouth`).
-- A Python simulation engine (`model/sim.py`, run by pytest): planar four-bar solver, rigid mesh
+  (`make model-parts`); the documents rebuild from it (`make model-eyes`, `model-base`, `model-stack`, `model-mouth`,
+  `model-stage1`..`3`).
+- A Python simulation engine (`model/engine/`, run by `make sim`): planar four-bar solver, rigid mesh
   transforms, KD-tree contact screen, mass and torque, the electrical budget. Fusion builds the
   documents; Blender renders every picture from the engine's poses; the sweeps run in seconds without
   Fusion (ADR 0006).

@@ -51,11 +51,11 @@ def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral
     """Engine findings 2026-10-31 (#24): the tilt horn and bar swept into the pan base at the config's tilt end, and the
     tilt servo's straight lead stub sank into receiver shield 1 at neutral."""
     stage = stages.STAGES["noggin-pan-tilt"]
-    names = ["tilt horn (inferred):1", "tilt bar (inferred):1", "pan base:1", "tilt servo:1", "receiver shield 1:1"]
+    names = ["tilt horn:1", "tilt bar:1", "pan base:1", "tilt servo:1", "receiver shield 1:1"]
     loaded = meshes.load(stage, names)
-    end = stages.pose(stage, "tilt horn (inferred)", stage.horns["tilt horn (inferred)"].limits[0]).parts
+    end = stages.pose(stage, "tilt horn", stage.horns["tilt horn"].limits[0]).parts
     at = lambda name, pose: meshes.Placed(loaded[name], pose[name])
-    for name in ("tilt horn (inferred):1", "tilt bar (inferred):1"):
+    for name in ("tilt horn:1", "tilt bar:1"):
         assert not meshes.penetrates(at(name, end), at("pan base:1", end)), name
     neutral = {n: stage.parts[n].matrix for n in names}
     assert not meshes.penetrates(at("tilt servo:1", neutral), at("receiver shield 1:1", neutral))

@@ -4,26 +4,35 @@
  "clearance_mm": 0.1,
  "step_deg": 10,
  "horns": {
-  "tilt horn (inferred)": {
-   "min_mm": 0.19,
+  "tilt horn": {
+   "min_mm": 0.1,
    "at_deg": -60,
    "pair": [
-    "tilt horn (inferred):1",
+    "tilt horn:1",
     "pan base:1"
    ],
-   "measurements": 82
+   "measurements": 78
   },
-  "pan horn (inferred)": {
+  "pan horn": {
    "min_mm": 0.5,
    "at_deg": -40,
    "pair": [
     "pan base:1",
     "PandT base:1"
    ],
-   "measurements": 92
+   "measurements": 94
   }
  },
- "contacts": [],
+ "contacts": [
+  {
+   "horn": "tilt horn",
+   "deg": -60,
+   "pair": [
+    "tilt horn:1",
+    "pan base:1"
+   ]
+  }
+ ],
  "bboxes": {
   "PandT base:1": [
    [
@@ -171,74 +180,74 @@
   ],
   "tilt servo:1": [
    [
-    8.63,
-    -7.49,
-    12.4
+    12.78,
+    -7.61,
+    12.38
    ],
    [
-    39.45,
-    25.01,
-    24.4
+    43.6,
+    24.89,
+    24.38
    ]
   ],
-  "tilt horn (inferred):1": [
+  "tilt horn:1": [
+   [
+    10.98,
+    10.35,
+    14.75
+   ],
+   [
+    15.13,
+    30.03,
+    22.01
+   ]
+  ],
+  "tilt bar:1": [
    [
     8.0,
-    10.47,
-    14.77
-   ],
-   [
-    12.15,
-    30.15,
-    22.03
-   ]
-  ],
-  "tilt bar (inferred):1": [
-   [
-    10.1,
     24.0,
     15.9
    ],
    [
-    13.1,
-    29.35,
+    11.0,
+    29.23,
     40.9
    ]
   ],
   "pan servo:1": [
    [
     -26.5,
-    27.19,
-    -1.95
+    27.2,
+    -1.3
    ],
    [
     -14.5,
-    59.69,
-    28.87
+    59.7,
+    29.52
    ]
   ],
-  "pan horn (inferred):1": [
+  "pan horn:1": [
    [
     -24.13,
-    22.05,
-    25.35
+    22.06,
+    27.17
    ],
    [
     -16.87,
-    41.73,
-    29.5
+    41.74,
+    31.32
    ]
   ],
-  "pan bar (inferred):1": [
+  "pan bar:1": [
    [
     -23.0,
-    22.85,
-    29.5
+    22.86,
+    26.8
    ],
    [
     -3.0,
     28.0,
-    32.5
+    29.8
    ]
   ],
   "receiver shield 2:1": [
@@ -305,11 +314,11 @@
   "servo mount cutout:1": 1.121,
   "wire holder:1": 0.397,
   "tilt servo:1": 16.0,
-  "tilt horn (inferred):1": 0.37,
-  "tilt bar (inferred):1": 0.41,
+  "tilt horn:1": 0.37,
+  "tilt bar:1": 0.41,
   "pan servo:1": 16.0,
-  "pan horn (inferred):1": 0.37,
-  "pan bar (inferred):1": 0.317,
+  "pan horn:1": 0.37,
+  "pan bar:1": 0.317,
   "receiver shield 2:1": 3.962,
   "Core 2 (flipped onto the shield top, per photo):1": 2.838,
   "switch board 2 (inferred):1": 3.368,
@@ -329,11 +338,11 @@
   "servo mount cutout:1": "PLA Pure",
   "wire holder:1": "PLA Pure",
   "tilt servo:1": "documented",
-  "tilt horn (inferred):1": "step volume x 1.9 g/cm3",
-  "tilt bar (inferred):1": "PLA Pure",
+  "tilt horn:1": "step volume x 1.9 g/cm3",
+  "tilt bar:1": "PLA Pure",
   "pan servo:1": "documented",
-  "pan horn (inferred):1": "step volume x 1.9 g/cm3",
-  "pan bar (inferred):1": "PLA Pure",
+  "pan horn:1": "step volume x 1.9 g/cm3",
+  "pan bar:1": "PLA Pure",
   "receiver shield 2:1": "step volume x 1.9 g/cm3",
   "Core 2 (flipped onto the shield top, per photo):1": "step volume x 1.9 g/cm3",
   "switch board 2 (inferred):1": "step volume x 1.9 g/cm3",
@@ -342,14 +351,14 @@
  "stage": {
   "total_g": 274.9,
   "com": [
-   -7.7,
+   -7.4,
    65.3,
-   10.5
+   10.6
   ]
  },
  "calibrated": {},
  "unreachable": {
-  "pan horn (inferred)": [
+  "pan horn": [
    {
     "deg": -50,
     "why": "crank -50 deg: pin 42.55 mm from the rocker pivot, coupler 15.00, rocker 26.09"
@@ -462,23 +471,23 @@
   }
  ],
  "torque": {
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "kgf_cm": 0.001,
    "at_deg": -10,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 6425675,
+   "accel_limit_deg_s2": 6418483,
    "inertia_g_mm2": 174
   },
-  "pan horn (inferred)": {
+  "pan horn": {
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 32147,
-   "inertia_g_mm2": 34957
+   "accel_limit_deg_s2": 27224,
+   "inertia_g_mm2": 41278
   }
  },
  "curves": {
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "pan pivot": [
     [
      -60,
@@ -536,23 +545,23 @@
    "tilt pivot": [
     [
      -60,
-     -17.17
+     -17.23
     ],
     [
      -50,
-     -14.73
+     -14.77
     ],
     [
      -40,
-     -12.1
+     -12.13
     ],
     [
      -30,
-     -9.29
+     -9.31
     ],
     [
      -20,
-     -6.31
+     -6.32
     ],
     [
      -10,
@@ -572,23 +581,23 @@
     ],
     [
      30,
-     9.39
+     9.38
     ],
     [
      40,
-     12.13
+     12.11
     ],
     [
      50,
-     14.45
+     14.41
     ],
     [
      60,
-     16.18
+     16.12
     ]
    ]
   },
-  "pan horn (inferred)": {
+  "pan horn": {
    "tilt pivot": [
     [
      -40,
@@ -642,15 +651,15 @@
    "pan pivot": [
     [
      -40,
-     24.85
+     24.88
     ],
     [
      -30,
-     16.35
+     16.36
     ],
     [
      -20,
-     10.36
+     10.37
     ],
     [
      -10,
@@ -674,26 +683,26 @@
     ],
     [
      40,
-     -17.69
+     -17.68
     ],
     [
      50,
-     -20.33
+     -20.32
     ],
     [
      60,
-     -21.64
+     -21.63
     ],
     [
      70,
-     -21.38
+     -21.37
     ]
    ]
   }
  },
  "warnings": [],
  "inputs": {
-  "stamp": "82792c1965ff2e7df76d547f820a30ea9fe51bb0fc18d1ff9234ed1d32dfe48c",
+  "stamp": "af7026ab5806734812d47ea51564932fbb933d937a0997ebe945a71da9f1d5ba",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
@@ -714,13 +723,13 @@
   }
  },
  "clutch": {
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "hold_kgf_cm": 0.001,
    "at_deg": -10,
    "limit_kgf_cm": 0.6,
    "flagged": []
   },
-  "pan horn (inferred)": {
+  "pan horn": {
    "hold_kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.6,
@@ -728,14 +737,14 @@
   }
  },
  "tip_over": {
-  "margin_mm": 52.1,
+  "margin_mm": 52.3,
   "at": {
    "pan": -40,
    "tilt": 60
   },
   "com": [
-   -7.9,
-   66.0,
+   -7.7,
+   66.1,
    10.6
   ]
  },
@@ -769,15 +778,15 @@
    ]
   },
   "tilt servo -> Core 2 PWM1": {
-   "max_mm": 75.4,
+   "max_mm": 75.6,
    "at": {
-    "pan horn (inferred)": 60,
-    "tilt horn (inferred)": -60
+    "pan horn": 60,
+    "tilt horn": -60
    },
-   "min_mm": 52.2,
+   "min_mm": 52.4,
    "min_at": {
-    "pan horn (inferred)": -40,
-    "tilt horn (inferred)": -60
+    "pan horn": -40,
+    "tilt horn": -60
    },
    "length_mm": 250,
    "limit_mm": 230,
@@ -789,18 +798,18 @@
    ]
   },
   "pan servo -> Core 2 PWM3": {
-   "max_mm": 87.8,
+   "max_mm": 87.7,
    "at": {},
-   "min_mm": 87.8,
+   "min_mm": 87.7,
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 230,
-   "clearance_mm": 9.84,
+   "clearance_mm": 9.4,
    "clearance_at": {
-    "pan horn (inferred)": -40,
-    "tilt horn (inferred)": -20
+    "pan horn": -40,
+    "tilt horn": -30
    },
-   "clearance_part": "tilt horn (inferred):1",
+   "clearance_part": "tilt bar:1",
    "waypoints": [
     "under the cable holder, guide steps 8-9 (inferred)"
    ]

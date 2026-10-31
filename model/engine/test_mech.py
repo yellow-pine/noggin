@@ -41,7 +41,7 @@ def test_reflected_inertia_of_a_cube_swung_on_a_lever_is_m_r2_plus_its_own():
 def test_dynamic_torque_adds_the_inertia_term_to_gravity_at_every_pose():
     stage = stages.STAGES["noggin-stage2"]
     table = masses.table(stage, meshes.load(stage))
-    horn = "tilt horn (inferred)"
+    horn = "tilt horn"
     degs = [-60, -30, 0, 30, 60]
     torque = mech.dynamic_torque(stage, table, horn, degs, 2 * 500 / 0.02)
     gravity = masses.gravity_torque(stage, horn, table, degs)
@@ -67,7 +67,7 @@ def test_footprint_margin_is_the_distance_to_the_nearest_edge_of_the_plan_hull()
 def test_mech_poses_turn_the_tilted_head_about_the_pan_axis():
     stage = stages.STAGES["noggin-stage2"]
     poses = {(p, t): m for p, t, m in mech.mech_poses(stage, 10)}
-    tilted = stages.pose(stage, "tilt horn (inferred)", 30).parts
+    tilted = stages.pose(stage, "tilt horn", 30).parts
     eye = lambda m: m["L eyeball:1"][:3, 3]
     assert np.allclose(poses[(0, 30)]["L eyeball:1"], tilted["L eyeball:1"])  # pan neutral: the tilt pose itself
     for p in (-30, 30, 60):  # the pan turns the tilted head about Z through the origin: radius and height kept

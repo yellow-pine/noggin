@@ -44,7 +44,7 @@ def edges(side, deg):
     """(upper, lower) edge elevations with the side's lid horn at `deg` from neutral: the inside lid's lowest point and
     the outside lid's highest on the front of the column (+-90 once an edge has gone past the top or bottom)."""
     stage = stages.STAGES[DOC]
-    pose = stages.pose(stage, f"{side} lid horn (inferred)", deg)
+    pose = stages.pose(stage, f"{side} lid horn", deg)
     inside, outside, _, _ = _local(side)
     out = []
     for v, name, pick, none in ((inside, "inside", min, 90.0), (outside, "outside", max, -90.0)):

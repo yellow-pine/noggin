@@ -4,7 +4,7 @@
  "clearance_mm": 0.1,
  "step_deg": 10,
  "horns": {
-  "L eye horn (inferred)": {
+  "L eye horn": {
    "min_mm": 0.0,
    "at_deg": -20,
    "pair": [
@@ -14,7 +14,7 @@
    "measurements": 180,
    "seconds": 22.4
   },
-  "L lid horn (inferred)": {
+  "L lid horn": {
    "min_mm": 0.39,
    "at_deg": -20,
    "pair": [
@@ -24,7 +24,7 @@
    "measurements": 230,
    "seconds": 19.7
   },
-  "R eye horn (inferred)": {
+  "R eye horn": {
    "min_mm": 0.0,
    "at_deg": -20,
    "pair": [
@@ -34,7 +34,7 @@
    "measurements": 180,
    "seconds": 23.3
   },
-  "R lid horn (inferred)": {
+  "R lid horn": {
    "min_mm": 0.37,
    "at_deg": 0,
    "pair": [
@@ -48,7 +48,7 @@
  "interference": [],
  "contacts": [
   {
-   "horn": "L eye horn (inferred)",
+   "horn": "L eye horn",
    "deg": -20,
    "pair": [
     "L eyeball bar:1",
@@ -56,7 +56,7 @@
    ]
   },
   {
-   "horn": "L eye horn (inferred)",
+   "horn": "L eye horn",
    "deg": -10,
    "pair": [
     "L eyeball bar:1",
@@ -64,7 +64,7 @@
    ]
   },
   {
-   "horn": "L eye horn (inferred)",
+   "horn": "L eye horn",
    "deg": 0,
    "pair": [
     "L eyeball bar:1",
@@ -72,7 +72,7 @@
    ]
   },
   {
-   "horn": "L eye horn (inferred)",
+   "horn": "L eye horn",
    "deg": 10,
    "pair": [
     "L eyeball bar:1",
@@ -80,7 +80,7 @@
    ]
   },
   {
-   "horn": "L eye horn (inferred)",
+   "horn": "L eye horn",
    "deg": 20,
    "pair": [
     "L eyeball bar:1",
@@ -88,7 +88,7 @@
    ]
   },
   {
-   "horn": "R eye horn (inferred)",
+   "horn": "R eye horn",
    "deg": -20,
    "pair": [
     "R eyeball bar:1",
@@ -96,7 +96,7 @@
    ]
   },
   {
-   "horn": "R eye horn (inferred)",
+   "horn": "R eye horn",
    "deg": -10,
    "pair": [
     "R eyeball bar:1",
@@ -104,7 +104,7 @@
    ]
   },
   {
-   "horn": "R eye horn (inferred)",
+   "horn": "R eye horn",
    "deg": 0,
    "pair": [
     "R eyeball bar:1",
@@ -112,7 +112,7 @@
    ]
   },
   {
-   "horn": "R eye horn (inferred)",
+   "horn": "R eye horn",
    "deg": 10,
    "pair": [
     "R eyeball bar:1",
@@ -120,7 +120,7 @@
    ]
   },
   {
-   "horn": "R eye horn (inferred)",
+   "horn": "R eye horn",
    "deg": 20,
    "pair": [
     "R eyeball bar:1",
@@ -309,7 +309,7 @@
     46.01
    ]
   ],
-  "L lid horn (inferred):1": [
+  "L lid horn:1": [
    [
     -19.91,
     -17.14,
@@ -333,7 +333,7 @@
     46.01
    ]
   ],
-  "R lid horn (inferred):1": [
+  "R lid horn:1": [
    [
     74.73,
     -17.14,
@@ -357,7 +357,7 @@
     36.92
    ]
   ],
-  "L eye horn (inferred):1": [
+  "L eye horn:1": [
    [
     -13.16,
     1.33,
@@ -381,7 +381,7 @@
     36.92
    ]
   ],
-  "R eye horn (inferred):1": [
+  "R eye horn:1": [
    [
     52.46,
     1.33,
@@ -393,7 +393,7 @@
     37.02
    ]
   ],
-  "L eyelid bar (inferred):1": [
+  "L eyelid bar:1": [
    [
     -27.02,
     -14.95,
@@ -405,7 +405,7 @@
     43.31
    ]
   ],
-  "L eyelid bar crank (inferred):1": [
+  "L eyelid bar crank:1": [
    [
     -30.02,
     -3.9,
@@ -417,7 +417,7 @@
     45.29
    ]
   ],
-  "R eyelid bar (inferred):1": [
+  "R eyelid bar:1": [
    [
     82.99,
     -14.95,
@@ -429,7 +429,7 @@
     43.31
    ]
   ],
-  "R eyelid bar crank (inferred):1": [
+  "R eyelid bar crank:1": [
    [
     82.99,
     -3.9,
@@ -459,17 +459,17 @@
   "main bracket v2:1": 19.54,
   "PandT base:1": 117.03,
   "L lid servo:1": 16.0,
-  "L lid horn (inferred):1": 1.53,
+  "L lid horn:1": 1.53,
   "R lid servo:1": 16.0,
-  "R lid horn (inferred):1": 1.53,
+  "R lid horn:1": 1.53,
   "L eye servo:1": 16.0,
-  "L eye horn (inferred):1": 1.53,
+  "L eye horn:1": 1.53,
   "R eye servo:1": 16.0,
-  "R eye horn (inferred):1": 1.53,
-  "L eyelid bar (inferred):1": 0.8,
-  "L eyelid bar crank (inferred):1": 0.89,
-  "R eyelid bar (inferred):1": 0.8,
-  "R eyelid bar crank (inferred):1": 0.89
+  "R eye horn:1": 1.53,
+  "L eyelid bar:1": 0.8,
+  "L eyelid bar crank:1": 0.89,
+  "R eyelid bar:1": 0.8,
+  "R eyelid bar crank:1": 0.89
  },
  "mass_source": {
   "L servo bracket:1": "material",
@@ -487,17 +487,17 @@
   "main bracket v2:1": "material",
   "PandT base:1": "material",
   "L lid servo:1": "documented",
-  "L lid horn (inferred):1": "material",
+  "L lid horn:1": "material",
   "R lid servo:1": "documented",
-  "R lid horn (inferred):1": "material",
+  "R lid horn:1": "material",
   "L eye servo:1": "documented",
-  "L eye horn (inferred):1": "material",
+  "L eye horn:1": "material",
   "R eye servo:1": "documented",
-  "R eye horn (inferred):1": "material",
-  "L eyelid bar (inferred):1": "material",
-  "L eyelid bar crank (inferred):1": "material",
-  "R eyelid bar (inferred):1": "material",
-  "R eyelid bar crank (inferred):1": "material"
+  "R eye horn:1": "material",
+  "L eyelid bar:1": "material",
+  "L eyelid bar crank:1": "material",
+  "R eyelid bar:1": "material",
+  "R eyelid bar crank:1": "material"
  },
  "stage": {
   "total_g": 284.2,
@@ -508,21 +508,21 @@
   ]
  },
  "calibrated": {
-  "L eye horn (inferred)": {
+  "L eye horn": {
    "lo": -32,
    "hi": 28,
    "violations": [
     {
      "deg": -32,
      "pair": [
-      "L eye horn (inferred):1",
+      "L eye horn:1",
       "L servo bracket:1"
      ]
     },
     {
      "deg": -32,
      "pair": [
-      "L eye horn (inferred):1",
+      "L eye horn:1",
       "main bracket v2:1"
      ]
     },
@@ -542,7 +542,7 @@
     }
    ]
   },
-  "L lid horn (inferred)": {
+  "L lid horn": {
    "lo": -54,
    "hi": 39,
    "violations": [
@@ -572,14 +572,14 @@
     {
      "deg": -54,
      "pair": [
-      "L eyelid bar crank (inferred):1",
+      "L eyelid bar crank:1",
       "main bracket v2:1"
      ]
     },
     {
      "deg": -54,
      "pair": [
-      "L eyelid bar (inferred):1",
+      "L eyelid bar:1",
       "main bracket v2:1"
      ]
     },
@@ -587,12 +587,12 @@
      "deg": 39,
      "pair": [
       "L outside lid:1",
-      "L eye horn (inferred):1"
+      "L eye horn:1"
      ]
     }
    ]
   },
-  "R eye horn (inferred)": {
+  "R eye horn": {
    "lo": -32,
    "hi": 28,
    "violations": [
@@ -608,7 +608,7 @@
     {
      "deg": 28,
      "pair": [
-      "R eye horn (inferred):1",
+      "R eye horn:1",
       "R servo bracket:1"
      ]
     },
@@ -621,7 +621,7 @@
     }
    ]
   },
-  "R lid horn (inferred)": {
+  "R lid horn": {
    "lo": -46,
    "hi": 39,
    "violations": [
@@ -650,7 +650,7 @@
      "deg": 39,
      "pair": [
       "R outside lid:1",
-      "R eye horn (inferred):1"
+      "R eye horn:1"
      ]
     }
    ],
@@ -658,14 +658,14 @@
     {
      "deg": -46,
      "pair": [
-      "R eyelid bar crank (inferred):1",
+      "R eyelid bar crank:1",
       "main bracket v2:1"
      ]
     },
     {
      "deg": -46,
      "pair": [
-      "R eyelid bar (inferred):1",
+      "R eyelid bar:1",
       "main bracket v2:1"
      ]
     }
@@ -815,29 +815,29 @@
   }
  ],
  "torque": {
-  "L eye horn (inferred)": {
+  "L eye horn": {
    "kgf_cm": 0.0,
    "at_deg": -20,
    "limit_kgf_cm": 0.2
   },
-  "L lid horn (inferred)": {
+  "L lid horn": {
    "kgf_cm": 0.002,
    "at_deg": 30,
    "limit_kgf_cm": 0.2
   },
-  "R eye horn (inferred)": {
+  "R eye horn": {
    "kgf_cm": 0.0,
    "at_deg": -20,
    "limit_kgf_cm": 0.2
   },
-  "R lid horn (inferred)": {
+  "R lid horn": {
    "kgf_cm": 0.002,
    "at_deg": 30,
    "limit_kgf_cm": 0.2
   }
  },
  "curves": {
-  "L eye horn (inferred)": {
+  "L eye horn": {
    "L eyeball pivot": [
     [
      -20,
@@ -861,7 +861,7 @@
     ]
    ]
   },
-  "L lid horn (inferred)": {
+  "L lid horn": {
    "L inside lid pivot": [
     [
      -20,
@@ -915,7 +915,7 @@
     ]
    ]
   },
-  "R eye horn (inferred)": {
+  "R eye horn": {
    "R eyeball pivot": [
     [
      -20,
@@ -939,7 +939,7 @@
     ]
    ]
   },
-  "R lid horn (inferred)": {
+  "R lid horn": {
    "R inside lid pivot": [
     [
      -20,

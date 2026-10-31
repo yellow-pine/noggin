@@ -4,7 +4,7 @@
  "clearance_mm": 0.1,
  "step_deg": 10,
  "horns": {
-  "pan horn (inferred)": {
+  "pan horn": {
    "min_mm": 0.0,
    "at_deg": -50,
    "pair": [
@@ -14,11 +14,11 @@
    "measurements": 381,
    "seconds": 37.7
   },
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "min_mm": 0.2,
    "at_deg": -70,
    "pair": [
-    "tilt horn (inferred):1",
+    "tilt horn:1",
     "PandT base:1"
    ],
    "measurements": 296,
@@ -28,7 +28,7 @@
  "interference": [],
  "contacts": [
   {
-   "horn": "pan horn (inferred)",
+   "horn": "pan horn",
    "deg": -50,
    "pair": [
     "tilt servo:1",
@@ -36,7 +36,7 @@
    ]
   },
   {
-   "horn": "pan horn (inferred)",
+   "horn": "pan horn",
    "deg": -10,
    "pair": [
     "tilt servo:1",
@@ -44,7 +44,7 @@
    ]
   },
   {
-   "horn": "pan horn (inferred)",
+   "horn": "pan horn",
    "deg": 0,
    "pair": [
     "tilt servo:1",
@@ -161,7 +161,7 @@
     24.41
    ]
   ],
-  "tilt horn (inferred):1": [
+  "tilt horn:1": [
    [
     7.99,
     10.46,
@@ -173,7 +173,7 @@
     22.05
    ]
   ],
-  "tilt bar (inferred):1": [
+  "tilt bar:1": [
    [
     10.08,
     23.95,
@@ -197,7 +197,7 @@
     28.88
    ]
   ],
-  "pan horn (inferred):1": [
+  "pan horn:1": [
    [
     -24.14,
     22.04,
@@ -209,7 +209,7 @@
     29.51
    ]
   ],
-  "pan bar (inferred):1": [
+  "pan bar:1": [
    [
     -23.03,
     22.82,
@@ -329,11 +329,11 @@
   "servo mount cutout:1": 1.12,
   "wire holder:1": 0.4,
   "tilt servo:1": 16.0,
-  "tilt horn (inferred):1": 1.53,
-  "tilt bar (inferred):1": 0.41,
+  "tilt horn:1": 1.53,
+  "tilt bar:1": 0.41,
   "pan servo:1": 16.0,
-  "pan horn (inferred):1": 1.53,
-  "pan bar (inferred):1": 0.32,
+  "pan horn:1": 1.53,
+  "pan bar:1": 0.32,
   "receiver shield 1:1": 17.13,
   "Core 1 (flipped onto the shield top, per photo):1": 11.73,
   "switch board 1 (inferred):1": 13.69,
@@ -353,11 +353,11 @@
   "servo mount cutout:1": "material",
   "wire holder:1": "material",
   "tilt servo:1": "documented",
-  "tilt horn (inferred):1": "material",
-  "tilt bar (inferred):1": "material",
+  "tilt horn:1": "material",
+  "tilt bar:1": "material",
   "pan servo:1": "documented",
-  "pan horn (inferred):1": "material",
-  "pan bar (inferred):1": "material",
+  "pan horn:1": "material",
+  "pan bar:1": "material",
   "receiver shield 1:1": "material",
   "Core 1 (flipped onto the shield top, per photo):1": "material",
   "switch board 1 (inferred):1": "material",
@@ -482,19 +482,19 @@
   }
  ],
  "torque": {
-  "pan horn (inferred)": {
+  "pan horn": {
    "kgf_cm": 0.0,
    "at_deg": -50,
    "limit_kgf_cm": 0.2
   },
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "kgf_cm": 0.002,
    "at_deg": -10,
    "limit_kgf_cm": 0.2
   }
  },
  "curves": {
-  "pan horn (inferred)": {
+  "pan horn": {
    "pan pivot": [
     [
      -50,
@@ -604,7 +604,7 @@
     ]
    ]
   },
-  "tilt horn (inferred)": {
+  "tilt horn": {
    "pan pivot": [
     [
      -70,
