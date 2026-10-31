@@ -3,8 +3,7 @@
 fusion_lib.insert_part) in the eyes frame, the jaw servo with its half-arm horn, and the saved `noggin-eyes` design
 inserted as a grounded reference (main bracket v2 and the eyes belong to that sub-assembly: one part, one document). Pivots as joints: the jaw hinge (bottom jaw on the top jaw's pins,
 X through (29.5, -49.6, 8)), the horn on the servo (HORN_LIMITS mouth), the bar on the horn pin and the loop closed at
-the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Components placed from inferred positions carry an
-"(inferred)" suffix: the horn seat, the bar plane and which bar hole is the jaw end (model/geometry.py)."""
+the jaw's pivot lug. Runs INSIDE Fusion: `make model-mouth`. Positions: docs/research/2026-10-31-shafts.md."""
 
 # include: model/geometry.py
 # include: model/fusion_lib.py
@@ -18,7 +17,7 @@ DOC = "noggin-mouth"
 EYES_DOC = "noggin-eyes"
 FULL = False  # `FULL=1 make model-mouth` flips this: empty the document and import everything again
 
-MOVING = {"bottom jaw", "jaw horn (inferred)", "connector bar (inferred)"}
+MOVING = {"bottom jaw", "jaw horn", "connector bar"}
 
 
 def run(_context: str):
@@ -42,24 +41,30 @@ def run(_context: str):
     # re-inserted when noggin-eyes has a newer version (its fingerprint is the version).
     part("eyes", EYES_DOC, EYES_DOC, referenced=True)
 
-    # Jaw servo from the measured mount-lug holes, horn at the inferred seat, the connector bar on the horn pin and the jaw lug.
+    # Jaw servo from the measured mount-lug holes, horn at its seat, the connector bar on the horn pin and the jaw lug.
+    # The horn's spline side on the seat, its arm outermost (docs/research/2026-10-31-shafts.md).
     origin, tab_x, shaft = servo_frame("jaw")
     servo_m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
     part("jaw servo", "servo", "jaw servo", servo_m)
     seat = PIVOTS["jaw_horn"]["point"]
     pin, lever = horn_pin("jaw")
     part(
-        "jaw horn (inferred)",
+        "jaw horn",
         "horn",
-        "jaw horn (inferred)",
-        align(seat, [p - q for p, q in zip(pin, seat)], shaft, HORN_STEP["hub"]),
+        "jaw horn",
+        align(
+            tuple(p + HORN_STEP["height"] * c for p, c in zip(seat, shaft)),
+            [p - q for p, q in zip(pin, seat)],
+            [-c for c in shaft],
+            HORN_STEP["hub"],
+        ),
     )
     steps.append(
         (
-            "connector bar (inferred)",
+            "connector bar",
             lambda: occs.__setitem__(
-                "connector bar (inferred)",
-                link(root, "connector bar (inferred)", "jaws connector bar", pin, lever, X, reuse),
+                "connector bar",
+                link(root, "connector bar", "jaws connector bar", pin, lever, X, reuse),
             ),
         )
     )
@@ -72,20 +77,16 @@ def run(_context: str):
         # The top jaw is screwed to the bracket (4 screws); the bottom jaw clips onto its pins: the hinge is between the two jaws.
         pivot_joint(root, occs["bottom jaw"], occs["top jaw"], PIVOTS["jaw_hinge"]["point"], "X", "jaw hinge")
         lo, hi = HORN_LIMITS["mouth"]
-        pivot_joint(
-            root, occs["jaw horn (inferred)"], occs["jaw servo"], seat, "X", "jaw horn (inferred)", (lo - 90, hi - 90)
-        )
+        pivot_joint(root, occs["jaw horn"], occs["jaw servo"], seat, "X", "jaw horn", (lo - 90, hi - 90))
         pivot_joint(
             root,
-            occs["connector bar (inferred)"],
-            occs["jaw horn (inferred)"],
+            occs["connector bar"],
+            occs["jaw horn"],
             pin,
             "X",
-            "connector bar / arm pin (inferred)",
+            "connector bar / arm pin",
         )
-        close_loop(
-            root, occs["connector bar (inferred)"], occs["bottom jaw"], lever, "X", "connector bar / jaw lug screw"
-        )
+        close_loop(root, occs["connector bar"], occs["bottom jaw"], lever, "X", "connector bar / jaw lug screw")
 
     steps.append(("joints", joints))
     progress = chunked(steps)

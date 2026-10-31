@@ -2,7 +2,6 @@
 main bracket v2, the eye mech printed parts, the four servos with their horns, placed from the parts library
 (`make model-parts`, fusion_lib.insert_part), and the Pivots as joints. The PandT base and the electronics live in
 noggin-base; the Stage documents (model/stage.py) put the bracket on it. Runs INSIDE Fusion: `make model-eyes`.
-Components whose position is inferred rather than measured carry an "(inferred)" suffix.
 Numbers live in model/geometry.py; this file only places things. Parts whose library version and placement are
 unchanged since the saved version are reused (fingerprints, fusion_lib); joints are recreated, and
 a new version is saved only when something differs from the last one."""
@@ -39,8 +38,8 @@ def run(_context: str):
         part(name, lib, name, align((dx, 0, 0)))
     part("main bracket", "main bracket v2", "main bracket v2")
 
-    # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot. A Port at each servo's
-    # cable exit (SERVO_STEP lead), placed after parts_end.
+    # Servos and horns from the tab holes and the horn pivots (docs/research/2026-10-31-shafts.md); the horn's spline
+    # side on the seat, its arm outermost. A Port at each servo's cable exit (SERVO_STEP lead), placed after parts_end.
     leads = {}
     for key in EYES_SERVOS:
         origin, tab_x, shaft = servo_frame(key)
@@ -50,7 +49,8 @@ def run(_context: str):
         leads[key + "_servo"] = (f"{label} servo lead", at(m, SERVO_STEP["lead"]))
         arm = Y if "lid" in key else (-1, 0, 0) if key == "l_eye" else X  # single arm: toward the bar pin
         seat = add(origin, tuple(SERVO_STEP["horn_seat"] * c for c in shaft))
-        part(key + "_horn", "horn", f"{label} horn (inferred)", align(seat, arm, shaft, HORN_STEP["hub"]))
+        outer = add(seat, tuple(HORN_STEP["height"] * c for c in shaft))
+        part(key + "_horn", "horn", f"{label} horn", align(outer, arm, [-c for c in shaft], HORN_STEP["hub"]))
 
     # Linkage parts (local-frame STLs) at their pins. The pins are also the joint points below.
     pins = {}
@@ -62,7 +62,7 @@ def run(_context: str):
             hx, lx = (side(s, (x, 0, 0))[0] for x in spec["x"])
             horn_pin = (hx, lid_horn[1] + HORN_STEP["pin"], lid_horn[2])
             lid_pin = (lx,) + side(s, LID_PINS[spec["lid"]])[1:]
-            name = f"{s} {stl} (inferred)"
+            name = f"{s} {stl}"
             steps.append(
                 (
                     name,
@@ -85,11 +85,9 @@ def run(_context: str):
             for key, stl in (("eyelid_bar", "eyelid bar"), ("eyelid_crank", "eyelid bar crank")):
                 spec = LID_LINKS[key]
                 horn_pin, lid_pin = pins[s, key]
-                name = f"{s} {stl} (inferred)"
+                name = f"{s} {stl}"
                 lid = occs[f"{s} {spec['lid']} lid"]
-                pivot_joint(
-                    root, occs[name], occs[f"{s.lower()}_lid_horn"], horn_pin, "X", f"{s} {stl} / arm pin (inferred)"
-                )
+                pivot_joint(root, occs[name], occs[f"{s.lower()}_lid_horn"], horn_pin, "X", f"{s} {stl} / arm pin")
                 close_loop(root, occs[name], lid, lid_pin, "X", f"{s} {stl} / {spec['lid']} lid pin")
             pivot_joint(root, occs[f"{s} inside lid"], occs["main bracket"], eye, "X", f"{s} inside lid pivot")
             pivot_joint(root, occs[f"{s} outside lid"], occs["main bracket"], eye, "X", f"{s} outside lid pivot")
@@ -102,7 +100,7 @@ def run(_context: str):
                     occs[f"{s.lower()}_{part}_servo"],
                     PIVOTS[f"{s.lower()}_{part}_horn"]["point"],
                     axis,
-                    f"{s} {part} horn (inferred)",
+                    f"{s} {part} horn",
                     (lo - 90, hi - 90),
                 )
             arm_end, eye_end = (side(s, p) for p in EYEBALL_BAR_PINS)
@@ -112,7 +110,7 @@ def run(_context: str):
                 occs[f"{s.lower()}_eye_horn"],
                 arm_end,
                 "Y",
-                f"{s} eyeball bar / arm pin (inferred)",
+                f"{s} eyeball bar / arm pin",
             )
             close_loop(
                 root, occs[f"{s} eyeball bar"], occs[f"{s} eyeball"], eye_end, "Y", f"{s} eyeball bar / eyeball pin"
