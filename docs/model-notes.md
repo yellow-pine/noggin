@@ -11,6 +11,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
   and the PLA density (1.24 g/cm3). Electronics and servos are neutral greys,
   darker for the boards (model/render/scene.py GREYS).
+- `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it): headlight
+  ambient 0.5, diffuse 0.5, specular 0; Absolute Black #5A5A60, Pure White #E8E8E8, the rest as DRAWN; flat #F7F4EE sky.
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
   shadow and one small highlight band, 2.5 px black Freestyle lines on silhouettes, borders and creases (faces
   more than 60 degrees apart, so STL facets draw none), one key light at the camera's upper right, plain #F7F4EE

@@ -85,3 +85,13 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
         if mm > PENETRATION_MM:
             overlaps[pair] = max(overlaps.get(pair, 0), round(mm, 2))
     assert not overlaps, overlaps
+
+
+def test_the_viewer_look_stays_as_cansin_kept_it():
+    """make view's settings, frozen 2026-11-01: the headlight that keeps colours, black and white pulled in."""
+    model, _ = forward("noggin-stage1")
+    light = model.vis.headlight
+    assert (list(light.ambient), list(light.diffuse), list(light.specular)) == ([0.5] * 3, [0.5] * 3, [0.0] * 3)
+    drawn = {model.body(model.geom_bodyid[i]).name: model.geom_rgba[i] for i in np.flatnonzero(model.geom_group == 2)}
+    assert np.allclose(drawn["base plate:1"], [0x5A / 255, 0x5A / 255, 0x60 / 255, 1])  # Absolute Black
+    assert np.allclose(drawn["L eyeball:1"], [0xE8 / 255] * 3 + [1])  # Pure White
