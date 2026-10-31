@@ -40,12 +40,7 @@ TABLES = {
     "noggin-stack": (fits.PT_JOINTS, beams.PT_BEAMS),
     "noggin-mouth": (fits.MOUTH_JOINTS, beams.MOUTH_BEAMS),
 }
-EYES_HORNS = {
-    "L lid horn (inferred)": "l_lid",
-    "R lid horn (inferred)": "r_lid",
-    "L eye horn (inferred)": "l_eye",
-    "R eye horn (inferred)": "r_eye",
-}
+EYES_HORNS = {h: s for h, s in mech.HORN_SERVO.items() if s in g.EYES_SERVOS}  # the horns calibration.json ends
 
 
 def fingerprint(path):
@@ -285,9 +280,7 @@ def report(doc, parallel=True):
         outline = mech.footprint(placed["PandT base:1"].vertices)
         out["tip_over"] = mech.tip_over(stage, table, outline, STEP_DEG)
         out["cable_reach"] = mech.cable_reach(stage, STEP_DEG)
-    if all(
-        f"{label} servo:1" in stage.parts for label in electrical.SERVO_LABEL.values()
-    ):  # the whole Mech: both Cores
+    if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.budget()
     for h, by_deg in dynamic.items():
         t = out["torque"][h]

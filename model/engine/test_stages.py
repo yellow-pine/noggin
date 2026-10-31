@@ -32,6 +32,13 @@ def test_every_horn_link_and_the_bracket_stem_has_a_placement_tolerance():
     assert placed["L eyelid bar (inferred):1"] == stages.TOL_INFERRED_MM
 
 
+def test_sub_assemblies_place_the_geometry_parts_tables():
+    eyes, stack, mouth = (stages.SUBS[f"noggin-{n}"]().parts for n in ("eyes", "stack", "mouth"))
+    for parts, table in ((eyes, g.EYES_PARTS), (stack, g.STACK_PARTS), (mouth, g.MOUTH_PARTS)):
+        assert {row[0] + ":1" for row in table} <= set(parts)
+    assert world(eyes["L pupil:1"].matrix, (59, 0, 0)) == pytest.approx((0, 0, 0))  # the pupil STL sits on the R eye
+
+
 def test_every_servo_has_a_lead_port_at_its_cable_exit():
     stage = stages.STAGES["noggin-stage3"]
     leads = {n: p for n, p in stage.ports.items() if n.endswith(" servo lead")}

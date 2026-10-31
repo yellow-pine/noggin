@@ -40,22 +40,9 @@ Stage = namedtuple(
 Pose = namedtuple("Pose", "parts joints")
 
 
-def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
-    """4x4 taking the local frame (from_*) onto the world frame (to_*), mm; fusion_lib.align's frames."""
-
-    def frame(origin, x, z):
-        z = np.asarray(z, float)
-        z = z / np.linalg.norm(z)
-        x = np.asarray(x, float)
-        x = x - (x @ z) * z
-        x = x / np.linalg.norm(x)
-        m = np.eye(4)
-        m[:3, 0], m[:3, 1], m[:3, 2], m[:3, 3] = x, np.cross(z, x), z, origin
-        return m
-
-    to_x = (1, 0, 0) if to_x is None else to_x
-    to_z = (0, 0, 1) if to_z is None else to_z
-    return frame(to_origin, to_x, to_z) @ np.linalg.inv(frame(from_origin, from_x, from_z))
+def align(*frames, **kw):
+    """4x4 taking the local frame onto the world frame, mm (geometry.align_rows, the Fusion builds' frames)."""
+    return np.array(g.align_rows(*frames, **kw))
 
 
 def translate(p):
@@ -139,20 +126,7 @@ def limits(key):
 
 def eyes():
     parts, horns = {}, {}
-    for name, stem, dx in [
-        ("L servo bracket", "L servo bracket", 0),
-        ("R servo bracket", "R servo bracket", 0),
-        ("L eyeball", "L eyeball regular", 0),
-        ("R eyeball", "R eyeball regular", 0),
-        ("L pupil", "regular pupil", -59),
-        ("R pupil", "regular pupil", 0),
-        ("L inside lid", "inside lid", 0),
-        ("L outside lid", "outside lid", 0),
-        ("R inside lid", "inside lid", 59),
-        ("R outside lid", "outside lid", 59),
-        ("L eyeball bar", "eyeball bar", 0),
-        ("R eyeball bar", "eyeball bar", 79),
-    ]:
+    for name, stem, dx in g.EYES_PARTS:
         parts[name + ":1"] = part(stl("eyes", stem), translate((dx, 0, 0)), printed(stem))
     parts["main bracket v2:1"] = part(stl("mouth", "main bracket v2"), None, printed("main bracket v2"))
     placements = []
@@ -209,11 +183,9 @@ def eyes():
 def electronics(n):
     """(parts, ports): receiver shield n with its Core flipped on top, switch board n and battery n on the PandT base
     (model/electronics.py)."""
-    stand = g.STANDOFFS["pt_base"]
-    receiver_m = align(np.mean(stand[f"receiver_{n}"], axis=0), (0, -1, 0), (-1, 0, 0))
-    flip = linkage.rotation(g.Z, 180, about=(0, 0.8, 0))
-    pocket = g.BATTERY_POCKET_PT
-    battery_at = (sum(pocket["x"]) / 2, pocket["y"][0], pocket["floor_z"] - g.BATTERY_STEP["floor_z"] + (n - 1) * 16.3)
+    receiver_m = align(g.receiver_at(n), *g.RECEIVER_AXES)
+    axis, deg, about = g.CORE_FLIP
+    flip = linkage.rotation(axis, deg, about)
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
     shield, switch = f"receiver shield {n}:1", f"switch board {n}" + (" (inferred)" if n == 2 else "") + ":1"
     battery = "battery 1:1" if n == 1 else "battery 2 (inferred):1"
@@ -224,8 +196,8 @@ def electronics(n):
     return {
         shield: part(step("receiver"), receiver_m, board),
         f"Core {n} (flipped onto the shield top, per photo):1": part(step("core"), receiver_m @ flip, board),
-        switch: part(step("switch"), align(stand["switch"][n - 1], (-1, 0, 0), g.Y, g.SWITCH_STEP["hole"]), board),
-        battery: part(step("battery"), align(battery_at, g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"])),
+        switch: part(step("switch"), align(g.switch_at(n), *g.SWITCH_AXES, g.SWITCH_STEP["hole"]), board),
+        battery: part(step("battery"), align(g.battery_at(n), g.X, g.Z), board, ("y", g.BATTERY_STEP["lead_y"])),
     }, ports
 
 
@@ -244,15 +216,7 @@ def base():
 def stack():
     """noggin-stack: the pan-tilt neck with electronics set 2, PT frame (model/stack.py)."""
     parts = {}
-    for name, stem, dz in [
-        ("bearing block", "PandT bearing block", 0),
-        ("pan base", "PandT pan base", 0),
-        ("upright v2", "PandT upright v2", 0),
-        ("tilt arm", "PandT tilt arm", g.TILT_ARM_SHIFT_Z),
-        ("servo mount plain", "PandT servo mount plain", 0),
-        ("servo mount cutout", "PandT servo mount cutout", 0),
-        ("wire holder", "PandT wire holder", 0),
-    ]:
+    for name, stem, dz in g.STACK_PARTS:
         parts[name + ":1"] = part(stl("pt", stem), translate((0, 0, dz)), printed(stem))
     bars, placements = {}, []
     for key, stem in (("tilt", "tilt bar"), ("pan", "PandT bar")):
@@ -304,11 +268,7 @@ def stack():
 def mouth():
     """noggin-mouth's own parts, eyes frame (model/mouth.py; its context copy of the eyes is assembled separately)."""
     parts = {}
-    for name, stem in [
-        ("top jaw", "top jaw plain"),
-        ("bottom jaw", "bottom jaw plain"),
-        ("jaws servo mount", "jaws servo mount"),
-    ]:
+    for name, stem in g.MOUTH_PARTS:
         parts[name + ":1"] = part(stl("mouth", stem), None, printed(stem))
     pin, lever = g.horn_pin("jaw")
     parts.update(servo_and_horn("jaw", "jaw", np.subtract(pin, g.PIVOTS["jaw_horn"]["point"])))

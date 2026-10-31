@@ -1,14 +1,8 @@
 """Seam: electrical.budget(), the dict the Mech-wide report merges (channel map, current caps, stall worst case,
 battery runtime per scenario)."""
 
-import importlib.util
-import os
+from model import electrical
 
-spec = importlib.util.spec_from_file_location(
-    "electrical", os.path.join(os.path.dirname(__file__), "electrical.py")
-)  # by path: eyes/ owns `eyes`
-electrical = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(electrical)
 B = electrical.budget()
 
 

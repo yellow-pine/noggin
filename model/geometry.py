@@ -149,6 +149,20 @@ SERVO_STEP = {
 }
 HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75}
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0)}  # the mounting hole on the PCB bottom; PCB x -7.25..13.25, z +-16
+# The servos by the names the remote config and calibration use, and their Mech labels (Fusion components "<label> servo").
+# Core 1 drives the eyes (docs/build-notes.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
+CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
+EYES_SERVOS = tuple(CHANNELS["core1"].values())
+SERVO_LABEL = {
+    "l_lid": "L lid",
+    "l_eye": "L eye",
+    "r_lid": "R lid",
+    "r_eye": "R eye",
+    "tilt": "tilt",
+    "mouth": "jaw",
+    "pan": "pan",
+}
+
 # Receiver STEP Ports: the four servo headers and the XH power socket (top centres); the PWM numbering of the headers is
 # inferred. The switch board's two XH sockets are not located: the cable reach takes its mounting hole for both [I].
 RECEIVER_STEP = {
@@ -169,6 +183,28 @@ def _dist(a, b):
 def _unit(v):
     n = sum(c * c for c in v) ** 0.5
     return tuple(c / n for c in v)
+
+
+def _cross(a, b):
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
+    """4x4 rows (mm) taking the local frame (from_*) onto the world frame (to_*); axes default to identity, x is made
+    normal to z (stepped links), y = z cross x. The engine wraps it in numpy (stages.align), the Fusion builds in a
+    Matrix3D in cm (fusion_lib.align)."""
+
+    def frame(o, x, z):
+        z = _unit([float(c) for c in z])
+        dot = sum(float(a) * b for a, b in zip(x, z))
+        x = _unit([float(a) - dot * b for a, b in zip(x, z)])
+        return [float(c) for c in o], x, _cross(z, x), z
+
+    o1, *b1 = frame(from_origin, from_x, from_z)
+    o2, *b2 = frame(to_origin, X if to_x is None else to_x, Z if to_z is None else to_z)
+    r = [[sum(w[i] * v[j] for w, v in zip(b2, b1)) for j in range(3)] for i in range(3)]
+    t = [o2[i] - sum(r[i][j] * o1[j] for j in range(3)) for i in range(3)]
+    return [r[0] + [t[0]], r[1] + [t[1]], r[2] + [t[2]], [0.0, 0.0, 0.0, 1.0]]
 
 
 def servo_frame(key):
@@ -255,6 +291,34 @@ BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
 BATTERY_POCKET_PT = {"x": (-48.0, -24.0), "y": (71.0, 127.0), "floor_z": 3.0}  # PandT base, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
+# Electronics set n on the PandT base (model/electronics.py, model/engine/stages.py), PT frame, oriented as the designer's
+# build: the receiver's XH socket to the front and the Core on top (the STEP has the Core under the shield: flipped about
+# the PCB mid-plane). Our build runs one pack and one switch board per shield (docs/build-notes.md); the base has one
+# battery box and one pair of switch standoffs, so set 2 is inferred: the switch boards hang one per standoff (as the
+# eyes-only build hangs its switch on a single post) and battery 2 lies on top of battery 1 in the box.
+RECEIVER_AXES = ((0, -1, 0), (-1, 0, 0))  # (x, z) of the receiver STEP
+CORE_FLIP = ((0, 0, 1), 180, (0, 0.8, 0))  # (axis, deg, about local mm)
+SWITCH_AXES = ((-1, 0, 0), (0, 1, 0))  # (x, z) of the switch STEP, its hole on the standoff top
+BATTERY_STACK_Z = 16.3  # pack height: the second pack's floor sits on the first pack's top [I]
+
+
+def receiver_at(n):
+    pts = STANDOFFS["pt_base"][f"receiver_{n}"]
+    return tuple(sum(c) / len(pts) for c in zip(*pts))
+
+
+def switch_at(n):
+    return STANDOFFS["pt_base"]["switch"][n - 1]  # [I] for set 2
+
+
+def battery_at(n):
+    pocket = BATTERY_POCKET_PT
+    return (
+        sum(pocket["x"]) / 2,
+        pocket["y"][0],
+        pocket["floor_z"] - BATTERY_STEP["floor_z"] + (n - 1) * BATTERY_STACK_Z,
+    )
+
 
 # Printed parts: spool and material per STL stem (model/parts.py gives each library part the spool's appearance and a
 # physical material of that density; the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
@@ -304,8 +368,42 @@ PRINTED = {
 }
 
 
+# Sub-assembly parts placed straight from the designer's STLs (the Fusion builds and model/engine/stages.py read these):
+# (component, STL stem, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the regular eye and
+# the "updated main bracket and base" profile (main bracket v2, placed apart). Stack: z shift; the designer exported these
+# in the assembled PT frame, except the tilt arm, still at the v1 height (upright v2 raised the pivot 5 mm). Mouth: in
+# the eyes frame with the jaws closed; plain jaws, the guide's first variant (the teeth jaws are the same build).
+EYES_PARTS = [
+    ("L servo bracket", "L servo bracket", 0),
+    ("R servo bracket", "R servo bracket", 0),
+    ("L eyeball", "L eyeball regular", 0),
+    ("R eyeball", "R eyeball regular", 0),
+    ("L pupil", "regular pupil", -59),
+    ("R pupil", "regular pupil", 0),
+    ("L inside lid", "inside lid", 0),
+    ("L outside lid", "outside lid", 0),
+    ("R inside lid", "inside lid", 59),
+    ("R outside lid", "outside lid", 59),
+    ("L eyeball bar", "eyeball bar", 0),
+    ("R eyeball bar", "eyeball bar", 79),
+]
+STACK_PARTS = [
+    ("bearing block", "PandT bearing block", 0),
+    ("pan base", "PandT pan base", 0),
+    ("upright v2", "PandT upright v2", 0),
+    ("tilt arm", "PandT tilt arm", TILT_ARM_SHIFT_Z),
+    ("servo mount plain", "PandT servo mount plain", 0),
+    ("servo mount cutout", "PandT servo mount cutout", 0),
+    ("wire holder", "PandT wire holder", 0),
+]
+MOUTH_PARTS = [
+    ("top jaw", "top jaw plain"),
+    ("bottom jaw", "bottom jaw plain"),
+    ("jaws servo mount", "jaws servo mount"),
+]
+
 # Stage documents (model/stage.py) insert the sub-assembly designs by reference, each at an (origin, x axis, z axis) frame
-# in the PT frame (fusion_lib.align takes the same triple). The bracket v2 stem (eyes x 23.5..35.5, z 13..18, bottom
+# in the PT frame (align_rows takes the same triple). The bracket v2 stem (eyes x 23.5..35.5, z 13..18, bottom
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
 # pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].
 EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
@@ -329,10 +427,3 @@ STEM_IN = {"noggin-stage1": "PandT base", "noggin-stage2": "tilt arm", "noggin-s
 # Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
 # arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3). Research note; depth [I].
 STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}
-
-
-def in_frame(frame, p):
-    """A point of a sub-assembly's own frame in the PT frame: origin + x*px + y*py + z*pz with y = z cross x."""
-    origin, x, z = frame
-    y = (z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0])
-    return tuple(o + x[i] * p[0] + y[i] * p[1] + z[i] * p[2] for i, o in enumerate(origin))

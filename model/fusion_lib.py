@@ -206,23 +206,12 @@ def save(doc, message, name, folder):
     return doc.dataFile.versionNumber
 
 
-def align(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
-    """Matrix3D taking the local frame (from_*) onto the world frame (to_*), mm. Axes default to identity."""
-
-    def frame(origin, x, z):
-        x, z = vector(x), vector(z)
-        z.normalize()
-        tilt = z.copy()
-        tilt.scaleBy(x.dotProduct(z))
-        x.subtract(tilt)  # x in the plane normal to z (stepped links)
-        x.normalize()
-        y = z.crossProduct(x)
-        return point(origin), x, y, z
-
+def align(*frames, **kw):
+    """Matrix3D taking the local frame onto the world frame (geometry.align_rows, mm; Fusion's translation is cm)."""
     m = adsk.core.Matrix3D.create()
-    m.setToAlignCoordinateSystems(
-        *frame(from_origin, from_x, from_z), *frame(to_origin, to_x or (1, 0, 0), to_z or (0, 0, 1))
-    )
+    for r, row in enumerate(align_rows(*frames, **kw)):
+        for c, v in enumerate(row):
+            m.setCell(r, c, v / 10 if c == 3 and r < 3 else v)
     return m
 
 
@@ -460,10 +449,6 @@ def chunked(steps):
 # Shared by the sub-assembly builds (eyes.py, stack.py): linkage placement, pivots and loop closure, the battery lead.
 def add(a, b):
     return tuple(p + q for p, q in zip(a, b))
-
-
-def mean(points):
-    return tuple(sum(c) / len(points) for c in zip(*points))
 
 
 def side(s, p):

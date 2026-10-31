@@ -1,10 +1,12 @@
 """Electrical budget of the Mech from datasheet figures (docs/research/2026-10-31-electrical.md), no circuit, and the
-leads the cable reach measures. Run: .venv/bin/python model/electrical.py. budget() is merged into the Mech-wide
+leads the cable reach measures. Run: .venv/bin/python -m model.electrical. budget() is merged into the Mech-wide
 (noggin-stage3) report and leads() swept by model/engine/mech.py."""
 
 import importlib.util
 import json
 import os
+
+from model.geometry import CHANNELS, SERVO_LABEL
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,10 +22,6 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")
 
-CHANNELS = {
-    "core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},  # docs/build-notes.md, servo ports
-    "core2": {1: "tilt", 2: "mouth", 3: "pan"},
-}  # second Core, designer's config JSON
 CAP_A = min(3.0, 3.0)  # shield max, pack continuous discharge: one pack per shield
 PACK = {"mah": 800, "cutoff_v": 5.8}  # the rating is to the cutoff; no derating, no VBAT sense
 SHIELD_STANDBY_A = 0.060
@@ -69,15 +67,6 @@ def budget():
 # Lead lengths are not published (docs/research/2026-10-31-electrical.md 1): assumed, the CyberBrick servo lead 250 mm
 # and the XH2.54 leads 100 mm; a lead must reach with SLACK_MM to spare.
 SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
-SERVO_LABEL = {  # the Mech's servo names (the Fusion component "<label> servo")
-    "l_lid": "L lid",
-    "l_eye": "L eye",
-    "r_lid": "R lid",
-    "r_eye": "R eye",
-    "tilt": "tilt",
-    "mouth": "jaw",
-    "pan": "pan",
-}
 
 
 def leads():

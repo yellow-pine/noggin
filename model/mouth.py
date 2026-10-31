@@ -21,9 +21,6 @@ FULL = False  # `FULL=1 make model-mouth` flips this: empty the document and imp
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
 
-# (component name, library part): the designer exported the mouth parts in the assembled eyes frame (jaws closed).
-# Plain jaws: the guide's first variant; the teeth jaws are the same build (guide p.1).
-PARTS = [("top jaw", "top jaw plain"), ("bottom jaw", "bottom jaw plain"), ("jaws servo mount", "jaws servo mount")]
 MOVING = {"bottom jaw", "jaw horn (inferred)", "connector bar (inferred)"}
 
 
@@ -42,7 +39,7 @@ def run(_context: str):
             )
         )
 
-    for name, lib in PARTS:
+    for name, lib in MOUTH_PARTS:
         part(name, lib, name)
     # The saved noggin-eyes design by reference at identity (both Stages share the eyes frame), grounded below;
     # re-inserted when noggin-eyes has a newer version (its fingerprint is the version).

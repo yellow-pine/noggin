@@ -21,17 +21,6 @@ FULL = False  # `FULL=1 make model-stack` flips this: empty the document and imp
 REPO = os.path.expanduser("~/code/noggin")
 OUT = os.path.join(REPO, "model", "build")
 
-# (component name, library part, z shift mm): the designer exported these in the assembled PT frame, except the tilt arm,
-# still at the v1 height (upright v2 raised the pivot 5 mm, docs/research/2026-10-31-model.md).
-PARTS = [
-    ("bearing block", "PandT bearing block", 0),
-    ("pan base", "PandT pan base", 0),
-    ("upright v2", "PandT upright v2", 0),
-    ("tilt arm", "PandT tilt arm", TILT_ARM_SHIFT_Z),
-    ("servo mount plain", "PandT servo mount plain", 0),
-    ("servo mount cutout", "PandT servo mount cutout", 0),
-    ("wire holder", "PandT wire holder", 0),
-]
 MOVING = {
     "pan base",
     "upright v2",
@@ -60,7 +49,7 @@ def run(_context: str):
     def part(key, lib, name, matrix=None):
         steps.append((name, lambda: occs.__setitem__(key, insert_part(root, lib, name, matrix, reuse=reuse))))
 
-    for name, lib, dz in PARTS:
+    for name, lib, dz in STACK_PARTS:
         part(name, lib, name, align((0, 0, dz)) if dz else None)
 
     # Servos from the measured tab holes, horns at the inferred shaft, each bar on its horn pin and lever hole.

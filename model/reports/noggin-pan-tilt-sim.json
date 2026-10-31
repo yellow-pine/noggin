@@ -693,7 +693,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "d1bb5a2dff8eea78aab535fd47bef0a64dde81d45a9f47234e4f933223d01857",
+  "stamp": "adc256ba2e68ae587580ba0d3818728b6e9ea664482692a73f148dead62529e4",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",

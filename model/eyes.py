@@ -23,24 +23,6 @@ OUT = os.path.join(REPO, "model", "build")
 PHOTOS = os.path.join(REPO, "docs", "build-photos")  # background removed, turned to the model's view orientation
 AXIS = {X: "X", Y: "Y", Z: "Z"}
 
-# (component name, library part, x shift mm). Lids, eyeball bar and the pupil are modelled at one eye. The build uses
-# the regular eye and the "updated main bracket and base" profile: main bracket v2 (03-mouth) on the PandT
-# base (noggin-base, placed by the Stage documents); the lizard and plain eye STLs and the v1 base are not built.
-PARTS = [
-    ("L servo bracket", "L servo bracket", 0),
-    ("R servo bracket", "R servo bracket", 0),
-    ("L eyeball", "L eyeball regular", 0),
-    ("R eyeball", "R eyeball regular", 0),
-    ("L pupil", "regular pupil", -59),
-    ("R pupil", "regular pupil", 0),
-    ("L inside lid", "inside lid", 0),
-    ("L outside lid", "outside lid", 0),
-    ("R inside lid", "inside lid", 59),
-    ("R outside lid", "outside lid", 59),
-    ("L eyeball bar", "eyeball bar", 0),
-    ("R eyeball bar", "eyeball bar", 79),
-]
-
 
 # Reference photos (docs/build-photos, already turned to match the model views) as canvases on the camera
 # side of the model: (file, root plane, plane offset mm, 2x3 transform taking the unit image square to the
@@ -87,14 +69,14 @@ def run(_context: str):
             )
         )
 
-    for name, lib, dx in PARTS:
+    for name, lib, dx in EYES_PARTS:
         part(name, lib, name, align((dx, 0, 0)))
     part("main bracket", "main bracket v2", "main bracket v2")
 
     # Servos and horns from the measured tab holes; the shaft axis is the inferred horn pivot. A Port at each servo's
     # cable exit (SERVO_STEP lead), placed after parts_end.
     leads = {}
-    for key in ("l_lid", "r_lid", "l_eye", "r_eye"):
+    for key in EYES_SERVOS:
         origin, tab_x, shaft = servo_frame(key)
         label = key.upper()[0] + (" lid" if "lid" in key else " eye")
         m = align(origin, tab_x, [-c for c in shaft], SERVO_STEP["shaft"])
