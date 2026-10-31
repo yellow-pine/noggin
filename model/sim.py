@@ -7,7 +7,7 @@ import math
 
 from model.geometry import EYES_SERVOS
 
-RATED_KGF_CM, TORQUE_SF = 0.4, 2.0  # CyberBrick 9 g servo rated at 6 V (#20 comment), safety factor 2
+RATED_KGF_CM, TORQUE_SF = 0.4, 2.0  # the 9 g servo rated at 6 V (#20 comment), safety factor 2
 
 
 def gravity_torque(poses, masses, up=1):

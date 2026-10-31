@@ -14,7 +14,7 @@ from model.engine import linkage, masses, stages
 
 FRAME_S = 0.02  # 50 Hz PWM: the servo sees one new pulse per frame, so the plant is stepped per frame
 KGF_CM = 0.0980665  # N.m
-CLUTCH_KGF_CM, CLUTCH_MARGIN = 0.9, 1.5  # B-PG001 clutch protection at 4.8 V (docs/research/2026-10-31-electrical.md)
+CLUTCH_KGF_CM, CLUTCH_MARGIN = 0.9, 1.5  # clutch protection at 4.8 V (docs/research/2026-10-31-electrical.md)
 HORN_SERVO = {
     "L lid horn": "l_lid",
     "L eye horn": "l_eye",

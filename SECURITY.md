@@ -10,5 +10,5 @@ Report vulnerabilities privately to hello@yellowpine.com. Do not open a public i
 
 ## Out of scope
 
-- The CyberBrick firmware (Bambu Lab's; this project never modifies it).
+- The Core's firmware (the vendor's; this project never modifies it).
 - Claude Code itself; report those to Anthropic.

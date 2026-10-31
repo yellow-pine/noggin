@@ -7,16 +7,16 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 ### Hardware
 
 **Mech**:
-The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from PurpleShark's CyberBrick eyes, pan-and-tilt and mouth designs.
+The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (README credits).
 _Avoid_: robot, head, beast, eye mech
 
 **Core**:
-The CyberBrick controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
+The controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
 _Avoid_: board, receiver, controller, ESP
 
 **Shield**:
-The CyberBrick X11 expansion board the Core sits on; carries the servo ports and the power input; one per Core.
-_Avoid_: receiver, receiver shield, X11
+The expansion board the Core sits on; carries the servo ports and the power input; one per Core.
+_Avoid_: receiver, receiver shield, product codes
 
 **Servo**:
 One of the seven actuators, named by what it moves: left lid, left eye, right lid, right eye (eyes Core); tilt, mouth, pan (neck Core).
@@ -86,11 +86,11 @@ The noggin service setting that drops every Trigger until switched back on.
 _Avoid_: pause, disable, sleep mode
 
 **Program**:
-The MicroPython files on the Core's filesystem. The stock program is Bambu's remote-control app; the eye program is ours and replaces it.
+The MicroPython files on the Core's filesystem. The stock program is the vendor's remote-control app; the eye program is ours and replaces it.
 _Avoid_: firmware, app, code, sketch
 
 **Firmware**:
-The MicroPython image flashed into the Core by Bambu's tools. Never modified by this project.
+The MicroPython image flashed into the Core by the vendor's tools. Never modified by this project.
 _Avoid_: program, image, OS
 
 ### Model
@@ -109,7 +109,7 @@ _Avoid_: part, module, phase, top assembly
 An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/engine/stages.py).
 
 **Envelope**:
-Our simple CadQuery stand-in for a piece of Bambu hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
+Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
 _Avoid_: proxy, dummy, placeholder
 
 **Horn**:
