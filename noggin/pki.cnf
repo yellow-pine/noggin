@@ -1,0 +1,16 @@
+# Profiles for noggin/pki.py: only these extensions go into our certificates, never the system openssl.cnf defaults.
+[req]
+distinguished_name = dn
+[dn]
+[ca]
+basicConstraints = critical, CA:TRUE, pathlen:0
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+[server]
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature
+extendedKeyUsage = serverAuth
+[client]
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature
+extendedKeyUsage = clientAuth
