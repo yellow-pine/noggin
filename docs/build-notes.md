@@ -44,3 +44,13 @@ pushing past them, the lids bind at the ends.
   third-party tool: Bambu states this bricks the board.
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
+
+## Stock program on the Core (from the MakerWorld rc_mpy manifest)
+
+The designer's MakerWorld page ships a manifest of the stock RC program it
+expects on the Core: `boot.py`, `app/rc_main.py`, compiled `app/control.mpy`,
+`app/devices.mpy`, `app/parser.mpy`, and `bbl/{__init__,buzzer,executor,leds,
+motors,servos,sleepModule}.py`. So `bbl` lives on the filesystem, not frozen,
+and the file list matches the GitHub repo's `src/app_rc/`. Local copy with
+md5s: `docs/references/stock-program-manifest.json`. Still verify on the real
+board with `mpremote ls` before replacing anything.
