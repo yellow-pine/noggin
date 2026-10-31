@@ -2,9 +2,17 @@
 
 import cadquery as cq
 
-from model.printed import bars, main_bracket
+from model.printed import bars, bearing_block, main_bracket, servo_mount, wire_holder
 
-PARTS = {"main bracket v2": main_bracket.build, "tilt bar": bars.tilt, "PandT bar": bars.pan}
+PARTS = {
+    "main bracket v2": main_bracket.build,
+    "tilt bar": bars.tilt,
+    "PandT bar": bars.pan,
+    "PandT bearing block": bearing_block.build,
+    "PandT servo mount plain": servo_mount.plain,
+    "PandT servo mount cutout": servo_mount.cutout,
+    "PandT wire holder": wire_holder.build,
+}
 
 
 def export(stem, path):
