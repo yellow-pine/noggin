@@ -25,3 +25,11 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
   servo degrees), 600x450, 10 fps, at most 96 colours and 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
+
+## Our printed parts (#50)
+- Every printed part gets an independent parametric CadQuery design in model/printed/ (never traced from the
+  designer's mesh, which stays local under docs/references): interfaces exact, envelope within 1 mm, in the designer's
+  frame, registered in `model/printed/__init__.py` PARTS by the STL stem it stands in for.
+- Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
+  its envelope; `model/printed/test_gate.py` swaps it for the designer's mesh in every document that places it and
+  requires identical transmission and every clearance within 0.3 mm (local only: skipped without docs/references).
