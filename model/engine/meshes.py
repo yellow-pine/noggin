@@ -1,5 +1,5 @@
 """Meshes for the engine: the designer STLs and the tessellated STEPs (model/build/steps), subdivided once so no
-edge is longer than MAX_EDGE_MM, posed by rigid transform, and the pairwise judgement check.py makes in Fusion:
+edge is longer than MAX_EDGE_MM, posed by rigid transform, and the pairwise judgement of a sweep:
 minimum distance (scipy cKDTree vertex screen, then exact point-to-triangle on the near candidates, both ways:
 ADR 0006) and contact vs penetration: a vertex behind the other mesh's surface by more than DEPTH_MM is inside it
 (sign against the angle-weighted pseudo-normal of the closest face, edge or vertex, Baerentzen & Aanaes 2005, the
@@ -10,7 +10,7 @@ import trimesh
 from scipy.spatial import cKDTree
 
 MAX_EDGE_MM = 4.0  # faces are bisected to this: the exact pass needs each mesh's reach small, not tiny (size classes handle the rest)
-NEAR_MM = 10.0  # pairs whose boxes are further apart are not measured (check.py NEAR_MM)
+NEAR_MM = 10.0  # pairs whose boxes are further apart are not measured
 EXACT_MM = 5.0  # the exact pass runs when the vertex screen is under this; above, the screen (at most ~1.5 mm high) is reported
 DEPTH_MM = 0.1  # a vertex counts as inside only this deep (the sweep's clearance resolution): shallower is facet noise on a designed contact
 CONFIRM = 3  # deepest candidates confirmed by ray parity per direction

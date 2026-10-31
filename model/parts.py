@@ -1,5 +1,4 @@
-"""Build or update the parts library: one Fusion design per printed part (STL, faceted solid plus its hidden
-decimated "proxy" body) and per hardware STEP in folder `parts` of project Noggin, so the Stage builds insert
+"""Build or update the parts library: one Fusion design per printed part (STL, faceted solid) and per hardware STEP in folder `parts` of project Noggin, so the Stage builds insert
 stored solids (fusion_lib.insert_part) instead of converting meshes (docs/research/2026-10-31-fusion-throughput.md
 section 4). The design's root carries the sha256 of its source files (FINGERPRINT_ATTR); a part whose sources are
 unchanged is skipped, `FULL=1 make model-parts` reconverts everything. Runs INSIDE Fusion: `make model-parts`."""
@@ -16,7 +15,6 @@ import adsk.fusion
 FULL = False  # `FULL=1 make model-parts` flips this
 REPO = os.path.expanduser("~/code/noggin")
 REF = os.path.join(REPO, "docs/references")
-PROXIES = os.path.join(REPO, "model/build/proxies")  # decimated STLs from `make model-proxies`
 SERVO_DIR = os.path.join(REF, "cyberbrick-cad/servo/CAD_9g Servo Motor with Clutch Protection-PG002-PG001")
 RECEIVER = os.path.join(
     REF, "cyberbrick-cad/receiver/Remote Control Receiver-XA003-XA004/Remote Control Receiver-XA003-XA004.stp"
@@ -61,11 +59,7 @@ STEPS = {
         REF, "cyberbrick-cad/battery/14500 7.4V 800mAh Li-ion Battery-PC003/14500 7.4V 800mAh Li-ion Battery-PC003.stp"
     ),
 }
-LIBRARY = {
-    stem: [os.path.join(REF, stage, "models", stem + ".stl"), os.path.join(PROXIES, stem + ".stl")]
-    for stage, stems in STLS.items()
-    for stem in stems
-}
+LIBRARY = {stem: [os.path.join(REF, stage, "models", stem + ".stl")] for stage, stems in STLS.items() for stem in stems}
 LIBRARY.update({name: [path] for name, path in STEPS.items()})
 
 
@@ -111,22 +105,18 @@ def spool(design, name):
 
 
 def convert(design, name):
-    """The part's solids in the design root: STL -> faceted body + hidden proxy body in the spool's appearance and
-    material; STEP -> its occurrence, edited, keeping the STEP appearances."""
+    """The part's solids in the design root: STL -> faceted body in the spool's appearance and material; STEP -> its
+    occurrence, edited, keeping the STEP appearances."""
     root = design.rootComponent
     paths = LIBRARY[name]
     if paths[0].lower().endswith(".stl"):
         appearance, physical = spool(design, name)
-        for path, body_name in zip(paths, (None, "proxy")):
-            mesh = root.meshBodies.add(path, adsk.fusion.MeshUnits.MillimeterMeshUnit).item(0)
-            features = root.features.meshConvertFeatures
-            if features.add(features.createInput([mesh])) is None:
-                raise RuntimeError(f"mesh convert failed for {name}")
-            body = root.bRepBodies.item(root.bRepBodies.count - 1)
-            body.appearance, body.material = appearance, physical
-            if body_name:
-                body.name = body_name
-                body.isLightBulbOn = False
+        mesh = root.meshBodies.add(paths[0], adsk.fusion.MeshUnits.MillimeterMeshUnit).item(0)
+        features = root.features.meshConvertFeatures
+        if features.add(features.createInput([mesh])) is None:
+            raise RuntimeError(f"mesh convert failed for {name}")
+        body = root.bRepBodies.item(root.bRepBodies.count - 1)
+        body.appearance, body.material = appearance, physical
         return
     app = adsk.core.Application.get()
     options = app.importManager.createSTEPImportOptions(paths[0])

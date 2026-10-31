@@ -15,16 +15,20 @@ spec.loader.exec_module(parts)
 
 
 def test_stale_lists_parts_whose_sources_changed_or_were_never_converted(tmp_path):
-    a, p, b = tmp_path / "a.stl", tmp_path / "a-proxy.stl", tmp_path / "b.stp"
+    a, b = tmp_path / "a.stl", tmp_path / "b.stp"
     a.write_bytes(b"solid a")
-    p.write_bytes(b"solid p")
     b.write_bytes(b"STEP b")
-    library = {"a": [str(a), str(p)], "b": [str(b)]}
+    library = {"a": [str(a)], "b": [str(b)]}
     stored = {"a": parts.source_fingerprint(library["a"]), "b": parts.source_fingerprint(library["b"])}
     assert parts.stale(library, stored) == []
     assert parts.stale(library, {"a": stored["a"]}) == ["b"]  # never converted
-    p.write_bytes(b"solid p2")  # the proxy counts as a source too
+    a.write_bytes(b"solid a2")
     assert parts.stale(library, stored) == ["a"]
+
+
+def test_each_library_part_converts_from_its_one_source():
+    assert all(len(paths) == 1 for paths in parts.LIBRARY.values())  # no decimated proxy: the sweep left Fusion
+    assert all("docs/references" in paths[0] for paths in parts.LIBRARY.values())
 
 
 def test_every_printed_library_part_has_a_spool():

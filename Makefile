@@ -3,8 +3,10 @@ PY    := $(REPO)/.venv/bin/python
 MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
+# $(call fusion,script[,extra sed]): run a Fusion build script with FULL set from `FULL=1 make ...`
+fusion = sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' $(2) $(1) | $(PY) scripts/fusion_run.py /dev/stdin
 
-.PHONY: venv test check sim model-step-meshes model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases lint fmt
+.PHONY: venv test check sim model-step-meshes install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes model-base model-stack model-mouth model-stage1 model-stage2 model-stage3 model-parts model-canvases lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -61,19 +63,17 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-model-proxies:   ## decimated STLs for the sweep (Blender), into model/build/proxies
-	/Applications/Blender.app/Contents/MacOS/Blender -b -P model/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models model/build/proxies | grep -v '^Blender'
 model-canvases: venv   ## show/hide the reference-photo canvases of the active Fusion document
 	$(PY) scripts/fusion_run.py model/canvases.py
-model-parts: venv model-proxies   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/parts.py | $(PY) scripts/fusion_run.py /dev/stdin
-model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
-model-base: venv model-proxies   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/base.py | $(PY) scripts/fusion_run.py /dev/stdin
-model-stack: venv model-proxies   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/stack.py | $(PY) scripts/fusion_run.py /dev/stdin
-model-mouth: venv model-proxies   ## rebuild the noggin-mouth Fusion design the same way
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/mouth.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-parts: venv   ## convert every STL/STEP once into the Fusion `parts` folder; skips unchanged sources (FULL=1: reconvert all)
+	$(call fusion,model/parts.py)
+model-eyes: venv   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
+	$(call fusion,model/eyes.py)
+model-base: venv   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
+	$(call fusion,model/base.py)
+model-stack: venv   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
+	$(call fusion,model/stack.py)
+model-mouth: venv   ## rebuild the noggin-mouth Fusion design the same way
+	$(call fusion,model/mouth.py)
 model-stage1 model-stage2 model-stage3: venv   ## rebuild a Stage document from the saved sub-assemblies (noggin-stage1: base + eyes; 2: + stack; 3: + mouth)
-	sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' -e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/' model/stage.py | $(PY) scripts/fusion_run.py /dev/stdin
+	$(call fusion,model/stage.py,-e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/')

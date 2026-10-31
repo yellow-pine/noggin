@@ -24,7 +24,7 @@ MODELS = {
 STEPS = os.path.join(REPO, "model", "build", "steps")  # model/engine/step_mesh.py output (make model-step-meshes)
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
-TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances, as check.py
+TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (+-4 mm pivots, +-3 mm bar planes)
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
@@ -380,7 +380,7 @@ def world(m, p):
 
 
 def placements(stage):
-    """check.placements for the engine: parts whose placed points miss the geometry tables. Pivots are at PIVOTS by
+    """Parts whose placed points miss the geometry tables by more than their tolerance. Pivots are at PIVOTS by
     construction here, so only the parts can disagree."""
     out = []
     for name, local_pts, expected, tol in stage.placements:

@@ -4,7 +4,7 @@ against every other part (contacts vs penetrations as the Fusion sweep judged th
 centres of mass per pose, the placements, bounding boxes and masses, then fold in torque, curves, fits and beams
 (model/sim.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
 model/test_report.py reads. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
-the designer's limits, as check.py did.
+the designer's limits.
 Usage: python -m model.engine.run [doc ...]"""
 
 import glob
@@ -34,7 +34,7 @@ INPUTS = [
     "eyes/replay.py",
     "eyes/servo.py",
 ]
-STEP_DEG, CLEARANCE_MM = 10, 0.1  # as check.py: below 0.1 mm the parts overlap
+STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch: a contact, or a violation with depth
 TABLES = {
     "noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS),
     "noggin-stack": (fits.PT_JOINTS, beams.PT_BEAMS),
@@ -78,7 +78,7 @@ def chain(horn):
 
 def linked(stage, horn):
     """Pairs that touch by construction (a joint or a rigid group): the horn on its servo, bars on their pins, rockers on
-    their pivots and rigid groups (eyeball + pupil, the pan mechanism), as check.py skipped them."""
+    their pivots and rigid groups (eyeball + pupil, the pan mechanism): not measured."""
     out = {frozenset((horn.crank, horn.crank.replace(" horn (inferred)", " servo")))}
     for loop in horn.loops:
         out.add(frozenset((loop.coupler, horn.crank)))
@@ -106,7 +106,7 @@ def neutral(stage, loaded):
 
 
 def measure(stage, loaded, table, placed, horn_name, deg, calibrated=False):
-    """One pose of one horn as check.py measured it: the moving chain against every other part within NEAR_MM
+    """One pose of one horn: the moving chain against every other part within NEAR_MM
     (pairs joined by construction skipped), contacts vs penetrations, the chain's centres of mass and joint angles."""
     horn = stage.horns[horn_name]
     movers = chain(horn)
@@ -164,7 +164,7 @@ def _job(args):
 
 def sweep_jobs(stage, cal):
     """(horn, deg, calibrated) for every pose of every horn: the designer's limits in STEP_DEG steps, then the
-    calibrated servo ends (eyes/calibration.json) past them, as check.py."""
+    calibrated servo ends (eyes/calibration.json) past them."""
     jobs = []
     for h, horn in stage.horns.items():
         lo, hi = horn.limits

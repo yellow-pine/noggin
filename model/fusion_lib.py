@@ -260,38 +260,6 @@ def insert_part(root, name, label, matrix=None, reuse=None, referenced=False):
     return occ
 
 
-def proxy_body(occ):
-    """The occurrence's hidden "proxy" body in assembly context, or None."""
-    body = occ.component.bRepBodies.itemByName("proxy")
-    return body.createForAssemblyContext(occ) if body else None
-
-
-def real_body(occ):
-    """The occurrence's full-resolution body in assembly context when it carries a proxy (an occurrence-level
-    measurement would include the proxy), else the occurrence itself."""
-    if not occ.component.bRepBodies.itemByName("proxy"):
-        return occ
-    body = next(b for b in occ.component.bRepBodies if b.name != "proxy")
-    return body.createForAssemblyContext(occ)
-
-
-def world_frame(origin):
-    """World (pivot point mm, Z axis) of a joint origin built by joint_origin(): the sketch point plus the
-    offset along the (possibly flipped) plane normal, carried through the occurrence."""
-    native = origin.nativeObject or origin
-    g = native.geometry
-    p, z = g.origin.copy(), g.primaryAxisVector.copy()
-    if native.isFlipped:
-        z.scaleBy(-1)
-    step = z.copy()
-    step.scaleBy(native.offsetZ.value)
-    p.translateBy(step)
-    if origin.assemblyContext:
-        p.transformBy(origin.assemblyContext.transform2)
-        z.transformBy(origin.assemblyContext.transform2)
-    return (p.x * 10, p.y * 10, p.z * 10), (z.x, z.y, z.z)  # axis: sketch space, see check.placements
-
-
 def local(occ, point_mm, axis):
     """World point (mm) and axis as the occurrence's component sees them; axis as a Fusion unit vector."""
     inverse = occ.transform2.copy()
@@ -350,7 +318,7 @@ def joint_origin(occ, point_mm, axis):
 
 
 def origin_frame(origin):
-    """World (origin mm, Z, X) of a joint origin proxy, for checks."""
+    """World (origin mm, Z, X) of a joint origin in assembly context (the build summary)."""
     t = origin.transform
     o = t.translation
     return (
