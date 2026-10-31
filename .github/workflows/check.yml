@@ -7,6 +7,8 @@ on:
 concurrency:   # one run per workflow and PR (or branch); a new push to a PR cancels the one in progress, main runs all
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
 jobs:
   check:
     if: ${{ !github.event.pull_request.draft }}

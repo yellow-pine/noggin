@@ -21,7 +21,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `on-hold` (paused by Cansin). Closing an issue removes its state label.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`; `npx skills@1.7.4 experimental_install`
   restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at.
-- Every ready PR gets a Claude review, a required check that fails when Claude requests changes (a bug, a spec
+- Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
+  required `claude` check fails with it when Claude requests changes (a bug, a spec
   miss, a security issue or a breach of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It
   needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot
   secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
