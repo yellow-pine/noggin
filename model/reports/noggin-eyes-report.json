@@ -1,6 +1,6 @@
 {
  "doc": "noggin-eyes",
- "version": 14,
+ "version": 15,
  "clearance_mm": 0.1,
  "step_deg": 10,
  "horns": {
@@ -11,8 +11,8 @@
     "L eyeball bar:1",
     "main bracket v2:1"
    ],
-   "measurements": 113,
-   "seconds": 13.3
+   "measurements": 161,
+   "seconds": 24.9
   },
   "L lid horn (inferred)": {
    "min_mm": 0.39,
@@ -21,8 +21,8 @@
     "L outside lid:1",
     "L eyeball:1"
    ],
-   "measurements": 191,
-   "seconds": 15.1
+   "measurements": 267,
+   "seconds": 34.7
   },
   "R eye horn (inferred)": {
    "min_mm": 0.0,
@@ -31,8 +31,8 @@
     "R eyeball bar:1",
     "main bracket v2:1"
    ],
-   "measurements": 113,
-   "seconds": 14.1
+   "measurements": 161,
+   "seconds": 26.2
   },
   "R lid horn (inferred)": {
    "min_mm": 0.37,
@@ -41,8 +41,8 @@
     "R outside lid:1",
     "R eyeball:1"
    ],
-   "measurements": 165,
-   "seconds": 6.5
+   "measurements": 231,
+   "seconds": 20.6
   }
  },
  "interference": [],
@@ -502,5 +502,566 @@
    ]
   ]
  },
- "violations": []
+ "violations": [],
+ "mass": {
+  "L servo bracket:1": 8.84,
+  "R servo bracket:1": 8.84,
+  "L eyeball:1": 16.97,
+  "R eyeball:1": 16.97,
+  "L pupil:1": 0.31,
+  "R pupil:1": 0.31,
+  "L inside lid:1": 5.05,
+  "L outside lid:1": 5.36,
+  "R inside lid:1": 5.05,
+  "R outside lid:1": 5.36,
+  "L eyeball bar:1": 0.55,
+  "R eyeball bar:1": 0.55,
+  "main bracket v2:1": 19.54,
+  "PandT base:1": 117.03,
+  "wire keeper (inferred):1": 0.6,
+  "L lid servo:2": 16.0,
+  "L lid horn (inferred):2": 0.24,
+  "R lid servo:2": 16.0,
+  "R lid horn (inferred):2": 0.24,
+  "L eye servo:2": 16.0,
+  "L eye horn (inferred):2": 0.24,
+  "R eye servo:2": 16.0,
+  "R eye horn (inferred):2": 0.24,
+  "receiver shield:2": 17.13,
+  "Core (flipped onto the shield top, per photo):2": 11.73,
+  "switch board:2": 13.69,
+  "battery:2": 163.38,
+  "L eyelid bar (inferred):1": 0.8,
+  "L eyelid bar crank (inferred):1": 0.89,
+  "R eyelid bar (inferred):1": 0.8,
+  "R eyelid bar crank (inferred):1": 0.89
+ },
+ "mass_source": {
+  "L servo bracket:1": "pla",
+  "R servo bracket:1": "pla",
+  "L eyeball:1": "pla",
+  "R eyeball:1": "pla",
+  "L pupil:1": "pla",
+  "R pupil:1": "pla",
+  "L inside lid:1": "pla",
+  "L outside lid:1": "pla",
+  "R inside lid:1": "pla",
+  "R outside lid:1": "pla",
+  "L eyeball bar:1": "pla",
+  "R eyeball bar:1": "pla",
+  "main bracket v2:1": "pla",
+  "PandT base:1": "pla",
+  "wire keeper (inferred):1": "pla",
+  "L lid servo:2": "documented",
+  "L lid horn (inferred):2": "pla",
+  "R lid servo:2": "documented",
+  "R lid horn (inferred):2": "pla",
+  "L eye servo:2": "documented",
+  "L eye horn (inferred):2": "pla",
+  "R eye servo:2": "documented",
+  "R eye horn (inferred):2": "pla",
+  "receiver shield:2": "step material",
+  "Core (flipped onto the shield top, per photo):2": "step material",
+  "switch board:2": "step material",
+  "battery:2": "step material",
+  "L eyelid bar (inferred):1": "pla",
+  "L eyelid bar crank (inferred):1": "pla",
+  "R eyelid bar (inferred):1": "pla",
+  "R eyelid bar crank (inferred):1": "pla"
+ },
+ "stage": {
+  "total_g": 485.6,
+  "com": [
+   38.5,
+   -23.8,
+   71.3
+  ]
+ },
+ "calibrated": {
+  "L eye horn (inferred)": {
+   "lo": -32,
+   "hi": 28,
+   "violations": [
+    {
+     "deg": -32,
+     "pair": [
+      "L eye horn (inferred):2",
+      "L servo bracket:1"
+     ]
+    },
+    {
+     "deg": -32,
+     "pair": [
+      "L eye horn (inferred):2",
+      "main bracket v2:1"
+     ]
+    },
+    {
+     "deg": -32,
+     "pair": [
+      "L eyeball bar:1",
+      "main bracket v2:1"
+     ]
+    },
+    {
+     "deg": 28,
+     "pair": [
+      "L eyeball bar:1",
+      "main bracket v2:1"
+     ]
+    }
+   ]
+  },
+  "L lid horn (inferred)": {
+   "lo": -54,
+   "hi": 39,
+   "violations": [
+    {
+     "deg": 39,
+     "pair": [
+      "L outside lid:1",
+      "L servo bracket:1"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "L outside lid:1",
+      "L eyeball bar:1"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "L outside lid:1",
+      "L eye servo:2"
+     ]
+    }
+   ],
+   "contacts": [
+    {
+     "deg": -54,
+     "pair": [
+      "L eyelid bar crank (inferred):1",
+      "main bracket v2:1"
+     ]
+    },
+    {
+     "deg": -54,
+     "pair": [
+      "L eyelid bar (inferred):1",
+      "main bracket v2:1"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "L outside lid:1",
+      "L eye horn (inferred):2"
+     ]
+    }
+   ]
+  },
+  "R eye horn (inferred)": {
+   "lo": -32,
+   "hi": 28,
+   "violations": [
+    {
+     "deg": -32,
+     "pair": [
+      "R eyeball bar:1",
+      "main bracket v2:1"
+     ]
+    }
+   ],
+   "contacts": [
+    {
+     "deg": 28,
+     "pair": [
+      "R eye horn (inferred):2",
+      "R servo bracket:1"
+     ]
+    },
+    {
+     "deg": 28,
+     "pair": [
+      "R eyeball bar:1",
+      "main bracket v2:1"
+     ]
+    }
+   ]
+  },
+  "R lid horn (inferred)": {
+   "lo": -46,
+   "hi": 39,
+   "violations": [
+    {
+     "deg": 39,
+     "pair": [
+      "R outside lid:1",
+      "R servo bracket:1"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "R outside lid:1",
+      "R eyeball bar:1"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "R outside lid:1",
+      "R eye servo:2"
+     ]
+    },
+    {
+     "deg": 39,
+     "pair": [
+      "R outside lid:1",
+      "R eye horn (inferred):2"
+     ]
+    }
+   ],
+   "contacts": [
+    {
+     "deg": -46,
+     "pair": [
+      "R eyelid bar crank (inferred):1",
+      "main bracket v2:1"
+     ]
+    },
+    {
+     "deg": -46,
+     "pair": [
+      "R eyelid bar (inferred):1",
+      "main bracket v2:1"
+     ]
+    }
+   ]
+  }
+ },
+ "fits": [
+  {
+   "joint": "eyelid bar / horn screw",
+   "hole_r": 1.35,
+   "pin_r": 1.0,
+   "clearance": 0.35,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "eyelid bar / inside lid pin",
+   "hole_r": 1.1,
+   "pin_r": 1.0,
+   "clearance": 0.1,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "eyelid crank / horn screw",
+   "hole_r": 1.35,
+   "pin_r": 1.0,
+   "clearance": 0.35,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "eyelid crank / outside lid pin",
+   "hole_r": 1.1,
+   "pin_r": 1.0,
+   "clearance": 0.1,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "eyeball bar / horn screw",
+   "hole_r": 1.05,
+   "pin_r": 1.0,
+   "clearance": 0.05,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true,
+   "tag": "self_tapping"
+  },
+  {
+   "joint": "eyeball bar / eyeball screw",
+   "hole_r": 1.25,
+   "pin_r": 1.0,
+   "clearance": 0.25,
+   "offset": 0.0,
+   "rms": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "inside lid ear / bracket pin",
+   "hole_r": 1.998,
+   "pin_r": 1.735,
+   "clearance": 0.26,
+   "offset": 0.023,
+   "rms": 0.173,
+   "ok": true
+  },
+  {
+   "joint": "outside lid ear / bracket pin",
+   "hole_r": 1.959,
+   "pin_r": 1.735,
+   "clearance": 0.22,
+   "offset": 0.026,
+   "rms": 0.084,
+   "ok": true
+  }
+ ],
+ "beams": [
+  {
+   "beam": "eyelid bar",
+   "model": "axial",
+   "F_n": 9.23,
+   "L_mm": 41.0,
+   "b_mm": 3.0,
+   "h_mm": 5.0,
+   "sigma_cantilever_mpa": 30.28,
+   "deflection_mm": 1.939,
+   "sf_cantilever": 1.65,
+   "sf": 81.23,
+   "ok": true
+  },
+  {
+   "beam": "eyelid crank",
+   "model": "axial",
+   "F_n": 9.23,
+   "L_mm": 41.0,
+   "b_mm": 3.0,
+   "h_mm": 5.0,
+   "sigma_cantilever_mpa": 30.28,
+   "deflection_mm": 1.939,
+   "sf_cantilever": 1.65,
+   "sf": 81.23,
+   "ok": true
+  },
+  {
+   "beam": "eyeball bar",
+   "model": "axial",
+   "F_n": 9.23,
+   "L_mm": 27.0,
+   "b_mm": 3.0,
+   "h_mm": 5.0,
+   "sigma_cantilever_mpa": 19.94,
+   "deflection_mm": 0.554,
+   "sf_cantilever": 2.51,
+   "sf": 81.23,
+   "ok": true
+  },
+  {
+   "beam": "inside lid ear",
+   "model": "cantilever",
+   "F_n": 0.02,
+   "L_mm": 5.0,
+   "b_mm": 3.87,
+   "h_mm": 8.88,
+   "sigma_cantilever_mpa": 0.0,
+   "deflection_mm": 0.0,
+   "sf_cantilever": 999,
+   "sf": 999,
+   "ok": true
+  },
+  {
+   "beam": "outside lid ear",
+   "model": "cantilever",
+   "F_n": 0.03,
+   "L_mm": 5.0,
+   "b_mm": 3.85,
+   "h_mm": 8.97,
+   "sigma_cantilever_mpa": 0.0,
+   "deflection_mm": 0.0,
+   "sf_cantilever": 999,
+   "sf": 999,
+   "ok": true
+  }
+ ],
+ "torque": {
+  "L eye horn (inferred)": {
+   "kgf_cm": 0.0,
+   "at_deg": -20,
+   "limit_kgf_cm": 0.2
+  },
+  "L lid horn (inferred)": {
+   "kgf_cm": 0.001,
+   "at_deg": 30,
+   "limit_kgf_cm": 0.2
+  },
+  "R eye horn (inferred)": {
+   "kgf_cm": 0.0,
+   "at_deg": -20,
+   "limit_kgf_cm": 0.2
+  },
+  "R lid horn (inferred)": {
+   "kgf_cm": 0.001,
+   "at_deg": 30,
+   "limit_kgf_cm": 0.2
+  }
+ },
+ "curves": {
+  "L eye horn (inferred)": {
+   "L eyeball pivot": [
+    [
+     -20,
+     -26.21
+    ],
+    [
+     -10,
+     -12.95
+    ],
+    [
+     0,
+     0.0
+    ],
+    [
+     10,
+     12.94
+    ],
+    [
+     20,
+     26.15
+    ]
+   ]
+  },
+  "L lid horn (inferred)": {
+   "L inside lid pivot": [
+    [
+     -20,
+     -21.4
+    ],
+    [
+     -10,
+     -10.65
+    ],
+    [
+     0,
+     0.0
+    ],
+    [
+     10,
+     10.61
+    ],
+    [
+     20,
+     21.23
+    ],
+    [
+     30,
+     31.9
+    ]
+   ],
+   "L outside lid pivot": [
+    [
+     -20,
+     23.68
+    ],
+    [
+     -10,
+     11.2
+    ],
+    [
+     0,
+     -0.0
+    ],
+    [
+     10,
+     -10.12
+    ],
+    [
+     20,
+     -19.38
+    ],
+    [
+     30,
+     -27.97
+    ]
+   ]
+  },
+  "R eye horn (inferred)": {
+   "R eyeball pivot": [
+    [
+     -20,
+     -26.15
+    ],
+    [
+     -10,
+     -12.94
+    ],
+    [
+     0,
+     0.0
+    ],
+    [
+     10,
+     12.95
+    ],
+    [
+     20,
+     26.21
+    ]
+   ]
+  },
+  "R lid horn (inferred)": {
+   "R inside lid pivot": [
+    [
+     -20,
+     -21.4
+    ],
+    [
+     -10,
+     -10.65
+    ],
+    [
+     0,
+     -0.0
+    ],
+    [
+     10,
+     10.61
+    ],
+    [
+     20,
+     21.23
+    ],
+    [
+     30,
+     31.9
+    ]
+   ],
+   "R outside lid pivot": [
+    [
+     -20,
+     23.68
+    ],
+    [
+     -10,
+     11.2
+    ],
+    [
+     0,
+     -0.0
+    ],
+    [
+     10,
+     -10.12
+    ],
+    [
+     20,
+     -19.38
+    ],
+    [
+     30,
+     -27.97
+    ]
+   ]
+  }
+ }
 }
