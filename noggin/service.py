@@ -132,7 +132,8 @@ class Service:
                 undelivered = self.wifi.send(core, lines)
             except OSError as e:  # unroutable address, socket trouble
                 log("wifi error", core, repr(e))
-                undelivered = lines  # shortcut: lines acked before the error repeat over USB; errors hit the first sendto
+                # shortcut: lines acked before the error repeat over USB; errors hit the first sendto
+                undelivered = lines
             if not undelivered:
                 return log("sent", core, lines)
             log("no ack over wifi", core, undelivered)
