@@ -104,4 +104,12 @@ def test_think_trace_replays_the_recording_when_enabled(eyes, pwm_log):
     for t in range(0, 2000, 10):
         eyes.tick(t)
     eye = [d for p, d in pwm_log if p == mod.L_EYE and d]
-    assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2    # one eye write per trace sample
+    assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2    # at least one eye write per trace sample
+
+
+def test_saccade_follows_the_real_profile(eyes, pwm_log):
+    eyes.handle_line("rest"); pwm_log.clear()
+    eyes.saccade(110)
+    eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
+    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 1.8      # 16 profile points, lands on target
+    assert eye[3] < eye[-1] - 3                                      # still travelling a third of the way in

@@ -1,45 +1,65 @@
-"""Bake a real human gaze recording into eyes/gaze_trace.py for the Core to replay while thinking.
+"""Bake real human eye movements (GazeBase, Griffith et al. 2021, CC BY 4.0) into eyes/gaze_trace.py.
 
-Source: GazeBase (Griffith et al. 2021, CC BY 4.0), subject 1001, session 1, video viewing (VD1):
-1 kHz gaze in degrees of visual angle, blinks as NaN gaps. Fetched with a byte range from the
-figshare zip (offsets valid for GazeBase v3, file id 27039812). Output: horizontal gaze at 25 Hz,
-scaled so the on-screen range fills the Mech's eye travel, plus blink sample indices.
-Usage: .venv/bin/python eyes/build_trace.py   (writes eyes/gaze_trace.py; raw CSV cached in docs/references/gazebase/)"""
-import csv, io, math, os, subprocess, sys, zipfile, zlib
+Subject 1001, session 1, fetched with a byte range from the figshare zip (offsets valid for GazeBase v3,
+file id 27039812). 1 kHz gaze in degrees of visual angle; blinks are NaN gaps; `lab` 2 marks saccades.
+Outputs, all horizontal only (the Mech's eyes pan):
+  THINK   video viewing (VD1), 60 s at 25 Hz, scaled to fill the eye travel, plus blink sample indices
+  SCAN    horizontal saccade task (HSS), 4 s at 25 Hz, replayed by the attention gesture
+  SACCADE real saccade shapes from the random-saccade task (RAN): progress 0..1 per 10 ms, by amplitude
+Usage: .venv/bin/python eyes/build_trace.py"""
+import csv, io, subprocess, zipfile, zlib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RAW = HERE.parent / "docs" / "references" / "gazebase" / "S_1001_S1_VD1.csv"
+CACHE = HERE.parent / "docs" / "references" / "gazebase"
 URL = "https://ndownloader.figshare.com/files/27039812"
 RANGE = "19099-7312369"                     # Round_1/Subject_1001.zip, raw deflate inside the outer zip
-MEMBER = "S1/S1_Video_1/S_1001_S1_VD1.csv"
-HZ, GAIN, MAX_DEG, MIN_BLINK_MS = 25, 1.6, 24.0, 50
+MEMBERS = {"VD1": "S1/S1_Video_1/S_1001_S1_VD1.csv", "HSS": "S1/S1_Horizontal_Saccades/S_1001_S1_HSS.csv",
+           "RAN": "S1/S1_Random_Saccades/S_1001_S1_RAN.csv"}
+HZ, MAX_DEG, MIN_BLINK_MS = 25, 24.0, 50
+SACCADE_AMPS = (10, 20, 25)
 
 
 def fetch():
-    RAW.parent.mkdir(parents=True, exist_ok=True)
-    raw = subprocess.run(["curl", "-sL", "-r", RANGE, URL], capture_output=True, check=True).stdout
-    inner = zlib.decompress(raw, -15)
-    RAW.write_bytes(zipfile.ZipFile(io.BytesIO(inner)).read(MEMBER))
+    CACHE.mkdir(parents=True, exist_ok=True)
+    z = CACHE / "Subject_1001.zip"
+    if not z.exists():
+        raw = subprocess.run(["curl", "-sL", "-r", RANGE, URL], capture_output=True, check=True).stdout
+        z.write_bytes(zlib.decompress(raw, -15))
+    zf = zipfile.ZipFile(z)
+    for task, member in MEMBERS.items():
+        out = CACHE / Path(member).name
+        if not out.exists():
+            out.write_bytes(zf.read(member))
 
 
-def resample(rows, hz=HZ, gain=GAIN, max_deg=MAX_DEG, min_blink_ms=MIN_BLINK_MS):
-    """rows: dicts with n (ms), x (deg or NaN), val. Returns (x_deg list at hz, blink sample indices)."""
+def rows(task):
+    return list(csv.DictReader((CACHE / Path(MEMBERS[task]).name).open()))
+
+
+def good(r):
+    return r["val"] in ("0", "0.0") and r["x"].lower() != "nan"
+
+
+def resample(rows, hz=HZ, gain=1.0, max_deg=MAX_DEG, min_blink_ms=MIN_BLINK_MS, start_s=0, dur_s=None):
+    """Horizontal gaze at hz, scaled and clamped, last good value held through gaps; blink sample indices."""
     step = 1000 // hz
+    t0, t1 = start_s * 1000, None if dur_s is None else (start_s + dur_s) * 1000
     xs, blinks, gap_start = [], [], None
-    for i, r in enumerate(rows):
+    for r in rows:
         t = int(float(r["n"]))
-        bad = r["val"] not in ("0", "0.0") or r["x"].lower() == "nan"
+        if t < t0 or (t1 is not None and t >= t1):
+            continue
+        bad = not good(r)
         if bad and gap_start is None:
             gap_start = t
         if not bad and gap_start is not None:
             if t - gap_start >= min_blink_ms:
-                blinks.append(gap_start // step)
+                blinks.append((gap_start - t0) // step)
             gap_start = None
-        if t % step == 0:
+        if (t - t0) % step == 0:
             xs.append(None if bad else float(r["x"]))
-    last = 0.0                                  # hold the last good sample through blinks
-    out = []
+    last, out = 0.0, []
     for x in xs:
         if x is not None:
             last = max(-max_deg, min(max_deg, x * gain))
@@ -47,18 +67,57 @@ def resample(rows, hz=HZ, gain=GAIN, max_deg=MAX_DEG, min_blink_ms=MIN_BLINK_MS)
     return out, sorted(set(b for b in blinks if b < len(out)))
 
 
+def fill_gain(rows, frac=0.9):
+    """Gain so that the recording's 5th-95th percentile spans frac of the eye travel."""
+    xs = sorted(float(r["x"]) for r in rows if good(r))
+    span = max(1e-6, xs[int(len(xs) * 0.95)] - xs[int(len(xs) * 0.05)])
+    return 2 * MAX_DEG * frac / span
+
+
+def saccades(rows, amps=SACCADE_AMPS):
+    """Real horizontal saccade shapes: for each target amplitude the closest-amplitude saccade (30-120 ms),
+    as progress 0..1 sampled every 10 ms from onset to 150 ms (so the post-saccadic correction is included)."""
+    runs, cur = [], None
+    for i, r in enumerate(rows):
+        if r["lab"] == "2" and good(r):
+            cur = cur or [i, i]; cur[1] = i
+        elif cur:
+            runs.append(cur); cur = None
+    found = {}
+    for a in amps:
+        best = None
+        for s, e in runs:
+            dur = e - s
+            if not 30 <= dur <= 120 or e + 150 >= len(rows):
+                continue
+            x0, x1 = float(rows[s]["x"]), float(rows[e]["x"])
+            amp = abs(x1 - x0)
+            if amp < 3 or any(not good(rows[k]) for k in range(s, s + 151)):
+                continue
+            score = abs(amp - a)
+            if best is None or score < best[0]:
+                best = (score, s, x0, x1 - x0)
+        if best:
+            _, s, x0, d = best
+            prof = [max(0.0, min(1.3, (float(rows[s + k]["x"]) - x0) / d)) for k in range(0, 151, 10)]
+            found[a] = tuple(round(p, 2) for p in prof)
+    return found
+
+
 def main():
-    if not RAW.exists():
-        print("fetching", MEMBER); fetch()
-    rows = list(csv.DictReader(RAW.open()))
-    x, blinks = resample(rows)
-    body = bytes(int(round(v * 2)) & 0xFF for v in x)    # half-degree steps, signed int8
+    fetch()
+    vd1, hss, ran = rows("VD1"), rows("HSS"), rows("RAN")
+    think, think_blinks = resample(vd1, gain=fill_gain(vd1))
+    scan, _ = resample(hss, gain=fill_gain(hss), start_s=5, dur_s=4)
+    sac = saccades(ran)
+    enc = lambda xs: bytes(int(round(v * 2)) & 0xFF for v in xs)   # signed int8 half-degrees
     (HERE / "gaze_trace.py").write_text(
-        f'# Generated by build_trace.py from GazeBase subject 1001 S1 VD1 (CC BY 4.0). Do not edit.\n'
-        f'HZ = {HZ}\n'
-        f'X = {body!r}  # horizontal gaze, signed int8 half-degrees from centre\n'
-        f'BLINKS = {tuple(blinks)}\n')
-    print(f"{len(x)} samples at {HZ} Hz ({len(x)/HZ:.0f} s), {len(blinks)} blinks, range {min(x):.1f}..{max(x):.1f} deg")
+        "# Generated by build_trace.py from GazeBase subject 1001 session 1 (CC BY 4.0). Do not edit.\n"
+        f"HZ = {HZ}\n"
+        f"THINK = {enc(think)!r}\nTHINK_BLINKS = {tuple(think_blinks)}\n"
+        f"SCAN = {enc(scan)!r}\n"
+        f"SACCADE = {sac!r}  # amplitude deg -> progress per 10 ms from onset\n")
+    print(f"think {len(think)/HZ:.0f} s {len(think_blinks)} blinks | scan {len(scan)/HZ:.0f} s | saccades {sorted(sac)}")
 
 
 if __name__ == "__main__":
