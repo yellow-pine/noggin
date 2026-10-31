@@ -23,8 +23,8 @@ One of the four actuators, named by what it moves: left lid, left eye, right lid
 _Avoid_: channel, PWM, actuator, motor
 
 **Link**:
-The USB serial connection between the Core and the Mac.
-_Avoid_: serial, REPL, cable, connection
+The connection between the noggin service and one Core: Wi-Fi (UDP datagrams, found by the Core's beacon) first, the USB serial port as fallback. See docs/adr/0005.
+_Avoid_: serial, REPL, cable, connection, relay
 
 ### Motion
 
@@ -93,9 +93,9 @@ _Avoid_: firmware, app, code, sketch
 The MicroPython image flashed into the Core by Bambu's tools. Never modified by this project.
 _Avoid_: program, image, OS
 
-### Twin
+### Model
 
-**Twin**:
+**Model**:
 The Fusion 360 assembly of every stage and every piece of hardware, 1:1 with the physical Mech.
 _Avoid_: model, CAD, simulation
 
@@ -118,7 +118,7 @@ _Avoid_: rod, linkage
 The bent eyelid bar that turns Horn rotation into lid rotation.
 
 **Pivot**:
-A revolute axis between two parts; in the Twin, a Fusion joint.
+A revolute axis between two parts; in the Model, a Fusion joint.
 _Avoid_: hinge, axle
 
 **Port**:

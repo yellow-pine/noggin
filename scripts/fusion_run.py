@@ -1,5 +1,5 @@
 """Run a Fusion API script through the local Fusion MCP server (http://127.0.0.1:27182/mcp). Usage: fusion_run.py <script.py> [readonly]
-A line `# include: twin/geometry.py` (any repo-relative path) is replaced by that file's contents before sending."""
+A line `# include: model/geometry.py` (any repo-relative path) is replaced by that file's contents before sending."""
 import json, os, re, sys, urllib.request
 from pathlib import Path
 URL=os.environ.get("FUSION_MCP_URL", "http://127.0.0.1:27182/mcp"); SESSION={}   # the port moves after a Fusion restart

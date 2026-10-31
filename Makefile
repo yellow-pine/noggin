@@ -4,7 +4,7 @@ MPR   := $(REPO)/.venv/bin/mpremote
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 
-.PHONY: venv test check twin-check twin-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock twin-eyes
+.PHONY: venv test check model-check model-proxies install hooks unhooks start stop status log interrupt core-info backup-stock flash restore-stock model-eyes
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -14,9 +14,9 @@ check: test       ## everything CI runs: tests, wizard syntax, plist validity, h
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin noggin/demo; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-twin-check: venv  ## sweep every horn joint of the DOC named in twin/check.py (Fusion open, MCP on); writes twin/build/
-	$(PY) twin/sweep.py
-	$(PY) -m pytest -q twin/test_report.py
+model-check: venv  ## sweep every horn joint of the DOC named in model/check.py (Fusion open, MCP on); writes model/build/
+	$(PY) model/sweep.py
+	$(PY) -m pytest -q model/test_report.py
 install: venv hooks start   ## host side: hooks + the noggin service
 hooks:
 	$(PY) noggin/install_hooks.py
@@ -51,7 +51,7 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
-twin-proxies:   ## decimated STLs for the sweep (Blender), into twin/build/proxies
-	/Applications/Blender.app/Contents/MacOS/Blender -b -P twin/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models twin/build/proxies | grep -v '^Blender'
-twin-eyes: venv twin-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
-	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' twin/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
+model-proxies:   ## decimated STLs for the sweep (Blender), into model/build/proxies
+	/Applications/Blender.app/Contents/MacOS/Blender -b -P model/proxies.py -- docs/references/01-eyes/models docs/references/02-pan-tilt/models docs/references/03-mouth/models model/build/proxies | grep -v '^Blender'
+model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
+	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin

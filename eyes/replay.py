@@ -17,7 +17,7 @@ def _eyes():
             sys.modules["machine"] = m
         if HERE not in sys.path:
             sys.path.insert(0, HERE)                                   # eyes.py imports gaze_trace
-        spec = importlib.util.spec_from_file_location("eyes_program", os.path.join(HERE, "eyes.py"))   # by path: twin/ has its own `eyes`
+        spec = importlib.util.spec_from_file_location("eyes_program", os.path.join(HERE, "eyes.py"))   # by path: model/ has its own `eyes`
         _mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(_mod)
     return _mod
 
