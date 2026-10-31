@@ -1,6 +1,6 @@
 """Gesture replay, run INSIDE Fusion by model/traces.py, one call per gesture: GESTURE = "<name>" drives the four eyes
 horn joints of noggin-stage1 (base + eyes, as on the desk) through that gesture's frames (model/build/traces.json,
-model joint degrees per 100 ms) and saves two transparent captures per frame: the README view (perspective, front-left
+model joint degrees per 100 ms) and saves two captures per frame: the README view (perspective, front-left
 three-quarter, VIEW) to model/build/replay/<gesture>/NNN.png and the straight front view (orthographic, for symmetry
 checks) to model/build/replay/<gesture>-front/NNN.png. The eyes are a reference in the Stage, so their link is broken
 in memory and their static parts grounded to drive the joints, and the document is closed without saving: the saved Stage never changes."""

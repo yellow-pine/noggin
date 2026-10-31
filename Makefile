@@ -69,16 +69,11 @@ model-parts: venv model-proxies   ## convert every STL/STEP once into the Fusion
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/parts.py | $(PY) scripts/fusion_run.py /dev/stdin
 model-eyes: venv model-proxies   ## rebuild the noggin-eyes Fusion design, reusing unchanged parts; saves only on change (FULL=1: empty + reimport)
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/eyes.py | $(PY) scripts/fusion_run.py /dev/stdin
-	$(PY) -m model.cartoon ink model/build/*.png   # outlines (docs/model-notes.md)
 model-base: venv model-proxies   ## rebuild the noggin-base Fusion design (base plate + electronics set 1) the same way
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/base.py | $(PY) scripts/fusion_run.py /dev/stdin
-	$(PY) -m model.cartoon ink model/build/*.png   # outlines (docs/model-notes.md)
 model-stack: venv model-proxies   ## rebuild the noggin-stack Fusion design (the pan-tilt neck + electronics set 2) the same way
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/stack.py | $(PY) scripts/fusion_run.py /dev/stdin
-	$(PY) -m model.cartoon ink model/build/*.png   # outlines (docs/model-notes.md)
 model-mouth: venv model-proxies   ## rebuild the noggin-mouth Fusion design the same way
 	sed 's/^FULL = False/FULL = $(if $(FULL),True,False)/' model/mouth.py | $(PY) scripts/fusion_run.py /dev/stdin
-	$(PY) -m model.cartoon ink model/build/*.png   # outlines (docs/model-notes.md)
 model-stage1 model-stage2 model-stage3: venv   ## rebuild a Stage document from the saved sub-assemblies (noggin-stage1: base + eyes; 2: + stack; 3: + mouth)
 	sed -e 's/^FULL = False/FULL = $(if $(FULL),True,False)/' -e 's/^DOC = .*/DOC = "noggin-$(@:model-%=%)"/' model/stage.py | $(PY) scripts/fusion_run.py /dev/stdin
-	$(PY) -m model.cartoon ink model/build/*.png   # outlines (docs/model-notes.md)

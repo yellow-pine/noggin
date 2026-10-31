@@ -572,8 +572,8 @@ FOLDERS = (
 
 
 def screenshot(app, path, eye_dir, up, width=1600, height=1200, aim=None):
-    """Shaded view (no mesh edges: the spool appearances carry the shape) looking back along eye_dir, saved to path
-    with a transparent background (no grid; model/cartoon.py styles it on the Mac): orthographic and fitted to the whole design, or with aim = (target mm, distance mm) a perspective camera that far
+    """Shaded view (no mesh edges: the spool appearances carry the shape) looking back along eye_dir, saved to path:
+    orthographic and fitted to the whole design, or with aim = (target mm, distance mm) a perspective camera that far
     from the target. The joint, sketch, construction and origin glyphs of every component are hidden for the capture
     and restored after (docs/model-notes.md)."""
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
@@ -616,7 +616,4 @@ def _capture(app, path, eye_dir, up, width, height, aim=None):
         )
         viewport.camera = camera
     viewport.refresh()
-    options = adsk.core.SaveImageFileOptions.create(path)
-    options.width, options.height = width, height
-    options.isBackgroundTransparent = options.isAntiAliased = True
-    viewport.saveAsImageFileWithOptions(options)
+    viewport.saveAsImageFile(path, width, height)
