@@ -10,9 +10,14 @@ import pytest
 from model.engine import mating, run, stages
 
 HERE = os.path.dirname(__file__)
-_LID = (
-    "the real Mech closes the lid here, past the model's -20 end: the lid crank's step meets eye bracket's outer"
-    " edge (x -27..-28) from -38, 1.0 mm deep; the crank's plane needs the calliper"
+_LID_SHUT = (
+    "the real Mech's closed end, 9 servo deg past the lid_closed that shuts the lids (#134): in the model the lid crank"
+    " meets the eye bracket's outer edge (x -27..-28) from -32, 1.0 mm deep here; the crank's plane needs the calliper"
+)
+_LID_OPEN = (
+    "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90, #134): in the model the lower lid meets the"
+    " servo bracket from +39, 1.3 mm deep at 45, 2.0 at 52 (and the upper lid 0.35 mm into the eyeball bar there); the"
+    " model's lid travel (71 deg) is short of the build's (85..93 servo deg)"
 )
 _EYE = (
     "the real Mech runs here, past +-22: the eyeball bar rides on the eye bracket and the model has it 0.26..0.5 mm in"
@@ -21,8 +26,10 @@ _EYE = (
 # (horn, calibrated end): where the model still collides and the real Mech runs. The build wins (CLAUDE.md): these are
 # model errors to fix once a build measurement settles which geometry (listed, never loosened silently).
 KNOWN_CALIBRATED = {
-    ("L lid horn", -54): _LID,
-    ("R lid horn", -46): _LID,
+    ("L lid horn", -41): _LID_SHUT,
+    ("R lid horn", -40): _LID_SHUT,
+    ("L lid horn", 52): _LID_OPEN,
+    ("R lid horn", 45): _LID_OPEN,
     ("L eye horn", -32): _EYE,
 }
 

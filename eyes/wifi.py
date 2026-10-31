@@ -152,6 +152,8 @@ class Wifi:
             self.beacon = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.beacon.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             self.cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # a soft reboot keeps the old socket bound on the ESP32: without this the program dies with EADDRINUSE
+            self.cmd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.cmd.bind(("0.0.0.0", COMMAND_PORT))
             self.cmd.setblocking(False)
         if ticks_diff(now_ms, self.next_beacon) >= 0:
@@ -193,7 +195,9 @@ class Wifi:
             self.saved = seq if reboot else seq + SEQ_SAVE_MS  # a ceiling, so lines inside it need no write
             with open("link.seq", "w") as f:  # the reboot's exact seq lets the Mac's next line run at once
                 f.write(str(self.saved))
-        if line.startswith(("put ", "commit ")):  # quick, and the Mac must know they took: answered once they ran
+        if line.startswith("put ") or line.startswith(
+            "commit "
+        ):  # quick, and the Mac must know they took: answered once they ran
             try:
                 flash(line)
                 self.reply(seq, f"ok {seq}", addr)

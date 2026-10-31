@@ -35,14 +35,15 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
 # reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
 _LID = (
-    "one range for the mirrored lid pair: +30 opens both lids clear of the eyeball (model/engine/lids.py); the real"
-    " Mech closes past -20, at its calibrated ends"
+    "one range for the mirrored lid pair, the model's free travel: the lids shut at -30.7 (model/engine/lids.py) and the"
+    " lid crank meets the eye bracket from -32 (the calibrated lid_closed lands at -31.7 / -31.5, HORN_AT_90); the lower"
+    " lid meets the servo bracket at +39"
 )
 _EYE = "+-22: the eyeball bar rides on the eye bracket and enters it 0.1 mm at +-24, 0.26 at +-28"
 LIMITS = {
-    "l_lid": ((70, 120), _LID),
+    "l_lid": ((58, 129), _LID),
     "l_eye": ((68, 112), _EYE),
-    "r_lid": ((70, 120), _LID),
+    "r_lid": ((58, 129), _LID),
     "r_eye": ((68, 112), _EYE),
     "tilt": (
         (30, 150),
@@ -51,8 +52,10 @@ LIMITS = {
         " arm sweeps clear",
     ),
     "rotate": (
-        (40, 160),
-        "pan -50..+70: the pan four-bar sweeps clear over the whole range (the pan servo is 'rotate')",
+        (50, 160),
+        "pan -40..+70 (the pan servo is 'rotate'): the stock pan four-bar toggles at -43.4 (bar and lever in line), so the"
+        " designer's 40 cannot close; -40 keeps a 23 deg transmission angle and gives the mouth GIF's 46 deg end to end"
+        " (docs/research/2026-10-31-neck.md)",
     ),
     "mouth": (
         (15, 90),
@@ -248,6 +251,10 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # with the lids in the STLs' pose and the 41 mm bars: 41.14 to the upper lid's pin, 40.86 to the lower one's
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
+# Joint degrees of each lid horn at servo 90: the spline tooth it went on (#134). The rest-top photo read at face value
+# gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md); the calibrated lid_closed shuts the lids (edges meet at
+# -30.7) without the crank entering the bracket (contact from -32) only for L 12.7..14.0, R 5.5..6.8. Eyes: unsettled, 0.
+HORN_AT_90 = {"l_lid": 13, "r_lid": 6}
 LID_LINKS = {
     "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},
     "lid_crank": {"lid": "upper", "x": (-28.5, -25.5)},
@@ -451,7 +458,8 @@ MOUTH_PARTS = [
 # Stage configurations put the sub-assemblies, each at an (origin, x axis, z axis) frame
 # in the PT frame (align_rows takes the same triple). The eye bracket stem (eyes x 23.5..35.5, z 13..18, bottom
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
-# pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].
+# pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt): the stem below the bracket's
+# rail is 5.0 long, the window 5.0 deep, so the rail lies on the arm top and the stem is flush below [M].
 EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
 EYES_ON_STACK = ((29.5, -28.5, 81.5), (-1, 0, 0), (0, 1, 0))
 STEM_BOTTOM = (29.5, -45.6, 15.5)  # centre of the stem's bottom face, eyes frame
@@ -471,5 +479,5 @@ STAGES = {
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
-# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3). Research note; depth [I].
+# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
 STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

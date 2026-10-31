@@ -22,8 +22,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   stage 2 side, stage 3 side and front at one scale on one ground line) and the gesture GIFs.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the Core program's own commands mapped onto the
-  model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
-  servo degrees), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
+  model's joints (model/traces.py: lid fractions through eyes/calibration.json to servo degrees, plus the lid horns'
+  spline tooth, geometry.HORN_AT_90; eyes over their limits), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
 
 ## Our printed parts (#50)
@@ -59,8 +59,9 @@ the model stabilises.
   3.6 V at stall (`servo_v`, below their 4.8 V minimum); the Cores hold 3.3 V. Needs a second battery box and switch holder.
 - The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used):
-  - the horns' spline tooth at servo 90: the model takes the STL pose; the rest photo does not settle it
-    (docs/research/2026-10-31-shafts.md), so the calibrated-end collisions stay listed (model/test_report.py);
+  - the eye horns' spline tooth at servo 90: the model takes the STL pose; the rest photo does not settle it
+    (docs/research/2026-10-31-shafts.md), so the calibrated-end collisions stay listed (model/test_report.py); the lid
+    horns' tooth is settled by the calibrated close (geometry.HORN_AT_90, #134);
   - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
     not published) and the Y lead's branches (100 mm each);
   - the bracket stem's depth in the pan recess (stage 1) and in the tilt arm window (stages 2, 3) (geometry.STEM_AT);
