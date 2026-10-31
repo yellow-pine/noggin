@@ -478,14 +478,14 @@
   ],
   "switch board 1:1": [
    [
-    6.0,
-    -30.2,
-    68.0
+    -21.0,
+    -34.2,
+    121.0
    ],
    [
-    26.5,
-    -10.44,
-    100.0
+    11.0,
+    -14.44,
+    141.5
    ]
   ],
   "battery 1:1": [
@@ -569,9 +569,9 @@
  "stage": {
   "total_g": 329.2,
   "com": [
-   33.0,
+   32.8,
    -22.8,
-   53.6
+   54.2
   ]
  },
  "calibrated": {
@@ -1032,7 +1032,7 @@
  },
  "warnings": [],
  "inputs": {
-  "stamp": "e3c4dcf1c0e4b2c12d8a04c9fc49805b118c3fee91df4ed30ff6393495dfd493",
+  "stamp": "8bbf390ad3499705b8c6943d564ce65db36fdb3b990616d81b0e3dced60b71bb",
   "sources": {
    "docs/references/01-eyes/models/L eyeball regular.stl": "0507d41ca95cb965",
    "docs/references/01-eyes/models/L servo bracket.stl": "46cb5530fef5b7cb",
@@ -1146,9 +1146,9 @@
    ]
   },
   "pack 1 -> switch 1": {
-   "max_mm": 72.5,
+   "max_mm": 71.6,
    "at": {},
-   "min_mm": 72.5,
+   "min_mm": 71.6,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -1160,9 +1160,9 @@
    ]
   },
   "switch 1 -> shield 1": {
-   "max_mm": 54.3,
+   "max_mm": 69.0,
    "at": {},
-   "min_mm": 54.3,
+   "min_mm": 69.0,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -1170,7 +1170,7 @@
    "clearance_at": null,
    "clearance_part": null,
    "waypoints": [
-    "along the plate to the shield's XH socket (inferred)"
+    "from the back-edge holder along the plate's +x edge past shield 2 (inferred)"
    ]
   }
  }
