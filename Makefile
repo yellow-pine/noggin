@@ -19,9 +19,8 @@ hooks:
 	$(PY) noggin/install_hooks.py
 unhooks:
 	$(PY) noggin/install_hooks.py --remove
-start:           ## install + (re)start the noggin service (launchd)
+start: stop      ## install + (re)start the noggin service (launchd)
 	sed 's|__REPO__|$(REPO)|g' noggin/com.noggin.plist > $(PLIST)
-	-launchctl bootout $(LABEL) 2>/dev/null
 	launchctl bootstrap gui/$(shell id -u) $(PLIST)
 stop:            ## stop the noggin service (frees the Link for mpremote); waits until it is really gone
 	-launchctl bootout $(LABEL) 2>/dev/null
