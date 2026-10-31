@@ -2,6 +2,7 @@
 Not the whole avoid list: API words like serial, board, hook are unavoidable in places."""
 
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -54,10 +55,22 @@ def test_docs_say_noggin_service_and_model():
     assert not hits, "\n".join(hits)
 
 
-# Files that keep the designer's names until their tickets delete them (#97 the reference machinery, #99 Fusion).
+def test_fusion_is_only_history():
+    """Fusion is gone (#88, ADR 0004): only the research notes and the two ADRs that record it may name it."""
+    history = ("docs/research/", "docs/adr/0004-", "docs/adr/0006-", "test_vocabulary.py")
+    files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    hits = [
+        f"{f}:{n}"
+        for f in files
+        if not f.startswith(history) and (ROOT / f).is_file()
+        for n, line in enumerate((ROOT / f).read_text(errors="ignore").splitlines(), 1)
+        if re.search(r"fusion", line, re.I)
+    ]
+    assert not hits, "\n".join(hits)
+
+
+# Files that keep the designer's names until #97 deletes them with the rest of the reference machinery.
 LEAVING = {
-    *(f"model/{f}.py" for f in ("eyes", "stack", "mouth", "base", "stage", "parts", "fusion_lib", "fusion_run")),
-    *(f"model/test_{f}.py" for f in ("parts", "fusion_lib", "fusion_run")),
     "model/printed/test_gate.py",
     "model/engine/test_gate.py",
     "model/engine/step_mesh.py",
@@ -69,8 +82,6 @@ LEAVING = {
 def test_designer_file_names_only_in_the_reference_table():
     """Every part goes by our name (GLOSSARY.md, Model); the designer's file names live only in stages.REFERENCE, the
     table that loads the local reference meshes. README (credits) and docs/research (dated history) are exempt."""
-    import subprocess
-
     from model.engine import stages
 
     names = set(stages.REFERENCE)
@@ -95,8 +106,6 @@ def test_designer_file_names_only_in_the_reference_table():
         if f == "model/engine/stages.py":
             start = text.index("REFERENCE = {")
             text = text[:start] + text[text.index("\n}\n", start) :]
-        if f.startswith("model/reports/"):  # a report's input stamp lists the reference files the sim read
-            text = re.sub(r'"docs/references/[^"]*"', '""', text)
         hits += [
             f"{f}:{n}: {line.strip()[:120]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)
         ]

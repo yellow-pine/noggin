@@ -1,7 +1,7 @@
 """Tessellate the Bambu STEP files into model/build/steps/<key>.stl in their STEP-local frames (the STLs shipped
 beside the STEPs sit on a print plate, not in the frame geometry.py measures). Run: `make model-step-meshes`
 (uv run --with cadquery-ocp, no project dependency). The receiver is split into shield and Core (the Core's solids
-lie under the PCB, local y < 0) and the battery lead is dropped (solids beyond BATTERY_STEP lead_y), as the Fusion builds do."""
+lie under the PCB, local y < 0) and the battery lead is dropped (solids beyond BATTERY_STEP lead_y), as the recorded sweeps do."""
 
 import os
 import struct

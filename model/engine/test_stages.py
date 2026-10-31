@@ -136,7 +136,7 @@ def test_recorded_curves_come_out_of_pose(doc="noggin-pan-tilt"):
         for joint, pts in curves.items():
             for deg, rec in pts:
                 if horn.startswith("pan") and deg == -50:
-                    continue  # Fusion recorded 0.0: its joint did not solve there (the loop cannot close, see the gate)
+                    continue  # recorded 0.0: the joint did not solve there (the loop cannot close, see the gate)
                 assert stages.pose(stage, horn, deg).joints[joint] == pytest.approx(rec, abs=1.0), (horn, joint, deg)
 
 
@@ -172,7 +172,7 @@ def test_lid_linkage_topology_follows_the_build(s):
     m = stage.parts[crank].matrix
     stepped, plain = world(m, (-20.5, 0, 4.5)), world(m, (20.5, 0, 1.5))  # the crank STL's raised end and plain end
     # the link is placed by its horn hole and aligned toward the lid pin: the holes' 41 mm pitch leaves the far hole
-    # within 0.2 mm of the pin (the joints meet at the pins, as Fusion's do; geometry.LID_HORN_ARM)
+    # within 0.2 mm of the pin (the joints meet at the pins; geometry.LID_HORN_ARM)
     assert plain == pytest.approx((x(-28.5), -0.485, 39.202), abs=1e-3)  # horn pin, outermost
     assert stepped[0] == pytest.approx(x(-25.5))  # bar 3 thick on the upper lid's ear face (x -24)
     assert math.dist(stepped[1:], (12.0, 0.0)) < 0.2  # at the inside (top) lid's pin

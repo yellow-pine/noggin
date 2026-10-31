@@ -96,16 +96,17 @@ _Avoid_: program, image, OS
 ### Model
 
 **Model**:
-The Mech as code, 1:1 with the physical Mech: Fusion 360 builds its documents (every Sub-assembly and Stage, every
-piece of hardware); the Python engine in model/ simulates them (docs/adr/0006) and Blender renders the pictures from its poses.
+The Mech as code, 1:1 with the physical Mech: our CadQuery parts (model/printed) and hardware Envelopes
+(model/envelopes.py), placed by model/geometry.py; the Python engine in model/ poses and simulates them (docs/adr/0006)
+and Blender renders the pictures from its poses.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
-A cumulative build state of the Mech, each its own Fusion design that inserts Sub-assemblies by reference: Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
+A cumulative build state of the Mech, the Sub-assemblies placed at frames (geometry.STAGES): Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
 _Avoid_: part, module, phase, top assembly
 
 **Sub-assembly**:
-An ownership unit: a Fusion design that owns its parts exactly once (base, stack, eyes, mouth) and is inserted into Stages by reference.
+An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/engine/stages.py).
 
 **Envelope**:
 Our simple CadQuery stand-in for a piece of Bambu hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
@@ -143,7 +144,7 @@ A part we print, by our name (the designer's file names stay in model/engine/sta
 _Avoid_: the designer's file names, version suffixes, plain / cutout / regular
 
 **Pivot**:
-A revolute axis between two parts; in the Model, a Fusion joint.
+A revolute axis between two parts; in the Model, a joint of the engine's four-bar solver (model/engine/linkage.py).
 _Avoid_: hinge, axle
 
 **Port**:

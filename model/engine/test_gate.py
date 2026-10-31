@@ -1,4 +1,4 @@
-"""The gate (ADR 0006): the engine reproduces the recorded Fusion sweeps in model/reports. Per recorded document:
+"""The gate (ADR 0006): the engine reproduces the recorded sweeps in model/reports. Per recorded document:
 transmission curves within 1 degree, the minimum distances within 0.3 mm at the recorded poses, every part inside its
 recorded box.
 Known disagreements are listed in KNOWN with their reason (never loosened silently). Skipped without the local
@@ -16,18 +16,18 @@ HERE = os.path.dirname(os.path.dirname(__file__))
 RECORDED = sorted(glob.glob(os.path.join(HERE, "reports", "*-report.json")))
 HAVE_REFERENCES = stages.HAVE_REFERENCES
 CURVE_DEG, DISTANCE_MM = 1.0, 0.3
-# (doc, horn, deg): why the engine cannot express what Fusion recorded there.
+# (doc, horn, deg): why the engine cannot express what was recorded there.
 KNOWN = {
     (
         "noggin-pan-tilt",
         "pan horn",
         -50,
-    ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"
+    ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): the recorded joint did not solve and recorded the pan at 0.0"
 }
 
 # Parts #62 and #67 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
-# docs/research/2026-10-31-shafts.md) after the recorded Fusion builds: their recorded boxes predate the move. Their
-# curves and distances still meet the gate. Drop a name once its Fusion design is rebuilt and its box re-recorded.
+# docs/research/2026-10-31-shafts.md) after the recorded builds: their recorded boxes predate the move. Their
+# curves and distances still meet the gate. Drop a name once its box is re-recorded.
 MOVED = {
     "noggin-eyes": {f"{s} {k} {p}:1" for s in "LR" for k in ("lid", "eye") for p in ("servo", "horn")},
     "noggin-mouth": {"jaw servo:1", "jaw horn:1", "jaw bar:1"},
@@ -35,7 +35,7 @@ MOVED = {
     | {"pan servo tail mount:1", "pan servo lead mount:1"}  # swapped by the mating check (#67, geometry.MOUNT_SWAP_Y)
     | {"receiver shield 1:1", "receiver shield 2:1"},  # on the STL's standoff tops, z 16 (#81)
 }
-# Parts a recorded Fusion box still names that the model no longer places (#81: one pack and switch board, the Cores
+# Parts a recorded box still names that the model no longer places (#81: one pack and switch board, the Cores
 # under the shields; the switch board 1 rename from #79) or records as one occurrence.
 GONE = {
     "noggin-pan-tilt": {
@@ -45,7 +45,7 @@ GONE = {
         "Core 1 (flipped onto the shield top, per photo):1",
         "Core 2 (flipped onto the shield top, per photo):1",
     },
-    "noggin-mouth": {"noggin-eyes:1"},  # Fusion's context copy of the eyes, assembled separately by the engine
+    "noggin-mouth": {"noggin-eyes:1"},  # the recorded context copy of the eyes, assembled separately by the engine
 }
 
 _reports, _scenes = {}, {}
@@ -109,15 +109,15 @@ def test_minimum_distances_within_point_three_mm_at_the_recorded_poses(doc):
             off.append((horn, h["at_deg"], h["pair"], "recorded", h["min_mm"], "engine", round(got, 3)))
         m = mine["horns"][
             horn
-        ]  # the engine also measures chain-vs-chain pairs Fusion skipped: never higher, may be lower
+        ]  # the engine also measures chain-vs-chain pairs the recorded sweep skipped: never higher, may be lower
         if m["min_mm"] > h["min_mm"] + DISTANCE_MM:
             off.append((horn, "sweep minimum", "recorded", h["min_mm"], "engine", m["min_mm"], m["at_deg"], m["pair"]))
     assert off == []
 
 
 @pytest.mark.parametrize("doc", docs())
-def test_every_part_sits_inside_its_recorded_fusion_box(doc):
-    """Fusion's boxes also hold each part's joint-origin sketches, so they are a bound: every part both documents place
+def test_every_part_sits_inside_its_recorded_box(doc):
+    """The recorded boxes also hold each part's joint-origin sketches, so they are a bound: every part both documents place
     must lie inside its recorded box within its placement tolerance."""
     recorded = json.load(open(os.path.join(HERE, "reports", f"{doc}-report.json")))["bboxes"]
     mine = engine(doc)["bboxes"]
@@ -137,7 +137,7 @@ def _out_of_box(rec, got, name):
 
 @pytest.mark.parametrize("doc", sorted(MOVED))
 def test_moved_parts_are_still_outside_their_recorded_box(doc):
-    """When a moved part's recorded box is re-recorded from Fusion, drop it from MOVED."""
+    """When a moved part's recorded box is re-recorded, drop it from MOVED."""
     recorded = json.load(open(os.path.join(HERE, "reports", f"{doc}-report.json")))["bboxes"]
     mine = engine(doc)["bboxes"]
     assert all(_out_of_box(recorded[n], mine[n], n) for n in MOVED[doc])

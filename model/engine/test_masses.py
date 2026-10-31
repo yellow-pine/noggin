@@ -25,7 +25,7 @@ def test_cube_mass_centre_and_inertia_follow_density_and_placement():
 
 
 @pytest.mark.skipif(not HAVE_REFERENCES, reason="local references only")
-def test_printed_part_masses_match_the_recorded_fusion_masses():
+def test_printed_part_masses_match_the_recorded_masses():
     recorded = json.load(open(os.path.join(HERE, "reports", "noggin-eyes-report.json")))["mass"]
     stage = stages.STAGES["noggin-eyes"]
     names = ["L eyeball:1", "L servo bracket:1", "L lid bar:1", "L lid servo:1"]

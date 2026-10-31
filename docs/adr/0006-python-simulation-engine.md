@@ -1,5 +1,7 @@
 # Simulations run in Python; Fusion builds the documents
 
+> Fusion part superseded 2026-10-31 (#88): Fusion builds nothing any more; see the last update.
+
 Once pins, axes and link lengths are right, every linkage of the Mech is a planar four-bar (lids, eyes, tilt, pan,
 jaw), so posing parts is a rigid transform and no CAD kernel is needed to simulate. Fusion's API runs on its UI
 thread only, a sweep there takes minutes and freezes the window (docs/research/2026-10-31-fusion-throughput.md).
@@ -36,3 +38,10 @@ a mating mismatch (#67: holes and shafts coaxial within 0.2 mm, servos in their 
 CI runs `make sim` itself on our own geometry: the CadQuery printed parts (model/printed) and hardware envelopes
 (model/envelopes.py), written by `make ours`. Locally, while docs/references exists, `make sim` still reads the
 designer's meshes and STEPs, and the gate holds our parts within 0.3 mm of them.
+
+## Update 2026-10-31 (#88, #99): Fusion is gone
+
+The Fusion build scripts, the parts library and their make targets are deleted, and the Fusion MCP server is out of
+the Claude Code config. The model is our CadQuery parts and envelopes placed by model/geometry.py and simulated here;
+FreeCAD opens `make step` exports. The recorded Fusion sweeps (model/reports/*-report.json) stay as frozen fixtures
+for the engine's curves and masses.

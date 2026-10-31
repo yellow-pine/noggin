@@ -1,6 +1,6 @@
 """Measured Mech geometry as data (mm, degrees). Source: docs/research/2026-10-31-model.md.
 Eyes frame: L eye centre at origin, +Y up, -Z front. PT frame: Z up, pan axis through (0,0).
-Pure Python, no imports: model/fusion_run.py inlines this file into Fusion scripts.
+Pure Python, no imports.
 """
 
 EYE_L = (0.0, 0.0, 0.0)
@@ -144,7 +144,7 @@ BARS = {
     "eyeball_bar": 27.0,
 }
 
-# Bambu STEP files, local mm (measured in Fusion 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
+# Bambu STEP files, local mm (measured 2026-10-31, servo and horns re-read with OCP for #62). Servo: tab plate
 # z -2.3..0, tab holes along +X, shaft at x=16.69 pointing -Z; the horn's inner face sits 11.52 beyond the z -0.65 plane
 # (spline tip z -14.52 on the 2.35 deep bore). Horn = the kit's short single arm ("half arm1"): hub at (0,20,0), 4.15
 # tall, spline side z 4.15, arm (1.6 thick, holes every 2 mm along +X, r 0.5) on the outer face z 0; the build pins the
@@ -164,7 +164,7 @@ HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15, "pin_r": {"l
 # Switch STEP: the mounting hole on the PCB bottom (PCB x -7.25..13.25, z +-16) and the two XH sockets' mouths at the PCB
 # ends (housings x -5.75..4.25, y 1.4..7.6, z +-5..15.5): "in" takes the pack's lead, "out" the lead to the shields.
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0), "in": (-0.75, 4.5, 15.5), "out": (-0.75, 4.5, -15.5)}
-# The servos by the names the remote config and calibration use, and their Mech labels (Fusion components "<label> servo").
+# The servos by the names the remote config and calibration use, and their Mech labels (parts "<label> servo").
 # Core 1 drives the eyes (docs/build-notes.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
 CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
 EYES_SERVOS = tuple(CHANNELS["core1"].values())
@@ -206,8 +206,7 @@ def _cross(a, b):
 
 def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
     """4x4 rows (mm) taking the local frame (from_*) onto the world frame (to_*); axes default to identity, x is made
-    normal to z (stepped links), y = z cross x. The engine wraps it in numpy (stages.align), the Fusion builds in a
-    Matrix3D in cm (fusion_lib.align)."""
+    normal to z (stepped links), y = z cross x. The engine wraps it in numpy (stages.align)."""
 
     def frame(o, x, z):
         z = _unit([float(c) for c in z])
@@ -325,7 +324,7 @@ BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
 BATTERY_POCKET_PT = {"x": (-50.0, -21.5), "y": (73.0, 125.0), "floor_z": 3.0}  # base plate STL pocket, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
-# The electronics on the base plate (model/electronics.py, model/engine/stages.py), PT frame, as the pan-tilt guide builds
+# The electronics on the base plate (model/engine/stages.py), PT frame, as the pan-tilt guide builds
 # them (p.10 Y adapter, p.23): one pack and one switch board feed both receiver shields through a Y lead. Shield n sits
 # on standoff set n (1 front, 2 back), PCB on the standoff tops (z 16), the Core plugged in under it as in the receiver
 # STEP, its USB-C and the shield's XH socket toward the plate's +x edge (Cansin's build for shield 1,
@@ -363,8 +362,7 @@ def battery_at():
     )
 
 
-# Printed parts: spool and material per part (model/parts.py gives each library part the spool's appearance and a
-# physical material of that density; the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
+# Printed parts: spool and material per part (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are Bambu PLA Pure; the density
 # is Bambu Studio's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
 # "(colour inferred)" where the build does not show the part's colour.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
@@ -415,7 +413,7 @@ PRINTED = {
 # lead leaves it (Bambu STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
 # the far end, where the lead would run through the plain mount (docs/research/2026-10-31-shafts.md).
 MOUNT_SWAP_Y = 27.9
-# Sub-assembly parts placed straight from their meshes (the Fusion builds and model/engine/stages.py read these):
+# Sub-assembly parts placed straight from their meshes (model/engine/stages.py reads these):
 # (component, part, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the eyeballs without
 # eye texture and the updated eye bracket (placed apart). Stack: shift; the designer exported these in the assembled PT
 # frame, except the tilt arm, still at the height before the upright was raised 5 mm. Mouth: in the eyes frame with
@@ -449,7 +447,7 @@ MOUTH_PARTS = [
     ("jaw servo mount", "jaw servo mount"),
 ]
 
-# Stage documents (model/stage.py) insert the sub-assembly designs by reference, each at an (origin, x axis, z axis) frame
+# Stage configurations put the sub-assemblies, each at an (origin, x axis, z axis) frame
 # in the PT frame (align_rows takes the same triple). The eye bracket stem (eyes x 23.5..35.5, z 13..18, bottom
 # y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
 # pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt). Depth in the window [I].

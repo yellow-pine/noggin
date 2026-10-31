@@ -1,7 +1,7 @@
 """Planar four-bar solver (ADR 0006): every chain of the Mech is crank (horn) -> coupler (bar) -> rocker (lid, eyeball,
 tilt arm, pan, jaw) about parallel pivots. Fed with the neutral pin positions from model/geometry.py, so the link
-lengths are the ones the Fusion joints enforce (the joints meet at the world pins, not at the bars' holes).
-Angles are degrees about the +axis, as Fusion records them (joint origins carry the world axis as their Z)."""
+lengths are the ones the joints enforce (the joints meet at the world pins, not at the bars' holes).
+Angles are degrees about the +axis, as the recorded sweeps hold them."""
 
 import math
 

@@ -20,7 +20,7 @@ OUT = os.path.join(stages.REPO, "model", "build", "pictures")
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 PT, EYES = ((0, 0, 0), g.X, g.Z), stages.EYES_FRAME
-PT_VIEWS = {"top": (g.Z, g.Y), "side": (g.X, g.Z), "front": ((0, -1, 0), g.Z)}  # eye direction, up (as Fusion's views)
+PT_VIEWS = {"top": (g.Z, g.Y), "side": (g.X, g.Z), "front": ((0, -1, 0), g.Z)}  # eye direction, up
 EYES_VIEWS = {"top": (g.Y, g.Z), "side": ((-1, 0, 0), g.Y), "front": ((0, 0, -1), g.Y)}
 DOCS = {  # picture name: (sub-assembly frames, views); the mouth is shown on the eyes it hangs from, as its document
     "base": ({"noggin-base": PT}, PT_VIEWS),
