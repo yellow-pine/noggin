@@ -1,0 +1,4 @@
+#!/bin/sh
+# noggin on|off|<gesture> <1-3>|thinking|rest  -> talk to the daemon socket
+[ $# -gt 0 ] || { echo "usage: noggin on|off|thinking|rest|<eureka|attention|bored|wince> <1-3>" >&2; exit 2; }
+printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "daemon not running (make daemon)" >&2; exit 1; }
