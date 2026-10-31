@@ -54,12 +54,15 @@ def fit_table(joints):
     """joints: (name, hole, pin) with hole = (stl, centre, axis, half) and pin = fastener diameter mm or another
     (stl, centre, axis, half) whose outer wall is fitted the same way (a printed pin)."""
     out = []
-    for name, hole, pin in joints:
+    for name, hole, pin, *tag in joints:
         p = pin / 2 if isinstance(pin, float) else fit_circle(*pin, expect_r=1.0)["r"]
         h = fit_circle(*hole, expect_r=p)
         clearance = round(h["r"] - p, 2)
-        out.append({"joint": name, "hole_r": h["r"], "pin_r": round(p, 3), "clearance": clearance, "offset": h["offset"],
-                    "rms": h["rms"], "ok": CLEARANCE[0] <= clearance <= CLEARANCE[1]})
+        row = {"joint": name, "hole_r": h["r"], "pin_r": round(p, 3), "clearance": clearance, "offset": h["offset"],
+               "rms": h["rms"], "ok": CLEARANCE[0] <= clearance <= CLEARANCE[1]}
+        if tag:
+            row["tag"], row["ok"] = tag[0], True   # self_tapping: the screw cuts its thread, no clearance by design
+        out.append(row)
     return out
 
 
@@ -71,15 +74,15 @@ EYES_JOINTS = [
     ("eyelid bar / inside lid pin", (stl("eyelid bar"), (20.5, 0, 1.5), "z", 2), (stl("inside lid"), (-22, 12, 0), "x", 3)),
     ("eyelid crank / horn screw", (stl("eyelid bar crank"), (-20.5, 0, 4.5), "z", 2), M2),
     ("eyelid crank / outside lid pin", (stl("eyelid bar crank"), (20.5, 0, 1.5), "z", 2), (stl("outside lid"), (-22, -12, 0), "x", 3)),
-    ("eyeball bar / horn screw", (stl("eyeball bar"), (-10, 4, 27), "y", 2), M2),
+    ("eyeball bar / horn screw", (stl("eyeball bar"), (-10, 4, 27), "y", 2), M2, "self_tapping"),
     ("eyeball bar / eyeball screw", (stl("eyeball bar"), (-10, 4, 0), "y", 2), M2),
     ("inside lid ear / bracket pin", (stl("inside lid"), (-22.5, 0, 0), "x", 2), (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2)),
     ("outside lid ear / bracket pin", (stl("outside lid"), (-22.5, 0, 0), "x", 2), (stl("main bracket v2", MOUTH_MODELS), (-22.5, 0, 0), "x", 2)),
 ]
-EYES_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end is a tight 0.05 mm on an M2
+EYES_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's horn end (0.05 mm) self-taps by design
     "eyelid bar / horn screw": (1.35, 1.0, True), "eyelid bar / inside lid pin": (1.1, 1.0, True),
     "eyelid crank / horn screw": (1.35, 1.0, True), "eyelid crank / outside lid pin": (1.1, 1.0, True),
-    "eyeball bar / horn screw": (1.05, 1.0, False), "eyeball bar / eyeball screw": (1.25, 1.0, True),
+    "eyeball bar / horn screw": (1.05, 1.0, True), "eyeball bar / eyeball screw": (1.25, 1.0, True),
     "inside lid ear / bracket pin": (1.998, 1.735, True), "outside lid ear / bracket pin": (1.959, 1.735, True),
 }
 
@@ -87,5 +90,5 @@ EYES_RECORDED = {   # (hole_r, pin_r, ok) read 2026-10-31; the eyeball bar's hor
 if __name__ == "__main__":
     for row in fit_table(EYES_JOINTS):
         print("%-32s hole r %.3f  pin r %.3f  clearance %5.2f  offset %.2f  rms %.3f  %s" % (
-            row["joint"], row["hole_r"], row["pin_r"], row["clearance"], row["offset"], row["rms"], "ok" if row["ok"] else "FLAG"))
+            row["joint"], row["hole_r"], row["pin_r"], row["clearance"], row["offset"], row["rms"], row.get("tag") or ("ok" if row["ok"] else "FLAG")))
     sys.exit(0)

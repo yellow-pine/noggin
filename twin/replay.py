@@ -31,6 +31,8 @@ def run(_context: str):
     os.makedirs(folder, exist_ok=True)
     for old in glob.glob(os.path.join(folder, "*.png")):
         os.remove(old)
+    contact_was = design.isContactAnalysisEnabled       # the contact set would stop the drive at the designed contacts
+    design.isContactAnalysisEnabled = False
     limits = [h.jointMotion.rotationLimits for h in horns.values()]
     for lim in limits:
         lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = False
@@ -45,4 +47,5 @@ def run(_context: str):
             h.jointMotion.rotationValue = 0.0
         for lim in limits:
             lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = True
+        design.isContactAnalysisEnabled = contact_was
     print(f"{GESTURE}: {len(frames)} frames to {folder}\n")

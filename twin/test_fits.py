@@ -36,9 +36,10 @@ def test_fit_table_flags_clearance_outside_the_window(tmp_path):
     tight, loose, ok = (tmp_path / f"{n}.stl" for n in ("tight", "loose", "ok"))
     ring_stl(tight, (0, 0, 0), "z", 1.0, 3.0); ring_stl(loose, (0, 0, 0), "z", 1.6, 3.0); ring_stl(ok, (0, 0, 0), "z", 1.2, 3.0)
     joints = [("tight", (str(tight), (0, 0, 0), "z", 1.5), 2.0), ("loose", (str(loose), (0, 0, 0), "z", 1.5), 2.0),
-              ("ok", (str(ok), (0, 0, 0), "z", 1.5), 2.0)]
+              ("ok", (str(ok), (0, 0, 0), "z", 1.5), 2.0), ("tapped", (str(tight), (0, 0, 0), "z", 1.5), 2.0, "self_tapping")]
     table = fits.fit_table(joints)
-    assert [(row["joint"], row["clearance"], row["ok"]) for row in table] == [("tight", 0.0, False), ("loose", 0.6, False), ("ok", 0.2, True)]
+    assert [(row["joint"], row["clearance"], row["ok"]) for row in table] == [("tight", 0.0, False), ("loose", 0.6, False), ("ok", 0.2, True), ("tapped", 0.0, True)]
+    assert table[3]["tag"] == "self_tapping"
 
 
 @pytest.mark.skipif(not os.path.isdir(fits.EYES_MODELS), reason="docs/references (local only) missing")

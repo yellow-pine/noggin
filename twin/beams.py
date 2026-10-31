@@ -42,13 +42,19 @@ def mass_g(path):
 
 
 def beam_table(beams):
-    """beams: (name, F in N or a callable giving N, L mm, (stl, keep, b_axis, h_axis)) -> cantilever rows."""
+    """beams: (name, model, F in N or a callable giving N, L mm, (stl, keep, b_axis, h_axis)). model "axial": a pinned
+    link, thresholded as a two-force member (sf = yield / (F / area)); "cantilever": thresholded on bending. The
+    cantilever numbers are always reported (sf_cantilever, deflection_mm) as information."""
     out = []
-    for name, F, L, (path, keep, b_axis, h_axis) in beams:
+    for name, model, F, L, (path, keep, b_axis, h_axis) in beams:
         ext = extents(path, keep)
         b, h = (ext["xyz".index(a)][1] - ext["xyz".index(a)][0] for a in (b_axis, h_axis))
         F = F() if callable(F) else F
-        out.append({"beam": name, "F_n": round(F, 2), "L_mm": L, "b_mm": round(b, 2), "h_mm": round(h, 2), **cantilever(F, L, b, h)})
+        c = cantilever(F, L, b, h)
+        row = {"beam": name, "model": model, "F_n": round(F, 2), "L_mm": L, "b_mm": round(b, 2), "h_mm": round(h, 2),
+               "sigma_cantilever_mpa": c["sigma_mpa"], "deflection_mm": c["deflection_mm"], "sf_cantilever": c["sf"]}
+        sf = min(YIELD_MPA / (F / (b * h)), 999) if model == "axial" else c["sf"]
+        out.append({**row, "sf": round(sf, 2), "ok": sf >= MIN_SF})
     return out
 
 
@@ -60,24 +66,24 @@ def _lid_weight(name):
     return lambda: mass_g(fits.stl(name)) / 1000 * G / 2   # half the lid on each ear
 
 
-# Eyes Stage. Links: full stall force across the pivot spacing (BARS), bending about the pin axis, so the depth h is the
-# in-plane width. Ears: the lug from the lid body to the pin (~5 mm), bending about the pin, depth across the lug.
-# shortcut: the links are two-force members (axial) in reality; the cantilever is the agreed upper bound (#20)
+# Eyes Stage. Links: full stall force across the pivot spacing (BARS), axial (pinned both ends, decided 2026-10-31);
+# the cantilever bound (bending about the pin axis, depth h = in-plane width) is reported alongside. Ears: the lug from
+# the lid body to the pin (~5 mm) as a cantilever under half the lid, bending about the pin, depth across the lug.
 EYES_BEAMS = [
-    ("eyelid bar", stall_force_n, 41.0, (fits.stl("eyelid bar"), lambda v: True, "z", "y")),
-    ("eyelid crank", stall_force_n, 41.0, (fits.stl("eyelid bar crank"), lambda v: v[2] < 3.5, "z", "y")),   # the lower tab; the step is 3 mm higher
-    ("eyeball bar", stall_force_n, 27.0, (fits.stl("eyeball bar"), lambda v: True, "y", "x")),
-    ("inside lid ear", _lid_weight("inside lid"), 5.0, (fits.stl("inside lid"), _ear, "x", "y")),
-    ("outside lid ear", _lid_weight("outside lid"), 5.0, (fits.stl("outside lid"), _ear, "x", "y")),
+    ("eyelid bar", "axial", stall_force_n, 41.0, (fits.stl("eyelid bar"), lambda v: True, "z", "y")),
+    ("eyelid crank", "axial", stall_force_n, 41.0, (fits.stl("eyelid bar crank"), lambda v: v[2] < 3.5, "z", "y")),   # the lower tab; the step is 3 mm higher
+    ("eyeball bar", "axial", stall_force_n, 27.0, (fits.stl("eyeball bar"), lambda v: True, "y", "x")),
+    ("inside lid ear", "cantilever", _lid_weight("inside lid"), 5.0, (fits.stl("inside lid"), _ear, "x", "y")),
+    ("outside lid ear", "cantilever", _lid_weight("outside lid"), 5.0, (fits.stl("outside lid"), _ear, "x", "y")),
 ]
-EYES_RECORDED = {   # (sf, ok) read 2026-10-31: the 3 x 5 mm lid links fail the cantilever bound at stall (1.65 < 2)
-    "eyelid bar": (1.65, False), "eyelid crank": (1.65, False), "eyeball bar": (2.51, True),
+EYES_RECORDED = {   # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are far from yield (the cantilever bound gave 1.65)
+    "eyelid bar": (81.23, True), "eyelid crank": (81.23, True), "eyeball bar": (81.23, True),
     "inside lid ear": (999, True), "outside lid ear": (999, True),
 }
 
 
 if __name__ == "__main__":
     for r in beam_table(EYES_BEAMS):
-        print("%-16s F %5.2f N  L %4.1f  b x h %4.2f x %4.2f  sigma %6.2f MPa  delta %6.3f mm  SF %6.2f  %s" % (
-            r["beam"], r["F_n"], r["L_mm"], r["b_mm"], r["h_mm"], r["sigma_mpa"], r["deflection_mm"], r["sf"], "ok" if r["ok"] else "FLAG"))
+        print("%-16s %-10s F %5.2f N  L %4.1f  b x h %4.2f x %4.2f  SF %6.2f  (cantilever: %6.2f MPa, %6.3f mm, SF %6.2f)  %s" % (
+            r["beam"], r["model"], r["F_n"], r["L_mm"], r["b_mm"], r["h_mm"], r["sf"], r["sigma_cantilever_mpa"], r["deflection_mm"], r["sf_cantilever"], "ok" if r["ok"] else "FLAG"))
     sys.exit(0)

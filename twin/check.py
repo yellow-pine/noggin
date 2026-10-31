@@ -44,7 +44,7 @@ def mass_com(occ):
     if not vol:
         return 0.0, [0.0, 0.0, 0.0], "empty"
     com = [sum(getattr(b.physicalProperties.centerOfMass, c) * b.volume for b in bs) / vol * 10 for c in "xyz"]
-    kind = next((k for k in HARDWARE_G if k in occ.name and "horn" not in occ.name), None)
+    kind = next((k for k in HARDWARE_G if occ.component.name.endswith(" " + k)), None)
     if kind:
         return HARDWARE_G[kind], com, "documented"
     if occ.component.features.meshConvertFeatures.count or "horn" in occ.name:
@@ -193,6 +193,8 @@ def run(_context: str):
     if HORN == "?":
         print(json.dumps([h.name for h in horns])); return
     horn = next(h for h in horns if h.name == HORN)
+    contact_was = design.isContactAnalysisEnabled       # the Stage's contact set would stop the drive at the designed contacts
+    design.isContactAnalysisEnabled = False
     for h in horns:                                     # neutral pose first
         h.jointMotion.rotationValue = 0.0
     report = {"doc": DOC, "version": doc.dataFile.versionNumber if doc.dataFile else None,
@@ -221,11 +223,20 @@ def run(_context: str):
     report["stage"] = {"total_g": round(total, 1), "com": [round(sum(m[0] * m[1][i] for m in parts.values()) / total, 1) for i in range(3)]}
     state = {"worst": None, "measured": 0}
     poses = {}
+    neutral_inv = {}                                    # driven pivots keep rotationValue 0 when another joint drives: read the angle off transform2
+    for j in driven:
+        m = j.occurrenceOne.transform2.copy(); m.invert(); neutral_inv[j.name] = m
+
+    def driven_deg(j):
+        m = matmul(j.occurrenceOne.transform2, neutral_inv[j.name])
+        if "lid" in j.name:                             # rotation about X: row 1 = (0, cos, -sin)
+            return round(math.degrees(math.atan2(-m.getCell(1, 2), m.getCell(1, 1))), 2)
+        return round(math.degrees(math.atan2(m.getCell(0, 2), m.getCell(0, 0))), 2)   # about Y: row 0 = (cos, 0, sin)
 
     def measure(deg, calibrated=False):
         motion.rotationValue = math.radians(deg)
         poses[deg] = {"com": {m.name: [round(c, 2) for c in mass_com(m)[1]] for m in chain.values()},
-                      "joints": {j.name: round(math.degrees(j.jointMotion.rotationValue), 2) for j in driven}}
+                      "joints": {j.name: driven_deg(j) for j in driven}}
         for mover in chain.values():
             for other in others:
                 if frozenset((mover.fullPathName, other.fullPathName)) in linked or bbox_gap(mover, other) > NEAR_MM:
@@ -264,6 +275,7 @@ def run(_context: str):
             measure(deg, calibrated=True)
     lim.isMinimumValueEnabled = lim.isMaximumValueEnabled = True
     motion.rotationValue = 0.0
+    design.isContactAnalysisEnabled = contact_was
     worst, measured = state["worst"], state["measured"]
     report["horns"][horn.name] = worst or {"min_mm": NEAR_MM, "at_deg": None, "pair": None, "note": f"nothing within {NEAR_MM} mm"}
     report["horns"][horn.name]["poses"] = {d: p for d, p in poses.items() if lo <= d <= hi}

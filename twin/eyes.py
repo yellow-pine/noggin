@@ -7,6 +7,7 @@ since the saved version are reused (fingerprints, fusion_lib); joints, Ports and
 a new version is saved only when something differs from the last one."""
 # include: twin/geometry.py
 # include: twin/fusion_lib.py
+# include: twin/contacts.py
 import adsk.core, adsk.fusion, json, math, os
 
 DOC = "noggin-eyes"
@@ -233,6 +234,9 @@ def run(_context: str):
     for occ in root.occurrences:
         if occ.name not in moving:
             occ.isGrounded = True
+    new_contacts = not design.contactSets.count   # one contact set per Stage (#20): moving parts, bracket, servos
+    if new_contacts:
+        contact_set(design, root, moving | {o.name for o in root.occurrences if o.component.name == "main bracket v2" or o.component.name.endswith(" servo")})
 
     for name, (photo, plane, offset_mm, cells) in CANVASES.items():
         canvas(root, name, os.path.join(PHOTOS, photo), plane, offset_mm, cells)
@@ -242,7 +246,7 @@ def run(_context: str):
     screenshot(app, os.path.join(OUT, "eyes-side.png"), (-1, 0, 0), Y)
     screenshot(app, os.path.join(OUT, "eyes-front.png"), (0, 0, -1), Y)
     now = summary(root)
-    diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse]
+    diff = changes(saved_summary(root), now) + [f"imported {n}" for n in FRESH] + [f"removed {n}" for n in reuse] + (["contact set"] if new_contacts else [])
     if diff:
         root.attributes.add(*SUMMARY_ATTR, json.dumps(now, sort_keys=True))
         version = save(doc, f"{DOC}: rebuilt by twin/eyes.py", DOC, folder)
