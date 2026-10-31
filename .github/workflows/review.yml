@@ -46,6 +46,7 @@ jobs:
           path: .agents/skills   # .claude/skills links here
       - id: claude
         uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3   # v1.0.99
+        continue-on-error: true   # the Verdict step decides
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
@@ -66,8 +67,14 @@ jobs:
       - name: Verdict
         env:
           RESULT: ${{ steps.claude.outputs.structured_output }}
+          BASE: origin/${{ github.event.pull_request.base.ref }}
         run: |
-          # the action skips itself when this PR changes review.yml (it only runs main's version): nothing to gate
-          if [ -z "$RESULT" ]; then echo "::warning::review skipped by the action's workflow validation"; exit 0; fi
+          if [ -z "$RESULT" ]; then
+            # the action refuses to run a review.yml that differs from main's: only a PR that edits it may pass unreviewed
+            if git diff --name-only "$BASE...HEAD" | grep -qx .github/workflows/review.yml; then
+              echo "::warning::review.yml changed in this PR, so the action ran no review"; exit 0
+            fi
+            echo "::error::the review produced no verdict"; exit 1
+          fi
           echo "$RESULT" | jq -r '"verdict: \(.verdict)\n\(.reasons)"'
           [ "$(echo "$RESULT" | jq -r .verdict)" = approve ]
