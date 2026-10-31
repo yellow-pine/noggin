@@ -23,8 +23,8 @@ One of the four actuators, named by what it moves: left lid, left eye, right lid
 _Avoid_: channel, PWM, actuator, motor
 
 **Link**:
-The USB serial connection between the Core and the Mac.
-_Avoid_: serial, REPL, cable, connection
+The connection between the noggin service and one Core: Wi-Fi (UDP datagrams, found by the Core's beacon) first, the USB serial port as fallback. See docs/adr/0005.
+_Avoid_: serial, REPL, cable, connection, relay
 
 ### Motion
 
