@@ -352,6 +352,17 @@ def cylindrical(root, origin_a, origin_b, name):
     return _joint(root, origin_a, origin_b, name, "setAsCylindricalJointMotion")
 
 
+def rigid(root, occ_a, occ_b, name):
+    """As-built rigid joint: no geometry, the parts stay where they were placed, so nothing is added to a referenced
+    component (joint_origin would write its sketch into the shared design). Lives in root.asBuiltJoints, not root.joints."""
+    adsk.doEvents()
+    inp = root.asBuiltJoints.createInput(occ_a, occ_b, None)
+    inp.setAsRigidJointMotion()
+    joint = root.asBuiltJoints.add(inp)
+    joint.name = name
+    return joint
+
+
 # Chunked builds: one part insert (or joint group) per custom event. Custom events are only dispatched while the
 # script pumps adsk.doEvents() (measured 2026-10-31: nothing fires once the MCP call has returned), so chunked()
 # fires the first chunk, each chunk fires the next, and the call returns after the last one; between chunks Fusion
@@ -402,7 +413,7 @@ def chunked(steps):
     return _JOB["lines"]
 
 
-# Shared by the Stage builds (eyes.py, pan_tilt.py): linkage placement, pivots and loop closure, the battery lead.
+# Shared by the sub-assembly builds (eyes.py, stack.py): linkage placement, pivots and loop closure, the battery lead.
 def add(a, b):
     return tuple(p + q for p, q in zip(a, b))
 
