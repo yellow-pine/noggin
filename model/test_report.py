@@ -44,7 +44,14 @@ def problems(report):
         if not b["ok"]:
             out.append(f"beam {b['beam']}: SF {b['sf']} (deflection {b['deflection_mm']} mm)")
     for horn, t in report.get("torque", {}).items():
-        if t["kgf_cm"] > t["limit_kgf_cm"]:
+        if (
+            "dynamic_kgf_cm" in t
+        ):  # gravity + inertia x peak acceleration (model/engine/mech.py) replaces the static figure
+            if t["dynamic_kgf_cm"] > t["limit_kgf_cm"]:
+                out.append(
+                    f"torque {horn}: {t['dynamic_kgf_cm']} kgf.cm dynamic at {t['dynamic_at_deg']} deg > {t['limit_kgf_cm']}"
+                )
+        elif t["kgf_cm"] > t["limit_kgf_cm"]:
             out.append(f"torque {horn}: {t['kgf_cm']} kgf.cm at {t['at_deg']} deg > {t['limit_kgf_cm']}")
     for horn, c in report.get("calibrated", {}).items():
         # Collisions at the calibrated servo ends count once the horn's pivot is measured: an inferred pivot (+-4 mm)
@@ -71,6 +78,7 @@ FIXTURE_PROBLEMS = {
         "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
         "beam eyelid bar: SF 1.65 (deflection 1.939 mm)",
         "torque L lid horn: 0.31 kgf.cm at -20 deg > 0.2",
+        "torque R lid horn: 0.25 kgf.cm dynamic at 30 deg > 0.2",
         "calibrated L lid horn: collision at 39 deg between ['L outside lid', 'L servo bracket']",
     ],
 }
