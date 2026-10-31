@@ -118,6 +118,7 @@ def ask(path, text, timeout=1.0):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(path)
     s.sendall(text.encode())
+    s.shutdown(socket.SHUT_WR)  # EOF, as nc gives: the service reads to it, then answers
     s.settimeout(timeout)
     try:
         return s.recv(4096).decode()
