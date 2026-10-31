@@ -251,12 +251,19 @@ pause
 stage "Calibrate lids and eyes"
 say "Playing a wince (lids snap shut, then slowly reopen)."
 board_send "wince 2" >/dev/null; sleep 4
-if ! confirm "Did the lids CLOSE first and then open?"; then
-  say "Flipping the lid direction in eyes/eyes.py and re-flashing."
-  sed -i '' 's/^LID_OPEN, LID_HALF, LID_CLOSED = 1.0, 0.5, 0.0/LID_OPEN, LID_HALF, LID_CLOSED = 0.0, 0.5, 1.0/' eyes/eyes.py
-  make -s flash; sleep 2; board_send "wince 2" >/dev/null; sleep 4
-  confirm "Better now?" || warn "lid direction still wrong: check servo wiring (ports 1 and 3 are the lids)"
-fi
+for side in L R; do
+  if ! confirm "Did the $side lid (mech's own $side) CLOSE first and then open?"; then
+    say "Flipping the $side lid direction in eyes/eyes.py."
+    "$PY" - "$side" <<'PYEOF'
+import re, sys
+p = "eyes/eyes.py"; s = open(p).read(); side = sys.argv[1]
+s = re.sub(rf"({side}_LID: )(True|False)", lambda m: m.group(1) + ("False" if m.group(2) == "True" else "True"), s)
+open(p, "w").write(s)
+PYEOF
+  fi
+done
+make -s flash; sleep 2; board_send "wince 2" >/dev/null; sleep 4
+confirm "Both lids close then open now?" || warn "check servo wiring: ports 1 (L lid) and 3 (R lid)"
 say "Playing eureka 3 (eyes dart aside, double-take, blinks)."
 board_send "eureka 3" >/dev/null; sleep 6
 confirm "Did both eyes move together and stay inside their sockets?" || warn "note which eye misbehaves; ranges are in eyes/eyes.py RANGE"
