@@ -44,7 +44,8 @@ jobs:
         with:
           name: skills
           path: .agents/skills   # .claude/skills links here
-      - uses: anthropics/claude-code-action@v1
+      - id: claude
+        uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3   # v1.0.99
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
@@ -55,6 +56,18 @@ jobs:
             2. Call the Skill tool with `ponytail-review` on the same diff: what could be smaller, deleted or reused.
             3. Post ONE PR comment (`gh pr comment`) with the sections Standards, Spec and Ponytail, each finding with
                file:line and a one-line fix, worst first, under 500 words; inline comments only for concrete line fixes.
-            Review only; never push, approve or merge.
+            Verdict: request_changes only for a bug, a spec miss, a security issue or a breach of a documented rule
+            (CLAUDE.md, CONTRIBUTING.md, an ADR, GLOSSARY.md); ponytail suggestions and judgement-call smells are listed
+            but never block. State the verdict and its reasons at the top of the comment.
+            Review only; never push or merge.
           claude_args: |
             --allowedTools "Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),mcp__github_inline_comment__create_inline_comment"
+            --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["approve","request_changes"]},"reasons":{"type":"string"}},"required":["verdict","reasons"]}'
+      - name: Verdict
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
+        run: |
+          # the action skips itself when this PR changes review.yml (it only runs main's version): nothing to gate
+          if [ -z "$RESULT" ]; then echo "::warning::review skipped by the action's workflow validation"; exit 0; fi
+          echo "$RESULT" | jq -r '"verdict: \(.verdict)\n\(.reasons)"'
+          [ "$(echo "$RESULT" | jq -r .verdict)" = approve ]
