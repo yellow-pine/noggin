@@ -183,7 +183,8 @@ SERVO_LABEL = {
 }
 
 # Receiver STEP Ports: the four servo headers and the XH power socket (top centres); the PWM numbering of the headers is
-# inferred.
+# inferred: the eyes-top photo's silkscreen is unreadable, and any numbering moves a lead's end by at most 9.4 mm, inside
+# every eye lead's spare (docs/research/2026-11-01-best-guesses.md).
 RECEIVER_STEP = {
     "headers": {
         "PWM1": (4.2, 10.8, 0.4),
@@ -488,6 +489,7 @@ STAGES = {
     },
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
-# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1); in the tilt
+# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1, inferred
+# from the build photos: feet flat on the plate, the stem out of sight in it); in the tilt
 # arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
 STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

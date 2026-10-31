@@ -48,7 +48,8 @@ def _load(name):
 
 servo, replay = _load("servo"), _load("replay")  # replay: model/engine/mech.py reads it from here
 
-# The servo lead length is not published (docs/research/2026-10-31-electrical.md 1, -shafts.md): assumed 250 mm; the
+# The servo lead length: the vendor publishes none (docs/research/2026-10-31-electrical.md 1), so 250 mm, inferred: the
+# typical 9 g micro servo figure (docs/research/2026-11-01-best-guesses.md); the
 # XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list); a lead that moves must reach with SLACK_MM to spare. The Y
 # lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
 # board is taken as 100 [I] (the battery box lead's length is not published).

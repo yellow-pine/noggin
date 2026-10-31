@@ -173,7 +173,9 @@ def test_lid_linkage_topology_follows_the_build(s):
     stepped, plain = world(m, (-20.5, 0, 4.5)), world(m, (20.5, 0, 1.5))  # the crank STL's raised end and plain end
     # the link is placed by its horn hole and aligned toward the lid pin: the holes' 41 mm pitch leaves the far hole
     # within 0.2 mm of the pin (the joints meet at the pins; geometry.LID_HORN_ARM)
-    assert plain == pytest.approx((x(-29.7), -0.485, 39.202), abs=1e-3)  # horn pin, outermost, 1.2 out on the screw (#170)
+    assert plain == pytest.approx(
+        (x(-29.7), -0.485, 39.202), abs=1e-3
+    )  # horn pin, outermost, 1.2 out on the screw (#170)
     assert stepped[0] == pytest.approx(x(-26.7))  # 3 thick, 1.2 off the upper lid's ear face (x -24)
     assert math.dist(stepped[1:], (12.0, 0.0)) < 0.2  # at the inside (top) lid's pin
     straight_horn_end = world(stage.parts[bar].matrix, (20.5, 0, 1.5))
