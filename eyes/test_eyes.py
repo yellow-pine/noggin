@@ -121,3 +121,19 @@ def test_wink_moves_one_lid_only(eyes, pwm_log):
     r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
     l = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
     assert max(r) - min(r) > 15 and (not l or max(l) - min(l) < 2)
+
+
+def test_core_json_ports_pick_the_gpio_per_servo_name(tmp_path, monkeypatch, pwm_log):
+    monkeypatch.chdir(tmp_path); monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    (tmp_path / "core.json").write_text('{"name": "eyes", "ports": {"1": "r_eye", "2": "r_lid", "3": "l_eye", "4": "l_lid"}}')
+    e = mod.Eyes(); pwm_log.clear()
+    e.handle_line("pose lids 0.5")                      # lids on ports 2 and 4 -> GPIO 2 and 0
+    assert {pin for pin, _ in pwm_log} == {2, 0}
+
+
+def test_neck_core_never_drives_the_eye_pins(tmp_path, monkeypatch, pwm_log):
+    monkeypatch.chdir(tmp_path); monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    (tmp_path / "core.json").write_text('{"name": "neck", "ports": {"1": "tilt", "2": "mouth", "3": "pan"}}')
+    e = mod.Eyes(); pwm_log.clear()
+    e.handle_line("eureka 2"); e.handle_line("wink 1")   # eye servo names unknown here: skipped, not crashed
+    assert pwm_log == []

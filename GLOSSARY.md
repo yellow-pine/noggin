@@ -11,7 +11,7 @@ The physical animatronic: two eyeballs, two eyelid pairs, four servos and the bo
 _Avoid_: robot, head, beast, eye mech
 
 **Core**:
-The CyberBrick controller board (ESP32-C3 running MicroPython) that drives the servos and talks to the Mac over USB.
+The CyberBrick controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
 _Avoid_: board, receiver, controller, ESP
 
 **Shield**:

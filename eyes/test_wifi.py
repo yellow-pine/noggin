@@ -5,9 +5,9 @@ import wifi as mod
 CFG = {"ssid": "home", "password": "pw", "token": "t0k"}
 
 
-def dg(seq, line):
-    """A command datagram as the noggin service sends it: `<mac> <seq> <line>`."""
-    return f"{mod.mac(CFG['token'], f'{seq} {line}')} {seq} {line}".encode()
+def dg(seq, line, name="eyes"):
+    """A command datagram as the noggin service sends it: `<tag> <seq> <line>`, the tag bound to the Core's name."""
+    return f"{mod.tag(CFG['token'], f'{name} {seq} {line}')} {seq} {line}".encode()
 
 
 class FakeWLAN:
@@ -79,9 +79,16 @@ def test_command_with_the_token_runs_through_the_parser_and_is_acked(link):
     assert FakeSocket.sent == [(b"ok 7", MAC)]
 
 
-def test_wrong_mac_is_ignored(link):
+def test_wrong_tag_is_ignored(link):
     joined(link)
     FakeSocket.inbox.append((b"nope 7 eureka 2", MAC))
+    link.poll(1_100)
+    assert link.handled == [] and FakeSocket.sent == []
+
+
+def test_datagram_tagged_for_another_core_is_ignored(link):
+    joined(link)
+    FakeSocket.inbox.append((dg(7, "eureka 2", name="neck"), MAC))
     link.poll(1_100)
     assert link.handled == [] and FakeSocket.sent == []
 
@@ -143,8 +150,18 @@ def test_start_refuses_an_empty_token(tmp_path, monkeypatch):
     assert mod.start(lambda line: None) is None
 
 
-def test_hmac_is_keyed_and_message_bound():
-    assert mod.mac("t0k", "1 rest") == mod.mac("t0k", "1 rest")
-    assert mod.mac("t0k", "1 rest") != mod.mac("other", "1 rest")
-    assert mod.mac("t0k", "1 rest") != mod.mac("t0k", "2 rest")
-    assert len(mod.mac("t0k", "1 rest")) == 32
+def test_tag_is_keyed_and_message_bound():
+    assert mod.tag("t0k", "eyes 1 rest") == mod.tag("t0k", "eyes 1 rest")
+    assert mod.tag("t0k", "eyes 1 rest") != mod.tag("other", "eyes 1 rest")
+    assert mod.tag("t0k", "eyes 1 rest") != mod.tag("t0k", "eyes 2 rest")
+    assert mod.tag("t0k", "eyes 1 rest") != mod.tag("t0k", "neck 1 rest")
+    assert len(mod.tag("t0k", "eyes 1 rest")) == 32
+
+
+def test_uptime_survives_the_ticks_wrap(link, monkeypatch):
+    WRAP = 1 << 30                                                            # MicroPython ticks_ms period
+    monkeypatch.setattr(mod, "ticks_diff", lambda a, b: ((a - b + WRAP // 2) % WRAP) - WRAP // 2)
+    link.poll(0); FakeWLAN.connected = True
+    link.poll(WRAP // 2 - 1_000); link.poll(WRAP - 1_500)                     # ... 1.5 s before the wrap
+    link.poll(500)                                                            # 2 s later, ticks wrapped
+    assert [int(m.split()[-1]) for m, _ in FakeSocket.sent] == [(WRAP // 2 - 1_000) // 1000, (WRAP - 1_500) // 1000, (WRAP + 500) // 1000]

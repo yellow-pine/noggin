@@ -1,15 +1,16 @@
 """Wi-Fi Link: learn each Core from its UDP beacon (`noggin <name> <ip> <uptime s>`, trusted only for the
-sender's real address) and send it command lines as `<mac> <seq> <line>` datagrams (HMAC under the shared
-token, so the secret never travels), each acked with `ok <seq>` from that address (retried once, then dropped)."""
+sender's real address) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>` under
+the shared token, so the secret never travels), each acked with `ok <seq>` from that Core's address and command port
+(retried once, then dropped)."""
 import importlib.util, ipaddress, socket, time
 from pathlib import Path
 
-BEACON_PORT, COMMAND_PORT = 4711, 4712
 ACK_SECONDS = 0.2
 
 _spec = importlib.util.spec_from_file_location("core_wifi", Path(__file__).resolve().parent.parent / "eyes" / "wifi.py")
 _core_wifi = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_core_wifi)
-mac = _core_wifi.mac   # the Core's own function: both sides always agree
+tag = _core_wifi.tag   # the Core's own function and ports: both sides always agree
+BEACON_PORT, COMMAND_PORT = _core_wifi.BEACON_PORT, _core_wifi.COMMAND_PORT
 
 
 class Wifi:
@@ -51,7 +52,7 @@ class Wifi:
         ip = self.cores[name][0]
         for line in lines:
             self.seq = max(self.seq + 1, int(time.time() * 1000))   # the Core drops any seq below its highest: survive restarts
-            datagram = f"{mac(self.token, f'{self.seq} {line}')} {self.seq} {line}".encode()
+            datagram = f"{tag(self.token, f'{name} {self.seq} {line}')} {self.seq} {line}".encode()
             for attempt in range(2):
                 self.cmd.sendto(datagram, (ip, self.command_port))
                 if self.acked(self.seq, ip):
@@ -66,6 +67,6 @@ class Wifi:
             try: data, addr = self.cmd.recvfrom(256)
             except (socket.timeout, OSError): return False
             reply = data.decode(errors="replace").split()
-            if addr[0] == ip and len(reply) >= 2 and reply[1] == str(seq):   # only the Core we sent to can ack
+            if addr == (ip, self.command_port) and len(reply) >= 2 and reply[1] == str(seq):   # only the Core we sent to can ack
                 return True   # `err <seq> ...` is still delivered: the Core saw it, retrying would not help
         return False

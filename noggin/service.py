@@ -14,6 +14,7 @@ CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
 WIFI_FILE = CAL_FILE.with_name("wifi.json")      # the wizard writes it here and copies it to the Core
 PORT_GLOB = "/dev/cu.usbmodem*"
 CORES = ("eyes", "neck")
+USB_CORE = "eyes"                                # shortcut: the one USB Link is assumed to be the eyes Core, until a second port is told apart
 MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
 
 
@@ -51,8 +52,8 @@ class Service:
     def link_status(self, name, now):
         if self.wifi.fresh(name, now):
             return self.wifi.status(name)
-        if name == "eyes" and self.link is not None:   # shortcut: the one cable is assumed to be the eyes Core
-            return f"usb {getattr(self.link, 'port', '')}".rstrip()
+        if name == USB_CORE and self.link is not None:
+            return f"usb {getattr(self.link, 'port', '')} uptime n/a"   # the USB Link carries no beacon, so no uptime
         return "offline"
 
     def stop(self):
@@ -82,7 +83,7 @@ class Service:
         self.link = None
 
     def send(self, lines, core="eyes"):
-        """Wi-Fi while the Core's beacon is fresh, else the USB Link (eyes only), else a silent drop."""
+        """Wi-Fi while the Core's beacon is fresh, else the USB Link (USB_CORE only), else a silent drop."""
         if not lines:
             return
         if self.wifi.fresh(core, time.time()):
@@ -91,7 +92,7 @@ class Service:
             except OSError as e:                   # unroutable address, socket trouble: drop like the USB branch
                 return log("wifi error, dropped", core, repr(e))
             return log("sent" if ok else "no ack, dropped", core, lines)
-        if core != "eyes" or self.link is None:   # shortcut: the one cable is assumed to be the eyes Core
+        if core != USB_CORE or self.link is None:
             return log("no Link, dropped", core, lines)
         try:
             self.link.write(("\n".join(lines) + "\n").encode())
