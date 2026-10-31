@@ -5,13 +5,13 @@
  "step_deg": 10,
  "horns": {
   "tilt horn": {
-   "min_mm": 0.1,
+   "min_mm": 0.19,
    "at_deg": -60,
    "pair": [
     "tilt horn:1",
     "pan base:1"
    ],
-   "measurements": 78
+   "measurements": 79
   },
   "pan horn": {
    "min_mm": 0.5,
@@ -20,19 +20,10 @@
     "pan base:1",
     "PandT base:1"
    ],
-   "measurements": 94
+   "measurements": 95
   }
  },
- "contacts": [
-  {
-   "horn": "tilt horn",
-   "deg": -60,
-   "pair": [
-    "tilt horn:1",
-    "pan base:1"
-   ]
-  }
- ],
+ "contacts": [],
  "bboxes": {
   "PandT base:1": [
    [
@@ -72,14 +63,14 @@
   ],
   "switch board 1:1": [
    [
-    3.0,
-    52.5,
-    8.4
+    18.5,
+    105.5,
+    4.4
    ],
    [
-    23.5,
-    84.5,
-    28.16
+    50.5,
+    126.0,
+    24.16
    ]
   ],
   "battery 1:1": [
@@ -145,24 +136,24 @@
   "servo mount plain:1": [
    [
     -35.5,
-    27.0,
-    3.0
-   ],
-   [
-    -5.5,
-    32.0,
-    15.0
-   ]
-  ],
-  "servo mount cutout:1": [
-   [
-    -35.5,
     54.9,
     3.0
    ],
    [
     -5.5,
     59.9,
+    15.0
+   ]
+  ],
+  "servo mount cutout:1": [
+   [
+    -35.5,
+    27.0,
+    3.0
+   ],
+   [
+    -5.5,
+    32.0,
     15.0
    ]
   ],
@@ -181,24 +172,24 @@
   "tilt servo:1": [
    [
     12.78,
-    -7.61,
+    -7.5,
     12.38
    ],
    [
     43.6,
-    24.89,
+    25.0,
     24.38
    ]
   ],
   "tilt horn:1": [
    [
     10.98,
-    10.35,
+    10.46,
     14.75
    ],
    [
     15.13,
-    30.03,
+    30.14,
     22.01
    ]
   ],
@@ -210,7 +201,7 @@
    ],
    [
     11.0,
-    29.23,
+    29.34,
     40.9
    ]
   ],
@@ -351,9 +342,9 @@
  "stage": {
   "total_g": 274.9,
   "com": [
-   -7.4,
-   65.3,
-   10.6
+   -7.2,
+   65.9,
+   10.5
   ]
  },
  "calibrated": {},
@@ -475,15 +466,15 @@
    "kgf_cm": 0.001,
    "at_deg": -10,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 6418483,
+   "accel_limit_deg_s2": 6424738,
    "inertia_g_mm2": 174
   },
   "pan horn": {
    "kgf_cm": 0.0,
    "at_deg": -40,
    "limit_kgf_cm": 0.2,
-   "accel_limit_deg_s2": 27224,
-   "inertia_g_mm2": 41278
+   "accel_limit_deg_s2": 27189,
+   "inertia_g_mm2": 41331
   }
  },
  "curves": {
@@ -545,23 +536,23 @@
    "tilt pivot": [
     [
      -60,
-     -17.23
+     -17.18
     ],
     [
      -50,
-     -14.77
+     -14.74
     ],
     [
      -40,
-     -12.13
+     -12.11
     ],
     [
      -30,
-     -9.31
+     -9.29
     ],
     [
      -20,
-     -6.32
+     -6.31
     ],
     [
      -10,
@@ -581,19 +572,19 @@
     ],
     [
      30,
-     9.38
+     9.39
     ],
     [
      40,
-     12.11
+     12.12
     ],
     [
      50,
-     14.41
+     14.43
     ],
     [
      60,
-     16.12
+     16.15
     ]
    ]
   },
@@ -700,9 +691,219 @@
    ]
   }
  },
+ "mating": [
+  {
+   "joint": "tilt servo / pan base near tab screw",
+   "kind": "coaxial",
+   "parts": [
+    "tilt servo:1",
+    "pan base:1"
+   ],
+   "mm": 0.11,
+   "ok": true
+  },
+  {
+   "joint": "tilt servo / pan base far tab screw",
+   "kind": "coaxial",
+   "parts": [
+    "tilt servo:1",
+    "pan base:1"
+   ],
+   "mm": 0.11,
+   "ok": true
+  },
+  {
+   "joint": "tilt horn on the tilt servo spline",
+   "kind": "coaxial",
+   "parts": [
+    "tilt servo:1",
+    "tilt horn:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "tilt horn pin",
+   "kind": "coaxial",
+   "parts": [
+    "tilt horn:1",
+    "tilt bar:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "tilt bar / tilt arm lever",
+   "kind": "coaxial",
+   "parts": [
+    "tilt bar:1",
+    "tilt arm:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "tilt pivot",
+   "kind": "coaxial",
+   "parts": [
+    "tilt arm:1",
+    "upright v2:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "pan servo / servo mount cutout near tab screw",
+   "kind": "coaxial",
+   "parts": [
+    "pan servo:1",
+    "servo mount cutout:1"
+   ],
+   "mm": 0.1,
+   "ok": true
+  },
+  {
+   "joint": "pan servo / servo mount plain far tab screw",
+   "kind": "coaxial",
+   "parts": [
+    "pan servo:1",
+    "servo mount plain:1"
+   ],
+   "mm": 0.1,
+   "ok": true
+  },
+  {
+   "joint": "pan horn on the pan servo spline",
+   "kind": "coaxial",
+   "parts": [
+    "pan servo:1",
+    "pan horn:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "pan horn pin",
+   "kind": "coaxial",
+   "parts": [
+    "pan horn:1",
+    "pan bar:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "pan bar / upright lever",
+   "kind": "coaxial",
+   "parts": [
+    "pan bar:1",
+    "upright v2:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "upright on the pan base",
+   "kind": "coaxial",
+   "parts": [
+    "upright v2:1",
+    "pan base:1"
+   ],
+   "mm": 0.035,
+   "ok": true
+  },
+  {
+   "joint": "pan pivot",
+   "kind": "coaxial",
+   "parts": [
+    "pan base:1",
+    "PandT base:1"
+   ],
+   "mm": 0.012,
+   "ok": true
+  },
+  {
+   "joint": "servo mount cutout outer foot on the base",
+   "kind": "coaxial",
+   "parts": [
+    "servo mount cutout:1",
+    "PandT base:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "servo mount cutout inner foot on the base",
+   "kind": "coaxial",
+   "parts": [
+    "servo mount cutout:1",
+    "PandT base:1"
+   ],
+   "mm": 0.002,
+   "ok": true
+  },
+  {
+   "joint": "servo mount plain outer foot on the base",
+   "kind": "coaxial",
+   "parts": [
+    "servo mount plain:1",
+    "PandT base:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "servo mount plain inner foot on the base",
+   "kind": "coaxial",
+   "parts": [
+    "servo mount plain:1",
+    "PandT base:1"
+   ],
+   "mm": 0.002,
+   "ok": true
+  },
+  {
+   "joint": "tilt servo in its mount",
+   "kind": "seat",
+   "parts": [
+    "tilt servo:1",
+    "pan base:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "tilt servo lead exit",
+   "kind": "lead",
+   "parts": [
+    "tilt servo:1"
+   ],
+   "mm": null,
+   "ok": true
+  },
+  {
+   "joint": "pan servo in its mount",
+   "kind": "seat",
+   "parts": [
+    "pan servo:1",
+    "servo mount cutout:1"
+   ],
+   "mm": 0.0,
+   "ok": true
+  },
+  {
+   "joint": "pan servo lead exit",
+   "kind": "lead",
+   "parts": [
+    "pan servo:1"
+   ],
+   "mm": null,
+   "ok": true
+  }
+ ],
  "warnings": [],
  "inputs": {
-  "stamp": "af7026ab5806734812d47ea51564932fbb933d937a0997ebe945a71da9f1d5ba",
+  "stamp": "4a7fd07fc54fbcefc411d8e5e21545a573fd2602f1097473075523e06d9a4400",
   "sources": {
    "docs/references/02-pan-tilt/models/PandT bar.stl": "a967090814993a29",
    "docs/references/02-pan-tilt/models/PandT base.stl": "a315e6a030975597",
@@ -737,22 +938,22 @@
   }
  },
  "tip_over": {
-  "margin_mm": 52.3,
+  "margin_mm": 52.5,
   "at": {
    "pan": -40,
-   "tilt": 60
+   "tilt": 20
   },
   "com": [
-   -7.7,
-   66.1,
-   10.6
+   -7.5,
+   66.8,
+   10.5
   ]
  },
  "corridors": {
   "pack 1 -> switch 1": {
-   "max_mm": 72.5,
+   "max_mm": 71.6,
    "at": {},
-   "min_mm": 72.5,
+   "min_mm": 71.6,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -764,9 +965,9 @@
    ]
   },
   "switch 1 -> shield 1": {
-   "max_mm": 54.3,
+   "max_mm": 69.0,
    "at": {},
-   "min_mm": 54.3,
+   "min_mm": 69.0,
    "min_at": {},
    "length_mm": 100,
    "limit_mm": 80,
@@ -774,16 +975,16 @@
    "clearance_at": null,
    "clearance_part": null,
    "waypoints": [
-    "along the plate to the shield's XH socket (inferred)"
+    "from the back-edge holder along the plate's +x edge past shield 2 (inferred)"
    ]
   },
   "tilt servo -> Core 2 PWM1": {
-   "max_mm": 75.6,
+   "max_mm": 75.5,
    "at": {
     "pan horn": 60,
     "tilt horn": -60
    },
-   "min_mm": 52.4,
+   "min_mm": 52.3,
    "min_at": {
     "pan horn": -40,
     "tilt horn": -60
@@ -804,7 +1005,7 @@
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 230,
-   "clearance_mm": 9.4,
+   "clearance_mm": 9.28,
    "clearance_at": {
     "pan horn": -40,
     "tilt horn": -30

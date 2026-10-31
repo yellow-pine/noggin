@@ -25,13 +25,14 @@ KNOWN = {
     ): "the pan four-bar cannot close at -50 (crank pin 42.6 mm from the pan axis, bar 15 + lever 26.1 = 41.1): Fusion's joint did not solve and recorded the pan at 0.0"
 }
 
-# Parts #62 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
+# Parts #62 and #67 moved (servo shafts, horn seat and orientation, bar planes from the STEPs, STLs and guide pictures:
 # docs/research/2026-10-31-shafts.md) after the recorded Fusion builds: their recorded boxes predate the move. Their
 # curves and distances still meet the gate. Drop a name once its Fusion design is rebuilt and its box re-recorded.
 MOVED = {
     "noggin-eyes": {f"{s} {k} {p}:1" for s in "LR" for k in ("lid", "eye") for p in ("servo", "horn")},
     "noggin-mouth": {"jaw servo:1", "jaw horn:1", "connector bar:1"},
-    "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")},
+    "noggin-pan-tilt": {f"{k} {p}:1" for k in ("tilt", "pan") for p in ("servo", "horn", "bar")}
+    | {"servo mount plain:1", "servo mount cutout:1"},  # swapped by the mating check (#67, geometry.MOUNT_SWAP_Y)
 }
 
 _reports, _scenes = {}, {}

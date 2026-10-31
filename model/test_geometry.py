@@ -112,9 +112,9 @@ def test_horn_pivots_sit_at_the_horn_seat_on_the_shaft_the_guides_show():
     want = {
         "l_lid_horn": ((-19.59, -13.21, 40.0), (1, 0, 0)),
         "r_lid_horn": ((78.59, -13.21, 40.0), (1, 0, 0)),
-        "l_eye_horn": ((2.56, -1.63, 26.9), (0, 1, 0)),
-        "r_eye_horn": ((56.44, -1.63, 26.9), (0, 1, 0)),
-        "tilt_horn": ((15.13, 13.98, 18.38), (1, 0, 0)),
+        "l_eye_horn": ((2.56, -1.63, 27.0), (0, 1, 0)),  # the case side on the bracket floor z 21 (#67)
+        "r_eye_horn": ((56.44, -1.63, 27.0), (0, 1, 0)),
+        "tilt_horn": ((15.13, 14.09, 18.38), (1, 0, 0)),  # centred on the tower holes (#67)
         "pan_horn": ((-20.5, 38.11, 27.17), (0, 0, 1)),
         "jaw_horn": ((83.29, -48.6, 33.67), (1, 0, 0)),
     }
@@ -137,9 +137,8 @@ def test_servo_frame_puts_tab_holes_on_the_measured_holes_and_shaft_toward_the_h
         shaft_x = g.SERVO_STEP["shaft"][0]
         placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
         for hole in g.SERVOS[key]["tab_holes"]:
-            # the near hole exactly; the far one within the lug's pitch error (27.58..27.7 printed vs the servo's 27.8)
-            assert min(_dist(p, hole) for p in placed) < 0.25, (key, placed, hole)
-        assert min(_dist(placed[1], h) for h in g.SERVOS[key]["tab_holes"]) < 0.01, key
+            # within the mating check's 0.2 (the lugs' pitch is 27.58..28.0 printed against the servo's 27.8)
+            assert min(_dist(p, hole) for p in placed) < 0.2, (key, placed, hole)
 
 
 def test_pan_tilt_servo_frames_put_tab_holes_on_the_measured_holes():
@@ -149,9 +148,8 @@ def test_pan_tilt_servo_frames_put_tab_holes_on_the_measured_holes():
         shaft_x = g.SERVO_STEP["shaft"][0]
         placed = [[o + (h[0] - shaft_x) * u for o, u in zip(origin, tab_x)] for h in g.SERVO_STEP["tab_holes"]]
         for hole in g.SERVOS[key]["tab_holes"]:
-            # the near hole exactly; the far one within the lug's pitch error (27.58..27.7 printed vs the servo's 27.8)
-            assert min(_dist(p, hole) for p in placed) < 0.25, (key, placed, hole)
-        assert min(_dist(placed[1], h) for h in g.SERVOS[key]["tab_holes"]) < 0.01, key
+            # within the mating check's 0.2 (the lugs' pitch is 27.58..28.0 printed against the servo's 27.8)
+            assert min(_dist(p, hole) for p in placed) < 0.2, (key, placed, hole)
 
 
 def test_pan_tilt_horn_pins_close_the_bar_loops_on_the_guide_side():
@@ -231,8 +229,23 @@ def test_electronics_sets_sit_on_their_standoffs_with_battery_2_on_battery_1():
     assert g.battery_at(2)[2] == 11.15 + 16.3  # on top of pack 1
 
 
+def test_switch_board_1_lies_in_the_two_clip_holder_at_the_base_back_edge():
+    # PandT base STL (docs/research/2026-10-31-shafts.md): post (34.5, 108.5) and both clip shelves top z 9, clip walls'
+    # inner faces x 18 / 51, back wall y 126; eyes guide p.13, pan-tilt guide p.23
+    m = g.align_rows(*g.switch_at(1), g.SWITCH_STEP["hole"])
+    assert _apply(m, g.SWITCH_STEP["hole"]) == (34.5, 108.5, 9.0)
+    pcb = [_apply(m, (x, 0, z)) for x in (-7.25, 13.25) for z in (-16, 16)]  # the PCB bottom's corners
+    xs, ys, zs = zip(*pcb)
+    assert (min(xs), max(xs), min(ys), max(ys), set(zs)) == (18.5, 50.5, 105.5, 126.0, {9.0})
+    assert _apply(m, (0, 1, 0))[2] == 10.0  # parts up; the slide switch's underside drops between the shelves
+    # switch STEP lever tip (-1.76, 15.16, 0): at the back-edge end above the back wall (top z 11), reachable from behind
+    # (Cansin's build, docs/build-photos/eyes-top.jpg)
+    assert _apply(m, (-1.76, 15.16, 0)) == (34.5, 120.51, 24.16)
+    assert g.switch_at(2) == ((6.0, 92.5, 13.0), (-1, 0, 0), (0, 1, 0))  # set 2 stays on its standoff [I]
+
+
 def test_sub_assembly_parts_tables_name_printed_parts():
     stems = {k.split(" (")[0] for k in g.PRINTED}
     for table in (g.EYES_PARTS, g.STACK_PARTS, g.MOUTH_PARTS):
         assert {row[1] for row in table} <= stems
-    assert ("tilt arm", "PandT tilt arm", g.TILT_ARM_SHIFT_Z) in g.STACK_PARTS
+    assert ("tilt arm", "PandT tilt arm", (0, 0, g.TILT_ARM_SHIFT_Z)) in g.STACK_PARTS

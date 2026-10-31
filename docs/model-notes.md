@@ -25,6 +25,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   model's joints (model/traces.py: lid fractions onto the model's closed/open angles, model/engine/lids.py; never
   servo degrees), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
+- Guide sheets (#68, `make guide-sheets`): each step of PurpleShark's three guides (model/render/guide.py STEPS: page,
+  picture, parts, camera matched by eye) as a row of guide page, guide picture and the model with only that step's parts,
+  one sheet per guide in model/build/pictures/guide. Visual output, never committed; the PR records which steps match.
 
 ## Our printed parts (#50)
 - Every printed part gets an independent parametric CadQuery design in model/printed/ (never traced from the

@@ -46,8 +46,8 @@ def run(_context: str):
     def part(key, lib, name, matrix=None):
         steps.append((name, lambda: occs.__setitem__(key, insert_part(root, lib, name, matrix, reuse=reuse))))
 
-    for name, lib, dz in STACK_PARTS:
-        part(name, lib, name, align((0, 0, dz)) if dz else None)
+    for name, lib, shift in STACK_PARTS:
+        part(name, lib, name, align(shift) if any(shift) else None)
 
     # Servos from the measured tab holes, horns at the shaft, each bar on its horn pin and lever hole.
     # The horn's spline side on the seat, its arm outermost (docs/research/2026-10-31-shafts.md).
