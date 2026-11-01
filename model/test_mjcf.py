@@ -8,7 +8,7 @@ import pytest
 import trimesh
 
 from model import electrical, mjcf
-from model.engine import mating, stages
+from model.engine import masses, mating, stages
 
 PENETRATION_MM = 0.05
 # Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS), and the pairs whose CoACD pieces
@@ -184,3 +184,11 @@ def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
         assert set(gaps) == {j for j, feats in mating.JOINTS if all(p in stage.parts for p, _ in feats)}
         worst = max(gaps, key=gaps.get)
         assert gaps[worst] < mating.COAXIAL_MM, (h, d, worst, gaps[worst])
+
+
+def test_every_part_weighs_what_the_engine_weighs_it():
+    """Each part's CoACD pieces share the old engine's mass for it (model/engine/masses.py) by volume."""
+    model, stage = built("noggin-stage3"), stages.STAGES["noggin-stage3"]
+    for name, part in stage.parts.items():
+        g = masses.mass(mjcf._mesh(part.file, part.clip), part.material)["g"]
+        assert model.body(name).mass[0] * 1000 == pytest.approx(g, abs=0.01), name
