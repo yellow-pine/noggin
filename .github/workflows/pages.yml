@@ -1,8 +1,8 @@
 name: Site Deploy
-# The site (docs/adr/0009): `pictures` renders the README's pictures in Blender (make pictures, #226; each part on its
-# own runner), then MkDocs builds the docs (make site) with the pictures at site/images, the web viewer at site/viewer,
-# whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
-# (#221), and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once
+# The site (docs/adr/0009): `render` renders the README's pictures in Blender (make pictures, #226; each part on its
+# own runner, which the required `pictures` check sums up), then MkDocs builds the docs (make site) with the pictures
+# at site/images, the web viewer at site/viewer, whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever
+# what they are made from changed, on PRs too (#221), and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once
 # the check workflow is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it
 # as an artifact. `site` is a required check on PRs that touch what the site is made from (the changes job, as in
 # mech.yml); a red main run leaves the last site up, and a cancelled check run (a newer push superseded it) builds
@@ -16,7 +16,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 # one run per PR, and one for main: a newer one cancels the one in progress, deploy included (#283), so main deploys
-# its latest only; a run for a cancelled check run builds nothing (pictures and site below), so it gets a group of its
+# its latest only; a run for a cancelled check run builds nothing (render and site below), so it gets a group of its
 # own and cancels no deploy
 concurrency:
   group: pages-${{ github.event.pull_request.number || github.event.workflow_run.conclusion == 'cancelled' && github.run_id || 'deploy' }}
@@ -40,7 +40,7 @@ jobs:
                    ".github/workflows/pages.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
   # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
   # else the last ones built from the same inputs (a docs-only change renders nothing)
-  pictures:
+  render:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
@@ -141,8 +141,16 @@ jobs:
       - run: python3 scripts/ci_budget.py ${{ steps.images.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  pictures:   # the required check (#245), render's runners under one name (as check.yml's model); render skipped passes
+    if: ${{ !cancelled() }}
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULT: ${{ needs.render.result }}
+        run: test "$RESULT" = success || test "$RESULT" = skipped
   site:
-    needs: [changes, pictures]
+    needs: [changes, render]
     if: >-   # as in mech.yml, plus the cancelled check run
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
       && github.event.workflow_run.conclusion != 'cancelled' }}
@@ -152,7 +160,7 @@ jobs:
       actions: read   # scripts/ci_budget.py reads when the run's jobs started
     steps:
       # never a site without its pictures: the deploy would take the README's images down (as on #236's first deploy)
-      - if: ${{ needs.pictures.result != 'success' }}
+      - if: ${{ needs.render.result != 'success' }}
         run: exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -160,7 +168,7 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: false   # as in check.yml
-      # the pictures job's parts, which make site puts at site/images
+      # the render job's parts, which make site puts at site/images
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           pattern: pictures-*
@@ -263,7 +271,7 @@ jobs:
           echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
       # as in check.yml; warm: the GLBs or the trajectories hit their exact key (Blender bakes GLBs in about 40 s)
       # warm also needs no part of the pictures rendered: the budget counts from the run's first job
-      - run: python3 scripts/ci_budget.py ${{ needs.pictures.outputs.cold != 'true' && (steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true') }}
+      - run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && (steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
   deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too

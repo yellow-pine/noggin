@@ -1,7 +1,7 @@
 """The site (docs/adr/0009) as the pages workflow builds it: MkDocs Material builds the repo's Markdown strictly, so a
 broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
 never ship, and the nav reaches the web viewer the workflow puts at /viewer. The README's pictures are built in CI too
-(#226): none in git, every one a site URL the pictures job builds."""
+(#226): none in git, every one a site URL the render job builds."""
 
 import base64
 import hashlib
@@ -295,10 +295,22 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
 
 
 def test_the_pages_workflow_renders_every_part_of_the_pictures():
-    """Each part of the pictures (the Stage views, the hero, each gesture) is one runner of the pictures job (#226)."""
-    import yaml
-
+    """Each part of the pictures (the Stage views, the hero, each gesture) is one runner of the render job (#226)."""
     from model.render import pictures
 
     jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]
-    assert sorted(jobs["pictures"]["strategy"]["matrix"]["part"]) == sorted(pictures.SITE)
+    assert sorted(jobs["render"]["strategy"]["matrix"]["part"]) == sorted(pictures.SITE)
+
+
+@pytest.mark.parametrize(
+    "result, passes", [("success", True), ("skipped", True), ("failure", False), ("cancelled", False)]
+)
+def test_the_required_pictures_check_is_every_runner_or_none(result, passes):
+    """`pictures`, the required check (#245), reports the render runners as one: green when every part passed or none
+    ran (nothing the pictures are made from changed), red when any failed or was cancelled."""
+    job = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]["pictures"]
+    assert (job["needs"], job["if"]) == ("render", "${{ !cancelled() }}")
+    (step,) = job["steps"]
+    assert step["env"] == {"RESULT": "${{ needs.render.result }}"}
+    r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULT": result})
+    assert (r.returncode == 0) is passes
