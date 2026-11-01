@@ -1,6 +1,6 @@
 """The site (docs/adr/0009) as the pages workflow builds it: MkDocs Material builds the repo's Markdown strictly, so a
 broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
-never ship, and the nav reaches the web viewer the workflow puts at /viewer. The README's pictures are built in CI too
+never ship, and the nav reaches the web viewer's page at /viewer. The README's pictures are built in CI too
 (#226): none in git, every one a site URL the render job builds."""
 
 import base64
@@ -8,7 +8,6 @@ import hashlib
 import os
 import re
 import subprocess
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -18,20 +17,6 @@ from mkdocs.exceptions import PluginError
 from mkdocs.utils.yaml import get_yaml_loader
 
 ROOT = Path(__file__).resolve().parent
-
-
-@pytest.fixture(scope="module")
-def site(tmp_path_factory):
-    out = tmp_path_factory.mktemp("site")
-    r = subprocess.run(
-        [sys.executable, "-m", "mkdocs", "build", "--strict", "-d", str(out)],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        env={**os.environ, "NO_MKDOCS_2_WARNING": "1"},  # hush Material's banner about MkDocs 2 (it requires mkdocs<2)
-    )
-    assert r.returncode == 0, r.stderr[-3000:]
-    return out
 
 
 def test_every_doc_is_a_page(site):
@@ -120,12 +105,12 @@ MERMAID_CLI = [f"@mermaid-js/mermaid-cli@{MERMAID['cli']}", f"mermaid@{MERMAID['
 
 def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
     """The site's own copy, with its hash, and only on pages with a diagram; every page allows scripts from the site
-    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails; no page names a
-    script elsewhere."""
+    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails (a page with the
+    web viewer also lets the Draco decoder compile its WASM in a Blob worker); no page names a script elsewhere."""
     file = site / "assets" / "javascripts" / f"mermaid-{MERMAID['version']}.min.js"
     sha = base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()
     assert MERMAID["integrity"] == f"sha384-{sha}"
-    csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">"""
+    csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'{}">"""
     for page in site.rglob("*.html"):
         html, local = page.read_text(), os.path.relpath(file, page.parent)
         if 'http-equiv="refresh"' in html:  # a moved page's stub (mkdocs-redirects): no theme, one inline script
@@ -134,9 +119,11 @@ def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
         srcs = [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if "mermaid" in s]
         assert srcs == ([local] if 'class="mermaid"' in html else []), page
         assert f'integrity="{MERMAID["integrity"]}"' in html or not srcs
-        assert csp in html.split("</head>")[0], page
+        viewer = " 'wasm-unsafe-eval'; worker-src 'self' blob:" if 'class="noggin-viewer"' in html else ""
+        assert csp.format(viewer) in html.split("</head>")[0], page
         assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
     assert 'class="mermaid"' in (site / "docs" / "how-it-works" / "index.html").read_text()
+    assert 'class="noggin-viewer"' in (site / "viewer" / "index.html").read_text()
 
 
 def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):

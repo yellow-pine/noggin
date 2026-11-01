@@ -110,9 +110,9 @@ pictures: venv ours trajectories   ## the README's pictures (model/render/pictur
 web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
-site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it, the pictures to site/images once make pictures did, the sim reports to site/reports once make sim did; look with python -m http.server -d site
+site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs and the web viewer's page, its GLBs and three.js go beside it in site/viewer once make web built them, the pictures to site/images once make pictures did, the sim reports to site/reports once make sim did; look with python -m http.server -d site
 	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
-	[ ! -d web/build ] || cp -R web/build site/viewer
+	[ ! -d web/build ] || cp -R web/build/. site/viewer
 	[ ! -d model/build/images ] || cp -R model/build/images site/images
 	[ ! -d model/build/reports ] || { cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 

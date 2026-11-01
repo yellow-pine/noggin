@@ -1,69 +1,40 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>noggin</title>
-<!-- three.js, served by the site (web/build.py fetched it and checked each file's sha384; docs/adr/0008); it draws
-     Blender's glTF in style B with the look numbers Blender writes into the GLB's extras. Scripts from the site alone
-     may run; DRACOLoader decodes in a Blob worker, which compiles the decoder's WASM -->
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src blob:">
-<script type="importmap">
-{
-  "imports": {
-    "three": "./three/build/three.module.js",
-    "three/addons/": "./three/examples/jsm/"
-  }
-}
-</script>
-<style>
-  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; color: #222; }
-  main { max-width: 960px; margin: 0 auto; padding: 16px; }
-  canvas { display: block; width: 100%; height: 70vh; touch-action: none; }
-  nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-  button { font: inherit; padding: 6px 12px; border: 1px solid #888; border-radius: 6px; background: #fff; cursor: pointer; }
-  button[aria-pressed="true"] { background: #222; color: #fff; }
-  button:disabled { opacity: .4; cursor: default; }
-</style>
-</head>
-<body>
-<main>
-  <h1>noggin</h1>
-  <p>The Mech that reacts to Claude Code, as built in <a href="https://github.com/yellow-pine/noggin">its model</a>. Drag to turn it, scroll or pinch to zoom.</p>
-  <nav aria-label="Stage">
-    <button data-src="stage1.glb" aria-pressed="false">Stage 1</button>
-    <button data-src="stage2.glb" aria-pressed="false">Stage 2</button>
-    <button data-src="stage3.glb" aria-pressed="true">Stage 3</button>
-  </nav>
-  <canvas role="img" aria-label="The noggin Mech, rendered from its model"></canvas>
-  <nav aria-label="Gesture">
-    <button data-gesture="hero">hero</button>
-    <button data-gesture="eureka">eureka</button>
-    <button data-gesture="attention">attention</button>
-    <button data-gesture="bored">bored</button>
-    <button data-gesture="wince">wince</button>
-    <button data-gesture="wink">wink</button>
-    <button data-gesture="thinking">thinking</button>
-  </nav>
-</main>
-<script type="module">
-  import * as THREE from "three";
-  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-  import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-  import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
-  import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
-  import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
-  import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-  import { fit, lineWidth, radiusPx } from "./frame.mjs";
+// The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
+// Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, a button per clip under it. The
+// viewer's page (web/viewer.md) adds Stage buttons; a docs page drops a small one in with
+//   <div class="noggin-viewer" data-stage="stage1"></div>
+// and the theme (overrides/main.html) loads this module, three.js's import map and the viewer's CSP on that page.
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { fit, lineWidth, radiusPx } from "./frame.mjs";
 
-  const canvas = document.querySelector("canvas");
-  const stages = document.querySelectorAll("[data-src]");
-  const gestures = document.querySelectorAll("[data-gesture]");
+const here = (f) => new URL(f, import.meta.url).href;  // the GLBs and three.js sit beside this module, at viewer/
+const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(here("three/examples/jsm/libs/draco/gltf/")));  // web/build.py checks it
+const FOV = 20;
+// the hero GIF's view (model/render/pictures.py HERO): 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
+// as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
+// 4:3 frame line_at wide, as in the hero GIF (640 x 480)
+const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
+const press = (b, on) => {
+  b.setAttribute("aria-pressed", on);
+  b.classList.toggle("md-button--primary", on);
+};
+
+function mount(root) {
+  const stages = root.querySelectorAll("[data-stage]");
+  const canvas = root.appendChild(document.createElement("canvas"));
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
+  const bar = root.appendChild(document.createElement("nav"));
+  bar.setAttribute("aria-label", "Gesture");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(devicePixelRatio);
   renderer.shadowMap.enabled = true;
-  const FOV = 20;
   const camera = new THREE.PerspectiveCamera(FOV);
   const controls = new OrbitControls(camera, canvas);
   // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
@@ -72,11 +43,6 @@
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   const ambient = new THREE.AmbientLight(0xffffff);
-  const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("three/examples/jsm/libs/draco/gltf/"));  // web/build.py checks it
-  // the hero GIF's view (model/render/pictures.py HERO): 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
-  // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
-  // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
-  const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
   let scene, sphere, refPx, mixer, clips, creases, look, loading = 0;
@@ -85,7 +51,6 @@
   // for silhouettes, black crease lines
   function stylise(root) {
     look = root.userData;
-    document.body.style.background = look.bg;
     band.value.set(look.highlight_from, look.highlight);
     ambient.intensity = Math.PI * look.ramp[0];
     const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * (x - look.ramp[0]))));
@@ -145,13 +110,14 @@
       a.setLoop(name === "hero" ? THREE.LoopRepeat : THREE.LoopOnce, Infinity).clampWhenFinished = true;
       a.play();
     }
-    for (const b of gestures) b.setAttribute("aria-pressed", b.dataset.gesture === name);
+    for (const b of bar.children) press(b, b.textContent === name);
   }
 
-  async function load(src) {
+  async function load(stage) {
     const mine = ++loading;
-    for (const b of gestures) b.disabled = true;
-    const gltf = await loader.loadAsync(src);
+    for (const b of stages) press(b, b.dataset.stage === stage);
+    for (const b of bar.children) b.disabled = true;
+    const gltf = await loader.loadAsync(here(`${stage}.glb`));
     if (mine !== loading) return;  // a later Stage click won
     stylise(gltf.scene);
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
@@ -184,15 +150,17 @@
     clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
     mixer = new THREE.AnimationMixer(gltf.scene);
     mixer.addEventListener("finished", () => play(clips.hero && "hero"));
-    for (const b of gestures) b.disabled = !clips[b.dataset.gesture];
+    bar.replaceChildren(...Object.keys(clips).map((name) => {  // a button per clip: each gesture, and the hero
+      const b = document.createElement("button");
+      b.className = "md-button";
+      b.textContent = name;
+      b.addEventListener("click", () => play(name));
+      return b;
+    }));
     play(clips.hero && "hero");
   }
 
-  for (const b of stages) b.addEventListener("click", () => {
-    for (const s of stages) s.setAttribute("aria-pressed", s === b);
-    load(b.dataset.src);
-  });
-  for (const b of gestures) b.addEventListener("click", () => play(b.dataset.gesture));
+  for (const b of stages) b.addEventListener("click", () => load(b.dataset.stage));
   addEventListener("resize", () => scene && resize());
   const timer = new THREE.Timer();
   renderer.setAnimationLoop((t) => {
@@ -205,7 +173,7 @@
     key.position.multiplyScalar(2 * sphere.radius).add(sphere.center);
     renderer.render(scene, camera);
   });
-  load("stage3.glb");
-</script>
-</body>
-</html>
+  load(root.dataset.stage);
+}
+
+document.querySelectorAll(".noggin-viewer").forEach(mount);

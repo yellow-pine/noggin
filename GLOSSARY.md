@@ -110,8 +110,8 @@ A cumulative build state of the Mech, the Sub-assemblies placed at frames (geome
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The public web page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the hero loop
-from Blender's glTF (docs/adr/0008).
+The Site's page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the hero loop
+from Blender's glTF (docs/adr/0008); docs pages can embed a small one per Stage.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
