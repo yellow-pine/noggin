@@ -88,7 +88,7 @@ def cyl(xy, r, z):
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     z, half = fits.slab(*PLATE_Z)
     names = ("near foot outer", "near foot inner", "far foot outer", "far foot inner")
     feet = {k: ((*xy, z), "z", HOLE_R, half) for k, xy in zip(names, MOUNT_HOLES)}

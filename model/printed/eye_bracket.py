@@ -80,7 +80,7 @@ def box(x, y, z):
 
 
 def features(desk=False):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     z, half = fits.slab(*PLATE_Z)
     x, pin_half = fits.slab(*LID_PIN["x"][::-1])
     fork_y, fork_half = fits.slab(*FORK["y"])

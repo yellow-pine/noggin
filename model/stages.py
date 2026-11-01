@@ -1,8 +1,8 @@
-"""The Mech as data for the engine: the four sub-assemblies (base, stack, eyes, mouth: every part with its mesh file,
+"""The Mech as data: the four sub-assemblies (base, stack, eyes, mouth: every part with its mesh file,
 neutral placement and material, the horns and their four-bar chains) built from model/geometry.py (align() frames and
 link() hole alignment), and assemble() putting sub-assemblies at frames into one document: the recorded sweep documents
 (model/reports) and the Stage configurations of geometry.STAGES. pose() gives every part's world transform at a horn
-angle. Part names carry the recorded sweeps' ":1" suffix so reports line up with them."""
+angle by the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry the recorded sweeps' ":1" suffix so reports line up with them."""
 
 import math
 import os
@@ -11,9 +11,9 @@ from collections import namedtuple
 import numpy as np
 
 from model import geometry as g
-from model.engine import linkage
+from model import linkage
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(
     REPO, "model", "build", "ours"
 )  # our printed parts and hardware envelopes (model/ours.py, make ours)
@@ -95,7 +95,7 @@ def servo_placements(key, label):
 
 
 def servo_port(label):
-    """Where the servo's lead leaves it (its cable exit): the Port its cable corridor starts from (model/engine/cables.py)."""
+    """Where the servo's lead leaves it (its cable exit): the Port its cable corridor starts from (model/cables.py)."""
     return {f"{label} servo lead": (f"{label} servo:1", g.SERVO_STEP["lead"])}
 
 
@@ -296,7 +296,7 @@ BASE_IN_EYES = (
     (-1, 0, 0),
     g.Y,
 )  # the base as the eyes/mouth sweep documents carried it (context)
-# Documents the engine simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
+# Documents the model simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
 # Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {

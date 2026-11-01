@@ -26,8 +26,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - README media (#117), copied into docs/images: the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
-  head degrees through the engine's linkage solve, every pose within geometry.LIMITS and free of penetrations as the
-  engine judges them), the Stage strip
+  head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
+  penetrations as MuJoCo's report judges a sweep), the Stage strip
   (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
   camera direction as the hero) and the six gesture GIFs: about 6 MB in all, no photos.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
@@ -53,14 +53,14 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   designer's frame, registered in `model/printed/__init__.py` PARTS by our part name (GLOSSARY.md), with the
   features it declares for the mating check (its features(), in FEATURES).
 - Each part has a test beside it probing the solid at the measured interfaces (holes, pins, pivots, mount faces) and
-  its envelope; model/engine/test_mating.py checks that our mesh carries every declared feature.
+  its envelope; model/test_mating.py checks that our mesh carries every declared feature.
 
 ## Our hardware envelopes and CI (#58)
 - model/envelopes.py draws a simple CadQuery envelope of each piece of hardware (servo, horn, Shield, Core, switch
   board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
   numbers (model/test_envelopes.py).
 - `make ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede the sweep's fork). The engine always reads those: `make test` and `make sim`
+  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `make test` and `make sim`
   build them first, and the committed reports are simulated on our geometry, locally and in CI.
 
 ## Our model is the source (#88, #97)
@@ -69,7 +69,7 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
 - `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
   model/build/stl; future prints use ours.
-- `make step` (#98): every part and envelope, and each Stage at neutral (the engine's placements, coloured, one
+- `make step` (#98): every part and envelope, and each Stage at neutral (model/stages.py's placements, coloured, one
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
@@ -84,7 +84,8 @@ the model stabilises.
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated close, its edges just touching (#134, #189), eyes +2 from the
     program's eye centre (#170); the lid crank's 1.2 mm play along its screw (geometry.CRANK_PLAY_MM, #170); the lids'
-    open ends still collide in the model and are accepted with their reason (model/test_report.py KNOWN_CALIBRATED);
+    open ends still collide in the model and were accepted with their reason (#170, #189) until #151 dropped the
+    exact-mesh check that measured the calibrated ends;
   - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
     the typical 9 g figure; the vendor publishes none) and the Y lead's branches (100 mm each);
   - the bracket stem's depth in the plate's slot (stage 1, from the build photos) and in the tilt arm window (stages 2, 3)

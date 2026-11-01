@@ -7,9 +7,9 @@ import os
 import pytest
 
 from model import geometry as g
-from model.engine import linkage
+from model import linkage
 
-REPORTS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
+REPORTS = os.path.join(os.path.dirname(__file__), "reports")
 
 
 def test_parallelogram_rocker_follows_the_crank():

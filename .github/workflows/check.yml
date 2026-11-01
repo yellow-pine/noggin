@@ -40,7 +40,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
       # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
@@ -84,7 +84,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-   # as in code
       # make sim's SPICE circuit, as in code; Mesa's EGL renders make view's scene offscreen (MUJOCO_GL below) in software
       - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev libegl1 libegl-mesa0 libgl1-mesa-dri

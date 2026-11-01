@@ -11,8 +11,7 @@ import numpy as np
 import pygltflib
 import pytest
 
-from model import traces, trajectories
-from model.engine import stages
+from model import stages, traces, trajectories
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}

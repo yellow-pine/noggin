@@ -1,9 +1,9 @@
-"""Seam: model/engine/lids.py, the lids' closed and open horn angles and the lid edges seen from the front."""
+"""Seam: model/lids.py, the lids' closed and open horn angles and the lid edges seen from the front."""
 
 import pytest
 
 from model import geometry as g
-from model.engine import lids
+from model import lids
 
 
 @pytest.mark.parametrize("side", "LR")

@@ -1,5 +1,5 @@
 """Seam: `make stl` and `make step` (model/ours.py): a printed part's STL is watertight and in the designer's frame and
-box, its STEP is a valid solid with the same box, and a Stage's STEP is valid, holds every part the engine places, and
+box, its STEP is a valid solid with the same box, and a Stage's STEP is valid, holds every part model/stages.py places, and
 spans the Stage's box at neutral, within 1 mm. Boxes: the designer's (model/printed/test_pupil.py, test_eye_bracket.py,
 test_base_plate.py)."""
 

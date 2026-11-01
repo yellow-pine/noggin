@@ -4,7 +4,7 @@ reached quasi-statically by mjcf.pose, and reports per pose: contacts and penetr
 distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
 the servo's rated speed, to see whether the joints land where the slow pose puts them. make sim writes it into
-model/reports/<doc>-sim.json under "mujoco" (model/engine/run.py), beside the committed MJCF model/reports/<doc>.xml;
+model/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the committed MJCF model/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 
 import math
@@ -12,12 +12,13 @@ from importlib.metadata import version
 
 import mujoco
 import numpy as np
+from scipy.spatial import ConvexHull
 
-from model import electrical, mjcf, sim
-from model.engine import mech, stages
-from model.engine.mech import KGF_CM, PAN, TILT
+from model import electrical, mjcf, sim, stages
 
-STEP_DEG, CLEARANCE_MM = 10, 0.1  # as the old engine's sweep (model/engine/run.py)
+STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
+KGF_CM = 0.0980665  # N.m
+PAN, TILT = "pan horn", "tilt horn"
 PENETRATION_MM, LOOP_MM, TURN_DEG = 0.05, 0.05, 1.0  # thresholds (model/test_report.py)
 RATED_DEG_S = electrical.servo.rate(electrical.SERVO_MIN_V)  # 60 deg in 0.14 s at 4.8 V
 
@@ -59,7 +60,7 @@ def widen(model):
 
 
 def _footprint(model, data):
-    """The base plate's plan outline in MuJoCo's world (mm, mech.footprint): its drawn mesh's vertices where they are."""
+    """The base plate's plan outline in MuJoCo's world (mm, footprint()): its drawn mesh's vertices where they are."""
     g = next(
         i
         for i in range(model.ngeom)
@@ -68,7 +69,17 @@ def _footprint(model, data):
     m = model.geom_dataid[g]
     v = model.mesh_vert[model.mesh_vertadr[m] : model.mesh_vertadr[m] + model.mesh_vertnum[m]]
     world = v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]
-    return mech.footprint(world * 1000)
+    return footprint(world * 1000)
+
+
+def footprint(points):
+    """A plan outline: the convex hull of the points in XY as line equations, inside <= 0."""
+    return ConvexHull(np.asarray(points, float)[:, :2]).equations
+
+
+def margin(outline, xy):
+    """mm from a plan point to the outline: positive inside (the nearest edge), negative outside."""
+    return float(-(outline[:, :2] @ np.asarray(xy, float) + outline[:, 2]).max())
 
 
 def _worst(old, value, at, key):
@@ -92,10 +103,10 @@ def measure(doc, model):
         for h in stage.horns:
             actuators[h] = _worst(actuators.get(h), abs(data.actuator(h).force[0]) / KGF_CM, ctrl, "hold_kgf_cm")
         if tip is not None:
-            margin = mech.margin(_footprint(model, data), data.subtree_com[0][:2] * 1000)
-            if not tip or margin < tip["margin_mm"]:
+            mm = margin(_footprint(model, data), data.subtree_com[0][:2] * 1000)
+            if not tip or mm < tip["margin_mm"]:
                 tip = {
-                    "margin_mm": round(margin, 1),
+                    "margin_mm": round(mm, 1),
                     "at": ctrl,
                     "com": [round(c * 1000, 1) for c in data.subtree_com[0]],
                 }

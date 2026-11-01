@@ -24,9 +24,8 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical
+from model import cables, electrical, mating, stages
 from model import geometry as g
-from model.engine import cables, masses, mating, stages
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
@@ -86,7 +85,7 @@ def convex(file, clip=None):
 def _mesh(file, clip):
     mesh = trimesh.load(file, force="mesh")
     v, f = mesh.vertices, mesh.faces
-    if clip:  # as model/engine/meshes.py: the flexible battery and servo leads are not rigid
+    if clip:  # shortcut: faces past the cut dropped, no cap: the flexible battery and servo leads are not rigid
         axis, cut = clip
         f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
     mesh = trimesh.Trimesh(v, f)
@@ -94,6 +93,13 @@ def _mesh(file, clip):
     # so CoACD skips its voxel remesh (preprocess_mode "auto"), which smears the part by ~1 mm
     mesh.update_faces(mesh.nondegenerate_faces())
     return mesh
+
+
+def mass(mesh, material):
+    """g of a mesh of `material` (stages.Part): (g/cm3, label) at the mesh's volume, or (g, 'documented') for hardware
+    whose mass is known (the servo)."""
+    density, source = material
+    return round(density if source == "documented" else density * abs(mesh.volume) / 1000, 3)
 
 
 def _convex(args):
@@ -115,7 +121,7 @@ def _quat(m):
 
 def _joints(stage):
     """The document's hinges, in its frame (mm): ({joint: (point, axis)}: each horn (named as the horn) on its servo
-    shaft, each coupler (named as its part) on its horn pin, each rocker (named as the old engine's joint) on its pivot;
+    shaft, each coupler (named as its part) on its horn pin, each rocker (named as its stages.Loop joint) on its pivot;
     {part: the joints that move it}; [(loop joint, coupler, rocker, the rocker pin)] where the four-bars close)."""
     hinges, moves, closures = {}, {n: set() for n in stage.parts}, []
     for h, horn in stage.horns.items():
@@ -139,7 +145,7 @@ def _joints(stage):
 
 def spec(doc):
     """The document as an MjSpec: a body per part at its placement, its mesh drawn in its colour, its convex pieces
-    colliding and weighing the part's mass (model/engine/masses.py); the parts a joint moves hang under it (_joints())."""
+    colliding and weighing the part's mass (mass()); the parts a joint moves hang under it (_joints())."""
     stage = stages.STAGES[doc]
     meshes = {stages.stem(p.file): (p.file, p.clip) for p in stage.parts.values()}
     # spawn, not fork: CadQuery's OCCT threads may be running in the caller (model/ours.py)
@@ -202,7 +208,7 @@ def spec(doc):
         body.add_geom(
             type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba, material="satin"
         )
-        kg = masses.mass(_mesh(file, clip), stage.parts[name].material)["g"] / 1000
+        kg = mass(_mesh(file, clip), stage.parts[name].material) / 1000
         for p, v in zip(pieces[stem], volumes[stem]):
             piece = f"{stem} {stages.stem(p)}"
             body.add_geom(type=mesh, meshname=piece, group=COLLISION, rgba=rgba, mass=kg * v / sum(volumes[stem]))
@@ -246,13 +252,12 @@ def spec(doc):
         servo = s.add_actuator(name=h, target=h, trntype=mujoco.mjtTrn.mjTRN_JOINT)
         servo.set_to_position(kp=KP, kv=KV)
         servo.forcerange, servo.ctrlrange = [-STALL_NM, STALL_NM], [-math.pi / 2, math.pi / 2]  # the servo's 0..180
-    # each lead from its first Port through the clips of its route (model/engine/cables.py) to its second, as a cable:
+    # each lead from its first Port through the clips of its route (model/cables.py) to its second, as a cable:
     # a one-sided limit at the real lead's length (XMLreference.html#tendon-spatial)
     for lead, a, b, mm in electrical.leads():
         if a in stage.ports and b in stage.ports:
             route = next(r for r in cables.ROUTES[lead] if all(p in stage.parts for p, _, _ in r))
-            # cables' own (private) frame change: making it public would stale every committed sim report (model/stale.py)
-            clips = [stage.ports[a], *((p, cables._local(p, q)) for p, q, _ in route), stage.ports[b]]
+            clips = [stage.ports[a], *((p, cables.local(p, q)) for p, q, _ in route), stage.ports[b]]
             tendon = s.add_tendon(name=lead, range=[0, mm * MM], limited=mujoco.mjtLimited.mjLIMITED_TRUE)
             for i, (part, q) in enumerate(clips):
                 bodies[part].add_site(name=f"{lead} {i}", pos=np.multiply(q, MM))

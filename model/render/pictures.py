@@ -16,8 +16,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import traces, trajectories
-from model.engine import stages
+from model import stages, traces, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
@@ -62,7 +61,7 @@ def metres(mats):
 
 
 def assembled(name, frames):
-    """The picture's parts as the engine assembles them, under its document's name (stages.assemble): a Stage clamps the
+    """The picture's parts as model/stages.py assembles them, under its document's name (stages.assemble): a Stage clamps the
     eyes and mouth to the tilt arm so the neck carries the head, and the desk build (geometry.DESK) has its own bracket."""
     return stages.assemble(f"noggin-{name}", frames, 2)
 

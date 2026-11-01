@@ -1,5 +1,5 @@
 """Our own printed parts (#50): independent parametric CadQuery designs, by our part name (GLOSSARY.md), and the
-features each declares for the mating check (model/engine/mating.py)."""
+features each declares for the mating check (model/mating.py)."""
 
 from model.printed import (
     bars,

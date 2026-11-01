@@ -32,7 +32,7 @@ def hole(x, z, r):
 
 
 def features(crank=False):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     z, half = fits.slab(0, THICK)
     lid_z = z + THICK if crank else z
     return {"horn hole": ((PITCH / 2, 0, z), "z", HORN_R, half), "lid hole": ((-PITCH / 2, 0, lid_z), "z", LID_R, half)}

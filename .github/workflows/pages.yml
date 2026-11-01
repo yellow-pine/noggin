@@ -48,7 +48,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       # the latest trajectories: make web rebakes only the Stages whose stamp moved (model/trajectories.py)
       - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}

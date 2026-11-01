@@ -3,21 +3,17 @@ head glances aside and back twice and nods while it listens, the eyes lead each 
 as the head arrives, the lids drop with the nod and blink. Timing follows the Core program (eyes/eyes.py): a blink
 closes in one 80 ms step, holds 135 ms and reopens over 300 ms; a saccade is one step. The head moves as far as the
 designer's (about 25 degrees of pan, 15 of nod, near the horn limits): its keys are in head degrees (the pan and tilt
-pivots' own), converted to horn degrees through the engine's linkage solve; every other key is in model horn degrees
-from neutral inside geometry.LIMITS (a blink shuts the lids at -31: they meet at -30.7, model/engine/lids.py).
-Minimum-jerk between keys. collisions() is the engine's penetration test on one pose of stage 3.
+pivots' own), converted to horn degrees through the four-bar kinematics (model/stages.py pose); every other key is in model horn degrees
+from neutral inside geometry.LIMITS (a blink shuts the lids at -31: they meet at -30.7, model/lids.py).
+Minimum-jerk between keys.
 Rendered by model/render/pictures.py (`make hero`)."""
 
 import functools
-import itertools
-from types import SimpleNamespace
 
 import numpy as np
-import trimesh
 
 from model import geometry as g
-from model.engine import meshes, run, stages
-from model.render import scene
+from model import stages
 
 FPS, SECONDS = 10, 8.0  # 100 ms frames, as the gesture GIFs (12.5 fps went over 3 MB)
 STAGE = stages.STAGES["noggin-stage3"]
@@ -79,7 +75,7 @@ def _eased(keys, t):
 
 @functools.cache
 def _head_table(servo):
-    """(head degrees, horn degrees), head ascending: the engine's linkage solve over the horn's limits, on the branch
+    """(head degrees, horn degrees), head ascending: the four-bar kinematics over the horn's limits, on the branch
     from the lower limit where the head still turns (the pan's head stops turning past horn +60)."""
     horn = NECK[servo]
     lo, hi = g.HORN_LIMITS[servo]
@@ -106,56 +102,3 @@ def at(t):
 
 def frames():
     return [at(i / FPS) for i in range(round(SECONDS * FPS))]
-
-
-_LOADED, _STILL = {}, {}  # meshes, and the parts a pose leaves where they are, loaded once
-
-
-def joined(stage):
-    """Pairs that touch by construction: model/engine/run.py linked's joints without its rigid groups (one horn's
-    rockers move as one only under that horn; collisions() skips pairs that keep their relative pose instead)."""
-    out = {frozenset((r, p)) for r, ps in run.PIVOT_PARTNER.items() for p in ps}
-    for horn in stage.horns.values():
-        out |= run.linked(stage, horn) - {
-            frozenset((a, b)) for loop in horn.loops for a in loop.rockers for b in loop.rockers
-        }
-    return out
-
-
-def collisions(joints):
-    """Penetrations the engine finds (meshes.judge) in one pose of stage 3, between parts the pose moved relative to
-    each other, pairs joined by construction skipped: [(part, part, depth mm)]."""
-    if not _LOADED:
-        _LOADED.update(meshes.load(STAGE))
-    mats = scene.pose(STAGE, joints)
-    delta = {n: mats[n] @ np.linalg.inv(p.matrix) for n, p in STAGE.parts.items()}
-    skip = joined(STAGE)
-    placed = {}
-
-    def place(n):
-        if n not in placed:
-            if not np.allclose(delta[n], np.eye(4)):
-                placed[n] = meshes.Placed(_LOADED[n], mats[n])
-            else:
-                if n not in _STILL:
-                    _STILL[n] = meshes.Placed(_LOADED[n], mats[n])
-                placed[n] = _STILL[n]
-        return placed[n]
-
-    box = {}  # world box of each mesh's local box corners: a cheap screen before placing the mesh
-    for n, m in mats.items():
-        c = trimesh.transform_points(trimesh.bounds.corners(_LOADED[n].bounds), m)
-        box[n] = SimpleNamespace(lo=c.min(axis=0), hi=c.max(axis=0))
-    out = []
-    for a, b in itertools.combinations(mats, 2):
-        if frozenset((a, b)) in skip or np.allclose(delta[a], delta[b]):
-            continue
-        if meshes.bbox_gap(box[a], box[b]) > run.CLEARANCE_MM:
-            continue
-        pa, pb = place(a), place(b)
-        if meshes.bbox_gap(pa, pb) > run.CLEARANCE_MM:
-            continue
-        depth = meshes.judge(pa, pb)[1]
-        if depth:
-            out.append((a, b, round(depth, 3)))
-    return out

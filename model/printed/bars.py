@@ -28,6 +28,6 @@ def bar(pitch):
 
 
 def features(pitch):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     z, half = fits.slab(0, THICK)
     return {"horn hole": ((pitch / 2, 0, z), "z", HORN_R, half), "lever hole": ((-pitch / 2, 0, z), "z", LEVER_R, half)}

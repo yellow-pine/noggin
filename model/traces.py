@@ -24,7 +24,7 @@ def _load(name, path):
 if "machine" not in sys.modules:  # under pytest the root conftest has done this
     _load("conftest", os.path.join(REPO, "conftest.py"))  # stubs `machine`, puts eyes/ on sys.path
 if REPO not in sys.path:
-    sys.path.insert(1, REPO)  # model.engine; eyes/ stays first so `import eyes` is the Core program
+    sys.path.insert(1, REPO)  # model; eyes/ stays first so `import eyes` is the Core program
 import eyes as mod  # noqa: E402  the Core's eye program
 from model import geometry, sim  # noqa: E402
 
