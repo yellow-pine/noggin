@@ -1,5 +1,5 @@
 """Seam: model/traces.py's gesture traces (model horn joint degrees per 100 ms frame, recorded from the eye program),
-judged on the engine's lid geometry (model/engine/lids.py) against README "What it does"."""
+judged on the model's lid geometry (model/lids.py) against README "What it does"."""
 
 import importlib.util
 import os
@@ -7,8 +7,7 @@ import os
 import pytest
 
 from model import geometry as g
-from model import sim
-from model.engine import lids
+from model import lids, sim
 
 HERE = os.path.dirname(__file__)
 spec = importlib.util.spec_from_file_location(

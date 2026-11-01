@@ -8,8 +8,8 @@ import os
 import numpy as np
 import pytest
 
+from model import stages
 from model import trajectories as tj
-from model.engine import stages
 from model.render import pictures
 
 pytestmark = pytest.mark.model

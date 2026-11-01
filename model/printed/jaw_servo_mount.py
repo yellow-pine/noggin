@@ -33,7 +33,7 @@ def build():
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     x, half = fits.slab(*WALL["x"])
     z, foot_half = fits.slab(*FOOT["z"])
     (far, near), r = TABS["yz"], TABS["r"]

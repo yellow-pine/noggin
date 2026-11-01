@@ -35,7 +35,7 @@ def build():
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     lever_x, lever_half = fits.slab(*LEVER["x"])
     x, half = fits.slab(EARS["x"][0][0], EARS["x"][1][1])
     return {

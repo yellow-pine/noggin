@@ -1,5 +1,5 @@
 """Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield,
-Core, switch board, battery) so the engine and the renders need no vendor file. Each is drawn in its STEP file's own
+Core, switch board, battery) so the model and the renders need no vendor file. Each is drawn in its STEP file's own
 frame, registered in ENVELOPES by its mesh's name, with the features the mating check fits in FEATURES. Interfaces
 (mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
 and circle hulls of the STEP's outer faces; inner detail is dropped."""
@@ -26,7 +26,7 @@ def hull(plane, circles, depth, origin=(0, 0, 0)):
 
 # Servo (9g with clutch): case z -6.9..16.3 (r 1 corners), the tab plate z -2.3..0 with its two slotted r 1.0 tab holes,
 # the gear top up to z -11.2 (the hull of the r 5.4 boss on the shaft and an r 3.8 boss beside it) and the r 2.35
-# spline to its tip at z -14.52. The lead is not drawn (the engine cuts it at x 27.7).
+# spline to its tip at z -14.52. The lead is not drawn (the model cuts it at x 27.7).
 SERVO = {
     "case": ((-0.05, 22.75), (-0.05, 11.85), (-6.9, 16.3)),
     "tabs": ((-4.9, 27.6), (0.0, 11.8), (-2.3, 0.0)),
@@ -204,7 +204,7 @@ def switch():
 
 
 # Battery (14500 7.4 V 800 mAh): two cells side by side, the hull of r 8.15 circles at x +-6.03 (floor z -8.15,
-# geometry.BATTERY_STEP), along +Y from 0 to the pack's end at 51.2; the lead beyond is not drawn (the engine cuts it).
+# geometry.BATTERY_STEP), along +Y from 0 to the pack's end at 51.2; the lead beyond is not drawn (the model cuts it).
 BATTERY = {"cells": ((-6.03, 0.0, 8.15), (6.03, 0.0, 8.15)), "length": 51.2}
 
 
@@ -214,7 +214,7 @@ def battery():
 
 
 def servo_features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     s, (_, _, (z0, z1)) = SERVO, SERVO["tabs"]
     z, half = fits.slab(z0, z1)
     (far, near), spline = s["tab_holes"], fits.slab(s["tip_z"], s["boss_z"][0])
@@ -226,7 +226,7 @@ def servo_features():
 
 
 def horn_features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     h = HORN
     bore_z, bore_half = fits.slab(h["bore"][1], h["height"])
     pin_z, pin_half = fits.slab(0, h["arm_t"])

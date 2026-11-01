@@ -5,7 +5,7 @@ import os
 
 from model import mjcf
 
-# Patched here, not in mjcf.py: mjcf.py is in the report stamp (model/engine/run.py INPUTS), so an edit stales every report.
+# Patched here, not in mjcf.py: mjcf.py is in the report stamp (model/report.py INPUTS), so an edit stales every report.
 # shortcut: replaces write()'s whole defaults tuple, right while folder is its only default; redo if write gains another.
 if worker := os.environ.get("PYTEST_XDIST_WORKER"):
     mjcf.write.__defaults__ = (os.path.join(mjcf.MJCF, worker),)

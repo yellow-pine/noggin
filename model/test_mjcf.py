@@ -1,20 +1,21 @@
 import copy
 import functools
 import itertools
+import json
 import math
+import os
 
 import mujoco
 import numpy as np
 import pytest
 import trimesh
 
-from model import electrical, mjcf, mujoco_report
+from model import electrical, mating, mjcf, mujoco_report, stages
 from model import geometry as g
-from model.engine import masses, mating, meshes, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
-# Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS).
+# Pairs that touch by design besides the mating joints' (model/mating.py JOINTS).
 TOUCH = {
     **{
         frozenset((f"Core {n}:1", f"receiver shield {n}:1")): "the Core plugged into its shield's headers"
@@ -66,19 +67,19 @@ def forward(doc):
 
 
 @pytest.mark.parametrize("doc", grouped(stages.DOCS))
-def test_every_part_sits_where_the_engine_puts_it(doc):
+def test_every_part_sits_where_stages_places_it(doc):
     """The tracer (#147): every part is a MuJoCo body whose placement, after MuJoCo's own forward kinematics, puts its
-    mesh's bounding-box corners within 0.1 mm of the old engine's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
+    mesh's bounding-box corners within 0.1 mm of model/stages.py's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
     stage = stages.STAGES[doc]
     model, data = forward(doc)
-    engine = stages.pose(stage, next(iter(stage.horns)), 0).parts
-    assert {model.body(i).name for i in range(1, model.nbody)} == set(engine)
-    for name, matrix in engine.items():
+    placed = stages.pose(stage, next(iter(stage.horns)), 0).parts
+    assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
+    for name, matrix in placed.items():
         expected = mjcf.root(doc) @ matrix
         body = data.body(name)
         lo, hi = trimesh.load(stage.parts[name].file, force="mesh").bounds
         corners = np.array([[*c, 1.0] for c in itertools.product(*zip(lo, hi))])
-        actual = corners[:, :3] @ body.xmat.reshape(3, 3).T + body.xpos * 1000  # metres in MuJoCo, mm in the engine
+        actual = corners[:, :3] @ body.xmat.reshape(3, 3).T + body.xpos * 1000  # metres in MuJoCo, mm in stages
         worst = np.linalg.norm(actual - (corners @ expected.T)[:, :3], axis=1).max()
         assert worst < 0.1, (name, worst)
 
@@ -181,8 +182,8 @@ def test_every_limit_poses_with_its_four_bars_closed(doc):
         assert worst < LOOP_MM, (ctrl, worst)
 
 
-# Pairs the pieces read deeper than meshes.judge, each verified (docs/research/2026-11-01-coacd-tuning.md 4): judge weighs
-# an overlap by its deepest vertex and misses edges that cross, MuJoCo by the shortest move that parts the two pieces,
+# Pairs the pieces read deeper than the exact-mesh check did, each verified (docs/research/2026-11-01-coacd-tuning.md 4): it weighed
+# an overlap by its deepest vertex and missed edges that cross, MuJoCo by the shortest move that parts the two pieces,
 # and the common region of the deepest two pieces lies inside both meshes. How deep they may read (mm), never shallower.
 DEEPER = {
     **{frozenset((f"{s} upper lid:1", f"{s} lower lid:1")): 1.3 for s in "LR"},  # the ears cross, 1.09 at +31: #210
@@ -197,47 +198,42 @@ FILLED = {
 }
 
 
+# The exact-mesh check's last readings (#151 deleted it, model/engine/meshes.py judge): per document and pose (rest and every
+# ends() pose, as MuJoCo poses it), every pair a joint moves apart whose boxes came within the report's band, its
+# clearance in mm clamped to the band (negative: the depth of the deepest vertex inside). The model has moved on when a
+# pose here no longer reads: refreeze from the old check (git show fb9878c:model/engine/meshes.py) or drop the pair.
+EXACT = json.load(open(os.path.join(os.path.dirname(__file__), "test_fixtures", "exact-clearance.json")))
+DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deeper than this inside
+
+
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
-    """The convex pieces measure clearance as the exact meshes do (#190, docs/research/2026-11-01-coacd-tuning.md): at
-    rest and at every LIMITS end, each pair a joint moves apart reads within PENETRATION_MM of model/engine/meshes.judge
-    (both clamped to the report's detection band, the two pieces' margins), but for DEEPER and FILLED. A contact the
-    meshes call 0 mm has nothing deeper than meshes.DEPTH_MM in it, so the pieces may read that far in."""
-    model, stage = copy.copy(built(doc)), stages.STAGES[doc]
+    """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
+    rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both
+    clamped to the report's detection band, the two pieces' margins), but for DEEPER and FILLED. A contact the meshes
+    called 0 mm had nothing deeper than DEPTH_MM in it, so the pieces may read that far in."""
+    model = copy.copy(built(doc))
     mujoco_report.widen(model)
     band = 2 * mujoco_report.CLEARANCE_MM
-    exact = meshes.load(stage)
-    names = [model.body(i).name for i in range(model.nbody)]
-    weld = dict(zip(names, model.body_weldid))
-    pairs = [(a, b) for a, b in itertools.combinations(sorted(stage.parts), 2) if weld[a] != weld[b]]
+    assert [p["at"] for p in EXACT[doc]] == [{}, *ends(doc)]
     off = {}
-    for ctrl in [{}, *ends(doc)]:
-        data = mjcf.pose(model, ctrl)
-        pieces = mujoco_report._contacts(model, data)
-        placed = {}
-        for name in stage.parts:
-            m = np.eye(4)
-            m[:3, :3], m[:3, 3] = data.body(name).xmat.reshape(3, 3), data.body(name).xpos * 1000
-            placed[name] = meshes.Placed(exact[name], m)
-        for pair in pairs:
-            a, b = placed[pair[0]], placed[pair[1]]
-            if meshes.bbox_gap(a, b) > band:
-                continue
-            d, depth = meshes.judge(a, b)
-            mm, got = min(-depth if depth else d, band), min(pieces.get(pair, band), band)
-            key = frozenset(pair)
-            low = -DEEPER[key] if key in DEEPER else mm - FILLED.get(key, PENETRATION_MM)
-            low -= meshes.DEPTH_MM if abs(mm) < 1e-6 else 0  # a 0 mm contact: nothing deeper than DEPTH_MM inside
+    for pose in EXACT[doc]:
+        pieces = mujoco_report._contacts(model, mjcf.pose(model, pose["at"]))
+        for key, mm in pose["mm"].items():
+            pair = tuple(key.split(" / "))
+            got, both = min(pieces.get(pair, band), band), frozenset(pair)
+            low = -DEEPER[both] if both in DEEPER else mm - FILLED.get(both, PENETRATION_MM)
+            low -= DEPTH_MM if abs(mm) < 1e-6 else 0
             miss = max(low - got, got - mm - PENETRATION_MM)
             if miss > off.get(pair, (0,))[0]:
-                off[pair] = (round(miss, 3), ctrl, round(mm, 3), round(got, 3))
+                off[pair] = (round(miss, 3), pose["at"], mm, round(got, 3))
     assert not off, off
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
-def test_the_joints_turn_as_the_old_engine_solves_the_four_bars(doc):
+def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
     """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
-    within 0.5 degrees of the old engine's four-bar solve (model/engine/linkage.py) at that horn angle."""
+    within 0.5 degrees of the four-bar kinematics (model/linkage.py, stages.pose) at that horn angle."""
     stage = stages.STAGES[doc]
     for (h, d), data in sweep(doc).items():
         expected = {h: d, **stages.pose(stage, h, d).joints}
@@ -262,7 +258,7 @@ def test_every_lead_stays_within_its_length(doc):
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
-    """Each screw or pin joint of model/engine/mating.py is a site per part on its own fitted axis; across every sweep
+    """Each screw or pin joint of model/mating.py is a site per part on its own fitted axis; across every sweep
     they stay within the mating check's 0.2 mm (as far apart as the axes miss each other, and any drift a turn adds)."""
     model, stage = built(doc), stages.STAGES[doc]
     for (h, d), data in sweep(doc).items():
@@ -272,9 +268,26 @@ def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
         assert gaps[worst] < mating.COAXIAL_MM, (h, d, worst, gaps[worst])
 
 
-def test_every_part_weighs_what_the_engine_weighs_it():
-    """Each part's CoACD pieces share the old engine's mass for it (model/engine/masses.py) by volume."""
+def test_every_part_weighs_its_mass_spread_over_its_pieces():
+    """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume."""
     model, stage = built("noggin-stage3"), stages.STAGES["noggin-stage3"]
     for name, part in stage.parts.items():
-        g = masses.mass(mjcf._mesh(part.file, part.clip), part.material)["g"]
-        assert model.body(name).mass[0] * 1000 == pytest.approx(g, abs=0.01), name
+        assert model.body(name).mass[0] * 1000 == pytest.approx(
+            mjcf.mass(mjcf._mesh(part.file, part.clip), part.material), abs=0.01
+        ), name
+
+
+def test_mass_follows_density_or_the_documented_figure():
+    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3
+    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(1.24)
+    assert mjcf.mass(cube, (16.0, "documented")) == 16.0
+
+
+def test_printed_part_masses_match_the_recorded_sweep_masses():
+    """The recorded sweep (model/reports/noggin-eyes-report.json, history kept as data) weighed the designer's
+    parts; ours weigh the same within 2 percent."""
+    recorded = json.load(open(os.path.join(os.path.dirname(__file__), "reports", "noggin-eyes-report.json")))["mass"]
+    parts = stages.STAGES["noggin-eyes"].parts
+    for name in ("L eyeball:1", "L servo bracket:1", "L lid bar:1", "L lid servo:1"):
+        g_ = mjcf.mass(mjcf._mesh(parts[name].file, parts[name].clip), parts[name].material)
+        assert g_ == pytest.approx(recorded[name], rel=0.02), name

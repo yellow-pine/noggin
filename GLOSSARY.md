@@ -101,9 +101,8 @@ _Avoid_: program, image, OS
 
 **Model**:
 The Mech as code, 1:1 with the physical Mech: our CadQuery parts (model/printed) and hardware Envelopes
-(model/envelopes.py), placed by model/geometry.py; MuJoCo simulates them from one MJCF per document (model/mjcf.py,
-docs/adr/0007), the old Python engine (model/engine, docs/adr/0006) runs beside it until #151 retires it, and Blender
-renders the pictures from the engine's poses (MuJoCo's from #150).
+(model/envelopes.py), placed by model/geometry.py and model/stages.py; MuJoCo simulates them from one MJCF per
+document (model/mjcf.py, docs/adr/0007), and Blender renders the pictures from MuJoCo's Trajectories.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
@@ -125,7 +124,7 @@ The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web
 _Avoid_: banner, idle loop
 
 **Sub-assembly**:
-An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/engine/stages.py).
+An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/stages.py).
 
 **Envelope**:
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
@@ -164,8 +163,8 @@ A part we print, by our name (the designer's file names are history: README cred
 _Avoid_: the designer's file names, version suffixes, plain / cutout / regular
 
 **Pivot**:
-A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the old engine's four-bar
-solver (model/engine/linkage.py).
+A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the four-bar
+kinematics that pose a horn angle without simulating (model/linkage.py).
 _Avoid_: hinge, axle
 
 **Port**:
@@ -174,7 +173,7 @@ _Avoid_: socket, header
 
 **Corridor**:
 A lead's route in the Model: a tube from one Port to the other through waypoints clipped to the parts that hold the
-lead, so it rides pan and tilt. The engine checks its path length and its clearance from moving parts at every pose.
+lead, so it rides pan and tilt (model/cables.py). MuJoCo carries it as a tendon no longer than the lead.
 _Avoid_: harness, cable path, routing
 
 **Trajectory**:

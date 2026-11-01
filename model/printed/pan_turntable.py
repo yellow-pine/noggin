@@ -43,7 +43,7 @@ def box(x, y, z):
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     x, half = fits.slab(*TOWER["x"])
     pivot_z, pivot_half = fits.slab(RECESS["top"], BOSS["top"])
     (far, near), tab_z, r = TAB["y"], TAB["z"], TAB["r"]

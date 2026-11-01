@@ -20,6 +20,6 @@ def build():
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     y, half = fits.slab(*Y)
     return {"horn hole": ((X, y, 27.0), "y", HOLES[27.0], half), "eyeball hole": ((X, y, 0.0), "y", HOLES[0.0], half)}

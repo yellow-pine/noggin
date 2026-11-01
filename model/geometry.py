@@ -111,7 +111,7 @@ PIVOTS = {
 SERVO_TAB_SPACING = 27.8  # SG90 mounting tab hole pitch
 
 # The printed lug's measured hole axes, at the SERVO_STEP tab plane (z -0.65) where the flange rests on the lug face
-# (docs/research/2026-10-31-shafts.md); the servo's own tab holes sit within 0.2 of them (model/engine/mating.py).
+# (docs/research/2026-10-31-shafts.md); the servo's own tab holes sit within 0.2 of them (model/mating.py).
 SERVOS = {
     "l_lid": {"tab_holes": [(-8.07, -32.35, 40.0), (-8.07, -4.65, 40.0)], "frame": "eyes"},
     "r_lid": {"tab_holes": [(67.07, -32.35, 40.0), (67.07, -4.65, 40.0)], "frame": "eyes"},
@@ -216,7 +216,7 @@ def _cross(a, b):
 
 def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1, 0, 0), from_z=(0, 0, 1)):
     """4x4 rows (mm) taking the local frame (from_*) onto the world frame (to_*); axes default to identity, x is made
-    normal to z (stepped links), y = z cross x. The engine wraps it in numpy (stages.align)."""
+    normal to z (stepped links), y = z cross x. model/stages.py wraps it in numpy (stages.align)."""
 
     def frame(o, x, z):
         z = _unit([float(c) for c in z])
@@ -357,7 +357,7 @@ BATTERY_POCKET = {"x": (38.0, 74.0), "z": (55.0, 111.0), "floor_y": -35.6}
 BATTERY_POCKET_PT = {"x": (-50.0, -21.5), "y": (73.0, 125.0), "floor_z": 3.0}  # base plate STL pocket, PT frame [M]
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 
-# The electronics on the base plate (model/engine/stages.py), PT frame, as the pan-tilt guide builds
+# The electronics on the base plate (model/stages.py), PT frame, as the pan-tilt guide builds
 # them (p.10 Y adapter, p.23): one pack and one switch board feed both receiver shields through a Y lead. Shield n sits
 # on standoff set n (1 front, 2 back), PCB on the standoff tops (z 16), the Core plugged in under it as in the receiver
 # STEP, its USB-C and the shield's XH socket toward the plate's +x edge (Cansin's build for shield 1,
@@ -395,7 +395,7 @@ def battery_at():
     )
 
 
-# Printed parts: spool and material per part (the engine (model/engine/masses.py) and beams.py take masses from it). Spools are PLA; the density
+# Printed parts: spool and material per part (model/mjcf.py mass() and beams.py take masses from it). Spools are PLA; the density
 # is the slicer's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
 # "(colour inferred)" where the build does not show the part's colour.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
@@ -447,7 +447,7 @@ PRINTED = {
 # lead leaves it (vendor STEP; pan-tilt guide p.16: "the mount with the cutout is at the cable end"); the STL has it at
 # the far end, where the lead would run through the plain mount (docs/research/2026-10-31-shafts.md).
 MOUNT_SWAP_Y = 27.9
-# Sub-assembly parts placed straight from their meshes (model/engine/stages.py reads these):
+# Sub-assembly parts placed straight from their meshes (model/stages.py reads these):
 # (component, part, shift mm). Eyes: x shift; lids, eyeball bar and pupil are modelled at one eye; the eyeballs without
 # eye texture and the updated eye bracket (placed apart). Stack: shift; the designer exported these in the assembled PT
 # frame, except the tilt arm, still at the height before the upright was raised 5 mm. Mouth: in the eyes frame with

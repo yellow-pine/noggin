@@ -38,7 +38,7 @@ def mount(y, tab_y, feet_y):
 
 
 def features(which):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     _, tab_y, feet_y = which
     z, half = fits.slab(TAB_BOTTOM, TOP)
     foot_z, foot_half = fits.slab(3.0, FOOT_TOP)  # the foot from the z 3 profile floor

@@ -1,4 +1,4 @@
-"""Seam: model/engine/stages.py, the document tables (sub-assemblies, sweep documents, Stage configurations: parts, neutral placements, chains) and pose(): every part's rigid
+"""Seam: model/stages.py, the document tables (sub-assemblies, sweep documents, Stage configurations: parts, neutral placements, chains) and pose(): every part's rigid
 transform per horn angle. No meshes are read here."""
 
 import json
@@ -9,9 +9,9 @@ import numpy as np
 import pytest
 
 from model import geometry as g
-from model.engine import stages
+from model import stages
 
-REPORTS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
+REPORTS = os.path.join(os.path.dirname(__file__), "reports")
 
 
 def world(m, p):

@@ -23,7 +23,7 @@ def build():
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     (horn, horn_r), (jaw, jaw_r) = HOLES
     horn_z, half = fits.slab(PROFILE_XZ[0][1], PROFILE_XZ[1][1])  # the -x tab
     jaw_z, _ = fits.slab(PROFILE_XZ[5][1], PROFILE_XZ[4][1])  # the +x tab

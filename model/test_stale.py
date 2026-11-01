@@ -3,8 +3,7 @@
 import os
 import shutil
 
-from model import stale
-from model.engine import stages
+from model import stages, stale
 
 
 def test_stale_follows_the_inputs(tmp_path, monkeypatch):

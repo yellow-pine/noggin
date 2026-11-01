@@ -1,7 +1,7 @@
 """The Mech's supply as a SPICE circuit (PySpice on ngspice), figures from the datasheets
 (docs/research/2026-10-31-electrical.md), and the leads the cable corridors route. Run: .venv/bin/python -m
 model.electrical. worst_case() is merged into the Mech-wide (noggin-stage3) report and leads() routed by
-model/engine/cables.py. Independent of the engine: it reads only CHANNELS and the lead lengths."""
+model/cables.py. It reads only CHANNELS and the lead lengths."""
 
 import importlib.util
 import json
@@ -46,14 +46,14 @@ def _load(name):
     return mod
 
 
-servo, replay = _load("servo"), _load("replay")  # replay: model/engine/mech.py reads it from here
+servo = _load("servo")
 
 # The servo lead length: the vendor publishes none (docs/research/2026-10-31-electrical.md 1), so 250 mm, inferred: the
 # typical 9 g micro servo figure (docs/research/2026-11-01-best-guesses.md); the
-# XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list); a lead that moves must reach with SLACK_MM to spare. The Y
+# XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list). The Y
 # lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
 # board is taken as 100 [I] (the battery box lead's length is not published).
-SERVO_LEAD_MM, XH_LEAD_MM, SLACK_MM = 250, 100, 20
+SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
 
 
 CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)
@@ -135,7 +135,7 @@ def worst_case():
 def leads():
     """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
     shield header (CHANNELS), the pack's lead to the switch board and the Y lead's two branches from the switch board to
-    the shields. Port names are model/engine/stages.py's ports; model/engine/cables.py routes each
+    the shields. Port names are model/stages.py's ports; model/cables.py routes each
     from its first Port."""
     out = [("pack 1 -> switch 1", "battery 1 lead", "switch board 1 in", XH_LEAD_MM)]
     for n in (1, 2):

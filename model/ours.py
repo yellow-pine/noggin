@@ -1,9 +1,9 @@
 """Our geometry as files: every printed part (printed.PARTS, by our part name) and every hardware envelope
 (envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `make ours`: all of them
-as STLs in model/build/ours (stages.OURS), which the engine (make sim, everywhere) and the renders read. `make stl`: the
-printed parts as print-ready STLs in model/build/stl. `make step`: every shape and each Stage at neutral (the engine's
+as STLs in model/build/ours (stages.OURS), which MuJoCo (make sim, everywhere) and the renders read. `make stl`: the
+printed parts as print-ready STLs in model/build/stl. `make step`: every shape and each Stage at neutral (model/stages.py's
 placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
-own process before the engine: CadQuery's OCCT threads must not be running when the sweep forks its workers."""
+own process before the model reads them: CadQuery's OCCT threads must not be running when a process pool forks."""
 
 import functools
 import os
@@ -13,8 +13,7 @@ import cadquery as cq
 import trimesh
 from OCP.gp import gp_Trsf
 
-from model import envelopes, geometry, printed
-from model.engine import stages
+from model import envelopes, geometry, printed, stages
 from model.render import scene
 
 SHAPES = {**printed.PARTS, **envelopes.ENVELOPES}
@@ -36,7 +35,7 @@ def printable(stem, path):
 
 
 def stage_step(doc, path):
-    """The Stage at neutral as one STEP assembly at `path` (returned): every part's shape at the engine's placement,
+    """The Stage at neutral as one STEP assembly at `path` (returned): every part's shape at its placement (model/stages.py),
     in its spool's colour (or the hardware's grey)."""
     shape = functools.cache(lambda stem: SHAPES[stem]())
     asm = cq.Assembly(name=doc)

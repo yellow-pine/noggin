@@ -14,8 +14,7 @@ import tempfile
 import urllib.request
 
 from model import geometry as g
-from model import trajectories
-from model.engine import stages
+from model import stages, trajectories
 from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))

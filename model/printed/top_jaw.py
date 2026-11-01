@@ -48,7 +48,7 @@ def dome(inner, s):
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     (left, _), (_, right) = arms()
     full = PIN["full"]  # the pin's full-radius length in from its cheek, before the dome
     spans = {"L pin": (left, left + full), "R pin": (right - full, right)}

@@ -26,21 +26,23 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   cuts at its default concavity (0.05 of the part's size) except where a part meets another closely, cut in mm
   (real-metric: the horn 0.08, the lids 0.15, the base plate, eye brackets, pan turntable and jaws 0.3).
   model/test_mjcf.py holds every pair within 0.05 mm of the exact meshes at rest and at the LIMITS ends, but where the
-  meshes' edges cross (MuJoCo reads deeper, and is right) and three corners the pieces fill.
+  meshes' edges cross (MuJoCo reads deeper, and is right) and three corners the pieces fill; since #151 against the
+  exact check's last readings, frozen in model/test_fixtures/exact-clearance.json.
 - **Linkages, actuators, cables, mating** (#148): the four-bars are equality constraints, the servos position
   actuators with their torque limits, the leads spatial tendons with the real lengths as limits, each screw or pin a
   site pair whose distance must be zero (https://mujoco.readthedocs.io/en/stable/XMLreference.html#equality). Each
   four-bar is a tree of hinges closed by a connect at the rocker pin, as MuJoCo asks for loop joints (a weld would lock
   it); the servos hold at their 4.8 V stall torque. `mjcf.pose` slews the commands quasi-statically with contacts off
   and holds them under gravity; its gate (model/test_mjcf.py): every LIMITS end closes within 0.05 mm, the joints match
-  the old engine's solve within 0.5 degrees, the leads stay under their lengths and the mating sites within 0.2 mm
+  the four-bar kinematics (model/linkage.py) within 0.5 degrees, the leads stay under their lengths and the mating
+  sites within 0.2 mm
   (docs/research/2026-11-01-mujoco-loops.md).
 - **The sim report is MuJoCo-native** (#149): contacts and penetration per pair, constraint residuals (a linkage
   that cannot close), actuator force against the torque limit, tip-over, all sampled per pose; the tests, the stamp
   and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact. `make sim` measures each horn's
-  sweep and the pan x tilt grid (model/mujoco_report.py) into each report's "mujoco" section, beside the old engine's until it
-  retires, and commits the MJCF it measured as model/reports/<doc>.xml; one stamp covers both, now with model/mjcf.py,
-  model/mujoco_report.py and the mujoco and coacd versions. model/test_report.py fails a pair whose pieces go 0.05 mm deeper
+  sweep and the pan x tilt grid (model/mujoco_report.py) into each report's "mujoco" section (model/report.py), beside
+  the placements, fits, beams and the electrical budget, and commits the MJCF it measured as model/reports/<doc>.xml;
+  the stamp covers model/mjcf.py, model/mujoco_report.py and the mujoco and coacd versions. model/test_report.py fails a pair whose pieces go 0.05 mm deeper
   than at rest (the pieces' own error is in the rest reading; an overlap at rest fails model/test_mjcf.py), a four-bar open over 0.05 mm, a servo holding more than
   its rated 0.4 kgf.cm (the stall 1.0 is the actuator's limit, reported beside it), a joint a swing at the rated
   428 deg/s leaves over 1 degree off the slow pose, and the centre of mass off the base footprint. The listed
@@ -71,12 +73,24 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
 - **Z-up, in metres.** The eyes-frame documents (noggin-eyes, noggin-mouth) are carried into the PT frame by one
   `<frame>` (stages.BASE_IN_EYES undone), so every model is Z-up as the Stages are, gravity along -Z; inside it the
   bodies keep the document's numbers.
-- **The old engine retires** (#151) once the new one covers it. Until then both run. The first ticket's gate
-  (model/test_mjcf.py): in every document each body sits where the old engine's pose puts it, within 0.1 mm, and no two parts that are not
-  mounted to each other overlap at rest by more than 0.05 mm (MuJoCo's distance between their pieces; the pairs the
-  pieces make overlap though the parts do not are listed with their measured clearance). That guard found the eyes'
-  rail 5 mm deep in the desk base (stage 1), a conflict with Cansin's photo settled for the build by #172: the desk
-  eye bracket, its stem in the plate's slot (docs/model-notes.md, docs/research/2026-11-01-eyes-on-plate.md).
+- **The old engine is retired** (#151, 2026-11-01): model/engine is deleted. Its sweep, exact-mesh check, cable
+  corridors, mating check, mass table, torque, clutch margin and tip-over go: MuJoCo's pairs, tendons, mating sites,
+  actuator forces and centre of mass cover them. Dropped with nothing in their place: the collisions at the calibrated
+  servo ends past the LIMITS (each accepted with its reason, #170, #189), a corridor's clearance from moving parts, a
+  servo's seat on its mount and its lead's exit (only the exact meshes answered them), a moving lead's 20 mm of slack
+  (the tendon holds the whole lead), and the torque at the gestures' peak acceleration (0.05 kgf.cm at most against its
+  0.2 limit when it went; MuJoCo holds each servo's static load to its rated torque). What MuJoCo does not do stays in
+  model/: the document tables (stages.py: parts, placements, chains, Ports, checked against the geometry tables in the
+  report), the four-bar kinematics (linkage.py, stages.pose: a horn angle posed exactly, without simulating; the lid
+  edges of the gesture tests, model/lids.py, and the hero's head degrees need that), each part's mass from its mesh
+  (mjcf.mass, MuJoCo's input), the lead routes (cables.py) and the mating features (mating.py) the MJCF is built from.
+  The recorded sweeps (model/reports/*-report.json) stay as data: their curves and masses still check the kinematics and
+  the masses. The first ticket's gate (model/test_mjcf.py): in every document each body sits where stages places it,
+  within 0.1 mm, and no two parts that are not mounted to each other overlap at rest by more than 0.05 mm (MuJoCo's
+  distance between their pieces). That guard found the eyes' rail 5 mm deep in the desk base (stage 1), a conflict with
+  Cansin's photo settled for the build by #172: the desk eye bracket, its stem in the plate's slot (docs/model-notes.md,
+  docs/research/2026-11-01-eyes-on-plate.md). The hero's poses are checked on MuJoCo's pieces as the report judges a
+  sweep (model/render/test_hero.py).
 
 Dependencies added: mujoco, coacd.
 

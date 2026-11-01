@@ -20,14 +20,13 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical, geometry, mjcf, traces
-from model.engine import run, stages
+from model import electrical, geometry, mjcf, report, stages, traces
 from model.render import hero, scene
 
 OUT = os.path.join(mjcf.BUILD, "trajectories")
 FPS = 1000 // traces.FRAME_MS
 PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is commanded at that rate
-# what a trajectory is computed from besides the engine's inputs and the meshes (run.stamp)
+# what a trajectory is computed from besides the sim report's inputs and the meshes (report.stamp)
 SOURCES = ["model/mjcf.py", "model/traces.py", "model/trajectories.py", "model/render/hero.py", "model/render/scene.py"]
 
 
@@ -72,9 +71,9 @@ def play(model, writes, times):
 
 
 def stamp(doc):
-    """sha256 of the engine's inputs with the document's meshes (run.stamp) and SOURCES: a trajectory that no longer
+    """sha256 of the sim report's inputs with the document's meshes (report.stamp) and SOURCES: a trajectory that no longer
     carries it is stale."""
-    h = hashlib.sha256((run.stamp(run.sources(stages.STAGES[doc])) + version("mujoco")).encode())
+    h = hashlib.sha256((report.stamp(report.sources(stages.STAGES[doc])) + version("mujoco")).encode())
     for path in SOURCES:
         h.update(path.encode() + b"\0" + open(os.path.join(stages.REPO, path), "rb").read())
     return h.hexdigest()

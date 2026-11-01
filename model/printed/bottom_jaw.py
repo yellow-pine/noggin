@@ -47,7 +47,7 @@ def lip(y, top):
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     x, half = fits.slab(LUG_XY[0][0], LUG_XY[1][0])
     hinges = {
         f"{s} hinge": ((fits.slab(*arm)[0], *HINGE["yz"]), "x", HINGE["hole_r"], fits.slab(*arm)[1])

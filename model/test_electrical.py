@@ -1,5 +1,5 @@
 """Seam: model/electrical.py, the SPICE circuit of the Mech's supply (PySpice on ngspice): its operating point on a
-hand-checkable circuit, worst_case() (the entry the Mech-wide report merges) and leads() (what model/engine/cables.py
+hand-checkable circuit, worst_case() (the entry the Mech-wide report merges) and leads() (what model/cables.py
 routes)."""
 
 from PySpice.Spice.Netlist import Circuit

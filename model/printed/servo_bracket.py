@@ -71,7 +71,7 @@ def prism_x(yz, x):
 
 
 def features(side):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     z, half = fits.slab(*PLATE_Z)
     lid_x, lid_half = fits.slab(*TONGUE_X)
     eye_y, eye_half = fits.slab(*WALL_Y)

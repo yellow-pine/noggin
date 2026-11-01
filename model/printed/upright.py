@@ -39,7 +39,7 @@ def rod_x(x, yz, r):
 
 
 def features():
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     screw_z, screw_half = fits.slab(*SHELF["z"])
     lever_z, lever_half = fits.slab(LEVER_YZ[2][1], LEVER_YZ[4][1])
     x, half = fits.slab(*WALL["x"])

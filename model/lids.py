@@ -12,7 +12,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model.engine import linkage, meshes, stages
+from model import linkage, stages
 
 DOC = "noggin-eyes"
 COLUMN_MM = 2.0  # half-width of the vertical slab through the eye centre the edges are read on
@@ -23,8 +23,9 @@ def _local(side):
     """Vertices (world mm, neutral pose) of the side's upper lid, lower lid, eyeball and pupil."""
     stage = stages.STAGES[DOC]
     names = [f"{side} {p}:1" for p in ("upper lid", "lower lid", "eyeball", "pupil")]
-    loaded = meshes.load(stage, names)
-    return [trimesh.transform_points(loaded[n].vertices, stage.parts[n].matrix) for n in names]
+    # the faces split to 4 mm, so the column's few mm hold vertices wherever an edge crosses it
+    meshes = [trimesh.load(stage.parts[n].file, force="mesh").subdivide_to_size(4.0) for n in names]
+    return [trimesh.transform_points(m.vertices, stage.parts[n].matrix) for m, n in zip(meshes, names)]
 
 
 def _centre(side):

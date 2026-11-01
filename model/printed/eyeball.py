@@ -38,7 +38,7 @@ def along_y(x, z, r, y):
 
 
 def features(side):
-    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
+    """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/mating.py)."""
     bx, _, bz = g.EYEBALL_BAR_PINS[1]
     pivot_y, pivot_half = fits.slab(HOLE_FLOOR_Y, -1.0)  # up from the hole's floor to the hollow
     left = {
