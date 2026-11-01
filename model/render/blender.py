@@ -16,7 +16,7 @@ from mathutils import Matrix, Vector
 BG = "#F7F4EE"
 BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B); the web viewer's lines
-ART_PX = 1.75  # the pictures' Line Art lines: 2.5 px read too bold (Cansin, #276)
+ART_PX = 1.25  # the pictures' Line Art lines: 2.5 and 1.75 px read too bold (Cansin, #276)
 SHADOW_AT, HIGHLIGHT_AT = 0.7, 0.8  # where the toon ramps step, on the diffuse and glossy light
 CREASE = 60  # degrees between face normals that draw a crease line
 SAMPLES = 4  # Eevee's per frame: 64 (then 16) took CI's software GL tens of minutes (#226, #276)
