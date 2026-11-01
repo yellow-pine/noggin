@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [[package]]
@@ -1333,11 +1333,10 @@ wheels = [
 
 [[package]]
 name = "micropython-stdlib-stubs"
-version = "1.23.0"
+version = "1.29.0.post2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/99/b5/c9a0518cad50af1e9e34bb7d2ef8b2449132962277d21ab57dbbcdfa1e92/micropython_stdlib_stubs-1.23.0.tar.gz", hash = "sha256:8c497e1aa0ae0dba67d16ec9334399e9b5248cd143f2ac47a3d8a5eada434953", size = 93189, upload-time = "2024-10-31T23:43:44.605Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/a9/8828adcceaababfe50fbe1f3739de41691ca408a1c36cf4c6482a1c3eb6b/micropython_stdlib_stubs-1.23.0-py3-none-any.whl", hash = "sha256:b80888c94e76b16c54eb2909ca2453f8ea032d1401ccf2461cc3c41595ee3b2a", size = 116620, upload-time = "2024-10-31T23:43:43.433Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/e6/3edc7601ecbfb1deaee29e7e8beadb7e2d4877b5ed4f71f0c6644bb7493d/micropython_stdlib_stubs-1.29.0.post2-py3-none-any.whl", hash = "sha256:bdcd54d9896d8e1d455b3a99995d82a8399e1e2c9cb94eacabe278e5c2397783", size = 154274, upload-time = "2026-08-31T11:34:33.329Z" },
 ]
 
 [[package]]
@@ -1844,7 +1843,7 @@ requires-dist = [
 dev = [
     { name = "imageio-ffmpeg", specifier = ">=0.7.0" },
     { name = "micropython-esp32-esp32-generic-c3-stubs", specifier = "==1.23.*" },
-    { name = "micropython-stdlib-stubs", specifier = "==1.23.*" },
+    { name = "micropython-stdlib-stubs", specifier = "==1.29.*" },
     { name = "mkdocs-macros-plugin", specifier = "==1.5.0" },
     { name = "mkdocs-material", specifier = "==9.7.7" },
     { name = "mkdocs-redirects", specifier = "==1.2.2" },
