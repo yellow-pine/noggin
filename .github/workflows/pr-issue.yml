@@ -1,6 +1,6 @@
 name: PR Issue
 # Every PR links its issue in its body (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie
-# together (#307). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: the check
+# together (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: the check
 # reports success for it. Required check `PR Issue`; editing the body re-runs it.
 on:
   pull_request:
