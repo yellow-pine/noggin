@@ -127,6 +127,16 @@ Wi-Fi step ran again, see #195), noggin service and program from main (9075717),
 - Mech off 20 s, cable out: the Link came back by itself (beacon, uptime 11 s), but nothing was logged for the Wi-Fi
   outage (#196).
 
+## Cable-out check of the Link fixes (2026-11-01, #212)
+
+Eyes Core on the home network (192.168.68.61), program and noggin service from main after #196, #200 and #205:
+- Cable pulled during a gesture in `noggin demo`: `Link lost` at 14:11:50, the next gesture went `sent eyes` 5 s later,
+  nothing dropped (#196).
+- Cable out, `bored 2` and `wink 1` 3 s into it: both acked over Wi-Fi, the wink played right after bored (#205).
+- Mech off 30 s, cable out: `eyes beacon stale for 22.0 s`, then `eyes beacon back: wifi ... uptime 8s` and the
+  calibration resent (#196).
+- The Core joined the home network from its list of two (#195).
+
 ## Second Core (tilt, mouth, pan)
 
 The designer runs two Cores on two Shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
