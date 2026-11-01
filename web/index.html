@@ -46,10 +46,15 @@
     viewer.animationName = name;
     viewer.play(name === "hero" ? {} : { repetitions: 1 });
   };
-  viewer.addEventListener("finished", () => play("hero"));
-  // only what this Stage's GLB carries can play
+  const hasHero = () => viewer.availableAnimations.includes("hero");
+  viewer.addEventListener("finished", () => hasHero() && play("hero"));
+  // only what this Stage's GLB carries can play; Stage 1 has no neck, so no hero: it rests until a gesture
   viewer.addEventListener("load", () => {
     for (const b of gestures) b.disabled = !viewer.availableAnimations.includes(b.dataset.gesture);
+    if (!hasHero()) {
+      viewer.pause();
+      viewer.currentTime = 0;
+    }
   });
   for (const b of stages) b.addEventListener("click", () => {
     for (const s of stages) s.setAttribute("aria-pressed", s === b);

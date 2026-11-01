@@ -152,4 +152,5 @@ def main(job):
         flatten(shot["out"], w, h)
 
 
-main(json.load(open(sys.argv[sys.argv.index("--") + 1])))
+if __name__ == "__main__":  # web/glb.py imports the look
+    main(json.load(open(sys.argv[sys.argv.index("--") + 1])))
