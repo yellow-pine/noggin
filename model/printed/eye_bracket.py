@@ -12,6 +12,9 @@ from model import geometry as g
 
 PLATE_Z = (13.0, 18.0)
 BAND = {"x": (-18.0, 77.0), "y": (-12.5, 2.5)}  # the top band; its top edge y=2.5 is the rail the eyeball bars ride
+# The band's lower front edge is cut back for the lower lids' back rims (#189): a 45 deg chamfer from the front face at
+# y -7.5 to z 15.5 at y -10, flat to the bottom edge, either side of the stem; both of the designer's brackets have it.
+LID_RELIEF = {"y": (-7.5, -10.0), "z": 15.5}
 RAISED = {"x": (-4.0, 63.0), "top": 8.5}  # the band between the eyeball forks stands up to y 8.5
 STEM = {"x": (23.5, 35.5), "bottom": g.STEM_BOTTOM[1]}
 RAIL = {"x": (-3.4, 73.4), "y": (-40.6, -30.6), "r": 3.0}  # the bottom rail the jaw servo mount screws onto
@@ -40,6 +43,10 @@ FORK = {"y": (0.0, 4.0), "r": 4.0, "hole_r": 1.6}  # round about each eyeball pi
 def build(desk=False):
     out = box(BAND["x"], BAND["y"], PLATE_Z)
     stem = g.DESK_STEM_BOTTOM[1] if desk else STEM["bottom"]
+    (y0, y1), z1 = LID_RELIEF["y"], LID_RELIEF["z"]
+    relief = [(y0, PLATE_Z[0] - 1), (y0, PLATE_Z[0]), (y1, z1), (BAND["y"][0] - 1, z1), (BAND["y"][0] - 1, PLATE_Z[0] - 1)]
+    for x0, x1 in ((BAND["x"][0] - 1, STEM["x"][0]), (STEM["x"][1], BAND["x"][1] + 1)):
+        out = out.cut(cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(relief).close().extrude(x1 - x0))
     out = out.union(box(STEM["x"], (stem, BAND["y"][0] + 1), PLATE_Z))
     if not desk:
         out = out.union(box(RAISED["x"], (BAND["y"][1] - 1, RAISED["top"]), PLATE_Z))

@@ -153,7 +153,7 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
 
 
 def test_horn_limits_follow_geometry():
-    assert stages.STAGES["noggin-eyes"].horns["L lid horn"].limits == (-49, 39)
+    assert stages.STAGES["noggin-eyes"].horns["L lid horn"].limits == (-31, 31)
     assert stages.STAGES["noggin-pan-tilt"].horns["pan horn"].limits == (-40, 70)
     assert stages.STAGES["noggin-pan-tilt"].horns["tilt horn"].limits == (-60, 60)
     assert stages.STAGES["noggin-mouth"].horns["jaw horn"].limits == (-75, 0)

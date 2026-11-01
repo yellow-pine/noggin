@@ -64,3 +64,26 @@ def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral
         assert not meshes.penetrates(at(name, end), at("pan turntable:1", end)), name
     neutral = {n: stage.parts[n].matrix for n in names}
     assert not meshes.penetrates(at("tilt servo:1", neutral), at("receiver shield 1:1", neutral))
+
+
+@pytest.mark.parametrize("doc", ["noggin-eyes", "noggin-stage2"])  # the desk eye bracket and the regular one
+def test_lids_and_eyeballs_clear_the_eye_bracket_and_each_other_at_every_limit(doc):
+    """#189: the real Mech runs these ends without binding. The old engine skips a rocker on its bracket pivot and the
+    two lids (model/engine/run.PIVOT_PARTNER), so this measures them on the exact meshes at geometry.LIMITS' ends."""
+    stage = stages.STAGES[doc]
+    pairs = {
+        f"{s} {k} horn": [(f"{s} {r}:1", "eye bracket:1") for r in rockers]
+        + ([(f"{s} upper lid:1", f"{s} lower lid:1")] if k == "lid" else [])
+        for s in "LR"
+        for k, rockers in (("lid", ("upper lid", "lower lid")), ("eye", ("eyeball",)))
+    }
+    loaded = meshes.load(stage, {n for ps in pairs.values() for p in ps for n in p})
+    hits = []
+    for horn, ps in pairs.items():
+        for deg in stage.horns[horn].limits:
+            pose = stages.pose(stage, horn, deg).parts
+            for a, b in ps:
+                depth = meshes.judge(meshes.Placed(loaded[a], pose[a]), meshes.Placed(loaded[b], pose[b]))[1]
+                if depth:
+                    hits.append((horn, deg, a, b, round(depth, 2)))
+    assert hits == []

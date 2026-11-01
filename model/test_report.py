@@ -13,41 +13,27 @@ from model.engine import mating, run, stages
 HERE = os.path.dirname(__file__)
 _LID_OPEN = (
     "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90): in the model the lower lid's back rim meets the"
-    " servo bracket's front face from +39, 1.3 mm deep at 45, 2.0 at 52 (and the upper lid 0.35 mm into the eyeball bar"
-    " there). Best guess (#170, docs/research/2026-11-01-best-guesses.md): the build runs it, so the model's lid travel"
-    " (88 deg free) is short of the build's (93 / 85 servo deg) by a lid or bracket shape error no tolerance in the sources"
-    " reaches: the tooth is held by the shut lids and the rest photo, the servo's 180 +-10 deg spec moves the end 3 deg at"
-    " most, a print tolerance of 0.2 mm 1.3 deg. Accepted, not a measurement to wait for"
+    " servo bracket's front face from +39, 1.3 mm deep at 45.75, 2.0 at 52.95 (and the upper lid 0.35 mm into the eyeball"
+    " bar there); past the model's free travel (+31, geometry.LIMITS) the two lids' ears also meet at the back and the"
+    " upper lid's ear the eye bracket's arm, pairs this sweep skips (#189). Best guess (#170, #189): the build runs it,"
+    " so the model's lid travel (62 deg free) is short of the build's (93 / 85 servo deg) by a shape error at the lids'"
+    " backs that no tolerance in the sources reaches: the closed end is held by the lips just touching at the program's"
+    " close (Cansin), the servo's 180 +-10 deg spec moves the end 3 deg at most, a print tolerance of 0.2 mm 1.3 deg."
+    " Accepted, not a measurement to wait for"
 )
 # (horn, calibrated end): where the model still collides and the real Mech runs, each with the reason it is accepted.
 # The build wins (CLAUDE.md): listed, never loosened silently.
 KNOWN_CALIBRATED = {
-    ("L lid horn", 52): _LID_OPEN,
-    ("R lid horn", 45): _LID_OPEN,
+    ("L lid horn", 52.95): _LID_OPEN,
+    ("R lid horn", 45.75): _LID_OPEN,
 }
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, each with what the exact meshes say
-# at the same pose (model/engine/meshes.judge). Two kinds: the convex pieces fill a part's own clearance (the meshes are clear),
-# or the meshes overlap too, at a LIMITS end, where the old engine never looked (it skips a lid or eyeball on its bracket
-# pivot and a four-bar's two rockers): the build runs those ends, so it is a part shape error as _LID_OPEN, accepted.
+# at the same pose (model/engine/meshes.judge): the convex pieces fill a part's own clearance, the meshes are clear. The
+# pairs the old engine skips (a lid or eyeball on its bracket pivot, the two lids) are clear on the meshes at every
+# LIMITS end (model/engine/test_meshes.py, #189).
 _SHELL = "pieces only: the lid shell's pieces fill its 0.48 mm gap to the eyeball; the meshes stay 0.48 mm clear"
-_LID_ENDS = (
-    "pieces 4.6 mm at -39 (1.7 at rest); the meshes nest at 0.0 there but overlap at the ends, 1.39 mm at -49 (shut) and"
-    " 1.03 at +39 (open): the build runs both, accepted"
-)
-_UPPER_ON_BRACKET = "pieces 0.75 mm deeper at +39; the meshes 0.78 mm in at +39 (open): the build runs it, accepted"
-_EYE_ON_BRACKET = (
-    "pieces 0.72 mm deeper at the end; the meshes 0.77 mm in at -22 and +22: the build runs both, accepted"
-)
-_LOWER_ON_BRACKET = (
-    "the meshes 1.86 mm in at +39 (open): the build runs it, accepted; the pieces read only 0.16 (L) and 0.03 (R)"
-    " deeper than at rest there, so they miss most of it"
-)
 KNOWN_PAIRS = {
-    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _LID_ENDS for s in "LR"},
     **{frozenset((f"{s} pupil:1", f"{s} {lid} lid:1")): _SHELL for s in "LR" for lid in ("upper", "lower")},
-    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _UPPER_ON_BRACKET for s in "LR"},
-    **{frozenset((f"{s} eyeball:1", "eye bracket:1")): _EYE_ON_BRACKET for s in "LR"},
-    **{frozenset((f"{s} lower lid:1", "eye bracket:1")): _LOWER_ON_BRACKET for s in "LR"},
     frozenset(("base plate:1", "upright:1")): "pieces only: the plate's pieces fill the recess under the upright; the"
     " meshes stay 0.5 mm clear at pan -40",
     frozenset(("pan turntable:1", "tilt horn:1")): "pieces only: 0.14 mm in at tilt -60; the meshes stay 0.17 mm clear"
