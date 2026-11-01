@@ -91,9 +91,13 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
     assert "(https://yellowpine.com/noggin/docs/model-notes/#numbers-from-the-code)" in github("docs/model-notes.md")
 
 
-def test_every_duration_left_in_the_readme_agrees_with_the_code():
-    """The table is the site's; a duration GitHub still shows (say a blink every 5-8 s) must be one the code has."""
+def test_every_number_left_in_the_readme_agrees_with_the_code():
+    """The table is the site's; a duration GitHub still shows (say a blink every 5-8 s) must be one the code has, and
+    each Core's servo count must be its channels' in model/geometry.py."""
     import macros  # here, not at the top: it imports the model, which only this test needs
+    from model.geometry import CHANNELS
 
-    durations = r"\b\d+(?:-\d+)? (?:s|min)\b"
-    assert set(re.findall(durations, github("README.md"))) <= set(re.findall(durations, macros.behaviour()))
+    readme, durations = github("README.md"), r"\b\d+(?:-\d+)? (?:s|min)\b"
+    assert set(re.findall(durations, readme)) <= set(re.findall(durations, macros.behaviour()))
+    servos = re.findall(r"Core (\d): [^\"]*?(\d+) servos", readme)
+    assert servos == [(core, str(len(CHANNELS[f"core{core}"]))) for core, _ in servos] and len(servos) == 2

@@ -22,8 +22,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **Numbers come from the code.** A doc's numbers that the code owns (the README's behaviour table, the picture sizes
   and colours in docs/model-notes.md) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group),
   on the pages `mkdocs.yml` lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose
-  and a link to the site in their place; test_site.py fails if a duration GitHub still shows in the README is not the
-  code's (#227).
+  and a link to the site in their place; test_site.py fails if a number GitHub still shows in the README (a duration, a
+  Core's servo count) is not the code's (#227).
 - **Until their tickets land**, the pictures in docs/images and the reports in model/reports stay in git as they are.
 
 ## Considered options

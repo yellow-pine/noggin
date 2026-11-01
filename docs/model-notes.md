@@ -7,7 +7,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `make trajectories`; #150): `make render` for
   the views (each Stage at rest, a trajectory's first frame; sub-assemblies at their placement), `make gifs` for the
   gestures; code in model/render, output in model/build/pictures.
-- Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, in the table below; Absolute Black
+- Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it): headlight
@@ -34,7 +34,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   on the eyes with the base's front in view; one frame per 100 ms of the gesture's trajectory (MuJoCo playing the Core
   program's own writes through the servos' dynamics: model/traces.py `commands`, lid fractions through
   eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), with
-  a contact sheet per gesture; their sizes are in the table below.
+  a contact sheet per gesture; their sizes are under Numbers from the code below.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
 
 ## Numbers from the code
