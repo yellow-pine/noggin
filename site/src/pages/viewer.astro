@@ -1,6 +1,6 @@
 ---
 // The web viewer's page (docs/adr/0008) in the site's theme: one button per Stage (macros.py, from model/geometry.py
-// STAGES) over the viewer, which draws the Stage's GLB beside this page at viewer/.
+// STAGES) over the viewer (loaded by src/components/Footer.astro), which draws the Stage's GLB beside this page at viewer/.
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { stages } from '../macros.json';
 ---
@@ -17,17 +17,6 @@ import { stages } from '../macros.json';
   </div>
 </StarlightPage>
 
-<script>
-  import '../viewer/viewer.mjs';
-</script>
-
 <style is:global>
-  .noggin-viewer canvas { display: block; width: 100%; height: 60vh; touch-action: none; }
-  .noggin-viewer nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
-  .noggin-viewer button {
-    font: inherit; color: var(--sl-color-text-accent); background: none; cursor: pointer;
-    border: 1px solid var(--sl-color-text-accent); border-radius: 999rem; padding: 0.2em 1em; margin: 0;
-  }
-  .noggin-viewer button[aria-pressed='true'] { color: var(--sl-color-black); background: var(--sl-color-text-accent); }
-  .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
+  .noggin-viewer canvas { height: 60vh; } /* the gestures under it in view on a laptop */
 </style>

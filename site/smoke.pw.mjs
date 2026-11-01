@@ -25,7 +25,8 @@ test.afterEach(async ({ baseURL }) => {
 });
 
 test('the viewer plays a gesture, back to the hero, and switches Stage', async ({ page }) => {
-  test.skip(!existsSync(new URL('dist/viewer/stage3.glb', import.meta.url)), 'no GLBs in dist/viewer (make web, then make site)');
+  const glbs = existsSync(new URL('dist/viewer/stage3.glb', import.meta.url));
+  test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
   await page.goto('viewer/');
   const button = (name) => page.getByRole('button', { name, exact: true });
   await expect(button('Stage 3')).toHaveAttribute('aria-pressed', 'true');

@@ -1,9 +1,8 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, a button per clip under it. The
-// viewer's page (src/pages/viewer.astro) adds Stage buttons and imports this module, which Vite bundles with three.js
-// from npm; a page can drop a small one in with
+// viewer's page (src/pages/viewer.astro) adds Stage buttons; any page, a doc's Markdown too, drops a small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
-// and a <script>import "../viewer/viewer.mjs";</script>.
+// and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";

@@ -14,7 +14,7 @@ const EXCLUDE = ['README.md', 'CLAUDE.md', 'CHANGELOG.md', 'docs/references/**']
 export const PATTERN = [...INCLUDE, ...EXCLUDE.map((p) => `!${p}`)];
 export const PAGES = new Set(globSync(INCLUDE, { cwd: ROOT, exclude: EXCLUDE }));
 
-/** A page's id, its route under the base, from its path in the repo: docs/index.md is the home page. */
+/** A page's id, its route under the base, from its path in the repo: docs/index.md is the landing page, at the root. */
 export const id = (path) => (path === 'docs/index.md' ? 'index' : path.replace(/\.md$/, '').toLowerCase());
 
 /** The site's URL path of a page. */

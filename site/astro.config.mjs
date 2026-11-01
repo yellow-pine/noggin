@@ -42,7 +42,7 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: REPO }],
       editLink: { baseUrl: `${REPO}/edit/main/site/` }, // a page's file path is relative to site/
       markdown: { processedDirs: ['..'] }, // asides and heading anchors on the repo's Markdown
-      components: { SocialIcons: './src/components/SocialIcons.astro' },
+      components: { SocialIcons: './src/components/SocialIcons.astro', Footer: './src/components/Footer.astro' },
       plugins: [starlightGitHubAlerts()],
       customCss: ['./src/styles/custom.css'],
       sidebar: [
@@ -51,9 +51,7 @@ export default defineConfig({
           label: 'Build',
           items: [
             'docs/build/parts',
-            'docs/build/stage-1',
-            'docs/build/stage-2',
-            'docs/build/stage-3',
+            ...[...PAGES].filter((p) => p.startsWith('docs/build/stage-')).sort().map(id), // one guide per Stage
             'docs/build/wiring',
             'docs/build/flashing',
             'docs/build/calibration',

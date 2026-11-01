@@ -12,7 +12,7 @@
 > Amended 2026-11-01 (#281): the viewer is a page of the docs site at /viewer/, in its theme (header, search, nav);
 > docs pages can drop in a small one per Stage.
 > Amended 2026-11-01 (#333, ADR 0012): the page is an Astro page (`site/src/pages/viewer.astro`) and the module lives
-> beside it in `site/src/viewer/`; Vite bundles three.js and its addons from npm, the Draco decoder is copied from
+> beside it in `site/src/viewer/`, loaded by the site's footer on any page with a viewer; Vite bundles three.js and its addons from npm, the Draco decoder is copied from
 > three's package, and vendored.py, the import map and the page's own CSP are gone (the site's one CSP covers it).
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages

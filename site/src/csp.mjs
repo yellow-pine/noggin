@@ -18,7 +18,9 @@ export function hashInlineScripts(html) {
     .filter((h) => !csp.includes(h));
   if (!hashes.length) return html;
   const policy = csp.replace(/script-src [^;]*/, (d) => [d.trimEnd(), ...new Set(hashes)].join(' '));
-  return html.replace(meta.toString(), `<meta http-equiv="content-security-policy" content="${policy}">`);
+  const out = html.replace(`content="${csp}"`, `content="${policy}"`);
+  if (out === html) throw new Error('the CSP meta is not where its content says');
+  return out;
 }
 
 export const inlineScriptHashes = {

@@ -66,7 +66,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 
 ## Code
 
-- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`, `mech/`, `ci/` (the CI images). Tests sit beside the code they test (`test_*.py` in the same folder).
+- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/` (the viewer's GLBs), `mech/`, `ci/` (the CI
+  images), `site/` (the site's npm package: its pages, the viewer's page and module, ADR 0012). Tests sit beside the
+  code they test (`test_*.py`, `*.test.mjs` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
 - Run `make check` before opening a PR: the `code` set, everything but the tests marked `model`. `make check-all` adds
   those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,

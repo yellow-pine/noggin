@@ -38,7 +38,7 @@ test('the README, CLAUDE.md and the references never ship', () => {
   for (const f of ['readme', 'claude', 'docs/references']) expect(existsSync(path.join(DIST, f)), f).toBe(false);
 });
 
-test('the home page leads into Build, Use and the viewer', () => {
+test('the landing page leads into Build, Use and the viewer', () => {
   const links = page(`${BASE}/`).querySelectorAll('a').map((a) => a.getAttribute('href'));
   for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md'), `${SITE}${BASE}/viewer/`])
     expect(links).toContain(target);
@@ -124,7 +124,7 @@ test("every page's CSP lets only the site's scripts run: each inline one by its 
   }
 });
 
-test('the hero shows at its size in a figure on the home page and Pictures', () => {
+test('the hero shows at its size in a figure on the landing page and Pictures', () => {
   for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
     const img = page(url).querySelector(`figure img[src="${SITE}${BASE}/images/hero.gif"]`);
     expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);

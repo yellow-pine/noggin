@@ -4,6 +4,16 @@
 @media (min-width: 45em) {
   .grid.gestures { grid-template-columns: repeat(3, 1fr); }
 }
+/* the web viewer (src/viewer/viewer.mjs), on its page or dropped into another */
+.noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
+.noggin-viewer nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+.noggin-viewer button {
+  font: inherit; color: var(--sl-color-text-accent); background: none; cursor: pointer; margin: 0;
+  border: 1px solid var(--sl-color-text-accent); border-radius: 999rem; padding: 0.2em 1em;
+}
+.noggin-viewer button[aria-pressed='true'] { color: var(--sl-color-black); background: var(--sl-color-text-accent); }
+.noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
+
 /* a figure centred, as on GitHub's README */
 figure { text-align: center; }
 figure img { margin-inline: auto; }

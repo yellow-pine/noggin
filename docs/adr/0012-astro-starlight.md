@@ -16,8 +16,8 @@ service anywhere.
   (`allowScripts`): mermaid-cli's Puppeteer drives the installed Chrome, as Playwright does.
 - **The Markdown stays where it is, with no front matter.** Astro's `glob()` loader reads the repo's Markdown in place
   (`site/src/pages.mjs`: the root's `*.md` and `docs/**`, not the README, CLAUDE.md or docs/references) into
-  Starlight's docs collection with `docsSchema()`. A page's id is its path, lower-cased; docs/index.md is the home
-  page, a splash. Starlight needs a `title`: the loader takes it from the page's H1, and a Markdown plugin drops the
+  Starlight's docs collection with `docsSchema()`. A page's id is its path, lower-cased; docs/index.md is the landing
+  page at the root, a splash. Starlight needs a `title`: the loader takes it from the page's H1, and a Markdown plugin drops the
   H1 itself, so Starlight draws it once. Pages read the same on GitHub and on the site.
 - **Markdown plugins on Astro's default processor, Sätteri** (`site/src/markdown.mjs`): a relative `.md` link goes to
   its page (or to GitHub when the doc is not a page); `<!--{{ name }}-->` takes the Markdown `macros.py` writes as
@@ -26,7 +26,8 @@ service anywhere.
   (starlight-github-alerts); buttons are plain links.
 - **Starlight's own features first**: Pagefind for search, `sidebar` for the nav (every ADR listed from the files),
   `editLink`, `social` with a small header component that asks api.github.com for the stars and forks in the browser,
-  `<StarlightPage>` for the viewer's page. Mermaid renders in the browser with astro-mermaid from npm.
+  `<StarlightPage>` for the viewer's page, and a `Footer` override that loads the viewer's module on any page with a
+  `<div class="noggin-viewer">` (a doc can still drop one in). Mermaid renders in the browser with astro-mermaid from npm.
 - **The viewer is an Astro page** (`site/src/pages/viewer.astro`, ADR 0008): its module imports three.js and its
   addons from npm and Vite bundles them; the Draco decoder is copied from three's package into the build. The
   lockfile's integrity hashes and Dependabot replace vendored.py's sha384 pins.
@@ -62,5 +63,7 @@ service anywhere.
 - Starlight's `docsLoader()`: reads `src/content/docs/` only, so the Markdown would move out of its place.
 - MDX components (`<CardGrid>`, `<Aside>`) for cards and callouts: GitHub would show their imports and JSX.
 - Hand-listing Starlight's inline-script hashes in the config: they change with each Starlight release.
+- astro-shield (SRI and CSP for inline scripts): a second CSP writer beside Astro's own `security.csp`; adding the
+  missing hashes to Astro's policy is a dozen lines (`site/src/csp.mjs`).
 - `'unsafe-inline'` for scripts (the MkDocs policy): not needed, every script is the site's own or hashed.
 - rehype-mermaid (build-time SVGs, no style injection): no release since 2024 and it pins Mermaid 11.

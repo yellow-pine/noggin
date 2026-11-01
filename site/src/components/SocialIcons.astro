@@ -1,14 +1,15 @@
 ---
 // Starlight's social links, after the repo's live stars and forks (api.github.com, asked by the reader's browser).
 import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { REPO } from '../pages.mjs';
 ---
 
-<a class="repo-facts" href="https://github.com/yellow-pine/noggin" aria-label="Stars and forks on GitHub" hidden></a>
+<a class="repo-facts" href={REPO} data-api={REPO.replace('github.com', 'api.github.com/repos')} aria-label="Stars and forks on GitHub" hidden></a>
 <Default />
 
 <script>
   const facts = document.querySelector<HTMLAnchorElement>('.repo-facts')!;
-  const repo = await fetch('https://api.github.com/repos/yellow-pine/noggin').then((r) => (r.ok ? r.json() : null));
+  const repo = await fetch(facts.dataset.api!).then((r) => (r.ok ? r.json() : null));
   if (repo) {
     facts.textContent = `★ ${repo.stargazers_count} · ⑂ ${repo.forks_count}`;
     facts.hidden = false;
