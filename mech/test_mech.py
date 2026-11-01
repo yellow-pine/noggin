@@ -87,7 +87,8 @@ def start(tmp_path, monkeypatch):
 
 
 def test_the_stand_in_runs_the_cores_micropython():
-    out = subprocess.run([MICROPYTHON, "-c", "import sys; print(sys.implementation._mpy)"], capture_output=True)
+    # the .mpy version and sub-version; the bits above name this build's native arch (x64 on CI), which bytecode skips
+    out = subprocess.run([MICROPYTHON, "-c", "import sys; print(sys.implementation._mpy & 0x3FF)"], capture_output=True)
     assert out.stdout.strip() == b"774"  # eyes/test_micropython.py CORE_MPY
 
 
