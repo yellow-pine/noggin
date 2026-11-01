@@ -6,11 +6,11 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "pyproject.toml", "uv.lock",
-            ".github/workflows/pages.yml"]
+    paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml",
+            "uv.lock", ".github/workflows/pages.yml"]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["docs/**", "**/*.md", "mkdocs.yml", "pyproject.toml", "uv.lock", ".github/workflows/pages.yml"]
+    paths: ["docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock", ".github/workflows/pages.yml"]
   workflow_dispatch:
 # one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run
 concurrency:

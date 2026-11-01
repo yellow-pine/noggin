@@ -21,7 +21,7 @@ def site(tmp_path_factory):
         cwd=ROOT,
         capture_output=True,
         text=True,
-        env={**os.environ, "NO_MKDOCS_2_WARNING": "1"},  # Material's banner about MkDocs 2, which it pins below
+        env={**os.environ, "NO_MKDOCS_2_WARNING": "1"},  # hush Material's banner about MkDocs 2 (it requires mkdocs<2)
     )
     assert r.returncode == 0, r.stderr[-3000:]
     return out
@@ -29,8 +29,9 @@ def site(tmp_path_factory):
 
 def test_every_doc_is_a_page(site):
     adrs = [f"docs/adr/{p.stem}/index.html" for p in (ROOT / "docs" / "adr").glob("*.md")]
-    pages = ["index.html", "GLOSSARY/index.html", "docs/build-notes/index.html", "docs/model-notes/index.html", *adrs]
-    assert len(adrs) >= 9 and [p for p in pages if not (site / p).is_file()] == []
+    docs = ["GLOSSARY", "CONTRIBUTING", "docs/build-notes", "docs/model-notes", "docs/face-design"]
+    pages = ["index.html", *(f"{d}/index.html" for d in docs), *adrs]
+    assert adrs and [p for p in pages if not (site / p).is_file()] == []
 
 
 def test_the_home_page_finds_its_theme(site):

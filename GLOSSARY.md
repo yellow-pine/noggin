@@ -114,7 +114,7 @@ _Avoid_: twin viewer, web app, demo
 **Site**:
 The project's public web site: the docs, built from the repo's Markdown, at its root and the Web viewer at /viewer
 (docs/adr/0009).
-_Avoid_: GitHub Pages, docs site, homepage
+_Avoid_: docs site, homepage, Pages (the host)
 
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
