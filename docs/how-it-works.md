@@ -1,8 +1,34 @@
 # How it works
 
-Three closer looks behind [the README's overview](../README.md#how-it-works): the Link that carries each command to a
-Core, how a Claude Code hook becomes a gesture, and how the model makes every picture. The words are the
-[glossary's](../GLOSSARY.md).
+The overview first, then three closer looks: the Link that carries each command to a Core, how a Claude Code hook
+becomes a gesture, and how the model makes every picture. The words are the [glossary's](../GLOSSARY.md).
+
+## Overview
+
+```mermaid
+---
+config:
+  layout: dagre
+  look: classic
+---
+flowchart LR
+    accTitle: How noggin works
+    accDescr: On the Mac, Claude Code's hooks write one line per event to a Unix socket; the noggin service times each turn and sends a command over Wi-Fi, as UDP datagrams signed with HMAC, to the Mech's two Cores. Core 1 drives the eyes' 4 servos, Core 2 the neck's 3. USB-C is a fallback to the eyes Core only.
+    subgraph Mac
+        CC["Claude Code<br/>hooks"] -- "Unix socket<br/>one line per event" --> NS["noggin service<br/>times each turn,<br/>drops Triggers while Busy"]
+    end
+    subgraph Mech
+        C1["Core 1: eyes<br/>ESP32-C3, MicroPython<br/>4 servos: lids and eyes"]
+        C2["Core 2: neck<br/>ESP32-C3, MicroPython<br/>3 servos: pan, tilt, mouth"]
+    end
+    NS -- "Wi-Fi: UDP + HMAC" --> C1
+    NS -- "Wi-Fi: UDP + HMAC" --> C2
+    NS -. "USB-C fallback" .-> C1
+```
+
+Arrows carry commands, the dotted one only when Wi-Fi fails; each Core plays a gesture to its end.
+
+The gestures live on the Core, so motion stays smooth whatever the Mac does; the Mac only says which one.
 
 ## The Link
 

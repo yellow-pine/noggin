@@ -2,6 +2,8 @@
 
 > Decided with Cansin on 2026-11-01, spec #224; ticket #225 (this ADR, the site and its deploy). Pictures (#226), docs
 > numbers (#227), the skills bot (#228) and the reports (#229) follow it one ticket at a time.
+> Amended 2026-11-01 (#280, spec #279): the site's home is a landing page (docs/index.md); the README is for
+> contributors and stays on GitHub, off the site.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -19,10 +21,10 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
   made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), beside `make check`, which builds the docs
   strictly too (test_site.py).
-- **Numbers come from the code.** A doc's numbers that the code owns (the README's behaviour table, the picture sizes
+- **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts and servos, the picture sizes
   and colours in docs/model-notes.md) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group),
   on the pages `mkdocs.yml` lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose
-  and a link to the site in their place; test_site.py fails if a number GitHub still shows in the README (a duration, a
+  and a link to the site in their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a
   Core's servo count) is not the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
   model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it

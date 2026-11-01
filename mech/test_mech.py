@@ -1,5 +1,5 @@
 """The Mech stand-in (mech/standin.py) beside the real noggin service: the Link's live checks on the Mech
-(docs/build-notes.md, #177 and #212) as tests. Real time, each on its own ports and folders."""
+(docs/use/noggin-service.md, #177 and #212) as tests. Real time, each on its own ports and folders."""
 
 import json
 import os

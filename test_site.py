@@ -36,9 +36,29 @@ def site(tmp_path_factory):
 
 def test_every_doc_is_a_page(site):
     adrs = [f"docs/adr/{p.stem}/index.html" for p in (ROOT / "docs" / "adr").glob("*.md")]
-    docs = ["GLOSSARY", "CONTRIBUTING", "docs/build-notes", "docs/model-notes", "docs/face-design", "docs/how-it-works"]
-    pages = ["index.html", *(f"{d}/index.html" for d in docs), *adrs]
-    assert adrs and [p for p in pages if not (site / p).is_file()] == []
+    guides = [f"docs/{d}/{p.stem}/index.html" for d in ("build", "use") for p in (ROOT / "docs" / d).glob("*.md")]
+    docs = ["GLOSSARY", "CONTRIBUTING", "docs/model-notes", "docs/face-design", "docs/how-it-works", "docs/pictures"]
+    pages = ["index.html", *(f"{d}/index.html" for d in [*docs, "docs/credits"]), *adrs, *guides]
+    assert adrs and len(guides) == 11 and [p for p in pages if not (site / p).is_file()] == []
+
+
+def test_a_page_that_moved_keeps_its_url(site):
+    """docs/build-notes.md split into the Build and Use pages (#280): its old URL sends a reader to Stage 1."""
+    assert 'content="0; url=../build/stage-1/"' in (site / "docs" / "build-notes" / "index.html").read_text()
+
+
+def test_the_home_page_is_the_landing_page(site):
+    """docs/index.md is the site's root (#280): its buttons lead into Build, Use and the viewer; the README, which is
+    for contributors, stays off the site."""
+    home = (site / "index.html").read_text()
+    buttons = [a for a in re.findall(r"<a [^>]*>", home) if "md-button" in a]
+    for target in [
+        'href="docs/build/parts/"',
+        'href="docs/use/noggin-service/"',
+        'href="https://yellowpine.com/noggin/viewer/"',
+    ]:
+        assert any(target in a for a in buttons), target
+    assert "make check" not in home and not (site / "README" / "index.html").exists()
 
 
 def test_the_home_page_finds_its_theme(site):
@@ -65,9 +85,10 @@ def test_the_nav_reaches_every_decision_and_the_viewer(site):
     assert [link for link in links if link not in home] == []
 
 
-def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
+@pytest.mark.parametrize("page", ["index.html", "docs/use/gestures/index.html"])
+def test_the_behaviour_table_is_built_from_the_code(site, page):
     """reactions/director.py and install_hooks.py say which event plays what, eyes/eyes.py how often it blinks."""
-    home = re.sub(r"<[^>]+>", "", (site / "index.html").read_text())
+    home = re.sub(r"<[^>]+>", "", (site / page).read_text())
     for row in [
         "SessionStart\nwink (hello)",
         "UserPromptSubmit\nthinking: lids low, gaze averted, micro-saccades, a blink every 5-8 s",
@@ -95,12 +116,15 @@ def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
     csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">"""
     for page in site.rglob("*.html"):
         html, local = page.read_text(), os.path.relpath(file, page.parent)
+        if 'http-equiv="refresh"' in html:  # a moved page's stub (mkdocs-redirects): no theme, one inline script
+            assert re.findall(r"<script[^>]* src=", html) == [], page
+            continue
         srcs = [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if "mermaid" in s]
         assert srcs == ([local] if 'class="mermaid"' in html else []), page
         assert f'integrity="{MERMAID["integrity"]}"' in html or not srcs
         assert csp in html.split("</head>")[0], page
         assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
-    assert 'class="mermaid"' in (site / "index.html").read_text()
+    assert 'class="mermaid"' in (site / "docs" / "how-it-works" / "index.html").read_text()
 
 
 def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):
@@ -119,11 +143,11 @@ def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypa
 
 
 def test_every_diagram_renders(tmp_path):
-    """Every Mermaid block in the README and docs/ drawn by Mermaid's own CLI in headless Chrome (a parse or layout
+    """Every Mermaid block in docs/ drawn by Mermaid's own CLI in headless Chrome (a parse or layout
     error fails it); the site's Mermaid, GitHub its own 12 (docs/research/2026-11-01-diagrams.md)."""
     docs = [ROOT / "README.md", *(p for p in (ROOT / "docs").rglob("*.md") if "references" not in p.parts)]
     files = [p for p in docs if "```mermaid" in p.read_text()]
-    assert ROOT / "README.md" in files
+    assert ROOT / "docs" / "how-it-works.md" in files
     pkgs = [arg for pkg in MERMAID_CLI for arg in ("-p", pkg)]
     for f in files:
         r = subprocess.run(
@@ -139,9 +163,39 @@ def github(path):
     return re.sub(r"<!--.*?-->", "", (ROOT / path).read_text(), flags=re.S)
 
 
-def test_github_shows_a_link_to_the_site_for_the_behaviour_table():
+# each doc whose numbers the site builds from the code, and where on the site GitHub's link sends a reader for them
+SITE_TABLES = {
+    "docs/index.md": "#what-it-does",
+    "docs/use/gestures.md": "docs/use/gestures/#which-event-plays-what",
+    "docs/build/stage-1.md": "docs/build/stage-1/#parts-from-the-model",
+    "docs/build/stage-2.md": "docs/build/stage-2/#servos-it-adds",
+    "docs/build/stage-3.md": "docs/build/stage-3/#servos-it-adds",
+    "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
+}
+
+
+@pytest.mark.parametrize("doc", SITE_TABLES)
+def test_github_links_to_the_site_for_the_tables_built_from_the_code(site, doc):
+    """GitHub hides the macros: its link lands on the site's page at the heading of the table built there."""
+    page, anchor = SITE_TABLES[doc].split("#")
+    assert f"(https://yellowpine.com/noggin/{page}#{anchor})" in github(doc)
+    assert f'id="{anchor}"' in (site / page / "index.html").read_text()
+
+
+def test_the_readme_is_for_contributors():
+    """#279: the pitch, the hero, the call-out to the site, setup, checks, CI/CD, contributing, credits, licence;
+    building and using the Mech are the site's."""
     readme = github("README.md")
-    assert "| SessionStart |" not in readme and "(https://yellowpine.com/noggin/#what-it-does)" in readme
+    assert (
+        "[Docs, build guide and live 3D viewer → https://yellowpine.com/noggin](https://yellowpine.com/noggin/)"
+        in readme
+    )
+    assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
+    workflows = [p for p in (ROOT / ".github" / "workflows").glob("*.yml") if p.name != "queue.yml"]  # going: #283
+    assert [
+        p.name for p in workflows if f"| {yaml.safe_load(p.read_text())['name']} | `{p.name}` |" not in readme
+    ] == []
+    assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
 def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site):
@@ -156,7 +210,6 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
         "background\n\n#F7F4EE\n#F7F4EE",
     ]:
         assert row in notes
-    assert "(https://yellowpine.com/noggin/docs/model-notes/#numbers-from-the-code)" in github("docs/model-notes.md")
 
 
 def test_the_diagrams_numbers_agree_with_the_code():
@@ -196,27 +249,37 @@ def test_the_stale_turn_sentence_follows_the_director():
     assert sentence in macros.behaviour()
 
 
-def test_every_number_left_in_the_readme_agrees_with_the_code():
-    """The table is the site's; a duration GitHub still shows (say a blink every 5-8 s) must be one the code has, and
-    each Core's servo count must be its channels' in model/geometry.py."""
+def test_every_number_github_shows_agrees_with_the_code():
+    """The tables are the site's; a duration GitHub still shows on the landing page (say a blink every 5-8 s) must be
+    one the code has, and each Core's servo count in the overview must be its channels' in model/geometry.py."""
     import macros  # here, not at the top: it imports the model, which only this test needs
     from model.geometry import CHANNELS
 
-    readme, durations = github("README.md"), r"\b\d+(?:-\d+)? (?:s|min)\b"
-    assert set(re.findall(durations, readme)) <= set(re.findall(durations, macros.behaviour()))
-    servos = re.findall(r"Core (\d): [^\"]*?(\d+) servos", readme)
+    home, durations = github("docs/index.md"), r"\b\d+(?:-\d+)? (?:s|min)\b"
+    assert set(re.findall(durations, home)) <= set(re.findall(durations, macros.behaviour()))
+    servos = re.findall(r"Core (\d): [^\"]*?(\d+) servos", github("docs/how-it-works.md"))
     assert servos == [(core, str(len(CHANNELS[f"core{core}"]))) for core, _ in servos] and len(servos) == 2
 
 
-def test_every_readme_picture_is_a_site_picture_ci_builds():
-    """Each README picture (the badges aside) is the site's absolute /images URL of a file in the pictures manifest."""
+def test_every_picture_ci_builds_is_shown_from_the_site():
+    """The README's and the docs' pictures (the badges and the build photos aside) are the site's absolute /images URLs
+    of files in the pictures manifest, and each of those is shown somewhere; the README leads with the hero."""
     from model.render import pictures
 
-    readme = (ROOT / "README.md").read_text()
-    urls = [u for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", readme) if not u.startswith("https://img.shields.io/")]
+    docs = [
+        ROOT / "README.md",
+        *(p for p in (ROOT / "docs").rglob("*.md") if not {"references", "research"} & set(p.parts)),
+    ]
+    urls = {
+        u
+        for d in docs
+        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", d.read_text())
+        if u.startswith("http") and not u.startswith("https://img.shields.io/")
+    }
     site = "https://yellowpine.com/noggin/images/"
-    assert urls and [u for u in urls if not u.startswith(site)] == []
+    assert [u for u in urls if not u.startswith(site)] == []
     assert sorted(u.removeprefix(site) for u in urls) == sorted(sum(pictures.SITE.values(), []))
+    assert f"![noggin]({site}hero.gif)" in (ROOT / "README.md").read_text()
 
 
 def test_the_pages_workflow_renders_every_part_of_the_pictures():

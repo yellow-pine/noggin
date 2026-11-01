@@ -88,7 +88,7 @@ flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropytho
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(MPR) resume exec "import os; [os.remove(f) for f in ('eyes.py', 'gaze_trace.py', 'wifi.py') if f in os.listdir()]"  # a .py shadows its .mpy
 	$(PY) eyes/interrupt.py reset
-wifi: venv       ## add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi step alone (scripts/setup.sh wifi); in a Terminal window (docs/build-notes.md)
+wifi: venv       ## add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi step alone (scripts/setup.sh wifi); in a Terminal window (docs/build/flashing.md)
 	scripts/setup.sh wifi
 restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done

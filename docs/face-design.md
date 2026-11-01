@@ -35,7 +35,7 @@ and the jaw stay as designed.
 - Jaw 82 mm wide, 48 deep, front face 14 mm ahead of the pupils, bottom 61 mm below eye centre.
 
 ## Hardware
-Inventory and the buy list: docs/build-notes.md "Parts to buy".
+Inventory and the buy list: [Parts](build/parts.md#parts-to-buy).
 
 ## Assembly decisions
 - Printed halves join with M2 screws into printed bosses and nuts (removable). Nothing glued.

@@ -70,7 +70,7 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
-  no guide sheets. The designer's and the vendor's files are credits (README) and history (docs/research) only.
+  no guide sheets. The designer's and the vendor's files are credits ([Credits](credits.md)) and history (docs/research) only.
 - Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
 - `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
   model/build/stl; future prints use ours.
