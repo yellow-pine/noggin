@@ -77,6 +77,8 @@ jobs:
         env:
           RESULT: ${{ steps.claude.outputs.structured_output }}
           BASE: origin/${{ github.event.pull_request.base.ref }}
+          PR: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$RESULT" ]; then
             # the action skips a review.yml that differs from main's (the Claude App's workflow validation)
@@ -87,3 +89,9 @@ jobs:
           fi
           echo "$RESULT" | jq -r '"verdict: \(.verdict)\n\(.reasons)"'
           [ "$(echo "$RESULT" | jq -r .verdict)" = approve ]
+          # Claude has decided approve without the approval landing on the head (#247); main's gate, run outside the
+          # PR's checkout so the PR can't shadow its imports
+          git show "$BASE:scripts/claude_approved.py" > "$RUNNER_TEMP/claude_approved.py"
+          if ! python3 -I -S "$RUNNER_TEMP/claude_approved.py" "$PR"; then
+            echo "::error::the approval didn't land; re-run this job"; exit 1
+          fi

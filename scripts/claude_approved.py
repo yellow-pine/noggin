@@ -1,6 +1,7 @@
 """The `review` check in the merge queue (.github/workflows/queue.yml). A merge group has no PR to review: it passes
 when claude[bot]'s last verdict on the queued PR's head commit is an approval, the review the PR's own `review` check
-already gated on. Usage: GITHUB_REPOSITORY=o/r python3 scripts/claude_approved.py <merge group head_ref>"""
+already gated on. review.yml runs it by PR number too: Claude can decide approve without the approval landing.
+Usage: GITHUB_REPOSITORY=o/r python3 scripts/claude_approved.py <merge group head_ref | PR number>"""
 
 import json
 import os
@@ -8,8 +9,10 @@ import subprocess
 import sys
 
 
-def pr_number(head_ref: str) -> int:
-    return int(head_ref.rsplit("/pr-", 1)[1].split("-")[0])  # refs/heads/gh-readonly-queue/main/pr-<n>-<sha>
+def pr_number(ref: str) -> int:
+    if ref.isdecimal():
+        return int(ref)
+    return int(ref.rsplit("/pr-", 1)[1].split("-")[0])  # refs/heads/gh-readonly-queue/main/pr-<n>-<sha>
 
 
 def approved(reviews: list[dict], head_sha: str) -> bool:

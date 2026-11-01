@@ -14,6 +14,10 @@ def test_the_pr_number_comes_from_the_merge_group_branch():
     assert pr_number(f"refs/heads/gh-readonly-queue/main/pr-192-{'b' * 40}") == 192
 
 
+def test_the_pr_number_can_be_given_as_is():  # review.yml's own check after Claude decides approve
+    assert pr_number("247") == 247
+
+
 def test_an_approval_on_the_head_passes():
     assert approved([review("COMMENTED"), review("APPROVED")], HEAD)
 
