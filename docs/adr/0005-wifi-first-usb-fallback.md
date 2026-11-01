@@ -17,7 +17,7 @@ Accepted as-is: `send` blocks the service loop up to 3 s per unacked line (four 
 
 ## Update 2026-11-01: MQTT over mutual TLS evaluated and rejected (#157, #158)
 
-The standard alternative, Mosquitto with mutual TLS and the Cores as umqtt clients, was tried on the eyes Core. The Core's MicroPython build leaves about 19 KB of system heap, and mbedTLS needs about 35 KiB per connection, so the handshake starves (docs/research/2026-10-31-core-tls.md). The Link stays signed UDP: stdlib hmac, signed beacons and replies, seq with link.seq (#135). The Mosquitto and PKI code from #159 and #160 is unused until the Core firmware can hold TLS.
+The standard alternative, Mosquitto with mutual TLS and the Cores as umqtt clients, was tried on the eyes Core. The Core's MicroPython build leaves about 19 KB of system heap, and mbedTLS needs about 35 KiB per connection, so the handshake starves (docs/research/2026-10-31-core-tls.md). The Link stays signed UDP: stdlib hmac, signed beacons and replies, seq with link.seq (#135). The Mosquitto and PKI code from #159 and #160 was parked for a Core firmware that can hold TLS, which ADR 0002 rules out, so it was deleted on 2026-11-01 (#334, docs/research/2026-11-01-stack-alternatives.md); git history keeps it.
 
 ## Update 2026-11-01: several known networks (#195)
 

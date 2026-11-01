@@ -294,31 +294,6 @@ def test_a_stalled_writer_is_dropped_after_the_timeout(tmp_path, capsys):
     s.stop()
 
 
-def test_the_service_starts_watches_and_stops_its_broker(tmp_path):
-    class FakeBroker:
-        calls = []
-
-        def start(self):
-            self.calls.append("start")
-
-        def poll(self):
-            self.calls.append("poll")
-
-        def stop(self):
-            self.calls.append("stop")
-
-    sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
-    b = FakeBroker()
-    d = Service(sock_path=sock, open_serial=lambda: None, mute_file=tmp_path / "m", cal_file=tmp_path / "c.json",
-                beacon_port=0, broker=b)  # fmt: skip
-    t = threading.Thread(target=d.run, daemon=True)
-    t.start()
-    assert wait_for(lambda: "poll" in b.calls)
-    d.stop()
-    t.join(2)
-    assert b.calls[0] == "start" and b.calls[-1] == "stop"
-
-
 def test_pose_holds_dropping_hooks_until_follow(tmp_path, capsys):
     s, sock, fake = start(tmp_path)
     ask(sock, "pose lids\n")  # not the Core's 2 or 4 arguments: ignored, still following
