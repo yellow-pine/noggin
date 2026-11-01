@@ -2,8 +2,8 @@ name: Site Deploy
 # The site (docs/adr/0009): `render` renders the README's pictures in Blender (make pictures, #226; one runner per
 # motion, the matrix `motions` reads from the code, #297; the required `pictures` check sums them up) beside `viewer`,
 # whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
-# (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
-# site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
+# (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with them at site/images, the
+# viewer at site/viewer and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
 # (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
 # check on PRs that touch what the site is made from (the changes job, as for check.yml's mech). Main builds and
 # deploys only after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
@@ -397,7 +397,7 @@ jobs:
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346   # v5.0.1
   # always(): it runs on a cancelled run too, to say so; after deploy-pending, so its status is the last one
   deploy-status:
-    needs: [deploy-pending, render, viewer, site, deploy]
+    needs: [deploy-pending, motions, render, viewer, site, deploy]
     if: >-   # as motions
       ${{ always() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
       && github.event.workflow_run.head_repository.full_name == github.repository }}
@@ -415,7 +415,7 @@ jobs:
           SHA: ${{ github.event.workflow_run.head_sha }}
           CHECK: ${{ github.event.workflow_run.conclusion }}
           CHECK_URL: ${{ github.event.workflow_run.html_url }}
-          RENDER: ${{ needs.render.result }}
+          RENDER: ${{ needs.motions.result == 'success' && needs.render.result || needs.motions.result }}   # render's list too
           VIEWER: ${{ needs.viewer.result }}
           SITE: ${{ needs.site.result }}
           DEPLOY: ${{ needs.deploy.result }}
