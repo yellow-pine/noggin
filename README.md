@@ -44,6 +44,7 @@ make site     # the site in site/ (python -m http.server -d site)
 | Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
 | PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit with an area's scope (ADR 0010) |
 | Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
+| CI Images | `images.yml` | Dockerfile PRs, main, weekly | builds the images the Chrome and Blender jobs run in; main pushes them to GHCR |
 | Dependabot Auto-merge | `dependabot.yml` | Dependabot's PRs | turns on auto-merge (squash): the PR merges once the required checks and Claude's review pass |
 | Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
 | Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |

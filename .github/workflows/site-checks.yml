@@ -8,6 +8,8 @@ name: Site Checks
 # this run and Code Checks passed. `site` and `pictures` are required checks on PRs that touch what the site is made
 # from (the changes job, as for check.yml's mech). On main, `deploy-pending` sets the commit's `deploy` status
 # pending while this builds (#292); Site Deploy sets its outcome.
+# render and viewer run in our Blender image, site in the base one (Chrome for the viewer's test; ci/, docs/adr/0009);
+# the other jobs need no tool uv can't install.
 on:
   push:
     branches: [main]
@@ -75,6 +77,8 @@ jobs:
     needs: motions
     if: ${{ !cancelled() && needs.motions.result == 'success' }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
     strategy:
       fail-fast: false   # every motion runs to its end; site fails unless all of them succeeded
       matrix:
@@ -96,10 +100,6 @@ jobs:
         with:
           path: model/build/images
           key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
-      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # as in check.yml
       # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
       # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
@@ -117,29 +117,6 @@ jobs:
           path: model/build/trajectories
           key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
           restore-keys: trajectories-
-      # Blender 5.2.2 cached unpacked (the untar took ~20 s a runner); else the tarball's cache, fetched only when neither
-      # is there: download.blender.org refused main's runners (403) on the first deploy; sha256-checked
-      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
-        id: blender
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: ~/blender
-          key: blender-5.2.2-linux-x64-unpacked
-      - if: ${{ steps.frames.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: ~/blender.tar.xz
-          key: blender-5.2.2-linux-x64
-      - if: ${{ steps.frames.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
-        run: |
-          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
-          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
-          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
-      # Blender's X and GL libraries, even in the background (Eevee renders on Mesa's software GL here); all but libegl1
-      # come with the runner image. No ffmpeg: its 100 packages took 20-90 s a runner (make pictures encodes with
-      # imageio-ffmpeg's)
-      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
-        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri
       # its own step first, so the run's timings show the bake apart from the renders
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         run: make trajectories
@@ -149,7 +126,7 @@ jobs:
         env:
           MOTIONS: ${{ matrix.motion }}
         run: |
-          make pictures BLENDER=$HOME/blender/blender
+          make pictures BLENDER=blender
           echo "cold=true" >> "$GITHUB_OUTPUT"
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -181,6 +158,8 @@ jobs:
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
     permissions:
       contents: read
       actions: read   # scripts/ci_budget.py reads the run's start
@@ -195,10 +174,6 @@ jobs:
         with:
           path: web/build
           key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'vendored.py', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # as in check.yml
       # three.js from npm (vendored.py's .cache) by its version in web/build.py; vendored.py checks each hash cached or not
       - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
         id: three
@@ -227,29 +202,8 @@ jobs:
           path: model/build/trajectories
           key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
           restore-keys: trajectories-
-      # Blender 5.2.2 cached unpacked (the untar took ~20 s a runner); else the tarball's cache, fetched only when neither
-      # is there: download.blender.org refused main's runners (403) on the first deploy; sha256-checked
       - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        id: blender
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: ~/blender
-          key: blender-5.2.2-linux-x64-unpacked
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: ~/blender.tar.xz
-          key: blender-5.2.2-linux-x64
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
-        run: |
-          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
-          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
-          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
-      # Blender's X and GL libraries, even in the background; all but libegl1 come with the runner image
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        run: make web BLENDER=$HOME/blender/blender
+        run: make web BLENDER=blender
       # saved even when a web test fails, as check.yml saves the parts: the baked trajectories stay good
       - if: ${{ always() && steps.viewer.outputs.cache-hit != 'true' && steps.trajectories.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -274,6 +228,9 @@ jobs:
     if: >-   # as check.yml's mech
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:1acfcba692ce1bfcd6d3f6fcc7f9ee09922326c3b6d0bf19aa1cfdbf1216f6ac   # ci/base.Dockerfile (images.yml)
+      options: --ipc=host   # Chrome's shared memory (https://playwright.dev/docs/docker)
     permissions:
       contents: read
       actions: read   # scripts/ci_budget.py reads when the run's jobs started
@@ -284,9 +241,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # as in check.yml
       # every motion's pictures (model/build/images, which make site puts at site/images)
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
@@ -315,7 +269,7 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - run: make site
-      # the viewer in Chrome (the runner's) on the built site: it plays a gesture and asks no other host for anything
+      # the viewer in Chrome (the image's) on the built site: it plays a gesture and asks no other host for anything
       - run: uv run --with playwright==1.64.0 pytest -q web/test_viewer.py
       # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
       - id: preview
