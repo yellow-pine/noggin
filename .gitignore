@@ -18,3 +18,4 @@ eyes/wifi.json
 *.crt.der
 *.pem
 web/build/
+site/

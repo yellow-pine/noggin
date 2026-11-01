@@ -25,13 +25,15 @@ dev = [
     "mpy-cross==1.23.*",  # .mpy for the Core: mpy v6.3, what its 1.23 loads
     "paho-mqtt>=2.1.0",
     "pygltflib>=1.16.5",
+    "mkdocs-material==9.7.7",
+    "mkdocs-same-dir==0.1.3",
 ]
 
 [tool.noggin]
 micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the stubs and mpy-cross above pin the same
 
 [tool.pytest.ini_options]
-testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py"]
+testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py"]
 markers = ["heavy: MuJoCo and the slowest mesh sweeps; CI runs them in their own job (-m heavy) beside the rest"]
 
 [tool.ruff]

@@ -111,6 +111,11 @@ The public web page that shows each Stage in 3D, turned and zoomed by the reader
 from Blender's glTF (docs/adr/0008).
 _Avoid_: twin viewer, web app, demo
 
+**Site**:
+The project's public web site: the docs, built from the repo's Markdown, at its root and the Web viewer at /viewer
+(docs/adr/0009).
+_Avoid_: GitHub Pages, docs site, homepage
+
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
 _Avoid_: banner, idle loop
