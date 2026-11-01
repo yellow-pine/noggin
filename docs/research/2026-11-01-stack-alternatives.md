@@ -79,7 +79,9 @@ Everything else: **keep**.
 
 ### Decisions (Cansin, 2026-11-01)
 
-1. Site: **Starlight, gated.** Its spec proves both gates with a throwaway prototype first; Docusaurus if either fails.
+1. Site: **Starlight, gated** (spec #331, migration #333). The migration proves both gates first and stops if either
+   fails; Docusaurus is the fallback. The viewer becomes an Astro page with three.js from npm (Cansin), not
+   `public/viewer/` as suggested below.
 2. Parked MQTT broker and PKI: **delete** (broker, PKI, their tests, paho-mqtt, CI's mosquitto); ADR 0005's update
    says so.
 3. PySpice: **switch to spicelib now**, in its own PR.
