@@ -32,7 +32,8 @@ jobs:
     outputs:
       site: ${{ steps.filter.outputs.site }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - if: ${{ github.event_name == 'merge_group' }}   # a PR's files come from the API, no checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # dorny fetches a merge group's base from the public repo
       - id: filter
@@ -154,8 +155,8 @@ jobs:
       - run: python3 scripts/ci_budget.py ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-  deploy:
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+  deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
+    if: ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
     needs: site
     runs-on: ubuntu-latest
     permissions:

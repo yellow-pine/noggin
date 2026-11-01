@@ -31,7 +31,8 @@ jobs:
     outputs:
       mech: ${{ steps.filter.outputs.mech }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - if: ${{ github.event_name == 'merge_group' }}   # a PR's files come from the API, no checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # dorny fetches a merge group's base from the public repo
       - id: filter
