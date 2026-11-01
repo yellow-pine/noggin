@@ -1,6 +1,8 @@
 # One SemVer version for the whole repo, released by release-please from conventional PR titles
 
 > Decided with Cansin on 2026-11-01, #303. Research: docs/research/2026-11-01-releases.md.
+>
+> Amended 2026-11-01 (#328): the release token comes from a GitHub App, not a fine-grained personal token.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -19,9 +21,10 @@ copy, and the tag is `v` plus it.
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
   release. It passes the required checks, Claude's review included, and auto-merges on green; merged, it tags `vX.Y.Z`
   and creates the GitHub release, and the tag starts Release Assets, which attaches the Core program zip.
-- **A token, not `GITHUB_TOKEN`.** What `GITHUB_TOKEN` creates starts no workflow: the release PR would get no checks
-  and its tag no assets. So the workflow runs on `RELEASE_PLEASE_TOKEN`, a fine-grained token on this repo
-  (CONTRIBUTING.md).
+- **A GitHub App's token, not `GITHUB_TOKEN`.** What `GITHUB_TOKEN` creates starts no workflow: the release PR would
+  get no checks and its tag no assets. So the workflow mints a short-lived token per run from a small private GitHub
+  App on yellow-pine (actions/create-github-app-token), not a personal token tied to one account (#328,
+  CONTRIBUTING.md).
 
 ## Considered options
 
