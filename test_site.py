@@ -346,14 +346,15 @@ def test_wcag_contrast():
 
 
 def test_every_text_colour_reads_at_aa_in_both_schemes(site):
-    """Text, links and buttons on the page, the header's text on the pink, a hovered button's text on its fill: each
-    at least 4.5:1 (WCAG 2 AA)."""
+    """Text (and its lighter shade), links and buttons on the page, the header's text on the pink, a hovered button's
+    text on its fill: each at least 4.5:1 (WCAG 2 AA)."""
     from palette import contrast
 
     for scheme, v in schemes((site / "index.html").read_text()).items():
         bg = v["--md-default-bg-color"]
         for fg, on in [
             (v["--md-default-fg-color"], bg),
+            (v["--md-default-fg-color--light"], bg),  # headings, the nav's and contents' titles
             (v["--md-typeset-a-color"], bg),
             (v["--md-primary-bg-color"], v["--md-primary-fg-color"]),
             (v["--md-accent-bg-color"], v["--md-accent-fg-color"]),

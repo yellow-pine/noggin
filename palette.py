@@ -14,29 +14,37 @@ PINK = SPOOLS["Milky Pink"]
 AA = 4.5  # WCAG 2 AA, normal text
 
 
+def rgb(c):
+    return [int(c[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+
+
+def hexed(rgb):
+    return "#" + "".join(f"{round(x * 255):02X}" for x in rgb)
+
+
 def contrast(a, b):
     """WCAG 2's contrast ratio of two #RRGGBB colours."""
 
     def luminance(c):
-        rgb = [int(c[i : i + 2], 16) / 255 for i in (1, 3, 5)]
-        r, g, b = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in rgb]
+        r, g, b = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in rgb(c)]
         return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
     hi, lo = sorted([luminance(a), luminance(b)], reverse=True)
     return (hi + 0.05) / (lo + 0.05)
 
 
-def darkest_needed(colour, on):
-    """The colour's hue and saturation, darkened until text in it reads at AA on `on`: the pink spool's links."""
-    h, lightness, s = colorsys.rgb_to_hls(*(int(colour[i : i + 2], 16) / 255 for i in (1, 3, 5)))
+def darkened_to_aa(colour, on):
+    """The colour's hue and saturation, darkened step by step until text in it first reads at AA on `on`: the pink
+    spool's links."""
+    h, lightness, s = colorsys.rgb_to_hls(*rgb(colour))
     while True:
-        c = "#" + "".join(f"{round(x * 255):02X}" for x in colorsys.hls_to_rgb(h, lightness, s))
+        c = hexed(colorsys.hls_to_rgb(h, lightness, s))
         if contrast(c, on) >= AA:
             return c
         lightness -= 0.01
 
 
-LINK = darkest_needed(PINK, PAPER)
+LINK = darkened_to_aa(PINK, PAPER)
 SCHEMES = {  # Material's scheme: page, text, links and hovers (a filled hover's text on it)
     "default": (PAPER, INK, LINK),
     "slate": (INK, PAPER, PINK),
@@ -47,6 +55,7 @@ def css():
     blocks = [
         f"""[data-md-color-scheme={scheme}] {{
   --md-default-bg-color: {bg}; --md-default-fg-color: {fg}; --md-typeset-color: {fg};
+  --md-default-fg-color--light: {hexed(0.7 * f + 0.3 * b for f, b in zip(rgb(fg), rgb(bg), strict=True))};
   --md-primary-fg-color: {PINK}; --md-primary-fg-color--light: {PINK}; --md-primary-fg-color--dark: {PINK};
   --md-primary-bg-color: {INK}; --md-primary-bg-color--light: {INK};
   --md-typeset-a-color: {link}; --md-accent-fg-color: {link}; --md-accent-fg-color--transparent: {link}1A;
