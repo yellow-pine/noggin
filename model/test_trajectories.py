@@ -3,11 +3,13 @@ import json
 import math
 
 import numpy as np
+import pytest
 
 from model import electrical, mjcf, traces
 from model import trajectories as tj
 from model.render import hero
 
+pytestmark = pytest.mark.heavy
 SETTLED_DEG = 0.5  # a servo's deadband (mjcf.KP)
 
 

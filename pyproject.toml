@@ -31,6 +31,7 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 
 [tool.pytest.ini_options]
 testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py"]
+markers = ["heavy: MuJoCo and the slowest mesh sweeps; CI runs them in their own job (-m heavy) beside the rest"]
 
 [tool.ruff]
 line-length = 120

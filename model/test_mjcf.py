@@ -11,6 +11,7 @@ from model import electrical, mjcf
 from model import geometry as g
 from model.engine import masses, mating, stages
 
+pytestmark = pytest.mark.heavy
 PENETRATION_MM = 0.05
 # Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS), and the pairs whose CoACD pieces
 # overlap though the parts do not (MuJoCo collides each piece's convex hull; the exact clearance measured on the meshes
