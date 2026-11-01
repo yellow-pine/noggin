@@ -138,3 +138,24 @@ range, filament is Bambu PLA Pure.
 - Filament, all owned, Bambu PLA Pure: Milky Pink, Pure White, Absolute Black, Apricot (hex and density:
   docs/research/2026-10-31-filament.md). No more needed: the face shell is a thin hollow skin, about 180 g Apricot
   in total and about 80 g Black.
+
+## Commands
+
+```
+scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
+make install         # host side only: hooks + the noggin service
+make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
+make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons, else USB (USB=1 forces it)
+make restore-stock   # put the stock remote-control program back on the Core
+noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
+noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
+noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
+noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
+noggin/noggin exercise 10                # gentle run-in, 10 minutes
+make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
+make follow          # follow mode: react to Claude Code again (the default, and the mode after any restart)
+make stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
+make render / gifs / hero   # the model's pictures (docs/model-notes.md)
+```
+
+Requirements: macOS, [uv](https://docs.astral.sh/uv/) (Python 3.12 and mpremote come with it), Claude Code.

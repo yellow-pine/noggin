@@ -42,3 +42,20 @@ def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     assert manifest["L lid servo:1"]["colour"] not in geometry.SPOOLS.values()
     base = trimesh.load(tmp_path / manifest["base plate:1"]["ply"])
     assert 0.1 < base.extents.max() < 0.2  # the 120 x 160 mm plate, in metres
+
+
+def test_on_stage3_the_eyes_and_jaw_move_on_the_bracket_as_alone_while_the_neck_carries_the_bracket():
+    stage3 = stages.STAGES["noggin-stage3"]
+    neutral = {n: p.matrix for n, p in stage3.parts.items()}
+    mats = scene.pose(stage3, {"rotate": 20.0, "tilt": -15.0, "l_eye": 10.0, "mouth": -30.0})
+    tilted = stages.pose(stage3, "tilt horn", -15.0).parts
+    panned = stages.pose(stage3, "pan horn", 20.0).parts
+
+    def on(parts, carrier, n):  # n in its carrier's frame
+        return np.linalg.inv(parts[carrier]) @ parts[n]
+
+    for n, horn, deg in (("L eyeball:1", "L eye horn", 10.0), ("bottom jaw:1", "jaw horn", -30.0)):
+        assert np.allclose(on(mats, "eye bracket:1", n), on(stages.pose(stage3, horn, deg).parts, "eye bracket:1", n))
+    assert np.allclose(on(mats, "pan turntable:1", "eye bracket:1"), on(tilted, "pan turntable:1", "eye bracket:1"))
+    assert np.allclose(mats["pan turntable:1"], panned["pan turntable:1"])
+    assert np.allclose(mats["base plate:1"], neutral["base plate:1"])

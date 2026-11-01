@@ -1,7 +1,9 @@
 """Every picture of the model, rendered in Blender from the engine's poses (#47; rules in docs/model-notes.md).
-`views` (`make render`): top/side/front of each sub-assembly and Stage, the stage 3 hero and the Stage strip. `gifs` (`make gifs`): the six gestures on stage 1, posed per 100 ms frame from the Core
-program's own commands (model/traces.py), at 10 fps, each with a contact sheet.
-Usage: python -m model.render.pictures views|gifs [name ...]   (Blender at $BLENDER)"""
+`views` (`make render`): top/side/front of each sub-assembly and Stage, the Stage strip and stage 3 exploded. `gifs`
+(`make gifs`): the six gestures on stage 1, posed per 100 ms frame from the Core program's own commands
+(model/traces.py), at 10 fps, each with a contact sheet. `hero` (`make hero`): the README hero, stage 3 talking
+(model/render/hero.py).
+Usage: python -m model.render.pictures views|gifs|hero [name ...]   (Blender at $BLENDER)"""
 
 import json
 import math
@@ -34,7 +36,16 @@ STRIP = [("stage1", "front"), ("stage2", "side"), ("stage3", "side"), ("stage3",
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # gestures: the Mech's front-right (right eye nearest), 25 deg up, framed on the eyes
 THREE_QUARTER = camera.three_quarter((0, -1, 0), (-1, 0, 0), g.Z, 25)
-HERO = (0, -math.cos(math.radians(10)), math.sin(math.radians(10)))  # stage 3 from the front, a little above
+# the hero and the exploded view: stage 3 from 15 deg to its right (right eye nearest, as the gestures), 15 deg up
+_R = math.radians(15)
+HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
+HERO_SIZE = (800, 600)
+EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
+    "noggin-base": (0, 0, 0),
+    "noggin-stack": (0, 0, 45),
+    "noggin-eyes": (0, 0, 95),
+    "noggin-mouth": (0, -45, 95),
+}
 GIF_FPS, GIF_MAX_BYTES = 10, 1_000_000
 
 
@@ -47,10 +58,17 @@ def metres(mats):
     return out
 
 
+def assembled(name, frames):
+    """The picture's parts as the engine assembles them; a Stage under its document name, which clamps the eyes and
+    mouth to the tilt arm so the neck carries the head (stages.assemble)."""
+    doc = f"noggin-{name}"
+    return stages.assemble(doc if doc in g.STEM_IN else name, frames, 2)
+
+
 def prepare(name, frames):
     """(stage, manifest with absolute PLY paths, hull points per part) for one picture's parts, exported once. Always
     our geometry (model/build/ours, `make ours`), never the designer's meshes."""
-    stage = stages.assemble(name, frames, 2)
+    stage = assembled(name, frames)
     folder = os.path.join(OUT, "meshes", name)
     os.makedirs(folder, exist_ok=True)
     manifest = scene.export(stage, folder)
@@ -80,7 +98,7 @@ def blender(name, manifest, shots):
 
 
 def views(names=None):
-    """Top/side/front of every picture document, the hero and (all Stages present) the strip."""
+    """Top/side/front of every picture document, stage 3 exploded and (all Stages present) the strip."""
     plans = {}
     for name, (frames, dirs) in DOCS.items():
         if not names or name in names:
@@ -105,13 +123,26 @@ def views(names=None):
                     shot(f"strip-{i}.png", STRIP_PANEL, camera.stand(panels[key], pts, scale, panel_aspect), mats)
                 )
         if name == "stage3":
-            shots.append(shot("hero.png", VIEW_SIZE, camera.fit(pts, HERO, g.Z, aspect, LENS, MARGIN), mats))
+            apart = exploded(mats)
+            cam = camera.fit(points(hulls, apart), HERO, g.Z, aspect, LENS, MARGIN)
+            shots.append(shot("exploded.png", VIEW_SIZE, cam, apart))
         blender(name, manifest, shots)
         print(f"{name}: {len(shots)} pictures")
     if len(panels) == len(STRIP):
         ins = [a for i in range(len(STRIP)) for a in ("-i", os.path.join(OUT, f"strip-{i}.png"))]
         stack = f"hstack=inputs={len(STRIP)}"
         ffmpeg(*ins, "-filter_complex", stack, "-q:v", "3", os.path.join(OUT, "stages.jpg"))
+
+
+def exploded(mats):
+    """Stage 3's world matrices (metres) with each sub-assembly moved by its EXPLODE offset."""
+    out = {}
+    for sub, (dx, dy, dz) in EXPLODE.items():
+        for n in stages.SUBS[sub]().parts:
+            m = np.array(mats[n])
+            m[:3, 3] += np.multiply((dx, dy, dz), 0.001)
+            out[n] = m.tolist()
+    return out
 
 
 def gesture_camera(eye_points, aspect):
@@ -145,18 +176,36 @@ def gifs(names=None):
         encode(os.path.join(OUT, "gifs", name), os.path.join(OUT, name))
 
 
-def encode(frames, out):
-    """frames/NNN.png -> out.gif (10 fps, one shared palette, only changed rectangles stored) and out-sheet.png."""
+def hero_gif():
+    """The hero's poses (model/render/hero.py) on stage 3 through one three-quarter camera fitted to every pose,
+    encoded to hero.gif: 640 wide, 10 fps, 64 colours, at most 3 MB."""
+    from model.render import hero
+
+    stage, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
+    poses = [metres(scene.pose(stage, f)) for f in hero.frames()]
+    cam = camera.fit(np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, 4 / 3, LENS, MARGIN)
+    folder = os.path.join(OUT, "gifs", "hero")
+    os.makedirs(folder, exist_ok=True)
+    for old in os.listdir(folder):
+        os.remove(os.path.join(folder, old))
+    blender(
+        "stage3", manifest, [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
+    )
+    encode(folder, os.path.join(OUT, "hero"), hero.FPS, 640, 3_000_000)
+
+
+def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES):
+    """frames/NNN.png -> out.gif (one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
     palette = (  # 480 wide, 64 colours: bored's 117 frames fit 1 MB (600 wide or 96 colours did not)
-        "scale=480:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];"
+        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     )
-    ffmpeg("-framerate", str(GIF_FPS), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
+    ffmpeg("-framerate", str(fps), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
     size = os.path.getsize(out + ".gif")
-    if size > GIF_MAX_BYTES:
-        sys.exit(f"{out}.gif is {size // 1024} KB, over {GIF_MAX_BYTES // 1000} KB")
+    if size > max_bytes:
+        sys.exit(f"{out}.gif is {size // 1024} KB, over {max_bytes // 1000} KB")
     step = math.ceil(n / 24)
     rows = math.ceil(math.ceil(n / step) / 6)
     sheet = f"select='not(mod(n\\,{step}))',scale=300:-2,tile=6x{rows}:padding=4:color=white"
@@ -174,6 +223,8 @@ def main(what, names):
         views(names)
     elif what == "gifs":
         gifs(names)
+    elif what == "hero":
+        hero_gif()
     else:
         sys.exit(f"unknown: {what}")
 
