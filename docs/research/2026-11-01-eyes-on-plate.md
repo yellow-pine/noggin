@@ -43,8 +43,8 @@ plate against the eye bracket and against both servo brackets.
    thick, which is the v1 stem's length below the feet, so the stem fills the slot flush with the underside.
    - The photos: in docs/build-photos/eyes-top.jpg and eyes-rest-top.jpg, the bearing recess (black, round, with its
      pivot hole) shows between the two servo brackets, behind the stem, and the stem does not cover it. In the side
-     photo, the eyeballs reach about 33 mm in front of the plate's front edge. The recess placement gives about 20 mm and
-     the slot about 36 mm.
+     photo, the eyeballs reach about 30 mm in front of the plate's front edge, by the plate's 160 mm length. The model puts
+     them 11 mm in front with the recess placement and 27.5 mm with the slot.
    - The model's comment "stem in the pan recess, builder-confirmed" dates from T2 (commit 5c58efb). It put v2 there
      with the stem bottom 1.5 above the plate top [I]. With the boss standing in the recess, no 12 x 5 stem fits there.
      The photos settle it the other way.
@@ -59,8 +59,11 @@ plate against the eye bracket and against both servo brackets.
 - The guard: in model/engine/test_meshes.py, for both desk documents, nothing of the eyes sits inside the plate and both
   servo brackets touch the plate top. In model/test_mjcf.py the open conflict is gone from TOUCH. One plate convex piece
   (x -43..43, y -25..4.7, z -2..5) bridges the slot and the pan boss, so MuJoCo still overlaps the three brackets
-  with it (1.7 mm, 6.1 mm). TOUCH lists those pairs as hull artifacts, and the exact meshes are the guard. noggin-mouth
-  carries the rail bracket on the desk base, a pairing never built, where the rail does sit in the plate.
+  with it (1.7 mm, 6.1 mm). model/test_mjcf.py ON_PLATE excuses those pairs in the desk documents only, as hull
+  artifacts, and the exact meshes are the guard. noggin-mouth carries the rail bracket on the desk base, a pairing never
+  built: its MOUTH_ON_DESK takes ON_PLATE and the eye bracket, whose rail does sit in the plate there.
+- The designer also ships an eyes-only stand (01-eyes base.stl), its plate under the first bracket's feet. The photos
+  show the pan-tilt plate instead, so the model keeps our base plate.
 
 ## Left open
 

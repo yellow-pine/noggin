@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import trimesh
 
+from model import geometry as g
 from model import mjcf
 from model.engine import mating, stages
 
@@ -36,17 +37,16 @@ TOUCH = {
     },
     frozenset(("base plate:1", "pan servo:1")): "the plate's pieces fill the pan servo's pocket, 0.05 mm clear",
     frozenset(("base plate:1", "upright:1")): "the plate's pieces fill the recess under the upright, 0.5 mm clear",
-    **{
-        frozenset(("base plate:1", p)): "the plate's pieces fill its stem slot and bridge the pan boss: the desk eyes"
-        " stand on the plate top, 0.0 mm, nothing inside (model/engine/test_meshes.py, #172)"
-        for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")
-    },
 }
+# The desk documents only (geometry.DESK): the plate's front piece fills its stem slot and bridges the pan boss, so it
+# overlaps the eyes standing on the plate top; on the meshes they touch, nothing inside (model/engine/test_meshes.py).
+ON_PLATE = {frozenset(("base plate:1", p)) for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")}
 # noggin-mouth carries the desk base as context, as its recorded sweep did: a pairing never built (the mouth rides the
-# neck, stage 3), so its jaw parts and the rail bracket they hang on reach into the plate there (TOUCH already lists the
-# bracket).
-MOUTH_ON_DESK = {
-    frozenset(("base plate:1", p)) for p in ("top jaw:1", "bottom jaw:1", "jaw servo mount:1", "jaw servo:1")
+# neck, stage 3): the eyes stand on the plate as on the desk, and its jaw parts and the rail bracket they hang on reach
+# into the plate there.
+MOUTH_ON_DESK = ON_PLATE | {
+    frozenset(("base plate:1", p))
+    for p in ("top jaw:1", "bottom jaw:1", "jaw servo mount:1", "jaw servo:1", "eye bracket:1")
 }
 MOUNTED = {frozenset((a, b)) for _, feats in mating.JOINTS for (a, _), (b, _) in itertools.combinations(feats, 2)}
 
@@ -81,7 +81,12 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
     """No two parts that are not mounted to each other overlap by more than 0.05 mm (MuJoCo's signed distance between
     their convex pieces): a sub-assembly in the wrong frame cannot hide."""
     model, data = forward(doc)
-    allowed = MOUNTED | set(TOUCH) | (MOUTH_ON_DESK if doc == "noggin-mouth" else set())
+    allowed = (
+        MOUNTED
+        | set(TOUCH)
+        | (MOUTH_ON_DESK if doc == "noggin-mouth" else set())
+        | (ON_PLATE if doc in g.DESK else set())
+    )
     overlaps = {}
     for a, b in itertools.combinations(np.flatnonzero(model.geom_group == mjcf.COLLISION), 2):
         ba, bb = model.geom_bodyid[a], model.geom_bodyid[b]
