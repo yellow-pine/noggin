@@ -60,7 +60,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
   required `review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) or decides approve but no approval lands on the head (re-run
-  the job) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It needs the
+  the job; a hook refuses Claude's verdict until its review is on the head, #389) (`.github/workflows/review.yml`:
+  mattpocock code-review plus ponytail). It needs the
   `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot secrets): run
   `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.

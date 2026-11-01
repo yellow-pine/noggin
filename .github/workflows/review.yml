@@ -52,11 +52,20 @@ jobs:
         with:
           name: skills
           path: .agents/skills   # .claude/skills links here
+      # main's gate for Claude's hook, outside the PR's checkout so the PR can't shadow it or its imports
+      - env:
+          BASE: origin/${{ github.event.pull_request.base.ref }}
+        run: git show "$BASE:scripts/claude_approved.py" > "$RUNNER_TEMP/claude_approved.py"
       - id: claude
         uses: anthropics/claude-code-action@d535f5172dec02b204866b393d6b20b9b2aaf98d   # v1.0.266
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: dependabot[bot],noggin-release[bot]   # the release App opens release-please's PRs (CONTRIBUTING.md)
+          # the verdict ends the session, so it is refused until claude[bot]'s review on the head matches it (#389):
+          # the review lands while the Claude App token lives
+          settings: |
+            {"hooks": {"PreToolUse": [{"matcher": "StructuredOutput", "hooks": [{"type": "command", "command":
+              "python3 -I -S \"$RUNNER_TEMP/claude_approved.py\" ${{ github.event.pull_request.number }} --hook"}]}]}}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -71,9 +80,9 @@ jobs:
             (CLAUDE.md, CONTRIBUTING.md, an ADR, GLOSSARY.md); everything else is approve.
             3. Each request_changes finding: one inline comment (confirmed: true) on its line, with a suggestion block
                when the fix is a line edit. Sub-agents never post.
-            4. Submit ONE review: `gh pr review <n> --approve` or `--request-changes`, matching the verdict, `--body-file -`
-               with the verdict and reasons first, then sections Standards, Spec, Ponytail (non-blocking items here,
-               one line each with file:line), worst first, under 400 words.
+            4. Before your verdict, submit ONE review: `gh pr review <n> --approve` or `--request-changes`, matching
+               the verdict, `--body-file -` with the verdict and reasons first, then sections Standards, Spec, Ponytail
+               (non-blocking items here, one line each with file:line), worst first, under 400 words.
             Review only; never push or merge.
           claude_args: |
             --model claude-sonnet-5-5
@@ -95,8 +104,8 @@ jobs:
           fi
           echo "$RESULT" | jq -r '"verdict: \(.verdict)\n\(.reasons)"'
           [ "$(echo "$RESULT" | jq -r .verdict)" = approve ]
-          # Claude has decided approve without the approval landing on the head (#247); main's gate, run outside the
-          # PR's checkout so the PR can't shadow its imports
+          # the backstop when the hook couldn't run (#247, #389), from a fresh copy: the session's `git show --output`
+          # could have overwritten the hook's
           git show "$BASE:scripts/claude_approved.py" > "$RUNNER_TEMP/claude_approved.py"
           if ! python3 -I -S "$RUNNER_TEMP/claude_approved.py" "$PR"; then
             echo "::error::the approval didn't land; re-run this job"; exit 1
