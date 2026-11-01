@@ -239,6 +239,22 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
     assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
+def test_site_checks_looks_up_the_keys_the_blender_jobs_save():
+    """A PR whose pictures and viewer are cached skips both Blender jobs and their image pulls (#386): `changes`
+    looks up, and `site` restores, the keys render's runners and viewer save, else every PR run would go cold."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]
+
+    def key(job: str, id_: str) -> str:
+        (step,) = [s for s in jobs[job]["steps"] if s.get("id") == id_]
+        return step["with"]["key"]
+
+    def inputs(k: str) -> str:
+        return re.search(r"hashFiles\(.*\)", k)[0]
+
+    assert key("changes", "pictures") == key("site", "images") == f"pictures-${{{{ {inputs(key('render', 'frames'))} }}}}"
+    assert key("changes", "viewer") == key("site", "viewer") == key("viewer", "viewer")
+
+
 @pytest.mark.parametrize(
     "motions, render, passes",
     [
