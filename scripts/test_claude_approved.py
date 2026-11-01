@@ -30,6 +30,10 @@ def test_an_approval_by_anyone_else_fails():
     assert not approved([review("APPROVED", login="claude")], HEAD)
 
 
+def test_a_deleted_reviewer_is_skipped():
+    assert approved([{"user": None, "state": "APPROVED", "commit_id": HEAD}, review("APPROVED")], HEAD)
+
+
 def test_the_last_verdict_on_the_head_counts():
     assert not approved([review("APPROVED"), review("CHANGES_REQUESTED")], HEAD)
     assert approved([review("CHANGES_REQUESTED"), review("APPROVED"), review("COMMENTED")], HEAD)

@@ -16,7 +16,7 @@ def approved(reviews: list[dict], head_sha: str) -> bool:
     verdicts = [
         r["state"]
         for r in reviews
-        if r["user"]["login"] == "claude[bot]"
+        if (r["user"] or {}).get("login") == "claude[bot]"  # user is null for a deleted account
         and r["commit_id"] == head_sha
         and r["state"] in ("APPROVED", "CHANGES_REQUESTED")
     ]
