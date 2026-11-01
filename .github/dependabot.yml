@@ -32,7 +32,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
         update-types: [minor, patch]
         patterns: ["*"]
   # the CI images' sources (ci/*.Dockerfile FROM digests): main builds the images once a bump lands, and the entry
-  # below proposes them; Ubuntu and Node stay on their majors
+  # below proposes them; Node stays on its major, Ubuntu moves LTS to LTS
   - package-ecosystem: docker
     directory: /ci
     schedule:
@@ -40,8 +40,9 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
     cooldown:   # as above
       default-days: 14
     ignore:
+      # LTS only (even-year .04): skip the interim releases between them (.10, odd-year .04), #352; extend past 30.04
       - dependency-name: ubuntu
-        update-types: ["version-update:semver-major"]
+        versions: [">= 24.05, < 26.04", ">= 26.05, < 28.04", ">= 28.05, < 30.04"]
       - dependency-name: node
         update-types: ["version-update:semver-major"]
     commit-message:
