@@ -84,8 +84,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
   picked it up, so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's
   slowest tests are in its run summary.
-- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `site`
-  in `ci/base.Dockerfile` (`code` follows once main has pushed a base with the ngspice program), `render` and `viewer` in
+- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `site` in
+  `ci/base.Dockerfile` (`code` follows once main has pushed a base with the ngspice program), `render` and `viewer` in
   `ci/blender.Dockerfile` (base plus Blender), pinned by digest (`container: image:
   ghcr.io/yellow-pine/noggin-ci-…:main@sha256:…`); every other job stays on the bare runner with setup-uv and apt,
   since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to
