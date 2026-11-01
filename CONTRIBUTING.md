@@ -43,11 +43,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
   `on-hold` (paused by Cansin). Closing an issue removes its state label.
-- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json` to a commit (`ref`); `npx skills@1.7.4 experimental_install`
+- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json` to a commit (`ref`); the `skills` CLI
+  (`ci/package.json`, `npm ci --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`)
   restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at, and
   `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
   workflow re-pins to upstream HEAD (close and reopen its PR to start the checks, again after each refresh),
-  Dependabot pins actions by SHA. Every Dependabot PR, majors too, gets auto-merge (`.github/workflows/dependabot.yml`)
+  Dependabot pins actions by SHA and bumps the CLI. Every Dependabot PR, majors too, gets auto-merge (`.github/workflows/dependabot.yml`)
   and merges once the required checks and Claude's review pass.
   Blender is pinned (version and the Linux tarball's sha256) in the workflows that run it; the weekly `blender`
   workflow re-pins it to the newest stable release at least 14 days old (`scripts/blender_pin.py`), the same way.

@@ -13,7 +13,7 @@ permissions: {}
 jobs:
   lock:
     name: re-pin
-    # npx runs here with no token or secrets
+    # the skills CLI (ci/package-lock.json) runs here with no token or secrets
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,11 +21,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false
+      - run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
       # `skills add <source>#<sha>` rewrites each entry's ref and computedHash in the CLI's own lock format
       - run: |
           for src in $(jq -r '[.skills[].source] | unique[]' skills-lock.json); do
             sha=$(git ls-remote "https://github.com/$src" HEAD | cut -f1)
-            npx -y skills@1.7.4 add "$src#$sha" -a universal -y \
+            ci/node_modules/.bin/skills add "$src#$sha" -a universal -y \
               --skill $(jq -r --arg s "$src" '.skills | to_entries[] | select(.value.source == $s).key' skills-lock.json)
           done
           node scripts/verify_skills.mjs
@@ -50,7 +51,7 @@ jobs:
         with:
           name: lock
           path: ${{ runner.temp }}/lock
-      # the artifact comes from the job that ran npx: take its one file, and only if it changes nothing but each
+      # the artifact comes from the job that ran the skills CLI: take its one file, and only if it changes nothing but each
       # entry's ref (a commit) and computedHash (a sha256)
       - run: |
           [ "$(ls -A "$RUNNER_TEMP/lock")" = skills-lock.json ]

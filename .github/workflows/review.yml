@@ -11,7 +11,7 @@ permissions: {}
 jobs:
   skills:
     name: fetch skills
-    # same-repo ready PRs (dependabot's and the release App's too); npx runs here with no token or secrets, from the BASE lock so a PR can't pick its reviewer's skills
+    # same-repo ready PRs (dependabot's and the release App's too); the skills CLI (ci/package-lock.json) runs here with no token or secrets, from the BASE locks so a PR can't pick its reviewer's skills
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
@@ -21,7 +21,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - run: npx -y skills@1.7.4 experimental_install   # skills-lock.json into .agents/skills, each at its ref
+      # the runner's Node, npm's cache keyed on the lockfile
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      - run: ci/node_modules/.bin/skills experimental_install   # skills-lock.json into .agents/skills, each at its ref
       - run: node scripts/verify_skills.mjs   # experimental_install never checks computedHash
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
