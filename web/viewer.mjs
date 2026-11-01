@@ -32,7 +32,8 @@ function mount(root) {
   canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
   const bar = root.appendChild(document.createElement("nav"));
   bar.setAttribute("aria-label", "Gesture");
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // see-through: the page's own background (the site's palette, palette.py) behind the Mech, in either scheme
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(devicePixelRatio);
   renderer.shadowMap.enabled = true;
   const camera = new THREE.PerspectiveCamera(FOV);
@@ -122,7 +123,6 @@ function mount(root) {
     stylise(gltf.scene);
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(look.bg);
     scene.add(gltf.scene, camera, key, key.target, ambient);
     sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
     const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out

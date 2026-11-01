@@ -317,3 +317,45 @@ def test_no_real_photos_are_tracked():
     globs = ["*.jpg", "*.jpeg", "*.heic", "*.JPG", "*.HEIC"]
     tracked = subprocess.run(["git", "ls-files", *globs], capture_output=True, text=True, check=True).stdout.split()
     assert tracked == [], tracked
+
+
+def schemes(html):
+    """Each Material colour scheme's CSS variables as the page sets them (palette.py)."""
+    blocks = re.findall(r"\[data-md-color-scheme=(\w+)\]\s*\{([^}]*)\}", html.split("</head>")[0])
+    return {s: dict(re.findall(r"(--[\w-]+):\s*([^;]+);", body)) for s, body in blocks}
+
+
+def test_the_palette_is_the_mechs_own_colours_light_and_dark(site):
+    """#282: paper background, spool pink header, near-black text (the pictures' background and the Absolute Black
+    Blender draws, docs/model-notes.md), and a dark scheme the reader can switch to on every page."""
+    for page in ["index.html", "docs/build/stage-1/index.html", "viewer/index.html"]:
+        html = (site / page).read_text()
+        light, dark = schemes(html)["default"], schemes(html)["slate"]
+        assert (light["--md-default-bg-color"], light["--md-default-fg-color"]) == ("#F7F4EE", "#2B2B2E"), page
+        assert (dark["--md-default-bg-color"], dark["--md-default-fg-color"]) == ("#2B2B2E", "#F7F4EE"), page
+        assert light["--md-primary-fg-color"] == dark["--md-primary-fg-color"] == "#F7CED7", page
+        assert len(re.findall(r'<input class="md-option" data-md-color-media=', html)) == 2, page
+
+
+def test_wcag_contrast():
+    """WCAG 2's own figures: black on white 21:1, #777 on white just under AA."""
+    from palette import contrast
+
+    assert contrast("#000000", "#FFFFFF") == pytest.approx(21) and contrast("#FFFFFF", "#000000") == pytest.approx(21)
+    assert contrast("#777777", "#FFFFFF") == pytest.approx(4.48, abs=0.01)
+
+
+def test_every_text_colour_reads_at_aa_in_both_schemes(site):
+    """Text, links and buttons on the page, the header's text on the pink, a hovered button's text on its fill: each
+    at least 4.5:1 (WCAG 2 AA)."""
+    from palette import contrast
+
+    for scheme, v in schemes((site / "index.html").read_text()).items():
+        bg = v["--md-default-bg-color"]
+        for fg, on in [
+            (v["--md-default-fg-color"], bg),
+            (v["--md-typeset-a-color"], bg),
+            (v["--md-primary-bg-color"], v["--md-primary-fg-color"]),
+            (v["--md-accent-bg-color"], v["--md-accent-fg-color"]),
+        ]:
+            assert contrast(fg, on) >= 4.5, (scheme, fg, on)

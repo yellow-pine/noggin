@@ -125,7 +125,7 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb):
     _, g = glb
     look, read = g.scenes[g.scene].extras, set(re.findall(r"\blook\.(\w+)", MODULE))
     assert read and read <= set(look)
-    assert look["bg"] == "#F7F4EE" and look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
+    assert look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
     assert look["line_at"] == 640  # lines scale with the canvas: line_px at 640 px wide (Cansin, #211)
 
 
