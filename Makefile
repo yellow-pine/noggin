@@ -94,7 +94,7 @@ restore-stock: interrupt
 	$(PY) eyes/interrupt.py reset
 
 view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
-	$(PY) -m model.mjcf $(DOC)
+	$(HEAVY) $(PY) -m model.mjcf $(DOC)
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
 trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage: every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 	$(HEAVY) $(PY) -m model.trajectories

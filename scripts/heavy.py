@@ -14,7 +14,7 @@ try:
 except BlockingIOError:
     holder = os.pread(fd, 32, 0).decode().strip()
     print(
-        f"heavy.py: another heavy target runs on this machine; waiting for pid {holder} ({path})",
+        f"heavy.py: another heavy target runs on this machine; waiting for pid {holder or '?'} ({path})",
         file=sys.stderr,
         flush=True,
     )
