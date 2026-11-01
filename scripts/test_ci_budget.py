@@ -34,10 +34,27 @@ def test_an_event_without_a_budget_is_never_over():
 
 def test_the_clock_starts_at_the_first_job_that_ran_not_at_the_queued_run():
     jobs = [
-        {"status": "completed", "conclusion": "success", "started_at": "2026-11-01T12:20:05Z"},
-        {"status": "in_progress", "conclusion": None, "started_at": "2026-11-01T12:20:01Z"},
-        {"status": "queued", "conclusion": None, "started_at": "2026-11-01T12:00:00Z"},  # still waiting for a runner
-        {"status": "waiting", "conclusion": None, "started_at": "2026-11-01T12:00:00Z"},  # on its needs
-        {"status": "completed", "conclusion": "skipped", "started_at": "2026-11-01T12:00:00Z"},  # never ran
+        {"run_attempt": 2, "status": "completed", "conclusion": "success", "started_at": "2026-11-01T12:20:05Z"},
+        {"run_attempt": 2, "status": "in_progress", "conclusion": None, "started_at": "2026-11-01T12:20:01Z"},
+        {
+            "run_attempt": 2,
+            "status": "queued",
+            "conclusion": None,
+            "started_at": "2026-11-01T12:00:00Z",
+        },  # no runner yet
+        {
+            "run_attempt": 2,
+            "status": "waiting",
+            "conclusion": None,
+            "started_at": "2026-11-01T12:00:00Z",
+        },  # on its needs
+        {"run_attempt": 2, "status": "completed", "conclusion": "skipped", "started_at": "2026-11-01T12:00:00Z"},
+        {"run_attempt": 2, "status": "completed", "conclusion": "cancelled", "started_at": "2026-11-01T12:00:00Z"},
+        {
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T11:00:00Z",
+        },  # kept
     ]
-    assert first_start(jobs) == "2026-11-01T12:20:01Z"
+    assert first_start(jobs, attempt=2) == "2026-11-01T12:20:01Z"

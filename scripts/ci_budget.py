@@ -12,14 +12,20 @@ import sys
 from datetime import UTC, datetime
 
 BUDGET_S = {"pull_request": 180, "merge_group": 180, "push": 540}  # the queue counts as a PR; push is main only
-LEVEL = {"pull_request": "error", "merge_group": "error", "push": "warning"}
 
 
-def first_start(jobs: list[dict]) -> str:
-    """When the first of the run's jobs that ran started: a queued or waiting job has no runner yet, a skipped one
-    never ran."""
+def first_start(jobs: list[dict], attempt: int) -> str:
+    """When the first of the attempt's jobs that ran started: a queued or waiting job has no runner yet, a skipped or
+    cancelled one may never have had one, and a job "re-run failed jobs" kept from an earlier attempt ran back then."""
     ran = [
-        j for j in jobs if j["status"] == "in_progress" or (j["status"] == "completed" and j["conclusion"] != "skipped")
+        j
+        for j in jobs
+        if j["run_attempt"] == attempt
+        and (
+            j["status"] == "in_progress"
+            or j["status"] == "completed"
+            and j["conclusion"] not in ("skipped", "cancelled")
+        )
     ]
     return min(ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
 
@@ -30,22 +36,25 @@ def over(event: str, started: str, now: str, warm: bool) -> tuple[str, str] | No
     budget = BUDGET_S.get(event)
     print(f"{event}: {took:.0f} s since the first job started, budget {budget} s, {'warm' if warm else 'cold'} cache")
     if warm and budget is not None and took > budget:
-        return LEVEL[event], f"{event} run took {took:.0f} s > {budget} s with a warm cache"
+        return (
+            "warning" if event == "push" else "error",
+            f"{event} run took {took:.0f} s > {budget} s with a warm cache",
+        )
     return None
 
 
 if __name__ == "__main__":
-    e = os.environ
+    env = os.environ
     jobs = subprocess.run(
         ["gh", "api", "--paginate", "--jq", ".jobs[]",
-         f"repos/{e['GITHUB_REPOSITORY']}/actions/runs/{e['GITHUB_RUN_ID']}/attempts/{e['GITHUB_RUN_ATTEMPT']}/jobs"],
+         f"repos/{env['GITHUB_REPOSITORY']}/actions/runs/{env['GITHUB_RUN_ID']}/attempts/{env['GITHUB_RUN_ATTEMPT']}/jobs"],
         capture_output=True, text=True, check=True,
     ).stdout  # fmt: skip
-    started = first_start([json.loads(line) for line in jobs.splitlines()])
-    result = over(e["GITHUB_EVENT_NAME"], started, datetime.now(UTC).isoformat(), sys.argv[1] == "true")
+    started = first_start([json.loads(line) for line in jobs.splitlines()], int(env["GITHUB_RUN_ATTEMPT"]))
+    result = over(env["GITHUB_EVENT_NAME"], started, datetime.now(UTC).isoformat(), sys.argv[1] == "true")
     if result:
         level, why = result
         print(f"::{level}::{why}")
-        with open(e["GITHUB_STEP_SUMMARY"], "a") as f:
+        with open(env["GITHUB_STEP_SUMMARY"], "a") as f:
             f.write(f"**Over budget ({level}):** {why}\n")
     sys.exit(1 if result and result[0] == "error" else 0)
