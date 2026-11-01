@@ -9,12 +9,12 @@ import tomllib
 from importlib.metadata import version
 from pathlib import Path
 
-from noggin.service import FLASH_FILES
+from noggin.core import MODULES
 
 REPO = Path(__file__).resolve().parent.parent
 PIN = tomllib.loads((REPO / "pyproject.toml").read_text())["tool"]["noggin"]["micropython"]
 CORE_MPY = 774  # sys.implementation._mpy on the Core: .mpy version 6 (low byte), sub-version 3, no native arch
-CORE = [REPO / "eyes" / f.replace(".mpy", ".py") for f in FLASH_FILES] + [REPO / "eyes" / "boot.py"]
+CORE = [REPO / "eyes" / f"{m}.py" for m in MODULES] + [REPO / "eyes" / "boot.py"]
 
 
 def pyright(*files):

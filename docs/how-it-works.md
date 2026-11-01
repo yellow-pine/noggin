@@ -39,7 +39,7 @@ sequenceDiagram
     participant S as noggin service (Mac)
     participant C as Core (eyes or neck)
     loop every 2 s
-        C-)S: beacon: tag, name, ip, uptime (UDP)
+        C-)S: beacon: tag, name, ip, uptime, program version and commit (UDP)
     end
     S->>C: tag, seq, line (UDP, HMAC-SHA256 tag)
     C--)S: tagged ack, on receipt

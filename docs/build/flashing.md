@@ -53,6 +53,10 @@ make restore-stock   # put the stock remote-control program back on the Core
   (`make mpy`, into eyes/build): less RAM to import than the .py. boot.py stays .py (the Core runs boot.py only).
   A .py shadows its .mpy (import looks for the .py first), so `flash-usb` removes them and Wi-Fi takes only .mpy;
   a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB.
+- `make mpy` stamps the program with the repo's version and commit (eyes/build/stamp.py, never in git), which its
+  beacon reports; `noggin status` shows them beside the noggin service's own and warns when the Core runs an older
+  program (`make flash`). A program from before the stamp (#357) beacons without them and the noggin service ignores
+  it, so that Core is flashed over USB once (`USB=1 make flash`, the plug the right way round).
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
 

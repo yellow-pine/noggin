@@ -13,10 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       # the eye program's files that `make flash` copies (make mpy-list, no venv here; the assignment fails with make),
-      # plus the setup wizard
+      # stamped with this release's version and commit as make mpy does (eyes/build/stamp.py), plus the setup wizard
       - run: |
           program=$(make -s mpy-list PY=python3)
-          zip noggin-${{ github.ref_name }}.zip $program eyes/boot.py scripts/setup.sh README.md LICENSE.md
+          mkdir -p eyes/build && python3 -m noggin.core stamp > eyes/build/stamp.py
+          zip noggin-${{ github.ref_name }}.zip $program eyes/build/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       # release-please made the release with this tag and its CHANGELOG.md entry (docs/adr/0010): attach the zip
       - run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
         env:

@@ -173,16 +173,28 @@ def test_keeps_scanning_while_no_known_network_is_in_range(link):
     assert FakeWLAN.connects == [("home", "pw")]
 
 
-def test_beacons_name_ip_and_uptime_every_2s_once_joined(link):
+def test_beacons_name_ip_uptime_and_the_programs_version_every_2s_once_joined(link, monkeypatch):
+    monkeypatch.setattr(mod, "VERSION", "0.4.2")
+    monkeypatch.setattr(mod, "COMMIT", "abc1234")
     link.poll(0)
     FakeWLAN.connected = True
     link.poll(7_000)
     link.poll(8_000)
     link.poll(9_100)
     assert sent() == [
-        ("noggin eyes 192.168.1.42 7", ("255.255.255.255", 4711)),
-        ("noggin eyes 192.168.1.42 9", ("255.255.255.255", 4711)),
+        ("noggin eyes 192.168.1.42 7 0.4.2 abc1234", ("255.255.255.255", 4711)),
+        ("noggin eyes 192.168.1.42 9 0.4.2 abc1234", ("255.255.255.255", 4711)),
     ]
+
+
+def test_the_longest_beacon_fits_the_256_bytes_the_noggin_service_reads(link, monkeypatch):
+    monkeypatch.setattr(mod, "VERSION", "999.999.999")
+    monkeypatch.setattr(mod, "COMMIT", "f" * 40 + "-dirty")  # git's full hash: the abbreviation only grows to it
+    monkeypatch.setattr(FakeWLAN, "ifconfig", lambda self: ("255.255.255.255",))
+    link.poll(0)
+    FakeWLAN.connected = True
+    link.poll(10 * 365 * 86400 * 1000)  # ten years up
+    assert len(FakeSocket.sent[0][0]) <= 256, FakeSocket.sent
 
 
 MAC = ("192.168.1.10", 50000)
@@ -397,7 +409,7 @@ def test_uptime_survives_the_ticks_wrap(link, monkeypatch):
     link.poll(WRAP // 2 - 1_000)
     link.poll(WRAP - 1_500)  # ... 1.5 s before the wrap
     link.poll(500)  # 2 s later, ticks wrapped
-    assert [int(m.split()[-1]) for m, _ in sent()] == [
+    assert [int(m.split()[3]) for m, _ in sent()] == [  # noggin <name> <ip> <uptime s> ...
         (WRAP // 2 - 1_000) // 1000,
         (WRAP - 1_500) // 1000,
         (WRAP + 500) // 1000,

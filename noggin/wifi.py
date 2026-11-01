@@ -1,15 +1,17 @@
-"""Wi-Fi Link: learn each Core from its UDP beacon (`<tag> noggin <name> <ip> <uptime s>`, taken only when tagged and
-sent from the ip it claims) and send it command lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>`
-under the shared token, so the secret never travels), each acked with `<tag> ok <seq>` from that Core's address and
-command port (up to four tries a line, each waiting longer; what is never acked goes back to the noggin service, for
-USB). Every tag the Core sends is over `<name> <body>`, so no LAN host can pose as a Core or fake its acks.
-`flash` sends the eye program the same way, as tagged `put` chunks and `commit` lines (eyes/wifi.py)."""
+"""Wi-Fi Link: learn each Core from its UDP beacon (`<tag> noggin <name> <ip> <uptime s> <version> <commit>`, its
+program's, taken only when tagged, sent from the ip it claims and carrying an X.Y.Z version) and send it command
+lines as `<tag> <seq> <line>` datagrams (HMAC of `<name> <seq> <line>` under the shared token, so the secret never
+travels), each acked with `<tag> ok <seq>` from that Core's address and command port (up to four tries a line, each
+waiting longer; what is never acked goes back to the noggin service, for USB). Every tag the Core sends is over
+`<name> <body>`, so no LAN host can pose as a Core or fake its acks. `flash` sends the eye program the same way, as
+tagged `put` chunks and `commit` lines (eyes/wifi.py)."""
 
 import base64
 import hashlib
 import hmac
 import importlib.util
 import json
+import re
 import secrets
 import socket
 import time
@@ -40,6 +42,7 @@ class Wifi:
     def __init__(self, token, beacon_port=BEACON_PORT, command_port=COMMAND_PORT, stale=STALE):
         self.token, self.command_port, self.stale = token, command_port, stale
         self.cores = {}  # name -> (ip, uptime, seen at)
+        self.programs = {}  # name -> (version, commit) of the program it runs
         self.seq = 0
         self.beacons = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.beacons.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -58,14 +61,16 @@ class Wifi:
             t, _, body = data.decode(errors="replace").partition(" ")
             parts = body.split()
             if (
-                len(parts) == 4
+                len(parts) == 6
                 and parts[0] == "noggin"
                 and parts[1].isalnum()
                 and parts[2] == addr[0]  # a captured beacon replayed from another host is not that Core
                 and parts[3].isdigit()
+                and re.fullmatch(r"\d+\.\d+\.\d+", parts[4])  # none: a program from before #357, or without stamp.mpy
                 and self.signed(parts[1], body, t)
             ):
                 self.cores[parts[1]] = (addr[0], parts[3], now)
+                self.programs[parts[1]] = (parts[4], parts[5])
 
     def signed(self, name, body, t):
         return hmac.compare_digest(t.encode(), tag(self.token, f"{name} {body}").encode())
@@ -83,7 +88,7 @@ class Wifi:
 
     def status(self, name):
         ip, uptime, _ = self.cores[name]
-        return f"wifi {ip} uptime {uptime}s"
+        return f"wifi {ip} uptime {uptime}s program {' '.join(self.programs[name])}"
 
     def send(self, name, lines):
         """Deliver each line in turn, going on past an unacked one; return the lines no try got acked."""

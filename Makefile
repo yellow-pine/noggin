@@ -77,15 +77,17 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 	ls -R eyes/stock-backup
 mpy-list:        ## the eye program's files: what eyes/boot.py imports from eyes/ (noggin/core.py; PY=python3 without the venv)
 	@echo $(PROGRAM)
-mpy: venv        ## the eye program as .mpy for the Core's MicroPython (pyproject [tool.noggin]) in eyes/build: what both flashes send
+mpy: venv        ## the eye program as .mpy for the Core's MicroPython (pyproject [tool.noggin]) in eyes/build, stamped with the repo's version and commit (stamp.mpy, which its beacon reports): what both flashes send
 	mkdir -p eyes/build
+	$(PY) -m noggin.core stamp > eyes/build/stamp.py
 	$(foreach m,$(MODULES),$(MPYC) -o eyes/build/$(m).mpy eyes/$(m).py &&) true
+	$(MPYC) -o eyes/build/stamp.mpy eyes/build/stamp.py
 flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh or no Core is on USB (the noggin service waits for the beacon), else USB (USB=1 forces it)
 	@if [ -z "$(USB)" ] && { [ -z "$(USB_PORTS)" ] || $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; }; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
 flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
 	$(MPR) resume mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@$(MICROPYTHON)   # the stand-in's hmac: micropython-lib's tag of the Core's MicroPython
-	$(foreach m,$(MODULES),$(MPR) resume cp eyes/build/$(m).mpy :$(m).mpy &&) true
+	$(foreach m,$(MODULES) stamp,$(MPR) resume cp eyes/build/$(m).mpy :$(m).mpy &&) true
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(MPR) resume exec "import os; [os.remove(f) for f in '$(notdir $(PROGRAM))'.split() if f in os.listdir()]"  # a .py shadows its .mpy
 	$(PY) eyes/interrupt.py reset
