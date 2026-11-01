@@ -13,13 +13,60 @@ permissions:
 defaults:
   run:
     shell: bash   # -eo pipefail: make's exit code survives the tee
-# Two required checks side by side: code runs everything but the tests marked model (pyproject.toml); model passes when
-# every model shard does, which split those tests (the hero's collision sweep alone, the rest by document over
-# four, make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make stl
-# and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
+# Three required checks side by side, so this workflow's conclusion on main is what Site Deploy waits for (#295): code
+# runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the Mech stand-in; model
+# passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document
+# over four, make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
+# stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
 # summary, and each job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold
 # cache is cut part by part first (convex, #223), so the model shards start warm.
 jobs:
+  changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout); only mech filters
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      mech: ${{ steps.filter.outputs.mech }}
+    steps:
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
+        with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
+          filters: |
+            mech: ["eyes/**", "noggin/**", "mech/**", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
+  # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
+  # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
+  # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
+  # (#245). The scenarios on every core (xdist), the slowest in the job summary, the budget last (warm: the build's
+  # cache hit).
+  mech:
+    needs: changes
+    # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.mech != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
+      # the unix port and hmac (make mech/build/micropython), keyed on the MicroPython tag the Makefile pins
+      - id: tag
+        run: echo "tag=$(sed -n 's/^MICROPYTHON := //p' Makefile)" >> "$GITHUB_OUTPUT"
+      - id: build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: mech/build
+          key: micropython-unix-${{ steps.tag.outputs.tag }}
+      - run: make mech | tee "$RUNNER_TEMP/pytest.txt"
+        env:
+          PYTEST_ADDOPTS: -n auto --durations=10
+      - if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - run: python3 scripts/ci_budget.py ${{ steps.build.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
   code:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
