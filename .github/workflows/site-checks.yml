@@ -1,0 +1,347 @@
+name: Site Checks
+# The site (docs/adr/0009), built and checked on PRs and on main (#310): `render` renders the README's pictures in
+# Blender (make pictures, #226; one runner per motion, the matrix `motions` reads from the code, #297; the required
+# `pictures` check sums them up) beside `viewer`, whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever
+# what they are made from changed (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with
+# them at site/images, the viewer at site/viewer and main's latest sim reports at site/reports, tests the viewer in
+# Chrome and uploads the site as an artifact: a PR's preview, and on main what Site Deploy (pages.yml) deploys once
+# this run and Code Checks passed. `site` and `pictures` are required checks on PRs that touch what the site is made
+# from (the changes job, as for check.yml's mech). On main, `deploy-pending` sets the commit's `deploy` status
+# pending while this builds (#292); Site Deploy sets its outcome.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:   # as check.yml's: one run per PR (or main), a new push cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  deploy-pending:
+    if: ${{ github.event_name == 'push' }}   # main only (on.push)
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=deploy
+          -f "description=building the site" -f "target_url=$RUN_URL" > /dev/null
+  changes:   # as check.yml's; main builds everything
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+    steps:
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
+        with:
+          filters: |
+            site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
+                   ".github/workflows/site-checks.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
+  # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
+  motions:
+    needs: changes
+    if: >-   # as site
+      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in check.yml
+      - id: list
+        run: |   # its own assignment, so a failing make fails the step
+          list=$(make -s pictures-list)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+  # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
+  # else the last ones rendered from the same inputs (a docs-only change renders nothing). One runner per motion, which
+  # renders and encodes it (~4-5 s a frame on CI's software GL, plus ~30 s for Blender's first; a cold run ~7 min,
+  # Cansin, #297), and the site job gathers them
+  render:
+    name: render (${{ matrix.motion }})
+    needs: motions
+    if: ${{ !cancelled() && needs.motions.result == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # every motion runs to its end; site fails unless all of them succeeded
+      matrix:
+        include: ${{ fromJSON(needs.motions.outputs.list) }}   # {motion, stages} (test_site.py)
+    permissions:
+      contents: read
+      actions: read   # scripts/ci_budget.py reads the run's start
+    outputs:
+      cold: ${{ steps.cold.outputs.cold }}   # set by a runner that rendered (an empty output is never set)
+    env:   # only the Stages a motion draws are baked (make trajectories)
+      TRAJ_DOCS: ${{ matrix.stages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      # this motion's pictures (model/build/images)
+      - id: frames
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in check.yml
+      # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
+      # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          restore-keys: ours-convex-
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        id: trajectories
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
+          restore-keys: trajectories-
+      # Blender 5.2.2 cached unpacked (the untar took ~20 s a runner); else the tarball's cache, fetched only when neither
+      # is there: download.blender.org refused main's runners (403) on the first deploy; sha256-checked
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        id: blender
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender
+          key: blender-5.2.2-linux-x64-unpacked
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender.tar.xz
+          key: blender-5.2.2-linux-x64
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        run: |
+          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
+          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
+      # Blender's X and GL libraries, even in the background (Eevee renders on Mesa's software GL here); all but libegl1
+      # come with the runner image. No ffmpeg: its 100 packages took 20-90 s a runner (make pictures encodes with
+      # imageio-ffmpeg's)
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri
+      # its own step first, so the run's timings show the bake apart from the renders
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        run: make trajectories
+      # the trajectories cache is saved by viewer, whose key covers theirs and whose make web bakes every Stage
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        id: cold
+        env:
+          MOTIONS: ${{ matrix.motion }}
+        run: |
+          make pictures BLENDER=$HOME/blender/blender
+          echo "cold=true" >> "$GITHUB_OUTPUT"
+      - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: ${{ steps.frames.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: images-${{ matrix.motion }}
+          path: model/build/images
+          if-no-files-found: error
+      - run: python3 scripts/ci_budget.py ${{ steps.frames.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  # the required check (#245), motions and render's runners under one name (as check.yml's model); both skipped passes
+  pictures:
+    if: ${{ !cancelled() }}
+    needs: [motions, render]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ needs.motions.result }} ${{ needs.render.result }}
+        run: for r in $RESULTS; do test "$r" = success || test "$r" = skipped || exit 1; done
+  # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
+  # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing. Beside the
+  # pictures, so neither waits for the other (#278)
+  viewer:
+    needs: changes
+    if: >-   # as site
+      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # scripts/ci_budget.py reads the run's start
+    outputs:
+      warm: ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}   # GLBs bake in ~40 s
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - id: viewer
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: web/build
+          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'vendored.py', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in check.yml
+      # three.js from npm (vendored.py's .cache) by its version in web/build.py; vendored.py checks each hash cached or not
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        id: three
+        run: echo "version=$(grep -oP '^THREE_VERSION = "\K[^"]+' web/build.py)" >> "$GITHUB_OUTPUT"
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: .cache/three@*
+          key: npm-three-${{ steps.three.outputs.version }}
+      # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
+      # would store the key without model/build/convex first and the check workflow's full save would be refused;
+      # restore-keys as in check.yml: a part's own .key rebuilds only what changed. The latest trajectories: make web
+      # rebakes only the Stages whose stamp moved (model/trajectories.py)
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          restore-keys: ours-convex-
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        id: trajectories
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
+          restore-keys: trajectories-
+      # Blender 5.2.2 cached unpacked (the untar took ~20 s a runner); else the tarball's cache, fetched only when neither
+      # is there: download.blender.org refused main's runners (403) on the first deploy; sha256-checked
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        id: blender
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender
+          key: blender-5.2.2-linux-x64-unpacked
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender.tar.xz
+          key: blender-5.2.2-linux-x64
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        run: |
+          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
+          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
+      # Blender's X and GL libraries, even in the background; all but libegl1 come with the runner image
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        run: make web BLENDER=$HOME/blender/blender
+      # saved even when a web test fails, as check.yml saves the parts: the baked trajectories stay good
+      - if: ${{ always() && steps.viewer.outputs.cache-hit != 'true' && steps.trajectories.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: ${{ steps.trajectories.outputs.cache-primary-key }}
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: web/build
+          key: ${{ steps.viewer.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: viewer
+          path: web/build
+          if-no-files-found: error
+      - run: python3 scripts/ci_budget.py ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  site:
+    needs: [changes, render, viewer]
+    if: >-   # as check.yml's mech
+      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # scripts/ci_budget.py reads when the run's jobs started
+    steps:
+      # never a site without all its pictures and its viewer: the deploy would take them down (as on #236's first deploy)
+      - if: ${{ needs.render.result != 'success' || needs.viewer.result != 'success' }}
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in check.yml
+      # every motion's pictures (model/build/images, which make site puts at site/images)
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: images-*
+          merge-multiple: true
+          path: model/build/images
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: viewer
+          path: web/build
+      # Mermaid from npm (vendored.py's .cache) by its version in mkdocs.yml; vendored.py checks its hash cached or not
+      - id: mermaid
+        run: |   # its own assignment, so a failing yq fails the step
+          version=$(yq -e .extra.mermaid.version mkdocs.yml)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: .cache/mermaid@*
+          key: npm-mermaid-${{ steps.mermaid.outputs.version }}
+      # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports: no
+      # entry carries this key, so the newest sim- entry is restored. This runs beside Code Checks, so on main Site
+      # Deploy swaps in the newest once Code Checks is done (make site-reports)
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-latest
+          restore-keys: sim-
+      - run: make site
+      # the viewer in Chrome (the runner's) on the built site: it plays a gesture and asks no other host for anything
+      - run: uv run --with playwright==1.64.0 pytest -q web/test_viewer.py
+      # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
+      - id: preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: site
+          path: site
+          include-hidden-files: true   # as upload-pages-artifact would take them
+          if-no-files-found: error
+      - if: ${{ github.event_name == 'pull_request' }}
+        id: pictures
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: pictures
+          path: model/build/images
+      - if: ${{ github.event_name == 'pull_request' }}
+        env:
+          URL: ${{ steps.preview.outputs.artifact-url }}
+          PICTURES: ${{ steps.pictures.outputs.artifact-url }}
+          BUILT: ${{ needs.render.outputs.cold == 'true' && 'rendered from this PR' || 'unchanged, the last build of the same inputs' }}
+        run: |
+          echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
+          echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
+      # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget counts from the
+      # run's first job)
+      - run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && needs.viewer.outputs.warm == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}

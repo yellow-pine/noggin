@@ -6,6 +6,8 @@
 > contributors and stays on GitHub, off the site.
 > Amended 2026-11-01 (#303, ADR 0010): release-please's release PR commits the generated CHANGELOG.md and the version
 > bump, and switches on its own auto-merge; it lands through the required checks and review like any PR.
+> Amended 2026-11-01 (#310): PRs run checks, main runs the same checks then deploys. Site Checks builds the site on
+> both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -18,8 +20,10 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   (ADR 0008) sits at /viewer. The docs are the repo's Markdown as GitHub shows it, with no rewrite for the site, so
   a link to anything but a doc or a picture is an absolute GitHub URL (the build is strict and the site carries no
   code).
-- **Deployed with GitHub's own Pages actions.** The `pages` workflow builds the docs and the viewer's GLBs once the
-  check workflow is done with a push to main and deploys them together with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
+- **Built once, deployed with GitHub's own Pages actions** (#310). Site Checks (`site-checks.yml`) builds the docs,
+  the viewer's GLBs and the pictures on every PR and every push to main, and uploads the site as an artifact. Site
+  Deploy (`pages.yml`) runs only on main: once both Code Checks and Site Checks passed for the commit, it downloads
+  that run's artifact and deploys it with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
 - **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
   made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), beside `make check`, which builds the docs
   strictly too (test_site.py).
@@ -32,10 +36,11 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
   model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
-  (the newest `sim-` entry, which only main saves) in its job summary; the pages workflow runs once check is done on
-  main (`workflow_run`) and publishes the newest entry at /reports. The stamp check (model/stale.py) is gone; the
+  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Code Checks is done on
+  main (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Site Checks builds beside Code
+  Checks, before the sim may be saved). The stamp check (model/stale.py) is gone; the
   recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
-- **The pictures are built in CI** (#226): the pages workflow's `render` job renders the README's pictures in
+- **The pictures are built in CI** (#226): Site Checks' `render` job renders the README's pictures in
   Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
   their inputs gets them as artifacts. Each motion renders on its own runner, a matrix read from the code (`make
   pictures-list`, #297), and `site` gathers them.

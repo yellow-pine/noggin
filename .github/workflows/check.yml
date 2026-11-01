@@ -13,8 +13,9 @@ permissions:
 defaults:
   run:
     shell: bash   # -eo pipefail: make's exit code survives the tee
-# Three required checks side by side, so this workflow's conclusion on main is what Site Deploy waits for (#295): code
-# runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the Mech stand-in; model
+# Three required checks side by side, so this workflow's conclusion on main is one of the two Site Deploy waits for
+# (#295, #310): code runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the
+# Mech stand-in; model
 # passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document
 # over four, make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
 # stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
@@ -277,7 +278,7 @@ jobs:
       # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
       # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads
       # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
-      # PRs after it and for the site, which publishes them at /reports (pages.yml)
+      # PRs after it and for the site, which publishes them at /reports (Site Deploy, pages.yml)
       - if: ${{ matrix.shard == 'sim' }}
         id: reports
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0

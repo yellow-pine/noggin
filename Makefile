@@ -16,7 +16,7 @@ PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no ey
 MODULES = $(PROGRAM:eyes/%.py=%)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site lint fmt mech
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site site-reports lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -108,7 +108,7 @@ hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loo
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
 pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views, hero or a gesture)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
-pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (the pages workflow's render matrix, #297; make -s for the JSON alone)
+pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
 	@$(PY) -m model.render.pictures list
 web: venv ours trajectories   ## the web viewer in web/build: its modules, three.js and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with make site (its page) and python -m http.server -d site
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
@@ -117,6 +117,9 @@ site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs an
 	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
 	[ ! -d web/build ] || cp -R web/build/. site/viewer
 	[ ! -d model/build/images ] || cp -R model/build/images site/images
+	@$(MAKE) --no-print-directory site-reports
+site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
+	rm -rf site/reports
 	[ ! -d model/build/reports ] || { cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
 # the Core's MicroPython (pyproject [tool.noggin]); CI caches mech/build on it (no comment after the value, as above)

@@ -1,4 +1,4 @@
-"""The viewer as the Pages workflow builds it (web/build.py, and MkDocs its page at viewer/): the page loads only what
+"""The viewer as Site Checks builds it (web/build.py, and MkDocs its page at viewer/): the page loads only what
 the build writes and runs scripts from the site alone; each Stage's GLB (`make web`, read here as `make sim`'s reports
 are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
 

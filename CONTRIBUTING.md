@@ -72,22 +72,24 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
   site at /reports (ADR 0009). `code` caches the site's Mermaid (`vendored.py`, hash-checked on every build) and the
-  diagram test's mermaid-cli by their versions in `mkdocs.yml` (`mermaid-npm-`); `pages` caches Mermaid and three.js
-  by their versions (`npm-`). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
+  diagram test's mermaid-cli by their versions in `mkdocs.yml` (`mermaid-npm-`); Site Checks caches Mermaid and
+  three.js by their versions (`npm-`). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
   are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
   within 3 min of its first job's start on a PR, or it fails; on main, past 9 min it warns in the run summary
   (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a "re-run failed
   jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job (`check.yml`, beside `code`
   and `model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
-  site's `site` and `pictures` (`.github/workflows/pages.yml`) are required checks too: `mech`, `site` and `pictures`
-  run on every PR, and a `changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
+  site's `site` and `pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `mech`,
+  `site` and `pictures` run on every PR, and a `changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
   GitHub counts as passing. `pictures` sums up the `render` job's runners (one per
   motion of the README's pictures, a matrix the `motions` job reads from the code with `make pictures-list`, #297)
   under one name.
-- A main commit's Site Deploy runs after its checks (workflow_run) and builds only when they are green (#295), so it
-  sets a `deploy` commit status on that commit (#292): pending while it builds, then success linking the site, failure
-  linking the run (or the check run: "not deployed: checks failed"), or error when a newer commit superseded it
+- A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
+  upload it as an artifact; Site Deploy (`pages.yml`) runs only on main, once both Code Checks and Site Checks passed
+  for the commit (#295), and deploys that very artifact (no rebuild) with main's newest sim reports at /reports. Main's
+  commit carries a `deploy` status (#292): pending while Site Checks build, then success linking the site, failure
+  linking the run (or the red check run: "not deployed: checks failed"), or error when a newer commit superseded it
   (`scripts/deploy_status.py`). A main commit is green only once its `deploy` is.
 
 ## Licence
