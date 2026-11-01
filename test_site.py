@@ -104,13 +104,17 @@ MERMAID = yaml.load((ROOT / "mkdocs.yml").read_text(), Loader=get_yaml_loader())
 MERMAID_CLI = [f"@mermaid-js/mermaid-cli@{MERMAID['cli']}", f"mermaid@{MERMAID['version']}"]
 
 
+def sri(file):
+    """The file's sha384 as SRI (and vendored.py's pins) write it."""
+    return f"sha384-{base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()}"
+
+
 def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
     """The site's own copy, with its hash, and only on pages with a diagram; every page allows scripts from the site
     alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails (a page with the
     web viewer also lets the Draco decoder compile its WASM in a Blob worker); no page names a script elsewhere."""
     file = site / "assets" / "javascripts" / f"mermaid-{MERMAID['version']}.min.js"
-    sha = base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()
-    assert MERMAID["integrity"] == f"sha384-{sha}"
+    assert MERMAID["integrity"] == sri(file)
     csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'{}">"""
     for page in site.rglob("*.html"):
         html, local = page.read_text(), os.path.relpath(file, page.parent)
@@ -136,7 +140,7 @@ def test_every_page_reads_in_the_sites_own_roboto(site):
     fonts.py pins, and makes them Material's fonts."""
     import fonts
 
-    pinned = set(fonts.FONTS.values())
+    pinned = set(fonts.SHA384.values())
     for page in site.rglob("*.html"):
         html = page.read_text()
         if 'http-equiv="refresh"' in html:  # a moved page's stub: no theme
@@ -146,7 +150,7 @@ def test_every_page_reads_in_the_sites_own_roboto(site):
         for family, style, url in re.findall(r'font-family: "([^"]+)"; font-style: (\w+);[^}]*url\("([^"]+)"\)', head):
             # 404.html's url is from the site's root (site_url's path)
             file = site / url.removeprefix("/noggin/") if url.startswith("/") else page.parent / url
-            faces[family, style] = f"sha384-{base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()}"
+            faces[family, style] = sri(file)
         assert sorted(faces) == [
             ("Roboto", "italic"),
             ("Roboto", "normal"),

@@ -1,6 +1,6 @@
-"""The third-party files the site serves itself (Mermaid: mermaid.py; three.js: web/build.py), so no page loads a script
-from elsewhere: each is fetched once from its npm package on jsDelivr into .cache/ (CI caches it by version) and checked
-against its pinned sha384 on every build, cached or not."""
+"""The third-party files the site serves itself (Mermaid: mermaid.py; Roboto: fonts.py; three.js: web/build.py), so no
+page loads a script or a font from elsewhere: each is fetched once from its npm package on jsDelivr into .cache/ (CI
+caches it by version) and checked against its pinned sha384 on every build, cached or not."""
 
 import base64
 import hashlib
