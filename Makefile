@@ -84,7 +84,7 @@ flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi whil
 	@if [ -z "$(USB)" ] && { [ -z "$(USB_PORTS)" ] || $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; }; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
 flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
-	$(MPR) resume mip install hmac
+	$(MPR) resume mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@$(MICROPYTHON)   # the stand-in's hmac: micropython-lib's tag of the Core's MicroPython
 	$(foreach m,$(MODULES),$(MPR) resume cp eyes/build/$(m).mpy :$(m).mpy &&) true
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(MPR) resume exec "import os; [os.remove(f) for f in '$(notdir $(PROGRAM))'.split() if f in os.listdir()]"  # a .py shadows its .mpy
@@ -121,9 +121,9 @@ site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs an
 site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
 	[ ! -d model/build/reports ] || { rm -rf site/reports && cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
-# the Core's MicroPython (pyproject [tool.noggin]); CI caches mech/build on it (no comment after the value, as above)
+# the Core's MicroPython (pyproject [tool.noggin]): flash-usb's hmac and the stand-in build from it, CI caches mech/build on it (no comment after the value, as above)
 MICROPYTHON := v1.23.0
-mech/build/micropython:   ## the unix port of it and micropython-lib's hmac (what flash-usb's mip gives the Core), for the Mech stand-in
+mech/build/micropython:   ## the unix port of it and micropython-lib's hmac (flash-usb's mip gives the Core the same tag's), for the Mech stand-in
 	rm -rf mech/build/src
 	git clone -q --depth 1 -b $(MICROPYTHON) https://github.com/micropython/micropython mech/build/src
 	$(MAKE) -C mech/build/src/ports/unix submodules

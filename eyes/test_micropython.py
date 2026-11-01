@@ -1,6 +1,7 @@
 """The Core runs MicroPython 1.23 (pyproject.toml [tool.noggin]): its files type-check against that MicroPython's
 stubs and compile with that mpy-cross to .mpy files the Core loads."""
 
+import re
 import subprocess
 import sys
 import sysconfig
@@ -31,6 +32,11 @@ def pyright(*files):
 def test_the_stubs_and_mpy_cross_are_the_cores_micropython():
     for package in ("micropython-esp32-esp32_generic_c3-stubs", "micropython-stdlib-stubs", "mpy-cross"):
         assert version(package).startswith(PIN + "."), package
+
+
+def test_the_makefile_tag_is_the_cores_micropython():  # the stand-in's unix port and both hmacs (make flash-usb, mech)
+    tag = re.search(r"^MICROPYTHON := (\S+)$", (REPO / "Makefile").read_text(), re.M)
+    assert tag and tag[1].startswith(f"v{PIN}."), tag
 
 
 def test_pyright_flags_a_call_the_cores_micropython_lacks(tmp_path):
