@@ -3,6 +3,9 @@
 > Decided with Cansin on 2026-11-01, spec #331 (research and the CSP spike's verdict in its comments, spike #332);
 > ticket #333. Supersedes ADR 0009's MkDocs Material and mkdocs-macros, and ADR 0008's page, import map and vendored
 > three.js.
+>
+> Amended 2026-11-02 (#372): the `Footer` override also shows the version and the commit built, linking their GitHub
+> pages, and `/version.json` gives them with the build time (`macros.py` `build`).
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that

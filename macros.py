@@ -9,11 +9,14 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
-stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs."""
+stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
+build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
 import json
 import re
+import subprocess
+import tomllib
 from collections import Counter
 from pathlib import Path
 
@@ -146,6 +149,19 @@ def wiring():
     return "\n".join(rows)
 
 
+def build():
+    """The one version (pyproject.toml, docs/adr/0010) and the commit built, the one Site Deploy deploys (#292)."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True)
+    return {"version": project["version"], "commit": head.stdout.strip()}
+
+
+def released(v, changelog=ROOT / "CHANGELOG.md"):
+    """Whether v has its GitHub release: release-please's release PR writes its CHANGELOG.md section, then tags it
+    (the changelog, not the tag: CI's shallow checkouts fetch no tags)."""
+    return changelog.exists() and re.search(rf"^## \[?{re.escape(v)}[\] ]", changelog.read_text(), re.M) is not None
+
+
 def numbers():
     parts, servos = stage_guides()
     return {
@@ -155,6 +171,8 @@ def numbers():
         "stage_servos": servos,
         "wiring": wiring(),
         "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
+        "build": (b := build()),
+        "released": released(b["version"]),
     }
 
 

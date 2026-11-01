@@ -1,11 +1,24 @@
 ---
-// Starlight's footer, and the web viewer (docs/adr/0008) on any page that has a <div class="noggin-viewer">: its module
-// and three.js load only there.
+// Starlight's footer, then the site's version (pyproject.toml) linking its release, or the releases before it, and
+// the commit it was built from (macros.py build, #372); and the web viewer (docs/adr/0008) on any page that has a
+// <div class="noggin-viewer">: its module and three.js load only there.
 import Default from '@astrojs/starlight/components/Footer.astro';
+import { build, released } from '../macros.json';
+import { REPO } from '../pages.mjs';
+
+const release = released ? `${REPO}/releases/tag/v${build.version}` : `${REPO}/releases`;
 ---
 
 <Default />
+<p class="noggin-version">
+  noggin <a href={release}>v{build.version}</a> · <a href={`${REPO}/commit/${build.commit}`}>{build.commit.slice(0, 7)}</a>
+</p>
 
 <script>
   if (document.querySelector('.noggin-viewer')) import('../viewer/viewer.mjs');
 </script>
+
+<style>
+  .noggin-version { color: var(--sl-color-gray-3); font-size: var(--sl-text-xs); text-align: center; }
+  .noggin-version a { color: inherit; }
+</style>
