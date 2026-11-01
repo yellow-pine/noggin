@@ -3,6 +3,7 @@ each part's mesh written once in its own frame with its colour (geometry.SPOOLS;
 
 import os
 
+import numpy as np
 import trimesh
 
 from model import geometry as g
@@ -13,7 +14,10 @@ HORNS = {
     "l_eye": "L eye horn",
     "r_lid": "R lid horn",
     "r_eye": "R eye horn",
-}
+    "mouth": "jaw horn",
+    "tilt": "tilt horn",
+    "rotate": "pan horn",
+}  # inner chains first: the tilt carries the eyes and mouth, the pan carries the tilt
 
 GREYS = {
     "servo": "#7E8287",
@@ -50,11 +54,14 @@ def export(stage, out):
 
 def pose(stage, joints):
     """{part: 4x4 world mm} with each servo's horn at joints[servo] degrees; servos the Stage lacks are skipped.
-    The eye chains are disjoint, so each horn's own pose places its own chain."""
-    mats = {n: p.matrix for n, p in stage.parts.items()}
-    for servo, deg in joints.items():
-        horn = HORNS[servo]
+    Each horn's own pose moves its chain from neutral; applied inner chain first, that move carries whatever the
+    inner horns already did (as model/engine/mech.py composes pan and tilt)."""
+    neutral = {n: p.matrix for n, p in stage.parts.items()}
+    mats = dict(neutral)
+    for servo, horn in HORNS.items():
+        deg = joints.get(servo)
         if horn in stage.horns and deg:
             posed = stages.pose(stage, horn, deg).parts
-            mats.update({n: posed[n] for n in run.chain(stage.horns[horn])})
+            for n in run.chain(stage.horns[horn]):
+                mats[n] = posed[n] @ np.linalg.inv(neutral[n]) @ mats[n]
     return mats

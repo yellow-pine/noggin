@@ -21,8 +21,12 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Views, orthographic, 1600x1200, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
-- README media: the hero (stage 3 from the front, 10 degrees above, perspective), the Stage strip (stage 1 front,
-  stage 2 side, stage 3 side and front at one scale on one ground line) and the gesture GIFs.
+- README media (#117), copied into docs/images: the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
+  degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py, the head's pan and nod in
+  head degrees through the engine's linkage solve, every pose within geometry.LIMITS and free of penetrations as the
+  engine judges them; 640 wide, 10 fps, 64 colours, at most 3 MB), the Stage strip
+  (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
+  camera direction as the hero) and the six gesture GIFs: about 6 MB in all, no photos.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the Core program's own commands mapped onto the
   model's joints (model/traces.py: lid fractions through eyes/calibration.json to servo degrees, plus the lid horns'

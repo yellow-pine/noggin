@@ -9,7 +9,7 @@ LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs view lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero view lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -89,7 +89,9 @@ restore-stock: interrupt
 view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 	$(PY) -m model.mjcf $(DOC)
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
-render: venv ours   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
+render: venv ours   ## Blender pictures from the engine's poses: views, Stage strip, stage 3 exploded (model/build/pictures)
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
 gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
+hero: venv ours     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py
+	BLENDER=$(BLENDER) $(PY) -m model.render.pictures hero

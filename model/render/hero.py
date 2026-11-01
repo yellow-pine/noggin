@@ -1,0 +1,161 @@
+"""The README hero (#117): stage 3 mid-conversation, an 8 s loop keyed by hand. The jaw talks in two phrases, the
+head glances aside and back twice and nods while it listens, the eyes lead each glance with a saccade and settle back
+as the head arrives, the lids drop with the nod and blink. Timing follows the Core program (eyes/eyes.py): a blink
+closes in one 80 ms step, holds 135 ms and reopens over 300 ms; a saccade is one step. The head moves as far as the
+designer's (about 25 degrees of pan, 15 of nod, near the horn limits): its keys are in head degrees (the pan and tilt
+pivots' own), converted to horn degrees through the engine's linkage solve; every other key is in model horn degrees
+from neutral inside geometry.LIMITS (a blink shuts the lids at -31: they meet at -30.7, model/engine/lids.py).
+Minimum-jerk between keys. collisions() is the engine's penetration test on one pose of stage 3.
+Rendered by model/render/pictures.py (`make hero`)."""
+
+import functools
+import itertools
+from types import SimpleNamespace
+
+import numpy as np
+import trimesh
+
+from model import geometry as g
+from model.engine import meshes, run, stages
+from model.render import scene
+
+FPS, SECONDS = 10, 8.0  # 100 ms frames, as the gesture GIFs (12.5 fps went over 3 MB)
+STAGE = stages.STAGES["noggin-stage3"]
+LID_OPEN, LID_DOWN, LID_SHUT = 8.0, -4.0, -31.0  # lid horn: talking, in the nod, shut in a blink
+
+
+def blink(t, lid=LID_OPEN):
+    """Lid keys for a blink starting at t (eyes/eyes.py Eyes.blink)."""
+    return [(t, lid), (t + 0.08, LID_SHUT), (t + 0.215, LID_SHUT), (t + 0.515, lid)]
+
+
+def talk(t, syllables):
+    """Jaw keys for a phrase from t: each syllable opens to its depth (horn degrees, negative opens) and nearly closes,
+    0.26 s each; shut at the end."""
+    keys = [(t, 0.0)]
+    for i, depth in enumerate(syllables):
+        keys += [(t + 0.26 * i + 0.11, depth), (t + 0.26 * (i + 1), -4.0)]
+    return keys[:-1] + [(keys[-1][0], 0.0)]
+
+
+def glance(t, eyes, head, back):
+    """(eye keys, pan keys in head degrees) of a glance from t and back at `back`: the eyes jump ahead in one step,
+    the head follows over 0.6 s while the eyes ease back toward centre (eye and head degrees of one sign turn one way)."""
+    eye = [(t, 0.0), (t + 0.08, eyes), (t + 0.68, eyes / 3), (back, eyes / 3), (back + 0.08, 0.0)]
+    pan = [(t + 0.04, 0.0), (t + 0.64, head), (back + 0.04, head), (back + 0.64, 0.0)]
+    return eye, pan
+
+
+EYE_1, PAN_1 = glance(1.5, 15.0, 24.0, 2.75)
+EYE_2, PAN_2 = glance(5.6, -14.0, -20.0, 7.2)
+LIDS = [(0.0, LID_OPEN), *blink(0.9), *blink(2.75), (3.3, LID_OPEN), (3.7, LID_DOWN), (4.3, LID_OPEN), *blink(5.6)]
+KEYS = {  # servo (geometry.LIMITS keys): [(seconds, model horn degrees from neutral)]
+    "l_lid": [*LIDS, *blink(7.2), (8.0, LID_OPEN)],
+    "l_eye": [(0.0, 0.0), *EYE_1, *EYE_2, (8.0, 0.0)],
+    "mouth": [
+        *talk(0.2, (-22, -34, -18, -30, -26, -15, -32, -20, -28, -16)),
+        *talk(4.8, (-20, -30, -25, -35, -17, -28, -22, -15, -19, -14)),
+        (8.0, 0.0),
+    ],
+}
+KEYS["r_lid"], KEYS["r_eye"] = KEYS["l_lid"], KEYS["l_eye"]
+HEAD = {  # servo: [(seconds, head degrees: the pan or tilt pivot's own, from rest)]
+    "rotate": [(0.0, 0.0), *PAN_1, *PAN_2, (8.0, 0.0)],
+    "tilt": [(0.0, 0.0), (3.3, 0.0), (3.7, 15.0), (4.0, 4.0), (4.3, 12.0), (4.75, 0.0), (8.0, 0.0)],  # + nods down
+}
+NECK = {"rotate": "pan horn", "tilt": "tilt horn"}
+
+
+def _ease(f):
+    return f**3 * (10 - 15 * f + 6 * f**2)  # minimum jerk
+
+
+def _eased(keys, t):
+    times = [k for k, _ in keys]
+    i = min(max(np.searchsorted(times, t, side="right"), 1), len(keys) - 1)
+    (t0, a), (t1, b) = keys[i - 1], keys[i]
+    return a + (b - a) * _ease(min(1.0, max(0.0, (t - t0) / (t1 - t0))))
+
+
+@functools.cache
+def _head_table(servo):
+    """(head degrees, horn degrees), head ascending: the engine's linkage solve over the horn's limits, on the branch
+    from the lower limit where the head still turns (the pan's head stops turning past horn +60)."""
+    horn = NECK[servo]
+    lo, hi = g.HORN_LIMITS[servo]
+    horns = np.arange(lo - 90, hi - 90 + 0.25, 0.5)
+    head = np.array([stages.pose(STAGE, horn, d).joints[horn.replace("horn", "pivot")] for d in horns])
+    turn = np.sign(np.diff(head))
+    n = len(turn) if (turn == turn[0]).all() else int(np.argmax(turn != turn[0]))
+    head, horns = head[: n + 1], horns[: n + 1]
+    return (head, horns) if turn[0] > 0 else (head[::-1], horns[::-1])
+
+
+def horn_of(servo, head_deg):
+    """The pan or tilt horn degrees that turn the head head_deg (its pivot's degrees from rest)."""
+    head, horns = _head_table(servo)
+    assert head[0] <= head_deg <= head[-1], (servo, head_deg)
+    return float(np.interp(head_deg, head, horns))
+
+
+def at(t):
+    """The pose at t seconds: {servo: model horn degrees from neutral}."""
+    out = {servo: round(_eased(keys, t), 2) for servo, keys in KEYS.items()}
+    return out | {servo: round(horn_of(servo, _eased(keys, t)), 2) for servo, keys in HEAD.items()}
+
+
+def frames():
+    return [at(i / FPS) for i in range(round(SECONDS * FPS))]
+
+
+_LOADED, _STILL = {}, {}  # meshes, and the parts a pose leaves where they are, loaded once
+
+
+def joined(stage):
+    """Pairs that touch by construction: model/engine/run.py linked's joints without its rigid groups (one horn's
+    rockers move as one only under that horn; collisions() skips pairs that keep their relative pose instead)."""
+    out = {frozenset((r, p)) for r, ps in run.PIVOT_PARTNER.items() for p in ps}
+    for horn in stage.horns.values():
+        out |= run.linked(stage, horn) - {
+            frozenset((a, b)) for loop in horn.loops for a in loop.rockers for b in loop.rockers
+        }
+    return out
+
+
+def collisions(joints):
+    """Penetrations the engine finds (meshes.judge) in one pose of stage 3, between parts the pose moved relative to
+    each other, pairs joined by construction skipped: [(part, part, depth mm)]."""
+    if not _LOADED:
+        _LOADED.update(meshes.load(STAGE))
+    mats = scene.pose(STAGE, joints)
+    delta = {n: mats[n] @ np.linalg.inv(p.matrix) for n, p in STAGE.parts.items()}
+    skip = joined(STAGE)
+    placed = {}
+
+    def place(n):
+        if n not in placed:
+            if not np.allclose(delta[n], np.eye(4)):
+                placed[n] = meshes.Placed(_LOADED[n], mats[n])
+            else:
+                if n not in _STILL:
+                    _STILL[n] = meshes.Placed(_LOADED[n], mats[n])
+                placed[n] = _STILL[n]
+        return placed[n]
+
+    box = {}  # world box of each mesh's local box corners: a cheap screen before placing the mesh
+    for n, m in mats.items():
+        c = trimesh.transform_points(trimesh.bounds.corners(_LOADED[n].bounds), m)
+        box[n] = SimpleNamespace(lo=c.min(axis=0), hi=c.max(axis=0))
+    out = []
+    for a, b in itertools.combinations(mats, 2):
+        if frozenset((a, b)) in skip or np.allclose(delta[a], delta[b]):
+            continue
+        if meshes.bbox_gap(box[a], box[b]) > run.CLEARANCE_MM:
+            continue
+        pa, pb = place(a), place(b)
+        if meshes.bbox_gap(pa, pb) > run.CLEARANCE_MM:
+            continue
+        depth = meshes.judge(pa, pb)[1]
+        if depth:
+            out.append((a, b, round(depth, 3)))
+    return out
