@@ -481,7 +481,7 @@
   "R lower lid:1": 5.357,
   "L eyeball bar:1": 0.544,
   "R eyeball bar:1": 0.544,
-  "eye bracket:1": 20.327,
+  "eye bracket:1": 19.366,
   "L lid servo:1": 16.0,
   "L lid horn:1": 0.374,
   "L eye servo:1": 16.0,
@@ -541,11 +541,11 @@
   "cable holder:1": "PLA Pure"
  },
  "stage": {
-  "total_g": 372.3,
+  "total_g": 371.4,
   "com": [
    34.5,
    -25.2,
-   57.2
+   57.3
   ]
  },
  "calibrated": {},
@@ -1355,7 +1355,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "61e9d0d678f3a7dfb4738a24b1505be1633f0f1ee884cd91a8c2d49e4c75fc02",
+  "stamp": "59345fee56d59b58875b9b7c782d1e59d16b32e0bcbd6d8fe8337dadcf1f03df",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -1365,7 +1365,7 @@
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
    "model/build/ours/bottom jaw.stl": "5d18f1d08a1e2c66",
    "model/build/ours/core.stl": "3b3e2d97fb6c5bc0",
-   "model/build/ours/eye bracket.stl": "026fbe5b24ee1008",
+   "model/build/ours/eye bracket.stl": "e7e7604931777efc",
    "model/build/ours/eyeball bar.stl": "2539e551259fbe78",
    "model/build/ours/horn.stl": "b2e64230ab55d401",
    "model/build/ours/jaw bar.stl": "30a72314cd37e254",

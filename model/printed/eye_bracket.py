@@ -43,8 +43,8 @@ FORK = {"y": (0.0, 4.0), "r": 4.0, "hole_r": 1.6}  # round about each eyeball pi
 def build(desk=False):
     out = box(BAND["x"], BAND["y"], PLATE_Z)
     stem = g.DESK_STEM_BOTTOM[1] if desk else STEM["bottom"]
-    (y0, y1), z1 = LID_RELIEF["y"], LID_RELIEF["z"]
-    relief = [(y0, PLATE_Z[0] - 1), (y0, PLATE_Z[0]), (y1, z1), (BAND["y"][0] - 1, z1), (BAND["y"][0] - 1, PLATE_Z[0] - 1)]
+    (y0, y1), z1, z0, edge = LID_RELIEF["y"], LID_RELIEF["z"], PLATE_Z[0], BAND["y"][0] - 1
+    relief = [(y0, z0 - 1), (y0, z0), (y1, z1), (edge, z1), (edge, z0 - 1)]
     for x0, x1 in ((BAND["x"][0] - 1, STEM["x"][0]), (STEM["x"][1], BAND["x"][1] + 1)):
         out = out.cut(cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(relief).close().extrude(x1 - x0))
     out = out.union(box(STEM["x"], (stem, BAND["y"][0] + 1), PLATE_Z))

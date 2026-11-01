@@ -13,7 +13,7 @@ from model.engine import mating, run, stages
 HERE = os.path.dirname(__file__)
 _LID_OPEN = (
     "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90): in the model the lower lid's back rim meets the"
-    " servo bracket's front face from +39, 1.3 mm deep at 45.75, 2.0 at 52.95 (and the upper lid 0.35 mm into the eyeball"
+    " servo bracket's front face from +39, 1.4 mm deep at 45.75, 2.0 at 52.95 (and the upper lid 0.6 mm into the eyeball"
     " bar there); past the model's free travel (+31, geometry.LIMITS) the two lids' ears also meet at the back and the"
     " upper lid's ear the eye bracket's arm, pairs this sweep skips (#189). Best guess (#170, #189): the build runs it,"
     " so the model's lid travel (62 deg free) is short of the build's (93 / 85 servo deg) by a shape error at the lids'"
@@ -32,7 +32,25 @@ KNOWN_CALIBRATED = {
 # pairs the old engine skips (a lid or eyeball on its bracket pivot, the two lids) are clear on the meshes at every
 # LIMITS end (model/engine/test_meshes.py, #189).
 _SHELL = "pieces only: the lid shell's pieces fill its 0.48 mm gap to the eyeball; the meshes stay 0.48 mm clear"
+_ON_PINS = (
+    "pieces only: the lids turn on the bracket's pins and on each other's ears; the meshes touch with nothing inside at"
+    " every pose, the pieces read up to 0.75 mm deeper than at rest (+29..+31)"
+)
+_ON_RAIL = (
+    "pieces only: the eyeball bar rides the bracket's rail, 0 mm with nothing inside on the meshes; its pieces 0.07 mm"
+    " deeper at +-20 on the desk bracket"
+)
 KNOWN_PAIRS = {
+    **{
+        frozenset((f"{s} {a}", b)): _ON_PINS
+        for s in "LR"
+        for a, b in (
+            ("lower lid:1", f"{s} upper lid:1"),
+            ("upper lid:1", "eye bracket:1"),
+            ("lower lid:1", "eye bracket:1"),
+        )
+    },
+    **{frozenset((f"{s} eyeball bar:1", "eye bracket:1")): _ON_RAIL for s in "LR"},
     **{frozenset((f"{s} pupil:1", f"{s} {lid} lid:1")): _SHELL for s in "LR" for lid in ("upper", "lower")},
     frozenset(("base plate:1", "upright:1")): "pieces only: the plate's pieces fill the recess under the upright; the"
     " meshes stay 0.5 mm clear at pan -40",
@@ -206,7 +224,7 @@ FIXTURE_PROBLEMS = {
         "mating R lid servo in its mount: 0.3 mm off R servo bracket:1",
         "mating pan servo lead exit: the lead runs into pan servo tail mount:1",
         "mating jaw servo / jaw servo mount lower tab screw: no hole feature found on jaw servo mount:1",
-        "mujoco R eyeball bar:1 / eye bracket:1: -0.12 mm at {'R eye horn': -22}, 0.1 deeper than at rest",
+        "mujoco R eye horn:1 / R servo bracket:1: -0.12 mm at {'R eye horn': -22}, 0.1 deeper than at rest",
         "mujoco pan turntable:1 / tilt bar:1: -0.08 mm at {'tilt horn': -60}, 0.08 deeper than at rest",
         "mujoco four-bar tilt pivot: open 0.07 mm at {'tilt horn': 60} > 0.05",
         "mujoco tilt horn: holds 0.45 kgf.cm at {'tilt horn': -60} > its rated 0.4 (stall 1.0)",
