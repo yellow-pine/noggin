@@ -9,7 +9,7 @@ FROM mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279
 FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
 LABEL org.opencontainers.image.source=https://github.com/yellow-pine/noggin
 ARG DEBIAN_FRONTEND=noninteractive
-# python3: uv's interpreter (requires-python) and scripts/ci_budget.py's; ngspice: model/electrical.py's SPICE circuit,
+# python3: scripts/ci_budget.py's (uv downloads the venv's, .python-version); ngspice: model/electrical.py's SPICE circuit,
 # which spicelib runs in batch mode; libgl1 and the X libraries:
 # what VTK (under CadQuery) and Blender load even in the background; the rest what the jobs' steps call (the runner
 # image's)
@@ -24,8 +24,8 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
-# uv sync uses the system Python, never a download; the venv sits on another mount than uv's cache (no hard links)
-ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
+# the venv sits on another mount than uv's cache (no hard links)
+ENV UV_LINK_MODE=copy
 
 # Chrome for Testing at Playwright's channel="chrome" path (web/test_viewer.py), with the packages its deb.deps lists,
 # and mermaid-cli (test_site.py) at mkdocs.yml's versions (ci/test_images.py) in npx's cache, driving that Chrome.

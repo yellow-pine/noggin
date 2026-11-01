@@ -79,6 +79,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
+      env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
+        UV_PYTHON_DOWNLOADS: automatic
     strategy:
       fail-fast: false   # every motion runs to its end; site fails unless all of them succeeded
       matrix:
@@ -160,6 +162,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
+      env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
+        UV_PYTHON_DOWNLOADS: automatic
     permissions:
       contents: read
       actions: read   # scripts/ci_budget.py reads the run's start
@@ -230,6 +234,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:1acfcba692ce1bfcd6d3f6fcc7f9ee09922326c3b6d0bf19aa1cfdbf1216f6ac   # ci/base.Dockerfile (images.yml)
+      env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
+        UV_PYTHON_DOWNLOADS: automatic
       options: --ipc=host   # Chrome's shared memory (https://playwright.dev/docs/docker)
     permissions:
       contents: read
