@@ -19,7 +19,8 @@ defaults:
 # every model shard does, which split those tests (the hero's collision sweep alone, the rest by document over
 # four, make view's offscreen render among them) and make sim, with make stl and make step on
 # main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job summary, and each
-# job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key.
+# job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold cache is cut part
+# by part first (convex, #223), so the model shards start warm.
 jobs:
   code:
     if: ${{ !github.event.pull_request.draft }}
@@ -58,9 +59,84 @@ jobs:
       - run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  convex:   # warm: only looks the parts cache up. Cold: from main's latest entry, lists the parts whose pieces are stale
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.parts.outputs.cache-primary-key }}
+      parts: ${{ steps.stale.outputs.parts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - id: parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          lookup-only: true
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: false   # as in code
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ steps.parts.outputs.cache-primary-key }}
+          restore-keys: ours-convex-   # as in code
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        id: stale
+        run: |
+          make ours
+          parts=$(.venv/bin/python -m model.convex_parts)   # its own line, so a failure fails the step
+          echo "parts=$parts" >> "$GITHUB_OUTPUT"
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: ours
+          path: model/build/ours/
+          include-hidden-files: true   # its .key: make ours in the jobs below then builds nothing
+          retention-days: 1
+          overwrite: true   # a re-run of every job uploads it again
+  convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
+    name: convex ${{ matrix.part }}
+    needs: convex
+    if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # the parts that do cut keep their caches
+      matrix:
+        part: ${{ fromJSON(needs.convex.outputs.parts) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: false   # as in code
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: ours
+          path: model/build/ours
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/convex/${{ matrix.part }}
+          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+      - run: make venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
+        env:
+          PART: ${{ matrix.part }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: convex-${{ matrix.part }}
+          path: model/build/convex/   # this part's folder alone
+          include-hidden-files: true   # its .key
+          retention-days: 1
+          overwrite: true   # as ours
   model-shard:
     name: model ${{ matrix.shard }}
-    if: ${{ !github.event.pull_request.draft }}
+    needs: [convex, convex-part]
+    if: ${{ !cancelled() && !failure() && !github.event.pull_request.draft }}   # convex-part is skipped when warm
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -79,6 +155,10 @@ jobs:
           - shard: stage3
             tests: --ignore=model/render/test_hero.py -k stage3
     steps:
+      # make sim's SPICE circuit (as in code; model/test_electrical.py runs it as mujoco collects it) and Mesa's EGL, which
+      # renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job sets up, which pays
+      # for the wait on convex
+      - run: (sudo apt-get update && sudo apt-get install -y libngspice0-dev libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
@@ -92,14 +172,32 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ${{ needs.convex.outputs.key }}
           restore-keys: ours-convex-   # as in code
-      # make sim's SPICE circuit, as in code; Mesa's EGL renders make view's scene offscreen (MUJOCO_GL below) in software
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev libegl1 libegl-mesa0 libgl1-mesa-dri
-      # missed the exact key: decompose what is stale before the tests, in mjcf's own process pool, or several xdist
-      # workers would decompose the same part into the same folder at once
+      # missed: the parts convex built and cut over the entry restored
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: ours
+          path: model/build/ours
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}   # a part cut again may have fewer pieces than restored
+        run: jq -r '.[]' <<< "$PARTS" | while read -r part; do rm -rf "model/build/convex/$part"; done
+        env:
+          PARTS: ${{ needs.convex.outputs.parts }}
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: convex-*
+          path: model/build/convex
+          merge-multiple: true
+      # missed the exact key: decompose what is still stale (nothing, after convex-part) before the tests, in mjcf's own
+      # process pool, or several xdist workers would decompose the same part into the same folder at once
       - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         run: make ours && .venv/bin/python -m model.mjcf
+      - run: |   # the install begun above
+          make venv
+          timeout 300 sh -c 'until [ -f "$RUNNER_TEMP/apt.rc" ]; do sleep 1; done' || echo "apt still running" > "$RUNNER_TEMP/apt.rc"
+          [ "$(cat "$RUNNER_TEMP/apt.rc")" = 0 ] || { cat "$RUNNER_TEMP/apt.txt" "$RUNNER_TEMP/apt.rc"; exit 1; }
       - run: make test | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m model -n auto --dist loadgroup --durations=20 ${{ matrix.tests }}
