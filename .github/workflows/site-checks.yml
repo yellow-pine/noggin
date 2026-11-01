@@ -24,7 +24,7 @@ jobs:
   deploy-pending:
     name: Deploy Pending
     if: ${{ github.event_name == 'push' }}   # main only (on.push)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       statuses: write
     steps:
@@ -38,7 +38,7 @@ jobs:
   changes:   # as check.yml's; main builds everything
     name: Changes
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
@@ -58,7 +58,7 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -85,7 +85,7 @@ jobs:
     name: Render (${{ matrix.motion }})
     needs: motions
     if: ${{ !cancelled() && needs.motions.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
@@ -166,7 +166,7 @@ jobs:
     name: Pictures
     if: ${{ !cancelled() }}
     needs: [motions, render]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check every runner passed
         env:
@@ -180,7 +180,7 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
@@ -253,7 +253,7 @@ jobs:
     needs: [changes, render, viewer]
     if: >-   # as check.yml's mech
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:1acfcba692ce1bfcd6d3f6fcc7f9ee09922326c3b6d0bf19aa1cfdbf1216f6ac   # ci/base.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one

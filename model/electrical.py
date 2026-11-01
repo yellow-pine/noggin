@@ -75,7 +75,7 @@ def operating_point(netlist):
         if NGspiceSimulator.run(cir, stdout=subprocess.DEVNULL) != 0:
             raise RuntimeError(cir.with_suffix(".log").read_text())
         # ngspice before 44 writes no "Command:" line for spicelib to detect it by (spicelib raw/plot_data.py); CI's
-        # Ubuntu noble ships 42 (https://packages.ubuntu.com/noble/ngspice)
+        # base image, Ubuntu 24.04, ships 42 (https://packages.ubuntu.com/noble/ngspice)
         raw = RawRead(cir.with_suffix(".raw"), dialect="ngspice", verbose=False)
         return {n[2:-1]: float(raw.get_wave(n)[0]) for n in raw.get_trace_names() if n.lower().startswith("v(")}
 

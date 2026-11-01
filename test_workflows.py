@@ -42,3 +42,9 @@ def test_the_convention_itself():
     assert not any(TITLE.fullmatch(n) for n in ["code", "fetch skills", "Model hero)", "convex ${{ matrix.part }}"])
     assert all(sentence_case(n) for n in ["Set up uv", "Run make check", "Restore the parts cache", "Verdict"])
     assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run make check."])
+
+
+def test_no_workflow_runs_on_ubuntu_latest():
+    """#392: `ubuntu-latest` moves under us when GitHub says so (26.04 from 2026-10-19); a named image moves when we
+    do (ADR 0012)."""
+    assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
