@@ -294,7 +294,7 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path, capsys):
 
 def test_the_beacon_stays_fresh_through_the_longest_gesture():
     """The Core's loop, and so its beacon, stops while it plays a gesture (#196: the eyes went offline in every bored).
-    The real Core is slower than the replay: bored replays in 11.6 s, its beacon was gone ~16 s (noggin.log 12:24:41)."""
+    The real Core is slower than the replay: bored replays in 11.6 s, its beacon was gone ~16 s (log, 12:24:41)."""
     cal = json.loads(CAL_FILE.read_text())
     longest = max(gesture_seconds(line, cal) for line in DEMO_LINES - HOLD.keys())
     assert longest > 11  # bored: the window must cover it, not the old 6 s
