@@ -86,7 +86,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
   site at /reports (ADR 0009). Site Checks' `site` job caches npm's downloads by `site/package-lock.json`
-  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013). A cold parts cache is first cut part by part,
+  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
+  from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part by part,
   one runner per part whose CoACD pieces are stale (`convex`, `model/convex_parts.py`), so the model shards start warm.
   With a warm cache a run's critical path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in
   the run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
