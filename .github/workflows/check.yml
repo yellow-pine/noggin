@@ -11,7 +11,7 @@ concurrency:   # one run per workflow and PR (or branch); a new push to a PR can
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
-  actions: read   # scripts/ci_budget.py reads the run's start
+  actions: read   # scripts/ci_budget.py reads when the run's jobs started
 defaults:
   run:
     shell: bash   # -eo pipefail: make's exit code survives the tee
