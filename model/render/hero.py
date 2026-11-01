@@ -1,7 +1,7 @@
 """The README hero (#117): stage 3 mid-conversation, an 8 s loop keyed by hand. The jaw talks in two phrases, the
 head glances aside and back twice and nods while it listens, the eyes lead each glance with a saccade and settle back
 as the head arrives, the lids drop with the nod and blink. Timing follows the Core program (eyes/eyes.py): a blink
-closes in one 80 ms step, holds 135 ms and reopens over 300 ms; a saccade is one step. The head moves as far as the
+lifts, closes over 160 ms, holds 80 ms, reopens past the level over 240 ms and settles (#258); a saccade is one step. The head moves as far as the
 designer's (about 25 degrees of pan, 15 of nod, near the horn limits): its keys are in head degrees (the pan and tilt
 pivots' own), converted to horn degrees through the four-bar kinematics (model/stages.py pose); every other key is in model horn degrees
 from neutral inside geometry.LIMITS (a blink shuts the lids at -30.75, where they meet: model/lids.py).
@@ -22,8 +22,15 @@ LID_SHUT = g.HORN_LIMITS["l_lid"][0] - 90  # shut in a blink: the lips meet at t
 
 
 def blink(t, lid=LID_OPEN):
-    """Lid keys for a blink starting at t (eyes/eyes.py Eyes.blink)."""
-    return [(t, lid), (t + 0.08, LID_SHUT), (t + 0.215, LID_SHUT), (t + 0.515, lid)]
+    """Lid keys for a blink starting at t (eyes/eyes.py Eyes.blink), its lift and overshoot 2 horn degrees."""
+    return [
+        (t, lid),
+        (t + 0.04, lid + 2),
+        (t + 0.2, LID_SHUT),
+        (t + 0.28, LID_SHUT),
+        (t + 0.52, lid + 2),
+        (t + 0.62, lid),
+    ]
 
 
 def talk(t, syllables):
@@ -45,7 +52,7 @@ def glance(t, eyes, head, back):
 
 EYE_1, PAN_1 = glance(1.5, 15.0, 24.0, 2.75)
 EYE_2, PAN_2 = glance(5.6, -14.0, -20.0, 7.2)
-LIDS = [(0.0, LID_OPEN), *blink(0.9), *blink(2.75), (3.3, LID_OPEN), (3.7, LID_DOWN), (4.3, LID_OPEN), *blink(5.6)]
+LIDS = [(0.0, LID_OPEN), *blink(0.9), *blink(2.75), (3.7, LID_DOWN), (4.3, LID_OPEN), *blink(5.6)]
 KEYS = {  # servo (geometry.LIMITS keys): [(seconds, model horn degrees from neutral)]
     "l_lid": [*LIDS, *blink(7.2), (8.0, LID_OPEN)],
     "l_eye": [(0.0, 0.0), *EYE_1, *EYE_2, (8.0, 0.0)],

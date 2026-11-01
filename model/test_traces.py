@@ -104,10 +104,11 @@ def test_thinking_keeps_the_pupils_showing_under_low_lids():
         assert all(f[s][0] < rest[s][0] for f in settled)
 
 
-def test_wink_closes_one_eye_only():
-    frames = looks("wink")  # wink 1: the mech's left lid
+def test_wink_closes_one_eye_and_the_other_squints():
+    frames = looks("wink")  # wink 1: the mech's left lid; the right squints 20% (#258)
+    squint = lids.gap("R", traces.joint("r_lid", 0.8 * traces.CAL["lid_rest"]))
     assert min(f["L"][0] for f in frames) <= 0
-    assert min(f["R"][0] for f in frames) == pytest.approx(frames[0]["R"][0], abs=0.5)
+    assert 0 < min(f["R"][0] for f in frames) == pytest.approx(squint, abs=0.5)
 
 
 def test_bored_has_one_long_closure_under_two_seconds():

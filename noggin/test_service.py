@@ -246,7 +246,7 @@ def test_hooks_are_dropped_and_logged_in_demo(tmp_path, capsys):
 
 def test_gesture_seconds_come_from_the_core_programs_clock():
     assert gesture_seconds("thinking", {}) == 8.0  # a mode: held, not played out
-    assert 1.5 < gesture_seconds("eureka 2", {}) < 3 < gesture_seconds("bored 2", {})  # replayed: about 2 s and 12 s
+    assert 2.5 < gesture_seconds("eureka 2", {}) < 4 < gesture_seconds("bored 2", {})  # replayed: ~3.4 s (#258), ~12 s
 
 
 def test_a_long_prompt_larger_than_one_read_still_reaches_the_board(tmp_path):

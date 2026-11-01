@@ -113,9 +113,12 @@ board with `mpremote ls` before replacing anything.
 `eyes/build_trace.py` pulls GazeBase subject 1001, session 1 (CC BY 4.0) with a 7 MB byte-range
 fetch and bakes `eyes/gaze_trace.py`: real saccade velocity profiles at 10/20/25° (used by every
 dart and return, undershoot and correction included), a 4 s horizontal-scan clip (attention), and a
-60 s video-viewing session (thinking, when `think_trace` is 1). Lids are not in the data; blink and
-lid timing come from the literature in `docs/research/2026-10-31-natural-eye-motion.md`. Fixational
-jitter (±0.5°) is below one servo step and was dropped.
+60 s video-viewing session (thinking, when `think_trace` is 1). Lids are not in the data; blinks and
+lids keep toon timing (#258, `docs/research/2026-11-01-toon-eyes.md`; the human kinematics behind it
+are in `2026-10-31-natural-eye-motion.md` and `2026-11-01-blink-kinematics.md`). No write asks more of
+a servo than its rated 428°/s: `glide` takes more steps, a big saccade spaces its samples out, a
+replayed trace caps each sample's move (`eyes/test_toon.py`). Fixational jitter (±0.5°) is below one
+servo step and was dropped.
 
 ## Wi-Fi Link timing (2026-10-31, #104)
 

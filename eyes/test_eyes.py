@@ -170,13 +170,14 @@ def test_saccade_follows_the_real_profile(eyes, pwm_log):
     assert eye[3] < eye[-1] - 3  # still travelling a third of the way in
 
 
-def test_wink_moves_one_lid_only(eyes, pwm_log):
+def test_wink_closes_one_lid_and_the_other_only_squints(eyes, pwm_log):
     eyes.handle_line("rest")
     pwm_log.clear()
     eyes.handle_line("wink 2")  # mech's right lid
     r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
     left = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
-    assert max(r) - min(r) > 15 and (not left or max(left) - min(left) < 2)
+    assert min(r) == pytest.approx(eyes._lid_angle(mod.R_LID, eyes.cal["lid_closed"]))
+    assert max(left) == pytest.approx(eyes._lid_angle(mod.L_LID, 0.8 * eyes.cal["lid_rest"]))  # mirrored: shut is up
 
 
 def test_core_json_ports_pick_the_gpio_per_servo_name(tmp_path, monkeypatch, pwm_log):

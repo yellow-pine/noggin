@@ -39,7 +39,7 @@ def _eyes():
 
 
 def play(lines, cal=None):
-    """Run command lines; returns ([(ms, pin, angle), ...] in order, total ms)."""
+    """Run command lines (or callables taking the Eyes); returns ([(ms, pin, angle), ...] in order, total ms)."""
     mod = _eyes()
     clock = [0]
     mod.sleep_ms = lambda ms: clock.__setitem__(0, clock[0] + ms)  # pyright: ignore[reportAttributeAccessIssue]
@@ -53,7 +53,7 @@ def play(lines, cal=None):
 
     e.set = logged
     for line in lines:
-        e.handle_line(line)
+        line(e) if callable(line) else e.handle_line(line)
     return log, clock[0]
 
 
