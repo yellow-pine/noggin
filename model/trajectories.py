@@ -62,9 +62,10 @@ def hero_commands():
 MOTIONS = {**{g: lambda g=g: traces.commands(g) for g in traces.GESTURES}, "hero": hero_commands}
 
 
-def play(model, writes, times):
-    """[(xpos, xquat) per body] at each of times (ms): the Mech settled (mjcf.pose) at the writes before ms 0, then
-    every write from ms 0 on sent to its servo at its time; writes to servos the model lacks are skipped."""
+def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.copy())):
+    """read(data) at each of times (ms), by default (xpos, xquat) per body: the Mech settled (mjcf.pose) at the writes
+    before ms 0, then every write from ms 0 on sent to its servo at its time; writes to servos the model lacks are
+    skipped."""
     horns = {s: h for s, h in scene.HORNS.items() if mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, h) >= 0}
     writes = [(ms, horns[s], d) for ms, s, d in writes if s in horns]
     command = {h: d for ms, h, d in writes if ms < 0}
@@ -86,7 +87,7 @@ def play(model, writes, times):
                 data.ctrl[ids] = [math.radians(p.step(command[h], dt)) for p, h in zip(plants, driven)]
                 mujoco.mj_step(model, data)
                 step += 1
-            out.append((data.xpos.copy(), data.xquat.copy()))
+            out.append(read(data))
     finally:  # the model is the caller's: its contacts come back on
         model.opt.disableflags = flags
     return out

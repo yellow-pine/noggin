@@ -3,20 +3,78 @@ import io
 import json
 import math
 
+import mujoco
 import numpy as np
 import pytest
 
-from model import electrical, mjcf, traces
+from model import electrical, geometry, mjcf, mujoco_report, traces
 from model import trajectories as tj
 from model.render import hero
+from model.test_report import KNOWN_PAIRS
 
 pytestmark = pytest.mark.model
 SETTLED_DEG = 0.5  # a servo's deadband (mjcf.KP)
 
 
+# Pairs a gesture drives deeper than at rest because the calibrated servo ends reach past the model's free travel, with
+# why: excused only in the frames where their side's lid horn is past it (geometry.LIMITS), never at the closed end.
+_OPEN = (
+    "eureka widens the lids to lid_open (0.95: horn +29.4 L, +29.6 R) toward the calibrated open end 102 (+32.25,"
+    " geometry.HORN_AT_90), which the Mech runs without binding (#255: no stop or clutch slip up to 133) but which lies"
+    " past the model's free travel (geometry.LIMITS, #210): the ears' back corners cross from +16.5 and the upper lid"
+    " reaches the eye bracket's arm from +28. Conflict, recorded, not settled"
+)
+KNOWN_CALIBRATED = {
+    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _OPEN for s in "LR"},
+    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _OPEN for s in "LR"},
+}
+
+
 @functools.cache
 def built(doc):
     return mjcf.model(doc)
+
+
+@functools.cache
+def widened(doc):
+    """The document's model widened as the report's (mujoco_report.widen), and its pairs' readings at rest."""
+    model = mjcf.model(doc)
+    mujoco_report.widen(model)
+    return model, mujoco_report._contacts(model, mjcf.pose(model, {}))
+
+
+def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
+    """{(part, part): (frame, mm)} the deepest frame of each pair whose pieces go PENETRATION_MM deeper than at rest
+    in the motion as played, KNOWN_PAIRS aside and the calibrated pairs while their lid horn is past its free travel."""
+    model, rest = widened(doc)
+    data, out = mujoco.MjData(model), {}
+    for i, qpos in enumerate(tj.play(model, *tj.MOTIONS[motion](), read=lambda d: d.qpos.copy())):
+        data.qpos[:] = qpos
+        past = {
+            s
+            for s in "LR"
+            if math.degrees(data.joint(f"{s} lid horn").qpos[0]) > geometry.HORN_LIMITS[f"{s.lower()}_lid"][1] - 90
+        }
+        for pair, mm in mujoco_report._contacts(model, data).items():
+            # pairs come sorted, so a calibrated pair's side lid is first
+            known = frozenset(pair) in KNOWN_PAIRS or (frozenset(pair) in calibrated and pair[0][0] in past)
+            if min(rest.get(pair, 0), 0) - mm > mujoco_report.PENETRATION_MM and not known:
+                out[pair] = min(out.get(pair, (i, mm)), (i, mm), key=lambda f: f[1])
+    return out
+
+
+@pytest.mark.parametrize(
+    "doc,motion", [(d, m) for d in geometry.STAGES for m in tj.motions(d)], ids=lambda x: x
+)  # ids carry the document: CI's model shards split on it
+def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
+    """#255: every gesture and the hero as played on each Stage (the frames the GIFs and the web viewer draw): no pair
+    of parts more than PENETRATION_MM deeper than at rest in any frame."""
+    assert overlaps(doc, motion) == {}
+
+
+def test_known_calibrated_pairs_still_overlap():
+    """When the model's lids can reach the calibrated open end, a KNOWN_CALIBRATED entry no longer overlaps: drop it."""
+    assert set(KNOWN_CALIBRATED) <= {frozenset(p) for p in overlaps("noggin-stage1", "eureka", calibrated={})}
 
 
 def turned(frames, body):

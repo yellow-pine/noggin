@@ -83,10 +83,11 @@ the model stabilises.
 - The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
-  - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated close, its edges just touching (#134, #189), eyes +2 from the
+  - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the
     program's eye centre (#170); the lid crank's 1.2 mm play along its screw (geometry.CRANK_PLAY_MM, #170); the lids'
     open ends still collide in the model and were accepted with their reason (#170, #189) until #151 dropped the
-    exact-mesh check that measured the calibrated ends;
+    exact-mesh check that measured the calibrated ends; since #255 the gestures' wide lids (eureka) are judged per frame
+    and listed with that reason (model/test_trajectories.py KNOWN_CALIBRATED);
   - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
     the typical 9 g figure; the vendor publishes none) and the Y lead's branches (100 mm each);
   - the bracket stem's depth in the plate's slot (stage 1, from the build photos) and in the tilt arm window (stages 2, 3)
