@@ -9,7 +9,7 @@ Core, how a Claude Code hook becomes a gesture, and how the model makes every pi
 ```mermaid
 sequenceDiagram
     accTitle: The Link between the noggin service and one Core
-    accDescr: The Core beacons every 2 s so the noggin service learns its address. Each command line goes as one signed UDP datagram; the Core acks it on receipt, before it plays it. Unacked, the line is tried again with the same seq, up to four tries waiting 0.2, 0.4, 0.8 and 1.6 s for the ack; still unacked, it goes over USB-C, to the eyes Core only.
+    accDescr: The Core beacons every 2 s so the noggin service learns its address. Each command line goes as one signed UDP datagram; the Core acks it on receipt, before it plays it. A line gets four tries in all with the same seq, waiting 0.2, 0.4, 0.8, 1.6 s for each ack; still unacked, or with no fresh beacon, it goes over USB-C to the eyes Core, and a neck line is dropped.
     participant S as noggin service (Mac)
     participant C as Core (eyes or neck)
     loop every 2 s
@@ -19,8 +19,8 @@ sequenceDiagram
     C--)S: tagged ack, on receipt
     Note over C: plays the gesture to its end
     opt no ack
-        S->>C: the same seq again, up to four tries, waiting 0.2, 0.4, 0.8, 1.6 s for the ack
-        S->>C: still unacked: the line over USB-C (eyes Core only)
+        S->>C: the same seq again: four tries in all, waiting 0.2, 0.4, 0.8, 1.6 s for each ack
+        S->>C: still unacked, or no fresh beacon: over USB-C to the eyes Core, a neck line dropped
     end
 ```
 
@@ -37,14 +37,14 @@ config:
 ---
 stateDiagram-v2
     accTitle: From a Claude Code hook to a gesture
-    accDescr: The Mech rests until a prompt starts a turn and it thinks. A Trigger that plays a gesture interrupts rest or thinking; while the gesture plays the noggin service is Busy and drops Triggers. When it ends the Mech thinks if a turn is still open, else rests. The last turn ending, or no event for 15 min, returns it to rest.
+    accDescr: The Mech rests until a prompt starts a turn and it thinks. A Trigger that plays a gesture interrupts rest or thinking; while the gesture plays the noggin service is Busy and drops Triggers. When it ends the Mech thinks if a turn is still open, else rests. The last turn ending with no gesture (SessionEnd, or a Stop while Busy), or a last turn 15 min old returns it to rest.
     [*] --> Rest
     Rest --> Thinking: UserPromptSubmit
     Rest --> Gesture: a gesture's Trigger
     Thinking --> Gesture: a gesture's Trigger
     Gesture --> Thinking: played to its end, a turn still open
     Gesture --> Rest: played to its end, no turn open
-    Thinking --> Rest: SessionEnd of the last turn, or no event for 15 min
+    Thinking --> Rest: the last turn ends with no gesture, or is 15 min old
     note right of Gesture
         SessionStart: wink
         Stop: eureka, by the turn's Tier: under 20 s small, under 3 min normal, longer big

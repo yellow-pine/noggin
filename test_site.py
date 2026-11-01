@@ -66,7 +66,7 @@ def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
         assert row in home
 
 
-MERMAID = ["@mermaid-js/mermaid-cli@11.17.1", "mermaid@11.17.2"]  # the 11 Material loads (unpkg mermaid@11) resolves to
+MERMAID_CLI = ["@mermaid-js/mermaid-cli@11.17.1", "mermaid@11.17.2"]  # Material loads unpkg's mermaid@11: its newest
 
 
 def test_every_diagram_renders(tmp_path):
@@ -75,8 +75,8 @@ def test_every_diagram_renders(tmp_path):
     docs = [ROOT / "README.md", *(p for p in (ROOT / "docs").rglob("*.md") if "references" not in p.parts)]
     files = [p for p in docs if "```mermaid" in p.read_text()]
     assert ROOT / "README.md" in files
+    pkgs = [arg for pkg in MERMAID_CLI for arg in ("-p", pkg)]
     for f in files:
-        pkgs = [arg for pkg in MERMAID for arg in ("-p", pkg)]
         r = subprocess.run(
             ["npx", "-y", *pkgs, "mmdc", "-q", "-i", str(f), "-o", str(tmp_path / f.name)],
             capture_output=True,
@@ -126,7 +126,7 @@ def test_the_diagrams_numbers_agree_with_the_code():
         f"waiting {', '.join(f'{s:g}' for s in ACK_SECONDS)} s",
         f"under {duration(TIERS[0][0])} small, under {duration(TIERS[1][0])} normal, longer big",
         f"{busy[0]:g}-{busy[-1]:g} s",
-        f"no event for {duration(STALE_TURN_SECONDS)}",
+        f"is {duration(STALE_TURN_SECONDS)} old",
     ]:
         assert phrase in page, phrase
 
