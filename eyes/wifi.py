@@ -1,7 +1,7 @@
 # pyright: reportOptionalMemberAccess=false
-# noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711,
-# serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop and,
-# while a gesture plays, from its waits (eyes.between_steps).
+# noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711 (with the
+# program's version and commit), serve command lines on UDP 4712, flash the eye program's files. Cooperative:
+# poll(now_ms) from the boot.py loop and, while a gesture plays, from its waits (eyes.between_steps).
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib
@@ -16,6 +16,11 @@ try:
 except ImportError:  # CPython: tests set these
     network = socket = None
 import time
+
+try:  # the program's version and commit: make mpy writes stamp.py into eyes/build beside the program, never into git
+    from stamp import COMMIT, VERSION  # pyright: ignore[reportMissingImports]
+except ImportError:  # CPython, or a program put on without it: the noggin service ignores its beacon
+    VERSION = COMMIT = "unknown"
 
 try:
     from time import ticks_diff
@@ -193,7 +198,7 @@ class Wifi:
             self.cmd.bind(("0.0.0.0", COMMAND_PORT))
             self.cmd.setblocking(False)
         if ticks_diff(now_ms, self.next_beacon) >= 0:
-            msg = f"noggin {self.name} {self.wlan.ifconfig()[0]} {self.uptime_ms // 1000}"
+            msg = f"noggin {self.name} {self.wlan.ifconfig()[0]} {self.uptime_ms // 1000} {VERSION} {COMMIT}"
             self.beacon.sendto(self.signed(msg), ("255.255.255.255", BEACON_PORT))
             self.next_beacon = now_ms + BEACON_MS
         while True:

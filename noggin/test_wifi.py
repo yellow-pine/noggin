@@ -44,6 +44,7 @@ class FakeCore(threading.Thread):
         drop=0,
         ack=True,
         claim_ip="127.0.0.1",
+        program="0.1.0 abc1234",
         stranger=False,
         busy=0.0,
         rollback=False,
@@ -52,7 +53,7 @@ class FakeCore(threading.Thread):
     ):
         super().__init__(daemon=True)
         self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
-        self.beacon_token, self.ack_token = beacon_token, ack_token
+        self.beacon_token, self.ack_token, self.program = beacon_token, ack_token, program
         self.busy, self.last_seq, self.rollback, self.uptime, self.reply = busy, None, rollback, 42, ""
         self.stranger = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if stranger else None  # acks from another port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -66,7 +67,7 @@ class FakeCore(threading.Thread):
         last = 0.0
         while self.running:
             if self.beaconing and self.beacon_to and time.time() - last > 0.1:
-                beacon = f"noggin {self.name_} {self.claim_ip} {self.uptime}"
+                beacon = f"noggin {self.name_} {self.claim_ip} {self.uptime} {self.program}".strip()
                 self.sock.sendto(signed(self.beacon_token, self.name_, beacon), self.beacon_to)
                 last = time.time()
             try:
@@ -144,11 +145,43 @@ def ask(path, text, timeout=1.0):
         s.close()
 
 
-def test_beacon_puts_the_core_on_wifi_in_status(tmp_path):
-    core = FakeCore()
+@pytest.fixture
+def service_at(monkeypatch):
+    """The noggin service's own version and commit (noggin/core.py reads them from pyproject.toml and git)."""
+    monkeypatch.setattr("noggin.service.VERSION", "0.10.0")
+    monkeypatch.setattr("noggin.service.COMMIT", "def5678")
+
+
+def test_beacon_puts_the_core_and_its_program_in_status_beside_the_services(tmp_path, service_at):
+    core = FakeCore(program="0.10.0 abc1234-dirty")
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
-    assert ask(sock, "status\n") == "eyes wifi 127.0.0.1 uptime 42s\nneck offline\nmode follow\n"
+    assert ask(sock, "status\n") == (
+        "eyes wifi 127.0.0.1 uptime 42s program 0.10.0 abc1234-dirty\nneck offline\nnoggin service 0.10.0 def5678\n"
+        "mode follow\n"
+    )
+    s.stop()
+    core.running = False
+
+
+def test_status_warns_when_the_core_runs_an_older_program_than_the_service(tmp_path, service_at):
+    core = FakeCore(program="0.9.0 abc1234")  # older by number, not by string: "0.9.0" > "0.10.0"
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
+    assert ask(sock, "status\n").endswith(
+        "noggin service 0.10.0 def5678\n"
+        "warning: eyes runs program 0.9.0, older than the noggin service's 0.10.0: make flash\nmode follow\n"
+    )
+    s.stop()
+    core.running = False
+
+
+@pytest.mark.parametrize("program", ["", "unknown unknown", "0.1 abc1234", "0.1.0"])
+def test_a_beacon_without_the_programs_version_and_commit_is_ignored(tmp_path, program):
+    core = FakeCore(program=program)  # "": a Core program from before #357; "unknown": one put on without stamp.mpy
+    s, sock = start(tmp_path, core)
+    time.sleep(0.3)
+    assert "eyes offline" in ask(sock, "status\n") and core.datagrams == []
     s.stop()
     core.running = False
 
@@ -274,9 +307,7 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path, capsys):
     s, sock = start(tmp_path, core, open_serial=lambda: fake, stale=0.5)
     assert wait_for(lambda: core.lines[-1:] == ["rest"])
     core.beaconing = False
-    assert wait_for(
-        lambda: ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\nmode follow\n"
-    )
+    assert wait_for(lambda: ask(sock, "status\n").startswith("eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\n"))
     time.sleep(0.3)
     out = capsys.readouterr().out
     assert out.count("eyes beacon back: wifi 127.0.0.1 uptime 42s") == 1  # #196: each way logged once
@@ -347,7 +378,7 @@ def test_offline_core_makes_commands_silent_no_ops(tmp_path):
     s, sock = start(tmp_path, core, wifi=False)  # no wifi.json either
     ask(sock, "eureka 2\n")
     time.sleep(0.2)
-    assert ask(sock, "status\n") == "eyes offline\nneck offline\nmode follow\n" and core.datagrams == []
+    assert ask(sock, "status\n").startswith("eyes offline\nneck offline\n") and core.datagrams == []
     s.stop()
     core.running = False
 
@@ -355,7 +386,9 @@ def test_offline_core_makes_commands_silent_no_ops(tmp_path):
 def test_neck_core_is_seen_but_receives_nothing(tmp_path):
     core = FakeCore(name="neck")
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: ask(sock, "status\n") == "eyes offline\nneck wifi 127.0.0.1 uptime 42s\nmode follow\n")
+    assert wait_for(
+        lambda: ask(sock, "status\n").startswith("eyes offline\nneck wifi 127.0.0.1 uptime 42s program 0.1.0 abc1234\n")
+    )
     ask(sock, "eureka 2\n")
     time.sleep(0.2)
     assert core.datagrams == []
@@ -374,7 +407,12 @@ def test_seq_is_milliseconds_since_the_epoch_and_strictly_increases(tmp_path):
     core.running = False
 
 
-PROGRAM = {"eyes.mpy": b"M\x06 eye program " * 40, "gaze_trace.mpy": bytes(range(256)) * 3, "wifi.mpy": b"M\x06 link"}
+PROGRAM = {  # what make mpy builds: the program, and its stamp.mpy (version and commit)
+    "eyes.mpy": b"M\x06 eye program " * 40,
+    "gaze_trace.mpy": bytes(range(256)) * 3,
+    "wifi.mpy": b"M\x06 link",
+    "stamp.mpy": b"M\x06 stamp",
+}
 
 
 def flashing(tmp_path, monkeypatch, core):

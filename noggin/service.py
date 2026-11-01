@@ -4,8 +4,9 @@ JSON from a Claude Code hook (forwarded to the Director) or plain commands: `on`
 dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload`, `on` and Link reconnect while
 unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file) / `demo [once |
 <gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks from demo or
-pose; the mode after any restart) / `flash` (the eye program to the eyes Core over Wi-Fi, answered with the outcome;
-`make flash`). The whole calibration file is pushed whenever the Link connects. Run as `python -m noggin.service`."""
+pose; the mode after any restart) / `status` (each Core's Link and program, the service's own version) / `flash`
+(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is
+pushed whenever the Link connects. Run as `python -m noggin.service`."""
 
 import glob
 import json
@@ -16,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from noggin.core import CORES, GESTURES, MODULES
+from noggin.core import COMMIT, CORES, GESTURES, MODULES, STAMP, VERSION
 from noggin.wifi import BEACON_PORT, COMMAND_PORT, STALE, Wifi
 from reactions.director import Director
 
@@ -30,7 +31,7 @@ DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"
 DEMO_LEVELS = {"eureka": "123", "wink": "3"}  # every eureka size, a wink to a random side; the rest at 2
 SEQUENCE = [f"{g} {n}" for g in GESTURES for n in DEMO_LEVELS.get(g, "2")] + ["thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
-FLASH_FILES = tuple(f"{m}.mpy" for m in MODULES)  # eyes/build (make mpy); boot.py goes over USB alone, as .py
+FLASH_FILES = tuple(f"{m}.mpy" for m in (*MODULES, STAMP))  # eyes/build (make mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
 MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
@@ -38,6 +39,11 @@ MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
 
 def log(*a):
     print(time.strftime("%H:%M:%S"), *a, flush=True)
+
+
+def semver(version):
+    """X.Y.Z as numbers, so 0.9.0 is older than 0.10.0."""
+    return tuple(map(int, version.split(".")))
 
 
 def read_all(conn):
@@ -109,7 +115,15 @@ class Service:
         self.wifi = Wifi(token, beacon_port, command_port, stale)
 
     def status(self, now):
-        return "".join(f"{name} {self.link_status(name, now)}\n" for name in CORES) + f"mode {self.mode}\n"
+        """Each Core's Link (and its program's version and commit), the service's own version and commit, a warning
+        for each Core on Wi-Fi that runs an older program than the service, then the mode."""
+        lines = [f"{name} {self.link_status(name, now)}" for name in CORES] + [f"noggin service {VERSION} {COMMIT}"]
+        for name in CORES:
+            if self.wifi.fresh(name, now) and semver(core := self.wifi.programs[name][0]) < semver(VERSION):
+                lines.append(
+                    f"warning: {name} runs program {core}, older than the noggin service's {VERSION}: make flash"
+                )
+        return "".join(line + "\n" for line in lines) + f"mode {self.mode}\n"
 
     def link_status(self, name, now):
         if self.wifi.fresh(name, now):

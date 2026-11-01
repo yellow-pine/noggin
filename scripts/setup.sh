@@ -235,7 +235,7 @@ make -s interrupt                       # stops the noggin service and drops the
 "$MPR" resume cp core.json :core.json
 rm -f core.json
 "$PY" eyes/interrupt.py reset
-say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
+say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s> <version> <commit>') ..."
 "$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(10); print(s.recv(128).decode())' \
   && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: run 'make wifi' again"
 pause

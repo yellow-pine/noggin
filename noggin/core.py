@@ -1,10 +1,14 @@
 """The Cores as the Mac knows them, read from their sources, never listed again (docs/adr/0011): each Core's servo ports
 (model/geometry.py CHANNELS), the eye program's modules (what eyes/boot.py imports from eyes/, and what those import)
-and the gestures it plays (eyes/eyes.py); read with ast, since they import machine. Standard library and geometry.py
-only: `python -m noggin.core` (`make mpy-list`) prints the program's files for make and the release workflow without
-the venv."""
+and the gestures it plays (eyes/eyes.py); read with ast, since they import machine. Also the repo's version (one source,
+pyproject.toml: docs/adr/0010) and commit, which the noggin service runs and `make mpy` stamps into the program.
+Standard library and geometry.py only: `python -m noggin.core` (`make mpy-list`) prints the program's files for make
+and the release workflow without the venv, `python -m noggin.core stamp` the program's stamp.py."""
 
 import ast
+import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
 from model.geometry import CHANNELS
@@ -37,8 +41,30 @@ def _modules():
     return tuple(sorted(found - {"boot"}))  # boot.py only goes over USB, as .py
 
 
+def _commit():
+    """The checkout's commit, -dirty with uncommitted changes; unknown without git."""
+    try:
+        git = ["git", "describe", "--always", "--dirty", "--exclude=*"]  # no tag names: the commit alone
+        return subprocess.run(git, cwd=EYES.parent, capture_output=True, text=True).stdout.strip() or "unknown"
+    except OSError:
+        return "unknown"
+
+
 GESTURES = _gestures()
 MODULES = _modules()  # each flashed as eyes/build/<module>.mpy (make mpy)
+VERSION = tomllib.loads((EYES.parent / "pyproject.toml").read_text())["project"]["version"]
+COMMIT = _commit()
+# the program's version and commit, eyes/build/stamp.py (make mpy, never in git), which eyes/wifi.py beacons
+STAMP = "stamp"
+
+
+def stamp():
+    """stamp.py's source: the version and commit the program is built from."""
+    return f'VERSION = "{VERSION}"\nCOMMIT = "{COMMIT}"\n'
+
 
 if __name__ == "__main__":
-    print(*(f"eyes/{m}.py" for m in MODULES))
+    if sys.argv[1:] == ["stamp"]:
+        print(stamp(), end="")
+    else:
+        print(*(f"eyes/{m}.py" for m in MODULES))

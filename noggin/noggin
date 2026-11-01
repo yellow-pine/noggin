@@ -13,7 +13,8 @@ usage: noggin on|off                     mute / unmute
        noggin demo [once]                loop every gesture, 5 s apart, hooks ignored (once: one round, then follow)
        noggin demo <gesture> [level]     repeat one gesture, 5 s apart, for tuning
        noggin follow                     back to reacting to Claude Code from demo or pose (the mode after any restart)
-       noggin status                     per Core: wifi <ip> uptime / usb <port> / offline; then the mode
+       noggin status                     per Core: wifi <ip> uptime program <version> <commit> / usb <port> / offline;
+                                         the service's version and commit, a warning for an older Core program; the mode
        noggin flash                      the eye program to the eyes Core over Wi-Fi, then reboot it (make flash)
 USAGE
 exit 2; }

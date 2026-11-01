@@ -15,6 +15,7 @@ import pytest
 
 from mech.standin import MICROPYTHON, Mech, mpy, program
 from noggin import service
+from noggin.core import COMMIT, VERSION
 
 TOKEN = "00112233445566778899aabbccddeeff"  # synthetic: never eyes/wifi.json
 
@@ -111,7 +112,7 @@ def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(start
     build = tmp_path / "mac" / "build"  # what `make mpy` writes beside calibration.json
     build.mkdir()
     program(build, "mac")  # the same program built elsewhere: other bytes, so each file swaps in
-    assert ask("flash").startswith("flashed eyes: eyes.mpy gaze_trace.mpy wifi.mpy"), log
+    assert ask("flash").startswith("flashed eyes: eyes.mpy gaze_trace.mpy wifi.mpy stamp.mpy"), log
     good = (mech.root / "eyes.mpy").read_bytes()
     assert good == (build / "eyes.mpy").read_bytes() and (mech.root / "eyes.mpy.bak").exists()
     assert not (mech.root / "flash.trial").exists()  # reached `noggin ready`: off probation
@@ -119,7 +120,9 @@ def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(start
     mpy(tmp_path / "broken.py", build / "eyes.mpy")
     assert "never reached `noggin ready`" in ask("flash"), log
     assert (mech.root / "eyes.mpy").read_bytes() == good
-    assert ask("status").startswith("eyes wifi 127.0.0.1 ")
+    status = ask("status")
+    assert status.startswith("eyes wifi 127.0.0.1 ") and f" program {VERSION} {COMMIT}\n" in status, status  # #357
+    assert "warning" not in status
 
 
 def test_power_off_and_on_the_beacon_goes_stale_comes_back_and_the_calibration_is_resent(start):
@@ -131,7 +134,7 @@ def test_power_off_and_on_the_beacon_goes_stale_comes_back_and_the_calibration_i
     # off past link.seq's ceiling, 10 s of the Mac's seq: a Core back sooner drops the lines inside it (ADR 0005)
     time.sleep(max(0.0, off + 11 - time.time()))
     mech.power_on()
-    n = wait(log, "eyes beacon back: wifi 127.0.0.1 uptime 0s", after=n)
+    n = wait(log, f"eyes beacon back: wifi 127.0.0.1 uptime 0s program {VERSION} {COMMIT}", after=n)
     wait(log, "sent eyes ['set lid_rest 0.28', 'rest']", after=n)
 
 

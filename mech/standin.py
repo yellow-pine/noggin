@@ -15,7 +15,7 @@ import threading
 import tty
 from pathlib import Path
 
-from noggin.service import FLASH_FILES
+from noggin.core import MODULES, STAMP, stamp
 from noggin.wifi import BEACON_PORT, COMMAND_PORT
 
 REPO = Path(__file__).resolve().parent.parent
@@ -29,10 +29,13 @@ def mpy(src, dst, *opts):
 
 
 def program(dst, folder="eyes"):
-    """The files `make mpy` builds, into dst; folder: the source folder named in their bytecode, so two builds of the
-    same program differ."""
-    for f in FLASH_FILES:
-        mpy(REPO / "eyes" / f.replace(".mpy", ".py"), dst / f, "-s", f"{folder}/{f.replace('.mpy', '.py')}")
+    """The files `make mpy` builds, into dst, stamp.mpy too; folder: the source folder named in their bytecode, so two
+    builds of the same program differ."""
+    for m in MODULES:
+        mpy(REPO / "eyes" / f"{m}.py", dst / f"{m}.mpy", "-s", f"{folder}/{m}.py")
+    (dst / f"{STAMP}.py").write_text(stamp())
+    mpy(dst / f"{STAMP}.py", dst / f"{STAMP}.mpy", "-s", f"{folder}/{STAMP}.py")
+    (dst / f"{STAMP}.py").unlink()  # on the Core a .py would shadow its .mpy
 
 
 class Mech:
