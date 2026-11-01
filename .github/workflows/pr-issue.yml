@@ -1,0 +1,29 @@
+name: PR Issue
+# Every PR links its issue in its body (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie
+# together (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: the check
+# reports success for it. Required check `PR Issue`; editing the body re-runs it.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+concurrency:   # one run per PR; a new push or body edit cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  issue:
+    name: PR Issue
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/pr_issue.py
+          sparse-checkout-cone-mode: false
+      - name: Check the body links an issue
+        if: ${{ github.event.pull_request.user.type != 'Bot' }}
+        env:
+          BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
+        run: python3 scripts/pr_issue.py <<<"$BODY"
