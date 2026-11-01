@@ -114,12 +114,12 @@ def networks(cfg):
     return [{"ssid": cfg["ssid"], "password": cfg["password"]}] if "ssid" in cfg else []
 
 
-def pick(heard, known):
+def loudest_known(scan, known):
     """The known network heard loudest in a WLAN.scan() ((ssid, bssid, channel, RSSI, security, hidden) tuples, ssid
     as bytes), or None when none is in range."""
     by_ssid = {n["ssid"].encode(): n for n in known}
-    heard = [ap for ap in heard if ap[0] in by_ssid]
-    return by_ssid[max(heard, key=lambda ap: ap[3])[0]] if heard else None
+    heard = [(rssi, ssid) for ssid, _, _, rssi, *_ in scan if ssid in by_ssid]
+    return by_ssid[max(heard)[1]] if heard else None
 
 
 def start(handle_line):
@@ -164,12 +164,18 @@ class Wifi:
                 self.join_at = now_ms
                 try:  # the driver retries the last network on its own, and it cannot scan while it joins
                     self.wlan.disconnect()
-                    net = pick(self.wlan.scan(), networks(self.cfg))  # blocks a second or two
-                except OSError:  # a radio error must never stop the loop: scan again next window
-                    net = None
-                if net:
-                    self.wlan.connect(net["ssid"], net["password"])
+                except OSError:  # nothing to leave
+                    pass
+                try:
+                    # shortcut: the scan blocks the loop a second or two each JOIN_MS off the network,
+                    # scan less often if the eyes stutter there
+                    net = loudest_known(self.wlan.scan(), networks(self.cfg))
+                    if net:
+                        self.wlan.connect(net["ssid"], net["password"])
+                except Exception:  # a radio error or a full heap must never stop boot.py's loop: next window
+                    pass
             return
+        self.join_at = now_ms  # a drop gets the driver's own reconnect for JOIN_MS before a scan
         if self.beacon is None:
             self.beacon = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.beacon.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

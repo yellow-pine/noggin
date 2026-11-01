@@ -32,6 +32,7 @@ class FakeWLAN:
     configs = []
     heard = []  # what scan() returns: (ssid, bssid, channel, RSSI, security, hidden)
     disconnects = 0
+    disconnect_raises = False
     PM_NONE = 0
 
     def __init__(self, iface):
@@ -48,6 +49,8 @@ class FakeWLAN:
 
     def disconnect(self):
         FakeWLAN.disconnects += 1
+        if FakeWLAN.disconnect_raises:
+            raise OSError("not connected")
 
     def scan(self):
         return FakeWLAN.heard
@@ -107,6 +110,7 @@ def link(monkeypatch, tmp_path):
     FakeWLAN.configs.clear()
     FakeWLAN.heard = [ap(b"home", -70)]
     FakeWLAN.disconnects = 0
+    FakeWLAN.disconnect_raises = False
     FakeSocket.sent.clear()
     FakeSocket.inbox.clear()
     handled = []
@@ -131,6 +135,29 @@ def test_joins_the_known_network_heard_loudest(link):
     link.poll(0)
     assert FakeWLAN.connects == [("studio", "pw2")]
     assert FakeWLAN.disconnects == 1  # the driver's own retries of the last network stop: it cannot scan while joining
+
+
+def test_a_drop_gets_the_drivers_own_reconnect_before_a_scan(link):
+    link.poll(0)
+    FakeWLAN.connected = True
+    link.poll(60_000)
+    FakeWLAN.connected = False  # the access point blinked
+    link.poll(61_000)
+    assert FakeWLAN.disconnects == 1  # only the first join's
+    link.poll(70_000)
+    assert FakeWLAN.disconnects == 2 and FakeWLAN.connects == [("home", "pw")] * 2
+
+
+def test_joins_even_if_disconnect_refuses_while_not_connected(link):
+    FakeWLAN.disconnect_raises = True
+    link.poll(0)
+    assert FakeWLAN.connects == [("home", "pw")]
+
+
+def test_a_radio_error_does_not_stop_the_loop(link):
+    FakeWLAN.heard = None  # scan() handing back junk stands in for an OSError or a MemoryError
+    link.poll(0)
+    assert FakeWLAN.connects == []
 
 
 def test_keeps_scanning_while_no_known_network_is_in_range(link):

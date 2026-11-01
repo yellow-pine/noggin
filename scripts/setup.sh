@@ -258,7 +258,7 @@ pause
 
 stage "Join the Wi-Fi"
 say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
-say "core.json names the Core (eyes / neck) and its servo ports. Re-run this stage in each new place."
+say "core.json names the Core (eyes / neck) and its servo ports. In a new place, re-run this stage for each Core."
 note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
 ask WIFI_SSID "Wi-Fi network name (SSID):"
 ask_secret WIFI_PASSWORD "Wi-Fi password:"

@@ -24,7 +24,9 @@ The standard alternative, Mosquitto with mutual TLS and the Cores as umqtt clien
 The Mech moves between places, so `wifi.json` holds a list, `{"networks": [{"ssid", "password"}, ...], "token"}`; the
 one-network shape from before still loads. While off the network the Core, every 10 s, stops the driver's own retries
 (`disconnect()`, else ESP-IDF refuses to scan), scans and joins the known network it hears loudest; none in range, it
-scans again 10 s later. The setup wizard's "Join the Wi-Fi" stage adds a network or updates its password, keeping the
+scans again 10 s later. A drop first gets 10 s of the driver's own reconnect.
+The setup wizard's "Join the Wi-Fi" stage adds a network or updates its password, keeping the
 others and the token (`add_network` in noggin/wifi.py). Nothing else in the Link changes. Known limits: the scan blocks
 the Core's loop (eyes and USB) a second or two each 10 s while it is off the network; a hidden network (no SSID in the
-scan) is never joined; a known network with a wrong password is retried as long as it is the loudest.
+scan) is never joined; a known network with a wrong password is retried as long as it is the loudest; a join gets about
+8 s (the 10 s window less the scan) before the next scan.
