@@ -2,11 +2,11 @@ name: Site Deploy
 # The site (docs/adr/0009): `pictures` renders the README's pictures in Blender (make pictures, #226; each part on its
 # own runner), then MkDocs builds the docs (make site) with the pictures at site/images, the web viewer at site/viewer,
 # whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
-# (#221), and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
-# is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact.
-# `site` is a required check on PRs and merge groups that touch what the site is made from (the changes job, as in
-# mech.yml); a red main run leaves the last site up. Pages' source is GitHub Actions
-# (POST /repos/{owner}/{repo}/pages, build_type=workflow).
+# (#221), and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once
+# the check workflow is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it
+# as an artifact. `site` is a required check on PRs that touch what the site is made from (the changes job, as in
+# mech.yml); a red main run leaves the last site up, and a cancelled check run (a newer push superseded it) builds
+# nothing. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
   workflow_run:
     workflows: ["Code Checks"]
@@ -14,18 +14,17 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  merge_group:
-    types: [checks_requested]
   workflow_dispatch:
-# one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run, and
-# each merge group has its own
+# one run per PR, and one for main: a newer one cancels the one in progress, deploy included (#283), so main deploys
+# its latest only; a run for a cancelled check run builds nothing (pictures and site below), so it gets a group of its
+# own and cancels no deploy
 concurrency:
-  group: pages-${{ github.event.pull_request.number || github.event.merge_group.head_ref || 'deploy' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: pages-${{ github.event.pull_request.number || github.event.workflow_run.conclusion == 'cancelled' && github.run_id || 'deploy' }}
+  cancel-in-progress: true
 permissions: {}
 jobs:
   changes:   # as in mech.yml; main and workflow_dispatch build everything
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,10 +32,6 @@ jobs:
     outputs:
       site: ${{ steps.filter.outputs.site }}
     steps:
-      - if: ${{ github.event_name == 'merge_group' }}   # a PR's files come from the API, no checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # dorny fetches a merge group's base from the public repo
       - id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:
@@ -47,7 +42,9 @@ jobs:
   # else the last ones built from the same inputs (a docs-only change renders nothing)
   pictures:
     needs: changes
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}   # as site
+    if: >-   # as site
+      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
+      && github.event.workflow_run.conclusion != 'cancelled' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -140,7 +137,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   site:
     needs: [changes, pictures]
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}   # as in mech.yml
+    if: >-   # as in mech.yml, plus the cancelled check run
+      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
+      && github.event.workflow_run.conclusion != 'cancelled' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -236,7 +235,7 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - run: make site
-      - if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+      - if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:
           path: site
@@ -259,7 +258,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
   deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
-    if: ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+    if: ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request' }}
     needs: site
     runs-on: ubuntu-latest
     permissions:
