@@ -25,9 +25,8 @@ except ImportError:
     gaze_trace = None
 
 
-between_steps = (
-    None  # called between a gesture's steps: wifi.start hooks the Link in, so it is served while a gesture plays
-)
+# called between a gesture's steps: wifi.start hooks the Link in, so it is served while a gesture plays (#205)
+between_steps = None
 
 
 def wait(ms):
