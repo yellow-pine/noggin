@@ -77,6 +77,7 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb, page):
     look = g.scenes[g.scene].extras
     assert page.look and page.look <= set(look)
     assert look["bg"] == "#F7F4EE" and look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
+    assert look["line_at"] == 640  # lines scale with the canvas: line_px at the hero GIF's width (#211)
 
 
 def test_every_part_of_the_stage_is_a_node(glb):

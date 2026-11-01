@@ -14,7 +14,10 @@ watch the hero loop.
 - **three.js draws it in style B** (MIT, one pinned version from the CDN, a sha384 hash per file in the import map):
   `MeshToonMaterial` whose gradient map is the pictures' light per N.L (the two-step toon ramp mixed with the satin,
   sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
-  and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right.
+  and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right and
+  casting shadows as Eevee's sun does (a shadowed point keeps the ramp's N.L <= 0 light; #211 measured the pictures'
+  two tones to be these cast shadows). Lines scale with the canvas as the GIFs' do with the picture: `line_px` at
+  640 px wide, never under one device pixel.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
   other GLB. The page is one static HTML file in `web/`, with no build step. three.js's Draco decoder is fetched by
   `DRACOLoader` with no integrity check, so the site serves its own copy, sha256-checked when the site is built.
