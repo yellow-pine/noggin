@@ -64,6 +64,7 @@ changed at a time, and the penetrating vertices' extents to see which way each c
   silkscreen too small to read. Kept the STEP port order (geometry.RECEIVER_STEP). Any other numbering moves a lead's end
   by at most 9.4 mm (the block's diagonal); the tightest eye lead (r_lid, 218.5 of 230) has 11.5 to spare, so no choice
   changes a result.
-- Bracket stem depth in the pan recess (stage 1): the build photos (eyes-lid-linkage-side.jpg, eyes-rest-front.jpg) have
-  the bracket's feet flat on the plate top and the stem out of sight in the plate, so it fills the 5 mm recess:
-  geometry.STEM_AT stage 1 z -7 stands.
+- Bracket stem depth in the plate (stage 1): the build photos (eyes-lid-linkage-side.jpg, eyes-rest-front.jpg) have
+  the bracket's feet flat on the plate top and the stem out of sight in the plate. Superseded by #172: the stem is in the
+  plate's slot, not the pan recess, and the desk bracket's stem fills the 5 mm plate, so geometry.STEM_AT stage 1 is
+  z -2 (docs/research/2026-11-01-eyes-on-plate.md).

@@ -335,8 +335,13 @@ def assemble(doc, frames, up, context=()):
             (pname, local, [world(f, e) for e in expected], tol) for pname, local, expected, tol in sub.placements
         ]
         ports.update(sub.ports)  # part-local: they ride their part
+    if doc in g.DESK:  # the desk build's own eye bracket (no rail, the stem 5 shorter)
+        parts["eye bracket:1"] = part(
+            stl("desk eye bracket"), parts["eye bracket:1"].matrix, printed("desk eye bracket")
+        )
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
-        placements.append(("eye bracket:1", [g.STEM_BOTTOM], [g.STEM_AT[doc]], TOL_MM))
+        bottom = g.DESK_STEM_BOTTOM if doc in g.DESK else g.STEM_BOTTOM
+        placements.append(("eye bracket:1", [bottom], [g.STEM_AT[doc]], TOL_MM))
     if doc in g.STEM_IN:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():

@@ -102,7 +102,7 @@ and Blender renders the pictures from its poses.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
-A cumulative build state of the Mech, the Sub-assemblies placed at frames (geometry.STAGES): Stage 1 = base + eyes (stem in the pan recess), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
+A cumulative build state of the Mech, the Sub-assemblies placed at frames (geometry.STAGES): Stage 1 = base + eyes (the desk eye bracket's stem in the plate's slot), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
 _Avoid_: part, module, phase, top assembly
 
 **Sub-assembly**:
@@ -126,6 +126,7 @@ The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation 
 **Printed part**:
 A part we print, by our name (the designer's file names are history: README credits, docs/research):
 - eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
+  desk eye bracket: Stage 1's, without the jaw rail, its stem 5 mm shorter;
 - L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;
 - L / R eyeball: turns in the eye bracket's fork; pupil: the disc on its front;
 - upper lid, lower lid: the two lid shells of an eye on the eye bracket's lid pins, the upper one nested inside;

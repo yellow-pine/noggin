@@ -31,6 +31,20 @@ def test_eyeball_bar_rides_the_bracket_rail_at_neutral():
     assert meshes.distance(bar, bracket) < 0.1 and not meshes.penetrates(bar, bracket)
 
 
+@pytest.mark.parametrize("doc", ["noggin-eyes", "noggin-stage1"])
+def test_the_desk_eyes_stand_on_the_base_plate_as_the_side_photo_shows(doc):
+    """#172: the servo brackets' feet flat on the plate top (docs/build-photos/eyes-side.jpg), the eye bracket's stem
+    down its slot, nothing of the eyes inside the plate (docs/research/2026-11-01-eyes-on-plate.md)."""
+    stage = stages.STAGES[doc]
+    names = ["base plate:1", "eye bracket:1", "L servo bracket:1", "R servo bracket:1"]
+    loaded = meshes.load(stage, names)
+    plate, bracket, *feet = (meshes.Placed(loaded[n], stage.parts[n].matrix) for n in names)
+    for part in (bracket, *feet):
+        assert not meshes.penetrates(plate, part)
+    for part in feet:
+        assert meshes.distance(plate, part) < 0.1
+
+
 def test_loaded_meshes_are_subdivided_and_the_battery_lead_is_cut():
     stage = stages.STAGES["noggin-pan-tilt"]
     loaded = meshes.load(stage, ["base plate:1", "battery 1:1"])

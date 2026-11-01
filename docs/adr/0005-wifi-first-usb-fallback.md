@@ -14,3 +14,7 @@ Accepted as-is: `send` blocks the service loop up to 3 s per unacked line (four 
 - mDNS names: unverified on the vendor's build; the beacon needs nothing from the network.
 - TCP: rejected for now; datagrams plus retries cover one-line commands with less reconnection logic.
 - Two packs in series for runtime: impossible, 14.8 V exceeds the shield's 12.6 V input.
+
+## Update 2026-11-01: MQTT over mutual TLS evaluated and rejected (#157, #158)
+
+The standard alternative, Mosquitto with mutual TLS and the Cores as umqtt clients, was tried on the eyes Core. The Core's MicroPython build leaves about 19 KB of system heap, and mbedTLS needs about 35 KiB per connection, so the handshake starves (docs/research/2026-10-31-core-tls.md). The Link stays signed UDP: stdlib hmac, signed beacons and replies, seq with link.seq (#135). The Mosquitto and PKI code from #159 and #160 is unused until the Core firmware can hold TLS.

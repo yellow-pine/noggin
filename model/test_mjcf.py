@@ -8,6 +8,7 @@ import pytest
 import trimesh
 
 from model import electrical, mjcf
+from model import geometry as g
 from model.engine import masses, mating, stages
 
 PENETRATION_MM = 0.05
@@ -23,9 +24,6 @@ TOUCH = {
         frozenset(("base plate:1", p)): "on its posts or in its pocket"
         for p in ("receiver shield 1:1", "receiver shield 2:1", "switch board 1:1", "battery 1:1", "cable holder:1")
     },
-    frozenset(
-        ("base plate:1", "eye bracket:1")
-    ): "the stem in the pan recess (STEM_IN); it meets the bearing boss: open",
     frozenset(("tilt arm:1", "eye bracket:1")): "the stem in the tilt arm window (STEM_IN)",
     frozenset(("base plate:1", "bearing block:1")): "the bearing block in the pan recess",
     frozenset(("bearing block:1", "pan turntable:1")): "the turntable on its bearing",
@@ -41,17 +39,16 @@ TOUCH = {
     },
     frozenset(("base plate:1", "pan servo:1")): "the plate's pieces fill the pan servo's pocket, 0.05 mm clear",
     frozenset(("base plate:1", "upright:1")): "the plate's pieces fill the recess under the upright, 0.5 mm clear",
-    **{
-        frozenset(
-            (f"{s} servo bracket:1", "base plate:1")
-        ): "open conflict: feet on the plate per Cansin's side photo, the rail then in it (docs/model-notes.md, #147)"
-        for s in "LR"
-    },
 }
+# The desk documents only (geometry.DESK): the plate's front piece fills its stem slot and bridges the pan boss, so it
+# overlaps the eyes standing on the plate top; on the meshes they touch, nothing inside (model/engine/test_meshes.py).
+ON_PLATE = {frozenset(("base plate:1", p)) for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")}
 # noggin-mouth carries the desk base as context, as its recorded sweep did: a pairing never built (the mouth rides the
-# neck, stage 3), so its jaw parts reach into the plate there.
-MOUTH_ON_DESK = {
-    frozenset(("base plate:1", p)) for p in ("top jaw:1", "bottom jaw:1", "jaw servo mount:1", "jaw servo:1")
+# neck, stage 3): the eyes stand on the plate as on the desk, and its jaw parts and the rail bracket they hang on reach
+# into the plate there.
+MOUTH_ON_DESK = ON_PLATE | {
+    frozenset(("base plate:1", p))
+    for p in ("top jaw:1", "bottom jaw:1", "jaw servo mount:1", "jaw servo:1", "eye bracket:1")
 }
 MOUNTED = {frozenset((a, b)) for _, feats in mating.JOINTS for (a, _), (b, _) in itertools.combinations(feats, 2)}
 
@@ -94,7 +91,12 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
     """No two parts that are not mounted to each other overlap by more than 0.05 mm (MuJoCo's signed distance between
     their convex pieces): a sub-assembly in the wrong frame cannot hide."""
     model, data = forward(doc)
-    allowed = MOUNTED | set(TOUCH) | (MOUTH_ON_DESK if doc == "noggin-mouth" else set())
+    allowed = (
+        MOUNTED
+        | set(TOUCH)
+        | (MOUTH_ON_DESK if doc == "noggin-mouth" else set())
+        | (ON_PLATE if doc in g.DESK else set())
+    )
     overlaps = {}
     for a, b in itertools.combinations(np.flatnonzero(model.geom_group == mjcf.COLLISION), 2):
         ba, bb = model.geom_bodyid[a], model.geom_bodyid[b]
