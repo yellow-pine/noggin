@@ -8,7 +8,7 @@ import hmac
 import pytest
 import wifi as mod
 
-import eyes as program  # the eye program the Link serves
+import eyes as program  # what boot.py runs: wifi.start hooks the Link into it
 
 CFG = {"ssid": "home", "password": "pw", "token": "t0k"}
 
@@ -115,7 +115,7 @@ def link(monkeypatch, tmp_path):
     FakeWLAN.disconnect_raises = False
     FakeSocket.sent.clear()
     FakeSocket.inbox.clear()
-    monkeypatch.setattr(program, "idle", None)  # wifi.start hooks it; put back after each test
+    monkeypatch.setattr(program, "between_steps", None)  # wifi.start hooks it; put back after each test
     handled = []
     w = mod.Wifi(handled.append, "eyes", CFG)
     w.handled = handled
@@ -214,7 +214,7 @@ def test_a_gesture_keeps_the_beacon_and_acks_a_line_sent_while_it_plays(link, mo
 
     def sleep_ms(ms):  # virtual time; the line arrives 1 s into the gesture
         clock[0] += ms
-        if clock[0] >= 2_000 and not ran[1:]:
+        if clock[0] >= 2_000 and len(ran) == 1:
             FakeSocket.inbox.append((dg(101, "wink 2"), MAC))
             ran.append(("sent", clock[0]))
 
@@ -231,13 +231,26 @@ def test_a_gesture_keeps_the_beacon_and_acks_a_line_sent_while_it_plays(link, mo
     w.poll(0)
     FakeWLAN.connected = True
     FakeSocket.inbox.append((dg(100, gesture), MAC))
-    w.poll(clock.__setitem__(0, 1_000) or 1_000)
-    [(_, start), (_, sent_at), (_, end), (line, next_start), _] = ran
+    clock[0] = 1_000
+    w.poll(1_000)
+    [_, (_, sent_at), (_, end), (line, next_start), _] = ran
     assert line == "wink 2" and next_start == end > sent_at  # queued behind the gesture, not played inside it
     beacons = [t for t, kind in sends if kind == b"noggin"]
     assert beacons[0] == 1_000 and beacons[-1] > end - 2_000
     assert all(b - a <= 2_000 + 20 for a, b in zip(beacons, beacons[1:], strict=False))
     assert [t for t, kind in sends if kind == b"ok"][1] - sent_at <= 200
+
+
+def test_an_err_for_a_queued_line_never_reopens_a_newer_seq(link):
+    joined(link)
+    link.handle_line = lambda line: 1 / 0 if line == "bad" else link.handled.append(line)
+    FakeSocket.inbox.extend([(dg(8, "bad"), MAC), (dg(9, "wink"), MAC)])  # both acked while a gesture plays
+    link.poll(1_100, True)
+    link.poll(1_200)  # the gesture is done: 8 fails, 9 runs
+    FakeSocket.inbox.append((dg(9, "wink"), MAC))  # a retry, or a replay by a third party
+    link.poll(1_300)
+    assert link.handled == ["wink"]
+    assert sent() == [("ok 8", MAC), ("ok 9", MAC), ("err 8 ZeroDivisionError", MAC), ("ok 9", MAC)]
 
 
 def test_no_scan_while_a_gesture_plays(link):

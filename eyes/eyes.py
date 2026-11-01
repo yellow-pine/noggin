@@ -25,16 +25,18 @@ except ImportError:
     gaze_trace = None
 
 
-idle = None  # called between a gesture's steps: wifi.start hooks the Link in, so it is served while a gesture plays
+between_steps = (
+    None  # called between a gesture's steps: wifi.start hooks the Link in, so it is served while a gesture plays
+)
 
 
 def wait(ms):
-    """sleep_ms in steps of at most 20 ms with idle() between them: beacons and acks go out while a gesture plays."""
+    """sleep_ms in steps of at most 20 ms, between_steps() after each: beacons and acks go out while a gesture plays."""
     while ms > 0:
         sleep_ms(min(ms, 20))
         ms -= 20
-        if idle:
-            idle()
+        if between_steps:
+            between_steps()
 
 
 def _s8(v):

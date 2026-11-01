@@ -1,7 +1,7 @@
 # pyright: reportOptionalMemberAccess=false
 # noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711,
 # serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop and,
-# while a gesture plays, from its waits (eyes.idle).
+# while a gesture plays, from its waits (eyes.between_steps).
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib
@@ -140,7 +140,7 @@ def start(handle_line):
     link = Wifi(handle_line, name, cfg)
     import eyes  # the program boot.py runs: its gestures' waits serve the Link (#205); boot.py only changes over USB
 
-    eyes.idle = lambda: link.poll(time.ticks_ms(), True)  # pyright: ignore[reportAttributeAccessIssue]
+    eyes.between_steps = lambda: link.poll(time.ticks_ms(), True)  # pyright: ignore[reportAttributeAccessIssue]
     return link
 
 
@@ -163,8 +163,8 @@ class Wifi:
         self.queue = []  # (seq, line, addr) acked, not run yet
 
     def poll(self, now_ms, playing=False):
-        """playing: called from a gesture's waits (eyes.idle). Then no scan (it blocks a second or two), and the lines
-        received are acked but wait for the gesture to end, in order, as they did when the loop stopped for it."""
+        """playing: called from a gesture's waits (eyes.between_steps). Then no scan (it blocks a second or two), and
+        the lines received are acked but wait for the gesture to end, in order, as when the loop stopped for it."""
         self.uptime_ms += ticks_diff(now_ms, self.last_ms)
         self.last_ms = now_ms
         if not self.wlan.isconnected():
@@ -202,8 +202,10 @@ class Wifi:
             except OSError:  # EAGAIN: nothing waiting
                 break
             self.serve(data, addr)
+        # shortcut: a line acked just before the Wi-Fi drops waits until it is back (its err reply needs the socket),
+        # run it offline if that bites
         while self.queue and not playing:  # a line's gesture polls here again (playing): what it receives queues
-            self.run(*self.queue.pop(0))
+            self.run_line(*self.queue.pop(0))
 
     def serve(self, data, addr):
         """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then poll runs the line (a parser exception
@@ -245,7 +247,7 @@ class Wifi:
         self.reply(seq, f"ok {seq}", addr)  # ack on receipt: a gesture runs longer than the ack window
         self.queue.append((seq, line, addr))  # run by poll, after the gesture playing now (if any)
 
-    def run(self, seq, line, addr):
+    def run_line(self, seq, line, addr):
         try:
             if line.strip() == "reboot":  # after a flash
                 time.sleep(0.2)  # let the ack leave first
@@ -256,7 +258,8 @@ class Wifi:
             self.reply(seq, f"err {seq} {type(e).__name__}", addr)
 
     def reply(self, seq, body, addr):
-        self.last = (seq, body)
+        if seq >= self.last[0]:  # a queued line's err never lowers it below a newer seq already acked
+            self.last = (seq, body)
         self.cmd.sendto(self.signed(body), addr)
 
     def signed(self, body):
