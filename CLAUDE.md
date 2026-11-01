@@ -27,7 +27,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Model pictures (Blender from the engine poses; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.
-- Web viewer (three.js page, Pages workflow): `web/`, ADR 0008; `make web` builds the site locally.
+- Web viewer (three.js page at the site's /viewer): `web/`, ADR 0008; `make web` builds it, `make site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks: `make check` (CI runs it plus shellcheck). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
