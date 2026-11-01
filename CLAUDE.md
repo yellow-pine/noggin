@@ -16,8 +16,9 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield is a planned edit (docs/model-notes.md), not in the model yet.
 - The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
-- Ground truth for the model, in order: Cansin's build (photos, measurements), then our model (parts, MuJoCo, reports, tests). The designer's and vendor's files are credits (`docs/credits.md`) and history (docs/research) only. Planned edits go in notes only, never into the model, until they stabilise. Record every conflict with both sources; inference only fills what none settles, marked inferred.
+- Ground truth for the model, in order: Cansin's build (photos in docs/references/build-photos, local only; measurements), then our model (parts, MuJoCo, reports, tests). The designer's and vendor's files are credits (`docs/credits.md`) and history (docs/research) only. Planned edits go in notes only, never into the model, until they stabilise. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- No real photos in git, the README or the site until staged photos exist; Blender pictures and the viewer stand in.
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
 - README is for contributors: setup, checks, CI. Building and using the Mech live on the site (#279).
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).

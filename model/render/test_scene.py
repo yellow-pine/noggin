@@ -20,6 +20,6 @@ def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
 
 
 def test_the_rail_eye_bracket_is_black_and_the_desk_one_pink_as_printed():
-    # Cansin's prints (docs/build-photos/printed-parts.jpg): the rail bracket black, the desk bracket pink
+    # Cansin's prints (docs/references/build-photos/printed-parts.jpg): the rail bracket black, the desk bracket pink
     assert scene.colour("eye bracket.stl") == "#000000"  # Absolute Black
     assert scene.colour("desk eye bracket.stl") == "#F7CED7"  # Milky Pink

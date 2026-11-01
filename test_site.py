@@ -309,3 +309,11 @@ def test_the_required_pictures_check_is_every_runner_or_none(result, passes):
     assert step["env"] == {"RESULT": "${{ needs.render.result }}"}
     r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULT": result})
     assert (r.returncode == 0) is passes
+
+
+def test_no_real_photos_are_tracked():
+    """Cansin, 2026-11-01: real photos of the build stay local (docs/references/build-photos) until staged
+    photos exist."""
+    globs = ["*.jpg", "*.jpeg", "*.heic", "*.JPG", "*.HEIC"]
+    tracked = subprocess.run(["git", "ls-files", *globs], capture_output=True, text=True, check=True).stdout.split()
+    assert tracked == [], tracked
