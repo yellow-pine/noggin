@@ -47,6 +47,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `code` (everything but the tests marked `model`) and `model` (those, and `make sim`, split over two shards), pytest
   on every core (pytest-xdist). With a warm cache a run must finish within 3 min on a PR or in the merge queue and 9 min on main,
   or it fails (`scripts/ci_budget.py`); each job's slowest tests are in its run summary.
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
+  noggin/ or mech/ and on main.
 
 ## Licence
 

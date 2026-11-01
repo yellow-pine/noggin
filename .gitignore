@@ -19,3 +19,4 @@ eyes/wifi.json
 *.pem
 web/build/
 site/
+mech/build/

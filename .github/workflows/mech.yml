@@ -1,0 +1,32 @@
+name: mech
+# The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service, the
+# Link's live checks on the Mech (docs/build-notes.md) as tests. On PRs touching the Core's program, the noggin service or
+# the stand-in, and always on main. Not a required check yet.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["eyes/**", "noggin/**", "mech/**", ".github/workflows/mech.yml"]
+concurrency:   # as in check.yml
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+jobs:
+  mech:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+      # the unix port and hmac (make mech/build/micropython), keyed on the MicroPython tag the Makefile pins
+      - id: tag
+        run: echo "tag=$(sed -n 's/^MICROPYTHON := //p' Makefile)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: mech/build
+          key: micropython-unix-${{ steps.tag.outputs.tag }}
+      - run: make mech
+        env:
+          PYTEST_ADDOPTS: --durations=10

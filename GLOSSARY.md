@@ -26,6 +26,10 @@ _Avoid_: channel, PWM, actuator, motor
 The connection between the noggin service and one Core: Wi-Fi (UDP datagrams, found by the Core's beacon) first, the USB serial port as fallback. See docs/adr/0005.
 _Avoid_: serial, REPL, cable, connection, relay
 
+**Mech stand-in**:
+The Core's own program on its MicroPython's unix port, with small machine, network and socket stubs, beside the real noggin service: CI's stand-in for the Mech in the Link's live checks (mech/, `make mech`).
+_Avoid_: emulator, simulator, fake Core
+
 ### Motion
 
 **Pose**:
