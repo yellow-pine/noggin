@@ -5,9 +5,15 @@ name: Site Deploy
 # builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
 # site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
 # (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
-# check on PRs that touch what the site is made from (the changes job, as in mech.yml); a red main run leaves the last
-# site up, and a cancelled check run (a newer push superseded it) builds nothing. Pages' source is GitHub Actions
-# (POST /repos/{owner}/{repo}/pages, build_type=workflow).
+# check on PRs that touch what the site is made from (the changes job, as in mech.yml). Main builds and deploys only
+# after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
+# red Site Deploy run. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow). On main
+# the run sets a `deploy` commit status on the commit it ran for (#292): pending while it builds, then success with
+# the site's URL, failure with the run's (or the check run's: "not deployed: checks failed"), or error when a newer
+# commit superseded it (scripts/deploy_status.py); deploy's github-pages environment lists each deploy with its URL in
+# the repo's Deployments panel. A workflow_run builds, deploys and sets the status only for this repository's push to
+# main (branches: [main] alone also matches a fork's PR from a branch named main), and builds that push's commit
+# (head_sha), the one the status goes on.
 on:
   workflow_run:
     workflows: ["Code Checks"]
@@ -17,13 +23,33 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 # one run per PR, and one for main: a newer one cancels the one in progress, deploy included (#283), so main deploys
-# its latest only; a run for a cancelled check run builds nothing (render, viewer and site below), so it gets a group
-# of its own and cancels no deploy
+# its latest only; a run for a check run that was not green, or no push (a fork's PR from its main), builds nothing
+# (render, viewer and site below), so it gets a group of its own and cancels no deploy
 concurrency:
-  group: pages-${{ github.event.pull_request.number || github.event.workflow_run.conclusion == 'cancelled' && github.run_id || 'deploy' }}
+  group: >-
+    pages-${{ github.event.pull_request.number || github.event_name == 'workflow_run'
+    && (github.event.workflow_run.conclusion != 'success' || github.event.workflow_run.event != 'push') && github.run_id
+    || 'deploy' }}
   cancel-in-progress: true
 permissions: {}
 jobs:
+  # shortcut: a run cancelled while still queued behind another never starts, so its commit gets no `deploy` status;
+  # fine while main's commits come a few minutes apart, upgrade (a status per queued run) if they bunch up
+  deploy-pending:
+    if: >-   # as render
+      ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state=pending -f context=deploy
+          -f "description=building the site" -f "target_url=$RUN_URL" > /dev/null
   changes:   # as in mech.yml; main and workflow_dispatch build everything
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
@@ -48,7 +74,8 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled' }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false   # every shard runs to its end; site fails unless all of them succeeded
@@ -106,6 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       # this shard's frames (model/build/pictures without the PLYs Blender read)
       - id: frames
@@ -206,7 +234,8 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled' }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -216,6 +245,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -298,9 +328,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   site:
     needs: [changes, render, viewer]
-    if: >-   # as in mech.yml, plus the cancelled check run
+    if: >-   # as in mech.yml, plus only main's own push after a green check run (header)
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled' }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -311,6 +342,7 @@ jobs:
         run: exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
@@ -377,7 +409,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
   deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
-    if: ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request' }}
+    if: >-   # as site (site's success implies it; restated where the site goes live)
+      ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request'
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     needs: site
     runs-on: ubuntu-latest
     permissions:
@@ -386,6 +421,34 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346   # v5.0.1
+  # always(): it runs on a cancelled run too, to say so; after deploy-pending, so its status is the last one
+  deploy-status:
+    needs: [deploy-pending, render, viewer, site, deploy]
+    if: >-   # as render
+      ${{ always() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - run: python3 scripts/deploy_status.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CHECK: ${{ github.event.workflow_run.conclusion }}
+          CHECK_URL: ${{ github.event.workflow_run.html_url }}
+          RENDER: ${{ needs.render.result }}
+          VIEWER: ${{ needs.viewer.result }}
+          SITE: ${{ needs.site.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          PAGE_URL: ${{ needs.deploy.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
