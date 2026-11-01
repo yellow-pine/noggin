@@ -5,8 +5,8 @@ name: Site Deploy
 # builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
 # site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
 # (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
-# check on PRs that touch what the site is made from (the changes job, as in mech.yml). Main builds and deploys only
-# after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
+# check on PRs that touch what the site is made from (the changes job, as for check.yml's mech). Main builds and
+# deploys only after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
 # red Site Deploy run. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow). On main
 # the run sets a `deploy` commit status on the commit it ran for (#292): pending while it builds, then success with
 # the site's URL, failure with the run's (or the check run's: "not deployed: checks failed"), or error when a newer
@@ -50,7 +50,7 @@ jobs:
         run: >-
           gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state=pending -f context=deploy
           -f "description=building the site" -f "target_url=$RUN_URL" > /dev/null
-  changes:   # as in mech.yml; main and workflow_dispatch build everything
+  changes:   # as check.yml's; main and workflow_dispatch build everything
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
@@ -328,7 +328,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   site:
     needs: [changes, render, viewer]
-    if: >-   # as in mech.yml, plus only main's own push after a green check run (header)
+    if: >-   # as check.yml's mech, plus only main's own push after a green check run (header)
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
       && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
