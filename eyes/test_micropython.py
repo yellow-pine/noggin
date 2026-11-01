@@ -30,6 +30,7 @@ def pyright(*files):
 
 def test_the_stubs_and_mpy_cross_are_the_cores_micropython():
     assert version("micropython-esp32-esp32_generic_c3-stubs").startswith(PIN + ".")
+    assert version("micropython-stdlib-stubs").startswith(PIN + ".")
     assert version("mpy-cross").startswith(PIN + ".")
 
 
