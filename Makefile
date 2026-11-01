@@ -11,9 +11,12 @@ LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
 # a Core on USB (the noggin service's PORT_GLOB); no comment after the value: make would keep the spaces before it
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
+# the eye program's files (noggin/core.py), read when a recipe uses them, so after venv
+PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
+MODULES = $(PROGRAM:eyes/%.py=%)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site lint fmt mech
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -72,21 +75,19 @@ backup-stock: interrupt   ## copy the stock program off the Core (named entries;
 	mkdir -p eyes/stock-backup
 	cd eyes/stock-backup && for f in $$($(MPR) resume exec "import os; print(' '.join(os.listdir()))"); do $(MPR) resume cp -r :$$f . ; done
 	ls -R eyes/stock-backup
+mpy-list:        ## the eye program's files: what eyes/boot.py imports from eyes/ (noggin/core.py; PY=python3 without the venv)
+	@echo $(PROGRAM)
 mpy: venv        ## the eye program as .mpy for the Core's MicroPython (pyproject [tool.noggin]) in eyes/build: what both flashes send
 	mkdir -p eyes/build
-	$(MPYC) -o eyes/build/eyes.mpy eyes/eyes.py
-	$(MPYC) -o eyes/build/gaze_trace.mpy eyes/gaze_trace.py
-	$(MPYC) -o eyes/build/wifi.mpy eyes/wifi.py
+	$(foreach m,$(MODULES),$(MPYC) -o eyes/build/$(m).mpy eyes/$(m).py &&) true
 flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh or no Core is on USB (the noggin service waits for the beacon), else USB (USB=1 forces it)
 	@if [ -z "$(USB)" ] && { [ -z "$(USB_PORTS)" ] || $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; }; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
 flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
 	$(MPR) resume mip install hmac
-	$(MPR) resume cp eyes/build/eyes.mpy :eyes.mpy
-	$(MPR) resume cp eyes/build/gaze_trace.mpy :gaze_trace.mpy
-	$(MPR) resume cp eyes/build/wifi.mpy :wifi.mpy
+	$(foreach m,$(MODULES),$(MPR) resume cp eyes/build/$(m).mpy :$(m).mpy &&) true
 	$(MPR) resume cp eyes/boot.py :boot.py
-	$(MPR) resume exec "import os; [os.remove(f) for f in ('eyes.py', 'gaze_trace.py', 'wifi.py') if f in os.listdir()]"  # a .py shadows its .mpy
+	$(MPR) resume exec "import os; [os.remove(f) for f in '$(notdir $(PROGRAM))'.split() if f in os.listdir()]"  # a .py shadows its .mpy
 	$(PY) eyes/interrupt.py reset
 wifi: venv       ## add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi step alone (scripts/setup.sh wifi); in a Terminal window (docs/build/flashing.md)
 	scripts/setup.sh wifi

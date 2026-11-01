@@ -18,6 +18,7 @@ import sys
 import time
 from pathlib import Path
 
+from noggin.core import CORES, GESTURES, MODULES
 from noggin.wifi import BEACON_PORT, COMMAND_PORT, STALE, Wifi
 from reactions.director import Director
 
@@ -26,16 +27,15 @@ MUTE_FILE = Path(os.path.expanduser("~/.noggin.mute"))
 CAL_FILE = Path(__file__).resolve().parent.parent / "eyes" / "calibration.json"
 WIFI_FILE = CAL_FILE.with_name("wifi.json")  # the wizard writes it here and copies it to the Core
 PORT_GLOB = "/dev/cu.usbmodem*"
-CORES = ("eyes", "neck")
 USB_CORE = "eyes"  # shortcut: the one USB Link is assumed to be the eyes Core, until a second port is told apart
-GESTURES = ("eureka", "attention", "bored", "wince", "wink")
 DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"}
-SEQUENCE = ["eureka 1", "eureka 2", "eureka 3", "attention 2", "bored 2", "wince 2", "wink 3", "thinking", "rest"]
+DEMO_LEVELS = {"eureka": "123", "wink": "3"}  # every eureka size, a wink to a random side; the rest at 2
+SEQUENCE = [f"{g} {n}" for g in GESTURES for n in DEMO_LEVELS.get(g, "2")] + ["thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
-FLASH_FILES = ("eyes.mpy", "gaze_trace.mpy", "wifi.mpy")  # eyes/build (make mpy); boot.py goes over USB alone, as .py
+FLASH_FILES = tuple(f"{m}.mpy" for m in MODULES)  # eyes/build (make mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
-MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "exercise"}
+MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
 
 
 def log(*a):
