@@ -36,6 +36,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot
   secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
+- Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
+- After renaming a required check, run `gh pr update-branch --rebase` on every open PR so it reports the new name.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 
