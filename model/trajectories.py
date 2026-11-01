@@ -18,6 +18,7 @@ from importlib.metadata import version
 
 import mujoco
 import numpy as np
+import trimesh
 
 from model import electrical, geometry, mjcf, traces
 from model.engine import run, stages
@@ -107,6 +108,20 @@ def stale(doc):
     """True when a motion's file of the Stage is missing or no longer carries its stamp."""
     key, files = stamp(doc), [os.path.join(OUT, doc, m + ".json") for m in motions(doc)]
     return not all(os.path.isfile(f) and json.load(open(f))["stamp"] == key for f in files)
+
+
+def poses(doc, motion):
+    """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
+    the web viewer's glTF will read (#182)."""
+    parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
+    frames = []
+    for i in range(len(next(iter(parts.values()))["pos"])):
+        frames.append({})
+        for name, p in parts.items():
+            m = trimesh.transformations.quaternion_matrix(p["quat"][i])  # w x y z, as MuJoCo's
+            m[:3, 3] = p["pos"][i]
+            frames[-1][name] = m
+    return frames
 
 
 if __name__ == "__main__":

@@ -33,22 +33,25 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   that cannot close), actuator force against the torque limit, tip-over, all sampled per pose; the tests, the stamp
   and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact.
 - **Blender draws every picture** (#150): everything public-facing (README, docs, PR pictures: views, the Stage strip,
-  GIFs) stays Blender's style B, posed from MuJoCo's poses instead of the old engine's. MuJoCo's viewer is for local
+  GIFs) stays Blender's style B, posed from MuJoCo's baked trajectories instead of the old engine's poses (each Stage's
+  views at rest, a trajectory's first frame; the sub-assemblies, which nothing moves, at their placement). MuJoCo's viewer is for local
   checks only, with its built-in toggles: `make view` opens `python -m mujoco.viewer` on a document
   (https://mujoco.readthedocs.io/en/stable/python.html#interactive-viewer). Its visual settings are one rgba per
   part, its spool's colour with black and white pulled in to #5A5A60 and #E8E8E8 (model/mjcf.py VIEW; the viewer has
   no outlines), and a flat skybox in the
   pictures' background colour (#F7F4EE; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
   under a headlight that draws a face toward the camera in its exact colour (ambient 0.5, diffuse 0.5, no specular;
-  MuJoCo's default dims and greys every colour).
+  MuJoCo's default dims and greys every colour). On top (#150): one directional key light from the Mech's upper
+  front-left that casts shadows (diffuse and specular 0.3) and satin on every drawn part (material specular 0.3,
+  shininess 0.5; https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-light).
 - **Trajectories are the one source of motion** (#179, GLOSSARY): MuJoCo plays each gesture's writes (model/traces.py
   `commands`, at their own times) and the README hero's keys (model/render/hero.py, every 20 ms, a servo's PWM period)
   on each Stage. Each servo slews its command at its rated no-load speed (eyes/servo.py `Plant`, 4.8 V) and its
   position actuator follows under the load within the stall torque, contacts off. `make trajectories` writes every
   part's frame per 100 ms to model/build/trajectories/<doc>/<motion>.json (position in metres, quaternion w x y z,
   MuJoCo's world), stamped with the engine's inputs, the meshes and its own sources; a Stage whose files carry its stamp
-  is skipped; the hero only on the Stages with the neck (2 and 3, #180). Blender's pictures (#150) and the web viewer's
-  glTF (#180) will render from them. A full-speed step of the pan
+  is skipped; the hero only on the Stages with the neck (2 and 3, #180). Blender's pictures render from them
+  (`trajectories.poses`, #150) and the web viewer's glTF will (#180). A full-speed step of the pan
   servo to its -40 limit carries the stage 3 head through the pan four-bar's toggle (it ends 41.5 degrees round instead
   of 24.9): the hero's eased keys stay clear (the head within 1.4 degrees of its keys; model/test_trajectories.py holds it to 2), and
   the head program (the second Core) must ease its pan moves likewise.

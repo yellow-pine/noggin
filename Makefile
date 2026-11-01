@@ -91,9 +91,9 @@ view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS ke
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
 trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage: every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 	$(PY) -m model.trajectories
-render: venv ours   ## Blender pictures from the engine's poses: views, Stage strip, stage 3 exploded (model/build/pictures)
+render: venv ours trajectories   ## Blender pictures, each Stage at rest from its trajectories: views, Stage strip, stage 3 exploded (model/build/pictures)
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
-gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
+gifs: venv ours trajectories     ## the six gesture GIFs + contact sheets on stage 1, from their trajectories
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
-hero: venv ours     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py
+hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures hero

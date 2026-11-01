@@ -1,23 +1,47 @@
-"""Seam: model/render/pictures.py's stages: the renderer poses the same Mech as the engine (Cansin: "neck still does
-not move the head" in the first hero)."""
+"""Seam: model/render/pictures.py poses a Stage's pictures from its baked trajectory (#179, model/trajectories.py),
+MuJoCo's poses, not the old engine's (#150)."""
+
+import json
+import math
+import os
 
 import numpy as np
 import pytest
 
-from model import geometry as g
+from model import trajectories as tj
 from model.engine import stages
-from model.render import pictures, scene
+from model.render import pictures
+
+C = math.sqrt(0.5)
 
 
-@pytest.mark.parametrize("servo,deg", [("rotate", -38.0), ("tilt", 50.0)])
-def test_on_the_rendered_stage3_the_neck_carries_the_head(servo, deg):
-    stage = pictures.assembled("stage3", g.STAGES["noggin-stage3"])
-    mats = scene.pose(stage, {servo: deg})
-    for n in ("L pupil:1", "eye bracket:1", "bottom jaw:1"):
-        assert not np.allclose(mats[n], stage.parts[n].matrix), n
-    assert np.allclose(mats["base plate:1"], stage.parts["base plate:1"].matrix)
+def test_each_gif_frame_is_one_trajectory_frame_with_its_parts_where_the_trajectory_puts_them(tmp_path, monkeypatch):
+    # every part at the origin for 3 frames, the L lid horn moved and turned 90 degrees about Z in frame 1
+    rest = {"pos": [[0, 0, 0]] * 3, "quat": [[1, 0, 0, 0]] * 3}
+    parts = {n: rest for n in stages.STAGES["noggin-stage1"].parts}
+    parts["L lid horn:1"] = {
+        "pos": [[0, 0, 0], [0.01, 0.02, 0.03], [0, 0, 0]],
+        "quat": [[1, 0, 0, 0], [C, 0, 0, C], [1, 0, 0, 0]],
+    }
+    os.makedirs(tmp_path / "noggin-stage1")
+    json.dump({"parts": parts}, open(tmp_path / "noggin-stage1" / "wink.json", "w"))
+    monkeypatch.setattr(tj, "OUT", str(tmp_path))
+    monkeypatch.setattr(pictures, "OUT", str(tmp_path / "pictures"))
+    shots = []
+    monkeypatch.setattr(pictures, "blender", lambda name, manifest, s: shots.extend(s))
+    monkeypatch.setattr(pictures, "encode", lambda *a, **k: None)
+    pictures.gifs(["wink"])
+    assert len(shots) == 3
+    turned = [[0, -1, 0, 0.01], [1, 0, 0, 0.02], [0, 0, 1, 0.03], [0, 0, 0, 1]]
+    assert np.allclose(shots[1]["pose"]["L lid horn:1"], turned)
+    assert np.allclose(shots[0]["pose"]["L lid horn:1"], np.eye(4))
+    assert set(shots[1]["pose"]) == set(parts)
 
 
-def test_the_stage1_picture_draws_the_desk_eye_bracket():
-    stage = pictures.assembled("stage1", g.STAGES["noggin-stage1"])
-    assert stages.stem(stage.parts["eye bracket:1"].file) == "desk eye bracket"
+@pytest.mark.parametrize(
+    "name,bracket", [("stage1", "desk eye bracket"), ("eyes", "desk eye bracket"), ("mouth", "eye bracket")]
+)
+def test_each_picture_draws_the_eye_bracket_of_its_document(name, bracket):
+    # the desk build (geometry.DESK: the eyes document and stage 1) has the desk bracket; the mouth needs the rail one
+    stage = pictures.assembled(name, pictures.DOCS[name][0])
+    assert stages.stem(stage.parts["eye bracket:1"].file) == bracket
