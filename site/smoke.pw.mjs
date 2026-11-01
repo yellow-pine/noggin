@@ -11,13 +11,15 @@ test.beforeEach(async ({ page }) => {
     document.addEventListener('securitypolicyviolation', (e) => window.cspViolation(`${e.effectiveDirective} ${e.blockedURI}`)),
   );
   page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // GitHub's answer for the header's stars and forks (a rate limit, say) is not ours; its message has no URL, its location has
+  const github = (m) => m.location().url.startsWith('https://api.github.com/');
+  page.on('console', (m) => m.type() === 'error' && !github(m) && errors.push(m.text()));
   page.on('request', (r) => requests.push(r.url()));
 });
 test.afterEach(async ({ baseURL }) => {
   const origin = new URL(baseURL).origin;
   expect(violations).toEqual([]);
-  expect(errors.filter((e) => !e.includes('api.github.com'))).toEqual([]); // GitHub's rate limit is not ours
+  expect(errors).toEqual([]);
   // the pictures are the live site's (docs/adr/0009), which a local build shows too
   const ours = [origin, `blob:${origin}`, 'data:', 'https://api.github.com/', 'https://yellowpine.com/noggin/images/'];
   const elsewhere = requests.filter((u) => !ours.some((o) => u.startsWith(o)));
