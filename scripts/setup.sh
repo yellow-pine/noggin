@@ -241,7 +241,8 @@ pause
 
 if [[ "${1:-}" == wifi ]]; then          # make wifi: this step alone, then the noggin service back if it was running
   TOTAL_STAGES=1
-  launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && trap 'make -s start' EXIT   # also after a failure or Ctrl-C
+  # the installed plist, not make start: that would repoint the service at this checkout; also after a failure or Ctrl-C
+  launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && trap 'launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.noggin.plist" 2>/dev/null || true' EXIT
   join_wifi
   exit 0
 fi
