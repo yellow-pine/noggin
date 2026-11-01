@@ -8,6 +8,13 @@ docs_dir: .
 site_dir: site
 theme:
   name: material
+  custom_dir: overrides   # main.html: the pinned Mermaid below
+# the Mermaid the site loads instead of Material's floating unpkg mermaid@11, and the one test_site.py renders every
+# diagram with; the integrity is the sha384 of jsDelivr's dist/mermaid.min.js, which that test checks
+extra:
+  mermaid:
+    version: 11.17.2
+    integrity: sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2
 plugins:
   - search
   - same-dir
