@@ -1,7 +1,7 @@
 """noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI. Socket lines are either Trigger
 JSON from a Claude Code hook (forwarded to the Director) or plain commands: `on` / `off` (Mute, persisted as a file)
 / `<gesture> <1-3>` / `thinking` / `rest` / `exercise <min>` (passed to the Core) / `pose ...` (passed on and held,
-dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload` and Link reconnect while
+dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload`, `on` and Link reconnect while
 unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file) / `demo [once |
 <gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks from demo or
 pose; the mode after any restart) / `flash` (the eye program to the eyes Core over Wi-Fi, answered with the outcome;
@@ -240,7 +240,7 @@ class Service:
             self.director.muted = False
             self.mute_file.unlink(missing_ok=True)
             log("unmuted")
-            return
+            return self.send(self.held())
         if text == "reload":
             return self.send(self.cal_lines() + self.held())
         if text.startswith("set "):

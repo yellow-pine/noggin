@@ -303,6 +303,7 @@ def test_a_calibration_set_while_holding_resends_the_pose(tmp_path):
     ask(sock, "set lid_rest 0.29\n")
     assert wait_for(lambda: fake.buf.endswith(b"release\nset lid_rest 0.29\n"))  # muted: stays unpowered
     ask(sock, "on\n")
+    assert wait_for(lambda: fake.buf.endswith(b"set lid_rest 0.29\nrest\npose lids 0.3\n"))  # unmuted: held again
     ask(sock, "follow\n")
     ask(sock, "set lid_rest 0.28\n")
     assert wait_for(lambda: fake.buf.endswith(b"rest\nset lid_rest 0.28\n"))  # following: nothing held
