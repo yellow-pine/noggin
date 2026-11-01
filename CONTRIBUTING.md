@@ -30,9 +30,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Bots never commit to main: the `skills` workflow only pushes its own `skills-bump` branch and opens (or refreshes)
   a PR from it, which goes through review and the merge queue like any other; main's ruleset rejects a bot's push.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
-  required `claude` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
+  required `review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus
-  ponytail). In the merge queue `claude` passes when claude[bot] approved the PR's head commit (`.github/workflows/queue.yml`). It
+  ponytail). In the merge queue `review` passes when claude[bot] approved the PR's head commit (`.github/workflows/queue.yml`). It
   needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot
   secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.

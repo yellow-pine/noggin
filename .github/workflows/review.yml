@@ -29,7 +29,6 @@ jobs:
           path: .agents/skills
           include-hidden-files: true
   review:
-    name: claude
     needs: skills
     permissions:
       contents: read
