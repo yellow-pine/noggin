@@ -121,7 +121,7 @@ def stale(doc):
 
 def poses(doc, motion):
     """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
-    the web viewer's glTF will read (#182)."""
+    the web viewer's GLBs are baked from (web/build.py)."""
     parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
     frames = []
     for i in range(len(next(iter(parts.values()))["pos"])):
