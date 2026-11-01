@@ -5,6 +5,9 @@
 > Amended 2026-11-01 (#328): the release token comes from a GitHub App, not a fine-grained personal token.
 >
 > Amended 2026-11-01 (#350): the PR Title check enforces only the type; a scope is free-form, an area recommended.
+>
+> Amended 2026-11-01 (#358): Release Assets is the release's deployment in the `release` environment, and the
+> release's notes link back to it.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -23,7 +26,9 @@ copy, and the tag is `v` plus it.
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
   release. It passes the required checks, Claude's review included, and auto-merges on green; merged, it tags `vX.Y.Z`
-  and creates the GitHub release, and the tag starts Release Assets, which attaches the Core program zip.
+  and creates the GitHub release, its notes the version's CHANGELOG.md section (each entry links its PR, which links
+  its issue (#356), and its commit), and the tag starts Release Assets, which attaches the Core program zip as the release's
+  deployment in the `release` environment (the Deployments panel links the release; its notes link the run).
 - **A GitHub App's token, not `GITHUB_TOKEN`.** What `GITHUB_TOKEN` creates starts no workflow: the release PR would
   get no checks and its tag no assets. So the workflow mints a short-lived token per run from a small private GitHub
   App on yellow-pine (actions/create-github-app-token), not a personal token tied to one account (#328,

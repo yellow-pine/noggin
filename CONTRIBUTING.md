@@ -33,7 +33,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
   titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
   required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
-  release, and the tag's `Release Assets` run attaches the Core program zip. Never edit the version, the manifest or
+  release, and the tag's `Release Assets` run attaches the Core program zip as the release's deployment in the
+  `release` environment (Deployments panel), linked from the release's notes. Never edit the version, the manifest or
   CHANGELOG.md by hand. The workflow runs as the release GitHub App, because what `GITHUB_TOKEN` creates starts no
   workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and
   write and no webhook. Each run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID`

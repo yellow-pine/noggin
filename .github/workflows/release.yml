@@ -1,4 +1,6 @@
 name: Release Assets
+# A release tag's run (docs/adr/0010): attaches the zip to the release release-please made, as the release's deployment
+# in the `release` environment (the Deployments panel links the release; the release's notes link this run).
 on:
   push:
     tags: ["v*"]
@@ -10,6 +12,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       # the eye program's files that `make flash` copies (make mpy-list, no venv here; the assignment fails with make),
@@ -17,9 +26,11 @@ jobs:
       - run: |
           program=$(make -s mpy-list PY=python3)
           python3 -m noggin.core stamp > eyes/stamp.py
-          zip noggin-${{ github.ref_name }}.zip $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
-      # release-please made the release with this tag and its CHANGELOG.md entry (docs/adr/0010): attach the zip
+          zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+      # the notes link this deploy once, a re-run or a re-pushed tag included
+      # shortcut: no docs version link yet, add it once each release attaches its built docs (#307 item 3)
+      - run: |
+          gh release view "$TAG" --json body --jq .body > notes.md
+          grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s), the `release` environment\n' "$RUN_URL" >> notes.md
+          gh release edit "$TAG" --notes-file notes.md

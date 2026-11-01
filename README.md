@@ -50,7 +50,7 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 | Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
 | Firmware Watch | `firmware.yml` | weekly | opens an issue for each new Core firmware on the vendor's release notes |
 | Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
-| Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release |
+| Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release, deployed to the `release` environment |
 
 Required checks on main: `code`, `model`, `mech`, `site`, `pictures`, `review`, `fetch skills`, `PR Title` and
 `PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
