@@ -1,17 +1,17 @@
 ---
-// Starlight's footer, then the site's version (pyproject.toml) linking its release, or the changelog before it, and
-// the commit it was built from (macros.py version, #372); and the web viewer (docs/adr/0008) on any page that has a
+// Starlight's footer, then the site's version (pyproject.toml) linking its release, or the releases before it, and
+// the commit it was built from (macros.py build, #372); and the web viewer (docs/adr/0008) on any page that has a
 // <div class="noggin-viewer">: its module and three.js load only there.
 import Default from '@astrojs/starlight/components/Footer.astro';
-import { released, version } from '../macros.json';
+import { build, released } from '../macros.json';
 import { REPO } from '../pages.mjs';
 
-const release = released ? `${REPO}/releases/tag/v${version.version}` : `${REPO}/blob/main/CHANGELOG.md`;
+const release = released ? `${REPO}/releases/tag/v${build.version}` : `${REPO}/releases`;
 ---
 
 <Default />
 <p class="noggin-version">
-  noggin <a href={release}>v{version.version}</a> · <a href={`${REPO}/commit/${version.commit}`}>{version.commit.slice(0, 7)}</a>
+  noggin <a href={release}>v{build.version}</a> · <a href={`${REPO}/commit/${build.commit}`}>{build.commit.slice(0, 7)}</a>
 </p>
 
 <script>

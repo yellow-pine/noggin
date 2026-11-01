@@ -1,6 +1,7 @@
 // The site as `make site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
-// by its H1, every link lands, the numbers are the code's (macros.json), and each page's CSP lets only the site's own
-// scripts run. Run after make site: npm test (Site Checks).
+// by its H1, every link lands, the numbers are the code's (macros.json), each page's footer and /version.json give the
+// version and the commit, and each page's CSP lets only the site's own scripts run. Run after make site: npm test (Site
+// Checks).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, globSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -54,6 +55,7 @@ test('the sidebar reaches every decision and the viewer', () => {
 // what make site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is
 const ADDED = ['images', 'reports'];
 const built = (file) => !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
+const pages = html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`))); // Astro's pages, not the reports' index
 
 test('every link on the site lands on a page or file of it, and no .md link is left', () => {
   const broken = [];
@@ -108,7 +110,7 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
 });
 
 test("every page's CSP lets only the site's scripts run: each inline one by its hash, no 'unsafe-inline'", () => {
-  for (const f of html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`)))) { // Astro's pages, not the reports' index
+  for (const f of pages) {
     const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
     const csp = doc.querySelector('meta[http-equiv="content-security-policy"]')?.getAttribute('content');
     const scripts = csp?.match(/script-src ([^;]*)/)?.[1].split(/\s+/);
@@ -125,7 +127,8 @@ test("every page's CSP lets only the site's scripts run: each inline one by its 
 });
 
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
-const version = read('pyproject.toml').match(/^version = "(.+)"$/m)[1];
+const toml = 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["project"]["version"])';
+const version = execFileSync(path.join(ROOT, '.venv/bin/python'), ['-c', toml, path.join(ROOT, 'pyproject.toml')], { encoding: 'utf8' }).trim();
 
 test('/version.json is the version (pyproject.toml), the commit built and when', () => {
   const built = JSON.parse(readFileSync(path.join(DIST, 'version.json'), 'utf8'));
@@ -134,13 +137,14 @@ test('/version.json is the version (pyproject.toml), the commit built and when',
   expect(new Date(built.built_at).toISOString()).toBe(built.built_at);
 });
 
-test("every page's footer links the version to its release (the changelog before it) and the commit to GitHub", () => {
-  const release = [`${REPO}/releases/tag/v${version}`, `${REPO}/blob/main/CHANGELOG.md`];
-  for (const f of html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`)))) {
+test("every page's footer links the version to its release (the releases before it) and the commit to GitHub", () => {
+  const release = numbers.released ? `${REPO}/releases/tag/v${version}` : `${REPO}/releases`; // macros.released, test_site.py
+  for (const f of pages) {
     const links = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('.noggin-version a');
-    expect(links.map((a) => a.text.trim()), f).toEqual([`v${version}`, commit.slice(0, 7)]);
-    expect(release, f).toContain(links[0].getAttribute('href'));
-    expect(links[1].getAttribute('href'), f).toBe(`${REPO}/commit/${commit}`);
+    expect(links.map((a) => [a.text.trim(), a.getAttribute('href')]), f).toEqual([
+      [`v${version}`, release],
+      [commit.slice(0, 7), `${REPO}/commit/${commit}`],
+    ]);
   }
 });
 
