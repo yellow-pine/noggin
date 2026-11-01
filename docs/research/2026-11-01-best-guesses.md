@@ -28,6 +28,8 @@ changed at a time, and the penetrating vertices' extents to see which way each c
 
 ## The lid horns' open end (L +52, R +45): accepted, listed
 
+Superseded in part by #189 (below): the teeth are L +13.95, R +6.75, the ends L +52.95, R +45.75, the free travel 62 deg.
+
 - Symptom: the lower lid's back rim 1.3 / 2.0 mm into the servo bracket's front face (z 18) from horn +39, across the
   lid's width; the L upper lid 0.35 mm into the eyeball bar at +52.
 - Rejected: a smaller lid tooth (the open ends sit 39 servo deg from 90 on both sides, which tooth 0 would put exactly
@@ -68,3 +70,27 @@ changed at a time, and the penetrating vertices' extents to see which way each c
   the bracket's feet flat on the plate top and the stem out of sight in the plate. Superseded by #172: the stem is in the
   plate's slot, not the pan recess, and the desk bracket's stem fills the 5 mm plate, so geometry.STEM_AT stage 1 is
   z -2 (docs/research/2026-11-01-eyes-on-plate.md).
+
+## The joint-end overlaps (#189)
+
+The old engine skipped a lid or eyeball on its bracket pivot (model/engine/run.py PIVOT_PARTNER, now measured) and never
+measures the two lids (both move with the horn); #149's
+MuJoCo report found them overlapping on the exact meshes at the LIMITS ends, which the build runs without binding.
+Measured per pair, one variable at a time, with the designer's meshes swapped in as the cross-check:
+
+- Lower lid into the eye bracket (1.86 mm at +39): our bracket dropped the designer's relief on the band's lower front
+  edge (a 45 deg chamfer from y -7.5 on the front face to z 15.5 at y -10, both designer brackets; the designer's lid
+  is clean against it). Restored (model/printed/eye_bracket.py LID_RELIEF): clean to +38.
+- The two lids at the closed end (1.39 mm at -49): a wrong limit. The lips meet at -30.72 and the shells cannot pass
+  each other, so the closed end is the lips; Cansin (#189): the lids close quietly at lid_closed, edges just touching,
+  no overlap. The lid teeth go to L 13.95, R 6.75 (inferred: the close lands at -30.75, 0.03 mm of lip), the top of the
+  #134 window; the rest photo's face-value lid reading sits 1.2 / 0.9 below, the side its camera tilt moves it.
+- The two lids (1.03 mm) and the upper lid on the eye bracket's arm chamfer (0.78 mm) at the open end (+39): the lids'
+  ears meet at the back from +32, the upper ear the arm from +35, with the designer's lids and bracket alike. No shape
+  in the sources clears them, so the open end is the model's free travel, +31 (geometry.LIMITS); the build's open
+  command (L +48, R +41.5) and calibrated ends stay past it, accepted with the servo bracket hit (KNOWN_CALIBRATED).
+- Each eyeball into the eye bracket (0.77 mm at +-22): its back rim (z 5) meets the plate's front face (z 13) from
+  +-21, the eyeball turning 1.26x the horn (the bar's 12.56 mm horn arm on its 10 mm one); the designer's eyeball and
+  bracket alike. The eye limits go to +-20 (free travel). Conflict, recorded: the program commands up to +-25 servo
+  degrees and the calibration +-30, which would put the eyeball 1.5..2.5 mm into the plate in the model; the build runs
+  them, so the four-bar's gain or the eyeball's back is off by more than any source's tolerance (inferred, unsettled).

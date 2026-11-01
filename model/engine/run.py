@@ -100,9 +100,8 @@ def linked(stage, horn):
     return out
 
 
+# The lids and eyeballs are measured on the eye bracket they turn on: their pins and fork touch with nothing inside (#189).
 PIVOT_PARTNER = {
-    **{f"{s} {lid} lid:1": ["eye bracket:1"] for s in "LR" for lid in ("upper", "lower")},
-    **{f"{s} eyeball:1": ["eye bracket:1"] for s in "LR"},
     "tilt arm:1": ["upright:1"],
     "pan turntable:1": ["bearing block:1"],
     "bottom jaw:1": ["top jaw:1"],

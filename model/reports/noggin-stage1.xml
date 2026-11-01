@@ -385,7 +385,6 @@
     <mesh name="desk eye bracket 6" content_type="model/stl" file="convex/desk eye bracket/6.stl" scale="0.001 0.001 0.001"/>
     <mesh name="desk eye bracket 7" content_type="model/stl" file="convex/desk eye bracket/7.stl" scale="0.001 0.001 0.001"/>
     <mesh name="desk eye bracket 8" content_type="model/stl" file="convex/desk eye bracket/8.stl" scale="0.001 0.001 0.001"/>
-    <mesh name="desk eye bracket 9" content_type="model/stl" file="convex/desk eye bracket/9.stl" scale="0.001 0.001 0.001"/>
     <mesh name="servo" content_type="model/stl" file="ours/servo.stl" scale="0.001 0.001 0.001"/>
     <mesh name="servo 0" content_type="model/stl" file="convex/servo/0.stl" scale="0.001 0.001 0.001"/>
     <mesh name="servo 1" content_type="model/stl" file="convex/servo/1.stl" scale="0.001 0.001 0.001"/>
@@ -667,16 +666,15 @@
     </body>
     <body name="eye bracket:1" pos="0.0295 -0.032 0.0386" quat="0 0 0.707107 0.707107">
       <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="desk eye bracket"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00194583" mesh="desk eye bracket 0"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000596016" mesh="desk eye bracket 1"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00134749" mesh="desk eye bracket 2"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000169178" mesh="desk eye bracket 3"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000596041" mesh="desk eye bracket 4"/>
-      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00290987" mesh="desk eye bracket 5"/>
-      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00547856" mesh="desk eye bracket 6"/>
-      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000220441" mesh="desk eye bracket 7"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000306621" mesh="desk eye bracket 8"/>
-      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000346953" mesh="desk eye bracket 9"/>
+      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00793895" mesh="desk eye bracket 0"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00176625" mesh="desk eye bracket 1"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000540614" mesh="desk eye bracket 2"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00122289" mesh="desk eye bracket 3"/>
+      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000200047" mesh="desk eye bracket 4"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000278254" mesh="desk eye bracket 5"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000540614" mesh="desk eye bracket 6"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000153527" mesh="desk eye bracket 7"/>
+      <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000314855" mesh="desk eye bracket 8"/>
       <site name="L upper lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>
       <site name="L upper lid inner on the bracket pin: eye bracket:1" pos="0.0225 0 0"/>
       <site name="L lower lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>

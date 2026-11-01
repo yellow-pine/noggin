@@ -13,41 +13,47 @@ from model.engine import mating, run, stages
 HERE = os.path.dirname(__file__)
 _LID_OPEN = (
     "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90): in the model the lower lid's back rim meets the"
-    " servo bracket's front face from +39, 1.3 mm deep at 45, 2.0 at 52 (and the upper lid 0.35 mm into the eyeball bar"
-    " there). Best guess (#170, docs/research/2026-11-01-best-guesses.md): the build runs it, so the model's lid travel"
-    " (88 deg free) is short of the build's (93 / 85 servo deg) by a lid or bracket shape error no tolerance in the sources"
-    " reaches: the tooth is held by the shut lids and the rest photo, the servo's 180 +-10 deg spec moves the end 3 deg at"
-    " most, a print tolerance of 0.2 mm 1.3 deg. Accepted, not a measurement to wait for"
+    " servo bracket's front face from +39, 1.4 mm deep at 45.75, 2.0 at 52.95 (and the upper lid 0.6 mm into the eyeball"
+    " bar there); past the model's free travel (+31, geometry.LIMITS) the two lids' ears also meet at the back (the sweep"
+    " never measures the two lids: both move with the horn) and the upper lid's ear the eye bracket's arm (#189). Best guess (#170, #189): the build runs it,"
+    " so the model's lid travel (62 deg free) is short of the build's (93 / 85 servo deg) by a shape error at the lids'"
+    " backs that no tolerance in the sources reaches: the closed end is held by the lips just touching at the program's"
+    " close (Cansin), the servo's 180 +-10 deg spec moves the end 3 deg at most, a print tolerance of 0.2 mm 1.3 deg."
+    " Accepted, not a measurement to wait for"
+)
+_EYE_ENDS = (
+    "the real Mech's eye ends (servo 58 / 118, the program's gestures to +-25 of centre): in the model the eyeball's back"
+    " rim (z 5) meets the eye bracket's front face (z 13) from +-21, 2.5 mm deep at +-30, the eyeball turning 1.26x the"
+    " horn (the bar's 12.56 mm horn arm on its 10 mm one). Best guess (#189): the build runs it, so the four-bar's gain"
+    " or the eyeball's back is off by more than any source's tolerance (the designer's eyeball and bracket alike);"
+    " geometry.LIMITS keeps the model's free travel, +-20. Accepted, not a measurement to wait for"
 )
 # (horn, calibrated end): where the model still collides and the real Mech runs, each with the reason it is accepted.
 # The build wins (CLAUDE.md): listed, never loosened silently.
 KNOWN_CALIBRATED = {
-    ("L lid horn", 52): _LID_OPEN,
-    ("R lid horn", 45): _LID_OPEN,
+    ("L lid horn", 52.95): _LID_OPEN,
+    ("R lid horn", 45.75): _LID_OPEN,
+    **{(f"{s} eye horn", end): _EYE_ENDS for s in "LR" for end in (-30, 30)},
 }
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, each with what the exact meshes say
-# at the same pose (model/engine/meshes.judge). Two kinds: the convex pieces fill a part's own clearance (the meshes are clear),
-# or the meshes overlap too, at a LIMITS end, where the old engine never looked (it skips a lid or eyeball on its bracket
-# pivot and a four-bar's two rockers): the build runs those ends, so it is a part shape error as _LID_OPEN, accepted.
+# at the same pose (model/engine/meshes.judge): the convex pieces fill a part's own clearance, the meshes are clear. The
+# two lids, which the old engine's sweep never measures, are clear on the meshes at both lid limits (#189,
+# model/engine/test_meshes.py).
 _SHELL = "pieces only: the lid shell's pieces fill its 0.48 mm gap to the eyeball; the meshes stay 0.48 mm clear"
-_LID_ENDS = (
-    "pieces 4.6 mm at -39 (1.7 at rest); the meshes nest at 0.0 there but overlap at the ends, 1.39 mm at -49 (shut) and"
-    " 1.03 at +39 (open): the build runs both, accepted"
+_ON_PINS = (
+    "pieces only: the lids turn on the bracket's pins and on each other's ears; the meshes touch with nothing inside (on"
+    " the bracket at every step of the sweep, on each other at both limits), the pieces read up to 0.75 mm deeper than at"
+    " rest (+29..+31)"
 )
-_UPPER_ON_BRACKET = "pieces 0.75 mm deeper at +39; the meshes 0.78 mm in at +39 (open): the build runs it, accepted"
-_EYE_ON_BRACKET = (
-    "pieces 0.72 mm deeper at the end; the meshes 0.77 mm in at -22 and +22: the build runs both, accepted"
-)
-_LOWER_ON_BRACKET = (
-    "the meshes 1.86 mm in at +39 (open): the build runs it, accepted; the pieces read only 0.16 (L) and 0.03 (R)"
-    " deeper than at rest there, so they miss most of it"
+_ON_RAIL = (
+    "pieces only: the eyeball bar rides the bracket's rail, 0 mm with nothing inside on the meshes; its pieces 0.07 mm"
+    " deeper at +-20 on the desk bracket"
 )
 KNOWN_PAIRS = {
-    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _LID_ENDS for s in "LR"},
+    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _ON_PINS for s in "LR"},
+    **{frozenset((f"{s} {lid} lid:1", "eye bracket:1")): _ON_PINS for s in "LR" for lid in ("upper", "lower")},
+    **{frozenset((f"{s} eyeball bar:1", "eye bracket:1")): _ON_RAIL for s in "LR"},
     **{frozenset((f"{s} pupil:1", f"{s} {lid} lid:1")): _SHELL for s in "LR" for lid in ("upper", "lower")},
-    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _UPPER_ON_BRACKET for s in "LR"},
-    **{frozenset((f"{s} eyeball:1", "eye bracket:1")): _EYE_ON_BRACKET for s in "LR"},
-    **{frozenset((f"{s} lower lid:1", "eye bracket:1")): _LOWER_ON_BRACKET for s in "LR"},
     frozenset(("base plate:1", "upright:1")): "pieces only: the plate's pieces fill the recess under the upright; the"
     " meshes stay 0.5 mm clear at pan -40",
     frozenset(("pan turntable:1", "tilt horn:1")): "pieces only: 0.14 mm in at tilt -60; the meshes stay 0.17 mm clear"
@@ -220,7 +226,7 @@ FIXTURE_PROBLEMS = {
         "mating R lid servo in its mount: 0.3 mm off R servo bracket:1",
         "mating pan servo lead exit: the lead runs into pan servo tail mount:1",
         "mating jaw servo / jaw servo mount lower tab screw: no hole feature found on jaw servo mount:1",
-        "mujoco R eyeball bar:1 / eye bracket:1: -0.12 mm at {'R eye horn': -22}, 0.1 deeper than at rest",
+        "mujoco R eye horn:1 / R servo bracket:1: -0.12 mm at {'R eye horn': -22}, 0.1 deeper than at rest",
         "mujoco pan turntable:1 / tilt bar:1: -0.08 mm at {'tilt horn': -60}, 0.08 deeper than at rest",
         "mujoco four-bar tilt pivot: open 0.07 mm at {'tilt horn': 60} > 0.05",
         "mujoco tilt horn: holds 0.45 kgf.cm at {'tilt horn': -60} > its rated 0.4 (stall 1.0)",

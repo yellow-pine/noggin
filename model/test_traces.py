@@ -57,16 +57,18 @@ def test_every_gesture_stays_inside_the_calibrated_lid_ends_and_eye_limits(gestu
 
 @pytest.mark.parametrize("side", "LR")
 def test_the_calibrated_close_shuts_the_lids_inside_the_swept_range(side):
-    """The real Mech winks shut at lid_closed (#134): the edges meet, not overdriven, and the pose is one make sim sweeps."""
+    """The real Mech winks shut at lid_closed (#134): the edges just touch, no overlap (Cansin, #189: the lids close
+    quietly), and the pose is one make sim sweeps."""
     closed = traces.joint(f"{side.lower()}_lid", traces.CAL["lid_closed"])
-    assert -3 < lids.gap(side, closed) <= 0
+    assert -0.1 < lids.gap(side, closed) <= 0  # 0.1 deg of lip is 0.04 mm
     assert g.HORN_LIMITS[f"{side.lower()}_lid"][0] - 90 <= closed
 
 
 def test_rest_matches_the_rest_photo():
     rest = traces.record("wink")[0]  # every recording starts at rest
-    # docs/build-photos/eyes-rest-top.jpg read at face value: lid horns L -15.2, R -16.3 (docs/research/2026-10-31-shafts.md)
-    assert rest["l_lid"] == pytest.approx(-15.2, abs=1) and rest["r_lid"] == pytest.approx(-16.3, abs=1)
+    # docs/build-photos/eyes-rest-top.jpg read at face value: lid horns L -15.2, R -16.3 (docs/research/2026-10-31-shafts.md);
+    # the camera tilt the photo's eye readings show only raises the lid readings, so the model may sit up to 1.5 above
+    assert -15.2 <= rest["l_lid"] <= -15.2 + 1.5 and -16.3 <= rest["r_lid"] <= -16.3 + 1.5
     assert rest["l_eye"] == pytest.approx(rest["r_eye"])
 
 

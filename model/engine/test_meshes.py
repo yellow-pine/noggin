@@ -64,3 +64,17 @@ def test_the_stack_clears_the_pan_base_at_the_tilt_end_and_the_boards_at_neutral
         assert not meshes.penetrates(at(name, end), at("pan turntable:1", end)), name
     neutral = {n: stage.parts[n].matrix for n in names}
     assert not meshes.penetrates(at("tilt servo:1", neutral), at("receiver shield 1:1", neutral))
+
+
+@pytest.mark.parametrize("doc", ["noggin-eyes", "noggin-stage2"])  # the desk eye bracket and the regular one
+def test_the_two_lids_clear_each_other_at_both_lid_limits(doc):
+    """#189: the real Mech runs these ends without binding. The sweep measures movers only against still parts, so never
+    the two lids (both move with the lid horn): this measures them on the exact meshes at geometry.LIMITS' ends."""
+    stage = stages.STAGES[doc]
+    names = [f"{s} {lid} lid:1" for s in "LR" for lid in ("upper", "lower")]
+    loaded = meshes.load(stage, names)
+    for s in "LR":
+        for deg in stage.horns[f"{s} lid horn"].limits:
+            pose = stages.pose(stage, f"{s} lid horn", deg).parts
+            upper, lower = (meshes.Placed(loaded[n], pose[n]) for n in (f"{s} upper lid:1", f"{s} lower lid:1"))
+            assert not meshes.penetrates(upper, lower), (s, deg)

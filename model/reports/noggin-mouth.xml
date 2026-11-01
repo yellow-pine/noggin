@@ -389,6 +389,7 @@
     <mesh name="eye bracket 10" content_type="model/stl" file="convex/eye bracket/10.stl" scale="0.001 0.001 0.001"/>
     <mesh name="eye bracket 11" content_type="model/stl" file="convex/eye bracket/11.stl" scale="0.001 0.001 0.001"/>
     <mesh name="eye bracket 12" content_type="model/stl" file="convex/eye bracket/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eye bracket 13" content_type="model/stl" file="convex/eye bracket/13.stl" scale="0.001 0.001 0.001"/>
     <mesh name="lid bar" content_type="model/stl" file="ours/lid bar.stl" scale="0.001 0.001 0.001"/>
     <mesh name="lid bar 0" content_type="model/stl" file="convex/lid bar/0.stl" scale="0.001 0.001 0.001"/>
     <mesh name="lid bar 1" content_type="model/stl" file="convex/lid bar/1.stl" scale="0.001 0.001 0.001"/>
@@ -972,19 +973,20 @@
       </body>
       <body name="eye bracket:1">
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" material="satin" mesh="eye bracket"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00233811" mesh="eye bracket 0"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0021635" mesh="eye bracket 1"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000594357" mesh="eye bracket 2"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00134509" mesh="eye bracket 3"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0029357" mesh="eye bracket 4"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00549243" mesh="eye bracket 5"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00229892" mesh="eye bracket 6"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00153098" mesh="eye bracket 7"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000168345" mesh="eye bracket 8"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000346398" mesh="eye bracket 9"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000594357" mesh="eye bracket 10"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000187675" mesh="eye bracket 11"/>
-        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000331137" mesh="eye bracket 12"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00228432" mesh="eye bracket 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00212573" mesh="eye bracket 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000585647" mesh="eye bracket 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00132496" mesh="eye bracket 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00339482" mesh="eye bracket 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00330296" mesh="eye bracket 5"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00150423" mesh="eye bracket 6"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000216754" mesh="eye bracket 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000301484" mesh="eye bracket 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000585647" mesh="eye bracket 9"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000294109" mesh="eye bracket 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000166673" mesh="eye bracket 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000340471" mesh="eye bracket 12"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0029382" mesh="eye bracket 13"/>
         <site name="L upper lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>
         <site name="L upper lid inner on the bracket pin: eye bracket:1" pos="0.0225 0 0"/>
         <site name="L lower lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>

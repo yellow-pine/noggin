@@ -38,6 +38,11 @@ TOUCH = {
         for s in "LR"
         for lid in ("upper", "lower")
     },
+    **{
+        frozenset((f"{s} eyeball bar:1", "eye bracket:1")): "the bar rides the rail, 0 mm on the meshes; the desk"
+        " bracket's pieces since its lid relief (#189) read 1.2 mm into it"
+        for s in "LR"
+    },
     frozenset(("base plate:1", "pan servo:1")): "the plate's pieces fill the pan servo's pocket, 0.05 mm clear",
     frozenset(("base plate:1", "upright:1")): "the plate's pieces fill the recess under the upright, 0.5 mm clear",
 }

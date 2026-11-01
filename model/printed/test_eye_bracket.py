@@ -69,7 +69,7 @@ def test_plate_holes_take_the_mounting_screws():
     stem = [(29.5, y) for y in (-11.6, -16.6, -21.6, -36.6)]
     rail = [(x, -35.6) for x in (1.5, 6.5, 11.5, 16.5, 42.5, 47.5, 52.5, 57.5, 65.92, 70.92)]
     for x, y in feet + top + stem + rail:
-        for z in (13.2, 15.5, 17.8):
+        for z in (13.5, 15.5, 17.8):  # the outer feet's holes start in the lid relief's chamfer (z 13.25 at y -7.75)
             assert not inside(x, y, z) and not inside(x + 1.0, y, z) and not inside(x, y - 1.0, z)
             assert inside(x + 1.3, y, z) and inside(x - 1.3, y, z), (x, y, z)
 
@@ -91,3 +91,12 @@ def test_stem_is_the_neck_clamps_twelve_by_five_section():
 def test_band_top_edge_is_the_rail_the_eyeball_bars_ride():
     for x in (-15.0, -10.0, -6.5, 65.5, 69.0, 74.0):
         assert inside(x, 2.3, 15.5) and not inside(x, 2.7, 15.5), x
+
+
+def test_the_band_is_cut_back_for_the_lower_lids_back_rims():
+    """#189: z 15.5 below y -10, a 45 deg chamfer up to the front face at y -7.5, either side of the stem (both
+    designer brackets); without it the lower lid's back rim enters the band from lid horn +32."""
+    for x in (-15.0, 0.0, 15.0, 44.0, 74.0):
+        assert not inside(x, -11.0, 15.3) and inside(x, -11.0, 15.7)
+        assert not inside(x, -8.5, 13.8) and inside(x, -8.5, 14.2) and inside(x, -7.0, 13.2)
+    assert inside(26.0, -11.0, 13.2)  # the stem
