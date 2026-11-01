@@ -1,0 +1,20 @@
+{
+  "name": "noggin-site-spike",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "astro build",
+    "preview": "astro preview",
+    "prebuild": "mkdir -p public/draco && cp node_modules/three/examples/jsm/libs/draco/draco_wasm_wrapper.js node_modules/three/examples/jsm/libs/draco/draco_decoder.wasm public/draco/"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.8",
+    "astro": "^7.4.4",
+    "astro-mermaid": "^2.2.0",
+    "mermaid": "^12.2.0",
+    "three": "^0.187.0"
+  }
+}

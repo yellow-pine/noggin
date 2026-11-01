@@ -1,0 +1,10 @@
+---
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+---
+<span id="gh-facts">★ – · forks –</span>
+<Default />
+<script>
+  const r = await fetch('https://api.github.com/repos/yellow-pine/noggin');
+  const j = await r.json();
+  document.getElementById('gh-facts')!.textContent = `★ ${j.stargazers_count} · forks ${j.forks_count}`;
+</script>
