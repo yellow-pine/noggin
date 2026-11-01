@@ -36,7 +36,7 @@ dev = [
 micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the stubs and mpy-cross above pin the same
 
 [tool.pytest.ini_options]
-testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py"]
+testpaths = ["ci", "eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py"]
 markers = ["model: MuJoCo and the slowest mesh sweeps; CI runs them in its model job (-m model) beside the rest"]
 
 [tool.ruff]

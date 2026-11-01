@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent
 AVOID = ["daemon", "poke", "animation", "neutral", "puppeteer", "receiver"]
 FILES = [
     p
-    for d in ("eyes", "reactions", "noggin", "scripts", "web", "mech")
+    for d in ("ci", "eyes", "reactions", "noggin", "scripts", "web", "mech")
     for p in (ROOT / d).rglob("*")
     if p.is_file()
     and p.suffix in (".py", ".sh", "")

@@ -9,6 +9,7 @@
 > Amended 2026-11-01 (#310): PRs run checks, main runs the same checks then deploys. Site Checks builds the site on
 > both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild (only
 > main's newest sim reports swapped in).
+> Amended 2026-11-01 (#288): the jobs needing Chrome or Blender run in our own images in GHCR, built from ci/.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -45,6 +46,19 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
   their inputs gets them as artifacts. Each motion renders on its own runner, a matrix read from the code (`make
   pictures-list`, #297), and `site` gathers them.
+- **CI images are build outputs in the registry** (#288). The jobs that need a system tool uv can't install run in our
+  own images, so they download no tool (a 403 from download.blender.org had taken the pictures down):
+  ci/base.Dockerfile (Ubuntu with Python and uv, Node with mermaid-cli, Chrome for Testing, ngspice, each
+  from a pinned source) for the site's build and viewer test (`site`; the diagram test's `code` once main has pushed a base with ngspice), and
+  ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for `render` and `viewer`. The
+  Dockerfiles are sources; the `CI Images` workflow builds the images into GHCR (`ghcr.io/yellow-pine/noggin-ci-base`,
+  `-blender`), never committed, and those jobs pin them by digest (`container:`). Every other job stays on the bare
+  runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain of them (convex, then a model
+  shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages stay out of the images: `uv
+  sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build provenance when a
+  Dockerfile changes and weekly without cache, and Dependabot proposes the new digests as a PR, whose checks run in
+  them before any job on main does; a PR that changes a Dockerfile only builds the images, from main's cache read
+  only.
 
 ## Considered options
 
