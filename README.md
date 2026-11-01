@@ -8,7 +8,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-D97757?style=flat&logo=claude&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
 [![CadQuery](https://img.shields.io/badge/CadQuery-1E5BA8?style=flat)](https://cadquery.readthedocs.io)
 [![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat&logo=blender&logoColor=white)](https://www.blender.org)
-[![MicroPython on the CyberBrick](https://img.shields.io/badge/MicroPython-on%20the%20CyberBrick-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
+[![MicroPython on the Core](https://img.shields.io/badge/MicroPython-on%20the%20Core-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
 
 An animatronic Mech on the desk that reacts to Claude Code. It winks when a session starts, drifts while Claude
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
