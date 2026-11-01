@@ -1,11 +1,12 @@
 """noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI.
 Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the Director) or
 plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
-`pose ...` / `exercise <min>` (passed to the Core) / `set <key> <value>` (saved to the calibration
+`exercise <min>` (passed to the Core) / `pose ...` (passed on and held, dropping hook Triggers, until `follow`;
+re-sent after every `set`, `reload` and Link reconnect) / `set <key> <value>` (saved to the calibration
 file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
-dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart) / `flash` (the eye program to the
-eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is pushed whenever the
-Link connects. Run as `python -m noggin.service`. noggin/broker.py (Mosquitto) can ride along as `broker`, but nothing
+dropping hook Triggers) / `follow` (back to the hooks from demo or pose; the mode after any restart) / `flash`
+(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file
+is pushed whenever the Link connects. Run as `python -m noggin.service`. noggin/broker.py (Mosquitto) can ride along as `broker`, but nothing
 starts it: the Link is signed UDP (docs/adr/0005, update 2026-11-01)."""
 
 import glob
@@ -199,6 +200,10 @@ class Service:
         self.mode, self.demo, self.step, self.next_step = text, lines, 0, 0.0
         log(text)
 
+    def held(self):
+        """The pose the Core holds in pose mode, as its line; else nothing."""
+        return [self.mode] if self.mode.startswith("pose") else []
+
     def follow(self):
         self.mode = "follow"
         log("following")
@@ -219,6 +224,10 @@ class Service:
             return self.start_demo(text)
         if text == "follow":
             return self.follow()
+        if text.split()[0] == "pose":  # held, hooks dropped, until follow
+            self.mode = text
+            log(text)
+            return self.send([text])
         if text == "off":
             self.mute_file.touch()
             log("muted")
@@ -229,7 +238,7 @@ class Service:
             log("unmuted")
             return
         if text == "reload":
-            return self.send(self.cal_lines())
+            return self.send(self.cal_lines() + self.held())
         if text.startswith("set "):
             parts = text.split()
             cal = self.calibration()
@@ -237,7 +246,7 @@ class Service:
                 return log("unknown calibration key", repr(text))
             cal[parts[1]] = float(parts[2]) if "." in parts[2] else int(parts[2])
             self.cal_file.write_text(json.dumps(cal, indent=1) + "\n")
-            return self.send([text])
+            return self.send([text] + self.held())  # a held pose re-applied: lid levels follow the limits
         if text.startswith("{"):
             try:
                 event = json.loads(text)
@@ -270,7 +279,7 @@ class Service:
             if self.link is None and now - self.last_probe > 2.0:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
-                    self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
+                    self.send(self.cal_lines() + (self.held() or [self.director.mode()]))  # calibrate, then catch up the mode
             self.wifi.poll(now)
             live = self.wifi.live(now)
             for name in self.live.keys() - live.keys():
@@ -278,11 +287,11 @@ class Service:
             for name in (live.keys() - self.live.keys()) | {n for n in live if live[n] < self.live.get(n, 0)}:
                 log(name, "beacon back:", self.wifi.status(name))  # new, or rebooted inside the stale window
                 if name == "eyes":  # a Core (back) on Wi-Fi: calibrate, catch up the mode
-                    self.send(self.cal_lines() + [self.director.mode()])
+                    self.send(self.cal_lines() + (self.held() or [self.director.mode()]))
             self.live = live
             if self.mode == "follow":
                 self.send(self.director.tick(now))
-            else:
+            elif self.mode.startswith("demo"):
                 self.play_demo(now)
             if self.link is not None:
                 self.read_core()

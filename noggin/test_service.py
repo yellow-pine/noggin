@@ -276,3 +276,42 @@ def test_the_service_starts_watches_and_stops_its_broker(tmp_path):
     d.stop()
     t.join(2)
     assert b.calls[0] == "start" and b.calls[-1] == "stop"
+
+
+def test_pose_holds_dropping_hooks_until_follow(tmp_path, capsys):
+    s, sock, fake = start(tmp_path)
+    ask(sock, "pose lids 0.3 eyes 95\n")
+    assert wait_for(lambda: fake.buf.endswith(b"pose lids 0.3 eyes 95\n"))
+    assert ask(sock, "status\n").endswith("mode pose lids 0.3 eyes 95\n")
+    send(sock, json.dumps({"hook_event_name": "Notification", "notification_type": "permission_prompt"}) + "\n")
+    time.sleep(0.3)
+    assert fake.buf.endswith(b"pose lids 0.3 eyes 95\n") and "dropped Notification" in capsys.readouterr().out
+    ask(sock, "follow\n")
+    assert wait_for(lambda: fake.buf.endswith(b"rest\n")) and ask(sock, "status\n").endswith("mode follow\n")
+    s.stop()
+
+
+def test_a_calibration_set_while_holding_resends_the_pose(tmp_path):
+    (tmp_path / "c.json").write_text('{"lid_rest": 0.28}')
+    s, sock, fake = start(tmp_path)
+    ask(sock, "pose lids 0.3\n")
+    ask(sock, "set lid_rest 0.3\n")
+    assert wait_for(lambda: fake.buf.endswith(b"set lid_rest 0.3\npose lids 0.3\n"))  # the new limits applied
+    ask(sock, "follow\n")
+    ask(sock, "set lid_rest 0.28\n")
+    assert wait_for(lambda: fake.buf.endswith(b"rest\nset lid_rest 0.28\n"))  # following: nothing held
+    s.stop()
+
+
+def test_a_link_that_comes_back_while_holding_gets_the_pose_not_rest(tmp_path):
+    (tmp_path / "c.json").write_text('{"lid_rest": 0.28}')
+    fake, plugged = FakeSerial(), []
+    sock = os.path.join(tempfile.gettempdir(), f"n{uuid.uuid4().hex[:6]}.sock")
+    s = Service(sock_path=sock, open_serial=lambda: fake if plugged else None, mute_file=tmp_path / "m",
+                cal_file=tmp_path / "c.json", beacon_port=0)  # fmt: skip
+    threading.Thread(target=s.run, daemon=True).start()
+    assert wait_for(lambda: s.ready)
+    ask(sock, "pose lids 0.3\n")  # no Link yet: dropped
+    plugged.append(1)
+    assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\npose lids 0.3\n", timeout=3)
+    s.stop()
