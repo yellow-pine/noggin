@@ -1,13 +1,13 @@
-"""noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI.
-Socket lines are either Trigger JSON from a Claude Code hook (forwarded to the Director) or
-plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `thinking` / `rest` /
-`exercise <min>` (passed to the Core) / `pose ...` (passed on and held, dropping hook Triggers, until `follow`;
-re-sent after every `set`, `reload` and Link reconnect) / `set <key> <value>` (saved to the calibration
-file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
-dropping hook Triggers) / `follow` (back to the hooks from demo or pose; the mode after any restart) / `flash`
-(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file
-is pushed whenever the Link connects. Run as `python -m noggin.service`. noggin/broker.py (Mosquitto) can ride along as `broker`, but nothing
-starts it: the Link is signed UDP (docs/adr/0005, update 2026-11-01)."""
+"""noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI. Socket lines are either Trigger
+JSON from a Claude Code hook (forwarded to the Director) or plain commands: `on` / `off` (Mute, persisted as a file)
+/ `<gesture> <1-3>` / `thinking` / `rest` / `exercise <min>` (passed to the Core) / `pose ...` (passed on and held,
+dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload` and Link reconnect while
+unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file) / `demo [once |
+<gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks from demo or
+pose; the mode after any restart) / `flash` (the eye program to the eyes Core over Wi-Fi, answered with the outcome;
+`make flash`). The whole calibration file is pushed whenever the Link connects. Run as `python -m noggin.service`.
+noggin/broker.py (Mosquitto) can ride along as `broker`, but nothing starts it: the Link is signed UDP
+(docs/adr/0005, update 2026-11-01)."""
 
 import glob
 import json
@@ -35,7 +35,7 @@ HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it 
 FLASH_FILES = ("eyes.mpy", "gaze_trace.mpy", "wifi.mpy")  # eyes/build (make mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
-MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "pose", "exercise"}
+MANUAL = {"thinking", "rest", "release", "eureka", "attention", "bored", "wince", "wink", "exercise"}
 
 
 def log(*a):
@@ -101,7 +101,7 @@ class Service:
         self.director.muted = self.mute_file.exists()
         self.link, self.last_probe, self.ready, self.running = None, 0.0, False, True
         self.live = {}  # name -> uptime, of each Core whose beacon was fresh at the last loop
-        self.mode = "follow"  # or the demo command that is playing; never persisted, so a restart follows
+        self.mode = "follow"  # or the demo command playing, or the pose held; never persisted, so a restart follows
         self.duration, self.pause, self.demo, self.step, self.next_step = duration, pause, [], 0, 0.0
         token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
         self.wifi = Wifi(token, beacon_port, command_port, stale)
@@ -201,8 +201,12 @@ class Service:
         log(text)
 
     def held(self):
-        """The pose the Core holds in pose mode, as its line; else nothing."""
-        return [self.mode] if self.mode.startswith("pose") else []
+        """In pose mode, unmuted: `rest` (ends a thinking drift on the Core) then the held pose; else nothing."""
+        return ["rest", self.mode] if self.mode.startswith("pose") and not self.director.muted else []
+
+    def catch_up(self):
+        """Calibrate the Core, then bring it to the mode: the held pose, else the Director's."""
+        self.send(self.cal_lines() + (self.held() or [self.director.mode()]))
 
     def follow(self):
         self.mode = "follow"
@@ -224,10 +228,10 @@ class Service:
             return self.start_demo(text)
         if text == "follow":
             return self.follow()
-        if text.split()[0] == "pose":  # held, hooks dropped, until follow
+        if text.split()[0] == "pose" and len(text.split()) in (3, 5):  # the Core's own arity, so a typo never holds
             self.mode = text
             log(text)
-            return self.send([text])
+            return self.send(["rest", text])
         if text == "off":
             self.mute_file.touch()
             log("muted")
@@ -279,15 +283,15 @@ class Service:
             if self.link is None and now - self.last_probe > 2.0:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
-                    self.send(self.cal_lines() + (self.held() or [self.director.mode()]))  # calibrate, then catch up the mode
+                    self.catch_up()
             self.wifi.poll(now)
             live = self.wifi.live(now)
             for name in self.live.keys() - live.keys():
                 log(name, "beacon stale for", self.wifi.stale, "s")
             for name in (live.keys() - self.live.keys()) | {n for n in live if live[n] < self.live.get(n, 0)}:
                 log(name, "beacon back:", self.wifi.status(name))  # new, or rebooted inside the stale window
-                if name == "eyes":  # a Core (back) on Wi-Fi: calibrate, catch up the mode
-                    self.send(self.cal_lines() + (self.held() or [self.director.mode()]))
+                if name == "eyes":  # a Core (back) on Wi-Fi
+                    self.catch_up()
             self.live = live
             if self.mode == "follow":
                 self.send(self.director.tick(now))
