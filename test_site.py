@@ -81,9 +81,9 @@ def test_the_site_loads_the_mermaid_the_diagrams_render_with(site):
     must match the hash, or the browser blocks the script and Material falls back to that floating one."""
     url = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID['version']}/dist/mermaid.min.js"
     tag = f'<script src="{url}" integrity="{MERMAID["integrity"]}" crossorigin="anonymous"></script>'
-    assert tag in (site / "index.html").read_text()
-    assert "mermaid" not in (site / "GLOSSARY" / "index.html").read_text()
-    sha = base64.b64encode(hashlib.sha384(urllib.request.urlopen(url).read()).digest()).decode()
+    pages = [p.read_text() for p in site.rglob("*.html")]
+    assert tag in (site / "index.html").read_text() and all((tag in h) == ('class="mermaid"' in h) for h in pages)
+    sha = base64.b64encode(hashlib.sha384(urllib.request.urlopen(url, timeout=60).read()).digest()).decode()
     assert MERMAID["integrity"] == f"sha384-{sha}"
 
 
