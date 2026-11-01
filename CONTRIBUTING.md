@@ -25,6 +25,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   build, refactor, test, chore. The scope is optional and free-form: name a top-level area (`eyes`, `web`, ...) or
   `deps` for a dependency bump, as Dependabot does (`deps-dev` for the dev group). The required `PR Title` check
   (`.github/workflows/pr-title.yml`) enforces the type; editing the title re-runs it.
+- A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
+  finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-issue.yml`,
+  `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
+  Dependabot, the weekly bumps) has no issue and passes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
   workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
   titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
