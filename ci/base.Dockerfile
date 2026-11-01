@@ -1,9 +1,9 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
 # (site-checks.yml's site; check.yml's code once main has pushed an image with ngspice), from pinned sources; `uv sync` in the job brings our Python packages.
 # .github/workflows/images.yml builds it and -blender on top; the jobs pin them by digest. Dependabot bumps the FROM
-# digests below.
-FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS node
-FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
+# digests below. Every pin is the newest release at least two weeks old (as Dependabot's cooldown).
+FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS node
+FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
 FROM mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e AS yq
 
 FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
@@ -31,8 +31,8 @@ ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 # and mermaid-cli (test_site.py) at mkdocs.yml's versions (ci/test_images.py) in npx's cache, driving that Chrome.
 # A container has no user namespaces for Chrome's sandbox: Playwright passes --no-sandbox, mermaid-cli's Puppeteer
 # does not, so it gets a wrapper that does
-ARG CHROME=156.0.8078.80
-ARG CHROME_SHA256=b711c720f774be355197f32edf37e0651418ba036d92446ee2da19ac017540a7
+ARG CHROME=155.0.8059.84
+ARG CHROME_SHA256=cf0f049892dea22e6a6db26d47ed0d7776b7158edcbec4634086633df8bafcbc
 RUN curl -fsSL -o /tmp/chrome.zip https://storage.googleapis.com/chrome-for-testing-public/$CHROME/linux64/chrome-linux64.zip \
  && echo "$CHROME_SHA256  /tmp/chrome.zip" | sha256sum -c \
  && mkdir -p /opt/google && unzip -q /tmp/chrome.zip -d /opt/google && rm /tmp/chrome.zip \
