@@ -13,6 +13,12 @@ concurrency:   # as in check.yml
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+  actions: read   # scripts/ci_budget.py reads the run's start
+defaults:
+  run:
+    shell: bash   # -eo pipefail: make's exit code survives the tee
+# As check.yml: the scenarios on every core (xdist), the slowest in the job summary, the budget last (warm: the build's
+# cache hit).
 jobs:
   mech:
     if: ${{ !github.event.pull_request.draft }}
@@ -25,10 +31,17 @@ jobs:
       # the unix port and hmac (make mech/build/micropython), keyed on the MicroPython tag the Makefile pins
       - id: tag
         run: echo "tag=$(sed -n 's/^MICROPYTHON := //p' Makefile)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - id: build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: mech/build
           key: micropython-unix-${{ steps.tag.outputs.tag }}
-      - run: make mech
+      - run: make mech | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PYTEST_ADDOPTS: --durations=10
+          PYTEST_ADDOPTS: -n auto --durations=10
+      - if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - run: python3 scripts/ci_budget.py ${{ steps.build.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
