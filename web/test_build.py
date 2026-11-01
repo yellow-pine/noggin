@@ -20,7 +20,7 @@ STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-
 class Page(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.refs, self.gestures = set(), []
+        self.refs, self.gestures, self.look = set(), [], set()
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -30,6 +30,9 @@ class Page(HTMLParser):
                 self.refs.add(v)
         if "data-gesture" in a:
             self.gestures.append(a["data-gesture"])
+
+    def handle_data(self, data):
+        self.look |= set(re.findall(r"\blook\.(\w+)", data))
 
 
 @pytest.fixture(scope="module")
@@ -54,6 +57,14 @@ def glb(request):
     if not os.path.isfile(path):
         pytest.skip(f"{path} not built (make web)")
     return request.param, pygltflib.GLTF2.load(path)
+
+
+def test_the_glb_carries_every_look_number_the_page_reads(glb, page):
+    """One source for style B: Blender's export writes the look into the scene's extras, the page reads nothing else."""
+    _, g = glb
+    look = g.scenes[g.scene].extras
+    assert page.look and page.look <= set(look)
+    assert look["bg"] == "#F7F4EE" and look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
 
 
 def test_every_part_of_the_stage_is_a_node(glb):
