@@ -1,9 +1,13 @@
 {% extends "base.html" %}
-{# Material uses a global mermaid if one is defined, else it loads unpkg's floating mermaid@11 (its diagrams docs) #}
+{# Material uses a global mermaid if one is defined, else it loads unpkg's floating mermaid@11 (its diagrams docs): the
+   site serves its own (mermaid.py), and scripts from the site alone may run, so that fallback is blocked #}
+{% block extrahead %}
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
+{% endblock %}
 {% block scripts %}
   {% if page and 'class="mermaid"' in page.content %}
     {% set mermaid = config.extra.mermaid %}
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@{{ mermaid.version }}/dist/mermaid.min.js" integrity="{{ mermaid.integrity }}" crossorigin="anonymous"></script>
+    <script src="{{ ('assets/javascripts/mermaid-' ~ mermaid.version ~ '.min.js') | url }}" integrity="{{ mermaid.integrity }}"></script>
   {% endif %}
   {{ super() }}
 {% endblock %}

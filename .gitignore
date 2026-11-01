@@ -20,3 +20,4 @@ eyes/wifi.json
 web/build/
 site/
 mech/build/
+.cache/

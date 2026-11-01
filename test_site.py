@@ -8,11 +8,12 @@ import os
 import re
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
+from mkdocs.exceptions import PluginError
 from mkdocs.utils.yaml import get_yaml_loader
 
 ROOT = Path(__file__).resolve().parent
@@ -73,18 +74,36 @@ def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
 
 # the Mermaid the site serves (mkdocs.yml extra.mermaid, overrides/main.html): the one every diagram renders with here
 MERMAID = yaml.load((ROOT / "mkdocs.yml").read_text(), Loader=get_yaml_loader())["extra"]["mermaid"]
-MERMAID_CLI = ["@mermaid-js/mermaid-cli@11.17.1", f"mermaid@{MERMAID['version']}"]
+MERMAID_CLI = [f"@mermaid-js/mermaid-cli@{MERMAID['cli']}", f"mermaid@{MERMAID['version']}"]
 
 
-def test_the_site_loads_the_mermaid_the_diagrams_render_with(site):
-    """Pinned with its hash, not Material's floating unpkg mermaid@11, and only on pages with a diagram; the CDN's bytes
-    must match the hash, or the browser blocks the script and Material falls back to that floating one."""
-    url = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID['version']}/dist/mermaid.min.js"
-    tag = f'<script src="{url}" integrity="{MERMAID["integrity"]}" crossorigin="anonymous"></script>'
-    pages = [p.read_text() for p in site.rglob("*.html")]
-    assert tag in (site / "index.html").read_text() and all((tag in h) == ('class="mermaid"' in h) for h in pages)
-    sha = base64.b64encode(hashlib.sha384(urllib.request.urlopen(url, timeout=60).read()).digest()).decode()
+def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
+    """The site's own copy, with its hash, and only on pages with a diagram; every page allows scripts from the site
+    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails."""
+    file = site / "assets" / "javascripts" / f"mermaid-{MERMAID['version']}.min.js"
+    sha = base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()
     assert MERMAID["integrity"] == f"sha384-{sha}"
+    csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">"""
+    for page in site.rglob("*.html"):
+        html, local = page.read_text(), os.path.relpath(file, page.parent)
+        srcs = [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if "mermaid" in s]
+        assert srcs == ([local] if 'class="mermaid"' in html else []), page
+        assert f'integrity="{MERMAID["integrity"]}"' in html or not srcs
+        assert csp in html.split("</head>")[0], page
+    assert 'class="mermaid"' in (site / "index.html").read_text()
+
+
+def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):
+    """mermaid.py checks the hash cached or fetched, so a tampered cache never reaches the site."""
+    import mermaid
+
+    monkeypatch.setattr(mermaid, "CACHE", tmp_path)
+    (tmp_path / f"mermaid-{MERMAID['version']}.min.js").write_text("alert(1)")
+    (tmp_path / "site" / "assets" / "javascripts").mkdir(parents=True)
+    config = SimpleNamespace(extra={"mermaid": MERMAID}, site_dir=str(tmp_path / "site"))
+    with pytest.raises(PluginError, match="sha384 differs"):
+        mermaid.on_post_build(config)
+    assert list((tmp_path / "site").rglob("*.js")) == []
 
 
 def test_every_diagram_renders(tmp_path):
