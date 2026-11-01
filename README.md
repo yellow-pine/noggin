@@ -12,6 +12,8 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 ![noggin](docs/images/hero.gif)
 
+Turn it around and play its gestures in the browser: [the web viewer](https://yellow-pine.github.io/noggin/).
+
 ## Acknowledgements
 
 The mechanism is [PurpleShark](https://makerworld.com/en/@PurpleShark)'s three-part CyberBrick animatronic series on

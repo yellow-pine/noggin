@@ -9,7 +9,7 @@ LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -97,3 +97,5 @@ gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from th
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
 hero: venv ours     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures hero
+web: venv ours        ## the web viewer's site in web/build: the page and a GLB per Stage (docs/adr/0008); look with python -m http.server -d web/build
+	$(PY) -m web.build

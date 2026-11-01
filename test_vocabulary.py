@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent
 AVOID = ["daemon", "poke", "animation", "neutral", "puppeteer", "receiver"]
 FILES = [
     p
-    for d in ("eyes", "reactions", "noggin", "scripts")
+    for d in ("eyes", "reactions", "noggin", "scripts", "web")
     for p in (ROOT / d).rglob("*")
     if p.is_file() and p.suffix in (".py", ".sh", "") and "stock-backup" not in p.parts and p.name != "gaze_trace.py"
 ]
