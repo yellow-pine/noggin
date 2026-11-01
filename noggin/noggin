@@ -17,8 +17,8 @@ usage: noggin on|off                     mute / unmute
        noggin flash                      the eye program to the eyes Core over Wi-Fi, then reboot it (make flash)
 USAGE
 exit 2; }
-if [ "$1" = flash ]; then  # up to a minute (upload, reboot, maybe the fallback to .bak): the reply is the outcome
-  out=$(printf 'flash\n' | nc -U -w 60 "$HOME/.noggin.sock") || { echo "noggin not running (make start)" >&2; exit 1; }
+if [ "$1" = flash ]; then  # up to 80 s (a beacon, upload, reboot, maybe the fallback to .bak): the reply is the outcome
+  out=$(printf 'flash\n' | nc -U -w 80 "$HOME/.noggin.sock") || { echo "noggin not running (make start)" >&2; exit 1; }
   echo "$out"
   case $out in flashed*) exit 0 ;; *) exit 1 ;; esac
 fi

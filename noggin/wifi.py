@@ -17,6 +17,7 @@ from pathlib import Path
 
 ACK_SECONDS = (0.2, 0.4, 0.8, 1.6)  # one ack window per try: a lost datagram or a busy Core costs a retry
 CHUNK = 120  # bytes per `put`: 160 base64 characters keep the datagram inside the Core's 256-byte recvfrom
+STALE = 16.0  # s without a beacon before a Core counts as gone: its loop (and beacon) stops for a gesture, bored ~12 s
 REBOOT_SECONDS = 40  # the new program's boot and Wi-Fi join, or its 10 s fallback to the .bak files and one more boot
 
 _spec = importlib.util.spec_from_file_location("core_wifi", Path(__file__).resolve().parent.parent / "eyes" / "wifi.py")
@@ -36,7 +37,7 @@ def add_network(path, ssid, password):
 
 
 class Wifi:
-    def __init__(self, token, beacon_port=BEACON_PORT, command_port=COMMAND_PORT, stale=6.0):
+    def __init__(self, token, beacon_port=BEACON_PORT, command_port=COMMAND_PORT, stale=STALE):
         self.token, self.command_port, self.stale = token, command_port, stale
         self.cores = {}  # name -> (ip, uptime, seen at)
         self.seq = 0
@@ -48,8 +49,7 @@ class Wifi:
         self.cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def poll(self, now):
-        """Drain beacons; return the names that just came (back) on Wi-Fi."""
-        fresh_before = {n for n in self.cores if self.fresh(n, now)}
+        """Drain beacons."""
         while True:
             try:
                 data, addr = self.beacons.recvfrom(256)
@@ -66,7 +66,6 @@ class Wifi:
                 and self.signed(parts[1], body, t)
             ):
                 self.cores[parts[1]] = (addr[0], parts[3], now)
-        return [n for n in self.cores if self.fresh(n, now) and n not in fresh_before]
 
     def signed(self, name, body, t):
         return hmac.compare_digest(t.encode(), tag(self.token, f"{name} {body}").encode())

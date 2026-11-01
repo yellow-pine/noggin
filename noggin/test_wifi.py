@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 import wifi as core_wifi  # eyes/wifi.py: the fake Core flashes with the Core's own code
 
-from noggin.service import Service
+from noggin.service import CAL_FILE, DEMO_LINES, HOLD, Service, gesture_seconds
 from noggin.test_service import FakeSerial, wait_for
-from noggin.wifi import add_network, tag
+from noggin.wifi import STALE, add_network, tag
 
 TOKEN = "s3cret"
 FAST = (0.05, 0.1, 0.2, 0.4)  # the real windows, quartered: an unacked line costs 0.75 s, not 3 s
@@ -268,7 +268,7 @@ def test_unacked_command_is_dropped_and_the_next_one_still_goes(tmp_path, capsys
     core.running = False
 
 
-def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
+def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path, capsys):
     core, fake = FakeCore(), FakeSerial()
     fake.port = "/dev/cu.usbmodem1"
     s, sock = start(tmp_path, core, open_serial=lambda: fake, stale=0.5)
@@ -277,12 +277,36 @@ def test_stale_beacon_falls_back_to_usb_and_returns_to_wifi(tmp_path):
     assert wait_for(
         lambda: ask(sock, "status\n") == "eyes usb /dev/cu.usbmodem1 uptime n/a\nneck offline\nmode follow\n"
     )
+    time.sleep(0.3)
+    out = capsys.readouterr().out
+    assert out.count("eyes beacon back: wifi 127.0.0.1 uptime 42s") == 1  # #196: each way logged once
+    assert out.count("eyes beacon stale for 0.5 s") == 1
     ask(sock, "eureka 2\n")
     assert wait_for(lambda: fake.buf.endswith(b"eureka 2\n")) and "eureka 2" not in core.lines
     core.beaconing = True
     assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
     ask(sock, "wince 2\n")
     assert wait_for(lambda: core.lines[-1:] == ["wince 2"]) and b"wince" not in fake.buf
+    assert capsys.readouterr().out.count("eyes beacon back") == 1
+    s.stop()
+    core.running = False
+
+
+def test_the_beacon_stays_fresh_through_the_longest_gesture():
+    """The Core's loop, and so its beacon, stops while it plays a gesture (#196: the eyes went offline in every bored)."""
+    cal = json.loads(CAL_FILE.read_text())
+    longest = max(gesture_seconds(line, cal) for line in DEMO_LINES - HOLD.keys())
+    assert longest > 11  # bored: the window must cover it, not the old 6 s
+    assert longest + 2 * core_wifi.BEACON_MS / 1000 <= STALE  # plus a late beacon and a lost one
+
+
+def test_a_core_that_rebooted_inside_the_window_is_calibrated_again(tmp_path, capsys):
+    core = FakeCore()
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
+    core.uptime = 1  # a brownout or a quick off and on: the beacon never went stale, its uptime went back
+    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"] * 2)
+    assert "eyes beacon back: wifi 127.0.0.1 uptime 1s" in capsys.readouterr().out
     s.stop()
     core.running = False
 
@@ -362,7 +386,7 @@ def flashing(tmp_path, monkeypatch, core):
         (tmp_path / "core" / name).write_bytes(b"old " + name.encode())
     (tmp_path / "core" / "boot.py").write_bytes(b"usb only")
     s, sock = start(tmp_path, core)
-    assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
+    assert not core.beaconing or wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
     return s, sock
 
 
@@ -393,31 +417,43 @@ def test_flash_says_when_the_core_fell_back_to_the_bak_files(tmp_path, monkeypat
     core.running = False
 
 
+def test_flash_waits_for_a_beacon_not_seen_yet(tmp_path, monkeypatch):
+    core = FakeCore()
+    core.beaconing = False  # #196: a noggin service just restarted, or a Core busy with a gesture
+    s, sock = flashing(tmp_path, monkeypatch, core)
+    threading.Timer(0.5, lambda: setattr(core, "beaconing", True)).start()  # while the service is inside `flash`
+    reply = ask(sock, "flash\n", timeout=30)
+    assert reply.startswith("flashed eyes"), reply
+    s.stop()
+    core.running = False
+
+
 def test_flash_needs_the_core_on_wifi(tmp_path, monkeypatch):
     core = FakeCore()
     core.beaconing = False
-    s, sock = start(tmp_path, core)
-    assert ask(sock, "flash\n").startswith("flash failed: eyes is not on Wi-Fi")
+    s, sock = start(tmp_path, core, stale=0.5)
+    assert ask(sock, "flash\n").startswith("flash failed: no beacon from eyes in 0.5 s")
     assert core.datagrams == []
     s.stop()
     core.running = False
 
 
 @pytest.mark.parametrize(
-    "status, usb, path",
+    "status, usb, ports, path",
     [
-        ("eyes wifi 192.168.1.42 uptime 9s", "", "wifi"),
-        ("eyes usb /dev/cu.usbmodem1 uptime n/a", "", "usb"),
-        ("eyes offline", "", "usb"),
-        ("eyes wifi 192.168.1.42 uptime 9s", "1", "usb"),  # USB=1 forces the cable
+        ("eyes wifi 192.168.1.42 uptime 9s", "", "/dev/cu.usbmodem1", "wifi"),
+        ("eyes usb /dev/cu.usbmodem1 uptime n/a", "", "/dev/cu.usbmodem1", "usb"),
+        ("eyes offline", "", "/dev/cu.usbmodem1", "usb"),
+        ("eyes offline", "", "", "wifi"),  # #196: no Core on USB, so the service is not stopped; it waits for a beacon
+        ("eyes wifi 192.168.1.42 uptime 9s", "1", "/dev/cu.usbmodem1", "usb"),  # USB=1 forces the cable
     ],
 )
-def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, status, usb, path):
+def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, status, usb, ports, path):
     cli = tmp_path / "noggin"
     cli.write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "{status}"\n[ "$1" = flash ] && echo FLASHED-OVER-WIFI\n')
     cli.chmod(0o755)
     out = subprocess.run(  # -n: the USB path is only printed, never run (no mpremote, no launchctl)
-        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}"],
+        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}", f"USB_PORTS={ports}"],
         cwd=Path(__file__).resolve().parent.parent,
         capture_output=True,
         text=True,
