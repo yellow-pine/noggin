@@ -191,9 +191,7 @@ def test_the_readme_is_for_contributors():
         in readme
     )
     assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
-    workflows = [
-        p for p in (ROOT / ".github" / "workflows").glob("*.yml") if p.name != "queue.yml"
-    ]  # shortcut: the merge queue's, going in #283; drop the filter then
+    workflows = list((ROOT / ".github" / "workflows").glob("*.yml"))
     assert [
         p.name for p in workflows if f"| {yaml.safe_load(p.read_text())['name']} | `{p.name}` |" not in readme
     ] == []
