@@ -28,9 +28,9 @@ def gh(path: str, *flags: str):
 
 
 if __name__ == "__main__":
-    pr = f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls/{pr_number(sys.argv[1])}"
-    head = gh(pr)["head"]["sha"]
-    reviews = sum(gh(f"{pr}/reviews", "--paginate", "--slurp"), [])  # --slurp: one array per page
+    pr_path = f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls/{pr_number(sys.argv[1])}"
+    head = gh(pr_path)["head"]["sha"]
+    reviews = sum(gh(f"{pr_path}/reviews", "--paginate", "--slurp"), [])  # --slurp: one array per page
     ok = approved(reviews, head)
-    print(f"{pr} at {head}: {'approved' if ok else 'no claude[bot] approval'}")
+    print(f"{pr_path} at {head}: {'approved' if ok else 'no claude[bot] approval'}")
     sys.exit(0 if ok else 1)

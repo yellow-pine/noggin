@@ -22,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
+          ref: ${{ github.event.merge_group.base_sha }}   # the gate from main, not from the PR it judges
           persist-credentials: false
       - run: python3 scripts/claude_approved.py "$HEAD_REF"
         env:
