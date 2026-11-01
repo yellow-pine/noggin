@@ -39,13 +39,13 @@ def test_a_header_over_100_characters_fails_and_100_passes():
     assert "100" in result.stdout
 
 
-@pytest.mark.parametrize("footer", ["BREAKING CHANGE: the Link speaks v2", "BREAKING-CHANGE: the Link speaks v2"])
+@pytest.mark.parametrize("footer", ["BREAKING CHANGE: a new beacon", "BREAKING-CHANGE: a new beacon"])
 def test_a_breaking_change_footer_needs_the_bang(footer):
     body = f"## What\n\nCloses #1\n\n{footer}\n"
-    result = run("feat(noggin): speak v2", body=body)
+    result = run("feat(noggin): new beacon", body=body)
     assert result.returncode == 1
     assert "!" in result.stdout
-    assert run("feat(noggin)!: speak v2", body=body).returncode == 0
+    assert run("feat(noggin)!: new beacon", body=body).returncode == 0
 
 
 def test_a_body_that_only_mentions_a_breaking_change_needs_no_bang():
