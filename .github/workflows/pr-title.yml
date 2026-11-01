@@ -1,6 +1,7 @@
 name: PR Title
-# A PR's title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit; only the type
-# is checked, a scope is free-form. Required check `PR Title`.
+# A PR's title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
+# `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
+# (scripts/pr_title.py). Required check `PR Title`; editing the title or body re-runs it.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
@@ -8,6 +9,7 @@ concurrency:   # one run per PR; a new push or title edit cancels the one in pro
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 permissions:
+  contents: read
   pull-requests: read
 jobs:
   title:
@@ -15,18 +17,39 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/pr_title.py   # git ls-files still lists every tracked file
+          sparse-checkout-cone-mode: false
+      - name: List the scopes
+        id: scopes
+        run: |
+          { echo "scopes<<EOF"; python3 scripts/pr_title.py; echo EOF; } >> "$GITHUB_OUTPUT"
       - name: Check the title
         uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50   # v6.1.1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           types: |
+            build
+            chore
+            ci
+            docs
             feat
             fix
             perf
-            docs
-            ci
-            build
             refactor
+            revert
+            style
             test
-            chore
+          scopes: ${{ steps.scopes.outputs.scopes }}
+          requireScope: true
+          subjectPattern: '^(?![A-Z]).*[^.]$'   # config-conventional's subject-case and subject-full-stop
+          subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter or end with a period.'
+      - name: Check one scope, the length and a break's !
+        env:   # via env, never inlined into the script
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: python3 scripts/pr_title.py "$TITLE" <<<"$BODY"

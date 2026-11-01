@@ -1,5 +1,6 @@
 version: 2
-updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|deps-dev): bump ...`, `ci(deps|deps-dev): bump ...`
+updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): every entry has `include: scope`, so
+  # `build(deps|deps-dev): bump ...`, `ci(deps|deps-dev): bump ...`
   - package-ecosystem: uv
     directory: /
     schedule:
@@ -73,6 +74,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
         update-types: ["version-update:semver-major"]
     commit-message:
       prefix: ci
+      include: scope
   # the jobs' container images (ghcr.io/yellow-pine/noggin-ci-*:main@sha256 in the workflows): the digests main's CI
   # Images run pushed (a Dockerfile change, the Monday rebuild), proposed for review like any other PR
   - package-ecosystem: docker
@@ -81,6 +83,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
       interval: daily
     commit-message:
       prefix: ci
+      include: scope
     groups:
       ci-images:
         patterns: ["*"]

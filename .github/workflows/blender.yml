@@ -36,7 +36,7 @@ jobs:
           VERSION: ${{ steps.pin.outputs.version }}
           SOURCES: ${{ steps.pin.outputs.sources }}
         run: |
-          title="ci: re-pin Blender to $VERSION"
+          title="ci(deps): re-pin Blender to $VERSION"
           body="Blender $VERSION, the newest stable release at least 14 days old; sha256 from its .sha256, the same on each of: $SOURCES (Blender signs no checksums; compare https://download.blender.org/release/Blender${VERSION%.*}/blender-$VERSION.sha256). Release notes: https://www.blender.org/download/releases/$(echo "${VERSION%.*}" | tr . -)/"
           git switch -C blender-bump
           git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \

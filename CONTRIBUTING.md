@@ -21,19 +21,22 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   one superseded it. A pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has
   a PR, except on-hold work.
 - A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
-  `type(scope): subject`, `type!: subject` for a breaking change (docs/adr/0010). Types: feat, fix, perf, docs, ci,
-  build, refactor, test, chore. The scope is optional and free-form: name a top-level area (`eyes`, `web`, ...) or
-  `deps` for a dependency bump, as Dependabot does (`deps-dev` for the dev group). The required `PR Title` check
-  (`.github/workflows/pr-title.yml`) enforces the type; editing the title re-runs it.
+  `type(scope): subject`, `type(scope)!: subject` for a breaking change (docs/adr/0010), as
+  @commitlint/config-conventional has it: types build, chore, ci, docs, feat, fix, perf, refactor, revert, style,
+  test; a subject that doesn't start uppercase or end with a period; at most 100 characters. The scope is required,
+  exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`, ...), a folder in docs/ (`adr`,
+  `build`, ...), `deps` (`deps-dev`) for a dependency bump as Dependabot writes, `release` for the release PR;
+  `python3 scripts/pr_title.py` lists them. A body with a `BREAKING CHANGE:` footer needs the `!`. The required
+  `PR Title` check (`.github/workflows/pr-title.yml`) enforces it all; editing the title or body re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
   finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-issue.yml`,
   `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
   Dependabot, the weekly bumps) has no issue and passes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
-  workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
-  titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
-  required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
-  release, and the tag's `Release Assets` run attaches the Core program zip as the release's deployment in the
+  workflow keeps a release PR (`chore(release): release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry
+  from the titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes
+  through the required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the
+  GitHub release, and the tag's `Release Assets` run attaches the Core program zip as the release's deployment in the
   `release` environment (Deployments panel), linked from the release's notes. Never edit the version, the manifest or
   CHANGELOG.md by hand. The workflow runs as the release GitHub App, because what `GITHUB_TOKEN` creates starts no
   workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and

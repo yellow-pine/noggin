@@ -6,6 +6,9 @@
 >
 > Amended 2026-11-01 (#350): the PR Title check enforces only the type; a scope is free-form, an area recommended.
 >
+> Amended 2026-11-02 (#382): a scope is required again, exactly one, derived from the repo; the types and subject
+> rules are @commitlint/config-conventional's; a `BREAKING CHANGE:` footer needs `!` in the title.
+>
 > Amended 2026-11-01 (#358): Release Assets is the release's deployment in the `release` environment, and the
 > release's notes link back to it.
 
@@ -17,11 +20,13 @@ copy, and the tag is `v` plus it.
 - **1.0.0 when both Cores work end to end** on the Mech. Before that (0.x), a breaking change to the Link protocol, the
   calibration format or the CLI bumps the minor; a feat or a fix bumps the patch (release-please's
   `bump-minor-pre-major` and `bump-patch-for-minor-pre-major`). After 1.0.0 the same breaks bump the major.
-- **PR titles are Conventional Commits** (`type(scope): subject`, `type!:` for a break), because each squash commit
-  is its PR's title. Types: feat, fix, perf, docs, ci, build, refactor, test, chore; the required `PR Title` check
-  enforces them (amannn/action-semantic-pull-request). A scope is optional and free-form: name a top-level area
-  (`eyes`, `web`, `model`, ...) or `deps` for a dependency bump, as Dependabot writes (`build(deps)`, `ci(deps)`;
-  `deps-dev` for the dev group).
+- **PR titles are Conventional Commits** (`type(scope): subject`, `type(scope)!:` for a break), because each squash
+  commit is its PR's title. Types and subject rules are @commitlint/config-conventional's (build, chore, ci, docs,
+  feat, fix, perf, refactor, revert, style, test; the subject doesn't start uppercase or end with a period; the header
+  is at most 100 characters). The scope is required and is one noun, derived from the repo (ADR 0011): a tracked
+  top-level folder, a tracked folder in docs/, `deps` (`deps-dev`) as Dependabot writes, or `release` for
+  release-please's PR. A body with a `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check enforces
+  it all (amannn/action-semantic-pull-request, scripts/pr_title.py as on main).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
