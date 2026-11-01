@@ -81,15 +81,12 @@ jobs:
     name: Code
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:f068d6e443985ce56ec81a404e5dff6f8bdab869aa519c1bf0ccf06046573d24   # ci/base.Dockerfile (images.yml)
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
-      # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false
       # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
       # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
       # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
@@ -102,10 +99,6 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
-      # model/electrical.py's SPICE circuit: spicelib runs the ngspice program in batch mode
-      # (https://packages.ubuntu.com/resolute/ngspice)
-      - name: Install ngspice and shellcheck
-        run: sudo apt-get update && sudo apt-get install -y ngspice shellcheck
       - name: Run make check
         run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
@@ -141,11 +134,13 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
+      # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
+      # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
       - name: Set up uv
         if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
-          enable-cache: false   # as in code
+          enable-cache: false
       - name: Restore main's latest parts
         if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -186,7 +181,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
-          enable-cache: false   # as in code
+          enable-cache: false   # as in convex
       - name: Download our built parts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
@@ -232,9 +227,9 @@ jobs:
             tests: --ignore=model/render/test_hero.py -k stage3
           - shard: sim   # make sim, not make test (below)
     steps:
-      # make sim's SPICE circuit (as in code; model/test_electrical.py runs it as mujoco collects it) and Mesa's EGL, which
-      # renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job sets up, which pays
-      # for the wait on convex
+      # make sim's SPICE circuit (model/electrical.py; model/test_electrical.py runs it as mujoco collects it) and
+      # Mesa's EGL, which renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job
+      # sets up, which pays for the wait on convex
       - name: Install ngspice and EGL
         run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
       - name: Check out the repo
@@ -242,7 +237,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
-          enable-cache: false   # as in code
+          enable-cache: false   # as in convex
       # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
       # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not (ours-convex-:
       # the old ours- entries on main were saved by pages without the pieces, so every run decomposed again)
