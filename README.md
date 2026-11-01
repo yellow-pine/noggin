@@ -57,15 +57,31 @@ Several sessions share the one Mech; a gesture already playing wins. Eye movemen
 ## How it works
 
 ```mermaid
-%%{init: {"flowchart": {"wrappingWidth": 320}}}%%
-flowchart TB
-    CC["Claude Code hooks<br/>one line per event"] --> NS["noggin service on the Mac<br/>times each Turn, drops Triggers while Busy"]
-    NS -- "Wi-Fi (UDP, HMAC)<br/>USB-C fallback" --> C1["Core 1: eyes<br/>plays each gesture to the end<br/>4 servos: lids and eyes"]
-    NS -- "Wi-Fi (UDP, HMAC)<br/>USB-C fallback" --> C2["Core 2: neck<br/>3 servos: pan, tilt, jaw"]
+---
+config:
+  layout: dagre
+  look: classic
+---
+flowchart LR
+    accTitle: How noggin works
+    accDescr: On the Mac, Claude Code's hooks write one line per event to a Unix socket; the noggin service times each turn and sends a command over Wi-Fi, as UDP datagrams signed with HMAC, to the Mech's two Cores. Core 1 drives the eyes' 4 servos, Core 2 the neck's 3. USB-C is a fallback to the eyes Core only.
+    subgraph Mac
+        CC["Claude Code<br/>hooks"] -- "Unix socket<br/>one line per event" --> NS["noggin service<br/>times each turn,<br/>drops Triggers while Busy"]
+    end
+    subgraph Mech
+        C1["Core 1: eyes<br/>ESP32-C3, MicroPython<br/>4 servos: lids and eyes"]
+        C2["Core 2: neck<br/>ESP32-C3, MicroPython<br/>3 servos: pan, tilt, mouth"]
+    end
+    NS -- "Wi-Fi: UDP + HMAC" --> C1
+    NS -- "Wi-Fi: UDP + HMAC" --> C2
+    NS -. "USB-C fallback" .-> C1
 ```
 
-The gestures live on the Core, so motion stays smooth whatever the Mac does; the Mac only says which one. Decisions
-are in [`docs/adr/`](https://github.com/yellow-pine/noggin/tree/main/docs/adr), the words in
+Arrows carry commands, the dotted one only when Wi-Fi fails; each Core plays a gesture to its end.
+
+The gestures live on the Core, so motion stays smooth whatever the Mac does; the Mac only says which one. The Link,
+a hook's way to a gesture and the model's pipeline are drawn in [`docs/how-it-works.md`](docs/how-it-works.md).
+Decisions are in [`docs/adr/`](https://github.com/yellow-pine/noggin/tree/main/docs/adr), the words in
 [`GLOSSARY.md`](GLOSSARY.md).
 
 ## Quick start

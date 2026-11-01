@@ -47,6 +47,9 @@ jobs:
       # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
       # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
       - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev mosquitto shellcheck
+      # test_site.py draws the Mermaid diagrams in mermaid-cli's headless Chrome, whose sandbox needs the unprivileged user
+      # namespaces Ubuntu 24.04's AppArmor turns off (https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md)
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m "not model" -n auto --durations=20

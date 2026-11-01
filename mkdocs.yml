@@ -35,7 +35,7 @@ exclude_docs: |
   !/assets/**
   /docs/references/
   /CLAUDE.md
-markdown_extensions:   # the README's mermaid diagram, as Material documents it
+markdown_extensions:   # the Mermaid diagrams (README, docs/how-it-works.md), as Material documents it
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -46,6 +46,7 @@ validation:
     not_found: info   # viewer/ is no Markdown: the workflow copies the viewer there
 nav:
   - Home: README.md
+  - How it works: docs/how-it-works.md
   - Build notes: docs/build-notes.md
   - Model notes: docs/model-notes.md
   - Face design: docs/face-design.md
