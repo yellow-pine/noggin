@@ -49,24 +49,14 @@ def test_enrich_without_poses_adds_nothing_dynamic():
     assert out["torque"] == {} and out["curves"] == {}
 
 
-def test_servo_to_joint_mapping_follows_the_calibration_flips():
-    cal = {
-        "l_lid_lo": 51,
-        "l_lid_hi": 144,
-        "r_lid_lo": 44,
-        "r_lid_hi": 129,
-        "l_eye_lo": 58,
-        "l_eye_hi": 118,
-        "r_eye_lo": 58,
-        "r_eye_hi": 118,
-        "l_lid_flip": 1,
-        "r_lid_flip": 0,
-    }
-    # plus the horn's spline tooth at servo 90 (geometry.HORN_AT_90: lids L +13.95, R +6.75; eyes +2, centred at servo 88)
-    assert sim.joint_deg("l_eye", 118, cal) == 30 and sim.joint_deg("r_lid", 44, cal) == -39.25
-    assert sim.joint_deg("l_lid", 51, cal) == 52.95  # flipped lid: the low servo end is the open (positive) side
+def test_servo_to_joint_mapping_takes_the_lids_in_the_shared_frame():
+    cal = {"l_lid_lo": 44, "l_lid_hi": 129, "r_lid_lo": 44, "r_lid_hi": 129}
+    cal |= {"l_eye_lo": 58, "l_eye_hi": 118, "r_eye_lo": 58, "r_eye_hi": 118}
+    # plus the horn's spline tooth at servo 90 (geometry.HORN_AT_90: lids +6.75 each; eyes +2, centred at servo 88)
+    assert sim.joint_deg("l_eye", 118) == 30 and sim.joint_deg("r_lid", 44) == -39.25
+    assert sim.joint_deg("l_lid", 129) == 45.75  # the shared frame's high end is open (positive) on both sides
     assert sim.calibrated_extremes(cal) == {
-        "l_lid": (-40.05, 52.95),
+        "l_lid": (-39.25, 45.75),
         "r_lid": (-39.25, 45.75),
         "l_eye": (-30, 30),
         "r_eye": (-30, 30),

@@ -67,8 +67,9 @@ def test_the_calibrated_close_shuts_the_lids_inside_the_swept_range(side):
 def test_rest_matches_the_rest_photo():
     rest = traces.record("wink")[0]  # every recording starts at rest
     # docs/build-photos/eyes-rest-top.jpg read at face value: lid horns L -15.2, R -16.3 (docs/research/2026-10-31-shafts.md);
-    # the camera tilt the photo's eye readings show only raises the lid readings, so the model may sit up to 1.5 above
-    assert -15.2 <= rest["l_lid"] <= -15.2 + 1.5 and -16.3 <= rest["r_lid"] <= -16.3 + 1.5
+    # the camera tilt the photo's eye readings show only raises the lid readings, so the model may sit up to 1.5 above.
+    # The photo predates #213's left-lid retune, after which both lids match at rest (Cansin): L is held to R.
+    assert -16.3 <= rest["r_lid"] <= -16.3 + 1.5 and rest["l_lid"] == pytest.approx(rest["r_lid"])
     assert rest["l_eye"] == pytest.approx(rest["r_eye"])
 
 

@@ -29,7 +29,7 @@
     "L lower lid:1",
     "eye bracket:1"
    ],
-   "measurements": 164
+   "measurements": 162
   },
   "L eye horn": {
    "min_mm": 0.0,
@@ -1303,12 +1303,12 @@
  },
  "calibrated": {
   "L lid horn": {
-   "lo": -40.05,
-   "hi": 52.95,
+   "lo": -39.25,
+   "hi": 45.75,
    "inferred": false,
    "contacts": [
     {
-     "deg": -40.05,
+     "deg": -39.25,
      "pair": [
       "L lower lid:1",
       "eye bracket:1"
@@ -1317,28 +1317,21 @@
    ],
    "violations": [
     {
-     "deg": 52.95,
+     "deg": 45.75,
      "pair": [
       "L lower lid:1",
       "L servo bracket:1"
      ]
     },
     {
-     "deg": 52.95,
+     "deg": 45.75,
      "pair": [
       "L lower lid:1",
       "eye bracket:1"
      ]
     },
     {
-     "deg": 52.95,
-     "pair": [
-      "L upper lid:1",
-      "L eyeball bar:1"
-     ]
-    },
-    {
-     "deg": 52.95,
+     "deg": 45.75,
      "pair": [
       "L upper lid:1",
       "eye bracket:1"
@@ -1790,10 +1783,10 @@
    "kgf_cm": 0.003,
    "at_deg": -31,
    "limit_kgf_cm": 0.2,
-   "dynamic_kgf_cm": 0.042,
+   "dynamic_kgf_cm": 0.049,
    "dynamic_at_deg": -31,
    "inertia_g_mm2": 5294,
-   "accel_deg_s2": 41060
+   "accel_deg_s2": 48225
   },
   "L eye horn": {
    "kgf_cm": 0.0,
@@ -3051,7 +3044,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "fe14b853df7055c35ac5a8be851707b7eaeb11e220b7514381a5368fee3dd7d4",
+  "stamp": "32b16afe5fe25b27e3258bd7420b521f5889b2409248ed28db5a77e820411e74",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

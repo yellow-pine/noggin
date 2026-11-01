@@ -52,16 +52,13 @@ def enrich(report, fits, beams, up=1):
     return report
 
 
-def joint_deg(servo, angle, cal):
-    """Horn joint angle (relative to the 90-degree neutral the STLs are modelled in) for a servo angle, with the
-    mirror-mounted lids' flips from eyes/calibration.json (flip 1: the low servo end is the open side) and the horn's
-    spline tooth (geometry.HORN_AT_90)."""
-    sign = -1 if cal.get(servo + "_flip") else 1
-    return sign * (angle - 90) + HORN_AT_90.get(servo, 0)
+def joint_deg(servo, angle):
+    """Horn joint angle (relative to the 90-degree neutral the STLs are modelled in) for a servo angle, lids in the
+    shared lid frame of eyes/calibration.json (#213: the right lid servo's degrees, the left servo mirrored by the Core,
+    so its horn turns the same way), plus the horn's spline tooth (geometry.HORN_AT_90)."""
+    return angle - 90 + HORN_AT_90.get(servo, 0)
 
 
 def calibrated_extremes(cal):
     """(min, max) joint degrees each horn reaches at the calibrated servo ends."""
-    return {
-        s: tuple(sorted((joint_deg(s, cal[s + "_lo"], cal), joint_deg(s, cal[s + "_hi"], cal)))) for s in EYES_SERVOS
-    }
+    return {s: tuple(sorted((joint_deg(s, cal[s + "_lo"]), joint_deg(s, cal[s + "_hi"])))) for s in EYES_SERVOS}

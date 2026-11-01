@@ -60,22 +60,33 @@ def servo_map():
         return {name: pin for pin, name in NAME.items()}
 
 
-# Known-good values for this Mech (2026-10-31); eyes/calibration.json is the source of truth.
-# Each servo has exact end angles for its side; everything else derives from them: an eye's
-# straight-ahead is the average of its two ends, lid levels are fractions between a lid's ends.
+# Known-good values for this Mech (2026-11-01, #213); eyes/calibration.json is the source of truth.
+# Each servo has exact end angles; everything else derives from them: an eye's straight-ahead is the average
+# of its two ends, lid levels are fractions (0 closed .. 1 open) along a lid's closed, rest and open points.
+# Lid positions are in one shared frame, the right lid servo's degrees (lo closed, hi open): the lid servos are
+# mounted mirror-image, so the same numbers fit both lids and the Core writes 180 - a to the MIRRORED servo.
+# The lid bars make equal servo steps unequal lid steps, so each lid has a third point, where it sits at
+# lid_rest, and the map is straight from closed to rest and from rest to open.
 # Lid ends sit inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled.
-# The lid servos are mirror-mounted, hence the per-lid flip (1: open is the low end).
+MIRRORED = (L_LID,)
+
+
+def mirror(pin, a):
+    """Shared lid frame <-> servo degrees (the same map both ways)."""
+    return 180 - a if pin in MIRRORED else a
+
+
 DEFAULT_CAL = {
-    "l_lid_lo": 51,
-    "l_lid_hi": 144,
-    "r_lid_lo": 51,
+    "l_lid_lo": 44,
+    "l_lid_rest": 67.8,
+    "l_lid_hi": 129,
+    "r_lid_lo": 44,
+    "r_lid_rest": 67.8,
     "r_lid_hi": 129,
     "l_eye_lo": 58,
     "l_eye_hi": 118,
     "r_eye_lo": 58,
     "r_eye_hi": 118,
-    "l_lid_flip": 1,
-    "r_lid_flip": 0,
     "lid_rest": 0.28,
     "lid_think": 0.16,
     "lid_closed": 0.10,
@@ -105,14 +116,21 @@ class Eyes:
 
     # --- calibration ------------------------------------------------------
     def range(self, pin):
-        return self.cal[NAME[pin] + "_lo"], self.cal[NAME[pin] + "_hi"]
+        """The servo's (low, high) degrees."""
+        lo, hi = mirror(pin, self.cal[NAME[pin] + "_lo"]), mirror(pin, self.cal[NAME[pin] + "_hi"])
+        return min(lo, hi), max(lo, hi)
+
+    def _lid_shared(self, pin, f):
+        """A lid level (0 closed .. 1 open) in the shared frame: straight closed..rest, then rest..open."""
+        name, r = NAME[pin], self.cal["lid_rest"]
+        lo, rest, hi = self.cal[name + "_lo"], self.cal[name + "_rest"], self.cal[name + "_hi"]
+        f = min(1.0, max(0.0, f))
+        if f < r:
+            return lo + (rest - lo) * f / r
+        return rest + (hi - rest) * (f - r) / (1 - r) if r < 1 else rest
 
     def _lid_angle(self, pin, f):
-        lo, hi = self.range(pin)
-        f = min(1.0, max(0.0, f))
-        if self.cal[NAME[pin] + "_flip"]:
-            f = 1 - f
-        return lo + (hi - lo) * f
+        return mirror(pin, self._lid_shared(pin, f))
 
     def _eye_angle(self, pin, angle):
         """Gesture angles are written around EYE_CENTER; the eye's real centre is the average of its ends."""

@@ -257,18 +257,24 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # with the lids in the STLs' pose and the 41 mm bars: 41.14 to the upper lid's pin, 40.86 to the lower one's
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
-# Joint degrees of each eyes horn at servo 90: the spline tooth it went on (#134, #170). The calibrated lid_closed (L servo
-# 134.7, R 52.5) shuts the lids, their edges just touching with no overlap (Cansin, #189: they close quietly), so the
-# tooth puts it on the lips' meeting at -30.72: L 13.95, R 6.75 (-30.75, 0.03 mm of lip), inferred. The rest-top photo
-# read at face value gives L +12.8, R +5.9, and the camera tilt its eye readings show only raises the lid readings
-# (docs/research/2026-10-31-shafts.md). Eyes +2, inferred (#170): the program centres each eye at the mean of its
-# calibrated ends, servo 88 (eyes/eyes.py _eye_angle), and the rest-front photo has both pupils straight ahead there, so
-# servo 88 is the model's neutral; the rest-top reading less its camera tilt gives +3.2 each
+# Joint degrees of each eyes horn at servo 90 (lids: 90 in the shared lid frame, #213): the spline tooth it went on (#134,
+# #170). The calibrated lid_closed (52.5 in the shared frame) shuts the lids, their edges just touching with no overlap
+# (Cansin, #189: they close quietly), so the tooth puts it on the lips' meeting at -30.72: 6.75 (-30.75, 0.03 mm of
+# lip), inferred. Both lids take it, the left inferred too (#213): it was 13.95, fitted the same way to the old left
+# close (servo 134.7, l_lid_hi 144); conflict: with 13.95 the model had both lids alike at rest (L -14.0, R -15.4) while
+# the build showed the left at a slit (Cansin, IMG_4024), and l_lid_hi 136 matched them (shared frame 44 / 67.8 / 129 on
+# both), so the same numbers looking the same takes the same tooth.
+# Conflicts (#213): Cansin saw the close as "the same small opening on both" and the wink (0.03) not fully shut; the
+# model keeps #189's lips just touching until the closed / rest / open points are retuned live. The rest-top photo
+# predates #213: read at face value it gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md). Eyes +2, inferred
+# (#170): the program centres each eye at the mean of its calibrated ends, servo 88 (eyes/eyes.py _eye_angle), and the
+# rest-front photo has both pupils straight ahead there, so servo 88 is the model's neutral; the rest-top reading less
+# its camera tilt gives +3.2 each
 # (docs/research/2026-11-01-best-guesses.md).
-HORN_AT_90 = {"l_lid": 13.95, "r_lid": 6.75, "l_eye": 2, "r_eye": 2}
+HORN_AT_90 = {"l_lid": 6.75, "r_lid": 6.75, "l_eye": 2, "r_eye": 2}
 # The crank rides 1.2 mm out along the M2 screw, inferred (#170): the bar and crank turn on the screw under an unclamped
 # nut, so nothing holds the crank on the bar; flat on it (-27..-30) it would enter the eye bracket's outer edge (x -27..-28)
-# 1.0 mm from -32, which the real Mech runs through to its closed ends (-40.05 / -39.25), so the edge pushes it out to
+# 1.0 mm from -32, which the real Mech runs through to its closed ends (-39.25 each), so the edge pushes it out to
 # 0.2 mm clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin
 # (docs/research/2026-11-01-best-guesses.md).
 CRANK_PLAY_MM = 1.2

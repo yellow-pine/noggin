@@ -283,11 +283,12 @@ note "Fit horns first with the servos at centre (board_send 'pose lids 0.5 eyes 
 board_send "pose lids 0.5 eyes 90" >/dev/null
 confirm "With servos at centre: lids about half open, eyes straight? (if not, refit the horns now)" || warn "refit horns, then re-run this stage"
 board_send "wince 2" >/dev/null; sleep 4
-confirm "Did BOTH lids close and reopen?" || warn "a lid runs backwards: after install, 'noggin/noggin set l_lid_flip 0' (or 1), r_lid_flip likewise"
+confirm "Did BOTH lids close and reopen?" || warn "a lid runs backwards: its servo is mounted the other way round (the Core mirrors the left lid's servo); remount it"
 board_send "eureka 3" >/dev/null; sleep 6
 confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'noggin/noggin set l_eye_lo N' / l_eye_hi (centre = their average), r_eye likewise"
-note "Tuning by eye after install: 'noggin/noggin pose lids 0.3 eyes 95' holds a pose; 'noggin/noggin set lid_rest 0.3' applies + saves."
-note "Lid levels: lid_closed (blink), lid_think, lid_rest, lid_open (eureka). Never set *_lo/*_hi onto a hard stop: clutch servos slip."
+note "Tuning by eye after install: 'noggin/noggin pose lids 0.28 eyes 95' holds a pose; 'noggin/noggin set l_lid_rest 70' applies + saves."
+note "Each lid: <lid>_lo closed, <lid>_rest at lid_rest, <lid>_hi open, both lids in the right servo's degrees. Never set *_lo/*_hi onto a hard stop: clutch servos slip."
+note "Lid levels, fractions 0 closed .. 1 open: lid_closed (blink), lid_think, lid_open (eureka); lid_rest is the level the <lid>_rest points stand for."
 pause
 
 stage "Install hooks and the noggin service"
