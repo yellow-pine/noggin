@@ -112,7 +112,7 @@ def motions(doc):
 
 def bake(doc, names=None):
     """model/build/trajectories/<doc>/<motion>.json for each of names (default motions(doc)), the paths returned."""
-    model, key, paths = mjcf.model(doc), stamp(doc), []
+    model, key, paths = mjcf.model(doc, collide=False), stamp(doc), []  # contacts are off: no CoACD (#276)
     os.makedirs(os.path.join(OUT, doc), exist_ok=True)
     for name in names or motions(doc):
         frames = play(model, *MOTIONS[name]())

@@ -1,5 +1,5 @@
 # The site (docs/adr/0009): the repo's Markdown as it is, built by MkDocs Material; the pages workflow adds the web
-# viewer at viewer/ (make site). same-dir lets the docs be the repo itself (README.md is the home page).
+# viewer at viewer/ and the README's pictures at images/ (make site). same-dir lets the docs be the repo itself (README.md is the home page).
 site_name: noggin
 site_url: https://yellowpine.com/noggin/
 repo_url: https://github.com/yellow-pine/noggin

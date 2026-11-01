@@ -1,6 +1,7 @@
 """The site (docs/adr/0009) as the pages workflow builds it: MkDocs Material builds the repo's Markdown strictly, so a
 broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
-never ship, and the nav reaches the web viewer the workflow puts at /viewer."""
+never ship, and the nav reaches the web viewer the workflow puts at /viewer. The README's pictures are built in CI too
+(#226): none in git, every one a site URL the pictures job builds."""
 
 import base64
 import hashlib
@@ -46,9 +47,16 @@ def test_the_home_page_finds_its_theme(site):
     assert any(r.endswith(".css") for r in refs) and [r for r in refs if not (site / r).is_file()] == []
 
 
-def test_the_readme_pictures_ship_and_the_references_do_not(site):
-    assert (site / "docs" / "images" / "hero.gif").is_file()
+def test_the_references_do_not_ship(site):
     assert not (site / "docs" / "references").exists() and not (site / "model").exists()
+
+
+def test_no_generated_picture_is_tracked():
+    """The pictures are built in CI and served from the site (#226): git holds none of them (photos stay)."""
+    from model.render import pictures  # here, not at the top: it imports the model, as macros does
+
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    assert [f for f in tracked if os.path.basename(f) in sum(pictures.SITE.values(), [])] == []
 
 
 def test_the_nav_reaches_every_decision_and_the_viewer(site):
@@ -140,8 +148,8 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
     """model/render/pictures.py and blender.py, model/geometry.py SPOOLS, model/mjcf.py VIEW: as Cansin set them."""
     notes = re.sub(r"<[^>]+>", "", (site / "docs" / "model-notes" / "index.html").read_text())
     for row in [
-        "gestures\n600x450\n480 wide, 10 fps, 64 colours, at most 1 MB",
-        "hero\n800x600\n640 wide, 10 fps, 48 colours, at most 3 MB",
+        "gestures\n400x300\n400 wide, 8 fps, 64 colours, at most 1 MB",
+        "hero\n560x420\n560 wide, 8 fps, 48 colours, at most 3 MB",
         "Milky Pink\n#F7CED7\n#F7CED7\n#F7CED7",
         "Absolute Black\n#000000\n#2B2B2E\n#5A5A60",
         "Pure White\n#FFFFFF\n#FFFFFF\n#E8E8E8",
@@ -198,3 +206,24 @@ def test_every_number_left_in_the_readme_agrees_with_the_code():
     assert set(re.findall(durations, readme)) <= set(re.findall(durations, macros.behaviour()))
     servos = re.findall(r"Core (\d): [^\"]*?(\d+) servos", readme)
     assert servos == [(core, str(len(CHANNELS[f"core{core}"]))) for core, _ in servos] and len(servos) == 2
+
+
+def test_every_readme_picture_is_a_site_picture_ci_builds():
+    """Each README picture (the badges aside) is the site's absolute /images URL of a file in the pictures manifest."""
+    from model.render import pictures
+
+    readme = (ROOT / "README.md").read_text()
+    urls = [u for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", readme) if not u.startswith("https://img.shields.io/")]
+    site = "https://yellowpine.com/noggin/images/"
+    assert urls and [u for u in urls if not u.startswith(site)] == []
+    assert sorted(u.removeprefix(site) for u in urls) == sorted(sum(pictures.SITE.values(), []))
+
+
+def test_the_pages_workflow_renders_every_part_of_the_pictures():
+    """Each part of the pictures (the Stage views, the hero, each gesture) is one runner of the pictures job (#226)."""
+    import yaml
+
+    from model.render import pictures
+
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]
+    assert sorted(jobs["pictures"]["strategy"]["matrix"]["part"]) == sorted(pictures.SITE)

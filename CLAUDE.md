@@ -26,7 +26,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: `README.md` on the site, built by `macros.py` from the code (numbers in docs: ADR 0009).
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
-- Model pictures (Blender, from MuJoCo's trajectories; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.
+- Model pictures (Blender, from MuJoCo's trajectories; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`; CI builds the README's (`make pictures`) for the site's /images.
 - Web viewer (three.js page at the site's /viewer): `web/`, ADR 0008; `make web` builds it, `make site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).

@@ -14,7 +14,7 @@ An animatronic Mech on the desk that reacts to Claude Code. It winks when a sess
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
 Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
 
-![noggin](docs/images/hero.gif)
+![noggin](https://yellowpine.com/noggin/images/hero.gif)
 
 Turn it around and play its gestures in the browser: [the web viewer](https://yellowpine.com/noggin/viewer/). These
 docs are on [the site](https://yellowpine.com/noggin/) too.
@@ -37,9 +37,9 @@ simulation of the Mech).
 
 | eureka | attention | bored |
 |---|---|---|
-| ![eureka](docs/images/eureka.gif) | ![attention](docs/images/attention.gif) | ![bored](docs/images/bored.gif) |
+| ![eureka](https://yellowpine.com/noggin/images/eureka.gif) | ![attention](https://yellowpine.com/noggin/images/attention.gif) | ![bored](https://yellowpine.com/noggin/images/bored.gif) |
 | **wince** | **wink** | **thinking** |
-| ![wince](docs/images/wince.gif) | ![wink](docs/images/wink.gif) | ![thinking](docs/images/thinking.gif) |
+| ![wince](https://yellowpine.com/noggin/images/wince.gif) | ![wink](https://yellowpine.com/noggin/images/wink.gif) | ![thinking](https://yellowpine.com/noggin/images/thinking.gif) |
 
 ## What it does
 
@@ -98,9 +98,9 @@ in [`docs/build-notes.md`](docs/build-notes.md); how work runs in [`CONTRIBUTING
 
 ## The Stages and the model
 
-![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](docs/images/stages.jpg)
+![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](https://yellowpine.com/noggin/images/stages.jpg)
 
-![Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them](docs/images/exploded.jpg)
+![Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them](https://yellowpine.com/noggin/images/exploded.jpg)
 
 The Mech grows in three Stages: the eyes on the base, then on the pan-and-tilt neck, then with the mouth. `model/` is
 the Mech as code: our own parametric CadQuery parts, a simulation (MuJoCo, ADR 0007) that sweeps every linkage,

@@ -30,7 +30,9 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   (the newest `sim-` entry, which only main saves) in its job summary; the pages workflow runs once check is done on
   main (`workflow_run`) and publishes the newest entry at /reports. The stamp check (model/stale.py) is gone; the
   recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
-- **Until its ticket lands**, the pictures in docs/images stay in git as they are.
+- **The pictures are built in CI** (#226): the pages workflow's `pictures` job renders the README's pictures in
+  Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
+  their inputs gets them as artifacts.
 
 ## Considered options
 

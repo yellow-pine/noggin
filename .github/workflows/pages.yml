@@ -1,7 +1,8 @@
 name: Site Deploy
-# The site (docs/adr/0009): MkDocs builds the docs (make site) with the web viewer at site/viewer, whose GLBs Blender
-# bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too (#221), and main's
-# latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
+# The site (docs/adr/0009): `pictures` renders the README's pictures in Blender (make pictures, #226; each part on its
+# own runner), then MkDocs builds the docs (make site) with the pictures at site/images, the web viewer at site/viewer,
+# whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
+# (#221), and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
 # is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact.
 # `site` is a required check on PRs and merge groups that touch what the site is made from (the changes job, as in
 # mech.yml); a red main run leaves the last site up. Pages' source is GitHub Actions
@@ -42,8 +43,103 @@ jobs:
           filters: |
             site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
                    ".github/workflows/pages.yml", "macros.py", "mermaid.py", "vendored.py", "overrides/**"]
-  site:
+  # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
+  # else the last ones built from the same inputs (a docs-only change renders nothing)
+  pictures:
     needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}   # as site
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        part: [views, hero, eureka, attention, bored, wince, wink, thinking]   # model/render/pictures.py SITE (test_site.py)
+    permissions:
+      contents: read
+      actions: read   # scripts/ci_budget.py reads the run's start
+    outputs:
+      cold: ${{ steps.cold.outputs.cold }}   # set by a part that rendered (an empty output is never set)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - id: images
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: pictures-${{ matrix.part }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: false   # as in check.yml
+      # our built parts and the latest trajectories, as in site (whose make web then finds these trajectories fresh); the
+      # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          restore-keys: ours-convex-
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        id: trajectories
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
+          restore-keys: trajectories-
+      # Blender 5.2.2 as in site, cached unpacked (the untar took ~20 s a runner); sha256-checked when it is fetched
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        id: blender
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender
+          key: blender-5.2.2-linux-x64-unpacked
+      - if: ${{ steps.images.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        run: |
+          curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
+          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1 && rm ~/blender.tar.xz
+      # Blender's X and GL libraries (Eevee renders on Mesa's software GL here) and ffmpeg for the GIFs and JPEGs
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri ffmpeg
+      # its own step first, so the run's timings show the bake apart from the renders
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        run: make trajectories
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        id: cold
+        env:
+          PARTS: ${{ matrix.part }}
+        run: |
+          make pictures BLENDER=$HOME/blender/blender
+          echo "cold=true" >> "$GITHUB_OUTPUT"
+      - if: ${{ always() && steps.images.outputs.cache-hit != 'true' && steps.trajectories.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: ${{ steps.trajectories.outputs.cache-primary-key }}
+      - if: ${{ steps.images.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: ${{ steps.images.outputs.cache-primary-key }}
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: pictures-${{ matrix.part }}
+          path: model/build/images
+          if-no-files-found: error
+      - if: ${{ github.event_name == 'pull_request' }}
+        env:
+          URL: ${{ steps.upload.outputs.artifact-url }}
+          PART: ${{ matrix.part }}
+          BUILT: ${{ steps.images.outputs.cache-hit != 'true' && 'rendered from this PR' || 'unchanged, the last build of the same inputs' }}
+        run: |
+          echo "Pictures, $PART ($BUILT): [the pictures-$PART artifact]($URL), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
+      - run: python3 scripts/ci_budget.py ${{ steps.images.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  site:
+    needs: [changes, pictures]
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}   # as in mech.yml
     runs-on: ubuntu-latest
     permissions:
@@ -56,6 +152,12 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: false   # as in check.yml
+      # the pictures job's parts, which make site puts at site/images
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: pictures-*
+          merge-multiple: true
+          path: model/build/images
       # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
       # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing
       - id: viewer
@@ -152,7 +254,8 @@ jobs:
           echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
           echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
       # as in check.yml; warm: the GLBs or the trajectories hit their exact key (Blender bakes GLBs in about 40 s)
-      - run: python3 scripts/ci_budget.py ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}
+      # warm also needs no part of the pictures rendered: the budget counts from the run's first job
+      - run: python3 scripts/ci_budget.py ${{ needs.pictures.outputs.cold != 'true' && (steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
   deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
