@@ -13,15 +13,10 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ..
         update-types: [minor, patch]
         patterns: ["*"]
     ignore:
-      # They match the Core's MicroPython ([tool.noggin], eyes/test_micropython.py), whose firmware is never reflashed.
+      # They follow the Core's firmware, not upstream ([tool.noggin], eyes/test_micropython.py): bumped with
+      # [tool.noggin] micropython when a vendor update changes the MicroPython the Core runs.
       - dependency-name: mpy-cross
       - dependency-name: "micropython-*"
-      # The MkDocs plugins wait for Astro Starlight to replace MkDocs; mkdocs-material keeps its patch and minor.
-      - dependency-name: mkdocs-macros-plugin
-      - dependency-name: mkdocs-redirects
-      - dependency-name: mkdocs-same-dir
-      - dependency-name: mkdocs-material
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
