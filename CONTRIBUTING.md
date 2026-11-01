@@ -26,6 +26,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   restores them into `.agents/skills` (gitignored), which the committed `.claude/skills` link points at, and
   `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
   workflow re-pins to upstream HEAD (close and reopen its PR to start the checks), Dependabot pins actions by SHA.
+  Bots never commit to main: the `skills` workflow only pushes its own `skills-bump` branch and opens (or refreshes)
+  a PR from it, which goes through review and the merge queue like any other; main's ruleset rejects a bot's push.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
   required `claude` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus
