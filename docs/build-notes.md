@@ -112,6 +112,20 @@ and sets `pm=PM_NONE`, and a line that Wi-Fi does not deliver goes over USB when
 Mech 2026-10-31 (eyes Core at 192.168.68.55, cable out, noggin service restarted): the calibration batch is acked
 over Wi-Fi, `wink 3` is acked and the left eye winks, and the six gestures played over Wi-Fi alone (`demo once`).
 
+## Live check on the eyes Core alone (2026-11-01, #177)
+
+Eyes Core on a new network (192.168.178.141; the Core only knew last night's Wi-Fi, so the Link was silent until the
+Wi-Fi step ran again, see #195), noggin service and program from main (9075717), `noggin demo` looping:
+- Cable out: every gesture kept playing over Wi-Fi. The unplug left the eyes offline for about 12 s and dropped one
+  gesture until the next beacon (#196).
+- Wi-Fi flash: `noggin flash` installed main's program (back in 3 s). A deliberately broken `eyes.mpy` never reached
+  `noggin ready`; the Core went back to its .bak files and its beacon returned. `make flash` once misread the beacon
+  as stale, fell back to `flash-usb` with no cable and stopped the noggin service (#196).
+- USB fallback: with Wi-Fi unreachable (wrong network) and the cable in, the service found the Core on serial, sent the
+  calibration and gestures, and the Core answered.
+- Mech off 20 s, cable out: the Link came back by itself (beacon, uptime 11 s), but nothing was logged for the Wi-Fi
+  outage (#196).
+
 ## Second Core (tilt, mouth, pan)
 
 The designer runs two Cores on two Shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
