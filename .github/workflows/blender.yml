@@ -1,0 +1,43 @@
+name: Blender Updates
+# Weekly: re-pin Blender to the newest stable release at least 14 days old (#334; scripts/blender_pin.py rewrites the
+# version and the Linux tarball's sha256 wherever the pin lives) and open (or refresh) a PR. A PR opened with
+# GITHUB_TOKEN starts no workflows (https://docs.github.com/en/actions/concepts/security/github_token): close and
+# reopen it to run its checks.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+concurrency:   # the newest run wins: it re-pins from scratch
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  pin:
+    name: re-pin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - id: pin
+        # its own assignment, so a failed fetch fails the step (inside echo's arguments it would pass as "no change")
+        run: |
+          version=$(python3 scripts/blender_pin.py)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
+      - if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.pin.outputs.version }}
+        run: |
+          title="ci: re-pin Blender to $VERSION"
+          body="Blender $VERSION, the newest stable release at least 14 days old; sha256 from https://download.blender.org/release/Blender${VERSION%.*}/blender-$VERSION.sha256. Release notes: https://www.blender.org/download/releases/$(echo "${VERSION%.*}" | tr . -)/"
+          git switch -C blender-bump
+          git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qam "$title"
+          # force: blender-bump is this workflow's own branch, rebuilt from main each run, and the only ref it writes
+          git -c core.hooksPath=/dev/null push -qf "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" blender-bump
+          gh pr create --head blender-bump --title "$title" --body "$body" || gh pr edit blender-bump --title "$title" --body "$body"

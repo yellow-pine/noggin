@@ -45,8 +45,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   workflow re-pins to upstream HEAD (close and reopen its PR to start the checks, again after each refresh),
   Dependabot pins actions by SHA. Every Dependabot PR, majors too, gets auto-merge (`.github/workflows/dependabot.yml`)
   and merges once the required checks and Claude's review pass.
-  Bots never commit to main: the `skills` workflow only pushes its own `skills-bump` branch and opens (or refreshes)
-  a PR from it, which goes through review like any other; main's ruleset rejects a bot's push.
+  Blender is pinned (version and the Linux tarball's sha256) in the workflows that run it; the weekly `blender`
+  workflow re-pins it to the newest stable release at least 14 days old (`scripts/blender_pin.py`), the same way.
+  Bots never commit to main: the `skills` and `blender` workflows only push their own `skills-bump` and `blender-bump`
+  branches and open (or refresh) a PR from each, which goes through review like any other; main's ruleset rejects a
+  bot's push.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
   required `review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) or decides approve but no approval lands on the head (re-run
