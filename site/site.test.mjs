@@ -1,4 +1,4 @@
-// The site as `make site` builds it into dist/ (docs/adr/0009, 0012), checked at its HTML: every doc is a page titled
+// The site as `make site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
 // by its H1, every link lands, the numbers are the code's (macros.json), and each page's CSP lets only the site's own
 // scripts run. Run after make site: npm test (Site Checks).
 import { execFileSync } from 'node:child_process';
@@ -26,7 +26,7 @@ const page = (url) => parse(readFileSync(fileOf(url), 'utf8'));
 const docs = [...PAGES];
 
 test('every doc is a page, titled by its own H1, drawn once', () => {
-  expect(docs).toContain('docs/adr/0012-astro-starlight.md');
+  expect(docs).toContain('docs/adr/0013-astro-starlight.md');
   for (const doc of docs) {
     const h1 = read(doc).match(/^# (.+)$/m)?.[1];
     expect(h1, doc).toBeDefined();

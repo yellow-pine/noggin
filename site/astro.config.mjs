@@ -1,4 +1,4 @@
-// The site (docs/adr/0009, 0012): Starlight's default look over the repo's Markdown, read in place
+// The site (docs/adr/0009, 0013): Starlight's default look over the repo's Markdown, read in place
 // (src/content.config.ts), and the web viewer's page (src/pages/viewer.astro). `make site` builds it into dist/.
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
@@ -13,7 +13,7 @@ export default defineConfig({
   site: SITE,
   base: BASE,
   markdown: { processor: satteri({ mdastPlugins: markdown }) },
-  // The site's own files alone (docs/adr/0012). Scripts: Astro hashes what it bundles, inlineScriptHashes the inline
+  // The site's own files alone (docs/adr/0013). Scripts: Astro hashes what it bundles, inlineScriptHashes the inline
   // rest. Styles can't be hashed: Expressive Code's style="" attributes and the <style>s Mermaid injects at run time.
   // The viewer's Draco decoder compiles WASM in a Blob worker and GLTFLoader fetches the GLB's textures as blobs; the
   // header asks api.github.com for the repo's stars and forks. Starlight's icons are data: URLs.

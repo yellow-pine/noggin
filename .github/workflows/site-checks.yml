@@ -3,7 +3,7 @@ name: Site Checks
 # Blender (make pictures, #226; one runner per motion, the matrix `motions` reads from the code, #297; the required
 # `pictures` check sums them up) beside `viewer`, whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever
 # what they are made from changed (#221); then `site` gathers the pictures and Astro Starlight builds the docs (make
-# site, docs/adr/0012) with them at site/dist/images, the viewer at site/dist/viewer and main's latest sim reports at
+# site, docs/adr/0013) with them at site/dist/images, the viewer at site/dist/viewer and main's latest sim reports at
 # site/dist/reports, tests the built site (Vitest) and plays the viewer and search in Chrome (Playwright), and uploads
 # it as an artifact: a PR's preview, and on main what Site Deploy (pages.yml) deploys once
 # this run and Code Checks passed. `site` and `pictures` are required checks on PRs that touch what the site is made

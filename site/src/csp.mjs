@@ -1,6 +1,6 @@
 // Astro hashes the scripts it bundles into each page's CSP, but not the `is:inline` ones (Starlight's theme, menu and
 // sidebar scripts): this adds every inline script's hash the page lacks once the site is built, so none is ever listed
-// by hand (docs/adr/0011, 0012) and a Starlight upgrade that changes one needs no edit. site.test.mjs checks the result.
+// by hand (docs/adr/0011, 0013) and a Starlight upgrade that changes one needs no edit. site.test.mjs checks the result.
 import { createHash } from 'node:crypto';
 import { globSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

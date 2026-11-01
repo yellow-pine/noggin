@@ -1,4 +1,4 @@
-// The docs collection is the repo's Markdown read in place (docs/adr/0012): every page keeps its path, title and links
+// The docs collection is the repo's Markdown read in place (docs/adr/0013): every page keeps its path, title and links
 // as GitHub shows them, with no front matter.
 import { readFileSync } from 'node:fs';
 import { defineCollection } from 'astro:content';

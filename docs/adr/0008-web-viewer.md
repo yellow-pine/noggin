@@ -11,7 +11,7 @@
 > Amended 2026-11-01 (#271): the camera frames the Stage as the hero GIF does, and lines follow its size on screen.
 > Amended 2026-11-01 (#281): the viewer is a page of the docs site at /viewer/, in its theme (header, search, nav);
 > docs pages can drop in a small one per Stage.
-> Amended 2026-11-01 (#333, ADR 0012): the page is an Astro page (`site/src/pages/viewer.astro`) and the module lives
+> Amended 2026-11-01 (#333, ADR 0013): the page is an Astro page (`site/src/pages/viewer.astro`) and the module lives
 > beside it in `site/src/viewer/`, loaded by the site's footer on any page with a viewer; Vite bundles three.js and its addons from npm, the Draco decoder is copied from
 > three's package, and vendored.py, the import map and the page's own CSP are gone (the site's one CSP covers it).
 
@@ -37,7 +37,7 @@ watch the hero loop.
   no table of contents) adds the Stage buttons, and any page can drop in a small one. A browser test (Playwright in Chrome,
   `site/smoke.pw.mjs`) plays a gesture on the built site with no request to another host but GitHub's repo facts in
   the header. three.js and its addons come from npm, bundled by the site's build, and the Draco decoder `DRACOLoader`
-  fetches is copied from the same package; the lockfile's integrity hashes pin them (ADR 0012). The site's CSP lets
+  fetches is copied from the same package; the lockfile's integrity hashes pin them (ADR 0013). The site's CSP lets
   scripts from the site alone run (plus the decoder's WASM in `DRACOLoader`'s Blob worker).
 - **One source for the look.** Blender's export writes the look numbers (line width, crease angle, the light ramp,
   highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the page reads

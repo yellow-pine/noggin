@@ -112,7 +112,7 @@ pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSO
 web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
-site: venv       ## the site in site/dist (docs/adr/0009, 0012): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the viewer's GLBs go to site/dist/viewer once make web built them, the pictures to site/dist/images once make pictures did, the sim reports to site/dist/reports once make sim did; look with npm --prefix site run preview, check with npm --prefix site test
+site: venv       ## the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the viewer's GLBs go to site/dist/viewer once make web built them, the pictures to site/dist/images once make pictures did, the sim reports to site/dist/reports once make sim did; look with npm --prefix site run preview, check with npm --prefix site test
 	$(PY) -m macros
 	cd site && npm ci --no-audit --no-fund && npm run build
 	[ ! -d web/build ] || cp -R web/build/. site/dist/viewer

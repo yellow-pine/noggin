@@ -1,4 +1,4 @@
-"""The site's sources (docs/adr/0009, 0012) as GitHub shows them, and the numbers the code gives the site
+"""The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
 (macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The README's pictures are built in
 CI too (#226): none in git, every one a site URL the render job builds."""
 

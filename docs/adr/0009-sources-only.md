@@ -10,7 +10,7 @@
 > both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild (only
 > main's newest sim reports swapped in).
 > Amended 2026-11-01 (#288): the jobs needing Chrome or Blender run in our own images in GHCR, built from ci/.
-> Amended 2026-11-01 (#333, ADR 0012): Astro Starlight builds the site (`site/`), not MkDocs Material; the numbers'
+> Amended 2026-11-01 (#333, ADR 0013): Astro Starlight builds the site (`site/`), not MkDocs Material; the numbers'
 > JSON from `macros.py` fills the same hidden markers; the built site's tests run in Site Checks, not `make check`.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
@@ -19,7 +19,7 @@ sources only: code, hand-written Markdown, configs, lockfiles (uv.lock, skills-l
 (eyes/calibration.json, recorded sweeps). CI builds every output, keeps it in caches and artifacts, and deploys one
 site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 
-- **One site, built from main.** Astro Starlight (the `site/` package, ADR 0012; MkDocs Material until #333) turns
+- **One site, built from main.** Astro Starlight (the `site/` package, ADR 0013; MkDocs Material until #333) turns
   the repo's Markdown into the docs at the site's root, yellowpine.com/noggin/ (the org's custom domain); the web viewer
   (ADR 0008) sits at /viewer. The docs are the repo's Markdown as GitHub shows it, with no rewrite for the site, so
   a link to anything but a doc or a picture is an absolute GitHub URL (the site's tests fail on a link that lands
@@ -29,11 +29,11 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   Deploy (`pages.yml`) runs only on main: once both Code Checks and Site Checks passed for the commit, it downloads
   that run's artifact and deploys it with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
 - **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
-  made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), and runs the built site's tests (ADR 0012).
+  made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), and runs the built site's tests (ADR 0013).
 - **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
   and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
   #306) are filled at build time: `macros.py` writes them as JSON and the site's Markdown plugin puts each in its
-  doc's marker (ADR 0012). The markers sit in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
+  doc's marker (ADR 0013). The markers sit in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
   their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a Core's servo count) is not
   the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
@@ -67,4 +67,4 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - A `gh-pages` branch: rejected, it needs a bot commit per deploy.
 - Netlify or Vercel previews per PR: rejected, a second host and account for what an artifact covers.
 - Zensical, Material's successor from the same team (it reads `mkdocs.yml`): not yet, it is alpha; the move went
-  to Astro Starlight instead (ADR 0012).
+  to Astro Starlight instead (ADR 0013).

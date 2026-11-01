@@ -1,4 +1,4 @@
-"""The site's numbers from the code (docs/adr/0009, 0012): `python -m macros` writes them as JSON for the site
+"""The site's numbers from the code (docs/adr/0009, 0013): `python -m macros` writes them as JSON for the site
 (site/src/macros.json, never committed), whose Markdown plugin (site/src/markdown.mjs) puts each where a doc says
 `<!--{{ name }}-->`; GitHub, which hides HTML comments, shows the prose around it instead.
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the

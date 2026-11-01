@@ -1,5 +1,5 @@
 // The Markdown plugins (Sätteri's mdast visitors) that let a page read the same on GitHub and on the site
-// (docs/adr/0012): its H1 is the title Starlight draws, links between docs go to their pages, and the numbers the code
+// (docs/adr/0013): its H1 is the title Starlight draws, links between docs go to their pages, and the numbers the code
 // owns fill the comments GitHub hides.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
