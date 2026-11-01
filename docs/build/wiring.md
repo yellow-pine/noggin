@@ -2,7 +2,7 @@
 
 ## Servo ports (Shield)
 
-| Port | GPIO | Servo     | Angle range | Neutral |
+| Port | GPIO | Servo     | Angle range | Centre  |
 |------|------|-----------|-------------|---------|
 | 1    | 3    | Left lid  | 75 to 120   | 90      |
 | 2    | 2    | Left eye  | 60 to 120   | 90      |
@@ -30,8 +30,9 @@ pushing past them, the lids bind at the ends. The ranges the program uses are th
 
 ## Second Core (tilt, mouth, pan)
 
-The designer runs two Cores on two Shields. Ours: Core 2 ports PWM1 tilt, PWM2 mouth, PWM3 pan (the designer's
+The designer runs two Cores on two Shields. Ours: Core 2 ports 1 tilt, 2 mouth, 3 pan (the designer's
 config JSON; the mouth guide's "3rd position" wording is ambiguous). Both Cores join the Wi-Fi and are addressed
 directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Each shield
-gets its own pack and switch board (one pack cannot feed two shields at stall: 2 x 2.6 A > 3 A). Electrical figures:
+is to get its own pack and switch board, a planned edit ([Model notes](../model-notes.md)): one pack cannot feed two
+shields at stall (2 x 2.6 A > 3 A). Electrical figures:
 docs/research/2026-10-31-electrical.md.

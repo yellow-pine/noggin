@@ -47,10 +47,9 @@ def test_docs_say_noggin_service_and_model():
         *(ROOT / "docs" / "adr").glob("*.md"),
         ROOT / "README.md",
         ROOT / "CONTRIBUTING.md",
-        ROOT / "docs" / "model-notes.md",
+        *(ROOT / "docs").glob("*.md"),
         *(ROOT / "docs" / "build").glob("*.md"),
         *(ROOT / "docs" / "use").glob("*.md"),
-        ROOT / "docs" / "index.md",
     ]
     hits = [
         f"{f.relative_to(ROOT)}:{n}"

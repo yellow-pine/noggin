@@ -37,13 +37,13 @@ were ([Calibration](calibration.md)).
 3. **Jaw servo mount** on the eye bracket's rail (the neck's eye bracket from [Stage 2](stage-2.md); Stage 1's desk
    bracket has no rail), the mouth servo in it.
 4. **Jaw bar** from the jaw horn to the bottom jaw's lug, seated flush between the lug and the horn arm (inferred).
-5. **Horn** at neutral with the jaws closed: opening the mouth turns the horn the other way, up to 75° for 58° of jaw.
+5. **Horn** with the servo at 90 and the jaws closed: opening the mouth turns the horn the other way (the range above).
 
 The jaw rides on the eyes, so it pans and tilts with the head.
 
 ## Wiring
 
-The mouth servo goes to Core 2's port 2, between tilt (1) and pan (3) ([Wiring](wiring.md)).
+The mouth servo goes to Core 2, on the port in the table above ([Wiring](wiring.md)).
 
 ## Pictures
 

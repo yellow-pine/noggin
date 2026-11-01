@@ -98,9 +98,11 @@ HARDWARE = {
 def stage_guides():
     """Per Stage (1, 2, 3): the parts it adds to the Stage before it (and any it swaps out), and its new servos with
     their Core, port and the model's range."""
-    spool = {name.split(" (")[0]: s for name, (s, _) in g.PRINTED.items()}
+    spool = {
+        name.split(" (")[0]: s + (" (inferred)" if "inferred" in name else "") for name, (s, _) in g.PRINTED.items()
+    }
     port = {servo: (core, n) for core, ports in g.CHANNELS.items() for n, servo in ports.items()}
-    servo = {label: key for key, label in g.SERVO_LABEL.items()}
+    servo_of = {label: key for key, label in g.SERVO_LABEL.items()}
     parts, servos, before, horns = {}, {}, Counter(), set()
     for n, doc in enumerate(g.STAGES, 1):
         d = stages.STAGES[doc]
@@ -112,7 +114,7 @@ def stage_guides():
         parts[n] = "\n".join(rows + ([f"\nIt takes off: {', '.join(sorted(gone))}."] if gone else []))
         rows = ["| Core | Port | Servo | The model's range | Why |", "|---|---|---|---|---|"]
         for h in [h for h in d.horns if h not in horns]:
-            key = servo[h.removesuffix(" horn")]
+            key = servo_of[h.removesuffix(" horn")]
             core, n_port = port[key]
             (lo, hi), why = g.LIMITS["rotate" if key == "pan" else key]  # the pan servo's limits go by "rotate"
             rows.append(f"| {core.removeprefix('core')} | {n_port} | {key} | {lo:g}..{hi:g} | {why} |")

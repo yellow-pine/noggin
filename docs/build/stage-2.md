@@ -42,15 +42,15 @@ were ([Calibration](calibration.md)).
    other. The pan bar (15 mm between holes, the shorter one) joins the pan horn to the upright's lever.
 4. **Upright** on the turntable, carrying the tilt pivot. The **tilt arm** turns on it; the tilt bar (20 mm) joins the
    tilt horn to the arm's lever.
-5. **Horns** at neutral: the tilt horn horizontal with its bar vertical, the pan horn about square to its bar. Each bar
-   screws to the horn's second hole from the end (12.75 mm from the shaft), drilled to 2 mm, with an M2 screw and nut.
+5. **Horns** with the servos at 90: the tilt horn horizontal with its bar vertical, the pan horn about square to its bar. Each bar
+   screws to the horn's second hole from the end, drilled to 2 mm, with an M2 screw and nut.
 6. **Eyes** on the tilt arm: the eye bracket's stem fills the arm's window and its rail lies on the arm top, the eye
-   centres 78.5 mm above the plate top. The eyes face the plate's pointed end, away from the pack, the boards and the
-   switch.
+   centres above the arm. The eyes face the plate's pointed end, away from the pack, the Cores and the
+   switch board.
 7. **Wire holder** on the base plate's two posts, holding the leads down.
 
 The head turns less than its servos: the stock linkages give about 0.47 of the pan servo's angle and 0.32 of tilt's.
-In the model pan swings 46° end to end and tilt about ±17°.
+In the model pan swings 46° end to end and tilt about ±17° (docs/research/2026-10-31-neck.md).
 
 ## Wiring
 

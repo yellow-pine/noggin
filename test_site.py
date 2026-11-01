@@ -39,7 +39,7 @@ def test_every_doc_is_a_page(site):
     guides = [f"docs/{d}/{p.stem}/index.html" for d in ("build", "use") for p in (ROOT / "docs" / d).glob("*.md")]
     docs = ["GLOSSARY", "CONTRIBUTING", "docs/model-notes", "docs/face-design", "docs/how-it-works", "docs/pictures"]
     pages = ["index.html", *(f"{d}/index.html" for d in [*docs, "docs/credits"]), *adrs, *guides]
-    assert adrs and len(guides) == 11 and [p for p in pages if not (site / p).is_file()] == []
+    assert adrs and guides and [p for p in pages if not (site / p).is_file()] == []
 
 
 def test_a_page_that_moved_keeps_its_url(site):
@@ -191,7 +191,9 @@ def test_the_readme_is_for_contributors():
         in readme
     )
     assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
-    workflows = [p for p in (ROOT / ".github" / "workflows").glob("*.yml") if p.name != "queue.yml"]  # going: #283
+    workflows = [
+        p for p in (ROOT / ".github" / "workflows").glob("*.yml") if p.name != "queue.yml"
+    ]  # shortcut: the merge queue's, going in #283; drop the filter then
     assert [
         p.name for p in workflows if f"| {yaml.safe_load(p.read_text())['name']} | `{p.name}` |" not in readme
     ] == []

@@ -1,10 +1,6 @@
 # Gestures and behaviour
 
-| eureka | attention | bored |
-|---|---|---|
-| ![eureka](https://yellowpine.com/noggin/images/eureka.gif) | ![attention](https://yellowpine.com/noggin/images/attention.gif) | ![bored](https://yellowpine.com/noggin/images/bored.gif) |
-| **wince** | **wink** | **thinking** |
-| ![wince](https://yellowpine.com/noggin/images/wince.gif) | ![wink](https://yellowpine.com/noggin/images/wink.gif) | ![thinking](https://yellowpine.com/noggin/images/thinking.gif) |
+Each gesture as the model plays it: [the home page](../index.md#gestures) and [Pictures](../pictures.md).
 
 ## Which event plays what
 
