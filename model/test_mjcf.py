@@ -11,7 +11,7 @@ from model import electrical, mjcf
 from model import geometry as g
 from model.engine import masses, mating, stages
 
-pytestmark = pytest.mark.heavy
+pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
 # Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS), and the pairs whose CoACD pieces
 # overlap though the parts do not (MuJoCo collides each piece's convex hull; the exact clearance measured on the meshes
@@ -67,6 +67,11 @@ def built(doc):
     return mjcf.model(doc)
 
 
+def grouped(docs):
+    """Each document's tests on one xdist worker (CI's --dist loadgroup), so it is built and swept once, not per worker."""
+    return [pytest.param(doc, marks=pytest.mark.xdist_group(doc)) for doc in docs]
+
+
 def forward(doc):
     model = built(doc)
     data = mujoco.MjData(model)
@@ -74,7 +79,7 @@ def forward(doc):
     return model, data
 
 
-@pytest.mark.parametrize("doc", list(stages.DOCS))
+@pytest.mark.parametrize("doc", grouped(stages.DOCS))
 def test_every_part_sits_where_the_engine_puts_it(doc):
     """The tracer (#147): every part is a MuJoCo body whose placement, after MuJoCo's own forward kinematics, puts its
     mesh's bounding-box corners within 0.1 mm of the old engine's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
@@ -92,7 +97,7 @@ def test_every_part_sits_where_the_engine_puts_it(doc):
         assert worst < 0.1, (name, worst)
 
 
-@pytest.mark.parametrize("doc", list(stages.DOCS))
+@pytest.mark.parametrize("doc", grouped(stages.DOCS))
 def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
     """No two parts that are not mounted to each other overlap by more than 0.05 mm (MuJoCo's signed distance between
     their convex pieces): a sub-assembly in the wrong frame cannot hide."""
@@ -151,7 +156,7 @@ def sweep(doc):
 MOVING = [doc for doc in stages.DOCS if stages.STAGES[doc].horns]
 
 
-@pytest.mark.parametrize("doc", MOVING)
+@pytest.mark.parametrize("doc", grouped(MOVING))
 def test_every_limit_poses_with_its_four_bars_closed(doc):
     """Each four-bar is closed by a connect at its coupler's rocker pin; at every geometry.LIMITS end the servo
     reaches (and the neck's pan x tilt corners), its two sites stay within 0.05 mm."""
@@ -166,7 +171,7 @@ def test_every_limit_poses_with_its_four_bars_closed(doc):
         assert worst < LOOP_MM, (ctrl, worst)
 
 
-@pytest.mark.parametrize("doc", MOVING)
+@pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_joints_turn_as_the_old_engine_solves_the_four_bars(doc):
     """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
     within 0.5 degrees of the old engine's four-bar solve (model/engine/linkage.py) at that horn angle."""
@@ -178,7 +183,7 @@ def test_the_joints_turn_as_the_old_engine_solves_the_four_bars(doc):
             assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)
 
 
-@pytest.mark.parametrize("doc", MOVING)
+@pytest.mark.parametrize("doc", grouped(MOVING))
 def test_every_lead_stays_within_its_length(doc):
     """Each lead (electrical.leads) whose two Ports the document has is a spatial tendon limited to the lead's real
     length; across every sweep it stays under it, the limit never pulling on the Mech."""
@@ -192,7 +197,7 @@ def test_every_lead_stays_within_its_length(doc):
             assert data.ten_length[i] < model.tendon_range[i][1], (h, d, model.tendon(i).name)
 
 
-@pytest.mark.parametrize("doc", MOVING)
+@pytest.mark.parametrize("doc", grouped(MOVING))
 def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
     """Each screw or pin joint of model/engine/mating.py is a site per part on its own fitted axis; across every sweep
     they stay within the mating check's 0.2 mm (as far apart as the axes miss each other, and any drift a turn adds)."""

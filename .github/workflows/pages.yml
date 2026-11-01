@@ -29,9 +29,9 @@ jobs:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
-          enable-cache: true
+          enable-cache: false   # as in check.yml
       # on main (or on demand) the viewer: Blender's GLBs and three.js's Draco decoder into web/build, then site/viewer
-      # the check workflow's cache of our built parts (same key: its heavy job fills it); restore only, since a save here
+      # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused
       - if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -39,7 +39,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
       # Blender 5.2.2, the pinned Linux tarball (docs/research/2026-11-01-web-viewer.md), sha256-checked on every run
       - if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
