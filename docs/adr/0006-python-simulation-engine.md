@@ -1,5 +1,7 @@
 # Simulations run in Python; Fusion builds the documents
 
+> Engine superseded 2026-10-31 by ADR 0007 (#146): the model moves to MuJoCo; this engine retires ticket by ticket.
+>
 > Fusion part superseded 2026-10-31 (#88): Fusion builds nothing any more; see the last update.
 
 Once pins, axes and link lengths are right, every linkage of the Mech is a planar four-bar (lids, eyes, tilt, pan,
