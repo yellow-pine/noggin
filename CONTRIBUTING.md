@@ -17,9 +17,22 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main and on ready (non-draft)
   PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
-  deploy included; a release tag's run is never cancelled), so a cancelled run means a newer one superseded it. A
+  deploy included; a release tag's run and Release Please's are never cancelled), so a cancelled run means a newer one superseded it. A
   pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has a PR, except on-hold
   work.
+- A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
+  `type(scope): subject`, `type!: subject` for a breaking change (docs/adr/0010). Types: feat, fix, perf, docs, ci,
+  build, refactor, test, chore. The scope is optional and names an area, derived from the repo's top-level directories
+  (`python3 scripts/pr_scopes.py` lists them). The required `PR Title`
+  check (`.github/workflows/pr-title.yml`) enforces both; editing the title re-runs it.
+- Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
+  workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
+  titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
+  required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
+  release, and the tag's `Release Assets` run attaches the Core program zip. Never edit the version, the manifest or
+  CHANGELOG.md by hand. The workflow needs the `RELEASE_PLEASE_TOKEN` secret, because what `GITHUB_TOKEN` creates
+  starts no workflow: a fine-grained token on this repo with Contents, Pull requests and Issues read and write, then
+  `gh secret set RELEASE_PLEASE_TOKEN` and run the workflow once (`gh workflow run release-please.yml`).
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),

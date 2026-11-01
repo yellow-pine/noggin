@@ -4,6 +4,8 @@
 > numbers (#227), the skills bot (#228) and the reports (#229) follow it one ticket at a time.
 > Amended 2026-11-01 (#280, spec #279): the site's home is a landing page (docs/index.md); the README is for
 > contributors and stays on GitHub, off the site.
+> Amended 2026-11-01 (#303, ADR 0010): release-please's release PR commits the generated CHANGELOG.md and the version
+> bump, and switches on its own auto-merge; it lands through the required checks and review like any PR.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

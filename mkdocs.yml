@@ -125,5 +125,6 @@ nav:
           - docs/adr/0007-mujoco-engine.md
           - docs/adr/0008-web-viewer.md
           - docs/adr/0009-sources-only.md
+          - docs/adr/0010-one-version.md
       - Contributing: CONTRIBUTING.md
       - Credits: docs/credits.md
