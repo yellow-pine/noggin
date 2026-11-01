@@ -83,7 +83,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in check.yml
       - id: list
@@ -122,7 +122,7 @@ jobs:
           path: model/build/images
           key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in check.yml
       # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
@@ -224,7 +224,7 @@ jobs:
           path: web/build
           key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'vendored.py', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
       - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in check.yml
       # three.js from npm (vendored.py's .cache) by its version in web/build.py; vendored.py checks each hash cached or not
@@ -315,7 +315,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in check.yml
       # every motion's pictures (model/build/images, which make site puts at site/images)
