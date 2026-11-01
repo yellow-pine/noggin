@@ -26,7 +26,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
 - README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, the pages
-  workflow's `pictures` job, views, gifs and hero each on its own runner; model/render/pictures.py SITE;
+  workflow's `render` job, views, gifs and hero each on its own runner; model/render/pictures.py SITE;
   yellowpine.com/noggin/images/): the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
