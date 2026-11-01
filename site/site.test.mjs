@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'node-html-parser';
 import { expect, test } from 'vitest';
-import { BASE, PAGES, ROOT, SITE, route } from './src/pages.mjs';
+import { BASE, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
 
 const DIST = fileURLToPath(new URL('dist/', import.meta.url));
 const read = (f) => readFileSync(path.join(ROOT, f), 'utf8');
@@ -121,6 +121,26 @@ test("every page's CSP lets only the site's scripts run: each inline one by its 
       else expect(scripts, f).toContain(`'sha256-${createHash('sha256').update(s.rawText).digest('base64')}'`);
     }
     for (const l of doc.querySelectorAll('link[rel="stylesheet"]')) expect(l.getAttribute('href')).toMatch(`${BASE}/`);
+  }
+});
+
+const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+const version = read('pyproject.toml').match(/^version = "(.+)"$/m)[1];
+
+test('/version.json is the version (pyproject.toml), the commit built and when', () => {
+  const built = JSON.parse(readFileSync(path.join(DIST, 'version.json'), 'utf8'));
+  expect(Object.keys(built)).toEqual(['version', 'commit', 'built_at']);
+  expect([built.version, built.commit]).toEqual([version, commit]);
+  expect(new Date(built.built_at).toISOString()).toBe(built.built_at);
+});
+
+test("every page's footer links the version to its release (the changelog before it) and the commit to GitHub", () => {
+  const release = [`${REPO}/releases/tag/v${version}`, `${REPO}/blob/main/CHANGELOG.md`];
+  for (const f of html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`)))) {
+    const links = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('.noggin-version a');
+    expect(links.map((a) => a.text.trim()), f).toEqual([`v${version}`, commit.slice(0, 7)]);
+    expect(release, f).toContain(links[0].getAttribute('href'));
+    expect(links[1].getAttribute('href'), f).toBe(`${REPO}/commit/${commit}`);
   }
 });
 
