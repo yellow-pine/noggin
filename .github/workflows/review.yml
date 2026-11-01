@@ -1,4 +1,4 @@
-name: review
+name: Review
 # Claude reviews every ready PR: mattpocock code-review (standards + spec) and ponytail-review (smallest complete change).
 # Needs the CLAUDE_CODE_OAUTH_TOKEN secret (`claude setup-token`), for Actions and for Dependabot; see CONTRIBUTING.md.
 on:

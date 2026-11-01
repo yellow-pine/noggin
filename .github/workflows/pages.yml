@@ -1,4 +1,4 @@
-name: pages
+name: Pages
 # The site (docs/adr/0009): MkDocs builds the docs (make site) with the web viewer at site/viewer, whose GLBs Blender
 # bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too (#221), and main's
 # latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
@@ -7,7 +7,7 @@ name: pages
 # (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
   workflow_run:
-    workflows: [check]
+    workflows: [Check]
     types: [completed]
     branches: [main]
   pull_request:
