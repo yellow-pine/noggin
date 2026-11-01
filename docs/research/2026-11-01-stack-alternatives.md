@@ -89,6 +89,10 @@ Everything else: **keep**.
 5. MkDocs Material 9.8.0: **skip**; Starlight replaces it.
 6. zizmor: **skip**; revisit if the repo takes outside contributors.
 7. Python: **stay on 3.12**; revisit in 2027.
+8. CI's `npx` tools (mermaid-cli, `skills`): **move into the site's devDependencies** once Starlight lands (#333), so
+   the lockfile pins their trees and Dependabot bumps them.
+9. GIFs (ffmpeg, hero at 48 colours under 3 MB): **research first**: gifski vs ffmpeg palettes vs animated WebP/video,
+   measured on the hero.
 
 ### Inventory: missing items (added by this research)
 
