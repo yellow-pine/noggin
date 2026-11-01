@@ -58,7 +58,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   branches and open (or refresh) a PR from each, which goes through review like any other; main's ruleset rejects a
   bot's push.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
-  required `review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
+  required `Review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) or decides approve but no approval lands on the head (re-run
   the job) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It needs the
   `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot secrets): run
@@ -67,7 +67,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - An agent building a ticket runs as the `implementer` subagent (`.claude/agents/implementer.md`), which carries the
   standing rules, so its brief is just the issue.
 - Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
-- After renaming a required check, run `gh pr update-branch --rebase` on every open PR so it reports the new name.
+- CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
+  sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
+  main's ruleset too and run `gh pr update-branch --rebase` on every open PR so it reports the new name.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
@@ -79,24 +81,24 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   images), `site/` (the site's npm package: its pages, the viewer's page and module, ADR 0013). Tests sit beside the
   code they test (`test_*.py`, `*.test.mjs` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
-- Run `make check` before opening a PR: the `code` set, everything but the tests marked `model`. `make check-all` adds
+- Run `make check` before opening a PR: the `Code` set, everything but the tests marked `model`. `make check-all` adds
   those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
   `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over three required jobs
-  (`.github/workflows/check.yml`): `code` (`make check`), `mech` (below) and `model` (the `model` tests, `make
+  (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split over five shards, plus a sim shard), pytest
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
-  site at /reports (ADR 0009). Site Checks' `site` job caches npm's downloads by `site/package-lock.json`
+  site at /reports (ADR 0009). Site Checks' `Site` job caches npm's downloads by `site/package-lock.json`
   (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013). A cold parts cache is first cut part by part,
-  one runner per part whose CoACD pieces are stale (`convex`, `model/convex_parts.py`), so the model shards start warm.
+  one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
   With a warm cache a run's critical path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in
   the run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
   picked it up, so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's
   slowest tests are in its run summary.
-- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `site` in
-  `ci/base.Dockerfile` (`code` follows once main has pushed a base with the ngspice program), `render` and `viewer` in
+- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` in
+  `ci/base.Dockerfile` (`Code` follows once main has pushed a base with the ngspice program), `Render` and `Viewer` in
   `ci/blender.Dockerfile` (base plus Blender), pinned by digest (`container: image:
   ghcr.io/yellow-pine/noggin-ci-…:main@sha256:…`); every other job stays on the bare runner with setup-uv and apt,
   since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to
@@ -104,12 +106,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Dependabot proposes the new digests within a day (the run's summary has the same pin as one command); that PR's
   checks are the first to run in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read
   only).
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job (`check.yml`, beside `code`
-  and `model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
-  site's `site` and `pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `mech`,
-  `site` and `pictures` run on every PR, and a `changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
-  GitHub counts as passing. `pictures` sums up the `render` job's runners (one per
-  motion of the README's pictures, a matrix the `motions` job reads from the code with `make pictures-list`, #297)
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
+  and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
+  site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
+  `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
+  GitHub counts as passing. `Pictures` sums up the `Render` job's runners (one per
+  motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
   under one name.
 - A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
   upload it as an artifact; Site Deploy (`pages.yml`) runs only on main, once both Code Checks and Site Checks passed

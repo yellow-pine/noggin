@@ -235,7 +235,7 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
     jobs = yaml.safe_load(text)["jobs"]
     assert "make -s pictures-list" in jobs["motions"]["steps"][-1]["run"]
     assert jobs["render"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.motions.outputs.list) }}"}
-    assert jobs["render"]["name"] == "render (${{ matrix.motion }})"
+    assert jobs["render"]["name"] == "Render (${{ matrix.motion }})"
     assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
