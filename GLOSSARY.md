@@ -171,5 +171,5 @@ _Avoid_: harness, cable path, routing
 **Trajectory**:
 One Gesture (or the README hero) on one Stage as MuJoCo plays its servo commands through the servos' own dynamics:
 every part's place in the world per 100 ms frame (model/trajectories.py, baked to model/build/trajectories). The one
-source of motion every picture, GIF and the web viewer will render from (#150, #180).
+source of motion every picture and GIF renders from (#150) and the web viewer will (#180).
 _Avoid_: animation, recording, track, trace (the trace is the commands it plays)

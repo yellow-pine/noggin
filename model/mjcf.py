@@ -154,6 +154,17 @@ def spec(doc):
     # MuJoCo's default headlight (ambient 0.1, diffuse 0.4, specular 0.5) dims every colour by half and greys it; this
     # one draws a face toward the camera in its exact colour (XMLreference.html#visual-headlight)
     s.visual.headlight.ambient, s.visual.headlight.diffuse, s.visual.headlight.specular = [0.5] * 3, [0.5] * 3, [0] * 3
+    # on top (#150): a key light from the Mech's upper front-left that casts shadows, and satin plastic as the pictures'
+    # (XMLreference.html#body-light, #asset-material); lights and materials only draw, nothing in the physics reads them
+    s.worldbody.add_light(
+        type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL,
+        dir=[-0.5, 0.7, -1],
+        castshadow=True,
+        ambient=[0] * 3,
+        diffuse=[0.3] * 3,
+        specular=[0.3] * 3,
+    )
+    s.add_material(name="satin", specular=0.3, shininess=0.5)
     r = root(doc)
     frame = s.worldbody.add_frame(pos=r[:3, 3] * MM, quat=_quat(r))  # the bodies keep the document's own numbers
     hinges, moves, closures = _joints(stage)
@@ -175,7 +186,9 @@ def spec(doc):
         colour = scene.colour(file)
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh carries no mass and touches nothing: the pieces do both, the part's mass spread by volume
-        body.add_geom(type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba)
+        body.add_geom(
+            type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba, material="satin"
+        )
         kg = masses.mass(_mesh(file, clip), stage.parts[name].material)["g"] / 1000
         for p, v in zip(pieces[stem], volumes[stem]):
             piece = f"{stem} {stages.stem(p)}"

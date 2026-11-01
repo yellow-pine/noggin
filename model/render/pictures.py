@@ -1,8 +1,9 @@
-"""Every picture of the model, rendered in Blender from the engine's poses (#47; rules in docs/model-notes.md).
-`views` (`make render`): top/side/front of each sub-assembly and Stage, the Stage strip and stage 3 exploded. `gifs`
-(`make gifs`): the six gestures on stage 1, posed per 100 ms frame from the Core program's own commands
-(model/traces.py), at 10 fps, each with a contact sheet. `hero` (`make hero`): the README hero, stage 3 talking
-(model/render/hero.py).
+"""Every picture of the model, rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
+baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150).
+`views` (`make render`): top/side/front of each sub-assembly (at its placement: nothing moves it) and Stage (at rest:
+a trajectory's first frame), the Stage strip and stage 3 exploded. `gifs` (`make gifs`): the six gestures on stage 1,
+one trajectory frame per 100 ms, at 10 fps, each with a contact sheet. `hero` (`make hero`): the README hero, stage 3
+talking (model/render/hero.py).
 Usage: python -m model.render.pictures views|gifs|hero [name ...]   (Blender at $BLENDER)"""
 
 import json
@@ -15,6 +16,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
+from model import traces, trajectories
 from model.engine import stages
 from model.render import camera, scene
 
@@ -59,10 +61,9 @@ def metres(mats):
 
 
 def assembled(name, frames):
-    """The picture's parts as the engine assembles them; a Stage under its document name, which clamps the eyes and
-    mouth to the tilt arm so the neck carries the head (stages.assemble)."""
-    doc = f"noggin-{name}"
-    return stages.assemble(doc if doc in g.STEM_IN else name, frames, 2)
+    """The picture's parts as the engine assembles them, under its document's name (stages.assemble): a Stage clamps the
+    eyes and mouth to the tilt arm so the neck carries the head, and the desk build (geometry.DESK) has its own bracket."""
+    return stages.assemble(f"noggin-{name}", frames, 2)
 
 
 def prepare(name, frames):
@@ -86,7 +87,12 @@ def points(hulls, mats, names=None):
 
 def shot(out, size, cam, mats):
     c = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "ortho_scale": cam.ortho_scale}
-    return {"out": os.path.join(OUT, out), "size": list(size), "camera": c, "pose": mats}
+    return {
+        "out": os.path.join(OUT, out),
+        "size": list(size),
+        "camera": c,
+        "pose": {n: np.asarray(m).tolist() for n, m in mats.items()},
+    }
 
 
 def blender(name, manifest, shots):
@@ -103,7 +109,14 @@ def views(names=None):
     for name, (frames, dirs) in DOCS.items():
         if not names or name in names:
             stage, manifest, hulls = prepare(name, frames)
-            plans[name] = (manifest, hulls, metres({n: p.matrix for n, p in stage.parts.items()}), dirs)
+            doc = f"noggin-{name}"
+            # a Stage at rest as MuJoCo settles it: every gesture starts there (traces.commands)
+            mats = (
+                trajectories.poses(doc, "wink")[0]
+                if doc in g.STAGES
+                else metres({n: p.matrix for n, p in stage.parts.items()})
+            )
+            plans[name] = (manifest, hulls, mats, dirs)
     aspect, panel_aspect = VIEW_SIZE[0] / VIEW_SIZE[1], STRIP_PANEL[0] / STRIP_PANEL[1]
     panels = {}
     for doc, v in STRIP:
@@ -151,14 +164,12 @@ def gesture_camera(eye_points, aspect):
 
 
 def gifs(names=None):
-    """Each gesture's frames (model/traces.py: the Core program's commands as model joint degrees, one per 100 ms) on
-    stage 1 through the three-quarter camera, encoded to <gesture>.gif at 10 fps (at most GIF_MAX_BYTES) with a
+    """Each gesture's trajectory on stage 1 (model/trajectories.py: MuJoCo playing the Core program's writes, one frame
+    per 100 ms) through the three-quarter camera, encoded to <gesture>.gif at 10 fps (at most GIF_MAX_BYTES) with a
     contact sheet <gesture>-sheet.png."""
-    from model import traces  # loads the Core program (stubs `machine`)
-
     names = names or list(traces.GESTURES)
-    stage, manifest, hulls = prepare("stage1", g.STAGES["noggin-stage1"])
-    poses = {name: [metres(scene.pose(stage, f)) for f in traces.record(name)] for name in names}
+    _, manifest, hulls = prepare("stage1", g.STAGES["noggin-stage1"])
+    poses = {name: trajectories.poses("noggin-stage1", name) for name in names}
     eyes = set(stages.eyes().parts)
     # one camera for every gesture, fitted to the eyes in all their frames: lids at their widest stay in
     cam = gesture_camera(
@@ -177,12 +188,11 @@ def gifs(names=None):
 
 
 def hero_gif():
-    """The hero's poses (model/render/hero.py) on stage 3 through one three-quarter camera fitted to every pose,
-    encoded to hero.gif: 640 wide, 10 fps, 64 colours, at most 3 MB."""
-    from model.render import hero
-
-    stage, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
-    poses = [metres(scene.pose(stage, f)) for f in hero.frames()]
+    """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
+    camera fitted to every pose, encoded to hero.gif: 640 wide, 10 fps, at most 3 MB (48 colours: the servos' own motion
+    took 64 to 3.2 MB)."""
+    _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
+    poses = trajectories.poses("noggin-stage3", "hero")
     cam = camera.fit(np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, 4 / 3, LENS, MARGIN)
     folder = os.path.join(OUT, "gifs", "hero")
     os.makedirs(folder, exist_ok=True)
@@ -191,15 +201,15 @@ def hero_gif():
     blender(
         "stage3", manifest, [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
     )
-    encode(folder, os.path.join(OUT, "hero"), hero.FPS, 640, 3_000_000)
+    encode(folder, os.path.join(OUT, "hero"), trajectories.FPS, 640, 3_000_000, colours=48)
 
 
-def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES):
+def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES, colours=64):
     """frames/NNN.png -> out.gif (one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
     palette = (  # 480 wide, 64 colours: bored's 117 frames fit 1 MB (600 wide or 96 colours did not)
-        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];"
+        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={colours}:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     )
     ffmpeg("-framerate", str(fps), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")

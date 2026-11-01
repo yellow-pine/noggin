@@ -1,7 +1,7 @@
 """Trajectories (#179): each gesture (model/traces.py, the Core program's writes) and the README hero
 (model/render/hero.py) played on each Stage by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's
-place in the world per 100 ms frame: the one source of motion the pictures and GIFs (#150) and the web viewer (#180)
-will render from.
+place in the world per 100 ms frame: the one source of motion the pictures and GIFs render from (#150, poses()) and
+the web viewer will (#180).
 Each servo slews its command at the rated no-load speed (eyes/servo.py Plant, at 4.8 V as mjcf's stall torque) and its
 position actuator follows under the load, its torque limited to the stall torque; contacts are off, as in mjcf.pose.
 `python -m model.trajectories` (`make trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
@@ -18,6 +18,7 @@ from importlib.metadata import version
 
 import mujoco
 import numpy as np
+import trimesh
 
 from model import electrical, geometry, mjcf, traces
 from model.engine import run, stages
@@ -107,6 +108,20 @@ def stale(doc):
     """True when a motion's file of the Stage is missing or no longer carries its stamp."""
     key, files = stamp(doc), [os.path.join(OUT, doc, m + ".json") for m in motions(doc)]
     return not all(os.path.isfile(f) and json.load(open(f))["stamp"] == key for f in files)
+
+
+def poses(doc, motion):
+    """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
+    the web viewer's glTF will read (#182)."""
+    parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
+    frames = []
+    for i in range(len(next(iter(parts.values()))["pos"])):
+        frames.append({})
+        for name, p in parts.items():
+            m = trimesh.transformations.quaternion_matrix(p["quat"][i])  # w x y z, as MuJoCo's
+            m[:3, 3] = p["pos"][i]
+            frames[-1][name] = m
+    return frames
 
 
 if __name__ == "__main__":
