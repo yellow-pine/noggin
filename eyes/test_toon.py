@@ -91,6 +91,8 @@ def test_wink_closes_fully_holds_and_the_other_lid_squints():
     before = [(a, t) for t, a in ev if t < t_shut]
     start = max(before)[1]  # the lift's peak, where the close starts
     assert t_shut - start >= 180 and t_open - t_shut >= 350
+    reopen = [a for t, a in ev if t >= t_open]
+    assert max(reopen) > lid(CAL["lid_rest"]) and reopen[-1] == pytest.approx(lid(CAL["lid_rest"]))  # overshoot
     squint = max(a for _, a in other)  # the left servo is mirrored: closing is up
     assert squint == pytest.approx(lid(0.8 * CAL["lid_rest"], L_LID))
     glance = [a for t, a in eye if t <= start]

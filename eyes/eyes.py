@@ -200,8 +200,7 @@ class Eyes:
     # Toon timing (#258, docs/research/2026-11-01-toon-eyes.md): anticipation, slow in and slow out, holds, overshoot
     # and settle. Saccades keep real human shapes (docs/research/2026-10-31-natural-eye-motion.md).
     def blink(self, level=None, hold=80, shut=None):
-        """A tiny lift, ease-in close, hold shut, ease-out reopen a little past the level, settle. From lid_rest:
-        40 + 160 + 80 + 240 + 100 ms."""
+        """A tiny lift, ease-in close, hold shut, ease-out reopen a little past the level, settle."""
         level = self.cal["lid_rest"] if level is None else level
         over = min(OVER, self.cal["lid_open"] - level)  # never past lid_open, by the open stop
         self.lids(level + over, 40)
