@@ -25,6 +25,18 @@ except ImportError:
     gaze_trace = None
 
 
+idle = None  # called between a gesture's steps: wifi.start hooks the Link in, so it is served while a gesture plays
+
+
+def wait(ms):
+    """sleep_ms in steps of at most 20 ms with idle() between them: beacons and acks go out while a gesture plays."""
+    while ms > 0:
+        sleep_ms(min(ms, 20))
+        ms -= 20
+        if idle:
+            idle()
+
+
 def _s8(v):
     return (v - 256 if v > 127 else v) / 2  # trace bytes: signed int8 half-degrees
 
@@ -134,7 +146,7 @@ class Eyes:
             if ease:
                 f = 1 - (1 - f) ** 2
             self.set({p: start[p] + (targets[p] - start[p]) * f for p in targets})
-            sleep_ms(step)
+            wait(step)
 
     def release(self):
         for p in self.pwm.values():
@@ -163,7 +175,7 @@ class Eyes:
     def blink(self, level=None, hold=55, open_ms=300):
         """Close as a step, hold, reopen with ease-out (real blinks close ~3x faster than they open)."""
         self.lids(self.cal["lid_closed"])
-        sleep_ms(80 + hold)
+        wait(80 + hold)
         self.lids(self.cal["lid_rest"] if level is None else level, open_ms, ease=True)
 
     def saccade(self, angle):
@@ -173,23 +185,23 @@ class Eyes:
         d = angle - cur
         if gaze_trace is None or abs(d) < 2:
             self.eyes(cur + d * 0.93)
-            sleep_ms(120)
+            wait(120)
             self.eyes(angle)
-            sleep_ms(60)
+            wait(60)
             return
         prof = gaze_trace.SACCADE[min(gaze_trace.SACCADE, key=lambda a: abs(a - abs(d)))]
         for f in prof:
             self.eyes(cur + d * f)
-            sleep_ms(10)
+            wait(10)
         self.eyes(angle)
 
     def replay(self, samples, blinks=()):
-        """Play a 25 Hz gaze clip around centre (blocking)."""
+        """Play a 25 Hz gaze clip around centre."""
         for i in range(len(samples)):
             self.eyes(EYE_CENTER + _s8(samples[i]))
             if i in blinks:
                 self.blink(level=self.cal["lid_think"])
-            sleep_ms(1000 // gaze_trace.HZ)  # pyright: ignore[reportOptionalMemberAccess]
+            wait(1000 // gaze_trace.HZ)  # pyright: ignore[reportOptionalMemberAccess]
 
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200)
@@ -202,14 +214,14 @@ class Eyes:
         amp, hold = {1: (12, 300), 2: (22, 550), 3: (25, 800)}[i]
         self.lids(self.cal["lid_open"])  # AU5: widen, as a step
         self.saccade(EYE_CENTER + side * amp)
-        sleep_ms(hold)
+        wait(hold)
         if i == 3:
             self.saccade(EYE_CENTER - side * amp)
-            sleep_ms(500)  # double-take
+            wait(500)  # double-take
         self.saccade(EYE_CENTER)
         self.blink(level=self.cal["lid_open"], open_ms=250)
         if i >= 2:
-            sleep_ms(200)
+            wait(200)
             self.blink(level=self.cal["lid_open"], open_ms=250)
         self.lids(self.cal["lid_rest"], 300, ease=True)
 
@@ -225,7 +237,7 @@ class Eyes:
                 self.eyes(EYE_CENTER - 25, 1250)
         self.saccade(EYE_CENTER)
         self.lids(self.cal["lid_rest"], 300, ease=True)
-        sleep_ms(200)
+        wait(200)
         self.blink()
 
     def bored(self, i):
@@ -238,19 +250,19 @@ class Eyes:
                 start = 0 if k == 0 else [n // 4, n // 2][k - 1]
                 for j in range(start, blink_at):
                     self.eyes(EYE_CENTER + _s8(calm[j]))
-                    sleep_ms(1000 // gaze_trace.HZ)
+                    wait(1000 // gaze_trace.HZ)
                 self.lids(self.cal["lid_closed"], 200 if hold < 1800 else 250)
-                sleep_ms(hold)
+                wait(hold)
                 self.lids(droop if hold < 1800 else self.cal["lid_rest"], 900 if hold < 1800 else 1200, ease=True)
         else:
             self.eyes(EYE_CENTER - 6, 800)
             for _ in range(2):
                 self.lids(self.cal["lid_closed"], 200)
-                sleep_ms(500)
+                wait(500)
                 self.lids(droop, 900, ease=True)
-                sleep_ms(700)
+                wait(700)
             self.lids(self.cal["lid_closed"], 250)
-            sleep_ms(1800)  # the stall-time rule (test_stall.py) caps closures at 2 s
+            wait(1800)  # the stall-time rule (test_stall.py) caps closures at 2 s
             self.lids(self.cal["lid_rest"], 1200, ease=True)
         self.saccade(EYE_CENTER)
 
@@ -260,9 +272,9 @@ class Eyes:
         for a in (4, -4, 3):
             self.saccade(EYE_CENTER + a)
         self.saccade(EYE_CENTER)
-        sleep_ms(150)
+        wait(150)
         self.lids(self.cal["lid_rest"] + 0.1, 200, ease=True)
-        sleep_ms(150)
+        wait(150)
         self.lids(self.cal["lid_rest"], 300, ease=True)
 
     def wink(self, i):
@@ -271,9 +283,9 @@ class Eyes:
         pin = {1: L_LID, 2: R_LID}.get(i, L_LID if self._side() > 0 else R_LID)
         self.saccade(EYE_CENTER + (8 if pin == L_LID else -8))
         self.lid(pin, 0.03, 400, ease=True)
-        sleep_ms(500)  # slow, so it can go nearer the stop than a blink
+        wait(500)  # slow, so it can go nearer the stop than a blink
         self.lid(pin, self.cal["lid_rest"], 600, ease=True)
-        sleep_ms(150)
+        wait(150)
         self.saccade(EYE_CENTER)
 
     GESTURES = {"eureka": eureka, "attention": attention, "bored": bored, "wince": wince, "wink": wink}
