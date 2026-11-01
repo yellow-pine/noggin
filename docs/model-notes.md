@@ -38,6 +38,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
 
 ## Numbers from the code
+
 The picture sizes and the colours, as model/render/pictures.py and blender.py, model/geometry.py SPOOLS and
 model/mjcf.py VIEW set them.
 

@@ -10,8 +10,6 @@ from pathlib import Path
 
 import pytest
 
-import macros
-
 ROOT = Path(__file__).resolve().parent
 
 
@@ -95,5 +93,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
 
 def test_every_duration_left_in_the_readme_agrees_with_the_code():
     """The table is the site's; a duration GitHub still shows (say a blink every 5-8 s) must be one the code has."""
+    import macros  # here, not at the top: it imports the model, which only this test needs
+
     durations = r"\b\d+(?:-\d+)? (?:s|min)\b"
     assert set(re.findall(durations, github("README.md"))) <= set(re.findall(durations, macros.behaviour()))

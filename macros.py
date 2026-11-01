@@ -5,7 +5,6 @@ pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures
 mjcf.py)."""
 
 import ast
-import inspect
 from pathlib import Path
 
 from model import geometry as g
@@ -57,19 +56,19 @@ def behaviour():
 
 
 def picture_numbers():
-    encode = inspect.signature(pictures.encode).parameters
-    gif = f"{encode['width'].default} wide, {pictures.GIF_FPS} fps, {encode['colours'].default} colours"
-    hero = f"{pictures.HERO_GIF[0]} wide, {trajectories.FPS} fps, {pictures.HERO_GIF[2]} colours"
+    p, gif = pictures, "{} wide, {} fps, {} colours, at most {:g} MB".format
+    gestures = gif(p.GIF_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.GIF_MAX_BYTES / 1e6)
+    hero = gif(p.HERO_WIDTH, trajectories.FPS, p.HERO_COLOURS, p.HERO_MAX_BYTES / 1e6)
     size = "{}x{}".format
     lift = {g.SPOOLS["Absolute Black"]: constant("model/render/blender.py", "BLACK_LIFT")}
     return "\n".join(
         [
             "| Pictures | Rendered | GIF |",
             "|---|---|---|",
-            f"| views and the exploded stage 3 | {size(*pictures.VIEW_SIZE)} | |",
-            f"| the Stage strip, per panel | {size(*pictures.STRIP_PANEL)} | |",
-            f"| gestures | {size(*pictures.GIF_SIZE)} | {gif}, at most {pictures.GIF_MAX_BYTES / 1e6:g} MB |",
-            f"| hero | {size(*pictures.HERO_SIZE)} | {hero}, at most {pictures.HERO_GIF[1] / 1e6:g} MB |",
+            f"| views and the exploded stage 3 | {size(*p.VIEW_SIZE)} | |",
+            f"| the Stage strip, per panel | {size(*p.STRIP_PANEL)} | |",
+            f"| gestures | {size(*p.GIF_SIZE)} | {gestures} |",
+            f"| hero | {size(*p.HERO_SIZE)} | {hero} |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `make view` |",
             "|---|---|---|---|",
