@@ -4,6 +4,8 @@ MPR   := $(REPO)/.venv/bin/mpremote
 MPYC  := $(REPO)/.venv/bin/mpy-cross
 BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 NOGGIN := noggin/noggin
+# one heavy command (MuJoCo, CoACD, Blender) at a time on this machine, the next waits (#246); no comment after the value, as below
+HEAVY := $(PY) scripts/heavy.py
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
@@ -11,24 +13,27 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
-test: venv ours
-	$(PY) -m pytest -q
+test: venv ours   ## every test, under the heavy lock (CI's model jobs select theirs with -m model)
+	$(HEAVY) $(PY) -m pytest -q
 lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
-check: test lint  ## tests, lint, formatting, types, wizard syntax, plist validity, hook script syntax (CI's jobs: CONTRIBUTING.md)
+check: venv ours lint  ## CI's code job: the tests not marked model, lint, formatting, types, wizard syntax, plist validity, hook script syntax
+	$(PY) -m pytest -q -m "not model"
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
+check-all: check   ## every test: make check, then the model tests under the heavy lock
+	$(HEAVY) $(PY) -m pytest -q -m model
 sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry into model/build/reports: placements, fits, beams, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
-	$(PY) -m model.report $(SIM_DOCS)
+	$(HEAVY) $(PY) -m model.report $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
 ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged
 	@key=$$(shasum $(OURS_SRC) | shasum); if [ "$$(cat model/build/ours/.key 2>/dev/null)" = "$$key" ]; then echo "model/build/ours: up to date"; else $(PY) -m model.ours && echo "$$key" > model/build/ours/.key; fi
@@ -89,18 +94,18 @@ restore-stock: interrupt
 	$(PY) eyes/interrupt.py reset
 
 view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
-	$(PY) -m model.mjcf $(DOC)
+	$(HEAVY) $(PY) -m model.mjcf $(DOC)
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
 trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage: every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
-	$(PY) -m model.trajectories
+	$(HEAVY) $(PY) -m model.trajectories
 render: venv ours trajectories   ## Blender pictures, each Stage at rest from its trajectories: views, Stage strip, stage 3 exploded (model/build/pictures)
-	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures views
 gifs: venv ours trajectories     ## the six gesture GIFs + contact sheets on stage 1, from their trajectories
-	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures gifs
 hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
-	BLENDER=$(BLENDER) $(PY) -m model.render.pictures hero
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
 web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
-	BLENDER=$(BLENDER) $(PY) -m web.build
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
 site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it, the sim reports to site/reports once make sim did; look with python -m http.server -d site
 	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict

@@ -47,8 +47,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 
 - Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`, `mech/`. Tests sit beside the code they test (`test_*.py` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
-- Run `make check` before opening a PR. CI runs the same, split over two required jobs (`.github/workflows/check.yml`):
-  `code` (everything but the tests marked `model`) and `model` (those, `make view`'s scene rendered offscreen among
+- Run `make check` before opening a PR: the `code` set, everything but the tests marked `model`. `make check-all` adds
+  those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
+  `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
+  saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over two required jobs
+  (`.github/workflows/check.yml`): `code` (`make check`) and `model` (the `model` tests, `make view`'s scene rendered offscreen among
   them, and `make stl step` on main or when the parts changed, split over five shards, plus a sim shard), pytest
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
