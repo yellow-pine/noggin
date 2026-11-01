@@ -23,8 +23,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
   `type(scope): subject`, `type!: subject` for a breaking change (docs/adr/0010). Types: feat, fix, perf, docs, ci,
   build, refactor, test, chore. The scope is optional and free-form: name a top-level area (`eyes`, `web`, ...) or
-  `deps` for a dependency bump, as Dependabot does. The required `PR Title` check (`.github/workflows/pr-title.yml`)
-  enforces the type; editing the title re-runs it.
+  `deps` for a dependency bump, as Dependabot does (`deps-dev` for the dev group). The required `PR Title` check
+  (`.github/workflows/pr-title.yml`) enforces the type; editing the title re-runs it.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
   workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
   titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the

@@ -1,5 +1,5 @@
 version: 2
-updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps): bump ...`, `ci(deps): bump ...`
+updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|deps-dev): bump ...`, `ci(deps): bump ...`
   - package-ecosystem: uv
     directory: /
     schedule:
