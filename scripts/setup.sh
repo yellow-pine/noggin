@@ -200,7 +200,7 @@ finish() {
 
 run_wizard() {
 
-[[ "${1:-}" =~ ^(wifi)?$ ]] || { echo "usage: scripts/setup.sh [wifi]   (wifi: only the Join the Wi-Fi stage, as make wifi)" >&2; exit 2; }
+[[ "${1:-}" =~ ^(wifi)?$ ]] || { echo "usage: scripts/setup.sh [wifi]   (wifi: only the Join the Wi-Fi step, as make wifi)" >&2; exit 2; }
 TOTAL_STAGES=8
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
@@ -239,11 +239,10 @@ say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NA
 pause
 }
 
-if [[ "${1:-}" == wifi ]]; then          # make wifi: this stage alone, then the noggin service back if it was running
+if [[ "${1:-}" == wifi ]]; then          # make wifi: this step alone, then the noggin service back if it was running
   TOTAL_STAGES=1
-  launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && was_running=1
+  launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && trap 'make -s start' EXIT   # also after a failure or Ctrl-C
   join_wifi
-  [[ -z "${was_running:-}" ]] || make -s start
   exit 0
 fi
 

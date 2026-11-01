@@ -175,7 +175,7 @@ range, filament is Bambu PLA Pure.
 
 ```
 scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
-make wifi            # add a Wi-Fi network to the Core on USB (the wizard's Join the Wi-Fi stage alone)
+make wifi            # add a Wi-Fi network to the Core on USB (the wizard's Join the Wi-Fi step alone)
 make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
 make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons or no Core is on USB, else USB (USB=1 forces it)
