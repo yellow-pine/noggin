@@ -337,7 +337,8 @@ jobs:
           echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
       # a Docs version's build, as release.yml makes each release's (docs/adr/0014): the same site under /noggin/v0.0/,
       # its links inside it (dist is rebuilt here, after its upload)
-      - run: npm --prefix site run build && npm --prefix site test
+      - name: Test a docs version build
+        run: npm --prefix site run build && npm --prefix site test
         env:
           SITE_BASE: /noggin/v0.0
       # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget's critical path
