@@ -2,6 +2,7 @@
 {# Material uses a global mermaid if one is defined, else it loads unpkg's floating mermaid@11 (its diagrams docs): the
    site serves its own (mermaid.py), and scripts from the site alone may run, so that fallback is blocked #}
 {% block extrahead %}
+  <style>{{ config.extra.palette }}</style>
   {% if page and 'class="noggin-viewer"' in page.content %}
     {# the web viewer (web/viewer.mjs) and the three.js the site serves beside it at viewer/ (web/build.py); the Draco
        decoder also compiles its WASM in the Blob worker DRACOLoader makes (Material's search worker is the site's own).

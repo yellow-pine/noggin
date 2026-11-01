@@ -43,6 +43,11 @@ def test_the_viewer_plays_a_gesture_from_the_site_alone(server):
         button = functools.partial(page.get_by_role, "button", exact=True)
         expect(button(name="Stage 3")).to_have_attribute("aria-pressed", "true")
         expect(button(name="hero")).to_have_attribute("aria-pressed", "true", timeout=30_000)  # Stage 3 loaded
+        # the canvas is see-through, so the Mech sits on the page's own background, which the toggle turns dark (#282)
+        assert page.evaluate("() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha")
+        expect(button(name="Stage 3")).to_have_css("color", "rgb(43, 43, 46)")  # a pressed button: ink on its pink
+        page.get_by_title("Switch to dark mode").click()
+        expect(page.locator("body")).to_have_css("background-color", "rgb(43, 43, 46)")  # #2B2B2E
         gestures = page.get_by_role("navigation", name="Gesture").get_by_role("button")
         assert sorted(gestures.all_text_contents()) == sorted([*traces.GESTURES, "hero"])
         # every button pressed from here on, in order: a slow software-drawn frame can play the whole wink at once

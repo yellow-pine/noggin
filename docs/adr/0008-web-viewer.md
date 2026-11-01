@@ -40,9 +40,10 @@ watch the hero loop.
   is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
   map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in
   `DRACOLoader`'s Blob worker), so a missing copy fails instead of falling back to a CDN.
-- **One source for the look.** Blender's export writes the look numbers (background, line width, crease angle, the
-  light ramp, highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the
-  page reads them and holds no look numbers of its own.
+- **One source for the look.** Blender's export writes the look numbers (line width, crease angle, the light ramp,
+  highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the page reads
+  them and holds no look numbers of its own. The canvas is see-through: the background is the site's palette
+  (`palette.py`, #282), the pictures' paper in the light scheme.
 - **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
   `model/`, `eyes/` or `web/`, and on demand. A red build on main leaves the last site up; on a PR
   touching what the site is made from it fails the required `site` check (#245). Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs

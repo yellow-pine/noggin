@@ -12,9 +12,26 @@ theme:
   name: material
   custom_dir: overrides   # main.html: the pinned Mermaid below and the web viewer; viewer.html: its page
   font: false   # the system's fonts: no page asks Google Fonts for Roboto (the viewer plays with no third-party request)
+  # the Mech's own colours (palette.py), light and dark, following the reader's system until they toggle
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 hooks:
   - mermaid.py   # fetches, checks and copies the pinned Mermaid into the site
   - home.py
+  - palette.py   # the palette's CSS from the model's colours
   - web/page.py   # the web viewer's page (web/viewer.md) at viewer/
 # the Mermaid the site serves instead of Material's floating unpkg mermaid@11, and the one test_site.py renders every
 # diagram with (in the mermaid-cli below); the integrity is the sha384 of the npm package's dist/mermaid.min.js, which

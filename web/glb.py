@@ -48,7 +48,6 @@ def main(job):
     sun = [look.SUN / math.pi * max((i + 0.5) / 128 - 1, 0) for i in range(256)]
     ramp = [look.TOON * (1.0 if 0.8 * x > look.SHADOW_AT else look.SHADOW) + (1 - look.TOON) * x for x in sun]
     for k, v in {
-        "bg": look.BG,
         "line_px": look.LINE_PX,
         "line_at": 640,  # line_px holds with the Stage framed as in a 4:3 picture this wide, the hero GIF (#211, #271)
         "crease": look.CREASE,
