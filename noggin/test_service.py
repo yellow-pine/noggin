@@ -139,8 +139,23 @@ def test_a_calibration_from_before_the_shared_lid_frame_still_loads_and_set_save
     assert wait_for(lambda: all(line in fake.buf for line in lines))
     assert b"flip" not in fake.buf
     send(sock, "set r_lid_rest 70\n")
-    assert wait_for(lambda: json.loads((tmp_path / "c.json").read_text()).get("r_lid_rest") == 70)
-    assert "l_lid_flip" not in json.loads((tmp_path / "c.json").read_text())
+    assert wait_for(lambda: fake.buf.endswith(b"set r_lid_rest 70\n"))  # sent to the Core after the file is saved
+    saved = json.loads((tmp_path / "c.json").read_text())
+    assert saved["r_lid_rest"] == 70 and "l_lid_flip" not in saved
+    s.stop()
+
+
+def test_set_replaces_the_calibration_file_whole_so_a_reader_never_sees_it_half_written(tmp_path):
+    """A reader that opened the file before a `set` still reads the whole old file: the save writes a new file and
+    swaps it in (os.replace), never truncating the one a reader (or a power cut) is in the middle of."""
+    (tmp_path / "c.json").write_text('{"lid_rest": 0.28}')
+    s, sock, fake = start(tmp_path)
+    with open(tmp_path / "c.json") as reader:
+        send(sock, "set lid_rest 0.3\n")
+        assert wait_for(lambda: fake.buf.endswith(b"set lid_rest 0.3\n"))
+        assert json.loads(reader.read()) == {"lid_rest": 0.28}
+    assert json.loads((tmp_path / "c.json").read_text()) == {"lid_rest": 0.3}
+    assert [p.name for p in tmp_path.iterdir() if p.name.startswith("c.json")] == ["c.json"]  # no temp file left
     s.stop()
 
 
