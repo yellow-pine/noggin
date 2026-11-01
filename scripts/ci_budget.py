@@ -17,18 +17,19 @@ BUDGET_S = {"pull_request": 180, "merge_group": 180, "push": 540}  # the queue c
 def first_start(jobs: list[dict], attempt_started: str) -> str:
     """When the first of the attempt's jobs that ran started: a queued or waiting job has no runner yet, a skipped or
     cancelled one may never have had one, and a job "re-run failed jobs" kept from an earlier attempt is listed under
-    this attempt's run_attempt but with the start it had back then, before this attempt started."""
+    this attempt's run_attempt but with the start it had back then, before this attempt started. Should the attempt's
+    recorded start be later than every job's, the earliest job that ran counts, so the budget still reports."""
     ran = [
         j
         for j in jobs
-        if (
-            j["status"] == "in_progress"
-            or j["status"] == "completed"
-            and j["conclusion"] not in ("skipped", "cancelled")
-        )
-        and datetime.fromisoformat(j["started_at"]) >= datetime.fromisoformat(attempt_started)
+        if j["status"] == "in_progress"
+        or j["status"] == "completed"
+        and j["conclusion"] not in ("skipped", "cancelled")
     ]
-    return min(ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
+    since_attempt = [
+        j for j in ran if datetime.fromisoformat(j["started_at"]) >= datetime.fromisoformat(attempt_started)
+    ]
+    return min(since_attempt or ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
 
 
 def over(event: str, started: str, now: str, warm: bool) -> tuple[str, str] | None:
