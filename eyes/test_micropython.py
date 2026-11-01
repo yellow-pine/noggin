@@ -29,9 +29,8 @@ def pyright(*files):
 
 
 def test_the_stubs_and_mpy_cross_are_the_cores_micropython():
-    assert version("micropython-esp32-esp32_generic_c3-stubs").startswith(PIN + ".")
-    assert version("micropython-stdlib-stubs").startswith(PIN + ".")
-    assert version("mpy-cross").startswith(PIN + ".")
+    for package in ("micropython-esp32-esp32_generic_c3-stubs", "micropython-stdlib-stubs", "mpy-cross"):
+        assert version(package).startswith(PIN + "."), package
 
 
 def test_pyright_flags_a_call_the_cores_micropython_lacks(tmp_path):
