@@ -61,3 +61,8 @@ The original "one design per stage plus a top assembly" is superseded by the upd
 (base, stack, eyes, mouth) own their parts once, and three cumulative Stage documents (noggin-stage1..3) insert them by
 reference. Fusion only builds documents: no screenshots, no canvases, no proxy bodies; the engine simulates
 (ADR 0006) and Blender renders.
+
+## Update 2026-11-01 (#172): the desk eyes
+
+Stage 1 puts the desk eye bracket's stem through the base plate's slot, not the pan recess
+(docs/research/2026-11-01-eyes-on-plate.md).

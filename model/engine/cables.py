@@ -21,7 +21,7 @@ VOXEL_MM = 1.0  # the union's resolution
 # Waypoints per lead (electrical.leads), from its first Port to its second: (part it is clipped to, point in that part's
 # sub-assembly frame (eyes frame for the eyes and mouth, PT frame for the base and stack), why). A lead lists its routes
 # in order and a document takes the first whose parts it has: the eyes on the neck (stages 2, 3) or on the desk (the
-# stem in the base's pan recess: stage 1 and the eyes and mouth documents). Routing from the designer's guides (pan-tilt
+# stem in the base plate's slot: stage 1 and the eyes and mouth documents). Routing from the designer's guides (pan-tilt
 # steps 8-10, 13, 17-18: the leads pass under the cable holders and are zip-tied, "make sure this is still sufficient
 # length to allow for movement") and the eyes build photos (docs/build-photos: the leads leave the servos' backs and
 # loop to the keeper and the shield); every point is placed by eye from those photos: inferred.

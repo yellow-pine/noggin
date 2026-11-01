@@ -26,7 +26,7 @@ def test_envelope_is_the_designers_box_within_a_millimetre():
 
 
 def test_the_desk_eye_bracket_is_the_designers_first_box_within_a_millimetre():
-    """The desk build's bracket (01-eyes main bracket): no rail, no raised band, the stem's bottom at y -40.6."""
+    """The desk build's bracket (the designer's first): no rail, no raised band, the stem's bottom at y -40.6."""
     box = eye_bracket.build(desk=True).val().BoundingBox()
     designer = (-28.0, -40.6, -4.0, 87.0, 4.0, 18.0)
     got = (box.xmin, box.ymin, box.zmin, box.xmax, box.ymax, box.zmax)

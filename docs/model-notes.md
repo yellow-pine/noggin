@@ -68,7 +68,7 @@ the model stabilises.
     open ends still collide in the model and are accepted with their reason (model/test_report.py KNOWN_CALIBRATED);
   - every cable corridor waypoint (read off the build and guide photos, placed by eye), the servo lead length (250 mm,
     the typical 9 g figure; the vendor publishes none) and the Y lead's branches (100 mm each);
-  - the bracket stem's depth in the pan recess (stage 1, from the build photos) and in the tilt arm window (stages 2, 3)
+  - the bracket stem's depth in the plate's slot (stage 1, from the build photos) and in the tilt arm window (stages 2, 3)
     (geometry.STEM_AT);
   - the receiver headers' PWM numbering (geometry.RECEIVER_STEP; no numbering changes a result);
   - the jaw bar seated flush between the jaw lug and the horn arm (geometry.PT_BAR_PLANES, #170);

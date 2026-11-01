@@ -27,7 +27,14 @@ def test_every_joint_names_features_our_parts_declare_and_no_declared_feature_go
     declared = {**printed.FEATURES, **envelopes.FEATURES}
     parts = [stages.STAGES[doc].parts for doc in ("noggin-eyes", "noggin-pan-tilt", "noggin-mouth")]
     # by mesh: noggin-eyes builds the desk eye bracket, noggin-mouth the rail one
-    named = {(stages.stem(ps[p].file), f) for ps in parts for _, feats in mating.JOINTS for p, f in feats if p in ps}
+    joints = [feats for _, feats in mating.JOINTS]
+    named = {
+        (stages.stem(ps[p].file), f)
+        for ps in parts
+        for feats in joints
+        if {p for p, _ in feats} <= set(ps)
+        for p, f in feats
+    }
     assert named == {(stem, f) for stem, feats in declared.items() for f in feats}
 
 

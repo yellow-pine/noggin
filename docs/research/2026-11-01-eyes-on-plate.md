@@ -45,7 +45,7 @@ plate against the eye bracket and against both servo brackets.
      pivot hole) shows between the two servo brackets, behind the stem, and the stem does not cover it. In the side
      photo, the eyeballs reach about 33 mm in front of the plate's front edge. The recess placement gives about 20 mm and
      the slot about 36 mm.
-   - The model's comment "stem in the pan recess, builder-confirmed" dates from Twin T2 (commit 5c58efb). It put v2 there
+   - The model's comment "stem in the pan recess, builder-confirmed" dates from T2 (commit 5c58efb). It put v2 there
      with the stem bottom 1.5 above the plate top [I]. With the boss standing in the recess, no 12 x 5 stem fits there.
      The photos settle it the other way.
 
@@ -57,9 +57,10 @@ plate against the eye bracket and against both servo brackets.
 - pt_to_eyes_standalone and EYES_ON_BASE put the stem in the slot: eyes z 15.5 is at PT y -16.5, and the feet are at
   z 3 as before. STEM_AT for stage 1 is (0, -16.5, -2), so the stem bottom is flush with the plate's underside.
 - The guard: in model/engine/test_meshes.py, for both desk documents, nothing of the eyes sits inside the plate and both
-  servo brackets touch the plate top. model/test_mjcf.py no longer lists the plate against the servo brackets or the
-  eye bracket in TOUCH. noggin-mouth carries the rail bracket on the desk base, a pairing never built, so it adds the
-  eye bracket to MOUTH_ON_DESK.
+  servo brackets touch the plate top. In model/test_mjcf.py the open conflict is gone from TOUCH. One plate convex piece
+  (x -43..43, y -25..4.7, z -2..5) bridges the slot and the pan boss, so MuJoCo still overlaps the three brackets
+  with it (1.7 mm, 6.1 mm). TOUCH lists those pairs as hull artifacts, and the exact meshes are the guard. noggin-mouth
+  carries the rail bracket on the desk base, a pairing never built, where the rail does sit in the plate.
 
 ## Left open
 
