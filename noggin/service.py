@@ -183,6 +183,7 @@ class Service:
                 msg = self.wifi.flash("eyes", {f: (build / f).read_bytes() for f in FLASH_FILES})
             except (RuntimeError, OSError) as e:
                 msg = f"flash failed: {e}"
+            self.live.pop("eyes", None)  # rebooted inside the window, uptime maybe not lower: the loop recalibrates it
         log(msg)
         return msg + "\n"
 
@@ -271,7 +272,7 @@ class Service:
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
             self.wifi.poll(now)
-            live = {name: int(self.wifi.cores[name][1]) for name in CORES if self.wifi.fresh(name, now)}  # -> uptime
+            live = self.wifi.live(now)
             for name in self.live.keys() - live.keys():
                 log(name, "beacon stale for", self.wifi.stale, "s")
             for name in (live.keys() - self.live.keys()) | {n for n in live if live[n] < self.live.get(n, 0)}:

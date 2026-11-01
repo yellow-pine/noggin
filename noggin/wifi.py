@@ -17,7 +17,7 @@ from pathlib import Path
 
 ACK_SECONDS = (0.2, 0.4, 0.8, 1.6)  # one ack window per try: a lost datagram or a busy Core costs a retry
 CHUNK = 120  # bytes per `put`: 160 base64 characters keep the datagram inside the Core's 256-byte recvfrom
-STALE = 16.0  # s without a beacon before a Core counts as gone: its loop (and beacon) stops for a gesture, bored ~12 s
+STALE = 22.0  # s without a beacon before a Core counts as gone: its loop (and beacon) stops for a gesture, bored ~16 s
 REBOOT_SECONDS = 40  # the new program's boot and Wi-Fi join, or its 10 s fallback to the .bak files and one more boot
 
 _spec = importlib.util.spec_from_file_location("core_wifi", Path(__file__).resolve().parent.parent / "eyes" / "wifi.py")
@@ -76,6 +76,10 @@ class Wifi:
 
     def fresh(self, name, now):
         return name in self.cores and now - self.cores[name][2] < self.stale
+
+    def live(self, now):
+        """Each Core with a fresh beacon -> its uptime (s)."""
+        return {n: int(uptime) for n, (_, uptime, _) in self.cores.items() if self.fresh(n, now)}
 
     def status(self, name):
         ip, uptime, _ = self.cores[name]
