@@ -30,5 +30,5 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          PR: ${{ fromJSON(steps.release.outputs.pr).number }}
-        run: gh pr merge "$PR" --auto --squash -R "$GITHUB_REPOSITORY"
+          PR: ${{ steps.release.outputs.pr }}   # JSON; the step's env is read even when its `if` skips it
+        run: gh pr merge "$(jq -r .number <<<"$PR")" --auto --squash -R "$GITHUB_REPOSITORY"

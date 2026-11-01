@@ -15,10 +15,10 @@ copy, and the tag is `v` plus it.
   derived from its top-level directories (`scripts/pr_scopes.py`), never a hand list; a scope is optional. The required
   `PR Title` check enforces both (amannn/action-semantic-pull-request).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
-  generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to main. Only feat, fix and
-  perf (and breaks) open it and fill the changelog; the other types ride along with the next release. It passes the
-  required checks, Claude's review included, and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
-  release, and the tag starts Release Assets, which attaches the Core program zip.
+  generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
+  main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
+  release. It passes the required checks, Claude's review included, and auto-merges on green; merged, it tags `vX.Y.Z`
+  and creates the GitHub release, and the tag starts Release Assets, which attaches the Core program zip.
 - **A token, not `GITHUB_TOKEN`.** What `GITHUB_TOKEN` creates starts no workflow: the release PR would get no checks
   and its tag no assets. So the workflow runs on `RELEASE_PLEASE_TOKEN`, a fine-grained token on this repo
   (CONTRIBUTING.md).

@@ -19,7 +19,7 @@ jobs:
       - name: Check out the scopes script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}   # main's script and areas, so a PR can't widen its own scopes
+          ref: ${{ github.event.pull_request.base.ref }}   # main's script and areas now: a PR can't widen its own scopes
           persist-credentials: false
           sparse-checkout: scripts/pr_scopes.py   # git ls-files still lists every tracked file
           sparse-checkout-cone-mode: false
