@@ -119,8 +119,7 @@ site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs an
 	[ ! -d model/build/images ] || cp -R model/build/images site/images
 	@$(MAKE) --no-print-directory site-reports
 site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
-	rm -rf site/reports
-	[ ! -d model/build/reports ] || { cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
+	[ ! -d model/build/reports ] || { rm -rf site/reports && cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
 # the Core's MicroPython (pyproject [tool.noggin]); CI caches mech/build on it (no comment after the value, as above)
 MICROPYTHON := v1.23.0

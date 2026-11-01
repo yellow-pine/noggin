@@ -11,8 +11,8 @@ RUN = "https://github.com/o/r/actions/runs/9"
 SUPERSEDED = ("error", "superseded by a newer commit: nothing deployed", RUN)
 
 
-def run(id, name, conclusion="success", status="completed"):
-    return {"id": id, "name": name, "status": status, "conclusion": conclusion, "html_url": f"url{id}"}
+def run(id, name, conclusion="success", state="completed"):
+    return {"id": id, "name": name, "status": state, "conclusion": conclusion, "html_url": f"url{id}"}
 
 
 def test_both_checks_green_deploys_the_site_checks_run():

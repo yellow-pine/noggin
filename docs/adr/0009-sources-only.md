@@ -7,7 +7,8 @@
 > Amended 2026-11-01 (#303, ADR 0010): release-please's release PR commits the generated CHANGELOG.md and the version
 > bump, and switches on its own auto-merge; it lands through the required checks and review like any PR.
 > Amended 2026-11-01 (#310): PRs run checks, main runs the same checks then deploys. Site Checks builds the site on
-> both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild.
+> both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild (only
+> main's newest sim reports swapped in).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -36,10 +37,10 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
   model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
-  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Code Checks is done on
-  main (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Site Checks builds beside Code
-  Checks, before the sim may be saved). The stamp check (model/stale.py) is gone; the
-  recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
+  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Code Checks and Site
+  Checks are done on main (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Site Checks
+  builds beside Code Checks, before the sim may be saved). The stamp check (model/stale.py) is gone; the recorded sweeps
+  (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
 - **The pictures are built in CI** (#226): Site Checks' `render` job renders the README's pictures in
   Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
   their inputs gets them as artifacts. Each motion renders on its own runner, a matrix read from the code (`make
