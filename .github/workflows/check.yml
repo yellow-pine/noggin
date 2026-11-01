@@ -16,7 +16,8 @@ defaults:
   run:
     shell: bash   # -eo pipefail: make's exit code survives the tee
 # Two required checks side by side: code runs everything but the tests marked model (pyproject.toml); model passes when
-# both model shards do, which split those tests (the hero's collision sweep alone, the rest) and make sim. pytest runs on
+# both model shards do, which split those tests (the hero's collision sweep alone, the rest with make view's offscreen
+# render) and make sim, make stl and make step. pytest runs on
 # every core (xdist), its slowest tests go to the job summary, and each job ends on the budget (scripts/ci_budget.py):
 # warm means the parts cache hit its exact key.
 jobs:
@@ -85,7 +86,8 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-   # as in code
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev   # make sim's SPICE circuit, as in code
+      # make sim's SPICE circuit, as in code; Mesa's EGL renders make view's scene offscreen (MUJOCO_GL below) in software
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev libegl1 libegl-mesa0 libgl1-mesa-dri
       # missed the exact key: decompose what is stale before the tests, in mjcf's own process pool, or several xdist
       # workers would decompose the same part into the same folder at once
       - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
@@ -94,9 +96,14 @@ jobs:
         env:
           PYTEST_ADDOPTS: -m model -n auto --dist loadgroup --durations=20 ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
+          MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)
       - if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # the print and FreeCAD exports as a smoke test, beside the short hero shard: on main, and on a PR whose parts
+      # missed their exact key (what they are made from changed)
+      - if: ${{ matrix.shard == 'hero' && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
+        run: make stl step
       # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
       # it (make sim-if-stale), main always runs it
       - if: ${{ matrix.shard == 'mujoco' }}

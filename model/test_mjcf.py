@@ -141,6 +141,20 @@ def test_the_viewer_adds_a_key_light_that_casts_shadows_and_satin_on_the_drawn_p
     assert (model.geom_matid[model.geom_group == mjcf.COLLISION] == -1).all()
 
 
+@pytest.mark.xdist_group("noggin-eyes")
+def test_make_view_draws_the_mech_on_the_flat_sky_offscreen():
+    """make view's default document as the viewer's free camera first sees it, rendered offscreen (CI: MUJOCO_GL=egl):
+    the corners are the flat sky, and the Mech covers part of the frame."""
+    model, data = forward("noggin-eyes")
+    with mujoco.Renderer(model, 240, 320) as r:
+        r.update_scene(data)
+        img = r.render().astype(int)
+    sky = trimesh.visual.color.hex_to_rgba(mjcf.SKY)[:3]
+    corners = img[[0, 0, -1, -1], [0, -1, 0, -1]]
+    assert np.abs(corners - sky).max() <= 3, corners
+    assert 0.05 < (np.abs(img - sky).max(axis=2) > 3).mean() < 0.95
+
+
 @functools.cache
 def sweep(doc):
     """{(horn, deg): MjData} with each horn driven by its servo from its lower to its upper limit (geometry.LIMITS)
