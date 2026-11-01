@@ -34,15 +34,11 @@ jobs:
           enable-cache: false   # as in check.yml
       # the viewer (Blender's GLBs and three.js's Draco decoder in web/build) built and tested by make web when what it
       # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing
-      - id: viewer-inputs
-        env:
-          HASH: ${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
-        run: echo "hash=$HASH" >> "$GITHUB_OUTPUT"
       - id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ steps.viewer-inputs.outputs.hash }}
+          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed
