@@ -23,8 +23,9 @@ def job(name: str, started: str, completed: str | None, conclusion: str | None =
     }
 
 
-# #304's first attempt (run 41349665861): a busy queue held the model shards up to 2.5 min for a runner, so the run
-# ended 285 s after its first job started and the old clock failed it, while no chain of jobs ran past 163 s
+# #304's first attempt (run 41349665861, its jobs by today's names): a busy queue held the model shards up to 2.5 min
+# for a runner, so the run ended 285 s after its first job started and the old clock failed it, while no chain of jobs
+# ran past 163 s
 QUEUED_BUT_FAST = [
     job("Changes", "21:00:34", "21:00:38"),
     job("Convex", "20:59:59", "21:00:03"),
@@ -85,12 +86,6 @@ def test_an_attempt_start_later_than_every_job_falls_back_to_every_job_that_ran(
     """Should the attempt's recorded start come after every job's (clock skew), the budget still reports, not crash."""
     jobs = [job("Convex", "12:00:02", "12:00:05"), job("Model (hero)", "12:00:05", None)]
     assert critical_path(jobs, CHECK, "2026-11-01T12:00:09Z", "2026-11-01T12:01:05Z") == 3 + 60
-
-
-def test_a_matrix_job_without_a_name_is_listed_by_its_id_and_values():
-    workflow = {"motions": {}, "render": {"needs": "motions", "strategy": {"matrix": {"motion": ["a"]}}}}
-    jobs = [job("motions", "12:00:00", "12:00:10"), job("render (wave, 2)", "12:00:30", "12:01:00")]
-    assert critical_path(jobs, workflow, "2026-11-01T12:00:00Z", "2026-11-01T12:02:00Z") == 10 + 30
 
 
 def test_a_warm_pr_run_within_three_minutes_passes():

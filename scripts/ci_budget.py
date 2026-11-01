@@ -38,10 +38,9 @@ def critical_path(jobs: list[dict], workflow: dict, attempt_started: str, now: s
     ran = [j for j in ran if at(j["started_at"]) >= at(attempt_started)] or ran
 
     def job_id(name: str) -> str:
-        """The API lists a job by its name with the matrix filled in, or by its id with the matrix values after it."""
+        """The API lists a job by its name with the matrix filled in (every job is named: test_workflows.py)."""
         for id_, spec in workflow.items():
-            name_ = ".*".join(map(re.escape, re.split(r"\$\{\{.*?\}\}", spec.get("name", id_))))
-            if re.fullmatch(name_ + (r" \(.*\)" if "name" not in spec and "strategy" in spec else ""), name):
+            if re.fullmatch(".*".join(map(re.escape, re.split(r"\$\{\{.*?\}\}", spec.get("name", id_)))), name):
                 return id_
         return name  # not in the workflow: a chain of its own
 

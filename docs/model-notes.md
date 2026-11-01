@@ -25,8 +25,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Views, orthographic, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
-- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, the pages
-  workflow's `Render` job, one runner per motion (`make pictures-list`, #297), gathered in its `Site` job;
+- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, Site Checks'
+  `Render` job, one runner per motion (`make pictures-list`, #297), gathered in its `Site` job;
   model/render/pictures.py SITE;
   yellowpine.com/noggin/images/): the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
