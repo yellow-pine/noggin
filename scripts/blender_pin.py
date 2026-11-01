@@ -1,14 +1,16 @@
 """Re-pin Blender (#334, .github/workflows/blender.yml): the newest stable release whose Linux x64 tarball is at least
-14 days old, its sha256 from the release's own .sha256 file, all from the first of ci/blender.Dockerfile's sources that
-answers (download.blender.org, then Blender's official mirrors: #367, #370). Rewrites the version and sha256
-in every file under .github/ and ci/ that holds the current pin, and prints the new version; prints nothing when the
-pin is already the newest. Usage: python3 scripts/blender_pin.py"""
+14 days old, its sha256 from the release's own .sha256 file. The listing comes from the first of
+ci/blender.Dockerfile's sources that answers (download.blender.org, then Blender's official mirrors: #367, #370), the
+sha256 only when two of them agree. Rewrites the version and sha256 in every file under .github/ and ci/ that holds the
+current pin, and prints the new version and the sources that agree on its hash; prints nothing when the pin is
+already the newest. Usage: python3 scripts/blender_pin.py"""
 
 import re
 import subprocess
 import urllib.request
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from http.client import HTTPException
 from pathlib import Path
 
 # the Dockerfile's download loop is the one list of sources, in order (docs/adr/0011)
@@ -47,36 +49,53 @@ def repin(text: str, old: str, new: str, old_sha: str, new_sha: str) -> str:
     return text.replace(f"Blender{old.rsplit('.', 1)[0]}/", f"Blender{new.rsplit('.', 1)[0]}/")
 
 
-def get(url: str) -> str:
+def get(url: str) -> str:  # the network fetch; tests pass recorded pages
     with urllib.request.urlopen(url, timeout=60) as r:
         return r.read().decode()
 
 
-def from_source(releases: str, old: str, now: datetime, get: Callable[[str], str]) -> tuple[str, str, str] | None:
-    """The newest release past old and both tarballs' sha256, all from one source's release/ directory."""
-    series = [s for s in SERIES.findall(get(releases)) if key(s) >= key(old)[:2]]
-    listing = "".join(get(f"{releases}Blender{s}/") for s in series)
+def newer(releases: str, old: str, now: datetime, fetch: Callable[[str], str]) -> str | None:
+    """The newest release past old in one source's release/ directory; None when old is the newest."""
+    series = [s for s in SERIES.findall(fetch(releases)) if key(s) >= key(old)[:2]]
+    listing = "".join(fetch(f"{releases}Blender{s}/") for s in series)
     if old not in dict(TARBALL.findall(listing)):  # shortcut: a listing in another format (Berkeley's) is skipped
         raise ValueError(f"{releases} lists no Blender {old} tarball we can read")
     new = newest(listing, now)
-    if new is None or key(new) <= key(old):
-        return None
-    old_sha, new_sha = (
-        tarball_sha256(get(f"{releases}Blender{v.rsplit('.', 1)[0]}/blender-{v}.sha256"), v) for v in (old, new)
-    )
-    return new, old_sha, new_sha
+    return new if new is not None and key(new) > key(old) else None
 
 
-def lookup(old: str, now: datetime, get: Callable[[str], str] = get) -> tuple[str, str, str] | None:
-    """from_source over SOURCES in order: the first that answers wins, so a hash comes from a source that serves its
-    tarball; None when old is the newest. Raises every source's error when none answers."""
+def agreed_sha256(version: str, fetch: Callable[[str], str]) -> tuple[str, list[str]]:
+    """The tarball's hash and the sources that serve it. Blender signs no checksums, so one mirror's word is not enough:
+    at least two sources must answer, and every source that answers must agree."""
+    sums: dict[str, str] = {}
+    for source in SOURCES:
+        url = f"https://{source}/release/Blender{version.rsplit('.', 1)[0]}/blender-{version}.sha256"
+        try:
+            sums[source] = tarball_sha256(fetch(url), version)
+        except (OSError, ValueError, HTTPException):
+            pass
+    if len(sums) < 2 or len(set(sums.values())) > 1:
+        raise ValueError(f"Blender {version}'s sha256 needs two sources that agree and none that differs: {sums}")
+    return next(iter(sums.values())), list(sums)
+
+
+def lookup(old: str, now: datetime, fetch: Callable[[str], str] = get) -> tuple[str, str, str, list[str]] | None:
+    """The newest release past old (from the first source whose listing answers), old's and its agreed sha256, and the
+    sources that agree on the new one; None when old is the newest. Raises when no source lists or the hashes don't
+    agree."""
     errors: list[Exception] = []
     for source in SOURCES:
         try:
-            return from_source(f"https://{source}/release/", old, now, get)
-        except (OSError, ValueError) as e:  # URLError/HTTPError and timeouts are OSErrors
+            new = newer(f"https://{source}/release/", old, now, fetch)
+            break
+        except (OSError, ValueError, HTTPException) as e:  # URLError/HTTPError and timeouts are OSErrors
             errors.append(e)
-    raise ExceptionGroup("no Blender source answered", errors)
+    else:
+        raise ExceptionGroup("no Blender source lists the releases", errors)
+    if new is None:
+        return None
+    new_sha, sources = agreed_sha256(new, fetch)
+    return new, agreed_sha256(old, fetch)[0], new_sha, sources
 
 
 def main() -> None:
@@ -86,12 +105,12 @@ def main() -> None:
     found = lookup(old, datetime.now(UTC))
     if found is None:
         return
-    new, old_sha, new_sha = found
+    new, old_sha, new_sha, sources = found
     pinned = [f for f in files if old_sha in f.read_text()]
     assert pinned, f"no file holds Blender {old}'s official sha256 {old_sha}"
     for f in pinned:
         f.write_text(repin(f.read_text(), old, new, old_sha, new_sha))
-    print(new)
+    print(new, *sources)
 
 
 if __name__ == "__main__":

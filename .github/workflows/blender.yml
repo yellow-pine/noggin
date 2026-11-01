@@ -23,18 +23,21 @@ jobs:
         with:
           persist-credentials: false
       - id: pin
-        # its own assignment, so a failed fetch fails the step (inside echo's arguments it would pass as "no change")
+        # its own assignment, so a failed fetch or a hash the sources disagree on fails the step (inside echo's
+        # arguments it would pass as "no change")
         run: |
-          version=$(python3 scripts/blender_pin.py)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          out=$(python3 scripts/blender_pin.py)
+          echo "version=${out%% *}" >> "$GITHUB_OUTPUT"
+          echo "sources=${out#* }" >> "$GITHUB_OUTPUT"
       # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
       - if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.pin.outputs.version }}
+          SOURCES: ${{ steps.pin.outputs.sources }}
         run: |
           title="ci: re-pin Blender to $VERSION"
-          body="Blender $VERSION, the newest stable release at least 14 days old; sha256 from its .sha256 on download.blender.org or, when that refuses, the first mirror in ci/blender.Dockerfile that answers (compare https://download.blender.org/release/Blender${VERSION%.*}/blender-$VERSION.sha256). Release notes: https://www.blender.org/download/releases/$(echo "${VERSION%.*}" | tr . -)/"
+          body="Blender $VERSION, the newest stable release at least 14 days old; sha256 from its .sha256, the same on each of: $SOURCES (Blender signs no checksums; compare https://download.blender.org/release/Blender${VERSION%.*}/blender-$VERSION.sha256). Release notes: https://www.blender.org/download/releases/$(echo "${VERSION%.*}" | tr . -)/"
           git switch -C blender-bump
           git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qam "$title"

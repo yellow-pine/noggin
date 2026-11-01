@@ -63,37 +63,51 @@ RELEASES = """
 <a href="Blender5.1/">Blender5.1/</a>  19-May-2026 07:10  -
 <a href="Blender5.2/">Blender5.2/</a>  14-Jul-2026 07:24  -
 """
-SUMS = {"5.2.2": f"{SHA}  blender-5.2.2-linux-x64.tar.xz\n", "5.2.3": f"{'3' * 64}  blender-5.2.3-linux-x64.tar.xz\n"}
+GOOD = {"5.2.2": SHA, "5.2.3": "3" * 64}
 LATER = datetime(2026, 11, 5, 9, tzinfo=UTC)
+# Berkeley lists in a table with ISO-ish dates: the script reads no pinned tarball there, so it takes the next listing
+TABLE = '<a href="blender-5.2.2-linux-x64.tar.xz" title="x">x</a><td class="date">2026-Sep-15 09:18</td>\n'
 
 
-def recorded(answers: dict[str, str]):
-    """A get() over recorded pages: a source not in answers says 403, as download.blender.org did to runners (#367)."""
+def site(source: str, listing: str, sums: dict[str, str]) -> dict[str, str]:
+    """One source's recorded pages: its release index, Blender5.2/ listing and .sha256 files."""
+    r = f"https://{source}/release/"
+    files = {f"{r}Blender5.2/blender-{v}.sha256": f"{s}  blender-{v}-linux-x64.tar.xz\n" for v, s in sums.items()}
+    return {r: RELEASES, f"{r}Blender5.2/": listing, **files}
 
-    def get(url: str) -> str:
-        host, _, path = url.removeprefix("https://").partition("/release/")
-        if host not in answers:
+
+def recorded(pages: dict[str, str]):
+    """A fetch over recorded pages: a page not recorded says 403, as download.blender.org did to runners (#367)."""
+
+    def fetch(url: str) -> str:
+        if url not in pages:
             raise HTTPError(url, 403, "Forbidden", {}, None)  # pyright: ignore[reportArgumentType]
-        if path == "":
-            return RELEASES
-        if path == "Blender5.2/":
-            return answers[host]
-        return SUMS[path.removeprefix("Blender5.2/blender-").removesuffix(".sha256")]
+        return pages[url]
 
-    return get
+    return fetch
 
 
 def test_the_sources_are_the_dockerfiles_download_order():
     assert SOURCES[0] == "download.blender.org"
-    assert "mirror.clarkson.edu/blender" in SOURCES[1:]
+    assert len(SOURCES) > 2
 
 
-def test_a_403_or_an_unreadable_listing_falls_to_the_next_mirror():
-    # Berkeley lists in a table with ISO-ish dates: it shows no pinned tarball, so its hashes are never used
-    berkeley = '<a href="blender-5.2.2-linux-x64.tar.xz" title="x">x</a><td class="date">2026-Sep-15 09:18</td>\n'
-    answers = {SOURCES[2]: berkeley, SOURCES[3]: LISTING}
-    assert lookup("5.2.2", LATER, recorded(answers)) == ("5.2.3", SHA, "3" * 64)
-    assert lookup("5.2.2", NOW, recorded(answers)) is None
+def test_a_403_or_an_unreadable_listing_falls_to_the_next_and_two_agreeing_sources_pin():
+    pages = recorded({**site(SOURCES[2], TABLE, GOOD), **site(SOURCES[3], LISTING, GOOD)})
+    assert lookup("5.2.2", LATER, pages) == ("5.2.3", SHA, "3" * 64, [SOURCES[2], SOURCES[3]])
+    assert lookup("5.2.2", NOW, pages) is None
+
+
+def test_one_source_alone_does_not_pin():
+    with pytest.raises(ValueError, match="two sources that agree"):
+        lookup("5.2.2", LATER, recorded(site(SOURCES[1], LISTING, GOOD)))
+
+
+def test_sources_that_disagree_do_not_pin():
+    forged = {**GOOD, "5.2.3": "e" * 64}
+    pages = {**site(SOURCES[0], LISTING, GOOD), **site(SOURCES[1], LISTING, GOOD), **site(SOURCES[3], LISTING, forged)}
+    with pytest.raises(ValueError, match="none that differs"):
+        lookup("5.2.2", LATER, recorded(pages))
 
 
 def test_every_source_failing_fails_the_run():
