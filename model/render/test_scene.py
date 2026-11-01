@@ -59,3 +59,9 @@ def test_on_stage3_the_eyes_and_jaw_move_on_the_bracket_as_alone_while_the_neck_
     assert np.allclose(on(mats, "pan turntable:1", "eye bracket:1"), on(tilted, "pan turntable:1", "eye bracket:1"))
     assert np.allclose(mats["pan turntable:1"], panned["pan turntable:1"])
     assert np.allclose(mats["base plate:1"], neutral["base plate:1"])
+
+
+def test_the_rail_eye_bracket_is_black_and_the_desk_one_pink_as_printed():
+    # Cansin's prints (docs/build-photos/printed-parts.jpg): the rail bracket black, the desk bracket pink
+    assert scene.colour("eye bracket.stl") == "#000000"  # Absolute Black
+    assert scene.colour("desk eye bracket.stl") == "#F7CED7"  # Milky Pink
