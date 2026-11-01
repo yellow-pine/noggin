@@ -129,7 +129,8 @@ def stage_guides():
 
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
-    shared lid frame, the eyes resting centred between their ends), the neck's the model's limits around its neutral."""
+    shared lid frame, the eyes resting centred between their ends), the neck's the model's limits and its
+    neutral."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
     for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
