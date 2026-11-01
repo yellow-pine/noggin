@@ -55,20 +55,23 @@ def test_every_gesture_stays_inside_the_calibrated_lid_ends_and_eye_limits(gestu
 
 
 @pytest.mark.parametrize("side", "LR")
-def test_the_calibrated_close_shuts_the_lids_inside_the_swept_range(side):
-    """The real Mech winks shut at lid_closed (#134): the edges just touch, no overlap (Cansin, #189: the lids close
-    quietly), and the pose is one make sim sweeps."""
-    closed = traces.joint(f"{side.lower()}_lid", traces.CAL["lid_closed"])
+def test_the_calibrated_closed_end_shuts_the_lids_edges_just_touching(side):
+    """The real Mech's lids close at their calibrated closed end (lo 39, #255): the edges just touch, quiet, no overlap
+    (Cansin), and the pose is one make sim sweeps. The program's blinks close there (lid_closed 0)."""
+    closed = traces.joint(f"{side.lower()}_lid", 0)
     assert -0.1 < lids.gap(side, closed) <= 0  # 0.1 deg of lip is 0.04 mm
     assert g.HORN_LIMITS[f"{side.lower()}_lid"][0] - 90 <= closed
+    assert traces.joint(f"{side.lower()}_lid", traces.CAL["lid_closed"]) == closed
 
 
-def test_rest_matches_the_rest_photo():
+def test_rest_shows_the_pupils_between_closed_and_the_free_travel():
     rest = traces.record("wink")[0]  # every recording starts at rest
-    # docs/build-photos/eyes-rest-top.jpg read at face value: lid horns L -15.2, R -16.3 (docs/research/2026-10-31-shafts.md);
-    # the camera tilt the photo's eye readings show only raises the lid readings, so the model may sit up to 1.5 above.
-    # The photo predates #213's left-lid retune, after which both lids match at rest (Cansin): L is held to R.
-    assert -16.3 <= rest["r_lid"] <= -16.3 + 1.5 and rest["l_lid"] == pytest.approx(rest["r_lid"])
+    # Conflict, recorded (geometry.HORN_AT_90): the rest-top photo (L -15.2, R -16.3) predates #213 and #255; at #255's
+    # calibration the model rests at L -8.35, R -5.75, the right 2.6 deg more open (its rest 64 against 61.4)
+    for s in "LR":
+        lo, hi = (d - 90 for d in g.HORN_LIMITS[f"{s.lower()}_lid"])
+        assert lo < rest[f"{s.lower()}_lid"] < hi and lids.pupil_shown(s, rest[f"{s.lower()}_lid"]) > 0.5
+    assert rest["r_lid"] - rest["l_lid"] == pytest.approx(traces.CAL["r_lid_rest"] - traces.CAL["l_lid_rest"])
     assert rest["l_eye"] == pytest.approx(rest["r_eye"])
 
 

@@ -60,7 +60,7 @@ def servo_map():
         return {name: pin for pin, name in NAME.items()}
 
 
-# Known-good values for this Mech (2026-11-01, #213); eyes/calibration.json is the source of truth.
+# Fallback values (#213's, 2026-11-01); eyes/calibration.json is the source of truth (retuned since, #255).
 # Each servo has exact end angles; everything else derives from them: an eye's straight-ahead is the average
 # of its two ends, lid levels are fractions (0 closed .. 1 open) along a lid's closed, rest and open points.
 # Lid positions are in one shared frame, the right lid servo's degrees (lo closed, hi open): the lid servos are
@@ -265,14 +265,14 @@ class Eyes:
         self.lids(droop, 500)
         if gaze_trace is not None:  # the calmest 6 s of a real viewing session, with heavy blinks on top
             calm, n = gaze_trace.CALM, len(gaze_trace.CALM)
-            for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 1800))):
+            for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 1500))):
                 start = 0 if k == 0 else [n // 4, n // 2][k - 1]
                 for j in range(start, blink_at):
                     self.eyes(EYE_CENTER + _s8(calm[j]))
                     wait(1000 // gaze_trace.HZ)
-                self.lids(self.cal["lid_closed"], 200 if hold < 1800 else 250)
+                self.lids(self.cal["lid_closed"], 200 if hold < 1500 else 250)
                 wait(hold)
-                self.lids(droop if hold < 1800 else self.cal["lid_rest"], 900 if hold < 1800 else 1200, ease=True)
+                self.lids(droop if hold < 1500 else self.cal["lid_rest"], 900 if hold < 1500 else 1200, ease=True)
         else:
             self.eyes(EYE_CENTER - 6, 800)
             for _ in range(2):
@@ -281,7 +281,7 @@ class Eyes:
                 self.lids(droop, 900, ease=True)
                 wait(700)
             self.lids(self.cal["lid_closed"], 250)
-            wait(1800)  # the stall-time rule (test_stall.py) caps closures at 2 s
+            wait(1500)  # the stall-time rule (test_stall.py) caps closures at 2 s, ramps included
             self.lids(self.cal["lid_rest"], 1200, ease=True)
         self.saccade(EYE_CENTER)
 
@@ -301,8 +301,8 @@ class Eyes:
         1 = mech's left lid (viewer's right), 2 = mech's right lid (viewer's left), 3 = random."""
         pin = {1: L_LID, 2: R_LID}.get(i, L_LID if self._side() > 0 else R_LID)
         self.saccade(EYE_CENTER + (8 if pin == L_LID else -8))
-        self.lid(pin, 0.03, 400, ease=True)
-        wait(500)  # slow, so it can go nearer the stop than a blink
+        self.lid(pin, self.cal["lid_closed"], 400, ease=True)
+        wait(500)
         self.lid(pin, self.cal["lid_rest"], 600, ease=True)
         wait(150)
         self.saccade(EYE_CENTER)

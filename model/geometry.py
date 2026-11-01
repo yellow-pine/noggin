@@ -34,13 +34,14 @@ def mirror_x(p):
 
 
 # Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
-# reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
+# reason.
 _LID = (
     "one range for the mirrored lid pair, the model's free travel measured on the exact solids (#210; meshes.judge tests"
     " vertices and missed the ears, which cross edge through edge): the lips meet at -30.72, the program's closed command"
     " (-30.75, 0.03 mm of lip: Cansin, the lids close quietly, edges just touching) and the lid shells cannot pass each"
     " other; the two lids' ears' back corners (the 45 deg chamfer behind the pivot) meet from +16.5, the designer's"
-    " lids alike, and the upper lid reaches the eye bracket's arm from +28"
+    " lids alike, and the upper lid reaches the eye bracket's arm from +28. The calibrated ends (#255, HORN_AT_90): the"
+    " closed end 39 is -30.75, this end; the open end 102 is +32.25, past the ears, which the model cannot reach"
 )
 _EYE = (
     "+-20: the eyeball's back rim (z 5) meets the eye bracket's front face (z 13) from +-21 (the eyeball turns 25 deg"
@@ -259,25 +260,25 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 # (docs/research/2026-10-31-shafts.md).
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
 # Joint degrees of each eyes horn at servo 90 (lids: 90 in the shared lid frame, #213): the spline tooth it went on (#134,
-# #170). The calibrated lid_closed (52.5 in the shared frame) shuts the lids, their edges just touching with no overlap
-# (Cansin, #189: they close quietly), so the tooth puts it on the lips' meeting at -30.72: 6.75 (-30.75, 0.03 mm of
-# lip), inferred. Both lids take it, the left inferred too (#213): it was 13.95, fitted the same way to the old left
-# close (servo 134.7, l_lid_hi 144); conflict: with 13.95 the model had both lids alike at rest (L -14.0, R -15.4) while
-# the build showed the left at a slit (Cansin, IMG_4024), and l_lid_hi 136 matched them (shared frame 44 / 67.8 / 129 on
-# both), so the same numbers looking the same takes the same tooth.
-# Conflicts (#213): Cansin saw the close as "the same small opening on both" and the wink (0.03) not fully shut; the
-# model keeps #189's lips just touching until the closed / rest / open points are retuned live. The rest-top photo
-# predates #213: read at face value it gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md). Eyes +2, inferred
-# (#170): the program centres each eye at the mean of its calibrated ends, servo 88 (eyes/eyes.py _eye_angle), and the
-# rest-front photo has both pupils straight ahead there, so servo 88 is the model's neutral; the rest-top reading less
-# its camera tilt gives +3.2 each
-# (docs/research/2026-11-01-best-guesses.md).
-HORN_AT_90 = {"l_lid": 6.75, "r_lid": 6.75, "l_eye": 2, "r_eye": 2}
+# #170). Lids 20.25, inferred: the calibrated closed end (lo 39 on both, tuned live 2026-11-01, #255) shuts the lids,
+# their edges just touching, quiet (Cansin), so the tooth puts it on the lips' meeting at -30.72 (-30.75, 0.03 mm of
+# lip; the program closes at lid_closed 0, that end). Both lids take it: the same closed and open numbers on both
+# (conflict: the two lids read 38 and 40 when tuned, the midpoint taken, so each lid is 1 deg off its own meeting).
+# Conflicts (#255, build first): the right lid rests at 64 against the left's 61.4 (Cansin: at the same command it sat a
+# bit more closed), so the model, one tooth for both, rests the right lid 2.6 deg more open; the open end 102 is horn
+# +32.25, past where the ears cross (+16.5, LIMITS), so the model's lids cannot reach the build's open end (the
+# gestures' wide lids: KNOWN_CALIBRATED in model/test_trajectories.py); the rest-top photo predates #213 and #255
+# (read at face value L -15.2, R -16.3, docs/research/2026-10-31-shafts.md), where the calibration rests them at
+# L -8.35, R -5.75. Earlier teeth: 6.75 (#189, on #213's lid_closed 52.5) and 13.95 for the left (before #213). Eyes +2,
+# inferred (#170): the program centres each eye at the mean of its calibrated ends, servo 88 (eyes/eyes.py
+# _eye_angle), and the rest-front photo has both pupils straight ahead there, so servo 88 is the model's neutral; the
+# rest-top reading less its camera tilt gives +3.2 each (docs/research/2026-11-01-best-guesses.md).
+HORN_AT_90 = {"l_lid": 20.25, "r_lid": 20.25, "l_eye": 2, "r_eye": 2}
 # The crank rides 1.2 mm out along the M2 screw, inferred (#170): the bar and crank turn on the screw under an unclamped
 # nut, so nothing holds the crank on the bar; flat on it (-27..-30) it would enter the eye bracket's outer edge (x -27..-28)
-# 1.0 mm from -32, which the real Mech runs through to its closed ends (-39.25 each), so the edge pushes it out to
-# 0.2 mm clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin
-# (docs/research/2026-11-01-best-guesses.md).
+# 1.0 mm from -32, which the real Mech ran through to its closed ends (-39.25 each, #213's tooth), so the edge pushes it
+# out to 0.2 mm clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin
+# (docs/research/2026-11-01-best-guesses.md). Kept with #255's closed end (-30.75), 1.25 deg short of that edge.
 CRANK_PLAY_MM = 1.2
 LID_LINKS = {
     "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},
