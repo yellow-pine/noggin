@@ -11,7 +11,7 @@ RUN = "https://github.com/o/r/actions/runs/9"
 SUPERSEDED = ("error", "superseded by a newer commit: nothing deployed", RUN)
 
 
-def run(id, name, conclusion="success", state="completed"):
+def run(id: int, name: str, conclusion: str | None = "success", state: str = "completed") -> dict:
     return {"id": id, "name": name, "status": state, "conclusion": conclusion, "html_url": f"url{id}"}
 
 
@@ -30,7 +30,11 @@ def test_a_red_check_workflow_is_not_deployed_linking_it():  # #295
         "not deployed: checks failed",
         "url1",
     )
-    assert gate([run(1, "Code Checks", "cancelled"), run(2, "Site Checks", "timed_out")], RUN)[2] == "url2"
+    assert gate([run(1, "Code Checks", "cancelled"), run(2, "Site Checks", "timed_out")], RUN) == (
+        "failure",
+        "not deployed: checks failed",
+        "url2",
+    )
 
 
 def test_a_cancelled_check_workflow_is_superseded():  # a newer push to main cancels both
