@@ -6,10 +6,11 @@ name: Site Deploy
 # commit's `deploy` status: failure linking the red one ("not deployed: checks failed", #295) or error when a newer
 # commit superseded it (a cancelled run). `deploy` swaps in the sim reports Code Checks saved (Site Checks runs beside
 # it), unpacks every Release's docs beside main's (docs/adr/0014), deploys, and `deploy-status` sets success with the
-# site's URL or why not (#292); Site Checks set it pending while they build. A red run leaves the last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages,
-# build_type=workflow); deploy's github-pages environment lists each deploy with its URL in the repo's Deployments
-# panel. It acts only for this repository's push to main (branches: [main] alone also matches a fork's PR from a branch
-# named main), on that push's commit (head_sha), the one the status goes on.
+# site's URL or why not (#292); Site Checks set it pending while they build. A red run leaves the last site up. Pages'
+# source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); deploy's github-pages environment
+# lists each deploy with its URL in the repo's Deployments panel. It acts only for this repository's push to main
+# (branches: [main] alone also matches a fork's PR from a branch named main), on that push's commit (head_sha), the one
+# the status goes on.
 on:
   workflow_run:
     workflows: ["Code Checks", "Site Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
