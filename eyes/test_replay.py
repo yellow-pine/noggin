@@ -40,7 +40,7 @@ def _old_range(self, pin):
     return self.cal[name + "_lo"], self.cal[name + "_hi"]
 
 
-@pytest.mark.parametrize("line", [f"{g} {i}" for g in ("eureka", "attention", "bored", "wince", "wink") for i in "123"])
+@pytest.mark.parametrize("line", [f"{g} {i}" for g in replay._eyes().Eyes.GESTURES for i in "123"])
 def test_every_gesture_writes_the_same_servo_angles_after_the_conversion(monkeypatch, line):
     eyes = replay._eyes().Eyes
     with monkeypatch.context() as m:

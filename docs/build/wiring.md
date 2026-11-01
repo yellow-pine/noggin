@@ -1,16 +1,19 @@
 # Wiring
 
-## Servo ports (Shield)
+## Servo ports
 
-| Port | GPIO | Servo     | Angle range | Centre  |
-|------|------|-----------|-------------|---------|
-| 1    | 3    | Left lid  | 75 to 120   | 90      |
-| 2    | 2    | Left eye  | 60 to 120   | 90      |
-| 3    | 1    | Right lid | 70 to 120   | 90      |
-| 4    | 0    | Right eye | 75 to 120   | 90      |
+<!--{{ wiring }}-->
 
-Ports 1 and 2 are the left header, 3 and 4 the right header. Ranges are the limits the designer's remote config
-uses; the ranges the program uses are the calibrated ones ([Calibration](calibration.md)).
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+Each Core's ports, GPIOs, servos and ranges are in [the table on the site](https://yellowpine.com/noggin/docs/build/wiring/#servo-ports),
+built from the code.
+<!-- #}-->
+
+Ports 1 and 2 are the Shield's left header, 3 and 4 the right. The eyes Core's ranges are the calibrated ones
+([Calibration](calibration.md)): the lids in the shared lid frame, the right lid servo's degrees (the Core writes
+180 - a to the left), closed at the low end, open at the high; the eyes rest centred between their ends. The neck Core
+has no program yet: its ranges are the model's limits and its rest the model's neutral, 90 (the jaw's closed end), and
+its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
 !!! warning "The lids bind at the ends"
     Verify a range on the real Mech before pushing past it.

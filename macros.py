@@ -5,9 +5,13 @@ landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
-(model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS)."""
+(model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
+wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
+eyes/calibration.json, LIMITS for the neck).
+stage_buttons: the web viewer's Stage buttons (web/viewer.md), one per geometry.STAGES, named as web/build.py's GLBs."""
 
 import ast
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -15,6 +19,7 @@ from pathlib import Path
 from model import geometry as g
 from model import mjcf, stages
 from model.render import pictures
+from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
 
 ROOT = Path(__file__).resolve().parent
@@ -122,6 +127,31 @@ def stage_guides():
     return parts, servos
 
 
+def wiring():
+    """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
+    shared lid frame, the eyes resting centred between their ends), the neck's the model's limits around its neutral."""
+    gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
+    rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
+    for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
+        for port, servo in ports.items():
+            if core == "core1":
+                lo, hi = cal[servo + "_lo"], cal[servo + "_hi"]
+                rest = cal.get(servo + "_rest", (lo + hi) / 2)
+            else:
+                (lo, hi), rest = g.HORN_LIMITS["rotate" if servo == "pan" else servo], 90  # pan's limits go by "rotate"
+            row = f"{n} ({name}) | {port} | {gpio[str(port)]} | {g.SERVO_LABEL[servo]} | {lo:g}..{hi:g} | {rest:g}"
+            rows.append(f"| {row} |")
+    return "\n".join(rows)
+
+
+def stage_buttons():
+    return "\n".join(
+        f'<button class="md-button" data-stage="{doc.removeprefix("noggin-")}">Stage {n}</button>'
+        for n, doc in enumerate(g.STAGES, 1)
+    )
+
+
 def define_env(env):
     env.variables["behaviour"], env.variables["pictures"] = behaviour(), picture_numbers()
     env.variables["stage_parts"], env.variables["stage_servos"] = stage_guides()
+    env.variables["wiring"], env.variables["stage_buttons"] = wiring(), stage_buttons()

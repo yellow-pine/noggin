@@ -27,7 +27,7 @@ def assert_in_range_and_held(pwm_log):
     assert all(d != 0 for d in last.values()), "servos released: gravity would move the Mech"
 
 
-@pytest.mark.parametrize("gesture", ["eureka", "attention", "bored", "wince", "wink"])
+@pytest.mark.parametrize("gesture", mod.Eyes.GESTURES)
 @pytest.mark.parametrize("intensity", [1, 2, 3])
 def test_every_gesture_stays_in_range_and_ends_held(eyes, pwm_log, gesture, intensity):
     eyes.handle_line(f"{gesture} {intensity}")

@@ -215,7 +215,7 @@ def test_the_head_swings_at_the_neck_limits_as_far_as_the_designers_gif_shows(ho
         assert abs(sum(abs(e) for e in ends) - MOUTH_GIF_PAN[0]) <= MOUTH_GIF_PAN[1], ends
 
 
-@pytest.mark.parametrize("doc", ["noggin-stage2", "noggin-stage3"])
+@pytest.mark.parametrize("doc", [d for d in g.STAGES if "pan horn" in stages.STAGES[d].horns])  # with the neck
 def test_neutral_head_sits_on_the_neck_as_the_guide_builds_it(doc):
     """Pan-tilt guide p.23 and p.26, GIF frame 5; the meshes: the eye bracket's stem below its rail is 5.0 long, the tilt
     arm's window 5.0 deep, so the rail lies on the arm top (z 40.9, the arm 5 mm up on the raised upright) and the stem
