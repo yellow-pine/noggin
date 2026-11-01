@@ -41,6 +41,17 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   pictures' background colour (#F7F4EE; https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-texture),
   under a headlight that draws a face toward the camera in its exact colour (ambient 0.5, diffuse 0.5, no specular;
   MuJoCo's default dims and greys every colour).
+- **Trajectories are the one source of motion** (#179, GLOSSARY): MuJoCo plays each gesture's writes (model/traces.py
+  `commands`, at their own times) and the README hero's keys (model/render/hero.py, every 20 ms, a servo's PWM period)
+  on each Stage. Each servo slews its command at its rated no-load speed (eyes/servo.py `Plant`, 4.8 V) and its
+  position actuator follows under the load within the stall torque, contacts off. `make trajectories` writes every
+  part's frame per 100 ms to model/build/trajectories/<doc>/<motion>.json (position in metres, quaternion w x y z,
+  MuJoCo's world), stamped with the engine's inputs, the meshes and its own sources; a Stage whose files carry its stamp
+  is skipped; the hero only on the Stages with the neck (2 and 3, #180). Blender's pictures (#150) and the web viewer's
+  glTF (#180) will render from them. A full-speed step of the pan
+  servo to its -40 limit carries the stage 3 head through the pan four-bar's toggle (it ends 41.5 degrees round instead
+  of 24.9): the hero's eased keys stay clear (the head within 1.4 degrees of its keys; model/test_trajectories.py holds it to 2), and
+  the head program (the second Core) must ease its pan moves likewise.
 - **Z-up, in metres.** The eyes-frame documents (noggin-eyes, noggin-mouth) are carried into the PT frame by one
   `<frame>` (stages.BASE_IN_EYES undone), so every model is Z-up as the Stages are, gravity along -Z; inside it the
   bodies keep the document's numbers.

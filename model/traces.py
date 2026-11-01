@@ -2,7 +2,8 @@
 (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
 joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to servo degrees, then
-the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The GIFs are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md)."""
+the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The GIFs are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md);
+`commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo."""
 
 import importlib.util
 import json
@@ -51,8 +52,9 @@ def joint(servo, v):
     return v * ((hi - 90) if v > 0 else (90 - lo))
 
 
-def record(gesture):
-    """Model joint degrees per servo at each 100 ms frame of the gesture, from rest, per the current calibration."""
+def commands(gesture):
+    """The gesture as the Core writes it, from rest: ([(ms, servo, model horn degrees)] after every write, rest's own
+    writes before ms 0; the frame times in ms, one per 100 ms from 0, a frame past the last write)."""
     clock, log = [0], []  # virtual time; (ms, servo, command) after every write
     mod.sleep_ms = lambda ms: clock.__setitem__(0, clock[0] + ms)
     e = mod.Eyes()
@@ -78,10 +80,17 @@ def record(gesture):
             e.tick(t)
     else:
         e.handle_line(GESTURES[gesture])
+    writes = [(t - start, s, round(joint(s, a if "lid" in s else a / half[PIN[s]]), 2)) for t, s, a in log]
+    return writes, range(0, clock[0] - start + FRAME_MS + 1, FRAME_MS)
+
+
+def record(gesture):
+    """Model joint degrees per servo at each 100 ms frame of the gesture, from rest, per the current calibration."""
+    writes, times = commands(gesture)
     frames, pos, i = [], {}, 0
-    for t in range(start, clock[0] + FRAME_MS + 1, FRAME_MS):  # frame 0 is rest: a write at t shows from the next frame
-        while i < len(log) and log[i][0] < t:
-            pos[log[i][1]] = log[i][2]
+    for t in times:  # frame 0 is rest: a write at t shows from the next frame
+        while i < len(writes) and writes[i][0] < t:
+            pos[writes[i][1]] = writes[i][2]
             i += 1
-        frames.append({s: round(joint(s, pos[s] if "lid" in s else pos[s] / half[PIN[s]]), 2) for s in SERVOS})
+        frames.append({s: pos[s] for s in SERVOS})
     return frames
