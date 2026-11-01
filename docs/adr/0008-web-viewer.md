@@ -12,12 +12,13 @@ watch the hero loop.
   GIFs and the hero. Blender keys every part's world pose per frame and exports one Draco-compressed GLB per Stage,
   with one named glTF animation per gesture plus `hero` (actions stashed so the exporter includes each).
 - **three.js draws it in style B** (MIT, one pinned version from the CDN, a sha384 hash per file in the import map):
-  `MeshToonMaterial` with the two-step shadow and one highlight band, black outlines on silhouettes (an inverted hull)
+  `MeshToonMaterial` whose gradient map is the pictures' light per N.L (the two-step toon ramp mixed with the satin,
+  sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
   and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
   other GLB. The page is one static HTML file in `web/`, with no build step.
-- **One source for the look.** Blender's export writes the look numbers (background, line width, crease angle, ramp
-  step, highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the
+- **One source for the look.** Blender's export writes the look numbers (background, line width, crease angle, the
+  light ramp, highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the
   page reads them and holds no look numbers of its own.
 - **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
   `model/`, `eyes/` or `web/`, and on demand. It is not a required check: a red build leaves the last site up and
