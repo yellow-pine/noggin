@@ -9,6 +9,7 @@
 
   <asset>
     <texture type="skybox" colorspace="auto" builtin="flat" rgb1="0.968627 0.956863 0.933333" rgb2="0.968627 0.956863 0.933333" width="32" height="192"/>
+    <material name="satin" specular="0.3"/>
     <mesh name="L servo bracket" content_type="model/stl" file="ours/L servo bracket.stl" scale="0.001 0.001 0.001"/>
     <mesh name="L servo bracket 0" content_type="model/stl" file="convex/L servo bracket/0.stl" scale="0.001 0.001 0.001"/>
     <mesh name="L servo bracket 1" content_type="model/stl" file="convex/L servo bracket/1.stl" scale="0.001 0.001 0.001"/>
@@ -452,9 +453,10 @@
   </asset>
 
   <worldbody>
+    <light dir="-0.379049 0.530669 -0.758098" diffuse="0.3 0.3 0.3" type="directional"/>
     <frame pos="0.0295 -0.032 0.0386" quat="0 0 0.707107 0.707107">
       <body name="L servo bracket:1">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="L servo bracket"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="L servo bracket"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000993328" mesh="L servo bracket 0"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00135749" mesh="L servo bracket 1"/>
         <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00023548" mesh="L servo bracket 2"/>
@@ -492,7 +494,7 @@
         <site name="L servo bracket stem on the eye bracket: L servo bracket:1" pos="0.0295 -0.0316 0.0195"/>
       </body>
       <body name="R servo bracket:1">
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="R servo bracket"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="R servo bracket"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00131552" mesh="R servo bracket 0"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000454725" mesh="R servo bracket 1"/>
         <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000182292" mesh="R servo bracket 2"/>
@@ -530,7 +532,7 @@
         <site name="R servo bracket stem on the eye bracket: R servo bracket:1" pos="0.0295 -0.0216 0.0195"/>
       </body>
       <body name="eye bracket:1">
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="desk eye bracket"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="desk eye bracket"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00194583" mesh="desk eye bracket 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000596016" mesh="desk eye bracket 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00134749" mesh="desk eye bracket 2"/>
@@ -559,7 +561,7 @@
         <site name="R servo bracket stem on the eye bracket: eye bracket:1" pos="0.0295 -0.0216 0.0195"/>
       </body>
       <body name="L lid servo:1" pos="-0.00742 -0.0299 0.0341" quat="0.5 0.5 0.5 0.5">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" material="satin" mesh="servo"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
@@ -577,7 +579,7 @@
         <site name="L lid horn on the L lid servo spline: L lid servo:1" pos="0.01669 0.0059 -0.01286"/>
       </body>
       <body name="L eye servo:1" pos="0.01925 -0.0138 0.0329" quat="0 0 -0.707107 0.707107">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" material="satin" mesh="servo"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
@@ -595,7 +597,7 @@
         <site name="L eye horn on the L eye servo spline: L eye servo:1" pos="0.01669 0.0059 -0.01286"/>
       </body>
       <body name="R lid servo:1" pos="0.06642 -0.0299 0.0459" quat="0.5 -0.5 -0.5 0.5">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" material="satin" mesh="servo"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
@@ -613,7 +615,7 @@
         <site name="R lid horn on the R lid servo spline: R lid servo:1" pos="0.01669 0.0059 -0.01286"/>
       </body>
       <body name="R eye servo:1" pos="0.03975 -0.0138 0.0211" quat="0.707107 0.707107 0 0">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" material="satin" mesh="servo"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
@@ -631,7 +633,7 @@
         <site name="R eye horn on the R eye servo spline: R eye servo:1" pos="0.01669 0.0059 -0.01286"/>
       </body>
       <body name="base plate:1" pos="0.0295 -0.0386 0.032" quat="0 0 0.707107 0.707107">
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="base plate"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" material="satin" mesh="base plate"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0126284" mesh="base plate 0"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0464256" mesh="base plate 1"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00130474" mesh="base plate 2"/>
@@ -669,7 +671,7 @@
         <site name="r_eye servo -&gt; Core 1 PWM4 2" pos="0.006 0.0805 0.007"/>
       </body>
       <body name="receiver shield 1:1" pos="-0.0085 -0.0226 0.084" quat="0.707107 0 0.707107 0">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" mesh="receiver"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" material="satin" mesh="receiver"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000310608" mesh="receiver 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000350976" mesh="receiver 1"/>
         <geom type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000263759" mesh="receiver 2"/>
@@ -716,7 +718,7 @@
         <site name="r_eye servo -&gt; Core 1 PWM4 3" pos="-0.0042 0.0108 0.0046"/>
       </body>
       <body name="Core 1:1" pos="-0.0085 -0.0226 0.084" quat="0.707107 0 0.707107 0">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.227451 0.239216 0.258824 1" density="0" mesh="core"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.227451 0.239216 0.258824 1" density="0" material="satin" mesh="core"/>
         <geom type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000198345" mesh="core 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000205203" mesh="core 1"/>
         <geom type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000198345" mesh="core 2"/>
@@ -731,7 +733,7 @@
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000108409" mesh="core 11"/>
       </body>
       <body name="switch board 1:1" pos="-0.005 -0.0296 0.15075" quat="0.707107 0 0.707107 0">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" mesh="switch"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" material="satin" mesh="switch"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000665439" mesh="switch 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000555421" mesh="switch 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000665439" mesh="switch 2"/>
@@ -750,12 +752,12 @@
         <site name="switch 1 -&gt; shield 1 0" pos="-0.00075 0.0045 -0.0155"/>
       </body>
       <body name="battery 1:1" pos="0.06525 -0.02745 0.157" quat="0.707107 -0.707107 0 0">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.603922 0.619608 0.639216 1" density="0" mesh="battery"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.603922 0.619608 0.639216 1" density="0" material="satin" mesh="battery"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.603922 0.619608 0.639216 1" mass="0.039408" mesh="battery 0"/>
         <site name="pack 1 -&gt; switch 1 0" pos="0.0035 0.0525 0.0035"/>
       </body>
       <body name="cable holder:1" pos="-0.006 -0.003 0.0495">
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="wire keeper"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="wire keeper"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.87949e-05" mesh="wire keeper 0"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.66009e-05" mesh="wire keeper 1"/>
         <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000133555" mesh="wire keeper 2"/>
@@ -767,7 +769,7 @@
       </body>
       <body name="L eyeball:1">
         <joint name="L eyeball pivot" axis="0 1 0"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" mesh="L eyeball"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" material="satin" mesh="L eyeball"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000242454" mesh="L eyeball 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000256886" mesh="L eyeball 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000375176" mesh="L eyeball 2"/>
@@ -838,13 +840,13 @@
         <site name="L eyeball bar / L eyeball screw: L eyeball:1" pos="-0.01 0.004 0"/>
         <site name="L eyeball pivot in the fork: L eyeball:1" pos="0 -0.0075 0"/>
         <body name="L pupil:1" pos="-0.059 0 0">
-          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="pupil"/>
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" material="satin" mesh="pupil"/>
           <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000305" mesh="pupil 0"/>
         </body>
       </body>
       <body name="R eyeball:1">
         <joint name="R eyeball pivot" pos="0.059 0 0" axis="0 1 0"/>
-        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" mesh="R eyeball"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" material="satin" mesh="R eyeball"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000289766" mesh="R eyeball 0"/>
         <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00025435" mesh="R eyeball 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000227309" mesh="R eyeball 2"/>
@@ -914,13 +916,13 @@
         <site name="R eyeball bar / R eyeball screw: R eyeball:1" pos="0.069 0.004 0"/>
         <site name="R eyeball pivot in the fork: R eyeball:1" pos="0.059 -0.0075 0"/>
         <body name="R pupil:1">
-          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="pupil"/>
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" material="satin" mesh="pupil"/>
           <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000305" mesh="pupil 0"/>
         </body>
       </body>
       <body name="L upper lid:1">
         <joint name="L upper lid pivot" axis="1 0 0"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="upper lid"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="upper lid"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000348011" mesh="upper lid 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000298412" mesh="upper lid 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308116" mesh="upper lid 2"/>
@@ -958,7 +960,7 @@
       </body>
       <body name="L lower lid:1">
         <joint name="L lower lid pivot" axis="1 0 0"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lower lid"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lower lid"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000269952" mesh="lower lid 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000232265" mesh="lower lid 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000311236" mesh="lower lid 2"/>
@@ -995,7 +997,7 @@
       </body>
       <body name="R upper lid:1" pos="0.059 0 0">
         <joint name="R upper lid pivot" axis="1 0 0"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="upper lid"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="upper lid"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000348011" mesh="upper lid 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000298412" mesh="upper lid 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308116" mesh="upper lid 2"/>
@@ -1033,7 +1035,7 @@
       </body>
       <body name="R lower lid:1" pos="0.059 0 0">
         <joint name="R lower lid pivot" axis="1 0 0"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lower lid"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lower lid"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000269952" mesh="lower lid 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000232265" mesh="lower lid 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000311236" mesh="lower lid 2"/>
@@ -1070,7 +1072,7 @@
       </body>
       <body name="L lid horn:1" pos="-0.02374 -0.0144624 0.0200393" quat="0.515417 0.484092 0.515417 0.484092">
         <joint name="L lid horn" armature="0.0001" pos="0 0.02 0.00415"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" material="satin" mesh="horn"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
@@ -1110,7 +1112,7 @@
         <site name="L lid horn pin: L lid horn:1" pos="0.01275 0.02 0.000775"/>
         <body name="L lid bar:1" pos="0.0082155 7.80125e-06 -0.00326" quat="0.781408 0 0 0.624021">
           <joint name="L lid bar:1" pos="0.0205 0 0.0015"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid bar"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lid bar"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.12528e-05" mesh="lid bar 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000194664" mesh="lid bar 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000186649" mesh="lid bar 2"/>
@@ -1123,7 +1125,7 @@
         </body>
         <body name="L lid crank:1" pos="0.020182 0.000894607 -0.00746" quat="0.564564 0 0 0.825389">
           <joint name="L lid crank:1" pos="0.0205 0 0.0015"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid crank"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lid crank"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.89661e-05" mesh="lid crank 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.78207e-05" mesh="lid crank 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.46823e-05" mesh="lid crank 2"/>
@@ -1139,7 +1141,7 @@
       </body>
       <body name="L eye horn:1" pos="0.00256 0.00252 0.047" quat="0 0 -0.707107 0.707107">
         <joint name="L eye horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" material="satin" mesh="horn"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
@@ -1179,7 +1181,7 @@
         <site name="L eye horn pin: L eye horn:1" pos="0.01275 0.02 0.000775"/>
         <body name="L eyeball bar:1" pos="0.00256 0.047 0.00252" quat="0 0 -0.707107 0.707107">
           <joint name="L eyeball bar:1" pos="-0.01 0.004 0.027" axis="0 1 0"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="eyeball bar"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="eyeball bar"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.46151e-05" mesh="eyeball bar 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.18493e-05" mesh="eyeball bar 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.27574e-05" mesh="eyeball bar 2"/>
@@ -1194,7 +1196,7 @@
       </body>
       <body name="R lid horn:1" pos="0.08274 -0.0119576 0.0599607" quat="0.484092 -0.515417 -0.484092 0.515417">
         <joint name="R lid horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" material="satin" mesh="horn"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
@@ -1234,7 +1236,7 @@
         <site name="R lid horn pin: R lid horn:1" pos="0.01275 0.02 0.000775"/>
         <body name="R lid bar:1" pos="0.0082155 0.0399922 -0.00326" quat="0.781408 0 0 -0.624021">
           <joint name="R lid bar:1" pos="0.0205 0 0.0015" axis="0 0 -1"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid bar"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lid bar"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.12528e-05" mesh="lid bar 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000194664" mesh="lid bar 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000186649" mesh="lid bar 2"/>
@@ -1247,7 +1249,7 @@
         </body>
         <body name="R lid crank:1" pos="0.020182 0.0391054 -0.00746" quat="0.564564 0 0 -0.825389">
           <joint name="R lid crank:1" pos="0.0205 0 0.0015" axis="0 0 -1"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid crank"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="lid crank"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.89661e-05" mesh="lid crank 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.78207e-05" mesh="lid crank 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.46823e-05" mesh="lid crank 2"/>
@@ -1263,7 +1265,7 @@
       </body>
       <body name="R eye horn:1" pos="0.05644 0.00252 0.007" quat="0.707107 0.707107 0 0">
         <joint name="R eye horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
-        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" material="satin" mesh="horn"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
         <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
@@ -1303,7 +1305,7 @@
         <site name="R eye horn pin: R eye horn:1" pos="0.01275 0.02 0.000775"/>
         <body name="R eyeball bar:1" pos="0.02256 -0.007 0.00252" quat="0.707107 -0.707107 0 0">
           <joint name="R eyeball bar:1" pos="-0.01 0.004 0.027" axis="0 1 0"/>
-          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="eyeball bar"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" material="satin" mesh="eyeball bar"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.46151e-05" mesh="eyeball bar 0"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.18493e-05" mesh="eyeball bar 1"/>
           <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.27574e-05" mesh="eyeball bar 2"/>
