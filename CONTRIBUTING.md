@@ -47,8 +47,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `code` (everything but the tests marked `model`) and `model` (those, `make view`'s scene rendered offscreen among
   them, `make sim`, and `make stl step` on main or when the parts changed, split over five shards), pytest
   on every core (pytest-xdist). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
-  are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish within 3 min on a PR or in the merge queue and 9 min on main,
-  or it fails (`scripts/ci_budget.py`); each job's slowest tests are in its run summary.
+  are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
+  within 3 min of its first job's start on a PR or in the merge queue, or it fails; on main, past 9 min it warns in the
+  run summary (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count). Each job's
+  slowest tests are in its run summary.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
   noggin/ or mech/ and on main.
 
