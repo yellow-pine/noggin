@@ -21,12 +21,12 @@ def first_start(jobs: list[dict], attempt_started: str) -> str:
     ran = [
         j
         for j in jobs
-        if datetime.fromisoformat(j["started_at"]) >= datetime.fromisoformat(attempt_started)
-        and (
+        if (
             j["status"] == "in_progress"
             or j["status"] == "completed"
             and j["conclusion"] not in ("skipped", "cancelled")
         )
+        and datetime.fromisoformat(j["started_at"]) >= datetime.fromisoformat(attempt_started)
     ]
     return min(ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
 
