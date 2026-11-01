@@ -9,12 +9,16 @@ site_dir: site
 theme:
   name: material
   custom_dir: overrides   # main.html: the pinned Mermaid below
-# the Mermaid the site loads instead of Material's floating unpkg mermaid@11, and the one test_site.py renders every
-# diagram with; the integrity is the sha384 of jsDelivr's dist/mermaid.min.js, which that test checks
+hooks:
+  - mermaid.py   # fetches, checks and copies the pinned Mermaid into the site
+# the Mermaid the site serves instead of Material's floating unpkg mermaid@11, and the one test_site.py renders every
+# diagram with (in the mermaid-cli below); the integrity is the sha384 of the npm package's dist/mermaid.min.js, which
+# mermaid.py checks; CI caches both by these versions (check.yml)
 extra:
   mermaid:
     version: 11.17.2
     integrity: sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2
+    cli: 11.17.1
 plugins:
   - search
   - same-dir
