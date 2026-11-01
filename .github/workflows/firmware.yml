@@ -1,0 +1,54 @@
+name: Firmware Watch
+# Weekly: the newest Core firmware on the vendor's release notes page (#334; scripts/firmware_watch.py). The Core's
+# firmware changes only through the vendor's own app, by Cansin, so a new version opens an issue rather than a PR. The
+# issues are the state: one per version, found by title, open or closed, so nothing is committed.
+# The app is the authority, the page only a signal: on 2026-11-01 the app called 1.1.4.13 the latest while the page
+# stopped at 01.00.03.02 (2025-11-26), numbered differently; it is still the only machine-readable source.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  watch:
+    name: watch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        # the vendor's addresses live in docs/credits.md only (test_vocabulary.py), so the links come from there
+        run: |
+          NOTES=$(grep -o 'https://[^() ]*/Firmware-release-notes' docs/credits.md)
+          APP_NOTES=$(grep -o 'https://[^() ]*/PC-release-notes' docs/credits.md)
+          version=$(curl -fsS "$NOTES" | python3 scripts/firmware_watch.py)
+          title="Core firmware $version: update both Cores"
+          echo "$title"
+          # its own assignment, so a failed search fails the step instead of opening a duplicate
+          found=$(gh issue list --state all --search "\"$title\" in:title" --json title --jq '.[].title')
+          grep -qxF "$title" <<< "$found" && exit 0
+          # from main only (a dispatch elsewhere is a dry run)
+          [ "$GITHUB_REF" = refs/heads/main ] || exit 0
+          cat > "$RUNNER_TEMP/body.md" <<EOF
+          The vendor's release notes list a new Core firmware, $version: $NOTES
+
+          The notes are only a signal: the vendor's app is the authority. They lag it and number differently (on
+          2026-11-01 the app called 1.1.4.13 the latest while the notes stopped at 01.00.03.02). The Core's firmware
+          changes only through the vendor's tools, by hand (#334). For each Core:
+
+          1. Open the Core's device page in the vendor's app: it shows the installed version and whether a newer one
+             exists. Update there if it offers one (the desktop app's notes: $APP_NOTES); if not, close this issue.
+          2. \`make backup-stock\`: refresh \`eyes/stock-backup\` with the new stock program, before the flash replaces it.
+          3. If the new firmware brings another MicroPython (\`sys.implementation._mpy\` other than 774), re-pin
+             \`[tool.noggin]\` in pyproject.toml and \`CORE_MPY\` in eyes/test_micropython.py first.
+          4. \`make flash-usb\`: the eye program back on.
+          EOF
+          gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md"
