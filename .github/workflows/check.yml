@@ -9,8 +9,35 @@ concurrency:   # one run per workflow and PR (or branch); a new push to a PR can
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+# Two jobs side by side, both required: check runs everything but the tests marked heavy (pyproject.toml), heavy runs
+# those and make sim.
 jobs:
   check:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: true
+      # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
+      # and the heavy job's full save would be refused (a key is written once)
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
+      # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
+      # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
+      # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev mosquitto shellcheck
+      - run: make check
+        env:
+          PYTEST_ADDOPTS: -m "not heavy"
+      # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
+      - run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
+  heavy:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
@@ -26,14 +53,10 @@ jobs:
             model/build/ours
             model/build/convex
           key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
-      # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
-      # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
-      # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev mosquitto
-      - run: make check
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev
+      - run: make test
+        env:
+          PYTEST_ADDOPTS: -m heavy
       # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
       # it (make sim-if-stale), main always runs it
       - run: make ${{ github.event_name == 'push' && 'sim' || 'sim-if-stale' }}
-      - run: sudo apt-get install -y shellcheck
-      # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
-      - run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin

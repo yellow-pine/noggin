@@ -37,6 +37,7 @@ def test_every_pose_is_within_the_model_limits():
             assert lo - 90 <= deg <= hi - 90, (i, servo, deg)
 
 
+@pytest.mark.heavy
 def test_every_pose_is_clear_of_collisions():
     hits = {i: c for i, f in enumerate(FRAMES) if (c := hero.collisions(f))}
     assert hits == {}
