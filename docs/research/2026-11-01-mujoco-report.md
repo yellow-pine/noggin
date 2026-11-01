@@ -33,7 +33,8 @@ actuators and tendons are in docs/research/2026-11-01-mujoco-loops.md; this note
   TOUCH lists the pairs at rest), so the report compares each pair with its own rest reading. Measured against the
   exact meshes (model/engine/meshes.judge) the pieces both over-read (a lid shell's pieces 0.96 mm into the pupil the
   meshes clear by 0.48) and under-read (the R lower lid's pieces 0.03 mm deeper where the meshes go 1.86 mm into the
-  eye bracket): model/test_report.py KNOWN_PAIRS lists each.
+  eye bracket): model/test_report.py KNOWN_PAIRS lists each. Since #190 CoACD is tuned until the pieces read what the
+  meshes do, and those readings were CoACD's voxel remesh (docs/research/2026-11-01-coacd-tuning.md).
 
 ## 3. Residuals and actuator force
 

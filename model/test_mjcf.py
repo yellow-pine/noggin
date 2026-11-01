@@ -1,3 +1,4 @@
+import copy
 import functools
 import itertools
 import math
@@ -7,15 +8,13 @@ import numpy as np
 import pytest
 import trimesh
 
-from model import electrical, mjcf
+from model import electrical, mjcf, mujoco_report
 from model import geometry as g
-from model.engine import masses, mating, stages
+from model.engine import masses, mating, meshes, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
-# Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS), and the pairs whose CoACD pieces
-# overlap though the parts do not (MuJoCo collides each piece's convex hull; the exact clearance measured on the meshes
-# with model/engine/meshes.judge at rest is given).
+# Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS).
 TOUCH = {
     **{
         frozenset((f"Core {n}:1", f"receiver shield {n}:1")): "the Core plugged into its shield's headers"
@@ -33,21 +32,8 @@ TOUCH = {
         frozenset((f"{s} upper lid:1", f"{s} lower lid:1")): "nested lid shells, 0.0 mm (a designed contact)"
         for s in "LR"
     },
-    **{
-        frozenset((f"{s} eyeball:1", f"{s} {lid} lid:1")): "the lid shell's pieces cut its 0.48 mm gap to the eyeball"
-        for s in "LR"
-        for lid in ("upper", "lower")
-    },
-    **{
-        frozenset((f"{s} eyeball bar:1", "eye bracket:1")): "the bar rides the rail, 0 mm on the meshes; the desk"
-        " bracket's pieces since its lid relief (#189) read 1.2 mm into it"
-        for s in "LR"
-    },
-    frozenset(("base plate:1", "pan servo:1")): "the plate's pieces fill the pan servo's pocket, 0.05 mm clear",
-    frozenset(("base plate:1", "upright:1")): "the plate's pieces fill the recess under the upright, 0.5 mm clear",
 }
-# The desk documents only (geometry.DESK): the plate's front piece fills its stem slot and bridges the pan boss, so it
-# overlaps the eyes standing on the plate top; on the meshes they touch, nothing inside (model/engine/test_meshes.py).
+# The desk documents only (geometry.DESK): the eyes stand on the plate top, touching.
 ON_PLATE = {frozenset(("base plate:1", p)) for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")}
 # noggin-mouth carries the desk base as context, as its recorded sweep did: a pairing never built (the mouth rides the
 # neck, stage 3): the eyes stand on the plate as on the desk, and its jaw parts and the rail bracket they hang on reach
@@ -109,15 +95,17 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
         | (ON_PLATE if doc in g.DESK else set())
     )
     overlaps = {}
-    for a, b in itertools.combinations(np.flatnonzero(model.geom_group == mjcf.COLLISION), 2):
-        ba, bb = model.geom_bodyid[a], model.geom_bodyid[b]
-        pair = tuple(sorted((model.body(ba).name, model.body(bb).name)))
-        far = np.linalg.norm(data.geom_xpos[a] - data.geom_xpos[b]) > model.geom_rbound[a] + model.geom_rbound[b]
-        if ba == bb or far or frozenset(pair) in allowed:
-            continue
-        mm = -1000 * mujoco.mj_geomDistance(model, data, a, b, 0.01, None)
-        if mm > PENETRATION_MM:
-            overlaps[pair] = max(overlaps.get(pair, 0), round(mm, 2))
+    pieces = np.flatnonzero(model.geom_group == mjcf.COLLISION)
+    pos, reach, body = data.geom_xpos, model.geom_rbound, model.geom_bodyid
+    for i, a in enumerate(pieces):
+        rest = pieces[i + 1 :]  # thousands of pieces: a row at a time, another part's whose bounding spheres meet a's
+        for b in rest[(body[rest] != body[a]) & (np.linalg.norm(pos[rest] - pos[a], axis=1) <= reach[rest] + reach[a])]:
+            pair = tuple(sorted((model.body(body[a]).name, model.body(body[b]).name)))
+            if frozenset(pair) in allowed:
+                continue
+            mm = -1000 * mujoco.mj_geomDistance(model, data, a, b, 0.01, None)
+            if mm > PENETRATION_MM:
+                overlaps[pair] = max(overlaps.get(pair, 0), round(mm, 2))
     assert not overlaps, overlaps
 
 
@@ -156,19 +144,77 @@ def sweep(doc):
 MOVING = [doc for doc in stages.DOCS if stages.STAGES[doc].horns]
 
 
+def ends(doc):
+    """Every geometry.LIMITS end a servo reaches, and the neck's pan x tilt corners (the head at full pan and tilt)."""
+    horns = stages.STAGES[doc].horns
+    out = [{h: d} for h, horn in horns.items() for d in horn.limits]
+    if {"pan horn", "tilt horn"} <= set(horns):
+        out += [{"pan horn": p, "tilt horn": t} for p in horns["pan horn"].limits for t in horns["tilt horn"].limits]
+    return out
+
+
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_every_limit_poses_with_its_four_bars_closed(doc):
     """Each four-bar is closed by a connect at its coupler's rocker pin; at every geometry.LIMITS end the servo
     reaches (and the neck's pan x tilt corners), its two sites stay within 0.05 mm."""
     model = built(doc)
     assert model.neq == sum(len(h.loops) for h in stages.STAGES[doc].horns.values())
-    horns = stages.STAGES[doc].horns
-    ends = [{h: d} for h, horn in horns.items() for d in horn.limits]
-    if {"pan horn", "tilt horn"} <= set(horns):  # the neck's corners too: the head at full pan and full tilt
-        ends += [{"pan horn": p, "tilt horn": t} for p in horns["pan horn"].limits for t in horns["tilt horn"].limits]
-    for ctrl in ends:
+    for ctrl in ends(doc):
         worst = max(mjcf.residuals(model, mjcf.pose(model, ctrl)).values())
         assert worst < LOOP_MM, (ctrl, worst)
+
+
+# Pairs the pieces read deeper than meshes.judge, each verified (docs/research/2026-11-01-coacd-tuning.md 4): judge weighs
+# an overlap by its deepest vertex and misses edges that cross, MuJoCo by the shortest move that parts the two pieces,
+# and the common region of the deepest two pieces lies inside both meshes. How deep they may read (mm), never shallower.
+DEEPER = {
+    **{frozenset((f"{s} upper lid:1", f"{s} lower lid:1")): 1.3 for s in "LR"},  # the ears cross, 1.09 at +31: #210
+    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): 0.45 for s in "LR"},  # 0.36 at +31: #210
+}
+# Pairs whose pieces fill a corner their meshes leave open, which CoACD's surface-sampled concavity does not see at any
+# threshold tried (0.3 to 0.15 mm): how much nearer they may read (mm), measured on the Mac's pieces with a margin.
+FILLED = {
+    frozenset(("bearing block:1", "pan turntable:1")): 1.0,  # 0.93 into the turntable's recess corner over the rim
+    frozenset(("top jaw:1", "bottom jaw:1")): 0.3,  # 0.31 into the hinge pin's hole, where the meshes touch
+    frozenset(("pan turntable:1", "tilt horn:1")): 0.1,  # tilt -60: 0.118 where the meshes clear 0.174
+}
+
+
+@pytest.mark.parametrize("doc", grouped(MOVING))
+def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
+    """The convex pieces measure clearance as the exact meshes do (#190, docs/research/2026-11-01-coacd-tuning.md): at
+    rest and at every LIMITS end, each pair a joint moves apart reads within PENETRATION_MM of model/engine/meshes.judge
+    (both clamped to the report's detection band, the two pieces' margins), but for DEEPER and FILLED. A contact the
+    meshes call 0 mm has nothing deeper than meshes.DEPTH_MM in it, so the pieces may read that far in."""
+    model, stage = copy.copy(built(doc)), stages.STAGES[doc]
+    mujoco_report.widen(model)
+    band = 2 * mujoco_report.CLEARANCE_MM
+    exact = meshes.load(stage)
+    names = [model.body(i).name for i in range(model.nbody)]
+    weld = dict(zip(names, model.body_weldid))
+    pairs = [(a, b) for a, b in itertools.combinations(sorted(stage.parts), 2) if weld[a] != weld[b]]
+    off = {}
+    for ctrl in [{}, *ends(doc)]:
+        data = mjcf.pose(model, ctrl)
+        pieces = mujoco_report._contacts(model, data)
+        placed = {}
+        for name in stage.parts:
+            m = np.eye(4)
+            m[:3, :3], m[:3, 3] = data.body(name).xmat.reshape(3, 3), data.body(name).xpos * 1000
+            placed[name] = meshes.Placed(exact[name], m)
+        for pair in pairs:
+            a, b = placed[pair[0]], placed[pair[1]]
+            if meshes.bbox_gap(a, b) > band:
+                continue
+            d, depth = meshes.judge(a, b)
+            mm, got = min(-depth if depth else d, band), min(pieces.get(pair, band), band)
+            key = frozenset(pair)
+            low = -DEEPER[key] if key in DEEPER else mm - FILLED.get(key, PENETRATION_MM)
+            low -= meshes.DEPTH_MM if abs(mm) < 1e-6 else 0  # a 0 mm contact: nothing deeper than DEPTH_MM inside
+            miss = max(low - got, got - mm - PENETRATION_MM)
+            if miss > off.get(pair, (0,))[0]:
+                off[pair] = (round(miss, 3), ctrl, round(mm, 3), round(got, 3))
+    assert not off, off
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))

@@ -20,7 +20,13 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   its own mesh asset, as CoACD's README advises for MuJoCo (https://github.com/SarahWeiii/CoACD, `--split`). The
   pieces collide (geom group 3, hidden in the viewer until toggled); the full mesh is drawn (group 2) and neither
   collides nor weighs. Decomposition takes seconds per part, so the pieces are cached in model/build/convex, each
-  part decomposed again only when its mesh, clip or the CoACD settings change (CI caches them with model/build/ours).
+  part decomposed again only when the mesh CoACD gets or its settings change (CI caches them with model/build/ours).
+  The pieces read the clearance the exact meshes do (#190, docs/research/2026-11-01-coacd-tuning.md): CoACD gets each
+  mesh without OCCT's zero-area seam slivers, so it keeps the surface instead of voxel-remeshing it at ~1 mm, and
+  cuts at its default concavity (0.05 of the part's size) except where a part meets another closely, cut in mm
+  (real-metric: the horn 0.08, the lids 0.15, the base plate, eye brackets, pan turntable and jaws 0.3).
+  model/test_mjcf.py holds every pair within 0.05 mm of the exact meshes at rest and at the LIMITS ends, but where the
+  meshes' edges cross (MuJoCo reads deeper, and is right) and three corners the pieces fill.
 - **Linkages, actuators, cables, mating** (#148): the four-bars are equality constraints, the servos position
   actuators with their torque limits, the leads spatial tendons with the real lengths as limits, each screw or pin a
   site pair whose distance must be zero (https://mujoco.readthedocs.io/en/stable/XMLreference.html#equality). Each

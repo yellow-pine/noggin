@@ -1355,7 +1355,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "bebaa0dad5b2c0946206aefda3682cc3ac4c2dd61b9f3123ecf6ab6d06d472e9",
+  "stamp": "8e1a430c2beb488ed4036ef97fafa7113aafdd7a7fa0d202af0e7d58421a33b6",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -1496,7 +1496,7 @@
     "rest_mm": -0.03,
     "min_mm": -0.03,
     "at": {
-     "jaw horn": -35
+     "jaw horn": -5
     }
    },
    {
@@ -1504,10 +1504,10 @@
      "bottom jaw:1",
      "top jaw:1"
     ],
-    "rest_mm": -1.699,
-    "min_mm": -1.699,
+    "rest_mm": -0.296,
+    "min_mm": -0.306,
     "at": {
-     "jaw horn": -45
+     "jaw horn": -75
     }
    },
    {
@@ -1518,7 +1518,7 @@
     "rest_mm": 0.0,
     "min_mm": 0.0,
     "at": {
-     "jaw horn": 0
+     "jaw horn": -55
     }
    },
    {
@@ -1537,10 +1537,10 @@
      "jaw horn:1",
      "jaw servo:1"
     ],
-    "rest_mm": -0.386,
-    "min_mm": -0.386,
+    "rest_mm": -0.236,
+    "min_mm": -0.237,
     "at": {
-     "jaw horn": -25
+     "jaw horn": -5
     }
    }
   ],

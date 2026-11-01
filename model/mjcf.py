@@ -32,6 +32,13 @@ from model.render import scene
 BUILD = os.path.join(stages.REPO, "model", "build")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
+# The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
+# own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
+FINE_MM = {
+    "horn": 0.08,
+    **dict.fromkeys(("upper lid", "lower lid"), 0.15),
+    **dict.fromkeys(("base plate", "eye bracket", "desk eye bracket", "pan turntable", "top jaw", "bottom jaw"), 0.3),
+}
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -56,19 +63,21 @@ KV = 2 * math.sqrt(KP * ARMATURE)
 
 def convex(file, clip=None):
     """The mesh's CoACD convex pieces as STLs (mm, the part's frame) in model/build/convex/<stem>, decomposed again
-    only when the mesh, its clip or the CoACD settings change."""
-    with open(file, "rb") as f:
-        key = hashlib.sha256(f.read() + json.dumps([clip, COACD, version("coacd")]).encode()).hexdigest()
-    folder = os.path.join(CONVEX, stages.stem(file))
+    only when the mesh CoACD gets (_mesh) or the CoACD settings change."""
+    mesh, stem = _mesh(file, clip), stages.stem(file)
+    settings = {**COACD, "threshold": FINE_MM[stem], "real_metric": True} if stem in FINE_MM else COACD
+    seen = mesh.vertices.tobytes() + mesh.faces.tobytes() + json.dumps([settings, version("coacd")]).encode()
+    key = hashlib.sha256(seen).hexdigest()
+    folder = os.path.join(CONVEX, stem)
     marker = os.path.join(folder, ".key")
     if not os.path.exists(marker) or open(marker).read() != key:
-        mesh = _mesh(file, clip)
         coacd.set_log_level("error")
-        pieces = coacd.run_coacd(coacd.Mesh(mesh.vertices, mesh.faces), **COACD)
+        pieces = [trimesh.Trimesh(*p) for p in coacd.run_coacd(coacd.Mesh(mesh.vertices, mesh.faces), **settings)]
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
-        for i, (pv, pf) in enumerate(pieces):
-            trimesh.Trimesh(pv, pf).export(os.path.join(folder, f"{i}.stl"))
+        # a fine cut leaves a few flat slivers, which MuJoCo cannot hull (it needs 4 vertices and a volume)
+        for i, piece in enumerate(p for p in pieces if len(p.vertices) >= 4 and abs(p.volume) > 1e-6):
+            piece.export(os.path.join(folder, f"{i}.stl"))
         with open(marker, "w") as out:
             out.write(key)  # last, so an interrupted run decomposes again
     return sorted(glob.glob(os.path.join(folder, "*.stl")), key=lambda p: int(stages.stem(p)))
@@ -80,7 +89,11 @@ def _mesh(file, clip):
     if clip:  # as model/engine/meshes.py: the flexible battery and servo leads are not rigid
         axis, cut = clip
         f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
-    return trimesh.Trimesh(v, f)
+    mesh = trimesh.Trimesh(v, f)
+    # OCCT leaves a zero-area sliver on a few seams (the lids, the eyeballs): without it the mesh is a closed 2-manifold,
+    # so CoACD skips its voxel remesh (preprocess_mode "auto"), which smears the part by ~1 mm
+    mesh.update_faces(mesh.nondegenerate_faces())
+    return mesh
 
 
 def _convex(args):
