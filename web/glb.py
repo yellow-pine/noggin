@@ -1,7 +1,7 @@
 """Blender side of web/build.py: runs INSIDE Blender (`Blender -b -P web/glb.py -- job.json`). Loads the Stage's
 parts in the pictures' satin (model/render/blender.py; the toon band and lines are render-only), keys every part's
 world pose per frame of each motion into its own action, stashes each as an NLA track named for the motion (the
-exporter merges tracks of one name into one glTF animation) and exports a Draco GLB, Y-up as glTF is."""
+exporter merges tracks of one name into one glTF clip) and exports a Draco GLB, Y-up as glTF is."""
 
 import json
 import os

@@ -1,5 +1,5 @@
 """The web viewer's site (docs/adr/0008): the page and one GLB per Stage, written into one folder that the Pages
-workflow deploys as is. Each GLB is Blender's (web/glb.py): the Stage's parts in the pictures' look, one glTF animation
+workflow deploys as is. Each GLB is Blender's (web/glb.py): the Stage's parts in the pictures' look, one glTF clip
 per motion of its baked trajectories (model/trajectories.py, `make trajectories`).
 Usage: python -m web.build [out]   (default web/build; `make web`, Blender at $BLENDER)"""
 

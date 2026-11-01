@@ -24,6 +24,7 @@ dev = [
     "micropython-stdlib-stubs==1.23.*",
     "mpy-cross==1.23.*",  # .mpy for the Core: mpy v6.3, what its 1.23 loads
     "paho-mqtt>=2.1.0",
+    "pygltflib>=1.16.5",
 ]
 
 [tool.noggin]
