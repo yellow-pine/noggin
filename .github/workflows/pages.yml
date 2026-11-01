@@ -5,14 +5,15 @@ name: Site Deploy
 # builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
 # site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
 # (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
-# check on PRs that touch what the site is made from (the changes job, as in mech.yml); a red main run leaves the last
-# site up, and a cancelled check run (a newer push superseded it) builds nothing. Pages' source is GitHub Actions
-# (POST /repos/{owner}/{repo}/pages, build_type=workflow). On main the run sets a `deploy` commit status on the commit
-# it ran for (#292): pending from its start, then success with the site's URL, failure with the run's, or error when a
-# newer commit superseded it (scripts/deploy_status.py); deploy's github-pages environment lists each deploy with its
-# URL in the repo's Deployments panel. A workflow_run builds, deploys and sets the status only for this repository's
-# push to main (branches: [main] alone also matches a fork's PR from a branch named main), and builds that push's
-# commit (head_sha), the one the status goes on.
+# check on PRs that touch what the site is made from (the changes job, as in mech.yml). Main builds and deploys only
+# after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
+# red Site Deploy run. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow). On main
+# the run sets a `deploy` commit status on the commit it ran for (#292): pending while it builds, then success with
+# the site's URL, failure with the run's (or the check run's: "not deployed: checks failed"), or error when a newer
+# commit superseded it (scripts/deploy_status.py); deploy's github-pages environment lists each deploy with its URL in
+# the repo's Deployments panel. A workflow_run builds, deploys and sets the status only for this repository's push to
+# main (branches: [main] alone also matches a fork's PR from a branch named main), and builds that push's commit
+# (head_sha), the one the status goes on.
 on:
   workflow_run:
     workflows: ["Code Checks"]
@@ -22,12 +23,12 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 # one run per PR, and one for main: a newer one cancels the one in progress, deploy included (#283), so main deploys
-# its latest only; a run for a cancelled check run, or for a check run that was no push (a fork's PR from its main),
-# builds nothing (render, viewer and site below), so it gets a group of its own and cancels no deploy
+# its latest only; a run for a check run that was not green, or no push (a fork's PR from its main), builds nothing
+# (render, viewer and site below), so it gets a group of its own and cancels no deploy
 concurrency:
   group: >-
     pages-${{ github.event.pull_request.number || github.event_name == 'workflow_run'
-    && (github.event.workflow_run.conclusion == 'cancelled' || github.event.workflow_run.event != 'push') && github.run_id
+    && (github.event.workflow_run.conclusion != 'success' || github.event.workflow_run.event != 'push') && github.run_id
     || 'deploy' }}
   cancel-in-progress: true
 permissions: {}
@@ -36,8 +37,8 @@ jobs:
   # fine while main's commits come a few minutes apart, upgrade (a status per queued run) if they bunch up
   deploy-pending:
     if: >-   # as render
-      ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository }}
+      ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
       statuses: write
@@ -73,9 +74,8 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled'
-      && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository) }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false   # every shard runs to its end; site fails unless all of them succeeded
@@ -234,9 +234,8 @@ jobs:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled'
-      && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository) }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -329,11 +328,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   site:
     needs: [changes, render, viewer]
-    if: >-   # as in mech.yml, plus the cancelled check run and only main's own push (header)
+    if: >-   # as in mech.yml, plus only main's own push after a green check run (header)
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
-      && github.event.workflow_run.conclusion != 'cancelled'
-      && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository) }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -411,10 +409,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
   deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
-    if: >-   # main's own push only, as site (site's success implies it; restated where the site goes live)
+    if: >-   # as site (site's success implies it; restated where the site goes live)
       ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request'
-      && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository) }}
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     needs: site
     runs-on: ubuntu-latest
     permissions:
@@ -447,6 +445,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           CHECK: ${{ github.event.workflow_run.conclusion }}
+          CHECK_URL: ${{ github.event.workflow_run.html_url }}
           RENDER: ${{ needs.render.result }}
           VIEWER: ${{ needs.viewer.result }}
           SITE: ${{ needs.site.result }}

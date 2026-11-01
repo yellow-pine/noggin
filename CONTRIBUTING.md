@@ -70,9 +70,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   required checks too: each workflow runs on every PR, and a `changes` job (dorny/paths-filter) skips the work when
   nothing it is made from changed, which GitHub counts as passing. `pictures` sums up the `render` job's runners (each
   part of the README's pictures split by frame range over runners, #278) under one name.
-- A main commit's Site Deploy runs after its checks (workflow_run), so it sets a `deploy` commit status on that commit
-  (#292): pending while it builds, then success linking the site, failure linking the run, or error when a newer commit
-  superseded it (`scripts/deploy_status.py`). A main commit is green only once its `deploy` is.
+- A main commit's Site Deploy runs after its checks (workflow_run) and builds only when they are green (#295), so it
+  sets a `deploy` commit status on that commit (#292): pending while it builds, then success linking the site, failure
+  linking the run (or the check run: "not deployed: checks failed"), or error when a newer commit superseded it
+  (`scripts/deploy_status.py`). A main commit is green only once its `deploy` is.
 
 ## Licence
 
