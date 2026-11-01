@@ -1,4 +1,4 @@
-name: Queue
+name: Merge Queue
 # The review workflow's two required checks, as they report in the merge queue (check.yml runs there itself). A merge
 # group changes nothing the review judged, so `review` passes when claude[bot] approved the queued PR's head
 # (scripts/claude_approved.py), and `fetch skills` has nothing to fetch. In its own file, not review.yml: the Claude

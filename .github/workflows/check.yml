@@ -1,4 +1,4 @@
-name: Check
+name: Code Checks
 on:
   push:
     branches: [main]
