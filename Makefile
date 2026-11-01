@@ -23,8 +23,9 @@ lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
-check: venv ours lint  ## CI's code job: the tests not marked model, lint, formatting, types, wizard syntax, plist validity, hook script syntax
+check: venv ours lint  ## CI's code job: the tests not marked model, the viewer's framing (node), lint, formatting, types, wizard syntax, plist validity, hook script syntax
 	$(PY) -m pytest -q -m "not model"
+	node --test web/frame.test.mjs
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	bash -n scripts/setup.sh

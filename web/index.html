@@ -55,6 +55,7 @@
   import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
   import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
   import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+  import { fit, lineWidth, radiusPx } from "./frame.mjs";
 
   const canvas = document.querySelector("canvas");
   const stages = document.querySelectorAll("[data-src]");
@@ -62,7 +63,8 @@
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(devicePixelRatio);
   renderer.shadowMap.enabled = true;
-  const camera = new THREE.PerspectiveCamera(20);
+  const FOV = 20;
+  const camera = new THREE.PerspectiveCamera(FOV);
   const controls = new OrbitControls(camera, canvas);
   // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
   // divides by PI) and the ambient is the ramp's floor, so a shadowed point gets the N.L <= 0 light as in Eevee
@@ -71,11 +73,13 @@
   key.shadow.mapSize.set(2048, 2048);
   const ambient = new THREE.AmbientLight(0xffffff);
   const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("three/examples/jsm/libs/draco/gltf/"));  // web/build.py checks it
-  // the gesture GIFs' view (model/render/pictures.py THREE_QUARTER): front-right, 25 deg up, in glTF's Y-up
-  const VIEW = new THREE.Vector3(-0.641, 0.423, 0.641);
+  // the hero GIF's view (model/render/pictures.py HERO): 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
+  // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
+  // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
+  const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  let scene, sphere, mixer, clips, creases, look, loading = 0;
+  let scene, sphere, refPx, mixer, clips, creases, look, loading = 0;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
@@ -122,10 +126,15 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    // lines scale with the canvas as the GIFs' do with the picture, never under one device pixel
-    creases.linewidth = Math.max(look.line_px * w / look.line_at, 1 / devicePixelRatio);
-    outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
     creases.resolution.set(w, h);
+  }
+
+  // lines follow the Stage's size on screen as the GIFs' do, through every zoom and resize
+  function lineWidths() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const r = radiusPx(sphere.radius, camera.position.distanceTo(sphere.center), FOV, h);
+    creases.linewidth = lineWidth(look.line_px, r, refPx);
+    outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
   }
 
   // a gesture plays once, then the hero loops again; Stage 1 has no neck, so no hero: it rests until a gesture
@@ -155,8 +164,20 @@
     box.updateProjectionMatrix();
     key.shadow.normalBias = sphere.radius / 1000;
     key.target.position.copy(sphere.center);
-    controls.target.copy(sphere.center);
-    camera.position.copy(sphere.center).addScaledVector(VIEW, sphere.radius / Math.sin(THREE.MathUtils.degToRad(10)));
+    // shortcut: fits the Stage at rest, not every pose of its hero loop as the GIF does; fit the clips' frames if a
+    // pose leaves the view
+    const v = new THREE.Vector3(), points = [];  // every vertex of the Stage at rest, from its centre
+    gltf.scene.traverse((o) => {
+      if (!o.material?.isMeshToonMaterial) return;  // the parts, not their hulls and lines
+      const p = o.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++)
+        points.push(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).sub(sphere.center).toArray());
+    });
+    const frame = (aspect) => fit(points, VIEW.toArray(), [0, 1, 0], FOV, aspect, MARGIN);
+    const fitted = frame(canvas.clientWidth / canvas.clientHeight), gif = frame(GIF_ASPECT);
+    controls.target.copy(sphere.center).add(v.fromArray(fitted.target));
+    camera.position.copy(controls.target).addScaledVector(VIEW, fitted.distance);
+    refPx = radiusPx(sphere.radius, Math.hypot(...gif.target, gif.distance), FOV, look.line_at / GIF_ASPECT);
     camera.near = sphere.radius / 100;
     camera.far = sphere.radius * 100;
     resize();
@@ -179,6 +200,7 @@
     if (!scene) return;
     mixer.update(timer.getDelta());
     controls.update();
+    lineWidths();
     key.position.fromArray(look.key).normalize().applyQuaternion(camera.quaternion);
     key.position.multiplyScalar(2 * sphere.radius).add(sphere.center);
     renderer.render(scene, camera);
