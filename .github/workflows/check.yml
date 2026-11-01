@@ -38,8 +38,7 @@ jobs:
   # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
   # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
   # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
-  # (#245). The scenarios on every core (xdist), the slowest in the job summary, the budget last (warm: the build's
-  # cache hit).
+  # (#245). Warm: the build's cache hit.
   mech:
     needs: changes
     # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
