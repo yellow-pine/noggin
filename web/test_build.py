@@ -2,6 +2,7 @@
 gesture the model replays (model/traces.py) plus the hero loop; each Stage's GLB (`make web`, read here as `make sim`'s
 reports are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
 
+import hashlib
 import os
 import re
 from html.parser import HTMLParser
@@ -20,7 +21,7 @@ STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-
 class Page(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.refs, self.gestures = set(), []
+        self.refs, self.gestures, self.look = set(), [], set()
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -31,6 +32,10 @@ class Page(HTMLParser):
         if "data-gesture" in a:
             self.gestures.append(a["data-gesture"])
 
+    def handle_data(self, data):
+        self.look |= set(re.findall(r"\blook\.(\w+)", data))
+        self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data))
+
 
 @pytest.fixture(scope="module")
 def page():
@@ -40,12 +45,22 @@ def page():
 
 
 def test_the_page_loads_only_the_glbs_the_build_writes(page):
-    assert page.refs == set(STAGES.values())
+    assert page.refs == {*STAGES.values(), "draco/"}
     assert build.GLBS == STAGES
 
 
 def test_one_button_per_gesture_and_the_hero(page):
     assert sorted(page.gestures) == sorted([*traces.GESTURES, "hero"])
+
+
+def test_the_site_serves_the_draco_decoder_it_checked():
+    folder = os.path.join(build.HERE, "build", "draco")
+    if not os.path.isdir(folder):
+        pytest.skip(f"{folder} not built (make web)")
+    assert {f: hashlib.sha256(open(os.path.join(folder, f), "rb").read()).hexdigest() for f in os.listdir(folder)} == {
+        "draco_wasm_wrapper.js": "8bb2952d2ba7d67e1414f8df819410cb0434a666be53f671fff75f68843d76f6",
+        "draco_decoder.wasm": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac",
+    }
 
 
 @pytest.fixture(scope="module", params=STAGES)
@@ -54,6 +69,14 @@ def glb(request):
     if not os.path.isfile(path):
         pytest.skip(f"{path} not built (make web)")
     return request.param, pygltflib.GLTF2.load(path)
+
+
+def test_the_glb_carries_every_look_number_the_page_reads(glb, page):
+    """One source for style B: Blender's export writes the look into the scene's extras, the page reads nothing else."""
+    _, g = glb
+    look = g.scenes[g.scene].extras
+    assert page.look and page.look <= set(look)
+    assert look["bg"] == "#F7F4EE" and look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
 
 
 def test_every_part_of_the_stage_is_a_node(glb):

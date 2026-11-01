@@ -4,13 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>noggin</title>
-<!-- the one viewer, pinned (docs/adr/0008); it only displays Blender's glTF -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.4.0/dist/model-viewer.min.js"
-  integrity="sha384-wjsPzEO+lXOf7d9csIDfAQpPt2OKuUU3m0K9qsdKIuzX4N8czSF6hdh23eAbZa3p" crossorigin="anonymous"></script>
+<!-- three.js, pinned with a hash per file (docs/adr/0008, docs/research/2026-11-01-web-toon.md); it draws Blender's glTF
+     in style B with the look numbers Blender writes into the GLB's extras -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  },
+  "integrity": {
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js": "sha384-m8JoFX52V6NGv2usipnlLJKnJfL7IE8dbniPDDCSGSQv3Hm4n6PjfV6syVwfuoRc",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.core.js": "sha384-mdKeCwPEcbDvzaxwhm+MVuLoMou+E7jQqrs4tmu/n8HBYPGI1kZt0MkJxlMR4zFM",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js": "sha384-LSqANrugPGTgf0eYsQTloqKWy926dOOXo2iZ9y6wLMIDEQoU9AaCLJF1Vcc7oJXr",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js": "sha384-jmhN0si8z6E7+h0t9KiwQ71oyrC3PhTpols1FXeN/vODuFa/L4bPIe9sLbOlhjq7",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/DRACOLoader.js": "sha384-6vtmq3WPvctEi9PzdgMxiAGLRIRtWQSrgL9Pxy26rq+Lu2s8qY/tRpq2Ked1wfLW",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js": "sha384-Rm97j4mcjlLkGsYC2LX3nZG9VU2R8lgK0QE+DmBr4thue+H7J+SHm+68If2ZLBVg",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/SkeletonUtils.js": "sha384-Pozn8j5+YFr3ak8Pm90ayqDrGYn/DV7vVs/YIIqzJhzeJT0LQksoS1fZQ5lfsYlw",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineSegments2.js": "sha384-PodS3f4Ob57FETbMdk39akLP+W9/ScGjH/bBDerYOTsUt6dZc/i2Cbx7GW47tr5u",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineSegmentsGeometry.js": "sha384-c1W/XWY1D45CznDDaXT87QmzD1YKNwYHvQegG8dXjCyf5ZaKzaWqEUwHZTYfBw64",
+    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineMaterial.js": "sha384-ijlzWpc1yHwTvvgLgdhkrcd5RQTKG/twLNwGumhKSFZHITTXMnzRdHIrw8fmvM3o"
+  }
+}
+</script>
 <style>
-  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; background: #F7F4EE; color: #222; }
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; color: #222; }
   main { max-width: 960px; margin: 0 auto; padding: 16px; }
-  model-viewer { width: 100%; height: 70vh; background: #F7F4EE; }
+  canvas { display: block; width: 100%; height: 70vh; touch-action: none; }
   nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
   button { font: inherit; padding: 6px 12px; border: 1px solid #888; border-radius: 6px; background: #fff; cursor: pointer; }
   button[aria-pressed="true"] { background: #222; color: #fff; }
@@ -26,7 +45,7 @@
     <button data-src="stage2.glb" aria-pressed="false">Stage 2</button>
     <button data-src="stage3.glb" aria-pressed="true">Stage 3</button>
   </nav>
-  <model-viewer src="stage3.glb" alt="The noggin Mech, rendered from its model" camera-controls autoplay animation-name="hero"></model-viewer>
+  <canvas role="img" aria-label="The noggin Mech, rendered from its model"></canvas>
   <nav aria-label="Gesture">
     <button data-gesture="hero">hero</button>
     <button data-gesture="eureka">eureka</button>
@@ -38,30 +57,128 @@
   </nav>
 </main>
 <script type="module">
-  const viewer = document.querySelector("model-viewer");
+  import * as THREE from "three";
+  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+  import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+  import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+  import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+  import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+
+  const canvas = document.querySelector("canvas");
   const stages = document.querySelectorAll("[data-src]");
   const gestures = document.querySelectorAll("[data-gesture]");
-  // a gesture plays once, then the hero loops again; the hero is the model's default (autoplay)
-  const play = (name) => {
-    viewer.animationName = name;
-    viewer.play(name === "hero" ? {} : { repetitions: 1 });
-  };
-  const hasHero = () => viewer.availableAnimations.includes("hero");
-  viewer.addEventListener("finished", () => hasHero() && play("hero"));
-  // only what this Stage's GLB carries can play; Stage 1 has no neck, so no hero: it rests until a gesture
-  viewer.addEventListener("load", () => {
-    for (const b of gestures) b.disabled = !viewer.availableAnimations.includes(b.dataset.gesture);
-    if (!hasHero()) {
-      viewer.pause();
-      viewer.currentTime = 0;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  const camera = new THREE.PerspectiveCamera(20);
+  const controls = new OrbitControls(camera, canvas);
+  // the key light rides at the camera's upper right; intensity PI makes a part colour x ramp (RE_Direct_Toon divides by PI)
+  const key = new THREE.DirectionalLight(0xffffff, Math.PI);
+  camera.add(key, key.target);
+  const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("draco/"));  // web/build.py checks it
+  // the gesture GIFs' view (model/render/pictures.py THREE_QUARTER): front-right, 25 deg up, in glTF's Y-up
+  const VIEW = new THREE.Vector3(-0.641, 0.423, 0.641);
+  const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
+  const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
+  let scene, mixer, clips, creases, look, loading = 0;
+
+  // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
+  // for silhouettes, black crease lines
+  function stylise(root) {
+    look = root.userData;
+    document.body.style.background = look.bg;
+    key.position.fromArray(look.key);
+    band.value.set(look.highlight_from, look.highlight);
+    const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * x)));
+    const gradient = new THREE.DataTexture(ramp, ramp.length, 1, THREE.RedFormat);  // nearest filtering
+    gradient.needsUpdate = true;
+    const hull = new THREE.MeshBasicMaterial({ color: 0, side: THREE.BackSide });
+    hull.onBeforeCompile = (s) => {
+      s.uniforms.outline = outline;
+      s.vertexShader = "uniform vec2 outline;\n" + s.vertexShader.replace("#include <project_vertex>",
+        "#include <project_vertex>\ngl_Position.xy += normalize(normalMatrix * normal).xy * outline * gl_Position.w;");
+    };
+    creases = new LineMaterial({ color: 0, linewidth: look.line_px });
+    const meshes = [];
+    root.traverse((o) => o.isMesh && meshes.push(o));
+    for (const o of meshes) {
+      const g = o.geometry;
+      o.material = new THREE.MeshToonMaterial({
+        color: o.material.color, gradientMap: gradient, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+      });
+      o.material.onBeforeCompile = (s) => {
+        s.uniforms.band = band;
+        s.fragmentShader = "uniform vec2 band;\n" + s.fragmentShader.replace("#include <opaque_fragment>",
+          "outgoingLight = mix(outgoingLight, vec3(1.0), band.y * step(band.x, " +
+          "dot(normal, normalize(directionalLights[0].direction + geometryViewDir))));\n#include <opaque_fragment>");
+      };
+      // split normals at sharp edges would open the hull at every corner: it gets smooth ones
+      const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
+      h.computeVertexNormals();
+      const lines = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(g, look.crease));
+      o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
     }
-  });
+  }
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    outline.value.set(2 * look.line_px / w, 2 * look.line_px / h);
+    creases.resolution.set(w, h);
+  }
+
+  // a gesture plays once, then the hero loops again; Stage 1 has no neck, so no hero: it rests until a gesture
+  function play(name) {
+    mixer.stopAllAction();
+    if (name) {
+      const a = mixer.clipAction(clips[name]).reset();
+      a.setLoop(name === "hero" ? THREE.LoopRepeat : THREE.LoopOnce, Infinity).clampWhenFinished = true;
+      a.play();
+    }
+    for (const b of gestures) b.setAttribute("aria-pressed", b.dataset.gesture === name);
+  }
+
+  async function load(src) {
+    const mine = ++loading;
+    for (const b of gestures) b.disabled = true;
+    const gltf = await loader.loadAsync(src);
+    if (mine !== loading) return;  // a later Stage click won
+    stylise(gltf.scene);
+    scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(look.bg);
+    scene.add(gltf.scene, camera);
+    const sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
+    controls.target.copy(sphere.center);
+    camera.position.copy(sphere.center).addScaledVector(VIEW, sphere.radius / Math.sin(THREE.MathUtils.degToRad(10)));
+    camera.near = sphere.radius / 100;
+    camera.far = sphere.radius * 100;
+    resize();
+    clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
+    mixer = new THREE.AnimationMixer(gltf.scene);
+    mixer.addEventListener("finished", () => play(clips.hero && "hero"));
+    for (const b of gestures) b.disabled = !clips[b.dataset.gesture];
+    play(clips.hero && "hero");
+  }
+
   for (const b of stages) b.addEventListener("click", () => {
     for (const s of stages) s.setAttribute("aria-pressed", s === b);
-    viewer.animationName = "hero";  // the new Stage keeps the name and would loop a gesture
-    viewer.src = b.dataset.src;
+    load(b.dataset.src);
   });
   for (const b of gestures) b.addEventListener("click", () => play(b.dataset.gesture));
+  addEventListener("resize", () => scene && resize());
+  const timer = new THREE.Timer();
+  renderer.setAnimationLoop((t) => {
+    timer.update(t);
+    if (!scene) return;
+    mixer.update(timer.getDelta());
+    controls.update();
+    renderer.render(scene, camera);
+  });
+  load("stage3.glb");
 </script>
 </body>
 </html>

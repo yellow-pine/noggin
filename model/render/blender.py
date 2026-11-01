@@ -14,6 +14,9 @@ from mathutils import Matrix, Vector
 BG = "#F7F4EE"
 BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B)
+SHADOW_AT, HIGHLIGHT_AT = 0.7, 0.8  # where the toon ramps step, on the diffuse and glossy light
+CREASE = 60  # degrees between face normals that draw a crease line
+SUN, WORLD = 2.6, 0.4  # the key light's and the world's strength
 KEY = (0.62, 0.60, 0.51)  # key light toward the camera's upper right, in the camera's (right, up, back) frame
 
 
@@ -49,12 +52,12 @@ def material(name, hexc):
     shade.data_type, shade.blend_type = "RGBA", "MULTIPLY"
     shade.inputs["Factor"].default_value = 1.0
     shade.inputs["A"].default_value = lin(hexc)
-    link(band(n("ShaderNodeBsdfDiffuse"), 0.7, SHADOW, 1.0), shade.inputs["B"])  # lit = sun + ambient
+    link(band(n("ShaderNodeBsdfDiffuse"), SHADOW_AT, SHADOW, 1.0), shade.inputs["B"])  # lit = sun + ambient
     gloss = n("ShaderNodeBsdfGlossy")
     gloss.inputs["Roughness"].default_value = 0.3
     hl = n("ShaderNodeMix")
     hl.data_type = "RGBA"
-    link(band(gloss, 0.8, 0.0, HIGHLIGHT), hl.inputs["Factor"])
+    link(band(gloss, HIGHLIGHT_AT, 0.0, HIGHLIGHT), hl.inputs["Factor"])
     link(shade.outputs["Result"], hl.inputs["A"])
     hl.inputs["B"].default_value = (1, 1, 1, 1)
     emit = n("ShaderNodeEmission")
@@ -77,12 +80,12 @@ def setup():
     sc.render.image_settings.file_format, sc.render.image_settings.color_mode = "PNG", "RGBA"
     world = bpy.data.worlds.new("w")
     sc.world = world
-    world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.4
+    world.node_tree.nodes["Background"].inputs["Strength"].default_value = WORLD
     sc.render.use_freestyle = True
     sc.render.line_thickness_mode, sc.render.line_thickness = "ABSOLUTE", 1.0
     vl = sc.view_layers[0]
     vl.use_freestyle = True
-    vl.freestyle_settings.crease_angle = math.radians(120)  # the angle between faces: normals 60 deg apart
+    vl.freestyle_settings.crease_angle = math.radians(180 - CREASE)  # Freestyle measures the angle between the faces
     ls = vl.freestyle_settings.linesets.new("lines")
     ls.select_by_visibility, ls.visibility, ls.select_by_edge_types = True, "VISIBLE", True
     for t in ("silhouette", "border", "crease"):
@@ -93,7 +96,7 @@ def setup():
     sc.collection.objects.link(cam)
     sc.camera = cam
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
-    sun.data.energy, sun.data.angle = 2.6, math.radians(12)
+    sun.data.energy, sun.data.angle = SUN, math.radians(12)
     sc.collection.objects.link(sun)
     return sc, cam, sun
 
