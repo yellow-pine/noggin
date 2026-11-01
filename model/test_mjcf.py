@@ -126,8 +126,8 @@ def test_the_viewer_adds_a_key_light_that_casts_shadows_and_satin_on_the_drawn_p
     model, _ = forward("noggin-stage1")
     assert model.nlight == 1 and model.light_castshadow[0] and model.light_dir[0][2] < 0
     satin = model.material("satin").id
-    assert (model.geom_matid[model.geom_group == 2] == satin).all()
-    assert (model.geom_matid[model.geom_group == 3] == -1).all()
+    assert (model.geom_matid[model.geom_group == mjcf.VISUAL] == satin).all()
+    assert (model.geom_matid[model.geom_group == mjcf.COLLISION] == -1).all()
 
 
 @functools.cache

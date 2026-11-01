@@ -28,7 +28,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the engine's linkage solve, every pose within geometry.LIMITS and free of penetrations as the
-  engine judges them; 640 wide, 10 fps, 64 colours, at most 3 MB), the Stage strip
+  engine judges them; 640 wide, 10 fps, 48 colours (64 went to 3.2 MB with the servos' own motion), at most 3 MB), the Stage strip
   (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
   camera direction as the hero) and the six gesture GIFs: about 6 MB in all, no photos.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed

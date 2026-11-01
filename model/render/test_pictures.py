@@ -12,7 +12,7 @@ from model import trajectories as tj
 from model.engine import stages
 from model.render import pictures
 
-C = math.sqrt(0.5)
+C = math.sqrt(0.5)  # cos and sin of 45 degrees: a quaternion turning 90 degrees
 
 
 def test_each_gif_frame_is_one_trajectory_frame_with_its_parts_where_the_trajectory_puts_them(tmp_path, monkeypatch):

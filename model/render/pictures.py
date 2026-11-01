@@ -188,10 +188,9 @@ def gifs(names=None):
 
 
 def hero_gif():
-    """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter camera fitted to every pose,
-    encoded to hero.gif: 640 wide, 10 fps, 64 colours, at most 3 MB."""
-    from model.render import hero
-
+    """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
+    camera fitted to every pose, encoded to hero.gif: 640 wide, 10 fps, at most 3 MB (48 colours: the servos' own motion
+    took 64 to 3.2 MB)."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
     poses = trajectories.poses("noggin-stage3", "hero")
     cam = camera.fit(np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, 4 / 3, LENS, MARGIN)
@@ -202,15 +201,15 @@ def hero_gif():
     blender(
         "stage3", manifest, [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
     )
-    encode(folder, os.path.join(OUT, "hero"), hero.FPS, 640, 3_000_000)
+    encode(folder, os.path.join(OUT, "hero"), trajectories.FPS, 640, 3_000_000, colours=48)
 
 
-def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES):
+def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES, colours=64):
     """frames/NNN.png -> out.gif (one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
     palette = (  # 480 wide, 64 colours: bored's 117 frames fit 1 MB (600 wide or 96 colours did not)
-        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];"
+        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={colours}:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     )
     ffmpeg("-framerate", str(fps), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
