@@ -24,7 +24,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
 - README is for contributors: setup, checks, CI. Building and using the Mech live on the site (#279).
 - Derived, not listed: whatever the code can deduce (gesture names, servo ports, the eye program's files, Stage and document ids) is read from its one source; a copy that must stay gets a test against it (ADR 0011, test_derived.py).
-- Keep everything current: the newest stable release at least 14 days old, security fixes at once; the Core's firmware through the vendor's tools only (ADR 0012).
+- Keep everything current: the newest stable release at least 14 days old, security fixes at once; Dependabot's cooldown enforces the 14 days, so review judges a bump on its merits, never rejecting or flagging it for being newer; the Core's firmware through the vendor's tools only (ADR 0012).
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are

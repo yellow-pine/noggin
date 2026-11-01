@@ -2,12 +2,16 @@
 
 > Decided with Cansin on 2026-11-01 (grilling after the stack review, #334). Supersedes ADR 0002's "never touch the
 > firmware". Research: docs/research/2026-11-01-stack-alternatives.md.
+>
+> Amended 2026-11-01 (#360): the 14 days are Dependabot's cooldown, not a review rule. Claude's review judges a bump on
+> its merits and never rejects or flags it for being newer; a bump that arrives early (a registry with no publication
+> date, like some Docker images) goes in on green.
 
 Every dependency, tool, toolchain and firmware is kept at its **newest stable release once that release is at least
 14 days old**; a security fix goes in at once. The delay guards against a bad or compromised fresh release.
 
 - **Packages and actions:** Dependabot opens the bumps after its 14-day cooldown and they auto-merge on green (CI and
-  Claude's review gate them), majors included.
+  Claude's review gate them, on what the bump changes, not its age), majors included.
 - **Pins Dependabot cannot see** get a weekly re-pin job that opens a PR (Blender's tarball and its sha256, like the
   reviewer's skills already).
 - **Python** is the newest version every dependency ships wheels for.
