@@ -122,6 +122,8 @@ def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
         viewer = " 'wasm-unsafe-eval'; worker-src 'self' blob:" if 'class="noggin-viewer"' in html else ""
         assert csp.format(viewer) in html.split("</head>")[0], page
         assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
+        sheets = re.findall(r'<link[^>]* rel="stylesheet"[^>]* href="([^"]+)"', html)  # no Google Fonts (font: false)
+        assert sheets and [s for s in sheets if re.match(r"https?:|//", s)] == [], page
     assert 'class="mermaid"' in (site / "docs" / "how-it-works" / "index.html").read_text()
     assert 'class="noggin-viewer"' in (site / "viewer" / "index.html").read_text()
 

@@ -52,14 +52,14 @@ def page(site):
 def test_the_page_loads_only_what_the_build_writes(page):
     """Its one module and the Stages' GLBs and the Draco decoder beside it (viewer/), which the build writes."""
     decoder = "examples/jsm/libs/draco/gltf/"
-    assert page.modules == ["viewer.mjs"] and "viewer.mjs" in build.PAGE
+    assert page.modules == ["viewer.mjs"] and "viewer.mjs" in build.MODULES
     assert build.GLBS == STAGES and {f"{s}.glb" for s in page.stages} == set(STAGES.values())
     assert re.findall(r'here\("([^"]+)"\)', MODULE) == ["three/" + decoder]
     assert {f for f in build.THREE if f.startswith(decoder)} == {
         decoder + "draco_wasm_wrapper.js",
         decoder + "draco_decoder.wasm",
     }
-    assert set(re.findall(r'from "\./([^"]+)"', MODULE)) <= set(build.PAGE)  # the module's own imports are copied
+    assert set(re.findall(r'from "\./([^"]+)"', MODULE)) <= set(build.MODULES)  # the module's own imports are copied
 
 
 @pytest.fixture(scope="module")
@@ -80,7 +80,7 @@ def test_the_site_serves_the_three_it_checked(three):
 
 
 def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
-    """The module's imports through the page's import map (its own modules aside: build.PAGE), then each served
+    """The module's imports through the page's import map (its own modules aside: build.MODULES), then each served
     module's own import statements: all land on a pinned file, and every pinned module is one of them."""
     imports = {k: v.removeprefix("./three/") for k, v in page.importmap["imports"].items()}
 

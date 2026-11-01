@@ -1,7 +1,7 @@
 """The viewer in a browser on the built site (make site, with make web's GLBs in site/viewer), Playwright driving the
 installed Chrome: it offers every gesture and the hero, plays a gesture to its end and back to the hero, switches Stage,
 and asks no other host for anything. CI runs it after make site (pages.yml); locally, after make site:
-uv run --with playwright==1.64.0 pytest web/test_viewer.py"""
+uv run --with playwright==<the version pages.yml pins> pytest web/test_viewer.py"""
 
 import functools
 import http.server

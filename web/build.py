@@ -18,7 +18,7 @@ from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "glb.py")
-PAGE = ("viewer.mjs", "frame.mjs")
+MODULES = ("viewer.mjs", "frame.mjs")  # the viewer's own, served beside its page
 GLBS = {doc: doc.removeprefix("noggin-") + ".glb" for doc in g.STAGES}
 # three.js and the addons the page imports, and its Draco decoder (which DRACOLoader fetches): the site serves each from
 # viewer/three/ as the npm package lays it out, fetched and checked against its sha384 here (vendored.py)
@@ -63,8 +63,9 @@ def three(out):
 
 
 def build(out):
-    os.makedirs(out, exist_ok=True)
-    for f in PAGE:
+    shutil.rmtree(out, ignore_errors=True)  # what an older build left (its page) would land on the site's
+    os.makedirs(out)
+    for f in MODULES:
         shutil.copy(os.path.join(HERE, f), out)
     three(out)
     for doc, name in GLBS.items():
