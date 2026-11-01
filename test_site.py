@@ -213,7 +213,7 @@ def test_the_gesture_grid_shows_every_gesture_the_model_plays(doc):
 def test_the_wiring_table_is_built_from_the_code(site):
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
-    centred) and the neck's model limits around its 90 neutral (geometry.LIMITS; the neck Core has no program yet)."""
+    centred) and the neck's model limits and its 90 neutral (geometry.LIMITS; the neck Core has no program yet)."""
     page = re.sub(r"<[^>]+>", "", (site / "docs" / "build" / "wiring" / "index.html").read_text())
     for row in [
         "1 (eyes)\n1\n3\nL lid\n39..102\n61.4",

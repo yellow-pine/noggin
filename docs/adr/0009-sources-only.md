@@ -23,11 +23,12 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
   made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), beside `make check`, which builds the docs
   strictly too (test_site.py).
-- **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts and servos, the picture sizes
-  and colours in docs/model-notes.md) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group),
-  on the pages `mkdocs.yml` lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose
-  and a link to the site in their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a
-  Core's servo count) is not the code's (#227).
+- **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
+  and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
+  #306) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group), on the pages `mkdocs.yml`
+  lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
+  their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a Core's servo count) is not
+  the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
   model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
