@@ -98,7 +98,7 @@ def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
         assert f in build.THREE, f
         seen.add(f)
         statements = re.findall(
-            r"""^(?:import|export|\})[^'"\n]*?\bfrom ['"]([^'"]+)['"]""", open(os.path.join(three, f)).read(), re.M
+            r"""^(?:import|export|\})[^'"\n]*?(?:\bfrom )?['"]([^'"]+)['"]""", open(os.path.join(three, f)).read(), re.M
         )
         todo |= {resolve(m, f) for m in statements} - seen
     assert seen == {f for f in build.THREE if f.endswith(".js") and "/draco/" not in f}

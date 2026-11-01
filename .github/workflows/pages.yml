@@ -34,7 +34,7 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: false   # as in check.yml
-      # the viewer (Blender's GLBs and three.js's Draco decoder in web/build) built and tested by make web when what it
+      # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
       # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing
       - id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
