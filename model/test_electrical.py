@@ -1,17 +1,12 @@
-"""Seam: model/electrical.py, the SPICE circuit of the Mech's supply (PySpice on ngspice): its operating point on a
+"""Seam: model/electrical.py, the SPICE circuit of the Mech's supply (ngspice through spicelib): its operating point on a
 hand-checkable circuit, worst_case() (the entry the Mech-wide report merges) and leads() (what model/cables.py
 routes)."""
-
-from PySpice.Spice.Netlist import Circuit
 
 from model import electrical
 
 
 def test_one_resistor_and_one_load_obey_ohms_law():
-    c = Circuit("ohm")
-    c.V("pack", "a", c.gnd, 6)
-    c.R("lead", "a", "b", 1)
-    c.I("load", "b", c.gnd, 1)  # 1 A through 1 ohm: 1 V lost, 5 V left
+    c = "* ohm\nVpack a 0 6\nRlead a b 1\nIload b 0 1"  # 1 A through 1 ohm: 1 V lost, 5 V left
     assert abs(electrical.operating_point(c)["b"] - 5.0) < 1e-9
 
 
@@ -41,6 +36,9 @@ def test_at_the_packs_cutoff_the_servos_sag_below_their_minimum_and_the_cores_st
     assert cutoff["pack_v"] == 5.8  # the pack's over-discharge protection (its datasheet)
     assert all(v < W["servo_min_v"] for v in cutoff["servo_v"].values())  # "sluggish when the battery is low"
     assert all(v > W["brownout_v"] for v in cutoff["core_v"].values())
+    # the rail falls out of regulation: Core 1's shield (4 servos) sags further than Core 2's (3)
+    assert all(abs(cutoff["servo_v"][n] - 3.645) < 0.001 for n in ("l_lid", "l_eye", "r_lid", "r_eye"))
+    assert all(abs(cutoff["servo_v"][n] - 3.662) < 0.001 for n in ("tilt", "mouth", "pan"))
 
 
 def test_leads_run_every_servo_to_its_header_and_the_one_pack_through_its_switch_and_a_y_lead_to_both_shields():
