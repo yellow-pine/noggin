@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 export const SITE = 'https://yellowpine.com';
-export const BASE = '/noggin';
+export const HOME = '/noggin'; // the live site's root, main's docs ('latest')
+// this build's base: a Docs version's is /noggin/vX.Y (release.yml, docs/adr/0014)
+export const BASE = process.env.SITE_BASE ?? HOME;
 export const REPO = 'https://github.com/yellow-pine/noggin';
 // the root's Markdown and docs/, but not the README and CLAUDE.md (for contributors and agents, on GitHub), the
 // generated changelog nor the designer's files (docs/references, local only)

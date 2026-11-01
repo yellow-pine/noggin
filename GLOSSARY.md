@@ -131,6 +131,12 @@ One version of the whole repo, noggin vX.Y.Z: the Core program, the noggin servi
 tagged on main with its CHANGELOG.md entry (docs/adr/0010).
 _Avoid_: build, drop, version of one part
 
+**Docs version**:
+The Site's docs as one Release had them, built from its tag under /noggin/vX.Y/ (the newest patch of each minor) and
+kept as a release asset; **latest** is main's, at /noggin/. The header's switcher lists them from /noggin/versions.json.
+The pictures and the sim reports are the live Site's in every version (docs/adr/0014).
+_Avoid_: docs snapshot, archived docs
+
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
 _Avoid_: banner, idle loop

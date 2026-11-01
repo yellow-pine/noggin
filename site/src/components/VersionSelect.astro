@@ -1,0 +1,34 @@
+---
+// The Docs version switcher (docs/adr/0014): the versions the live site serves, read from its versions.json when the
+// page is viewed (an older version lists the newer ones too); choosing one opens this page there, or that version's
+// home.
+import { BASE, HOME } from '../pages.mjs';
+---
+
+<select class="docs-version" aria-label="Docs version" data-home={HOME} data-base={BASE} hidden></select>
+
+<script>
+  // the header's and the mobile menu's
+  const selects = document.querySelectorAll<HTMLSelectElement>('.docs-version');
+  const { home, base } = selects[0].dataset as { home: string; base: string };
+  const at = (version: string) => `${home}/${version === 'latest' ? '' : `${version}/`}`;
+  const versions: { version: string; title: string }[] = await fetch(`${home}/versions.json`).then((r) => (r.ok ? r.json() : []));
+  for (const select of selects) {
+    for (const { version, title } of versions) select.add(new Option(title, version, false, at(version) === `${base}/`));
+    select.hidden = versions.length === 0;
+    select.addEventListener('change', async () => {
+      const same = at(select.value) + location.pathname.slice(base.length + 1);
+      location.href = (await fetch(same, { method: 'HEAD' })).ok ? same : at(select.value);
+    });
+  }
+</script>
+
+<style>
+  .docs-version {
+    background: transparent;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+</style>

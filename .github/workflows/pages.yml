@@ -5,11 +5,12 @@ name: Site Deploy
 # acts once both are done: it hands `deploy` the Site Checks run to download from when both passed, else sets the
 # commit's `deploy` status: failure linking the red one ("not deployed: checks failed", #295) or error when a newer
 # commit superseded it (a cancelled run). `deploy` swaps in the sim reports Code Checks saved (Site Checks runs beside
-# it), deploys, and `deploy-status` sets success with the site's URL or why not (#292); Site Checks set it pending
-# while they build. A red run leaves the last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages,
-# build_type=workflow); deploy's github-pages environment lists each deploy with its URL in the repo's Deployments
-# panel. It acts only for this repository's push to main (branches: [main] alone also matches a fork's PR from a branch
-# named main), on that push's commit (head_sha), the one the status goes on.
+# it), unpacks every Release's docs beside main's (docs/adr/0014), deploys, and `deploy-status` sets success with the
+# site's URL or why not (#292); Site Checks set it pending while they build. A red run leaves the last site up. Pages'
+# source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); deploy's github-pages environment
+# lists each deploy with its URL in the repo's Deployments panel. It acts only for this repository's push to main
+# (branches: [main] alone also matches a fork's PR from a branch named main), on that push's commit (head_sha), the one
+# the status goes on.
 on:
   workflow_run:
     workflows: ["Code Checks", "Site Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
@@ -64,7 +65,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-          sparse-checkout: Makefile
+          sparse-checkout: |
+            Makefile
+            scripts/docs_versions.py
           sparse-checkout-cone-mode: false
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
@@ -80,6 +83,12 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - run: make site-reports
+      # every Release's docs at vX.Y/ beside main's, and the switcher's versions.json (docs/adr/0014)
+      # shortcut: a release whose docs asset lands after this commit's deploy shows from the next deploy on; dispatch
+      # Site Deploy from Release Assets if that wait matters
+      - run: python3 scripts/docs_versions.py site/dist
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:
           path: site/dist

@@ -33,8 +33,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   workflow keeps a release PR (`chore: release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry from the
   titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
   required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
-  release, and the tag's `Release Assets` run attaches the Core program zip as the release's deployment in the
-  `release` environment (Deployments panel), linked from the release's notes. Never edit the version, the manifest or
+  release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built under
+  /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel), linked
+  from the release's notes. Never edit the version, the manifest or
   CHANGELOG.md by hand. The workflow runs as the release GitHub App, because what `GITHUB_TOKEN` creates starts no
   workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and
   write and no webhook. Each run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID`
@@ -112,7 +113,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   under one name.
 - A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
   upload it as an artifact; Site Deploy (`pages.yml`) runs only on main, once both Code Checks and Site Checks passed
-  for the commit (#295), and deploys that very artifact (no rebuild) with main's newest sim reports at /reports. Main's
+  for the commit (#295), and deploys that very artifact (no rebuild) with main's newest sim reports at /reports and
+  every release's docs at /vX.Y/ (`scripts/docs_versions.py`, docs/adr/0014). Main's
   commit carries a `deploy` status (#292): pending while Site Checks build, then success linking the site, failure
   linking the run (or the red check run: "not deployed: checks failed"), or error when a newer commit superseded it
   (`scripts/deploy_status.py`). A main commit is green only once its `deploy` is.

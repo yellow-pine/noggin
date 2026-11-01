@@ -1,5 +1,6 @@
-// The built site in Chrome: the viewer plays a gesture and switches Stage, search finds a page, the diagrams draw, and
-// nothing breaks the CSP or asks another host than api.github.com (the header's stars and forks).
+// The built site in Chrome: the viewer plays a gesture and switches Stage, search finds a page, the diagrams draw, the
+// Docs version switcher opens the same page in another version, and nothing breaks the CSP or asks another host than
+// api.github.com (the header's stars and forks).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -60,4 +61,17 @@ test('every diagram draws', async ({ page }) => {
   const diagrams = page.locator('pre.mermaid');
   await expect(diagrams.first().locator('svg')).toBeVisible({ timeout: 15_000 });
   for (const d of await diagrams.all()) await expect(d.locator('svg')).toBeVisible();
+});
+
+test('the Docs version switcher opens the same page in the chosen version', async ({ page }) => {
+  // a deploy's versions.json with one Release's docs (scripts/docs_versions.py), and its page (docs/adr/0014)
+  await page.route('**/noggin/versions.json', (r) =>
+    r.fulfill({ json: [{ version: 'latest', title: 'latest', aliases: [] }, { version: 'v0.1', title: 'v0.1.2', aliases: [] }] }),
+  );
+  await page.route('**/noggin/v0.1/glossary/', (r) => r.fulfill({ contentType: 'text/html', body: '<title>v0.1</title>' }));
+  await page.goto('glossary/');
+  const select = page.getByRole('combobox', { name: 'Docs version' }).first();
+  await expect(select).toHaveValue('latest');
+  await select.selectOption('v0.1.2');
+  await expect(page).toHaveURL(/\/noggin\/v0\.1\/glossary\/$/);
 });
