@@ -454,7 +454,7 @@ def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, stat
     cli.write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "{status}"\n[ "$1" = flash ] && echo FLASHED-OVER-WIFI\n')
     cli.chmod(0o755)
     out = subprocess.run(  # -n: the USB path is only printed, never run (no mpremote, no launchctl)
-        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}", f"USB_PORTS={ports}"],
+        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}", f"USB_PORTS={ports}", "MICROPYTHON=vTAG"],
         cwd=Path(__file__).resolve().parent.parent,
         capture_output=True,
         text=True,
@@ -464,7 +464,8 @@ def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, stat
     assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")  # boot.py stays .py: the Core runs boot.py only
     assert ("cp eyes/build/eyes.mpy :eyes.mpy" in out) == (path == "usb")
     assert "mpy-cross -o eyes/build/eyes.mpy eyes/eyes.py" in out  # both paths send what make compiled just now
-    assert ("mip install hmac" in out) == (path == "usb")  # the Core's hmac comes from micropython-lib, over USB
+    mip = "mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@vTAG"  # the stand-in's tag
+    assert (mip in out) == (path == "usb")  # the Core's hmac: micropython-lib at the Core's MicroPython, over USB
 
 
 def test_add_network_keeps_the_others_and_the_token(tmp_path):
