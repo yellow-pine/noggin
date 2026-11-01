@@ -68,8 +68,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
   noggin/ or mech/ and on main. `mech` and the site's `site` and `pictures` (`.github/workflows/pages.yml`) are
   required checks too: each workflow runs on every PR, and a `changes` job (dorny/paths-filter) skips the work when
-  nothing it is made from changed, which GitHub counts as passing. `pictures` sums up the `render` job's runners (one
-  per part of the README's pictures) under one name.
+  nothing it is made from changed, which GitHub counts as passing. `pictures` sums up the `render` job's runners (each
+  part of the README's pictures split by frame range over runners, #278) under one name.
 
 ## Licence
 

@@ -215,7 +215,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
     notes = re.sub(r"<[^>]+>", "", (site / "docs" / "model-notes" / "index.html").read_text())
     for row in [
         "gestures\n400x300\n400 wide, 8 fps, 64 colours, at most 1 MB",
-        "hero\n560x420\n560 wide, 8 fps, 48 colours, at most 3 MB",
+        "hero\n800x400\n800 wide, 8 fps, 48 colours, at most 3 MB",
         "Milky Pink\n#F7CED7\n#F7CED7\n#F7CED7",
         "Absolute Black\n#000000\n#2B2B2E\n#5A5A60",
         "Pure White\n#FFFFFF\n#FFFFFF\n#E8E8E8",
@@ -295,11 +295,17 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
 
 
 def test_the_pages_workflow_renders_every_part_of_the_pictures():
-    """Each part of the pictures (the Stage views, the hero, each gesture) is one runner of the render job (#226)."""
+    """Each part of the pictures (the Stage views, the hero, each gesture) is split over runners of the render job,
+    shards 1 to n of n (#226, #278)."""
     from model.render import pictures
 
     jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]
-    assert sorted(jobs["render"]["strategy"]["matrix"]["part"]) == sorted(pictures.SITE)
+    shards = {}
+    for s in jobs["render"]["strategy"]["matrix"]["include"]:
+        shards.setdefault(s["part"], []).append((s["shard"], s["of"]))
+    assert sorted(shards) == sorted(pictures.SITE)
+    for got in shards.values():
+        assert sorted(got) == [(i, got[0][1]) for i in range(1, got[0][1] + 1)]
 
 
 @pytest.mark.parametrize(
