@@ -47,6 +47,7 @@ extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace 
 "eyes/wifi.py" = "py312"
 "mech/core/*.py" = "py312"
 "noggin/core.py" = "py312"
+"scripts/blender_pin.py" = "py312"
 "scripts/ci_budget.py" = "py312"
 "scripts/claude_approved.py" = "py312"
 "scripts/deploy_status.py" = "py312"
