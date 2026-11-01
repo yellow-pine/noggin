@@ -1,7 +1,7 @@
-"""The web viewer (docs/adr/0008): the page and its framing (frame.mjs), one GLB per Stage and three.js with its Draco
-decoder (sha384-checked), written into one folder that the site serves at viewer/ (`make site`, docs/adr/0009). Each GLB
-is Blender's (web/glb.py): the Stage's parts in the pictures' look, one glTF clip per motion of its baked trajectories
-(model/trajectories.py, `make trajectories`).
+"""The web viewer (docs/adr/0008): its module (viewer.mjs) and framing (frame.mjs), one GLB per Stage and three.js with
+its Draco decoder (sha384-checked), written into one folder that the site serves at viewer/ beside the viewer's page
+(`make site`, docs/adr/0009). Each GLB is Blender's (web/glb.py): the Stage's parts in the pictures' look, one glTF clip
+per motion of its baked trajectories (model/trajectories.py, `make trajectories`).
 Usage: python -m web.build [out]   (default web/build; `make web`, Blender at $BLENDER)"""
 
 import json
@@ -18,7 +18,7 @@ from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "glb.py")
-PAGE = ("index.html", "frame.mjs")
+MODULES = ("viewer.mjs", "frame.mjs")  # the viewer's own, served beside its page
 GLBS = {doc: doc.removeprefix("noggin-") + ".glb" for doc in g.STAGES}
 # three.js and the addons the page imports, and its Draco decoder (which DRACOLoader fetches): the site serves each from
 # viewer/three/ as the npm package lays it out, fetched and checked against its sha384 here (vendored.py)
@@ -63,8 +63,9 @@ def three(out):
 
 
 def build(out):
-    os.makedirs(out, exist_ok=True)
-    for f in PAGE:
+    shutil.rmtree(out, ignore_errors=True)  # what an older build left (its page) would land on the site's
+    os.makedirs(out)
+    for f in MODULES:
         shutil.copy(os.path.join(HERE, f), out)
     three(out)
     for doc, name in GLBS.items():

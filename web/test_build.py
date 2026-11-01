@@ -1,6 +1,6 @@
-"""The site as the Pages workflow builds it (web/build.py): the page loads only what the build writes and offers every
-gesture the model replays (model/traces.py) plus the hero loop; each Stage's GLB (`make web`, read here as `make sim`'s
-reports are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
+"""The viewer as the Pages workflow builds it (web/build.py, and MkDocs its page at viewer/): the page loads only what
+the build writes and runs scripts from the site alone; each Stage's GLB (`make web`, read here as `make sim`'s reports
+are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
 
 import base64
 import hashlib
@@ -17,51 +17,49 @@ from model import stages, traces, trajectories
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
+MODULE = open(os.path.join(build.HERE, "viewer.mjs")).read()
 
 
 class Page(HTMLParser):
+    """The viewer's page as MkDocs built it: its CSP, import map, module scripts and Stage buttons."""
+
     def __init__(self):
         super().__init__()
-        self.refs, self.gestures, self.look = set(), [], set()
-        self.csp, self.importmap, self.modules = None, None, []
+        self.csp, self.importmap, self.modules, self.stages = None, None, [], set()
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        for key in ("src", "href", "data-src"):
-            v = a.get(key)
-            if v and not re.match(r"https?:|#", v):
-                self.refs.add(v)
-        if "data-gesture" in a:
-            self.gestures.append(a["data-gesture"])
-
         if tag == "meta" and a.get("http-equiv") == "Content-Security-Policy":
             self.csp = a["content"]
+        if tag == "script" and a.get("type") == "module":
+            self.modules.append(a.get("src"))
         self.importmap = self.importmap or tag == "script" and a.get("type") == "importmap"
+        if "data-stage" in a:
+            self.stages.add(a["data-stage"])
 
     def handle_data(self, data):
         if self.importmap is True:
             self.importmap = json.loads(data)
-        self.modules += re.findall(r'from "([^"]+)"', data)
-        self.look |= set(re.findall(r"\blook\.(\w+)", data))
-        self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data) + re.findall(r'from "\./([^"]+)"', data))
 
 
 @pytest.fixture(scope="module")
-def page():
+def page(site):
     p = Page()
-    p.feed(open(os.path.join(build.HERE, "index.html")).read())
+    p.feed((site / "viewer" / "index.html").read_text())
     return p
 
 
-def test_the_page_loads_only_the_glbs_the_build_writes(page):
+def test_the_page_loads_only_what_the_build_writes(page):
+    """Its one module and the Stages' GLBs and the Draco decoder beside it (viewer/), which the build writes."""
     decoder = "examples/jsm/libs/draco/gltf/"
-    assert page.refs == {*STAGES.values(), "three/" + decoder, "frame.mjs"}
+    assert page.modules == ["viewer.mjs"] and "viewer.mjs" in build.MODULES
+    assert build.GLBS == STAGES and {f"{s}.glb" for s in page.stages} == set(STAGES.values())
+    assert re.findall(r'here\("([^"]+)"\)', MODULE) == ["three/" + decoder]
     assert {f for f in build.THREE if f.startswith(decoder)} == {
         decoder + "draco_wasm_wrapper.js",
         decoder + "draco_decoder.wasm",
     }
-    assert build.GLBS == STAGES
-    assert page.refs - {*STAGES.values(), "three/" + decoder} <= set(build.PAGE)  # the page's own modules are copied
+    assert set(re.findall(r'from "\./([^"]+)"', MODULE)) <= set(build.MODULES)  # the module's own imports are copied
 
 
 @pytest.fixture(scope="module")
@@ -82,8 +80,8 @@ def test_the_site_serves_the_three_it_checked(three):
 
 
 def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
-    """The page's imports through its import map (its own modules aside: build.PAGE), then each served module's own
-    import statements: all land on a pinned file, and every pinned module is one of them."""
+    """The module's imports through the page's import map (its own modules aside: build.MODULES), then each served
+    module's own import statements: all land on a pinned file, and every pinned module is one of them."""
     imports = {k: v.removeprefix("./three/") for k, v in page.importmap["imports"].items()}
 
     def resolve(m, base):
@@ -93,7 +91,7 @@ def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
             else os.path.normpath(os.path.join(os.path.dirname(base), m))
         )
 
-    todo, seen = {resolve(m, "") for m in page.modules if not m.startswith("./")}, set()  # not the page's own
+    todo, seen = {resolve(m, "") for m in re.findall(r'from "([^".][^"]*)"', MODULE)}, set()  # not its own
     while todo:
         f = todo.pop()
         assert f in build.THREE, f
@@ -106,16 +104,12 @@ def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
 
 
 def test_the_page_runs_scripts_from_the_site_alone(page):
-    """three.js and its addons come from the site (web/build.py fetched and checked them); the CSP blocks any other
-    script, lets the Draco decoder compile its WASM in the Blob worker DRACOLoader makes, and blocks nothing else."""
-    assert page.importmap == {
-        "imports": {"three": "./three/build/three.module.js", "three/addons/": "./three/examples/jsm/"}
-    }
-    assert page.csp == "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src blob:"
-
-
-def test_one_button_per_gesture_and_the_hero(page):
-    assert sorted(page.gestures) == sorted([*traces.GESTURES, "hero"])
+    """three.js and its addons come from the site (web/build.py fetched and checked them), through an import map
+    relative to the page (viewer/); the CSP blocks any other script, lets the Draco decoder compile its WASM in the Blob
+    worker DRACOLoader makes, and blocks nothing else (Material's search runs in a worker from the site)."""
+    imports = {"three": "./three/build/three.module.js", "three/addons/": "./three/examples/jsm/"}
+    assert page.importmap == {"imports": imports}
+    assert page.csp == "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:"
 
 
 @pytest.fixture(scope="module", params=STAGES)
@@ -126,11 +120,11 @@ def glb(request):
     return request.param, pygltflib.GLTF2.load(path)
 
 
-def test_the_glb_carries_every_look_number_the_page_reads(glb, page):
+def test_the_glb_carries_every_look_number_the_page_reads(glb):
     """One source for style B: Blender's export writes the look into the scene's extras, the page reads nothing else."""
     _, g = glb
-    look = g.scenes[g.scene].extras
-    assert page.look and page.look <= set(look)
+    look, read = g.scenes[g.scene].extras, set(re.findall(r"\blook\.(\w+)", MODULE))
+    assert read and read <= set(look)
     assert look["bg"] == "#F7F4EE" and look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
     assert look["line_at"] == 640  # lines scale with the canvas: line_px at 640 px wide (Cansin, #211)
 

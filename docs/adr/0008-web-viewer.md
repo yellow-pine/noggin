@@ -9,6 +9,8 @@
 > the last GLBs built from the same inputs.
 > Amended 2026-11-01 (#268): the site serves three.js itself; the page runs scripts from the site alone.
 > Amended 2026-11-01 (#271): the camera frames the Stage as the hero GIF does, and lines follow its size on screen.
+> Amended 2026-11-01 (#281): the viewer is a page of the docs site at /viewer/, in its theme (header, search, nav);
+> docs pages can drop in a small one per Stage.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -26,8 +28,14 @@ watch the hero loop.
   pictures' 1.06 margin). Lines follow the Stage's size on screen as the GIFs' do: `line_px` when it is as big as in a
   4:3 frame `line_at` (640) px wide, through every zoom and resize, never under 1 px nor over twice `line_px`.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The page is one static HTML file in `web/` and its framing module (`frame.mjs`, tested
-  with `node --test`), with no build step of its own. three.js, the addons it
+  other GLB. The viewer is one module, `web/viewer.mjs`, and its framing module (`frame.mjs`, tested
+  with `node --test`), with no build step of its own. It draws every `<div class="noggin-viewer" data-stage="stage1">`
+  on a page, with a button per clip under it: the viewer's page (`web/viewer.md`, which a MkDocs hook puts at /viewer/
+  in the theme's `viewer.html`: full width, no sidebars) adds the Stage buttons, and any docs page can drop in a small
+  one. The theme (`overrides/main.html`) loads the module, the import map and the viewer's CSP on the pages that have
+  one, Material's buttons style the controls, and a browser test (Playwright in Chrome, `web/test_viewer.py`) plays a
+  gesture on the built site with no request to another host but GitHub's repo facts in Material's header.
+  three.js, the addons it
   imports and the Draco decoder `DRACOLoader` fetches are copied into the site from the npm package when the viewer
   is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
   map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in

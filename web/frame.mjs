@@ -1,4 +1,4 @@
-// The viewer's framing (web/index.html): plain numbers, no three.js, so node tests them (frame.test.mjs)
+// The viewer's framing (web/viewer.mjs): plain numbers, no three.js, so node tests them (frame.test.mjs)
 const tan = (deg) => Math.tan((deg * Math.PI) / 360);  // of half the angle
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
