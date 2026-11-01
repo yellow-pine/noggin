@@ -45,7 +45,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Smallest thing that works; no options or abstractions nobody asked for.
 - Run `make check` before opening a PR. CI runs the same, split over two required jobs (`.github/workflows/check.yml`):
   `code` (everything but the tests marked `model`) and `model` (those, `make view`'s scene rendered offscreen among
-  them, `make sim`, and `make stl step` on main or when the parts changed, split over two shards), pytest
+  them, `make sim`, and `make stl step` on main or when the parts changed, split over five shards), pytest
   on every core (pytest-xdist). With a warm cache a run must finish within 3 min on a PR or in the merge queue and 9 min on main,
   or it fails (`scripts/ci_budget.py`); each job's slowest tests are in its run summary.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
