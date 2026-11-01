@@ -40,7 +40,7 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 |---|---|---|---|
 | Code Checks | `check.yml` | PRs, main | `code`: `make check`; `mech`: the Link's live checks on the Mech stand-in (`make mech`); `model`: the model tests, the sim and the STL/STEP export, sharded |
 | Site Checks | `site-checks.yml` | PRs, main | `pictures` in Blender, then `site`: the docs, viewer and reports, uploaded as an artifact (a PR's preview) |
-| Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages |
+| Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages, with every release's docs beside it |
 | Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
 | PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit of a known type (ADR 0010) |
 | PR Issue | `pr-issue.yml` | PRs | `PR Issue`: the body links its issue (`Closes #N` or `Refs #N`); bots' PRs pass |
@@ -50,7 +50,7 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 | Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
 | Firmware Watch | `firmware.yml` | weekly | opens an issue for each new Core firmware on the vendor's release notes |
 | Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
-| Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release, deployed to the `release` environment |
+| Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release, with the release's docs, deployed to the `release` environment |
 
 Required checks on main: `code`, `model`, `mech`, `site`, `pictures`, `review`, `fetch skills`, `PR Title` and
 `PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).

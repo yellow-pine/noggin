@@ -7,7 +7,7 @@ import mermaid from 'astro-mermaid';
 import starlightGitHubAlerts from 'starlight-github-alerts';
 import { inlineScriptHashes } from './src/csp.mjs';
 import { markdown } from './src/markdown.mjs';
-import { BASE, PAGES, REPO, SITE, id } from './src/pages.mjs';
+import { BASE, HOME, PAGES, REPO, SITE, id } from './src/pages.mjs';
 
 export default defineConfig({
   site: SITE,
@@ -23,7 +23,7 @@ export default defineConfig({
         "default-src 'self'",
         "connect-src 'self' blob: https://api.github.com",
         "worker-src 'self' blob:",
-        `img-src 'self' data: blob: ${SITE}${BASE}/images/`, // the pictures' absolute URLs, in previews too
+        `img-src 'self' data: blob: ${SITE}${HOME}/images/`, // the pictures' absolute URLs, in previews and Docs versions too
       ],
       scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
       styleDirective: {
@@ -66,7 +66,8 @@ export default defineConfig({
         'docs/how-it-works',
         {
           label: 'Model',
-          items: ['docs/pictures', { label: 'Reports', link: '/reports/' }, 'docs/model-notes'],
+          // main's sim reports, which a Docs version (docs/adr/0014) links on the live site
+          items: ['docs/pictures', { label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` }, 'docs/model-notes'],
         },
         {
           label: 'Reference',

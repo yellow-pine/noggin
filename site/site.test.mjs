@@ -1,7 +1,7 @@
 // The site as `make site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
 // by its H1, every link lands, the numbers are the code's (macros.json), each page's footer and /version.json give the
 // version and the commit, and each page's CSP lets only the site's own scripts run. Run after make site: npm test (Site
-// Checks).
+// Checks), and on a Docs version's build with SITE_BASE (docs/adr/0014).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, globSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'node-html-parser';
 import { expect, test } from 'vitest';
-import { BASE, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
+import { BASE, HOME, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
 
 const DIST = fileURLToPath(new URL('dist/', import.meta.url));
 const read = (f) => readFileSync(path.join(ROOT, f), 'utf8');
@@ -41,7 +41,7 @@ test('the README, CLAUDE.md and the references never ship', () => {
 
 test('the landing page leads into Build, Use and the viewer', () => {
   const links = page(`${BASE}/`).querySelectorAll('a').map((a) => a.getAttribute('href'));
-  for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md'), `${SITE}${BASE}/viewer/`])
+  for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md'), `${SITE}${HOME}/viewer/`])
     expect(links).toContain(target);
 });
 
@@ -52,9 +52,11 @@ test('the sidebar reaches every decision and the viewer', () => {
   for (const target of [...adrs.map(route), `${BASE}/viewer/`]) expect(links).toContain(target);
 });
 
-// what make site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is
+// what make site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is,
+// and always in a Docs version, which never has them (docs/adr/0014)
 const ADDED = ['images', 'reports'];
-const built = (file) => !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
+const built = (file) =>
+  BASE !== HOME || !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
 const pages = html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`))); // Astro's pages, not the reports' index
 
 test('every link on the site lands on a page or file of it, and no .md link is left', () => {
@@ -76,11 +78,23 @@ test("every site URL the repo's Markdown links to is a page with that heading", 
     const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#([\w-]+))?)/g);
     for (const [, url, anchor] of links) {
       const file = fileOf(url);
-      if (!built(file)) continue;
+      if (!file || !built(file)) continue; // a Docs version's: the live site's pictures and viewer
       expect(existsSync(file), `${doc}: ${url}`).toBe(true);
       if (anchor) expect(parse(readFileSync(file, 'utf8')).getElementById(anchor), `${doc}: ${url}`).not.toBeNull();
     }
   }
+});
+
+// a Docs version (docs/adr/0014) is the same site under /noggin/vX.Y/: what it links outside itself is the live site's
+test("a page links outside its version only to the live site's pictures, viewer and sim reports", () => {
+  const out = [];
+  for (const f of html)
+    for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
+      const p = (el.getAttribute('href') ?? el.getAttribute('src')).replace(SITE, '');
+      const live = ['images', 'viewer', 'reports'].some((d) => p.startsWith(`${HOME}/${d}/`));
+      if (p.startsWith(`${HOME}/`) && !p.startsWith(`${BASE}/`) && !live) out.push(`${f}: ${p}`);
+    }
+  expect(out).toEqual([]);
 });
 
 /** Text as written, before Astro's smart punctuation. */
@@ -150,7 +164,7 @@ test("every page's footer links the version to its release (the releases before 
 
 test('the hero shows at its size in a figure on the landing page and Pictures', () => {
   for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
-    const img = page(url).querySelector(`figure img[src="${SITE}${BASE}/images/hero.gif"]`);
+    const img = page(url).querySelector(`figure img[src="${SITE}${HOME}/images/hero.gif"]`);
     expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
   }
 });
@@ -172,7 +186,7 @@ test('no real photo ships or is linked: every picture is one CI renders, at /ima
   for (const f of html)
     for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
       const url = el.getAttribute('href') ?? el.getAttribute('src');
-      if (photo.test(url.split(/[?#]/)[0])) expect(url, f).toMatch(`${SITE}${BASE}/images/`);
+      if (photo.test(url.split(/[?#]/)[0])) expect(url, f).toMatch(`${SITE}${HOME}/images/`);
     }
 });
 

@@ -293,6 +293,11 @@ jobs:
           echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open' >> "$GITHUB_STEP_SUMMARY"
           echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).' >> "$GITHUB_STEP_SUMMARY"
           echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
+      # a Docs version's build, as release.yml makes each release's (docs/adr/0014): the same site under /noggin/v0.0/,
+      # its links inside it (dist is rebuilt here, after its upload)
+      - run: npm --prefix site run build && npm --prefix site test
+        env:
+          SITE_BASE: /noggin/v0.0
       # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget's critical path
       # runs through render or viewer to here)
       - run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && needs.viewer.outputs.warm == 'true' }}

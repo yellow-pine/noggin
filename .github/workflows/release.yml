@@ -1,6 +1,7 @@
 name: Release Assets
 # A release tag's run (docs/adr/0010): attaches the zip to the release release-please made, as the release's deployment
-# in the `release` environment (the Deployments panel links the release; the release's notes link this run).
+# in the `release` environment (the Deployments panel links the release; the release's notes link this run), then the
+# release's docs (docs/adr/0014).
 on:
   push:
     tags: ["v*"]
@@ -29,8 +30,43 @@ jobs:
           zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
       # the notes link this deploy once, a re-run or a re-pushed tag included
-      # shortcut: no docs version link yet, add it once each release attaches its built docs (#307 item 3)
       - run: |
           gh release view "$TAG" --json body --jq .body > notes.md
           grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s), the `release` environment\n' "$RUN_URL" >> notes.md
+          gh release edit "$TAG" --notes-file notes.md
+  # this release's docs, built once under /noggin/vX.Y/ and kept on the release; Site Deploy serves them (docs/adr/0014).
+  # After `release`, so the two notes edits never race; a prerelease's docs are never served, so none are built
+  docs:
+    needs: release
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in check.yml
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      # the docs and the viewer's page; the pictures and sim reports stay the live site's
+      - run: SITE_BASE="/noggin/${TAG%.*}" make site
+      # shortcut: the viewer's GLBs are the live site's, the release commit's model only once main's deploy before the
+      # tag has landed (the release PR only bumps the version); build them at the tag (make web, Blender) if that bites
+      - run: |
+          for stage in $(jq -r '.stages[]' site/src/macros.json); do
+            curl -fsSo "site/dist/viewer/$stage.glb" "https://yellowpine.com/noggin/viewer/$stage.glb"
+          done
+          tar -czf "noggin-docs-$TAG.tar.gz" -C site/dist .
+          gh release upload "$TAG" "noggin-docs-$TAG.tar.gz" --clobber
+      # the notes link these docs once, where Site Deploy serves them
+      - run: |
+          gh release view "$TAG" --json body --jq .body > notes.md
+          grep -qF '**Docs:**' notes.md || printf '\n**Docs:** https://yellowpine.com/noggin/%s/\n' "${TAG%.*}" >> notes.md
           gh release edit "$TAG" --notes-file notes.md

@@ -12,6 +12,8 @@
 > Amended 2026-11-01 (#288): the jobs needing Chrome or Blender run in our own images in GHCR, built from ci/.
 > Amended 2026-11-01 (#333, ADR 0013): Astro Starlight builds the site (`site/`), not MkDocs Material; the numbers'
 > JSON from `macros.py` fills the same hidden markers; the built site's tests run in Site Checks, not `make check`.
+> Amended 2026-11-02 (#373, ADR 0014): each release's docs are built from its tag, attached to the release, and Site
+> Deploy serves them at /noggin/vX.Y/ beside main's.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

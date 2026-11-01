@@ -1,9 +1,12 @@
 ---
-// Starlight's social links, after the repo's live stars and forks (api.github.com, asked by the reader's browser).
+// Starlight's social links, after the Docs version switcher and the repo's live stars and forks (api.github.com, asked
+// by the reader's browser).
 import Default from '@astrojs/starlight/components/SocialIcons.astro';
 import { REPO } from '../pages.mjs';
+import VersionSelect from './VersionSelect.astro';
 ---
 
+<VersionSelect />
 <a class="repo-facts" href={REPO} data-api={REPO.replace('github.com', 'api.github.com/repos')} aria-label="Stars and forks on GitHub" hidden></a>
 <Default />
 
