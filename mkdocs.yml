@@ -52,6 +52,10 @@ exclude_docs: |
   !/docs/**
   !/assets/**
   /docs/references/
+  # no real photo of the Mech on the site until there are staged ones (Cansin, 2026-11-01)
+  *.jpg
+  *.jpeg
+  *.heic
   /CLAUDE.md
   /README.md
 # the Mermaid diagrams (docs/how-it-works.md) as Material documents them; the landing page's grid cards and buttons

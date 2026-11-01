@@ -61,6 +61,18 @@ def test_the_home_page_is_the_landing_page(site):
     assert "make check" not in home and not (site / "README" / "index.html").exists()
 
 
+def test_no_real_photo_is_public(site):
+    """No real photo of the Mech on the site or in the README until there are staged ones (Cansin, 2026-11-01): every
+    picture shown or linked is a site URL CI renders in Blender, and no photo file ships."""
+    photo = re.compile(r"\.(?:jpe?g|heic)\b", re.I)
+    blender = "https://yellowpine.com/noggin/images/"
+    pages = {p: p.read_text() for p in site.rglob("*.html")}
+    links = [(p, u) for p, html in pages.items() for u in re.findall(r'(?:href|src)="([^"]+)"', html)]
+    links += [("README.md", u) for u in re.findall(r"\]\(([^)\s]+)", (ROOT / "README.md").read_text())]
+    assert [(p, u) for p, u in links if photo.search(u) and not u.startswith(blender)] == []
+    assert [f for f in site.rglob("*") if photo.search(f.name)] == []
+
+
 def test_the_home_page_finds_its_theme(site):
     """exclude_docs applies to the theme's own files too: Material's CSS and JS must ship."""
     refs = re.findall(r'(?:href|src)="(assets/[^"]+)"', (site / "index.html").read_text())
