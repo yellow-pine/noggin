@@ -251,7 +251,8 @@ def test_site_checks_looks_up_the_keys_the_blender_jobs_save():
     def inputs(k: str) -> str:
         return re.search(r"hashFiles\(.*\)", k)[0]
 
-    assert key("changes", "pictures") == key("site", "images") == f"pictures-${{{{ {inputs(key('render', 'frames'))} }}}}"
+    render = inputs(key("render", "frames"))  # a key per motion over the same inputs
+    assert key("changes", "pictures") == key("site", "images") == f"pictures-${{{{ {render} }}}}"
     assert key("changes", "viewer") == key("site", "viewer") == key("viewer", "viewer")
 
 
