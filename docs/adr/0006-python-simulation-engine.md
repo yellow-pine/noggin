@@ -5,6 +5,8 @@
 > stays in model/: ADR 0007, "The old engine is retired".
 >
 > Fusion part superseded 2026-10-31 (#88): Fusion builds nothing any more; see the last update.
+>
+> Committed, stamped reports superseded 2026-11-01 by ADR 0009 (#229): CI builds them, the site publishes main's.
 
 Once pins, axes and link lengths are right, every linkage of the Mech is a planar four-bar (lids, eyes, tilt, pan,
 jaw), so posing parts is a rigid transform and no CAD kernel is needed to simulate. Fusion's API runs on its UI

@@ -1,13 +1,15 @@
 name: pages
 # The site (docs/adr/0009): MkDocs builds the docs (make site) with the web viewer at site/viewer, whose GLBs Blender
-# bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too (#221); main deploys it
-# to GitHub Pages (yellowpine.com/noggin/), a PR uploads it as an artifact. Not a required check: a red run leaves the
-# last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow).
+# bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too (#221), and main's
+# latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
+# is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact.
+# Not a required check: a red run leaves the last site up. Pages' source is GitHub Actions
+# (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
-  push:
+  workflow_run:
+    workflows: [check]
+    types: [completed]
     branches: [main]
-    paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml",
-            "uv.lock", ".github/workflows/pages.yml", "macros.py", "reactions/**", "noggin/**"]   # macros.py reads the code
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
@@ -85,6 +87,13 @@ jobs:
         with:
           path: web/build
           key: ${{ steps.viewer.outputs.cache-primary-key }}
+      # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports: no
+      # entry carries this key, so the newest sim- entry is restored
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-latest
+          restore-keys: sim-
       - run: make site
       - if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0

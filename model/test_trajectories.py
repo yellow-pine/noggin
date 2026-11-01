@@ -70,7 +70,6 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
 def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(monkeypatch):
     """model/traces.py plays eyes/eyes.py under eyes/calibration.json, so an edit to either moves the stamp (#151 took
     them out of the report's inputs)."""
-    monkeypatch.setattr(tj.report, "sources", lambda stage: {})  # the meshes are not what this checks
     before = tj.stamp("noggin-stage1")
     for edited in ("eyes/eyes.py", "eyes/calibration.json"):
 

@@ -276,7 +276,7 @@ def spec(doc):
 
 
 def write(doc, folder=MJCF):
-    """<folder>/<doc>.xml (returned): model/build/mjcf by default, model/reports for the committed one (make sim)."""
+    """<folder>/<doc>.xml (returned): model/build/mjcf by default, model/build/reports for the sim report's (make sim)."""
     os.makedirs(folder, exist_ok=True)
     s = spec(doc)
     s.meshdir = os.path.relpath(BUILD, folder)

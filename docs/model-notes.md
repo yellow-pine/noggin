@@ -61,7 +61,8 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   numbers (model/test_envelopes.py).
 - `make ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
   (CadQuery's threads must not precede a process pool's fork). The model always reads those: `make test` and `make sim`
-  build them first, and the committed reports are simulated on our geometry, locally and in CI.
+  build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
+  publishes main's at /reports (docs/adr/0009).
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
