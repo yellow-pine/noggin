@@ -1,11 +1,12 @@
 version: 2
-updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ...`, `ci: bump ...`
+updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps): bump ...`, `ci(deps): bump ...`
   - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
     commit-message:
       prefix: build
+      include: scope
     cooldown:   # our pin rule: a release at least two weeks old (docs/research/2026-11-01-stack-alternatives.md)
       default-days: 14
     groups:
@@ -23,6 +24,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ..
       interval: weekly
     commit-message:
       prefix: ci
+      include: scope
     cooldown:   # as above
       default-days: 14
     groups:

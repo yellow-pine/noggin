@@ -3,6 +3,8 @@
 > Decided with Cansin on 2026-11-01, #303. Research: docs/research/2026-11-01-releases.md.
 >
 > Amended 2026-11-01 (#328): the release token comes from a GitHub App, not a fine-grained personal token.
+>
+> Amended 2026-11-01 (#350): the PR Title check enforces only the type; scopes are free-form, the areas recommended.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -13,9 +15,10 @@ copy, and the tag is `v` plus it.
   calibration format or the CLI bumps the minor; a feat or a fix bumps the patch (release-please's
   `bump-minor-pre-major` and `bump-patch-for-minor-pre-major`). After 1.0.0 the same breaks bump the major.
 - **PR titles are Conventional Commits** (`type(scope): subject`, `type!:` for a break), because each squash commit
-  is its PR's title. Types: feat, fix, perf, docs, ci, build, refactor, test, chore. Scopes are the repo's areas,
-  derived from its top-level directories (`scripts/pr_scopes.py`), never a hand list; a scope is optional. The required
-  `PR Title` check enforces both (amannn/action-semantic-pull-request).
+  is its PR's title. Types: feat, fix, perf, docs, ci, build, refactor, test, chore; the required `PR Title` check
+  enforces them (amannn/action-semantic-pull-request). A scope is optional and free-form: name a top-level area
+  (`eyes`, `web`, `model`, ...) or `deps` for a dependency bump, which is what Dependabot writes (`build(deps)`,
+  `ci(deps)`). The check doesn't enforce scopes (#350).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next

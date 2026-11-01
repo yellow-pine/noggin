@@ -42,7 +42,7 @@ make site     # the site in site/ (python -m http.server -d site)
 | Site Checks | `site-checks.yml` | PRs, main | `pictures` in Blender, then `site`: the docs, viewer and reports, uploaded as an artifact (a PR's preview) |
 | Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages |
 | Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
-| PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit with an area's scope (ADR 0010) |
+| PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit of a known type (ADR 0010) |
 | Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
 | Dependabot Auto-merge | `dependabot.yml` | Dependabot's PRs | turns on auto-merge (squash): the PR merges once the required checks and Claude's review pass |
 | Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
