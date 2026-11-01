@@ -172,13 +172,13 @@ make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
 make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons or no Core is on USB, else USB (USB=1 forces it)
 make restore-stock   # put the stock remote-control program back on the Core
-noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
+noggin/noggin status # mode (follow, demo or pose), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
-noggin/noggin pose lids 0.3 eyes 95     # hold a pose while you look
+noggin/noggin pose lids 0.3 eyes 95     # pose mode: hold it, hooks ignored, until follow; each set re-sends it
 noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
 noggin/noggin exercise 10                # gentle run-in, 10 minutes
 make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
-make follow          # follow mode: react to Claude Code again (the default, and the mode after any restart)
+make follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
 make stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
 make render / gifs / hero   # the model's pictures (docs/model-notes.md)
 ```
