@@ -1,15 +1,19 @@
 """The site's numbers from the code (docs/adr/0009, mkdocs-macros): `<!--{{ name }}-->` in a doc is filled here at
 build time, and GitHub, which hides HTML comments, shows the prose around it instead (mkdocs.yml has the delimiters).
-behaviour: the README's table, which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py).
+behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
+landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
-mjcf.py)."""
+mjcf.py).
+stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
+(model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS)."""
 
 import ast
 import re
+from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
-from model import mjcf
+from model import mjcf, stages
 from model.render import pictures
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
 
@@ -82,5 +86,42 @@ def picture_numbers():
     )
 
 
+HARDWARE = {
+    "receiver": "Shield",
+    "core": "Core",
+    "switch": "switch board",
+    "battery": "battery pack",
+    "horn": "servo horn",
+}
+
+
+def stage_guides():
+    """Per Stage (1, 2, 3): the parts it adds to the Stage before it (and any it swaps out), and its new servos with
+    their Core, port and the model's range."""
+    spool = {
+        name.split(" (")[0]: s + (" (inferred)" if "inferred" in name else "") for name, (s, _) in g.PRINTED.items()
+    }
+    port = {servo: (core, n) for core, ports in g.CHANNELS.items() for n, servo in ports.items()}
+    servo_of = {label: key for key, label in g.SERVO_LABEL.items()}
+    parts, servos, before, horns = {}, {}, Counter(), set()
+    for n, doc in enumerate(g.STAGES, 1):
+        d = stages.STAGES[doc]
+        now = Counter(stages.stem(p.file) for p in d.parts.values())
+        rows = ["| Part | Count | Printed in |", "|---|---|---|"]
+        added = [(HARDWARE.get(s, s), k, spool.get(s, "bought")) for s, k in (now - before).items()]
+        rows += [f"| {name} | {k} | {made} |" for name, k, made in sorted(added, key=lambda r: r[0].lower())]
+        gone = before - now
+        parts[n] = "\n".join(rows + ([f"\nIt takes off: {', '.join(sorted(gone))}."] if gone else []))
+        rows = ["| Core | Port | Servo | The model's range | Why |", "|---|---|---|---|---|"]
+        for h in [h for h in d.horns if h not in horns]:
+            key = servo_of[h.removesuffix(" horn")]
+            core, n_port = port[key]
+            (lo, hi), why = g.LIMITS["rotate" if key == "pan" else key]  # the pan servo's limits go by "rotate"
+            rows.append(f"| {core.removeprefix('core')} | {n_port} | {key} | {lo:g}..{hi:g} | {why} |")
+        servos[n], before, horns = "\n".join(rows), now, set(d.horns)
+    return parts, servos
+
+
 def define_env(env):
     env.variables["behaviour"], env.variables["pictures"] = behaviour(), picture_numbers()
+    env.variables["stage_parts"], env.variables["stage_servos"] = stage_guides()

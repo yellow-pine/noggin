@@ -7,7 +7,7 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 ### Hardware
 
 **Mech**:
-The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (README credits).
+The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (the site's Credits page, docs/credits.md).
 _Avoid_: robot, head, beast, eye mech
 
 **Core**:
@@ -115,8 +115,9 @@ from Blender's glTF (docs/adr/0008).
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
-The project's public web site: the docs, built from the repo's Markdown, at its root and the Web viewer at /viewer
-(docs/adr/0009).
+The project's public web site, built from the repo's Markdown: a landing page at its root, the build guide, how to use
+the Mech, the Model and the reference docs, and the Web viewer at /viewer (docs/adr/0009). The README is for
+contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Hero**:
@@ -142,7 +143,7 @@ _Avoid_: rod, linkage
 The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation into upper lid rotation.
 
 **Printed part**:
-A part we print, by our name (the designer's file names are history: README credits, docs/research):
+A part we print, by our name (the designer's file names are history: docs/credits.md, docs/research):
 - eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
   desk eye bracket: Stage 1's, without the jaw rail, its stem 5 mm shorter;
 - L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;

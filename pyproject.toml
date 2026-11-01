@@ -29,6 +29,7 @@ dev = [
     "mkdocs-same-dir==0.1.3",
     "pytest-xdist==3.8.0",
     "mkdocs-macros-plugin==1.5.0",
+    "mkdocs-redirects==1.2.2",
 ]
 
 [tool.noggin]

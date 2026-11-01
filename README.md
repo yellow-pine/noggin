@@ -10,102 +10,48 @@
 [![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat&logo=blender&logoColor=white)](https://www.blender.org)
 [![MicroPython on the Core](https://img.shields.io/badge/MicroPython-on%20the%20Core-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
 
-An animatronic Mech on the desk that reacts to Claude Code. It winks when a session starts, drifts while Claude
-thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
-Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
+An animatronic Mech on the desk that reacts to Claude Code.
 
 ![noggin](https://yellowpine.com/noggin/images/hero.gif)
 
-Turn it around and play its gestures in the browser: [the web viewer](https://yellowpine.com/noggin/viewer/). These
-docs are on [the site](https://yellowpine.com/noggin/) too.
+> [!TIP]
+> ## [Docs, build guide and live 3D viewer → https://yellowpine.com/noggin](https://yellowpine.com/noggin/)
+>
+> Building the Mech, using it, the gestures, the model and the 3D viewer are all on the site. This README is for
+> contributors.
 
-## Acknowledgements
+## Setup
 
-The mechanism is [PurpleShark](https://makerworld.com/en/@PurpleShark)'s three-part CyberBrick animatronic series on
-MakerWorld: [eyes](https://makerworld.com/en/models/1718839) (1718839),
-[pan & tilt](https://makerworld.com/en/models/1766064) (1766064) and
-[mouth](https://makerworld.com/en/models/1861301) (1861301). noggin owes its existence to that work; what this repo
-adds is the behaviour (the Core program, the noggin service, the hooks) and the model (our own parametric parts and a
-simulation of the Mech).
-
-- Bambu Lab's [CyberBrick](https://wiki.bambulab.com/en/cyberbrick) Core, shields and MicroPython build.
-- [GazeBase](https://doi.org/10.1038/s41597-021-00959-y) (Griffith et al., CC BY 4.0) for the recorded eye movements.
-- Duke Doks' [Morty head](https://makerworld.com/en/models/1455413) (MakerWorld 1455413), the reference for the face.
-
-
-## Gestures
-
-| eureka | attention | bored |
-|---|---|---|
-| ![eureka](https://yellowpine.com/noggin/images/eureka.gif) | ![attention](https://yellowpine.com/noggin/images/attention.gif) | ![bored](https://yellowpine.com/noggin/images/bored.gif) |
-| **wince** | **wink** | **thinking** |
-| ![wince](https://yellowpine.com/noggin/images/wince.gif) | ![wink](https://yellowpine.com/noggin/images/wink.gif) | ![thinking](https://yellowpine.com/noggin/images/thinking.gif) |
-
-## What it does
-
-<!--{{ behaviour }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
-Which Claude Code event plays which gesture is in [the table on the site](https://yellowpine.com/noggin/#what-it-does),
-built from the code.
-<!-- #}-->
-
-Several sessions share the one Mech; a gesture already playing wins. Eye movements replay real human recordings
-(GazeBase); blinks and lids keep toon timing (anticipation, slow in and out, holds, overshoot and settle,
-`docs/research/2026-11-01-toon-eyes.md`).
-
-## How it works
-
-```mermaid
----
-config:
-  layout: dagre
-  look: classic
----
-flowchart LR
-    accTitle: How noggin works
-    accDescr: On the Mac, Claude Code's hooks write one line per event to a Unix socket; the noggin service times each turn and sends a command over Wi-Fi, as UDP datagrams signed with HMAC, to the Mech's two Cores. Core 1 drives the eyes' 4 servos, Core 2 the neck's 3. USB-C is a fallback to the eyes Core only.
-    subgraph Mac
-        CC["Claude Code<br/>hooks"] -- "Unix socket<br/>one line per event" --> NS["noggin service<br/>times each turn,<br/>drops Triggers while Busy"]
-    end
-    subgraph Mech
-        C1["Core 1: eyes<br/>ESP32-C3, MicroPython<br/>4 servos: lids and eyes"]
-        C2["Core 2: neck<br/>ESP32-C3, MicroPython<br/>3 servos: pan, tilt, mouth"]
-    end
-    NS -- "Wi-Fi: UDP + HMAC" --> C1
-    NS -- "Wi-Fi: UDP + HMAC" --> C2
-    NS -. "USB-C fallback" .-> C1
-```
-
-Arrows carry commands, the dotted one only when Wi-Fi fails; each Core plays a gesture to its end.
-
-The gestures live on the Core, so motion stays smooth whatever the Mac does; the Mac only says which one. The Link,
-a hook's way to a gesture and the model's pipeline are drawn in [`docs/how-it-works.md`](docs/how-it-works.md).
-Decisions are in [`docs/adr/`](https://github.com/yellow-pine/noggin/tree/main/docs/adr), the words in
-[`GLOSSARY.md`](GLOSSARY.md).
-
-## Quick start
+macOS or Linux, [uv](https://docs.astral.sh/uv/) and Node (the viewer's tests, the diagrams' renderer).
 
 ```
-scripts/setup.sh       # guided first run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install
-noggin/noggin status   # mode and Link per Core
-make demo              # every gesture on a loop
-make follow            # react to Claude Code again
+make venv     # .venv from uv.lock, Python 3.12
+make check    # what CI's code job runs: the tests not marked model, lint, formatting, types, script syntax
+make site     # the site in site/ (python -m http.server -d site)
 ```
 
-macOS, [uv](https://docs.astral.sh/uv/) and Claude Code. Every command, the hardware and the calibration lessons are
-in [`docs/build-notes.md`](docs/build-notes.md); how work runs in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`make check-all` adds the model tests (MuJoCo and the slow mesh sweeps); they and the other heavy targets (`sim`,
+`render`, `web`) run one at a time and are best left to CI. On the Mech itself: the
+[build guide](https://yellowpine.com/noggin/docs/build/parts/).
 
-## The Stages and the model
+## CI/CD at a glance
 
-![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](https://yellowpine.com/noggin/images/stages.jpg)
+| Workflow | File | Runs on | Does |
+|---|---|---|---|
+| Code Checks | `check.yml` | PRs, main | `code`: `make check`; `model`: the model tests, the sim and the STL/STEP export, sharded |
+| Mech Checks | `mech.yml` | PRs, main | `mech`: the Link's live checks on the Mech stand-in (`make mech`) |
+| Site Deploy | `pages.yml` | PRs, main after Code Checks | `pictures` in Blender, then `site`: the docs, viewer and reports; main deploys to Pages, a PR uploads a preview artifact |
+| Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
+| Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
+| Release Assets | `release.yml` | `v*` tags | zips the Core's program and the setup wizard into a release |
 
-![Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them](https://yellowpine.com/noggin/images/exploded.jpg)
+Required checks on main: `code`, `model`, `mech`, `site`, `review` and `fetch skills`. PRs go straight against main
+with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The Mech grows in three Stages: the eyes on the base, then on the pan-and-tilt neck, then with the mouth. `model/` is
-the Mech as code: our own parametric CadQuery parts, a simulation (MuJoCo, ADR 0007) that sweeps every linkage,
-finds its collisions and the supply's voltage sag (SPICE) before a part is printed, and Blender pictures from
-MuJoCo's trajectories (every picture here). How the pictures are made: [`docs/model-notes.md`](docs/model-notes.md).
+## Credits
+
+The mechanism is PurpleShark's CyberBrick animatronic series; the full credits are on
+[the site](https://yellowpine.com/noggin/docs/credits/).
 
 ## Licence
 

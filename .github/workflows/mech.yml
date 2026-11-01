@@ -1,6 +1,6 @@
 name: Mech Checks
 # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service, the
-# Link's live checks on the Mech (docs/build-notes.md) as tests. On PRs touching the Core's program, the noggin service or
+# Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the noggin service or
 # the stand-in, and always on main. `mech` is a required check, so the workflow always runs and the changes job filters
 # (#245): a job its condition skips reports success.
 on:

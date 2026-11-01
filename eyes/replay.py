@@ -1,5 +1,5 @@
 """Play Core-program command lines on the Mac with a simulated clock (Mac only: stubs `machine`).
-play() gives the servo timeline; near_stop_holds() is the stall-time check (docs/build-notes.md: the clutch
+play() gives the servo timeline; near_stop_holds() is the stall-time check (docs/build/calibration.md: the clutch
 servos slip when driven into a stop)."""
 
 import importlib.util

@@ -47,7 +47,9 @@ def test_docs_say_noggin_service_and_model():
         *(ROOT / "docs" / "adr").glob("*.md"),
         ROOT / "README.md",
         ROOT / "CONTRIBUTING.md",
-        ROOT / "docs" / "model-notes.md",
+        *(ROOT / "docs").glob("*.md"),
+        *(ROOT / "docs" / "build").glob("*.md"),
+        *(ROOT / "docs" / "use").glob("*.md"),
     ]
     hits = [
         f"{f.relative_to(ROOT)}:{n}"
@@ -83,8 +85,9 @@ DESIGNER = [
 
 # CyberBrick product codes: only where we buy them.
 CODES = ["ZK004", "ZL003", "PG001", "XA004", "PC003", "X11"]
-# Where the vendor, the designer and their names may appear: credits, the buy list, dated research notes (history).
-CREDITS = {"README.md": "## Acknowledgements", "docs/build-notes.md": "## Parts to buy"}
+# Where the vendor, the designer and their names may appear: the site's Credits page, README's credits line, the buy
+# list, dated research notes (history).
+CREDITS = {"README.md": "## Credits", "docs/build/parts.md": "## Parts to buy"}
 
 
 def outside_credits(f, text):
@@ -100,7 +103,7 @@ def outside_credits(f, text):
 
 def test_vendor_and_designer_names_only_in_credits():
     """Every part and board goes by our name (GLOSSARY.md); the vendor, the designer, product codes and the
-    designer's file names stay in README's acknowledgements, the build-notes buy list and dated docs/research."""
+    designer's file names stay in docs/credits.md, README's credits line, the buy list and dated docs/research."""
     from model import printed
 
     names = set(printed.PARTS)
@@ -115,7 +118,7 @@ def test_vendor_and_designer_names_only_in_credits():
     files = [
         f
         for f in tracked
-        if f not in {"test_vocabulary.py"}
+        if f not in {"test_vocabulary.py", "docs/credits.md"}
         and not re.match(r"docs/research/\d{4}-\d\d-\d\d-", f)
         and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
         and (ROOT / f).is_file()

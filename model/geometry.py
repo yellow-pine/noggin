@@ -176,7 +176,7 @@ HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15, "pin_r": {"l
 # ends (housings x -5.75..4.25, y 1.4..7.6, z +-5..15.5): "in" takes the pack's lead, "out" the lead to the shields.
 SWITCH_STEP = {"hole": (10.25, 0.0, 0.0), "in": (-0.75, 4.5, 15.5), "out": (-0.75, 4.5, -15.5)}
 # The servos by the names the remote config and calibration use, and their Mech labels (parts "<label> servo").
-# Core 1 drives the eyes (docs/build-notes.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
+# Core 1 drives the eyes (docs/build/wiring.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
 CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
 EYES_SERVOS = tuple(CHANNELS["core1"].values())
 SERVO_LABEL = {
