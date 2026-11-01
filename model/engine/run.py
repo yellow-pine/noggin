@@ -3,7 +3,8 @@ configurations) drive each horn from its minimum to its maximum limit in STEP_DE
 against every other part (contacts vs penetrations), record the driven joint angles and
 centres of mass per pose, the placements, bounding boxes and masses, the cable corridors (model/engine/cables.py), then
 fold in torque, curves, fits and beams (model/sim.py), the mating check (model/engine/mating.py) and write model/reports/<doc>-sim.json (committed, stamped with its inputs) in the shape
-model/test_report.py reads, and model/build/<doc>-corridors.ply. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
+model/test_report.py reads, and model/build/<doc>-corridors.ply. The MuJoCo half (model/mujoco_report.py) goes in the same
+report under "mujoco", measured on the document's MJCF, committed beside it as model/reports/<doc>.xml. The eyes horns are also measured at the calibrated servo ends (eyes/calibration.json) past
 the model's limits.
 Usage: python -m model.engine.run [doc ...]"""
 
@@ -13,9 +14,12 @@ import json
 import os
 import sys
 import time
+from importlib.metadata import version
 from multiprocessing import get_context
 
-from model import beams, electrical, fits, sim
+import mujoco
+
+from model import beams, electrical, fits, mjcf, mujoco_report, sim
 from model import geometry as g
 from model.engine import cables, linkage, masses, mating, mech, meshes, stages
 
@@ -28,6 +32,8 @@ INPUTS = [
     "model/fits.py",
     "model/beams.py",
     "model/electrical.py",
+    "model/mjcf.py",  # the MuJoCo half (model/mujoco_report.py) and the committed MJCF
+    "model/mujoco_report.py",
     "model/engine/*.py",  # the engine (stamp() skips the tests)
     "model/printed/*.py",  # our parts and the features they declare (the mating check)
     "model/envelopes.py",
@@ -74,6 +80,7 @@ def stamp(sources):
                 continue
             h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
     h.update(json.dumps(sources, sort_keys=True).encode())
+    h.update(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())  # they decide the MuJoCo half
     return h.hexdigest()
 
 
@@ -312,6 +319,8 @@ def main(docs):
     for doc in docs:
         t = time.time()
         r = report(doc)
+        # the MuJoCo half, measured on the committed MJCF itself
+        r["mujoco"] = mujoco_report.measure(doc, mujoco.MjModel.from_xml_path(mjcf.write(doc, OUT)))
         horns = ", ".join(  # timings vary per run: printed, not committed
             f"{h} {v['min_mm']} mm {v.pop('seconds')} s" for h, v in r["horns"].items()
         )

@@ -31,7 +31,14 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   (docs/research/2026-11-01-mujoco-loops.md).
 - **The sim report is MuJoCo-native** (#149): contacts and penetration per pair, constraint residuals (a linkage
   that cannot close), actuator force against the torque limit, tip-over, all sampled per pose; the tests, the stamp
-  and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact.
+  and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact. `make sim` measures each horn's
+  sweep and the pan x tilt grid (model/mujoco_report.py) into each report's "mujoco" section, beside the old engine's until it
+  retires, and commits the MJCF it measured as model/reports/<doc>.xml; one stamp covers both, now with model/mjcf.py,
+  model/mujoco_report.py and the mujoco and coacd versions. model/test_report.py fails a pair whose pieces go 0.05 mm deeper
+  than at rest (the pieces' own error is in the rest reading; an overlap at rest fails model/test_mjcf.py), a four-bar open over 0.05 mm, a servo holding more than
+  its rated 0.4 kgf.cm (the stall 1.0 is the actuator's limit, reported beside it), a joint a swing at the rated
+  428 deg/s leaves over 1 degree off the slow pose, and the centre of mass off the base footprint. The listed
+  exceptions carry the exact meshes' reading (docs/research/2026-11-01-mujoco-report.md).
 - **Blender draws every picture** (#150): everything public-facing (README, docs, PR pictures: views, the Stage strip,
   GIFs) stays Blender's style B, posed from MuJoCo's poses instead of the old engine's. MuJoCo's viewer is for local
   checks only, with its built-in toggles: `make view` opens `python -m mujoco.viewer` on a document

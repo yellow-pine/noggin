@@ -1,0 +1,1376 @@
+<mujoco model="noggin-eyes">
+  <compiler angle="radian" meshdir="../build"/>
+
+  <option timestep="0.0005"/>
+
+  <visual>
+    <headlight ambient="0.5 0.5 0.5" diffuse="0.5 0.5 0.5" specular="0 0 0"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" colorspace="auto" builtin="flat" rgb1="0.968627 0.956863 0.933333" rgb2="0.968627 0.956863 0.933333" width="32" height="192"/>
+    <mesh name="L servo bracket" content_type="model/stl" file="ours/L servo bracket.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 0" content_type="model/stl" file="convex/L servo bracket/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 1" content_type="model/stl" file="convex/L servo bracket/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 2" content_type="model/stl" file="convex/L servo bracket/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 3" content_type="model/stl" file="convex/L servo bracket/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 4" content_type="model/stl" file="convex/L servo bracket/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 5" content_type="model/stl" file="convex/L servo bracket/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 6" content_type="model/stl" file="convex/L servo bracket/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 7" content_type="model/stl" file="convex/L servo bracket/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 8" content_type="model/stl" file="convex/L servo bracket/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 9" content_type="model/stl" file="convex/L servo bracket/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 10" content_type="model/stl" file="convex/L servo bracket/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 11" content_type="model/stl" file="convex/L servo bracket/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 12" content_type="model/stl" file="convex/L servo bracket/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 13" content_type="model/stl" file="convex/L servo bracket/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 14" content_type="model/stl" file="convex/L servo bracket/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 15" content_type="model/stl" file="convex/L servo bracket/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 16" content_type="model/stl" file="convex/L servo bracket/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 17" content_type="model/stl" file="convex/L servo bracket/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 18" content_type="model/stl" file="convex/L servo bracket/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 19" content_type="model/stl" file="convex/L servo bracket/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 20" content_type="model/stl" file="convex/L servo bracket/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 21" content_type="model/stl" file="convex/L servo bracket/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 22" content_type="model/stl" file="convex/L servo bracket/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 23" content_type="model/stl" file="convex/L servo bracket/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 24" content_type="model/stl" file="convex/L servo bracket/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L servo bracket 25" content_type="model/stl" file="convex/L servo bracket/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket" content_type="model/stl" file="ours/R servo bracket.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 0" content_type="model/stl" file="convex/R servo bracket/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 1" content_type="model/stl" file="convex/R servo bracket/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 2" content_type="model/stl" file="convex/R servo bracket/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 3" content_type="model/stl" file="convex/R servo bracket/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 4" content_type="model/stl" file="convex/R servo bracket/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 5" content_type="model/stl" file="convex/R servo bracket/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 6" content_type="model/stl" file="convex/R servo bracket/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 7" content_type="model/stl" file="convex/R servo bracket/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 8" content_type="model/stl" file="convex/R servo bracket/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 9" content_type="model/stl" file="convex/R servo bracket/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 10" content_type="model/stl" file="convex/R servo bracket/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 11" content_type="model/stl" file="convex/R servo bracket/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 12" content_type="model/stl" file="convex/R servo bracket/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 13" content_type="model/stl" file="convex/R servo bracket/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 14" content_type="model/stl" file="convex/R servo bracket/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 15" content_type="model/stl" file="convex/R servo bracket/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 16" content_type="model/stl" file="convex/R servo bracket/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 17" content_type="model/stl" file="convex/R servo bracket/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 18" content_type="model/stl" file="convex/R servo bracket/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 19" content_type="model/stl" file="convex/R servo bracket/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 20" content_type="model/stl" file="convex/R servo bracket/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 21" content_type="model/stl" file="convex/R servo bracket/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 22" content_type="model/stl" file="convex/R servo bracket/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 23" content_type="model/stl" file="convex/R servo bracket/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 24" content_type="model/stl" file="convex/R servo bracket/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R servo bracket 25" content_type="model/stl" file="convex/R servo bracket/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball" content_type="model/stl" file="ours/L eyeball.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 0" content_type="model/stl" file="convex/L eyeball/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 1" content_type="model/stl" file="convex/L eyeball/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 2" content_type="model/stl" file="convex/L eyeball/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 3" content_type="model/stl" file="convex/L eyeball/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 4" content_type="model/stl" file="convex/L eyeball/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 5" content_type="model/stl" file="convex/L eyeball/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 6" content_type="model/stl" file="convex/L eyeball/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 7" content_type="model/stl" file="convex/L eyeball/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 8" content_type="model/stl" file="convex/L eyeball/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 9" content_type="model/stl" file="convex/L eyeball/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 10" content_type="model/stl" file="convex/L eyeball/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 11" content_type="model/stl" file="convex/L eyeball/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 12" content_type="model/stl" file="convex/L eyeball/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 13" content_type="model/stl" file="convex/L eyeball/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 14" content_type="model/stl" file="convex/L eyeball/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 15" content_type="model/stl" file="convex/L eyeball/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 16" content_type="model/stl" file="convex/L eyeball/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 17" content_type="model/stl" file="convex/L eyeball/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 18" content_type="model/stl" file="convex/L eyeball/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 19" content_type="model/stl" file="convex/L eyeball/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 20" content_type="model/stl" file="convex/L eyeball/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 21" content_type="model/stl" file="convex/L eyeball/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 22" content_type="model/stl" file="convex/L eyeball/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 23" content_type="model/stl" file="convex/L eyeball/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 24" content_type="model/stl" file="convex/L eyeball/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 25" content_type="model/stl" file="convex/L eyeball/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 26" content_type="model/stl" file="convex/L eyeball/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 27" content_type="model/stl" file="convex/L eyeball/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 28" content_type="model/stl" file="convex/L eyeball/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 29" content_type="model/stl" file="convex/L eyeball/29.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 30" content_type="model/stl" file="convex/L eyeball/30.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 31" content_type="model/stl" file="convex/L eyeball/31.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 32" content_type="model/stl" file="convex/L eyeball/32.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 33" content_type="model/stl" file="convex/L eyeball/33.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 34" content_type="model/stl" file="convex/L eyeball/34.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 35" content_type="model/stl" file="convex/L eyeball/35.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 36" content_type="model/stl" file="convex/L eyeball/36.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 37" content_type="model/stl" file="convex/L eyeball/37.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 38" content_type="model/stl" file="convex/L eyeball/38.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 39" content_type="model/stl" file="convex/L eyeball/39.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 40" content_type="model/stl" file="convex/L eyeball/40.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 41" content_type="model/stl" file="convex/L eyeball/41.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 42" content_type="model/stl" file="convex/L eyeball/42.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 43" content_type="model/stl" file="convex/L eyeball/43.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 44" content_type="model/stl" file="convex/L eyeball/44.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 45" content_type="model/stl" file="convex/L eyeball/45.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 46" content_type="model/stl" file="convex/L eyeball/46.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 47" content_type="model/stl" file="convex/L eyeball/47.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 48" content_type="model/stl" file="convex/L eyeball/48.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 49" content_type="model/stl" file="convex/L eyeball/49.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 50" content_type="model/stl" file="convex/L eyeball/50.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 51" content_type="model/stl" file="convex/L eyeball/51.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 52" content_type="model/stl" file="convex/L eyeball/52.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 53" content_type="model/stl" file="convex/L eyeball/53.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 54" content_type="model/stl" file="convex/L eyeball/54.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 55" content_type="model/stl" file="convex/L eyeball/55.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 56" content_type="model/stl" file="convex/L eyeball/56.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 57" content_type="model/stl" file="convex/L eyeball/57.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 58" content_type="model/stl" file="convex/L eyeball/58.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 59" content_type="model/stl" file="convex/L eyeball/59.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 60" content_type="model/stl" file="convex/L eyeball/60.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 61" content_type="model/stl" file="convex/L eyeball/61.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 62" content_type="model/stl" file="convex/L eyeball/62.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 63" content_type="model/stl" file="convex/L eyeball/63.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 64" content_type="model/stl" file="convex/L eyeball/64.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="L eyeball 65" content_type="model/stl" file="convex/L eyeball/65.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball" content_type="model/stl" file="ours/R eyeball.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 0" content_type="model/stl" file="convex/R eyeball/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 1" content_type="model/stl" file="convex/R eyeball/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 2" content_type="model/stl" file="convex/R eyeball/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 3" content_type="model/stl" file="convex/R eyeball/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 4" content_type="model/stl" file="convex/R eyeball/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 5" content_type="model/stl" file="convex/R eyeball/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 6" content_type="model/stl" file="convex/R eyeball/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 7" content_type="model/stl" file="convex/R eyeball/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 8" content_type="model/stl" file="convex/R eyeball/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 9" content_type="model/stl" file="convex/R eyeball/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 10" content_type="model/stl" file="convex/R eyeball/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 11" content_type="model/stl" file="convex/R eyeball/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 12" content_type="model/stl" file="convex/R eyeball/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 13" content_type="model/stl" file="convex/R eyeball/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 14" content_type="model/stl" file="convex/R eyeball/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 15" content_type="model/stl" file="convex/R eyeball/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 16" content_type="model/stl" file="convex/R eyeball/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 17" content_type="model/stl" file="convex/R eyeball/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 18" content_type="model/stl" file="convex/R eyeball/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 19" content_type="model/stl" file="convex/R eyeball/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 20" content_type="model/stl" file="convex/R eyeball/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 21" content_type="model/stl" file="convex/R eyeball/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 22" content_type="model/stl" file="convex/R eyeball/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 23" content_type="model/stl" file="convex/R eyeball/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 24" content_type="model/stl" file="convex/R eyeball/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 25" content_type="model/stl" file="convex/R eyeball/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 26" content_type="model/stl" file="convex/R eyeball/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 27" content_type="model/stl" file="convex/R eyeball/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 28" content_type="model/stl" file="convex/R eyeball/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 29" content_type="model/stl" file="convex/R eyeball/29.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 30" content_type="model/stl" file="convex/R eyeball/30.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 31" content_type="model/stl" file="convex/R eyeball/31.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 32" content_type="model/stl" file="convex/R eyeball/32.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 33" content_type="model/stl" file="convex/R eyeball/33.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 34" content_type="model/stl" file="convex/R eyeball/34.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 35" content_type="model/stl" file="convex/R eyeball/35.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 36" content_type="model/stl" file="convex/R eyeball/36.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 37" content_type="model/stl" file="convex/R eyeball/37.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 38" content_type="model/stl" file="convex/R eyeball/38.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 39" content_type="model/stl" file="convex/R eyeball/39.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 40" content_type="model/stl" file="convex/R eyeball/40.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 41" content_type="model/stl" file="convex/R eyeball/41.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 42" content_type="model/stl" file="convex/R eyeball/42.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 43" content_type="model/stl" file="convex/R eyeball/43.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 44" content_type="model/stl" file="convex/R eyeball/44.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 45" content_type="model/stl" file="convex/R eyeball/45.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 46" content_type="model/stl" file="convex/R eyeball/46.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 47" content_type="model/stl" file="convex/R eyeball/47.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 48" content_type="model/stl" file="convex/R eyeball/48.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 49" content_type="model/stl" file="convex/R eyeball/49.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 50" content_type="model/stl" file="convex/R eyeball/50.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 51" content_type="model/stl" file="convex/R eyeball/51.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 52" content_type="model/stl" file="convex/R eyeball/52.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 53" content_type="model/stl" file="convex/R eyeball/53.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 54" content_type="model/stl" file="convex/R eyeball/54.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 55" content_type="model/stl" file="convex/R eyeball/55.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 56" content_type="model/stl" file="convex/R eyeball/56.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 57" content_type="model/stl" file="convex/R eyeball/57.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 58" content_type="model/stl" file="convex/R eyeball/58.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 59" content_type="model/stl" file="convex/R eyeball/59.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 60" content_type="model/stl" file="convex/R eyeball/60.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 61" content_type="model/stl" file="convex/R eyeball/61.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 62" content_type="model/stl" file="convex/R eyeball/62.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 63" content_type="model/stl" file="convex/R eyeball/63.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="R eyeball 64" content_type="model/stl" file="convex/R eyeball/64.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="pupil" content_type="model/stl" file="ours/pupil.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="pupil 0" content_type="model/stl" file="convex/pupil/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid" content_type="model/stl" file="ours/upper lid.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 0" content_type="model/stl" file="convex/upper lid/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 1" content_type="model/stl" file="convex/upper lid/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 2" content_type="model/stl" file="convex/upper lid/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 3" content_type="model/stl" file="convex/upper lid/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 4" content_type="model/stl" file="convex/upper lid/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 5" content_type="model/stl" file="convex/upper lid/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 6" content_type="model/stl" file="convex/upper lid/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 7" content_type="model/stl" file="convex/upper lid/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 8" content_type="model/stl" file="convex/upper lid/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 9" content_type="model/stl" file="convex/upper lid/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 10" content_type="model/stl" file="convex/upper lid/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 11" content_type="model/stl" file="convex/upper lid/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 12" content_type="model/stl" file="convex/upper lid/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 13" content_type="model/stl" file="convex/upper lid/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 14" content_type="model/stl" file="convex/upper lid/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 15" content_type="model/stl" file="convex/upper lid/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 16" content_type="model/stl" file="convex/upper lid/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 17" content_type="model/stl" file="convex/upper lid/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 18" content_type="model/stl" file="convex/upper lid/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 19" content_type="model/stl" file="convex/upper lid/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 20" content_type="model/stl" file="convex/upper lid/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 21" content_type="model/stl" file="convex/upper lid/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 22" content_type="model/stl" file="convex/upper lid/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 23" content_type="model/stl" file="convex/upper lid/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 24" content_type="model/stl" file="convex/upper lid/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 25" content_type="model/stl" file="convex/upper lid/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 26" content_type="model/stl" file="convex/upper lid/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 27" content_type="model/stl" file="convex/upper lid/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 28" content_type="model/stl" file="convex/upper lid/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="upper lid 29" content_type="model/stl" file="convex/upper lid/29.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid" content_type="model/stl" file="ours/lower lid.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 0" content_type="model/stl" file="convex/lower lid/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 1" content_type="model/stl" file="convex/lower lid/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 2" content_type="model/stl" file="convex/lower lid/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 3" content_type="model/stl" file="convex/lower lid/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 4" content_type="model/stl" file="convex/lower lid/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 5" content_type="model/stl" file="convex/lower lid/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 6" content_type="model/stl" file="convex/lower lid/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 7" content_type="model/stl" file="convex/lower lid/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 8" content_type="model/stl" file="convex/lower lid/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 9" content_type="model/stl" file="convex/lower lid/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 10" content_type="model/stl" file="convex/lower lid/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 11" content_type="model/stl" file="convex/lower lid/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 12" content_type="model/stl" file="convex/lower lid/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 13" content_type="model/stl" file="convex/lower lid/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 14" content_type="model/stl" file="convex/lower lid/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 15" content_type="model/stl" file="convex/lower lid/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 16" content_type="model/stl" file="convex/lower lid/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 17" content_type="model/stl" file="convex/lower lid/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 18" content_type="model/stl" file="convex/lower lid/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 19" content_type="model/stl" file="convex/lower lid/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 20" content_type="model/stl" file="convex/lower lid/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 21" content_type="model/stl" file="convex/lower lid/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 22" content_type="model/stl" file="convex/lower lid/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 23" content_type="model/stl" file="convex/lower lid/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 24" content_type="model/stl" file="convex/lower lid/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 25" content_type="model/stl" file="convex/lower lid/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 26" content_type="model/stl" file="convex/lower lid/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 27" content_type="model/stl" file="convex/lower lid/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lower lid 28" content_type="model/stl" file="convex/lower lid/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar" content_type="model/stl" file="ours/eyeball bar.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 0" content_type="model/stl" file="convex/eyeball bar/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 1" content_type="model/stl" file="convex/eyeball bar/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 2" content_type="model/stl" file="convex/eyeball bar/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 3" content_type="model/stl" file="convex/eyeball bar/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 4" content_type="model/stl" file="convex/eyeball bar/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 5" content_type="model/stl" file="convex/eyeball bar/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="eyeball bar 6" content_type="model/stl" file="convex/eyeball bar/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket" content_type="model/stl" file="ours/desk eye bracket.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 0" content_type="model/stl" file="convex/desk eye bracket/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 1" content_type="model/stl" file="convex/desk eye bracket/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 2" content_type="model/stl" file="convex/desk eye bracket/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 3" content_type="model/stl" file="convex/desk eye bracket/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 4" content_type="model/stl" file="convex/desk eye bracket/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 5" content_type="model/stl" file="convex/desk eye bracket/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 6" content_type="model/stl" file="convex/desk eye bracket/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 7" content_type="model/stl" file="convex/desk eye bracket/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 8" content_type="model/stl" file="convex/desk eye bracket/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="desk eye bracket 9" content_type="model/stl" file="convex/desk eye bracket/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo" content_type="model/stl" file="ours/servo.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 0" content_type="model/stl" file="convex/servo/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 1" content_type="model/stl" file="convex/servo/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 2" content_type="model/stl" file="convex/servo/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 3" content_type="model/stl" file="convex/servo/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 4" content_type="model/stl" file="convex/servo/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 5" content_type="model/stl" file="convex/servo/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 6" content_type="model/stl" file="convex/servo/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 7" content_type="model/stl" file="convex/servo/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 8" content_type="model/stl" file="convex/servo/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 9" content_type="model/stl" file="convex/servo/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="servo 10" content_type="model/stl" file="convex/servo/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn" content_type="model/stl" file="ours/horn.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 0" content_type="model/stl" file="convex/horn/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 1" content_type="model/stl" file="convex/horn/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 2" content_type="model/stl" file="convex/horn/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 3" content_type="model/stl" file="convex/horn/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 4" content_type="model/stl" file="convex/horn/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 5" content_type="model/stl" file="convex/horn/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 6" content_type="model/stl" file="convex/horn/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 7" content_type="model/stl" file="convex/horn/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 8" content_type="model/stl" file="convex/horn/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 9" content_type="model/stl" file="convex/horn/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 10" content_type="model/stl" file="convex/horn/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 11" content_type="model/stl" file="convex/horn/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 12" content_type="model/stl" file="convex/horn/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 13" content_type="model/stl" file="convex/horn/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 14" content_type="model/stl" file="convex/horn/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 15" content_type="model/stl" file="convex/horn/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 16" content_type="model/stl" file="convex/horn/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 17" content_type="model/stl" file="convex/horn/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 18" content_type="model/stl" file="convex/horn/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 19" content_type="model/stl" file="convex/horn/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 20" content_type="model/stl" file="convex/horn/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 21" content_type="model/stl" file="convex/horn/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 22" content_type="model/stl" file="convex/horn/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 23" content_type="model/stl" file="convex/horn/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 24" content_type="model/stl" file="convex/horn/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 25" content_type="model/stl" file="convex/horn/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 26" content_type="model/stl" file="convex/horn/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 27" content_type="model/stl" file="convex/horn/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 28" content_type="model/stl" file="convex/horn/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 29" content_type="model/stl" file="convex/horn/29.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 30" content_type="model/stl" file="convex/horn/30.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 31" content_type="model/stl" file="convex/horn/31.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 32" content_type="model/stl" file="convex/horn/32.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 33" content_type="model/stl" file="convex/horn/33.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="horn 34" content_type="model/stl" file="convex/horn/34.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar" content_type="model/stl" file="ours/lid bar.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 0" content_type="model/stl" file="convex/lid bar/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 1" content_type="model/stl" file="convex/lid bar/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 2" content_type="model/stl" file="convex/lid bar/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 3" content_type="model/stl" file="convex/lid bar/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 4" content_type="model/stl" file="convex/lid bar/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid bar 5" content_type="model/stl" file="convex/lid bar/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank" content_type="model/stl" file="ours/lid crank.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 0" content_type="model/stl" file="convex/lid crank/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 1" content_type="model/stl" file="convex/lid crank/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 2" content_type="model/stl" file="convex/lid crank/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 3" content_type="model/stl" file="convex/lid crank/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 4" content_type="model/stl" file="convex/lid crank/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 5" content_type="model/stl" file="convex/lid crank/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 6" content_type="model/stl" file="convex/lid crank/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="lid crank 7" content_type="model/stl" file="convex/lid crank/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate" content_type="model/stl" file="ours/base plate.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 0" content_type="model/stl" file="convex/base plate/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 1" content_type="model/stl" file="convex/base plate/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 2" content_type="model/stl" file="convex/base plate/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 3" content_type="model/stl" file="convex/base plate/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 4" content_type="model/stl" file="convex/base plate/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 5" content_type="model/stl" file="convex/base plate/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 6" content_type="model/stl" file="convex/base plate/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 7" content_type="model/stl" file="convex/base plate/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 8" content_type="model/stl" file="convex/base plate/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 9" content_type="model/stl" file="convex/base plate/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 10" content_type="model/stl" file="convex/base plate/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 11" content_type="model/stl" file="convex/base plate/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 12" content_type="model/stl" file="convex/base plate/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 13" content_type="model/stl" file="convex/base plate/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 14" content_type="model/stl" file="convex/base plate/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 15" content_type="model/stl" file="convex/base plate/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 16" content_type="model/stl" file="convex/base plate/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 17" content_type="model/stl" file="convex/base plate/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 18" content_type="model/stl" file="convex/base plate/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 19" content_type="model/stl" file="convex/base plate/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 20" content_type="model/stl" file="convex/base plate/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 21" content_type="model/stl" file="convex/base plate/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 22" content_type="model/stl" file="convex/base plate/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 23" content_type="model/stl" file="convex/base plate/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 24" content_type="model/stl" file="convex/base plate/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 25" content_type="model/stl" file="convex/base plate/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="base plate 26" content_type="model/stl" file="convex/base plate/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver" content_type="model/stl" file="ours/receiver.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 0" content_type="model/stl" file="convex/receiver/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 1" content_type="model/stl" file="convex/receiver/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 2" content_type="model/stl" file="convex/receiver/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 3" content_type="model/stl" file="convex/receiver/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 4" content_type="model/stl" file="convex/receiver/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 5" content_type="model/stl" file="convex/receiver/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 6" content_type="model/stl" file="convex/receiver/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 7" content_type="model/stl" file="convex/receiver/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 8" content_type="model/stl" file="convex/receiver/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 9" content_type="model/stl" file="convex/receiver/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 10" content_type="model/stl" file="convex/receiver/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 11" content_type="model/stl" file="convex/receiver/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 12" content_type="model/stl" file="convex/receiver/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 13" content_type="model/stl" file="convex/receiver/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 14" content_type="model/stl" file="convex/receiver/14.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 15" content_type="model/stl" file="convex/receiver/15.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 16" content_type="model/stl" file="convex/receiver/16.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 17" content_type="model/stl" file="convex/receiver/17.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 18" content_type="model/stl" file="convex/receiver/18.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 19" content_type="model/stl" file="convex/receiver/19.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 20" content_type="model/stl" file="convex/receiver/20.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 21" content_type="model/stl" file="convex/receiver/21.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 22" content_type="model/stl" file="convex/receiver/22.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 23" content_type="model/stl" file="convex/receiver/23.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 24" content_type="model/stl" file="convex/receiver/24.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 25" content_type="model/stl" file="convex/receiver/25.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 26" content_type="model/stl" file="convex/receiver/26.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 27" content_type="model/stl" file="convex/receiver/27.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 28" content_type="model/stl" file="convex/receiver/28.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 29" content_type="model/stl" file="convex/receiver/29.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 30" content_type="model/stl" file="convex/receiver/30.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 31" content_type="model/stl" file="convex/receiver/31.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 32" content_type="model/stl" file="convex/receiver/32.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 33" content_type="model/stl" file="convex/receiver/33.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 34" content_type="model/stl" file="convex/receiver/34.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 35" content_type="model/stl" file="convex/receiver/35.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 36" content_type="model/stl" file="convex/receiver/36.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 37" content_type="model/stl" file="convex/receiver/37.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="receiver 38" content_type="model/stl" file="convex/receiver/38.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core" content_type="model/stl" file="ours/core.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 0" content_type="model/stl" file="convex/core/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 1" content_type="model/stl" file="convex/core/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 2" content_type="model/stl" file="convex/core/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 3" content_type="model/stl" file="convex/core/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 4" content_type="model/stl" file="convex/core/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 5" content_type="model/stl" file="convex/core/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 6" content_type="model/stl" file="convex/core/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 7" content_type="model/stl" file="convex/core/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 8" content_type="model/stl" file="convex/core/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 9" content_type="model/stl" file="convex/core/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 10" content_type="model/stl" file="convex/core/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="core 11" content_type="model/stl" file="convex/core/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch" content_type="model/stl" file="ours/switch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 0" content_type="model/stl" file="convex/switch/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 1" content_type="model/stl" file="convex/switch/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 2" content_type="model/stl" file="convex/switch/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 3" content_type="model/stl" file="convex/switch/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 4" content_type="model/stl" file="convex/switch/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 5" content_type="model/stl" file="convex/switch/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 6" content_type="model/stl" file="convex/switch/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 7" content_type="model/stl" file="convex/switch/7.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 8" content_type="model/stl" file="convex/switch/8.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 9" content_type="model/stl" file="convex/switch/9.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 10" content_type="model/stl" file="convex/switch/10.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 11" content_type="model/stl" file="convex/switch/11.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 12" content_type="model/stl" file="convex/switch/12.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="switch 13" content_type="model/stl" file="convex/switch/13.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="battery" content_type="model/stl" file="ours/battery.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="battery 0" content_type="model/stl" file="convex/battery/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper" content_type="model/stl" file="ours/wire keeper.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 0" content_type="model/stl" file="convex/wire keeper/0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 1" content_type="model/stl" file="convex/wire keeper/1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 2" content_type="model/stl" file="convex/wire keeper/2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 3" content_type="model/stl" file="convex/wire keeper/3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 4" content_type="model/stl" file="convex/wire keeper/4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 5" content_type="model/stl" file="convex/wire keeper/5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 6" content_type="model/stl" file="convex/wire keeper/6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wire keeper 7" content_type="model/stl" file="convex/wire keeper/7.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <worldbody>
+    <frame pos="0.0295 -0.032 0.0386" quat="0 0 0.707107 0.707107">
+      <body name="L servo bracket:1">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="L servo bracket"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000993328" mesh="L servo bracket 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00135749" mesh="L servo bracket 1"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00023548" mesh="L servo bracket 2"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000183294" mesh="L servo bracket 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00026322" mesh="L servo bracket 4"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000477982" mesh="L servo bracket 5"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000171689" mesh="L servo bracket 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000167908" mesh="L servo bracket 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00109768" mesh="L servo bracket 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.14975e-05" mesh="L servo bracket 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.85252e-05" mesh="L servo bracket 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="4.84537e-05" mesh="L servo bracket 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="4.85244e-05" mesh="L servo bracket 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000644105" mesh="L servo bracket 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000973901" mesh="L servo bracket 14"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="8.0995e-05" mesh="L servo bracket 15"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.42059e-05" mesh="L servo bracket 16"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00014654" mesh="L servo bracket 17"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000146496" mesh="L servo bracket 18"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000176775" mesh="L servo bracket 19"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="8.63428e-05" mesh="L servo bracket 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000177429" mesh="L servo bracket 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000317962" mesh="L servo bracket 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00027843" mesh="L servo bracket 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000133282" mesh="L servo bracket 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000429458" mesh="L servo bracket 25"/>
+        <site name="l_lid servo -&gt; Core 1 PWM1 1" pos="0.0215 -0.0345 0.0485"/>
+        <site name="l_eye servo -&gt; Core 1 PWM2 1" pos="0.0215 -0.0345 0.0485"/>
+        <site name="L lid servo / L servo bracket near tab screw: L servo bracket:1" pos="-0.00857 -0.00465 0.04"/>
+        <site name="L lid servo / L servo bracket far tab screw: L servo bracket:1" pos="-0.00857 -0.03235 0.04"/>
+        <site name="L eye servo / L servo bracket near tab screw: L servo bracket:1" pos="-0.006 -0.01265 0.02688"/>
+        <site name="L eye servo / L servo bracket far tab screw: L servo bracket:1" pos="0.0218 -0.01265 0.02688"/>
+        <site name="L servo bracket outer on the eye bracket: L servo bracket:1" pos="-0.01342 -0.00775 0.0195"/>
+        <site name="L servo bracket inner on the eye bracket: L servo bracket:1" pos="0.01024 -0.0005 0.0195"/>
+        <site name="L servo bracket stem on the eye bracket: L servo bracket:1" pos="0.0295 -0.0316 0.0195"/>
+      </body>
+      <body name="R servo bracket:1">
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="R servo bracket"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00131552" mesh="R servo bracket 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000454725" mesh="R servo bracket 1"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000182292" mesh="R servo bracket 2"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000234276" mesh="R servo bracket 3"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00108049" mesh="R servo bracket 4"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000261161" mesh="R servo bracket 5"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000195573" mesh="R servo bracket 6"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000167041" mesh="R servo bracket 7"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="4.5591e-05" mesh="R servo bracket 8"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.10019e-05" mesh="R servo bracket 9"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.43215e-05" mesh="R servo bracket 10"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.58474e-05" mesh="R servo bracket 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.32827e-05" mesh="R servo bracket 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="8.10749e-05" mesh="R servo bracket 13"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000640963" mesh="R servo bracket 14"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000969173" mesh="R servo bracket 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="3.815e-05" mesh="R servo bracket 16"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00142544" mesh="R servo bracket 17"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000105881" mesh="R servo bracket 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000131033" mesh="R servo bracket 19"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00017651" mesh="R servo bracket 20"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00031631" mesh="R servo bracket 21"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000146541" mesh="R servo bracket 22"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.78961e-05" mesh="R servo bracket 23"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000341642" mesh="R servo bracket 24"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000209258" mesh="R servo bracket 25"/>
+        <site name="r_lid servo -&gt; Core 1 PWM3 1" pos="0.0375 -0.0345 0.0485"/>
+        <site name="r_eye servo -&gt; Core 1 PWM4 1" pos="0.0375 -0.0345 0.0485"/>
+        <site name="R lid servo / R servo bracket near tab screw: R servo bracket:1" pos="0.06757 -0.00465 0.04"/>
+        <site name="R lid servo / R servo bracket far tab screw: R servo bracket:1" pos="0.06757 -0.03235 0.04"/>
+        <site name="R eye servo / R servo bracket near tab screw: R servo bracket:1" pos="0.065 -0.01265 0.02688"/>
+        <site name="R eye servo / R servo bracket far tab screw: R servo bracket:1" pos="0.0372 -0.01265 0.02688"/>
+        <site name="R servo bracket outer on the eye bracket: R servo bracket:1" pos="0.07242 -0.00775 0.0195"/>
+        <site name="R servo bracket inner on the eye bracket: R servo bracket:1" pos="0.04876 -0.0005 0.0195"/>
+        <site name="R servo bracket stem on the eye bracket: R servo bracket:1" pos="0.0295 -0.0216 0.0195"/>
+      </body>
+      <body name="eye bracket:1">
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="desk eye bracket"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00194583" mesh="desk eye bracket 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000596016" mesh="desk eye bracket 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00134749" mesh="desk eye bracket 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000169178" mesh="desk eye bracket 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000596041" mesh="desk eye bracket 4"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00290987" mesh="desk eye bracket 5"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00547856" mesh="desk eye bracket 6"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000220441" mesh="desk eye bracket 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000306621" mesh="desk eye bracket 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000346953" mesh="desk eye bracket 9"/>
+        <site name="L upper lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>
+        <site name="L upper lid inner on the bracket pin: eye bracket:1" pos="0.0225 0 0"/>
+        <site name="L lower lid outer on the bracket pin: eye bracket:1" pos="-0.0225 0 0"/>
+        <site name="L lower lid inner on the bracket pin: eye bracket:1" pos="0.0225 0 0"/>
+        <site name="L eyeball pivot in the fork: eye bracket:1" pos="0 -0.0075 0"/>
+        <site name="L servo bracket outer on the eye bracket: eye bracket:1" pos="-0.01342 -0.00775 0.0195"/>
+        <site name="L servo bracket inner on the eye bracket: eye bracket:1" pos="0.01024 -0.0005 0.0195"/>
+        <site name="L servo bracket stem on the eye bracket: eye bracket:1" pos="0.0295 -0.0316 0.0195"/>
+        <site name="R upper lid outer on the bracket pin: eye bracket:1" pos="0.0365 0 0"/>
+        <site name="R upper lid inner on the bracket pin: eye bracket:1" pos="0.0815 0 0"/>
+        <site name="R lower lid outer on the bracket pin: eye bracket:1" pos="0.0365 0 0"/>
+        <site name="R lower lid inner on the bracket pin: eye bracket:1" pos="0.0815 0 0"/>
+        <site name="R eyeball pivot in the fork: eye bracket:1" pos="0.059 -0.0075 0"/>
+        <site name="R servo bracket outer on the eye bracket: eye bracket:1" pos="0.07242 -0.00775 0.0195"/>
+        <site name="R servo bracket inner on the eye bracket: eye bracket:1" pos="0.04876 -0.0005 0.0195"/>
+        <site name="R servo bracket stem on the eye bracket: eye bracket:1" pos="0.0295 -0.0216 0.0195"/>
+      </body>
+      <body name="L lid servo:1" pos="-0.00742 -0.0299 0.0341" quat="0.5 0.5 0.5 0.5">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00110049" mesh="servo 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000129763" mesh="servo 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.57019e-05" mesh="servo 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.53438e-05" mesh="servo 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000898461" mesh="servo 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56515e-05" mesh="servo 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56712e-05" mesh="servo 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000899066" mesh="servo 10"/>
+        <site name="l_lid servo -&gt; Core 1 PWM1 0" pos="0.0277 0.0059 0.011"/>
+        <site name="L lid servo / L servo bracket near tab screw: L lid servo:1" pos="0.02525 0.0059 -0.00115"/>
+        <site name="L lid servo / L servo bracket far tab screw: L lid servo:1" pos="-0.00255 0.0059 -0.00115"/>
+        <site name="L lid horn on the L lid servo spline: L lid servo:1" pos="0.01669 0.0059 -0.01286"/>
+      </body>
+      <body name="L eye servo:1" pos="0.01925 -0.0138 0.0329" quat="0 0 -0.707107 0.707107">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00110049" mesh="servo 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000129763" mesh="servo 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.57019e-05" mesh="servo 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.53438e-05" mesh="servo 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000898461" mesh="servo 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56515e-05" mesh="servo 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56712e-05" mesh="servo 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000899066" mesh="servo 10"/>
+        <site name="l_eye servo -&gt; Core 1 PWM2 0" pos="0.0277 0.0059 0.011"/>
+        <site name="L eye servo / L servo bracket near tab screw: L eye servo:1" pos="0.02525 0.0059 -0.00115"/>
+        <site name="L eye servo / L servo bracket far tab screw: L eye servo:1" pos="-0.00255 0.0059 -0.00115"/>
+        <site name="L eye horn on the L eye servo spline: L eye servo:1" pos="0.01669 0.0059 -0.01286"/>
+      </body>
+      <body name="R lid servo:1" pos="0.06642 -0.0299 0.0459" quat="0.5 -0.5 -0.5 0.5">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00110049" mesh="servo 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000129763" mesh="servo 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.57019e-05" mesh="servo 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.53438e-05" mesh="servo 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000898461" mesh="servo 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56515e-05" mesh="servo 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56712e-05" mesh="servo 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000899066" mesh="servo 10"/>
+        <site name="r_lid servo -&gt; Core 1 PWM3 0" pos="0.0277 0.0059 0.011"/>
+        <site name="R lid servo / R servo bracket near tab screw: R lid servo:1" pos="0.02525 0.0059 -0.00115"/>
+        <site name="R lid servo / R servo bracket far tab screw: R lid servo:1" pos="-0.00255 0.0059 -0.00115"/>
+        <site name="R lid horn on the R lid servo spline: R lid servo:1" pos="0.01669 0.0059 -0.01286"/>
+      </body>
+      <body name="R eye servo:1" pos="0.03975 -0.0138 0.0211" quat="0.707107 0.707107 0 0">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.494118 0.509804 0.529412 1" density="0" mesh="servo"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00993229" mesh="servo 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00239136" mesh="servo 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000466205" mesh="servo 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.00110049" mesh="servo 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000129763" mesh="servo 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.57019e-05" mesh="servo 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.53438e-05" mesh="servo 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000898461" mesh="servo 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56515e-05" mesh="servo 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="4.56712e-05" mesh="servo 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.494118 0.509804 0.529412 1" mass="0.000899066" mesh="servo 10"/>
+        <site name="r_eye servo -&gt; Core 1 PWM4 0" pos="0.0277 0.0059 0.011"/>
+        <site name="R eye servo / R servo bracket near tab screw: R eye servo:1" pos="0.02525 0.0059 -0.00115"/>
+        <site name="R eye servo / R servo bracket far tab screw: R eye servo:1" pos="-0.00255 0.0059 -0.00115"/>
+        <site name="R eye horn on the R eye servo spline: R eye servo:1" pos="0.01669 0.0059 -0.01286"/>
+      </body>
+      <body name="base plate:1" pos="0.0295 -0.0386 0.032" quat="0 0 0.707107 0.707107">
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="base plate"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0126284" mesh="base plate 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0464256" mesh="base plate 1"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00130474" mesh="base plate 2"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0003754" mesh="base plate 3"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0012537" mesh="base plate 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000405737" mesh="base plate 5"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000483017" mesh="base plate 6"/>
+        <geom type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000405691" mesh="base plate 7"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00117488" mesh="base plate 8"/>
+        <geom type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000284294" mesh="base plate 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000284289" mesh="base plate 10"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00103044" mesh="base plate 11"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00271114" mesh="base plate 12"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.0242363" mesh="base plate 13"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00117494" mesh="base plate 14"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000162902" mesh="base plate 15"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00131583" mesh="base plate 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00125348" mesh="base plate 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000375348" mesh="base plate 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000162879" mesh="base plate 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000162879" mesh="base plate 20"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00284499" mesh="base plate 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00891266" mesh="base plate 22"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00310137" mesh="base plate 23"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000962685" mesh="base plate 24"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00166171" mesh="base plate 25"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.00137063" mesh="base plate 26"/>
+        <site name="pack 1 -&gt; switch 1 1" pos="-0.018 0.066 0.006"/>
+        <site name="pack 1 -&gt; switch 1 2" pos="0.012 0.1 0.006"/>
+        <site name="switch 1 -&gt; shield 1 1" pos="0.059 0.11 0.004"/>
+        <site name="switch 1 -&gt; shield 1 2" pos="0.059 0.056 0.004"/>
+        <site name="l_lid servo -&gt; Core 1 PWM1 2" pos="0.006 0.0805 0.007"/>
+        <site name="l_eye servo -&gt; Core 1 PWM2 2" pos="0.006 0.0805 0.007"/>
+        <site name="r_lid servo -&gt; Core 1 PWM3 2" pos="0.006 0.0805 0.007"/>
+        <site name="r_eye servo -&gt; Core 1 PWM4 2" pos="0.006 0.0805 0.007"/>
+      </body>
+      <body name="receiver shield 1:1" pos="-0.0085 -0.0226 0.084" quat="0.707107 0 0.707107 0">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" mesh="receiver"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000310608" mesh="receiver 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000350976" mesh="receiver 1"/>
+        <geom type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000263759" mesh="receiver 2"/>
+        <geom type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000263759" mesh="receiver 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.89021e-05" mesh="receiver 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000155495" mesh="receiver 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000121519" mesh="receiver 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62911e-06" mesh="receiver 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62903e-06" mesh="receiver 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62911e-06" mesh="receiver 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62903e-06" mesh="receiver 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000155495" mesh="receiver 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000121519" mesh="receiver 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000181355" mesh="receiver 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000181355" mesh="receiver 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000136507" mesh="receiver 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000107381" mesh="receiver 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000107215" mesh="receiver 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62903e-06" mesh="receiver 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62949e-06" mesh="receiver 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62949e-06" mesh="receiver 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62911e-06" mesh="receiver 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62903e-06" mesh="receiver 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62948e-06" mesh="receiver 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62948e-06" mesh="receiver 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="4.62911e-06" mesh="receiver 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000348195" mesh="receiver 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="9.28565e-05" mesh="receiver 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.4847e-05" mesh="receiver 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000123281" mesh="receiver 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.00010426" mesh="receiver 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000428223" mesh="receiver 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="8.55788e-05" mesh="receiver 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000367953" mesh="receiver 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="2.47779e-05" mesh="receiver 34"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="9.44036e-05" mesh="receiver 35"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.00010817" mesh="receiver 36"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.89497e-05" mesh="receiver 37"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000490111" mesh="receiver 38"/>
+        <site name="switch 1 -&gt; shield 1 3" pos="0 0.00962 -0.00975"/>
+        <site name="l_lid servo -&gt; Core 1 PWM1 3" pos="0.0042 0.0108 0.0004"/>
+        <site name="l_eye servo -&gt; Core 1 PWM2 3" pos="0.0042 0.0108 0.0046"/>
+        <site name="r_lid servo -&gt; Core 1 PWM3 3" pos="-0.0042 0.0108 0.0004"/>
+        <site name="r_eye servo -&gt; Core 1 PWM4 3" pos="-0.0042 0.0108 0.0046"/>
+      </body>
+      <body name="Core 1:1" pos="-0.0085 -0.0226 0.084" quat="0.707107 0 0.707107 0">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.227451 0.239216 0.258824 1" density="0" mesh="core"/>
+        <geom type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000198345" mesh="core 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000205203" mesh="core 1"/>
+        <geom type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000198345" mesh="core 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000221424" mesh="core 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000173124" mesh="core 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000390567" mesh="core 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000417307" mesh="core 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000168736" mesh="core 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000693946" mesh="core 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="9.91742e-05" mesh="core 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000221422" mesh="core 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.227451 0.239216 0.258824 1" mass="0.000108409" mesh="core 11"/>
+      </body>
+      <body name="switch board 1:1" pos="-0.005 -0.0296 0.15075" quat="0.707107 0 0.707107 0">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.333333 0.34902 0.368627 1" density="0" mesh="switch"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000665439" mesh="switch 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000555421" mesh="switch 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000665439" mesh="switch 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000555779" mesh="switch 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000182221" mesh="switch 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.00118514" mesh="switch 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.46392e-05" mesh="switch 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="2.05075e-05" mesh="switch 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="2.05166e-05" mesh="switch 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="0.000299078" mesh="switch 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.4642e-05" mesh="switch 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="1.46406e-05" mesh="switch 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="2.27362e-05" mesh="switch 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.333333 0.34902 0.368627 1" mass="2.28021e-05" mesh="switch 13"/>
+        <site name="pack 1 -&gt; switch 1 3" pos="-0.00075 0.0045 0.0155"/>
+        <site name="switch 1 -&gt; shield 1 0" pos="-0.00075 0.0045 -0.0155"/>
+      </body>
+      <body name="battery 1:1" pos="0.06525 -0.02745 0.157" quat="0.707107 -0.707107 0 0">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.603922 0.619608 0.639216 1" density="0" mesh="battery"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.603922 0.619608 0.639216 1" mass="0.039408" mesh="battery 0"/>
+        <site name="pack 1 -&gt; switch 1 0" pos="0.0035 0.0525 0.0035"/>
+      </body>
+      <body name="cable holder:1" pos="-0.006 -0.003 0.0495">
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="wire keeper"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.87949e-05" mesh="wire keeper 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.66009e-05" mesh="wire keeper 1"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000133555" mesh="wire keeper 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00014698" mesh="wire keeper 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000119138" mesh="wire keeper 4"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000108325" mesh="wire keeper 5"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.22989e-05" mesh="wire keeper 6"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.23071e-05" mesh="wire keeper 7"/>
+      </body>
+      <body name="L eyeball:1">
+        <joint name="L eyeball pivot" axis="0 1 0"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" mesh="L eyeball"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000242454" mesh="L eyeball 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000256886" mesh="L eyeball 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000375176" mesh="L eyeball 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000242005" mesh="L eyeball 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000375334" mesh="L eyeball 4"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000346047" mesh="L eyeball 5"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000231536" mesh="L eyeball 6"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000231535" mesh="L eyeball 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000234022" mesh="L eyeball 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000378822" mesh="L eyeball 9"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000349257" mesh="L eyeball 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000225124" mesh="L eyeball 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000251617" mesh="L eyeball 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="8.20884e-05" mesh="L eyeball 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000226268" mesh="L eyeball 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000220644" mesh="L eyeball 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000146397" mesh="L eyeball 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000136107" mesh="L eyeball 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000134067" mesh="L eyeball 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000101445" mesh="L eyeball 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.0001476" mesh="L eyeball 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000247886" mesh="L eyeball 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000120953" mesh="L eyeball 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000101092" mesh="L eyeball 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000101369" mesh="L eyeball 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000134572" mesh="L eyeball 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000227003" mesh="L eyeball 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00021999" mesh="L eyeball 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000146576" mesh="L eyeball 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000135916" mesh="L eyeball 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000121261" mesh="L eyeball 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000100824" mesh="L eyeball 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000117404" mesh="L eyeball 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000191097" mesh="L eyeball 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000114066" mesh="L eyeball 34"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000198107" mesh="L eyeball 35"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="4.30124e-05" mesh="L eyeball 36"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000654551" mesh="L eyeball 37"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="3.48928e-05" mesh="L eyeball 38"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000237943" mesh="L eyeball 39"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="4.91961e-05" mesh="L eyeball 40"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="9.72596e-05" mesh="L eyeball 41"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="6.44628e-05" mesh="L eyeball 42"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000768633" mesh="L eyeball 43"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="6.0794e-05" mesh="L eyeball 44"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="2.70361e-05" mesh="L eyeball 45"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="5.67038e-05" mesh="L eyeball 46"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="5.26023e-05" mesh="L eyeball 47"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.0015103" mesh="L eyeball 48"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000277245" mesh="L eyeball 49"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000348868" mesh="L eyeball 50"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00067391" mesh="L eyeball 51"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000768849" mesh="L eyeball 52"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000332764" mesh="L eyeball 53"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000769985" mesh="L eyeball 54"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000486945" mesh="L eyeball 55"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="2.315e-05" mesh="L eyeball 56"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000482215" mesh="L eyeball 57"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="4.86917e-05" mesh="L eyeball 58"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="3.84854e-05" mesh="L eyeball 59"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00040216" mesh="L eyeball 60"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000386799" mesh="L eyeball 61"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000280367" mesh="L eyeball 62"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000267796" mesh="L eyeball 63"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00030684" mesh="L eyeball 64"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000298" mesh="L eyeball 65"/>
+        <site name="L eyeball pivot pin: L eyeball:1" pos="-0.01 0.004 0"/>
+        <site name="L eyeball bar / L eyeball screw: L eyeball:1" pos="-0.01 0.004 0"/>
+        <site name="L eyeball pivot in the fork: L eyeball:1" pos="0 -0.0075 0"/>
+        <body name="L pupil:1" pos="-0.059 0 0">
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="pupil"/>
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000305" mesh="pupil 0"/>
+        </body>
+      </body>
+      <body name="R eyeball:1">
+        <joint name="R eyeball pivot" pos="0.059 0 0" axis="0 1 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.909804 0.909804 0.909804 1" density="0" mesh="R eyeball"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000289766" mesh="R eyeball 0"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00025435" mesh="R eyeball 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000227309" mesh="R eyeball 2"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000291066" mesh="R eyeball 3"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000181895" mesh="R eyeball 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000337924" mesh="R eyeball 5"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00023185" mesh="R eyeball 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00023118" mesh="R eyeball 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000233507" mesh="R eyeball 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000378719" mesh="R eyeball 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000224475" mesh="R eyeball 10"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000349044" mesh="R eyeball 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00028952" mesh="R eyeball 12"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000237637" mesh="R eyeball 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000231608" mesh="R eyeball 14"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000157974" mesh="R eyeball 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000146144" mesh="R eyeball 16"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000187249" mesh="R eyeball 17"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000193236" mesh="R eyeball 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="7.86891e-05" mesh="R eyeball 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000260792" mesh="R eyeball 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000166482" mesh="R eyeball 21"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000174002" mesh="R eyeball 22"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000308802" mesh="R eyeball 23"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000145324" mesh="R eyeball 24"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000137938" mesh="R eyeball 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000111113" mesh="R eyeball 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000103566" mesh="R eyeball 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000202297" mesh="R eyeball 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000192973" mesh="R eyeball 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000120182" mesh="R eyeball 30"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000111675" mesh="R eyeball 31"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="5.66328e-05" mesh="R eyeball 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="9.73235e-05" mesh="R eyeball 33"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="3.90239e-05" mesh="R eyeball 34"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="4.54106e-05" mesh="R eyeball 35"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000313187" mesh="R eyeball 36"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000717846" mesh="R eyeball 37"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="5.63771e-05" mesh="R eyeball 38"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="9.82487e-05" mesh="R eyeball 39"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00049833" mesh="R eyeball 40"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="3.55004e-05" mesh="R eyeball 41"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000193208" mesh="R eyeball 42"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000101244" mesh="R eyeball 43"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000173056" mesh="R eyeball 44"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="6.01337e-05" mesh="R eyeball 45"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="3.7103e-06" mesh="R eyeball 46"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="6.08063e-05" mesh="R eyeball 47"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="2.70364e-05" mesh="R eyeball 48"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.0016681" mesh="R eyeball 49"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000768979" mesh="R eyeball 50"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000333466" mesh="R eyeball 51"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000291195" mesh="R eyeball 52"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000767222" mesh="R eyeball 53"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000673496" mesh="R eyeball 54"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000377476" mesh="R eyeball 55"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="1.79222e-05" mesh="R eyeball 56"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000979709" mesh="R eyeball 57"/>
+        <geom type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="7.04833e-05" mesh="R eyeball 58"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00062524" mesh="R eyeball 59"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="5.60329e-05" mesh="R eyeball 60"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000350173" mesh="R eyeball 61"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000109251" mesh="R eyeball 62"/>
+        <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.000462283" mesh="R eyeball 63"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.909804 0.909804 0.909804 1" mass="0.00014661" mesh="R eyeball 64"/>
+        <site name="R eyeball pivot pin: R eyeball:1" pos="0.069 0.004 0"/>
+        <site name="R eyeball bar / R eyeball screw: R eyeball:1" pos="0.069 0.004 0"/>
+        <site name="R eyeball pivot in the fork: R eyeball:1" pos="0.059 -0.0075 0"/>
+        <body name="R pupil:1">
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.352941 0.352941 0.376471 1" density="0" mesh="pupil"/>
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" group="3" rgba="0.352941 0.352941 0.376471 1" mass="0.000305" mesh="pupil 0"/>
+        </body>
+      </body>
+      <body name="L upper lid:1">
+        <joint name="L upper lid pivot" axis="1 0 0"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="upper lid"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000348011" mesh="upper lid 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000298412" mesh="upper lid 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308116" mesh="upper lid 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000364647" mesh="upper lid 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308924" mesh="upper lid 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000299353" mesh="upper lid 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000325495" mesh="upper lid 6"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000381635" mesh="upper lid 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000125499" mesh="upper lid 8"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000107186" mesh="upper lid 9"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000139737" mesh="upper lid 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000137235" mesh="upper lid 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000185384" mesh="upper lid 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000150978" mesh="upper lid 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000205484" mesh="upper lid 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000141736" mesh="upper lid 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000106683" mesh="upper lid 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000103886" mesh="upper lid 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="4.19386e-05" mesh="upper lid 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000253771" mesh="upper lid 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00017229" mesh="upper lid 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.14861e-05" mesh="upper lid 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.08821e-05" mesh="upper lid 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.58525e-05" mesh="upper lid 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000252925" mesh="upper lid 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000165278" mesh="upper lid 25"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.82509e-05" mesh="upper lid 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.76514e-05" mesh="upper lid 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="8.4556e-06" mesh="upper lid 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.78179e-05" mesh="upper lid 29"/>
+        <site name="L upper lid pivot pin: L upper lid:1" pos="-0.0267 0.012 0"/>
+        <site name="L lid crank / L upper lid pin: L upper lid:1" pos="-0.0267 0.012 0"/>
+        <site name="L upper lid outer on the bracket pin: L upper lid:1" pos="-0.0225 -8.11675e-06 2.95609e-06"/>
+        <site name="L upper lid inner on the bracket pin: L upper lid:1" pos="0.0225 -8.11675e-06 2.95609e-06"/>
+      </body>
+      <body name="L lower lid:1">
+        <joint name="L lower lid pivot" axis="1 0 0"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lower lid"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000269952" mesh="lower lid 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000232265" mesh="lower lid 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000311236" mesh="lower lid 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000319347" mesh="lower lid 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000376169" mesh="lower lid 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000316896" mesh="lower lid 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000309177" mesh="lower lid 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000372134" mesh="lower lid 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000304704" mesh="lower lid 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000213294" mesh="lower lid 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="3.68037e-05" mesh="lower lid 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000220401" mesh="lower lid 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000131614" mesh="lower lid 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000198058" mesh="lower lid 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000120926" mesh="lower lid 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000205671" mesh="lower lid 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000182904" mesh="lower lid 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000217818" mesh="lower lid 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000181983" mesh="lower lid 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000151976" mesh="lower lid 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.31066e-05" mesh="lower lid 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.03401e-05" mesh="lower lid 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000135292" mesh="lower lid 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000115318" mesh="lower lid 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000215085" mesh="lower lid 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.65233e-05" mesh="lower lid 25"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.44664e-05" mesh="lower lid 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.15704e-05" mesh="lower lid 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.19685e-05" mesh="lower lid 28"/>
+        <site name="L lower lid pivot pin: L lower lid:1" pos="-0.0255 -0.012 0"/>
+        <site name="L lid bar / L lower lid pin: L lower lid:1" pos="-0.0255 -0.012 0"/>
+        <site name="L lower lid outer on the bracket pin: L lower lid:1" pos="-0.0225 0 0"/>
+        <site name="L lower lid inner on the bracket pin: L lower lid:1" pos="0.0225 0 0"/>
+      </body>
+      <body name="R upper lid:1" pos="0.059 0 0">
+        <joint name="R upper lid pivot" axis="1 0 0"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="upper lid"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000348011" mesh="upper lid 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000298412" mesh="upper lid 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308116" mesh="upper lid 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000364647" mesh="upper lid 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000308924" mesh="upper lid 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000299353" mesh="upper lid 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000325495" mesh="upper lid 6"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000381635" mesh="upper lid 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000125499" mesh="upper lid 8"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000107186" mesh="upper lid 9"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000139737" mesh="upper lid 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000137235" mesh="upper lid 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000185384" mesh="upper lid 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000150978" mesh="upper lid 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000205484" mesh="upper lid 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000141736" mesh="upper lid 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000106683" mesh="upper lid 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000103886" mesh="upper lid 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="4.19386e-05" mesh="upper lid 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000253771" mesh="upper lid 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.00017229" mesh="upper lid 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.14861e-05" mesh="upper lid 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.08821e-05" mesh="upper lid 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.58525e-05" mesh="upper lid 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000252925" mesh="upper lid 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000165278" mesh="upper lid 25"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.82509e-05" mesh="upper lid 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.76514e-05" mesh="upper lid 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="8.4556e-06" mesh="upper lid 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.78179e-05" mesh="upper lid 29"/>
+        <site name="R upper lid pivot pin: R upper lid:1" pos="0.0267 0.012 0"/>
+        <site name="R lid crank / R upper lid pin: R upper lid:1" pos="0.0267 0.012 0"/>
+        <site name="R upper lid outer on the bracket pin: R upper lid:1" pos="-0.0225 -8.11675e-06 2.95609e-06"/>
+        <site name="R upper lid inner on the bracket pin: R upper lid:1" pos="0.0225 -8.11675e-06 2.95609e-06"/>
+      </body>
+      <body name="R lower lid:1" pos="0.059 0 0">
+        <joint name="R lower lid pivot" axis="1 0 0"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lower lid"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000269952" mesh="lower lid 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000232265" mesh="lower lid 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000311236" mesh="lower lid 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000319347" mesh="lower lid 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000376169" mesh="lower lid 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000316896" mesh="lower lid 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000309177" mesh="lower lid 6"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000372134" mesh="lower lid 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000304704" mesh="lower lid 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000213294" mesh="lower lid 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="3.68037e-05" mesh="lower lid 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000220401" mesh="lower lid 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000131614" mesh="lower lid 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000198058" mesh="lower lid 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000120926" mesh="lower lid 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000205671" mesh="lower lid 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000182904" mesh="lower lid 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000217818" mesh="lower lid 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000181983" mesh="lower lid 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000151976" mesh="lower lid 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.31066e-05" mesh="lower lid 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.03401e-05" mesh="lower lid 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000135292" mesh="lower lid 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000115318" mesh="lower lid 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000215085" mesh="lower lid 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.65233e-05" mesh="lower lid 25"/>
+        <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.44664e-05" mesh="lower lid 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.15704e-05" mesh="lower lid 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.19685e-05" mesh="lower lid 28"/>
+        <site name="R lower lid pivot pin: R lower lid:1" pos="0.0255 -0.012 0"/>
+        <site name="R lid bar / R lower lid pin: R lower lid:1" pos="0.0255 -0.012 0"/>
+        <site name="R lower lid outer on the bracket pin: R lower lid:1" pos="-0.0225 0 0"/>
+        <site name="R lower lid inner on the bracket pin: R lower lid:1" pos="0.0225 0 0"/>
+      </body>
+      <body name="L lid horn:1" pos="-0.02374 -0.0144624 0.0200393" quat="0.515417 0.484092 0.515417 0.484092">
+        <joint name="L lid horn" armature="0.0001" pos="0 0.02 0.00415"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.33025e-05" mesh="horn 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88475e-05" mesh="horn 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06123e-05" mesh="horn 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.83953e-05" mesh="horn 6"/>
+        <geom type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.10549e-05" mesh="horn 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.76073e-05" mesh="horn 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05738e-05" mesh="horn 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06069e-05" mesh="horn 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88289e-05" mesh="horn 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.56562e-05" mesh="horn 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.28775e-06" mesh="horn 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.74989e-06" mesh="horn 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.75755e-06" mesh="horn 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.29938e-06" mesh="horn 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.51592e-06" mesh="horn 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.70878e-06" mesh="horn 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63786e-06" mesh="horn 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63624e-06" mesh="horn 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05887e-05" mesh="horn 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.79644e-06" mesh="horn 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05563e-05" mesh="horn 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.83589e-06" mesh="horn 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32482e-06" mesh="horn 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32345e-06" mesh="horn 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16937e-05" mesh="horn 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16979e-05" mesh="horn 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.68744e-05" mesh="horn 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.01955e-05" mesh="horn 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06225e-06" mesh="horn 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06233e-06" mesh="horn 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 34"/>
+        <site name="L lid horn on the L lid servo spline: L lid horn:1" pos="0 0.02 0.00346"/>
+        <site name="L lid horn pin: L lid horn:1" pos="0.01275 0.02 0.000775"/>
+        <body name="L lid bar:1" pos="0.0082155 7.80125e-06 -0.00326" quat="0.781408 0 0 0.624021">
+          <joint name="L lid bar:1" pos="0.0205 0 0.0015"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid bar"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.12528e-05" mesh="lid bar 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000194664" mesh="lid bar 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000186649" mesh="lid bar 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.04253e-05" mesh="lid bar 3"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.0001959" mesh="lid bar 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000191108" mesh="lid bar 5"/>
+          <site name="L lower lid pivot pin: L lid bar:1" pos="-0.0203578 0 0.0015"/>
+          <site name="L lid horn pin: L lid bar:1" pos="0.0205 0 0.004035"/>
+          <site name="L lid bar / L lower lid pin: L lid bar:1" pos="-0.0205 0 0.0015"/>
+        </body>
+        <body name="L lid crank:1" pos="0.020182 0.000894607 -0.00746" quat="0.564564 0 0 0.825389">
+          <joint name="L lid crank:1" pos="0.0205 0 0.0015"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid crank"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.89661e-05" mesh="lid crank 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.78207e-05" mesh="lid crank 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.46823e-05" mesh="lid crank 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.64509e-05" mesh="lid crank 3"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.82731e-05" mesh="lid crank 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.34978e-06" mesh="lid crank 5"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000603021" mesh="lid crank 6"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.64359e-05" mesh="lid crank 7"/>
+          <site name="L upper lid pivot pin: L lid crank:1" pos="-0.0206417 0 0.0045"/>
+          <site name="L lid horn pin: L lid crank:1" pos="0.0205 0 0.008235"/>
+          <site name="L lid crank / L upper lid pin: L lid crank:1" pos="-0.0205 0 0.0045"/>
+        </body>
+      </body>
+      <body name="L eye horn:1" pos="0.00256 0.00252 0.047" quat="0 0 -0.707107 0.707107">
+        <joint name="L eye horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.33025e-05" mesh="horn 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88475e-05" mesh="horn 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06123e-05" mesh="horn 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.83953e-05" mesh="horn 6"/>
+        <geom type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.10549e-05" mesh="horn 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.76073e-05" mesh="horn 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05738e-05" mesh="horn 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06069e-05" mesh="horn 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88289e-05" mesh="horn 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.56562e-05" mesh="horn 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.28775e-06" mesh="horn 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.74989e-06" mesh="horn 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.75755e-06" mesh="horn 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.29938e-06" mesh="horn 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.51592e-06" mesh="horn 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.70878e-06" mesh="horn 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63786e-06" mesh="horn 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63624e-06" mesh="horn 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05887e-05" mesh="horn 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.79644e-06" mesh="horn 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05563e-05" mesh="horn 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.83589e-06" mesh="horn 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32482e-06" mesh="horn 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32345e-06" mesh="horn 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16937e-05" mesh="horn 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16979e-05" mesh="horn 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.68744e-05" mesh="horn 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.01955e-05" mesh="horn 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06225e-06" mesh="horn 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06233e-06" mesh="horn 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 34"/>
+        <site name="L eye horn on the L eye servo spline: L eye horn:1" pos="0 0.02 0.00346"/>
+        <site name="L eye horn pin: L eye horn:1" pos="0.01275 0.02 0.000775"/>
+        <body name="L eyeball bar:1" pos="0.00256 0.047 0.00252" quat="0 0 -0.707107 0.707107">
+          <joint name="L eyeball bar:1" pos="-0.01 0.004 0.027" axis="0 1 0"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="eyeball bar"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.46151e-05" mesh="eyeball bar 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.18493e-05" mesh="eyeball bar 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.27574e-05" mesh="eyeball bar 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000235558" mesh="eyeball bar 3"/>
+          <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000235452" mesh="eyeball bar 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="9.42074e-06" mesh="eyeball bar 5"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.43479e-05" mesh="eyeball bar 6"/>
+          <site name="L eyeball pivot pin: L eyeball bar:1" pos="-0.01 0.004 0"/>
+          <site name="L eye horn pin: L eyeball bar:1" pos="-0.01 0.001745 0.027"/>
+          <site name="L eyeball bar / L eyeball screw: L eyeball bar:1" pos="-0.01 0.004 0"/>
+        </body>
+      </body>
+      <body name="R lid horn:1" pos="0.08274 -0.0119576 0.0599607" quat="0.484092 -0.515417 -0.484092 0.515417">
+        <joint name="R lid horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.33025e-05" mesh="horn 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88475e-05" mesh="horn 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06123e-05" mesh="horn 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.83953e-05" mesh="horn 6"/>
+        <geom type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.10549e-05" mesh="horn 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.76073e-05" mesh="horn 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05738e-05" mesh="horn 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06069e-05" mesh="horn 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88289e-05" mesh="horn 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.56562e-05" mesh="horn 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.28775e-06" mesh="horn 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.74989e-06" mesh="horn 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.75755e-06" mesh="horn 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.29938e-06" mesh="horn 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.51592e-06" mesh="horn 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.70878e-06" mesh="horn 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63786e-06" mesh="horn 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63624e-06" mesh="horn 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05887e-05" mesh="horn 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.79644e-06" mesh="horn 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05563e-05" mesh="horn 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.83589e-06" mesh="horn 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32482e-06" mesh="horn 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32345e-06" mesh="horn 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16937e-05" mesh="horn 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16979e-05" mesh="horn 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.68744e-05" mesh="horn 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.01955e-05" mesh="horn 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06225e-06" mesh="horn 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06233e-06" mesh="horn 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 34"/>
+        <site name="R lid horn on the R lid servo spline: R lid horn:1" pos="0 0.02 0.00346"/>
+        <site name="R lid horn pin: R lid horn:1" pos="0.01275 0.02 0.000775"/>
+        <body name="R lid bar:1" pos="0.0082155 0.0399922 -0.00326" quat="0.781408 0 0 -0.624021">
+          <joint name="R lid bar:1" pos="0.0205 0 0.0015" axis="0 0 -1"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid bar"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.12528e-05" mesh="lid bar 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000194664" mesh="lid bar 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000186649" mesh="lid bar 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.04253e-05" mesh="lid bar 3"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.0001959" mesh="lid bar 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000191108" mesh="lid bar 5"/>
+          <site name="R lower lid pivot pin: R lid bar:1" pos="-0.0203578 0 0.0015"/>
+          <site name="R lid horn pin: R lid bar:1" pos="0.0205 0 0.004035"/>
+          <site name="R lid bar / R lower lid pin: R lid bar:1" pos="-0.0205 0 0.0015"/>
+        </body>
+        <body name="R lid crank:1" pos="0.020182 0.0391054 -0.00746" quat="0.564564 0 0 -0.825389">
+          <joint name="R lid crank:1" pos="0.0205 0 0.0015" axis="0 0 -1"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="lid crank"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="5.89661e-05" mesh="lid crank 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.78207e-05" mesh="lid crank 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="7.46823e-05" mesh="lid crank 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.64509e-05" mesh="lid crank 3"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.82731e-05" mesh="lid crank 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="6.34978e-06" mesh="lid crank 5"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000603021" mesh="lid crank 6"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.64359e-05" mesh="lid crank 7"/>
+          <site name="R upper lid pivot pin: R lid crank:1" pos="-0.0206417 0 0.0045"/>
+          <site name="R lid horn pin: R lid crank:1" pos="0.0205 0 0.008235"/>
+          <site name="R lid crank / R upper lid pin: R lid crank:1" pos="-0.0205 0 0.0045"/>
+        </body>
+      </body>
+      <body name="R eye horn:1" pos="0.05644 0.00252 0.007" quat="0.707107 0.707107 0 0">
+        <joint name="R eye horn" armature="0.0001" pos="0 0.02 0.00415" axis="0 0 -1"/>
+        <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.831373 0.839216 0.85098 1" density="0" mesh="horn"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.2518e-05" mesh="horn 0"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.25159e-05" mesh="horn 1"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.49217e-05" mesh="horn 2"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.33025e-05" mesh="horn 3"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88475e-05" mesh="horn 4"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06123e-05" mesh="horn 5"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.83953e-05" mesh="horn 6"/>
+        <geom type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.10549e-05" mesh="horn 7"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.76073e-05" mesh="horn 8"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05738e-05" mesh="horn 9"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.06069e-05" mesh="horn 10"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.88289e-05" mesh="horn 11"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.56562e-05" mesh="horn 12"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.28775e-06" mesh="horn 13"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.74989e-06" mesh="horn 14"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.75755e-06" mesh="horn 15"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.29938e-06" mesh="horn 16"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.51592e-06" mesh="horn 17"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="4.70878e-06" mesh="horn 18"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63786e-06" mesh="horn 19"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="9.63624e-06" mesh="horn 20"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05887e-05" mesh="horn 21"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.79644e-06" mesh="horn 22"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.05563e-05" mesh="horn 23"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="6.83589e-06" mesh="horn 24"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32482e-06" mesh="horn 25"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="7.32345e-06" mesh="horn 26"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16937e-05" mesh="horn 27"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.16979e-05" mesh="horn 28"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="1.68744e-05" mesh="horn 29"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="2.01955e-05" mesh="horn 30"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06225e-06" mesh="horn 31"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 32"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.06233e-06" mesh="horn 33"/>
+        <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.831373 0.839216 0.85098 1" mass="3.97687e-06" mesh="horn 34"/>
+        <site name="R eye horn on the R eye servo spline: R eye horn:1" pos="0 0.02 0.00346"/>
+        <site name="R eye horn pin: R eye horn:1" pos="0.01275 0.02 0.000775"/>
+        <body name="R eyeball bar:1" pos="0.02256 -0.007 0.00252" quat="0.707107 -0.707107 0 0">
+          <joint name="R eyeball bar:1" pos="-0.01 0.004 0.027" axis="0 1 0"/>
+          <geom quat="1 0 0 0" type="mesh" contype="0" conaffinity="0" group="2" rgba="0.968627 0.807843 0.843137 1" density="0" mesh="eyeball bar"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.46151e-05" mesh="eyeball bar 0"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="2.18493e-05" mesh="eyeball bar 1"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.27574e-05" mesh="eyeball bar 2"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000235558" mesh="eyeball bar 3"/>
+          <geom type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="0.000235452" mesh="eyeball bar 4"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="9.42074e-06" mesh="eyeball bar 5"/>
+          <geom quat="1 0 0 0" type="mesh" group="3" rgba="0.968627 0.807843 0.843137 1" mass="1.43479e-05" mesh="eyeball bar 6"/>
+          <site name="R eyeball pivot pin: R eyeball bar:1" pos="-0.01 0.004 0"/>
+          <site name="R eye horn pin: R eyeball bar:1" pos="-0.01 0.001745 0.027"/>
+          <site name="R eyeball bar / R eyeball screw: R eyeball bar:1" pos="-0.01 0.004 0"/>
+        </body>
+      </body>
+    </frame>
+  </worldbody>
+
+  <tendon>
+    <spatial name="pack 1 -&gt; switch 1" limited="true" range="0 0.1" springlength="0.0912233">
+      <site site="pack 1 -&gt; switch 1 0"/>
+      <site site="pack 1 -&gt; switch 1 1"/>
+      <site site="pack 1 -&gt; switch 1 2"/>
+      <site site="pack 1 -&gt; switch 1 3"/>
+    </spatial>
+    <spatial name="switch 1 -&gt; shield 1" limited="true" range="0 0.1" springlength="0.0948689">
+      <site site="switch 1 -&gt; shield 1 0"/>
+      <site site="switch 1 -&gt; shield 1 1"/>
+      <site site="switch 1 -&gt; shield 1 2"/>
+      <site site="switch 1 -&gt; shield 1 3"/>
+    </spatial>
+    <spatial name="l_lid servo -&gt; Core 1 PWM1" limited="true" range="0 0.25" springlength="0.151598">
+      <site site="l_lid servo -&gt; Core 1 PWM1 0"/>
+      <site site="l_lid servo -&gt; Core 1 PWM1 1"/>
+      <site site="l_lid servo -&gt; Core 1 PWM1 2"/>
+      <site site="l_lid servo -&gt; Core 1 PWM1 3"/>
+    </spatial>
+    <spatial name="l_eye servo -&gt; Core 1 PWM2" limited="true" range="0 0.25" springlength="0.149252">
+      <site site="l_eye servo -&gt; Core 1 PWM2 0"/>
+      <site site="l_eye servo -&gt; Core 1 PWM2 1"/>
+      <site site="l_eye servo -&gt; Core 1 PWM2 2"/>
+      <site site="l_eye servo -&gt; Core 1 PWM2 3"/>
+    </spatial>
+    <spatial name="r_lid servo -&gt; Core 1 PWM3" limited="true" range="0 0.25" springlength="0.14799">
+      <site site="r_lid servo -&gt; Core 1 PWM3 0"/>
+      <site site="r_lid servo -&gt; Core 1 PWM3 1"/>
+      <site site="r_lid servo -&gt; Core 1 PWM3 2"/>
+      <site site="r_lid servo -&gt; Core 1 PWM3 3"/>
+    </spatial>
+    <spatial name="r_eye servo -&gt; Core 1 PWM4" limited="true" range="0 0.25" springlength="0.145333">
+      <site site="r_eye servo -&gt; Core 1 PWM4 0"/>
+      <site site="r_eye servo -&gt; Core 1 PWM4 1"/>
+      <site site="r_eye servo -&gt; Core 1 PWM4 2"/>
+      <site site="r_eye servo -&gt; Core 1 PWM4 3"/>
+    </spatial>
+  </tendon>
+
+  <equality>
+    <connect name="L lower lid pivot" site1="L lower lid pivot pin: L lid bar:1" site2="L lower lid pivot pin: L lower lid:1" solref="0.002" solimp="0.99 0.99"/>
+    <connect name="L upper lid pivot" site1="L upper lid pivot pin: L lid crank:1" site2="L upper lid pivot pin: L upper lid:1" solref="0.002" solimp="0.99 0.99"/>
+    <connect name="L eyeball pivot" site1="L eyeball pivot pin: L eyeball bar:1" site2="L eyeball pivot pin: L eyeball:1" solref="0.002" solimp="0.99 0.99"/>
+    <connect name="R lower lid pivot" site1="R lower lid pivot pin: R lid bar:1" site2="R lower lid pivot pin: R lower lid:1" solref="0.002" solimp="0.99 0.99"/>
+    <connect name="R upper lid pivot" site1="R upper lid pivot pin: R lid crank:1" site2="R upper lid pivot pin: R upper lid:1" solref="0.002" solimp="0.99 0.99"/>
+    <connect name="R eyeball pivot" site1="R eyeball pivot pin: R eyeball bar:1" site2="R eyeball pivot pin: R eyeball:1" solref="0.002" solimp="0.99 0.99"/>
+  </equality>
+
+  <actuator>
+    <general name="L lid horn" joint="L lid horn" ctrlrange="-1.5708 1.5708" forcerange="-0.0980665 0.0980665" input="pos" biastype="affine" gainprm="11.2376" biasprm="0 -11.2376 -0.067045"/>
+    <general name="L eye horn" joint="L eye horn" ctrlrange="-1.5708 1.5708" forcerange="-0.0980665 0.0980665" input="pos" biastype="affine" gainprm="11.2376" biasprm="0 -11.2376 -0.067045"/>
+    <general name="R lid horn" joint="R lid horn" ctrlrange="-1.5708 1.5708" forcerange="-0.0980665 0.0980665" input="pos" biastype="affine" gainprm="11.2376" biasprm="0 -11.2376 -0.067045"/>
+    <general name="R eye horn" joint="R eye horn" ctrlrange="-1.5708 1.5708" forcerange="-0.0980665 0.0980665" input="pos" biastype="affine" gainprm="11.2376" biasprm="0 -11.2376 -0.067045"/>
+  </actuator>
+</mujoco>

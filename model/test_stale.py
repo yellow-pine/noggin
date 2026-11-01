@@ -21,3 +21,5 @@ def test_stale_follows_the_inputs(tmp_path, monkeypatch):
     assert stale.stale() == []
     os.remove(tmp_path / "model/reports/noggin-mouth-sim.json")
     assert stale.stale() == ["noggin-mouth"]
+    os.remove(tmp_path / "model/reports/noggin-eyes.xml")
+    assert stale.stale() == ["noggin-eyes", "noggin-mouth"]
