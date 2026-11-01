@@ -1,4 +1,4 @@
-"""The Mech's supply as a SPICE circuit (PySpice on ngspice), figures from the datasheets
+"""The Mech's supply as a SPICE netlist (ngspice through spicelib), figures from the datasheets
 (docs/research/2026-10-31-electrical.md), and the leads the cable corridors route. Run: .venv/bin/python -m
 model.electrical. worst_case() is merged into the Mech-wide (noggin-stage3) report and leads() routed by
 model/cables.py. It reads only CHANNELS and the lead lengths."""
@@ -6,33 +6,14 @@ model/cables.py. It reads only CHANNELS and the lead lengths."""
 import importlib.util
 import json
 import os
-import re
-import sys
+import subprocess
+import tempfile
+from pathlib import Path
 
-# PySpice dlopens libngspice by bare name (PySpice/Spice/NgSpice/Shared.py setup_platform, NGSPICE_LIBRARY_PATH
-# overrides it: https://pyspice.fabrice-salvaire.fr/releases/v1.5/faq.html); Homebrew's lib is not on macOS's dyld path.
-if sys.platform == "darwin":
-    os.environ.setdefault("NGSPICE_LIBRARY_PATH", "/opt/homebrew/lib/libngspice.dylib")
+from spicelib import RawRead
+from spicelib.simulators.ngspice_simulator import NGspiceSimulator
 
-from PySpice.Spice.Netlist import Circuit  # noqa: E402  (after the library path)
-from PySpice.Spice.NgSpice.Shared import NgSpiceShared  # noqa: E402
-
-from model.geometry import CHANNELS, SERVO_LABEL  # noqa: E402
-
-# ngspice 42 (Ubuntu noble, CI) names its linear solver on stderr ("Using SPARSE 1.3 as Direct Linear Solver"), and
-# PySpice 1.5 fails a command on any stderr line but "Warning:" (Shared.py _send_char), then calls send_char, the hook
-# it leaves to subclasses: there, every other stderr line still fails the command.
-SOLVER_NOTE = re.compile(r"Using .+ as Direct Linear Solver")
-
-
-def _send_char(self, message, ngspice_id):
-    self._error_in_stderr = any(
-        not (m.startswith("Warning:") or SOLVER_NOTE.fullmatch(m.strip())) for m in self._stderr
-    )
-    return 0
-
-
-NgSpiceShared.send_char = _send_char
+from model.geometry import CHANNELS, SERVO_LABEL
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -86,32 +67,44 @@ WIFI_TX_A = 0.335
 BROWNOUT_V = 2.51
 
 
-def operating_point(circuit):
-    """{node: volts} at the circuit's DC operating point (ngspice, shared library)."""
-    op = circuit.simulator(simulator="ngspice-shared").operating_point()
-    return {str(n): float(op[n][0]) for n in op.nodes}
+def operating_point(netlist):
+    """{node: volts} at the netlist's DC operating point (ngspice in batch mode)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        cir = Path(tmp) / "op.cir"
+        cir.write_text(f"{netlist}\n.op\n.end\n")
+        if NGspiceSimulator.run(cir, stdout=subprocess.DEVNULL) != 0:
+            raise RuntimeError(cir.with_suffix(".log").read_text())
+        # ngspice before 44 writes no "Command:" line for spicelib to detect it by (spicelib raw/plot_data.py); CI's
+        # Ubuntu noble ships 42 (https://packages.ubuntu.com/noble/ngspice)
+        raw = RawRead(cir.with_suffix(".raw"), dialect="ngspice", verbose=False)
+        return {n[2:-1]: float(raw.get_wave(n)[0]) for n in raw.get_trace_names() if n.lower().startswith("v(")}
 
 
 def mech(pack_v):
     """The stock wiring at its worst: pack, its lead, the switch board, the Y lead's branch to each shield; per shield
     its standby, the 5 V servo rail and every servo at stall on its lead, and the Core's 3.3 V in a transmit burst.
     A regulator is a behavioural source in series, dropping what is above its output or at least its dropout."""
-    c = Circuit("noggin supply")
-    c.V("pack", "cells", c.gnd, pack_v)
-    c.R("pack", "cells", "pack", PACK_OHM)
-    c.R("pack_lead", "pack", "switch_in", XH_LEAD_MM * OHM_PER_MM)
-    c.R("switch", "switch_in", "switch_out", SWITCH_OHM)
+    lines = [
+        "* noggin supply",
+        f"Vpack cells 0 {pack_v}",
+        f"Rpack cells pack {PACK_OHM}",
+        f"Rpack_lead pack switch_in {XH_LEAD_MM * OHM_PER_MM}",
+        f"Rswitch switch_in switch_out {SWITCH_OHM}",
+    ]
     for core, ports in CHANNELS.items():
         vbat, rail = f"{core}_vbat", f"{core}_rail"
-        c.R(f"y_{core}", "switch_out", vbat, XH_LEAD_MM * OHM_PER_MM)
-        c.I(f"shield_{core}", vbat, c.gnd, SHIELD_STANDBY_A)
-        c.B(f"rail_{core}", vbat, rail, v=f"max(V({vbat})-{SERVO_RAIL_V}, {SERVO_DROPOUT_V})")
+        lines += [
+            f"Ry_{core} switch_out {vbat} {XH_LEAD_MM * OHM_PER_MM}",
+            f"Ishield_{core} {vbat} 0 {SHIELD_STANDBY_A}",
+            f"Brail_{core} {vbat} {rail} v=max(V({vbat})-{SERVO_RAIL_V}, {SERVO_DROPOUT_V})",
+        ]
         for name in ports.values():
-            c.R(name, rail, name, SERVO_LEAD_MM * OHM_PER_MM)
-            c.I(name, name, c.gnd, STALL_A)
-        c.B(f"core_{core}", vbat, core, v=f"max(V({vbat})-{CORE_V}, {CORE_DROPOUT_V})")
-        c.I(f"wifi_{core}", core, c.gnd, WIFI_TX_A)
-    return c
+            lines += [f"R{name} {rail} {name} {SERVO_LEAD_MM * OHM_PER_MM}", f"I{name} {name} 0 {STALL_A}"]
+        lines += [
+            f"Bcore_{core} {vbat} {core} v=max(V({vbat})-{CORE_V}, {CORE_DROPOUT_V})",
+            f"Iwifi_{core} {core} 0 {WIFI_TX_A}",
+        ]
+    return "\n".join(lines)
 
 
 def worst_case():
