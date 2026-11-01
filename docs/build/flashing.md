@@ -35,7 +35,7 @@ make restore-stock   # put the stock remote-control program back on the Core
   The setup wizard warns when the board reports another version.
 - Upload files with `make flash`: over the Wi-Fi Link while the Core beacons or when no Core is on USB (the noggin
   service then waits up to 22 s for its beacon), else `mpremote` over USB (`USB=1` forces the cable; boot.py only
-  ever goes that way). Both send `eyes.mpy`, `gaze_trace.mpy` and `wifi.mpy`
+  ever goes that way). Both send the eye program, the files boot.py imports (`make mpy-list`), as .mpy
   (`make mpy`, into eyes/build): less RAM to import than the .py. boot.py stays .py (the Core runs boot.py only).
   A .py shadows its .mpy (import looks for the .py first), so `flash-usb` removes them and Wi-Fi takes only .mpy;
   a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB.

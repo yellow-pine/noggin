@@ -29,15 +29,9 @@ import eyes as mod  # noqa: E402  the Core's eye program
 from model import geometry, sim  # noqa: E402
 
 CAL = json.load(open(os.path.join(REPO, "eyes", "calibration.json")))
-GESTURES = {
-    "eureka": "eureka 2",
-    "attention": "attention 2",
-    "bored": "bored 2",
-    "wince": "wince 2",
-    "wink": "wink 1",
-    "thinking": "thinking",
-}
-SERVOS = ("l_lid", "l_eye", "r_lid", "r_eye")
+# each gesture the Core plays, at its normal level (the wink to the Mech's left, 1, not a random side), then thinking
+GESTURES = {**{g: f"{g} {1 if g == 'wink' else 2}" for g in mod.Eyes.GESTURES}, "thinking": "thinking"}
+SERVOS = geometry.EYES_SERVOS
 PIN = {name: pin for pin, name in mod.NAME.items()}
 FRAME_MS, THINK_MS = 100, 6000
 _CORE = mod.Eyes()  # the Core's lid mapping (fraction -> shared lid frame degrees) under the calibration

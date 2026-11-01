@@ -12,8 +12,7 @@ import pytest
 from paho.mqtt.enums import CallbackAPIVersion
 
 from noggin.broker import Broker
-
-CORES = ("eyes", "neck")
+from noggin.core import CORES
 
 
 def openssl(*args, cwd):

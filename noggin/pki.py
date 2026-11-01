@@ -14,10 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from noggin.core import CORES
+
 PKI = Path.home() / ".noggin" / "pki"
 CNF = Path(__file__).with_name("pki.cnf")
 DAYS = "3650"
-CORES = ("eyes", "neck")
 
 
 def _openssl(*args, cwd):

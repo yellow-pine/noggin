@@ -1,4 +1,5 @@
-from reactions.director import Director
+from noggin.core import GESTURES
+from reactions.director import BUSY_SECONDS, Director
 
 
 def prompt(sid="s1"):
@@ -149,3 +150,7 @@ def test_reconnect_resends_mode():
 
 def test_session_start_winks():
     assert Director().handle({"hook_event_name": "SessionStart", "session_id": "s1"}, now=1.0) == ["wink 3"]
+
+
+def test_every_gesture_has_its_busy_time_and_nothing_else_does():
+    assert set(BUSY_SECONDS) == set(GESTURES)

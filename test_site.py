@@ -235,6 +235,13 @@ def test_the_diagrams_numbers_agree_with_the_code():
         assert phrase in page, phrase
 
 
+def test_the_behaviour_table_words_every_gesture_and_nothing_else():
+    import macros  # here, not at the top: it imports the model
+    from noggin.core import GESTURES
+
+    assert set(macros.MECH) == {*GESTURES, "thinking", "rest"}
+
+
 def test_the_stale_turn_sentence_follows_the_director():
     """The table says the last turn ends a fixed time after its prompt, not after a quiet spell: the Director holds
     a turn with a Trigger every minute exactly that long, then rests."""

@@ -6,6 +6,8 @@ import threading
 import time
 import uuid
 
+from noggin import service
+from noggin.core import GESTURES
 from noggin.service import READ_CAP, READ_SECONDS, Service, gesture_seconds
 
 
@@ -209,7 +211,18 @@ def test_unknown_demo_is_ignored(tmp_path):
     s.stop()
 
 
-SEQUENCE = b"eureka 1\neureka 2\neureka 3\nattention 2\nbored 2\nwince 2\nwink 3\nthinking\nrest\n"
+SEQUENCE = "".join(f"{line}\n" for line in service.SEQUENCE).encode()
+
+
+def test_the_demo_plays_every_gesture_the_core_knows_then_thinking_and_rest():
+    assert [line.split()[0] for line in service.SEQUENCE[-2:]] == ["thinking", "rest"]
+    assert {line.split()[0] for line in service.SEQUENCE[:-2]} == set(GESTURES)
+    assert {line for line in service.SEQUENCE if line.startswith("eureka")} == {"eureka 1", "eureka 2", "eureka 3"}
+    assert "wink 3" in service.SEQUENCE  # a random side
+
+
+def test_every_gesture_is_a_manual_command():
+    assert set(GESTURES) <= service.MANUAL
 
 
 def test_demo_loops_the_whole_sequence(tmp_path):

@@ -34,7 +34,7 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
           filters: |
-            mech: ["eyes/**", "noggin/**", "mech/**", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
+            mech: ["eyes/**", "noggin/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
   # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
   # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
   # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success

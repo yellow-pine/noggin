@@ -220,13 +220,15 @@ join_wifi() {
 stage "Join the Wi-Fi"
 [[ -n "$(port)" ]] || { warn "no Core on USB: plug it in with the USB-C cable and run this again"; exit 1; }
 say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
-say "core.json names the Core (eyes / neck) and its servo ports. In a new place, run 'make wifi' for each Core."
+CORES=$("$PY" -c 'from noggin.core import CORES; print(*CORES, sep="/")')
+say "core.json names the Core ($CORES) and its servo ports. In a new place, run 'make wifi' for each Core."
 note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
 ask WIFI_SSID "Wi-Fi network name (SSID):"
 ask_secret WIFI_PASSWORD "Wi-Fi password:"
-until [[ "${CORE_NAME:-}" == eyes || "${CORE_NAME:-}" == neck ]]; do ask CORE_NAME "Which Core is plugged in? [eyes/neck]:"; done
+until [[ -n "${CORE_NAME:-}" && "/$CORES/" == *"/$CORE_NAME/"* ]]; do ask CORE_NAME "Which Core is plugged in? [$CORES]:"; done
+# core.json's servo ports (noggin/core.py, from the model's CHANNELS)
+PORTS=$("$PY" -c 'import json, sys; from noggin.core import CORES; print(json.dumps({str(p): s for p, s in CORES[sys.argv[1]].items()}))' "$CORE_NAME")
 (umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" "$PY" -c 'import os, pathlib; from noggin.wifi import add_network; add_network(pathlib.Path("eyes/wifi.json"), os.environ["WIFI_SSID"], os.environ["WIFI_PASSWORD"])')
-PORTS='{"1": "l_lid", "2": "l_eye", "3": "r_lid", "4": "r_eye"}'; [[ "$CORE_NAME" == neck ]] && PORTS='{"1": "tilt", "2": "mouth", "3": "pan"}'
 printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
 make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
 "$MPR" resume cp eyes/wifi.json :wifi.json
