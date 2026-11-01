@@ -52,9 +52,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Run `make check` before opening a PR: the `code` set, everything but the tests marked `model`. `make check-all` adds
   those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
   `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
-  saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over two required jobs
-  (`.github/workflows/check.yml`): `code` (`make check`) and `model` (the `model` tests, `make view`'s scene rendered offscreen among
-  them, and `make stl step` on main or when the parts changed, split over five shards, plus a sim shard), pytest
+  saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over three required jobs
+  (`.github/workflows/check.yml`): `code` (`make check`), `mech` (below) and `model` (the `model` tests, `make
+  view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split over five shards, plus a sim shard), pytest
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
@@ -65,10 +65,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   within 3 min of its first job's start on a PR, or it fails; on main, past 9 min it warns in the run summary
   (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a "re-run failed
   jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
-  noggin/ or mech/ and on main. `mech` and the site's `site` and `pictures` (`.github/workflows/pages.yml`) are
-  required checks too: each workflow runs on every PR, and a `changes` job (dorny/paths-filter) skips the work when
-  nothing it is made from changed, which GitHub counts as passing. `pictures` sums up the `render` job's runners (each
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job (`check.yml`, beside `code`
+  and `model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
+  site's `site` and `pictures` (`.github/workflows/pages.yml`) are required checks too: `mech`, `site` and `pictures`
+  run on every PR, and a `changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
+  GitHub counts as passing. `pictures` sums up the `render` job's runners (each
   part of the README's pictures split by frame range over runners, #278) under one name.
 - A main commit's Site Deploy runs after its checks (workflow_run) and builds only when they are green (#295), so it
   sets a `deploy` commit status on that commit (#292): pending while it builds, then success linking the site, failure
