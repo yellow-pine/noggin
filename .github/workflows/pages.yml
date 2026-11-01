@@ -1,6 +1,7 @@
 name: pages
-# The web viewer (docs/adr/0008): builds web/ into a site and deploys it to GitHub Pages. Not a required check: a red
-# run leaves the last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow).
+# The web viewer (docs/adr/0008): bakes the trajectories, has Blender write a GLB per Stage and deploys web/build to
+# GitHub Pages. Not a required check: a red run leaves the last site up. Pages' source is GitHub Actions
+# (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
   push:
     branches: [main]
@@ -28,7 +29,18 @@ jobs:
             model/build/ours
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
-      - run: make web
+      # Blender 5.2.2, the pinned Linux tarball (docs/research/2026-11-01-web-viewer.md), sha256-checked on every run
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender.tar.xz
+          key: blender-5.2.2-linux-x64
+      - run: |
+          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
+          mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
+      # the X and GL libraries Blender links against, even in the background
+      - run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1
+      - run: make web BLENDER=$HOME/blender/blender
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:
           path: web/build

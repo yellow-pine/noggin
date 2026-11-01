@@ -97,5 +97,6 @@ gifs: venv ours trajectories     ## the six gesture GIFs + contact sheets on sta
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures gifs
 hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures hero
-web: venv ours        ## the web viewer's site in web/build: the page and a GLB per Stage (docs/adr/0008); look with python -m http.server -d web/build
-	$(PY) -m web.build
+web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
+	BLENDER=$(BLENDER) $(PY) -m web.build
+	$(PY) -m pytest -q web

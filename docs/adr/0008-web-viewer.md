@@ -15,9 +15,8 @@ watch the hero loop.
   one static HTML file in `web/`, with no build step and no code of ours that draws.
 - **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
   `model/`, `eyes/` or `web/`, and on demand. It is not a required check: a red build leaves the last site up and
-  blocks no PR. Pages' source is GitHub Actions, so nothing built is committed. Until #182 lands the workflow writes a
-  placeholder GLB per Stage (the Stage's parts at rest in their colours, no animations, from trimesh); #182 swaps in
-  Blender (the pinned 5.2.2 Linux tarball, sha256-checked and cached) and the trajectories.
+  blocks no PR. Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs
+  the pinned Blender 5.2.2 Linux tarball (sha256-checked, cached).
 - **Eyes gestures only for now.** Head and jaw gestures come with the second Core; Stages 2 and 3 show the eyes
   gestures and the hero loop.
 
