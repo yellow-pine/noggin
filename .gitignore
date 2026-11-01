@@ -11,12 +11,6 @@ eyes/wifi.json
 # skills restored from skills-lock.json (npx skills experimental_install); .claude/skills links here
 .agents/
 
-# keys and certificates live in ~/.noggin/pki (noggin/pki.py) and go to a Core over USB only; never into git
-*.key
-*.key.der
-*.crt
-*.crt.der
-*.pem
 web/build/
 site/
 mech/build/
