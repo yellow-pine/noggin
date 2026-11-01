@@ -37,7 +37,7 @@ jobs:
         with:
           filters: |
             site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/pages.yml", "macros.py", "mermaid.py", "vendored.py", "overrides/**"]
+                   ".github/workflows/pages.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
   # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
   # else the last ones built from the same inputs (a docs-only change renders nothing)
   pictures:
