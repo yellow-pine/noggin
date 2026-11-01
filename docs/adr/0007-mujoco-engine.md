@@ -2,6 +2,7 @@
 
 > Supersedes ADR 0006's own engine (its planar four-bar solver, KD-tree contacts and mesh masses). Decided in the
 > grilling of 2026-10-31, spec #146; tickets #147 to #151. MuJoCo simulates; Blender draws every picture.
+> The committed reports and MJCFs, and CI's skip-if-fresh, are superseded by ADR 0009 (#229): CI builds them.
 
 ADR 0006 moved the simulation out of CAD into Python, and the engine grew in model/engine: our own four-bar solver,
 contact screen, masses, cables and mating. That is a robotics simulator written by hand. MuJoCo is the best-known

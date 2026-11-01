@@ -87,11 +87,12 @@ jobs:
         with:
           path: web/build
           key: ${{ steps.viewer.outputs.cache-primary-key }}
-      # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports
+      # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports: no
+      # entry carries this key, so the newest sim- entry is restored
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
-          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'uv.lock') }}
+          key: sim-latest
           restore-keys: sim-
       - run: make site
       - if: ${{ github.event_name != 'pull_request' }}

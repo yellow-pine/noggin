@@ -6,14 +6,11 @@ build outputs, never committed; CI builds them and the site publishes main's at 
 Usage: python -m model.report [doc ...]"""
 
 import concurrent.futures
-import glob
-import hashlib
 import json
 import multiprocessing
 import os
 import sys
 import time
-from importlib.metadata import version
 
 import mujoco
 
@@ -21,52 +18,11 @@ from model import beams, electrical, fits, mjcf, mujoco_report, stages
 from model import geometry as g
 
 OUT = os.path.join(stages.REPO, "model", "build", "reports")  # CI thresholds them (model/test_report.py)
-# Repo files a report depends on (stamp, the trajectories' key: model/trajectories.py); the meshes (make ours) are not
-# committed, their fingerprints go in it.
-INPUTS = [
-    "model/geometry.py",
-    "model/stages.py",
-    "model/linkage.py",
-    "model/report.py",
-    "model/sim.py",
-    "model/fits.py",
-    "model/beams.py",
-    "model/electrical.py",
-    "model/mjcf.py",  # the MuJoCo half (model/mujoco_report.py) and its MJCF
-    "model/mujoco_report.py",
-    "model/cables.py",
-    "model/mating.py",
-    "model/printed/*.py",  # our parts and the features they declare (the mating sites)
-    "model/envelopes.py",
-    "eyes/servo.py",  # the servo's speed and torque (model/electrical.py)
-]
 TABLES = {
     "noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS),
     "noggin-stack": (fits.PT_JOINTS, beams.PT_BEAMS),
     "noggin-mouth": (fits.MOUTH_JOINTS, beams.MOUTH_BEAMS),
 }
-
-
-def fingerprint(path):
-    return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
-
-
-def sources(stage):
-    """{repo-relative path: fingerprint} of every part's mesh in the document."""
-    return {os.path.relpath(p, stages.REPO): fingerprint(p) for p in sorted({p.file for p in stage.parts.values()})}
-
-
-def stamp(sources):
-    """sha256 of the INPUTS in the repo and the mesh fingerprints."""
-    h = hashlib.sha256()
-    for pattern in INPUTS:
-        for path in sorted(glob.glob(os.path.join(stages.REPO, pattern))):
-            if os.path.basename(path).startswith("test_"):
-                continue
-            h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
-    h.update(json.dumps(sources, sort_keys=True).encode())
-    h.update(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())  # they decide the MuJoCo half
-    return h.hexdigest()
 
 
 def report(doc):
@@ -90,7 +46,8 @@ def report(doc):
     return out
 
 
-def write(doc):
+def simulate(doc):
+    """Writes the document's report; returns its log line."""
     t = time.time()
     r = report(doc)
     with open(os.path.join(OUT, f"{doc}-sim.json"), "w") as f:
@@ -102,9 +59,9 @@ def write(doc):
 def main(docs):
     """Each document in a process of its own (spawn, as mjcf.spec's pool), so CI's sim fits its PR budget."""
     with concurrent.futures.ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as pool:
-        for line in pool.map(write, docs):
+        for line in pool.map(simulate, docs):
             print(line)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:] or list(stages.DOCS))
+    main(sys.argv[1:] or sorted(stages.DOCS, reverse=True))  # the Stages, the longest, start first

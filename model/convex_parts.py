@@ -1,6 +1,6 @@
 """CI's cold convex cache (#223, .github/workflows/check.yml): `python -m model.convex_parts` prints, as JSON, the parts
 whose CoACD pieces in model/build/convex are missing or stale, one matrix job each; `python -m model.convex_parts <part>`
-cuts that part's pieces (model/mjcf.py convex). Outside model/mjcf.py on purpose: the report stamp hashes that file."""
+cuts that part's pieces (model/mjcf.py convex). Outside model/mjcf.py on purpose: the trajectories' stamp hashes that file (model/trajectories.py)."""
 
 import json
 import sys

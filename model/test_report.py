@@ -111,12 +111,6 @@ def test_built_report_is_clean(doc):
     assert problems(built(doc)) == []
 
 
-def test_stamp_follows_the_recorded_part_fingerprints():
-    sources = {"model/build/ours/a.stl": "0" * 16}
-    assert report.stamp(sources) == report.stamp(dict(sources))
-    assert report.stamp(sources) != report.stamp({"model/build/ours/a.stl": "1" * 16})
-
-
 FIXTURE_PROBLEMS = {
     "passing": [],
     "failing": [

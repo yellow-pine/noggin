@@ -9,6 +9,7 @@ Stage, skipping a Stage whose files still carry its stamp: {"doc", "motion", "fp
 [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its mesh's, as model/build/ours
 draws it) in MuJoCo's Z-up world, which for a Stage is the PT frame the pictures use."""
 
+import glob
 import hashlib
 import json
 import math
@@ -20,16 +21,27 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical, geometry, mjcf, report, stages, traces
+from model import electrical, geometry, mjcf, stages, traces
 from model.render import hero, scene
 
 OUT = os.path.join(mjcf.BUILD, "trajectories")
 FPS = 1000 // traces.FRAME_MS
 PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is commanded at that rate
-# what a trajectory is computed from besides the sim report's inputs and the meshes (report.stamp): the Core program and
-# its calibration too, which model/traces.py plays (#151 took them out of the report's inputs)
+# what a trajectory is computed from besides the Stage's meshes (stamp; their test files skipped): the Core program and its
+# calibration too, which model/traces.py plays
 SOURCES = [
+    "model/geometry.py",
+    "model/stages.py",
+    "model/linkage.py",
+    "model/sim.py",
+    "model/fits.py",
+    "model/electrical.py",
     "model/mjcf.py",
+    "model/cables.py",
+    "model/mating.py",
+    "model/printed/*.py",  # our parts and the features they declare (the mating sites)
+    "model/envelopes.py",
+    "eyes/servo.py",  # the servo's speed and torque
     "model/traces.py",
     "model/trajectories.py",
     "model/render/hero.py",
@@ -81,11 +93,14 @@ def play(model, writes, times):
 
 
 def stamp(doc):
-    """sha256 of the sim report's inputs with the document's meshes (report.stamp) and SOURCES: a trajectory that no longer
-    carries it is stale."""
-    h = hashlib.sha256((report.stamp(report.sources(stages.STAGES[doc])) + version("mujoco")).encode())
-    for path in SOURCES:
-        h.update(path.encode() + b"\0" + open(os.path.join(stages.REPO, path), "rb").read())
+    """sha256 of SOURCES, the Stage's meshes and the MuJoCo and CoACD versions: a trajectory that no longer carries it is
+    stale."""
+    h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
+    paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
+    for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(
+        {p.file for p in stages.STAGES[doc].parts.values()}
+    ):
+        h.update(os.path.relpath(path, stages.REPO).encode() + b"\0" + open(path, "rb").read())
     return h.hexdigest()
 
 
