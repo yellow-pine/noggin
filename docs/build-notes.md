@@ -88,11 +88,18 @@ board with `mpremote ls` before replacing anything.
 - Fit horns with all servos held at centre (90): lids half open, eyes straight
   ahead. Push fully home, then the short screw from the servo pack. A horn that
   has been refitted several times is worn; use a fresh one.
-- The two lid servos are mirror-mounted: open is the low end for the mech's
-  left lid and the high end for the right. The eye program handles that with
-  `LID_FLIP`.
-- Calibrated values live at the top of `eyes/eyes.py` (`RANGE`, `LID_FLIP`,
-  `EYE_TRIM`, `LID_REST`, `LID_THINK`).
+- The two lid servos are mirror-mounted (a on one is 180 - a on the other).
+  Since #213 `eyes/calibration.json` gives both lids in one shared frame, the
+  right lid servo's degrees: `<lid>_lo` closed, `<lid>_rest` where it sits at
+  `lid_rest`, `<lid>_hi` open. The Core mirrors the left servo itself, so a
+  matched pair has identical numbers. A file with the old `<lid>_flip` keys
+  still loads, converted.
+- 2026-11-01 (#213): the left lid showed only a slit at rest and thinking while
+  the right showed half its pupil. Raising the left lid's open end until rest
+  matched broke the near-shut wink: the linkage makes equal servo steps unequal
+  lid steps, so a straight line between the ends can't fit. Hence the rest
+  point: tune closed, rest and open per lid, and compare both eyes at a
+  half-open pose, not only at the ends.
 
 ## Real eye movements (GazeBase)
 
@@ -175,7 +182,7 @@ make restore-stock   # put the stock remote-control program back on the Core
 noggin/noggin status # mode (follow, demo or pose), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 noggin/noggin pose lids 0.3 eyes 95     # pose mode: hold it, hooks ignored, until follow; each set re-sends it
-noggin/noggin set lid_rest 0.3           # live calibration, saved to eyes/calibration.json
+noggin/noggin set l_lid_rest 70          # live calibration, saved to eyes/calibration.json
 noggin/noggin exercise 10                # gentle run-in, 10 minutes
 make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
 make follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)

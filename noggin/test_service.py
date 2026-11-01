@@ -131,6 +131,19 @@ def ask(path, text):
         s.close()
 
 
+def test_a_calibration_from_before_the_shared_lid_frame_still_loads_and_set_saves_it_converted(tmp_path):
+    old = {"l_lid_lo": 51, "l_lid_hi": 136, "l_lid_flip": 1, "r_lid_lo": 44, "r_lid_hi": 129, "r_lid_flip": 0}
+    (tmp_path / "c.json").write_text(json.dumps({**old, "lid_rest": 0.28}))
+    s, sock, fake = start(tmp_path)
+    lines = (b"set l_lid_lo 44\n", b"set l_lid_rest 67.8\n", b"set l_lid_hi 129\n", b"set r_lid_rest 67.8\n")
+    assert wait_for(lambda: all(line in fake.buf for line in lines))
+    assert b"flip" not in fake.buf
+    send(sock, "set r_lid_rest 70\n")
+    assert wait_for(lambda: json.loads((tmp_path / "c.json").read_text()).get("r_lid_rest") == 70)
+    assert "l_lid_flip" not in json.loads((tmp_path / "c.json").read_text())
+    s.stop()
+
+
 def test_a_fresh_service_follows_and_status_says_so(tmp_path):
     s, sock, _ = start(tmp_path)
     assert ask(sock, "status\n").endswith("mode follow\n")

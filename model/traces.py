@@ -1,7 +1,7 @@
 """Gesture replay for the model (#20, #39): the five gestures plus thinking recorded from the eye program on CPython
 (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
-joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to servo degrees, then
+joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to the shared lid frame, then
 the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The GIFs are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md);
 `commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo."""
 
@@ -40,14 +40,14 @@ GESTURES = {
 SERVOS = ("l_lid", "l_eye", "r_lid", "r_eye")
 PIN = {name: pin for pin, name in mod.NAME.items()}
 FRAME_MS, THINK_MS = 100, 6000
-_CORE = mod.Eyes()  # the Core's lid mapping (fraction -> servo degrees) under the calibration
+_CORE = mod.Eyes()  # the Core's lid mapping (fraction -> shared lid frame degrees) under the calibration
 _CORE.cal.update(CAL)
 
 
 def joint(servo, v):
     """Model horn degrees from neutral for a lid fraction or an eye position."""
     if "lid" in servo:
-        return sim.joint_deg(servo, _CORE._lid_angle(PIN[servo], v), CAL)
+        return sim.joint_deg(servo, _CORE._lid_pos(PIN[servo], v))
     lo, hi = geometry.HORN_LIMITS[servo]
     return v * ((hi - 90) if v > 0 else (90 - lo))
 

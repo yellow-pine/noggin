@@ -2,7 +2,7 @@ import pytest
 
 import eyes as mod
 
-RANGES = {mod.L_LID: (51, 144), mod.L_EYE: (58, 118), mod.R_LID: (51, 129), mod.R_EYE: (58, 118)}
+RANGES = {mod.L_LID: (51, 136), mod.L_EYE: (58, 118), mod.R_LID: (44, 129), mod.R_EYE: (58, 118)}  # servo degrees
 
 
 def angle(ns):  # inverse of the stock bbl.servos mapping as a pulse width (10-bit duty / 1023 of 20 ms)
@@ -74,6 +74,28 @@ def test_thinking_blinks_occasionally(eyes, pwm_log):
 
 def last_ns(pwm_log, pin):
     return [d for p, d in pwm_log if p == pin][-1]
+
+
+def test_both_lids_take_the_same_numbers_and_the_left_servo_mirrors_them(eyes):
+    """#213: lid positions are in one shared frame (the right lid servo's degrees, lo closed .. hi open); the left lid
+    servo is mounted mirror-image, so the Core writes 180 - a to it."""
+    assert all(mod.DEFAULT_CAL["l_lid" + k] == mod.DEFAULT_CAL["r_lid" + k] for k in ("_lo", "_rest", "_hi"))
+    for f in (0, 0.03, 0.1, 0.28, 0.5, 0.95, 1):
+        assert eyes._lid_angle(mod.L_LID, f) == pytest.approx(180 - eyes._lid_angle(mod.R_LID, f))
+    assert eyes.range(mod.L_LID) == (51, 136) and eyes.range(mod.R_LID) == (44, 129)
+
+
+def test_the_lid_map_runs_closed_rest_open_in_two_straight_pieces(eyes):
+    """#213: the linkage makes equal servo steps unequal lid steps, so each lid has a third point at lid_rest."""
+    eyes.handle_line("set r_lid_rest 80")  # well off the straight line 44..129 (67.8 at 0.28)
+    rest = eyes.cal["lid_rest"]
+    pos = [eyes._lid_angle(mod.R_LID, i / 100) for i in range(101)]
+    assert eyes._lid_angle(mod.R_LID, 0) == 44 and eyes._lid_angle(mod.R_LID, 1) == 129
+    assert eyes._lid_angle(mod.R_LID, rest) == 80
+    assert all(a < b for a, b in zip(pos, pos[1:], strict=False))  # monotonic: never reverses
+    assert eyes._lid_angle(mod.R_LID, rest / 2) == pytest.approx((44 + 80) / 2)  # straight closed..rest
+    assert eyes._lid_angle(mod.R_LID, (rest + 1) / 2) == pytest.approx((80 + 129) / 2)  # straight rest..open
+    assert eyes._lid_angle(mod.R_LID, -1) == 44 and eyes._lid_angle(mod.R_LID, 2) == 129  # clamped to the ends
 
 
 def test_set_changes_calibration_live(eyes, pwm_log):

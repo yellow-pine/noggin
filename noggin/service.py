@@ -55,15 +55,20 @@ def read_all(conn):
             raise ValueError(f"over {READ_CAP} bytes")
 
 
-def gesture_seconds(line, cal):
-    """How long the Core plays `line`, from the eye program's own clock (eyes/replay.py)."""
-    if line in HOLD:
-        return HOLD[line]
+def _replay():
+    """eyes/replay.py: the eye program on the Mac."""
     if str(CAL_FILE.parent) not in sys.path:
         sys.path.append(str(CAL_FILE.parent))
     import replay
 
-    return replay.play([line], cal)[1] / 1000
+    return replay
+
+
+def gesture_seconds(line, cal):
+    """How long the Core plays `line`, from the eye program's own clock (eyes/replay.py)."""
+    if line in HOLD:
+        return HOLD[line]
+    return _replay().play([line], cal)[1] / 1000
 
 
 def open_link():
@@ -121,7 +126,8 @@ class Service:
         self.running = False
 
     def calibration(self):
-        return json.loads(self.cal_file.read_text()) if self.cal_file.exists() else {}
+        """The calibration file in the shared lid frame (a file from before #213 is converted; `set` saves it so)."""
+        return _replay().shared_frame(json.loads(self.cal_file.read_text())) if self.cal_file.exists() else {}
 
     def cal_lines(self):
         return [f"set {k} {v}" for k, v in self.calibration().items()]

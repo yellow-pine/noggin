@@ -34,7 +34,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the gesture's trajectory (MuJoCo playing the Core
   program's own writes through the servos' dynamics: model/traces.py `commands`, lid fractions through
-  eyes/calibration.json to servo degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
+  eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
 
 ## Our printed parts (#50)

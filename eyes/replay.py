@@ -57,6 +57,24 @@ def play(lines, cal=None):
     return log, clock[0]
 
 
+def shared_frame(cal):
+    """calibration.json in the shared lid frame (#213). The shape before it (each lid's ends in its own servo's degrees,
+    `<lid>_flip` 1 where the low end is open) is converted: the MIRRORED servo's degrees become 180 - a, lo the closed
+    end, hi the open end, and the rest point goes on the old straight line at lid_rest, so the Mech moves as before."""
+    mod, cal = _eyes(), dict(cal)
+    for pin in mod.LIDS:
+        name = mod.NAME[pin]
+        if name + "_flip" not in cal:
+            continue
+        lo, hi = cal[name + "_lo"], cal[name + "_hi"]
+        closed, opened = (hi, lo) if cal.pop(name + "_flip") else (lo, hi)
+        if pin in mod.MIRRORED:
+            closed, opened = 180 - closed, 180 - opened
+        rest = closed + (opened - closed) * cal.get("lid_rest", mod.DEFAULT_CAL["lid_rest"])
+        cal.update({name + "_lo": closed, name + "_rest": round(rest, 2), name + "_hi": opened})
+    return cal
+
+
 def ranges(cal=None):
     mod = _eyes()
     e = mod.Eyes()

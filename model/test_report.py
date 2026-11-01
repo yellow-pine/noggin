@@ -14,10 +14,10 @@ from model.engine import mating, run, stages
 HERE = os.path.dirname(__file__)
 _LID_OPEN = (
     "the real Mech's open end with the horn's tooth (geometry.HORN_AT_90): in the model the lower lid's back rim meets the"
-    " servo bracket's front face from +39, 1.4 mm deep at 45.75, 2.0 at 52.95 (and the upper lid 0.6 mm into the eyeball"
+    " servo bracket's front face from +39, 1.4 mm deep at 45.75 (and the upper lid 0.6 mm into the eyeball"
     " bar there); past the model's free travel (+31, geometry.LIMITS) the two lids' ears also meet at the back (the sweep"
     " never measures the two lids: both move with the horn) and the upper lid's ear the eye bracket's arm (#189). Best guess (#170, #189): the build runs it,"
-    " so the model's lid travel (62 deg free) is short of the build's (93 / 85 servo deg) by a shape error at the lids'"
+    " so the model's lid travel (62 deg free) is short of the build's (85 servo deg) by a shape error at the lids'"
     " backs that no tolerance in the sources reaches: the closed end is held by the lips just touching at the program's"
     " close (Cansin), the servo's 180 +-10 deg spec moves the end 3 deg at most, a print tolerance of 0.2 mm 1.3 deg."
     " Accepted, not a measurement to wait for"
@@ -32,7 +32,7 @@ _EYE_ENDS = (
 # (horn, calibrated end): where the model still collides and the real Mech runs, each with the reason it is accepted.
 # The build wins (CLAUDE.md): listed, never loosened silently.
 KNOWN_CALIBRATED = {
-    ("L lid horn", 52.95): _LID_OPEN,
+    ("L lid horn", 45.75): _LID_OPEN,
     ("R lid horn", 45.75): _LID_OPEN,
     **{(f"{s} eye horn", end): _EYE_ENDS for s in "LR" for end in (-30, 30)},
 }
