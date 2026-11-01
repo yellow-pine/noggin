@@ -5,7 +5,8 @@ plain commands: `on` / `off` (Mute, persisted as a file) / `<gesture> <1-3>` / `
 file and sent) / `reload` (resend the file) / `demo [once | <gesture> [level]]` (play gestures on a loop,
 dropping hook Triggers) / `follow` (back to the hooks; the mode after any restart) / `flash` (the eye program to the
 eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is pushed whenever the
-Link connects. Run as `python -m noggin.service`, it also keeps the Link's MQTT broker running (noggin/broker.py)."""
+Link connects. Run as `python -m noggin.service`. noggin/broker.py (Mosquitto) can ride along as `broker`, but nothing
+starts it: the Link is signed UDP (docs/adr/0005, update 2026-11-01)."""
 
 import glob
 import json
@@ -16,7 +17,6 @@ import sys
 import time
 from pathlib import Path
 
-from noggin.broker import Broker
 from noggin.wifi import BEACON_PORT, COMMAND_PORT, Wifi
 from reactions.director import Director
 
@@ -302,6 +302,6 @@ class Service:
 
 
 if __name__ == "__main__":
-    service = Service(broker=Broker(CORES))
-    signal.signal(signal.SIGTERM, lambda *_: service.stop())  # `make stop` (launchd's SIGTERM) stops Mosquitto too
+    service = Service()
+    signal.signal(signal.SIGTERM, lambda *_: service.stop())  # `make stop` (launchd's SIGTERM)
     service.run()

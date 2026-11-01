@@ -1,4 +1,4 @@
-"""The Link's local CA, always in a temp dir (never the real ~/.noggin/pki). Checked with the openssl CLI itself."""
+"""The unused MQTT local CA (noggin/pki.py), in a temp dir (never the real ~/.noggin/pki), checked with openssl."""
 
 import os
 import socket

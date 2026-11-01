@@ -1,4 +1,6 @@
-"""Mosquitto, the Link's MQTT broker (#157), as a child of the noggin service, so it needs no launchd job of its own.
+"""Unused: the Link is signed UDP and MQTT was rejected (docs/adr/0005, update 2026-11-01); kept until a Core holds TLS.
+Mosquitto, the MQTT broker #157 planned for the Link, as a child of the noggin service (`Service(broker=...)`, not
+passed), so it needs no launchd job of its own.
 Mutual TLS on 8883 with our CA in ~/.noggin/pki: a client without a certificate from it is refused, and the
 certificate's CN is the username the access rules name (https://mosquitto.org/man/mosquitto-conf-5.html).
 The Mac (CN mac) reads and writes all of noggin/#; each Core reads only its own cmd and flash topics and writes only

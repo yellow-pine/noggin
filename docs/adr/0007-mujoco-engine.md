@@ -48,7 +48,8 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   (model/test_mjcf.py): in every document each body sits where the old engine's pose puts it, within 0.1 mm, and no two parts that are not
   mounted to each other overlap at rest by more than 0.05 mm (MuJoCo's distance between their pieces; the pairs the
   pieces make overlap though the parts do not are listed with their measured clearance). That guard found the eyes'
-  rail 5 mm deep in the desk base (stage 1), recorded as an open conflict with Cansin's photo (docs/model-notes.md).
+  rail 5 mm deep in the desk base (stage 1), a conflict with Cansin's photo settled for the build by #172: the desk
+  eye bracket, its stem in the plate's slot (docs/model-notes.md, docs/research/2026-11-01-eyes-on-plate.md).
 
 Dependencies added: mujoco, coacd.
 
@@ -56,8 +57,8 @@ Dependencies added: mujoco, coacd.
 
 - Keep growing model/engine: rejected, every new question (torque under gravity, a linkage under load, tip-over)
   is another hand-written solver.
-- MuJoCo's renderer for the pictures, or tuned lights, materials and shadows for its viewer: rejected (2026-10-31,
-  Cansin): Blender's style B is the look, and MuJoCo's viewer only has to tell the parts apart.
+- MuJoCo's renderer for the pictures: rejected (2026-10-31, Cansin): Blender's style B is the look. Its viewer
+  starts from the settings above and may add shadows and materials (#150, 2026-11-01); it stays for local checks.
 - MuJoCo colliding the raw meshes: rejected, the convex hull hides every clearance inside a part.
 - A rigid flex per part (MuJoCo's non-convex collisions, same page, flexcomp): rejected for now, a mesh geom with
   convex pieces is the plain path and keeps each part one body with ordinary geoms.

@@ -1,9 +1,11 @@
-"""The Link's local CA (#157): keys and certificates for ca, broker, mac, eyes and neck, EC P-256, by the openssl CLI.
+"""Unused: the Link is signed UDP and MQTT was rejected (docs/adr/0005, update 2026-11-01); kept until a Core holds TLS.
+The local CA #157 planned for the Link: keys and certificates for ca, broker, mac, eyes and neck, EC P-256, by the
+openssl CLI.
 
-`python -m noggin.pki [--rotate]` fills ~/.noggin/pki (mode 700, files 600). The Cores get DER copies over USB
-(scripts/setup.sh). Certificates are valid from the moment they are made, and the Core's mbedTLS checks the dates
-(CONFIG_MBEDTLS_HAVE_TIME_DATE, MicroPython ports/esp32/boards/sdkconfig.base), so a Core must set its clock (NTP)
-before its first handshake: it boots at 2000-01-01."""
+`python -m noggin.pki [--rotate]` fills ~/.noggin/pki (mode 700, files 600). The Cores would get DER copies over USB
+(a setup wizard step, removed with the MQTT rejection). Certificates are valid from the moment they are made, and the
+Core's mbedTLS checks the dates (CONFIG_MBEDTLS_HAVE_TIME_DATE, MicroPython ports/esp32/boards/sdkconfig.base), so a
+Core must set its clock (NTP) before its first handshake: it boots at 2000-01-01."""
 
 import ipaddress
 import os

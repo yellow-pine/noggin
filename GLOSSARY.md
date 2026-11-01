@@ -97,8 +97,9 @@ _Avoid_: program, image, OS
 
 **Model**:
 The Mech as code, 1:1 with the physical Mech: our CadQuery parts (model/printed) and hardware Envelopes
-(model/envelopes.py), placed by model/geometry.py; the Python engine in model/ poses and simulates them (docs/adr/0006)
-and Blender renders the pictures from its poses.
+(model/envelopes.py), placed by model/geometry.py; MuJoCo simulates them from one MJCF per document (model/mjcf.py,
+docs/adr/0007), the old Python engine (model/engine, docs/adr/0006) runs beside it until #151 retires it, and Blender
+renders the pictures from the engine's poses (MuJoCo's from #150).
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
@@ -145,7 +146,8 @@ A part we print, by our name (the designer's file names are history: README cred
 _Avoid_: the designer's file names, version suffixes, plain / cutout / regular
 
 **Pivot**:
-A revolute axis between two parts; in the Model, a joint of the engine's four-bar solver (model/engine/linkage.py).
+A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the old engine's four-bar
+solver (model/engine/linkage.py).
 _Avoid_: hinge, axle
 
 **Port**:
