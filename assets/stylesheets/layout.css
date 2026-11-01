@@ -10,4 +10,4 @@
 }
 
 /* four cards two by two, not three and an orphan */
-.md-typeset .grid.cards.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+.md-typeset .grid.cards.pairs { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }

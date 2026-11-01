@@ -53,7 +53,7 @@ def test_no_real_photo_is_public(site):
     blender = "https://yellowpine.com/noggin/images/"
     pages = {p: p.read_text() for p in site.rglob("*.html")}
     links = [(p, u) for p, html in pages.items() for u in re.findall(r'(?:href|src)="([^"]+)"', html)]
-    links += [("README.md", u) for u in re.findall(r"\]\(([^)\s]+)", (ROOT / "README.md").read_text())]
+    links += [("README.md", u) for u in re.findall(r'(?:\]\(|src=")([^)"\s]+)', (ROOT / "README.md").read_text())]
     assert [(p, u) for p, u in links if photo.search(u) and not u.startswith(blender)] == []
     assert [f for f in site.rglob("*") if photo.search(f.name)] == []
 
@@ -263,8 +263,8 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 
 def test_every_picture_ci_builds_is_shown_from_the_site():
-    """The README's and the docs' pictures (the badges and the build photos aside) are the site's absolute /images URLs
-    of files in the pictures manifest, and each of those is shown somewhere."""
+    """The README's and the docs' pictures (the badges aside; Markdown images or the figures' <img>s) are the site's
+    absolute /images URLs of files in the pictures manifest, and each of those is shown somewhere."""
     from model.render import pictures
 
     docs = [
@@ -274,8 +274,7 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
     urls = {
         u
         for d in docs
-        for m in re.findall(r'!\[[^\]]*\]\(([^)\s]+)|<img src="([^"]+)"', d.read_text())
-        for u in m
+        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", d.read_text()) + re.findall(r'<img src="([^"]+)"', d.read_text())
         if u.startswith("http") and not u.startswith("https://img.shields.io/")
     }
     site = "https://yellowpine.com/noggin/images/"
@@ -285,7 +284,8 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
 
 def test_the_hero_is_800x400_and_centred_wherever_it_shows(site):
     """Cansin (#278, #293): the one 800x400 hero, at its size and centred, leads the README (GitHub drops CSS, so a
-    centred HTML paragraph) and shows on the site in a figure, which Material centres."""
+    centred HTML paragraph, its width alone: GitHub's CSS would squash a fixed height on a phone) and shows on the site
+    in a figure, which Material centres."""
     from model.render import pictures
 
     hero = "https://yellowpine.com/noggin/images/hero.gif"

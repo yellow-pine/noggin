@@ -60,9 +60,9 @@ feed both at stall), a planned edit not yet in the model ([Model notes](../model
 
 ## Pictures
 
-<figure markdown="span">
-![The three Stages: stage 2 is the second, the eyes on the neck](https://yellowpine.com/noggin/images/stages.jpg){ width="3200" height="600" }
-<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
+<figure>
+<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 2 is the second, the eyes on the neck">
+<figcaption>Stage 1 front, Stage 2 side (this guide), Stage 3 side and front</figcaption>
 </figure>
 
 Turn it around in [the web viewer](https://yellowpine.com/noggin/viewer/), Stage 2.

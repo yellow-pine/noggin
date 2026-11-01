@@ -5,12 +5,12 @@ model.
 
 ## What we built
 
-<figure markdown="span">
-![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](https://yellowpine.com/noggin/images/stages.jpg){ width="3200" height="600" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
 <figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
 </figure>
 
-Photo: `docs/references/build-photos/eye-mech-build-photo.jpg` (local only). Two eyeballs with eyelids on a base plate, four 180° 9 g servos, a Core on a Shield, a switch board and a 14500 cell
+Two eyeballs with eyelids on a base plate, four 180° 9 g servos, a Core on a Shield, a switch board and a 14500 cell
 holder. Our board is mounted rotated 90° relative to the designer's photos, which changes nothing electrically. The
 eyes stand on the desk eye bracket, its stem in the base plate's slot. Turn it around in
 [the web viewer](https://yellowpine.com/noggin/viewer/), Stage 1.

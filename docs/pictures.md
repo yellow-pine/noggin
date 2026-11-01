@@ -6,13 +6,13 @@ and served by the site, never kept in git (ADR 0009). How they are made, their s
 
 ## The Stages
 
-<figure markdown="span">
-![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](https://yellowpine.com/noggin/images/stages.jpg){ width="3200" height="600" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
 <figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
 </figure>
 
-<figure markdown="span">
-![Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them](https://yellowpine.com/noggin/images/exploded.jpg){ width="800" height="600" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/exploded.jpg" alt="Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them" width="800">
 <figcaption>Stage 3 exploded: the base, the neck, the eyes and the mouth</figcaption>
 </figure>
 
@@ -23,43 +23,36 @@ MuJoCo's trajectories (every picture here). Main's sim reports are on the site a
 
 ## The hero
 
-<figure markdown="span">
-![noggin: Stage 3 talking, turning and nodding](https://yellowpine.com/noggin/images/hero.gif){ width="800" height="400" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/hero.gif" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
 
 ## The gestures
 
-<div class="grid gestures" markdown>
-
-<figure markdown="span">
-![eureka](https://yellowpine.com/noggin/images/eureka.gif){ width="400" height="300" }
+<div class="grid gestures">
+<figure>
+<img src="https://yellowpine.com/noggin/images/eureka.gif" alt="eureka">
 <figcaption>eureka</figcaption>
 </figure>
-
-<figure markdown="span">
-![attention](https://yellowpine.com/noggin/images/attention.gif){ width="400" height="300" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/attention.gif" alt="attention">
 <figcaption>attention</figcaption>
 </figure>
-
-<figure markdown="span">
-![bored](https://yellowpine.com/noggin/images/bored.gif){ width="400" height="300" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/bored.gif" alt="bored">
 <figcaption>bored</figcaption>
 </figure>
-
-<figure markdown="span">
-![wince](https://yellowpine.com/noggin/images/wince.gif){ width="400" height="300" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/wince.gif" alt="wince">
 <figcaption>wince</figcaption>
 </figure>
-
-<figure markdown="span">
-![wink](https://yellowpine.com/noggin/images/wink.gif){ width="400" height="300" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/wink.gif" alt="wink">
 <figcaption>wink</figcaption>
 </figure>
-
-<figure markdown="span">
-![thinking](https://yellowpine.com/noggin/images/thinking.gif){ width="400" height="300" }
+<figure>
+<img src="https://yellowpine.com/noggin/images/thinking.gif" alt="thinking">
 <figcaption>thinking</figcaption>
 </figure>
-
 </div>
