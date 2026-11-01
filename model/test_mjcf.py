@@ -1,13 +1,15 @@
+import functools
 import itertools
+import math
 
 import mujoco
 import numpy as np
 import pytest
 import trimesh
 
+from model import electrical, mjcf
 from model import geometry as g
-from model import mjcf
-from model.engine import mating, stages
+from model.engine import masses, mating, stages
 
 PENETRATION_MM = 0.05
 # Pairs that touch by design besides the mating joints' (model/engine/mating.py JOINTS), and the pairs whose CoACD pieces
@@ -51,8 +53,16 @@ MOUTH_ON_DESK = ON_PLATE | {
 MOUNTED = {frozenset((a, b)) for _, feats in mating.JOINTS for (a, _), (b, _) in itertools.combinations(feats, 2)}
 
 
+LOOP_MM, TURN_DEG, SWEEP_DEG = 0.05, 0.5, 10
+
+
+@functools.cache
+def built(doc):
+    return mjcf.model(doc)
+
+
 def forward(doc):
-    model = mjcf.model(doc)
+    model = built(doc)
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     return model, data
@@ -108,3 +118,79 @@ def test_the_viewer_look_stays_as_cansin_kept_it():
     drawn = {model.body(model.geom_bodyid[i]).name: model.geom_rgba[i] for i in np.flatnonzero(model.geom_group == 2)}
     assert np.allclose(drawn["base plate:1"], [0x5A / 255, 0x5A / 255, 0x60 / 255, 1])  # Absolute Black
     assert np.allclose(drawn["L eyeball:1"], [0xE8 / 255] * 3 + [1])  # Pure White
+
+
+@functools.cache
+def sweep(doc):
+    """{(horn, deg): MjData} with each horn driven by its servo from its lower to its upper limit (geometry.LIMITS)
+    in SWEEP_DEG steps, the other horns held at neutral."""
+    model = built(doc)
+    return {
+        (h, d): mjcf.pose(model, {h: d})
+        for h, horn in stages.STAGES[doc].horns.items()
+        for d in [*range(horn.limits[0], horn.limits[1], SWEEP_DEG), horn.limits[1]]
+    }
+
+
+MOVING = [doc for doc in stages.DOCS if stages.STAGES[doc].horns]
+
+
+@pytest.mark.parametrize("doc", MOVING)
+def test_every_limit_poses_with_its_four_bars_closed(doc):
+    """Each four-bar is closed by a connect at its coupler's rocker pin; at every geometry.LIMITS end the servo
+    reaches (and the neck's pan x tilt corners), its two sites stay within 0.05 mm."""
+    model = built(doc)
+    assert model.neq == sum(len(h.loops) for h in stages.STAGES[doc].horns.values())
+    horns = stages.STAGES[doc].horns
+    ends = [{h: d} for h, horn in horns.items() for d in horn.limits]
+    if {"pan horn", "tilt horn"} <= set(horns):  # the neck's corners too: the head at full pan and full tilt
+        ends += [{"pan horn": p, "tilt horn": t} for p in horns["pan horn"].limits for t in horns["tilt horn"].limits]
+    for ctrl in ends:
+        worst = max(mjcf.residuals(model, mjcf.pose(model, ctrl)).values())
+        assert worst < LOOP_MM, (ctrl, worst)
+
+
+@pytest.mark.parametrize("doc", MOVING)
+def test_the_joints_turn_as_the_old_engine_solves_the_four_bars(doc):
+    """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
+    within 0.5 degrees of the old engine's four-bar solve (model/engine/linkage.py) at that horn angle."""
+    stage = stages.STAGES[doc]
+    for (h, d), data in sweep(doc).items():
+        expected = {h: d, **stages.pose(stage, h, d).joints}
+        for joint, deg in expected.items():
+            actual = math.degrees(data.joint(joint).qpos[0])
+            assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)
+
+
+@pytest.mark.parametrize("doc", MOVING)
+def test_every_lead_stays_within_its_length(doc):
+    """Each lead (electrical.leads) whose two Ports the document has is a spatial tendon limited to the lead's real
+    length; across every sweep it stays under it, the limit never pulling on the Mech."""
+    model, stage = built(doc), stages.STAGES[doc]
+    leads = {name: mm for name, a, b, mm in electrical.leads() if a in stage.ports and b in stage.ports}
+    assert {model.tendon(i).name: model.tendon_range[i][1] * 1000 for i in range(model.ntendon)} == pytest.approx(leads)
+    for (h, d), data in sweep(doc).items():
+        pulling = data.efc_type[: data.nefc] == mujoco.mjtConstraint.mjCNSTR_LIMIT_TENDON
+        assert not pulling.any(), (h, d, [model.tendon(i).name for i in data.efc_id[: data.nefc][pulling]])
+        for i in range(model.ntendon):
+            assert data.ten_length[i] < model.tendon_range[i][1], (h, d, model.tendon(i).name)
+
+
+@pytest.mark.parametrize("doc", MOVING)
+def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
+    """Each screw or pin joint of model/engine/mating.py is a site per part on its own fitted axis; across every sweep
+    they stay within the mating check's 0.2 mm (as far apart as the axes miss each other, and any drift a turn adds)."""
+    model, stage = built(doc), stages.STAGES[doc]
+    for (h, d), data in sweep(doc).items():
+        gaps = mjcf.mating_gaps(model, data)
+        assert set(gaps) == {j for j, feats in mating.JOINTS if all(p in stage.parts for p, _ in feats)}
+        worst = max(gaps, key=gaps.get)
+        assert gaps[worst] < mating.COAXIAL_MM, (h, d, worst, gaps[worst])
+
+
+def test_every_part_weighs_what_the_engine_weighs_it():
+    """Each part's CoACD pieces share the old engine's mass for it (model/engine/masses.py) by volume."""
+    model, stage = built("noggin-stage3"), stages.STAGES["noggin-stage3"]
+    for name, part in stage.parts.items():
+        g = masses.mass(mjcf._mesh(part.file, part.clip), part.material)["g"]
+        assert model.body(name).mass[0] * 1000 == pytest.approx(g, abs=0.01), name

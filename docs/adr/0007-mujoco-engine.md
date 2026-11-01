@@ -23,7 +23,12 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   part decomposed again only when its mesh, clip or the CoACD settings change (CI caches them with model/build/ours).
 - **Linkages, actuators, cables, mating** (#148): the four-bars are equality constraints, the servos position
   actuators with their torque limits, the leads spatial tendons with the real lengths as limits, each screw or pin a
-  site pair whose distance must be zero (https://mujoco.readthedocs.io/en/stable/XMLreference.html#equality).
+  site pair whose distance must be zero (https://mujoco.readthedocs.io/en/stable/XMLreference.html#equality). Each
+  four-bar is a tree of hinges closed by a connect at the rocker pin, as MuJoCo asks for loop joints (a weld would lock
+  it); the servos hold at their 4.8 V stall torque. `mjcf.pose` slews the commands quasi-statically with contacts off
+  and holds them under gravity; its gate (model/test_mjcf.py): every LIMITS end closes within 0.05 mm, the joints match
+  the old engine's solve within 0.5 degrees, the leads stay under their lengths and the mating sites within 0.2 mm
+  (docs/research/2026-11-01-mujoco-loops.md).
 - **The sim report is MuJoCo-native** (#149): contacts and penetration per pair, constraint residuals (a linkage
   that cannot close), actuator force against the torque limit, tip-over, all sampled per pose; the tests, the stamp
   and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact.
