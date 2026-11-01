@@ -52,8 +52,8 @@ make site     # the site in site/ (python -m http.server -d site)
 | Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
 | Release Assets | `release.yml` | `v*` tags | zips the Core's program and the setup wizard onto the release |
 
-Required checks on main: `code`, `model`, `mech`, `site`, `pictures`, `review`, `fetch skills` and `PR Title`. PRs go
-straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
+Required checks on main: `code`, `model`, `mech`, `site`, `pictures`, `review`, `fetch skills`, `PR Title` and
+`PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
