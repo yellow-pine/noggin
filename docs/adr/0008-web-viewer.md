@@ -5,6 +5,8 @@
 > Amended 2026-11-01 (#194): three.js replaces `<model-viewer>` so the page shows style B, the pictures' look.
 > Amended 2026-11-01 (#211): the key light casts shadows, lines scale with the canvas.
 > Amended 2026-11-01 (#225, ADR 0009): the viewer moved to yellowpine.com/noggin/viewer/, the site's docs took the root.
+> Amended 2026-11-01 (#221): a PR touching `model/`, `eyes/` or `web/` bakes and tests the GLBs too; every run reuses
+> the last GLBs built from the same inputs.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

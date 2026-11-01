@@ -17,7 +17,7 @@ defaults:
     shell: bash   # -eo pipefail: make's exit code survives the tee
 # Two required checks side by side: code runs everything but the tests marked model (pyproject.toml); model passes when
 # both model shards do, which split those tests (the hero's collision sweep alone, the rest with make view's offscreen
-# render) and make sim, make stl and make step. pytest runs on
+# render) and make sim, with make stl and make step on main or when the parts changed. pytest runs on
 # every core (xdist), its slowest tests go to the job summary, and each job ends on the budget (scripts/ci_budget.py):
 # warm means the parts cache hit its exact key.
 jobs:

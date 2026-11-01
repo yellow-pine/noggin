@@ -16,8 +16,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   code).
 - **Deployed with GitHub's own Pages actions.** The `pages` workflow builds the docs and the viewer's GLBs on a push to
   main and deploys them together with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
-- **PR previews are artifacts.** A PR's `site` job builds the docs and uploads them as an artifact linked from its
-  job summary; no external preview host. It is not a required check: `make check` builds the docs strictly too
+- **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
+  made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is not a required check: `make check` builds the docs strictly too
   (test_site.py), so a broken page or link fails the required one.
 - **Numbers come from the code.** A doc's numbers that the code owns (the README's behaviour table, the picture sizes
   and colours in docs/model-notes.md) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group),
