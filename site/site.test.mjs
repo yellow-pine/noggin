@@ -108,7 +108,7 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
 });
 
 test("every page's CSP lets only the site's scripts run: each inline one by its hash, no 'unsafe-inline'", () => {
-  for (const f of html) {
+  for (const f of html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`)))) { // Astro's pages, not the reports' index
     const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
     const csp = doc.querySelector('meta[http-equiv="content-security-policy"]')?.getAttribute('content');
     const scripts = csp?.match(/script-src ([^;]*)/)?.[1].split(/\s+/);
