@@ -1,51 +1,82 @@
 name: pages
-# The web viewer (docs/adr/0008): bakes the trajectories, has Blender write a GLB per Stage and deploys web/build to
-# GitHub Pages. Not a required check: a red run leaves the last site up. Pages' source is GitHub Actions
+# The site (docs/adr/0009): MkDocs builds the docs (make site), and on main Blender bakes the web viewer's GLBs
+# (docs/adr/0008) into site/viewer, deployed to GitHub Pages (yellowpine.com/noggin/). A PR builds the docs only and
+# uploads them as an artifact. Not a required check: a red run leaves the last site up. Pages' source is GitHub Actions
 # (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
   push:
     branches: [main]
-    paths: ["model/**", "eyes/**", "web/**", ".github/workflows/pages.yml"]
+    paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml",
+            "uv.lock", ".github/workflows/pages.yml"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock", ".github/workflows/pages.yml"]
   workflow_dispatch:
-concurrency:   # one deployment at a time, never cancelled midway (GitHub's starter workflow)
-  group: pages
-  cancel-in-progress: false
+# one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run
+concurrency:
+  group: pages-${{ github.event.pull_request.number || 'deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
-  build:
+  site:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: true
+      # on main (or on demand) the viewer: Blender's GLBs and three.js's Draco decoder into web/build, then site/viewer
       # the check workflow's cache of our built parts (same key: its heavy job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/ours
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
       # Blender 5.2.2, the pinned Linux tarball (docs/research/2026-11-01-web-viewer.md), sha256-checked on every run
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: ~/blender.tar.xz
           key: blender-5.2.2-linux-x64
-      - run: |
+      - if: ${{ github.event_name != 'pull_request' }}
+        run: |
           [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
           mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
       # the X and GL libraries Blender links against, even in the background
-      - run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1
-      - run: make web BLENDER=$HOME/blender/blender
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
+      - if: ${{ github.event_name != 'pull_request' }}
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1
+      - if: ${{ github.event_name != 'pull_request' }}
+        run: make web BLENDER=$HOME/blender/blender
+      - run: make site
+      - if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:
-          path: web/build
+          path: site
+      # the PR's preview: the built docs as an artifact, linked from the job summary
+      - if: ${{ github.event_name == 'pull_request' }}
+        id: preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: site
+          path: site
+      - if: ${{ github.event_name == 'pull_request' }}
+        env:
+          URL: ${{ steps.preview.outputs.artifact-url }}
+        run: |
+          echo "Site preview (docs only; the web viewer builds on main): [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
+          echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
   deploy:
-    needs: build
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: site
     runs-on: ubuntu-latest
     permissions:
       pages: write

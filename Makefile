@@ -11,7 +11,7 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -102,3 +102,6 @@ hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loo
 web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
 	BLENDER=$(BLENDER) $(PY) -m web.build
 	$(PY) -m pytest -q web
+site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it; look with python -m http.server -d site
+	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
+	[ ! -d web/build ] || cp -R web/build site/viewer

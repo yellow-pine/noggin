@@ -18,6 +18,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
 - Ground truth for the model, in order: Cansin's build (photos, measurements), then our model (parts, engine, reports, tests). The designer's and vendor's files are credits (README) and history (docs/research) only. Planned edits go in notes only, never into the model, until they stabilise. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - Blender authors all public visuals (README, docs, PR pictures); the web page draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are
@@ -26,7 +27,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Model pictures (Blender from the engine poses; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.
-- Web viewer (three.js page, Pages workflow): `web/`, ADR 0008; `make web` builds the site locally.
+- Web viewer (three.js page at the site's /viewer): `web/`, ADR 0008; `make web` builds it, `make site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks: `make check` (CI runs it plus shellcheck). Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

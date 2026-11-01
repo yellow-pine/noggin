@@ -4,7 +4,7 @@
 [![Claude review](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/review.yml?event=pull_request&label=Claude%20review&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/review.yml)
 [![last commit](https://img.shields.io/github/last-commit/yellow-pine/noggin?style=flat)](https://github.com/yellow-pine/noggin/commits/main)
 [![license](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat)](LICENSE.md)
-[![python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyellow-pine%2Fnoggin%2Fmain%2Fpyproject.toml&style=flat)](pyproject.toml)
+[![python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyellow-pine%2Fnoggin%2Fmain%2Fpyproject.toml&style=flat)](https://github.com/yellow-pine/noggin/blob/main/pyproject.toml)
 
 An animatronic Mech on the desk that reacts to Claude Code. It winks when a session starts, drifts while Claude
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
@@ -12,7 +12,8 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 ![noggin](docs/images/hero.gif)
 
-Turn it around and play its gestures in the browser: [the web viewer](https://yellow-pine.github.io/noggin/).
+Turn it around and play its gestures in the browser: [the web viewer](https://yellowpine.com/noggin/viewer/). These
+docs are on [the site](https://yellowpine.com/noggin/) too.
 
 ## Acknowledgements
 
@@ -67,7 +68,8 @@ flowchart TB
 ```
 
 The gestures live on the Core, so motion stays smooth whatever the Mac does; the Mac only says which one. Decisions
-are in [`docs/adr/`](docs/adr/), the words in [`GLOSSARY.md`](GLOSSARY.md).
+are in [`docs/adr/`](https://github.com/yellow-pine/noggin/tree/main/docs/adr), the words in
+[`GLOSSARY.md`](GLOSSARY.md).
 
 ## Quick start
 

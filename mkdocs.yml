@@ -1,0 +1,49 @@
+# The site (docs/adr/0009): the repo's Markdown as it is, built by MkDocs Material; the pages workflow adds the web
+# viewer at viewer/ (make site). same-dir lets the docs be the repo itself (README.md is the home page).
+site_name: noggin
+site_url: https://yellowpine.com/noggin/
+repo_url: https://github.com/yellow-pine/noggin
+edit_uri: edit/main/
+docs_dir: .
+site_dir: site
+theme:
+  name: material
+plugins:
+  - search
+  - same-dir
+# everything but the hand-written docs and their pictures (and the theme's own files, which this applies to as well);
+# docs/references is the designer's files, local only
+exclude_docs: |
+  *
+  !/*.md
+  !/docs/**
+  !/assets/**
+  /docs/references/
+  /CLAUDE.md
+markdown_extensions:   # the README's mermaid diagram, as Material documents it
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+validation:
+  nav:
+    not_found: info   # viewer/ is no Markdown: the workflow copies the viewer there
+nav:
+  - Home: README.md
+  - Build notes: docs/build-notes.md
+  - Model notes: docs/model-notes.md
+  - Face design: docs/face-design.md
+  - Decisions:
+      - docs/adr/0001-gestures-live-on-the-core.md
+      - docs/adr/0002-replace-stock-program-never-firmware.md
+      - docs/adr/0003-noggin-service-owns-the-link.md
+      - docs/adr/0004-one-design-per-stage.md
+      - docs/adr/0005-wifi-first-usb-fallback.md
+      - docs/adr/0006-python-simulation-engine.md
+      - docs/adr/0007-mujoco-engine.md
+      - docs/adr/0008-web-viewer.md
+      - docs/adr/0009-sources-only.md
+  - Glossary: GLOSSARY.md
+  - Contributing: CONTRIBUTING.md
+  - Web viewer: viewer/
