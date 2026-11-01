@@ -173,6 +173,7 @@ SITE_TABLES = {
     "docs/build/stage-2.md": "docs/build/stage-2/#servos-it-adds",
     "docs/build/stage-3.md": "docs/build/stage-3/#servos-it-adds",
     "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
+    "docs/build/wiring.md": "docs/build/wiring/#servo-ports",
 }
 
 
@@ -198,6 +199,32 @@ def test_the_readme_is_for_contributors():
         p.name for p in workflows if f"| {yaml.safe_load(p.read_text())['name']} | `{p.name}` |" not in readme
     ] == []
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
+
+
+@pytest.mark.parametrize("doc", ["docs/index.md", "docs/pictures.md"])
+def test_the_gesture_grid_shows_every_gesture_the_model_plays(doc):
+    """The grid stays plain HTML, so GitHub shows the GIFs too (#293); it lists model/traces.py's gestures, in order."""
+    from model import traces
+
+    grid = re.search(r'<div class="grid gestures">(.*?)</div>', (ROOT / doc).read_text(), re.S)
+    assert grid and re.findall(r'images/(\w+)\.gif" alt="\1"', grid[1]) == list(traces.GESTURES)
+
+
+def test_the_wiring_table_is_built_from_the_code(site):
+    """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
+    calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
+    centred) and the neck's model limits and its 90 neutral (geometry.LIMITS; the neck Core has no program yet)."""
+    page = re.sub(r"<[^>]+>", "", (site / "docs" / "build" / "wiring" / "index.html").read_text())
+    for row in [
+        "1 (eyes)\n1\n3\nL lid\n39..102\n61.4",
+        "1 (eyes)\n2\n2\nL eye\n58..118\n88",
+        "1 (eyes)\n3\n1\nR lid\n39..102\n64",
+        "1 (eyes)\n4\n0\nR eye\n58..118\n88",
+        "2 (neck)\n1\n3\ntilt\n30..150\n90",
+        "2 (neck)\n2\n2\njaw\n15..90\n90",
+        "2 (neck)\n3\n1\npan\n50..160\n90",
+    ]:
+        assert row in page, row
 
 
 def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site):

@@ -58,7 +58,9 @@ plugins:
         /docs/index.md
         /docs/use/gestures.md
         /docs/build/stage-*.md
+        /docs/build/wiring.md
         /docs/model-notes.md
+        /viewer.md
       on_undefined: strict
       j2_variable_start_string: "<!--{{"
       j2_variable_end_string: "}}-->"

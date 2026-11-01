@@ -39,7 +39,7 @@ def ticks(e):
 
 @pytest.mark.parametrize(
     "lines",
-    [[f"{g} {i}"] for g in ("eureka", "attention", "bored", "wince", "wink") for i in (1, 2, 3)]
+    [[f"{g} {i}"] for g in EYES.Eyes.GESTURES for i in (1, 2, 3)]
     + [["thinking", ticks], ["set think_trace 1", "thinking", ticks]],
     ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),  # stable across xdist workers
 )

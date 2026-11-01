@@ -12,7 +12,7 @@ CAL = json.load(open(os.path.join(os.path.dirname(__file__), "calibration.json")
 STOP_MARGIN_DEG, MAX_HOLD_MS = 10, 2000
 
 
-@pytest.mark.parametrize("gesture", ["eureka", "attention", "bored", "wince", "wink"])
+@pytest.mark.parametrize("gesture", replay._eyes().Eyes.GESTURES)
 @pytest.mark.parametrize("intensity", [1, 2, 3])
 def test_no_gesture_holds_a_servo_near_a_stop_for_more_than_2s(gesture, intensity):
     holds = replay.near_stop_holds([f"{gesture} {intensity}"], CAL, STOP_MARGIN_DEG)
