@@ -3,8 +3,9 @@ name: Site Deploy
 # motion, the matrix `motions` reads from the code, #297; the required `pictures` check sums them up) beside `viewer`,
 # whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
 # (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with them at site/images, the
-# viewer at site/viewer and main's latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
-# (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
+# viewer at site/viewer and main's latest sim reports at site/reports. Main deploys it to GitHub Pages
+# (yellowpine.com/noggin/) once the check workflow is done with the push (workflow_run: its sim shard has saved the
+# reports by then); a PR uploads it as an artifact. `site` is a required
 # check on PRs that touch what the site is made from (the changes job, as for check.yml's mech). Main builds and
 # deploys only after a green check run (#295): a red, cancelled or failed run builds nothing and the last site stays up, as does a
 # red Site Deploy run. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow). On main
