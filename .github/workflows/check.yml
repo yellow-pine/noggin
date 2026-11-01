@@ -94,8 +94,9 @@ jobs:
       # test_site.py draws the Mermaid diagrams in mermaid-cli's headless Chrome, whose sandbox needs the unprivileged user
       # namespaces Ubuntu 24.04's AppArmor turns off (https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md)
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      # the site's Mermaid (vendored.py's .cache) and test_site.py's mermaid-cli (npx's install, Puppeteer's headless
-      # shell), by their versions in mkdocs.yml: a miss downloads them, and vendored.py checks the hash cached or not
+      # the site's Mermaid and fonts (vendored.py's .cache) and test_site.py's mermaid-cli (npx's install, Puppeteer's
+      # headless shell), by their versions in mkdocs.yml and fonts.py's pins: a miss downloads them, and vendored.py
+      # checks the hash cached or not
       - id: mermaid
         run: |   # its own line, so a failing yq fails the step
           v=$(yq -e '.extra.mermaid.version + "-cli-" + .extra.mermaid.cli' mkdocs.yml)
@@ -106,7 +107,7 @@ jobs:
             .cache
             ~/.npm/_npx
             ~/.cache/puppeteer
-          key: ${{ steps.mermaid.outputs.key }}
+          key: ${{ steps.mermaid.outputs.key }}-fonts-${{ hashFiles('fonts.py') }}
       - run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PUPPETEER_CHROME_SKIP_DOWNLOAD: true   # mermaid-cli runs the headless shell alone (docs/research: diagrams)

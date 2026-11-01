@@ -71,10 +71,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
-  site at /reports (ADR 0009). `code` caches the site's Mermaid (`vendored.py`, hash-checked on every build) and the
-  diagram test's mermaid-cli by their versions in `mkdocs.yml` (`mermaid-npm-`); `pages` caches Mermaid and three.js
-  by their versions (`npm-`). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
-  are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
+  site at /reports (ADR 0009). `code` caches the site's Mermaid and fonts (`vendored.py`, hash-checked on every build)
+  and the diagram test's mermaid-cli by their versions in `mkdocs.yml` and `fonts.py` (`mermaid-npm-`); `pages` caches
+  Mermaid, the fonts and three.js by their versions (`npm-`). A cold parts cache is first cut part by part, one runner
+  per part whose CoACD pieces are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
   within 3 min of its first job's start on a PR, or it fails; on main, past 9 min it warns in the run summary
   (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a "re-run failed
   jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.

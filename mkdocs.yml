@@ -10,8 +10,8 @@ docs_dir: .
 site_dir: site
 theme:
   name: material
-  custom_dir: overrides   # main.html: the pinned Mermaid below and the web viewer; viewer.html: its page
-  font: false   # the system's fonts: no page asks Google Fonts for Roboto (the viewer plays with no third-party request)
+  custom_dir: overrides   # main.html: the pinned Mermaid below, the fonts and the web viewer; viewer.html: its page
+  font: false   # no page asks Google Fonts for Roboto: the site serves its own (fonts.py), no third-party request
   # the Mech's own colours (palette.py), light and dark, following the reader's system until they toggle
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -32,6 +32,7 @@ extra_css:
   - assets/stylesheets/layout.css   # layout only (#293)
 hooks:
   - mermaid.py   # fetches, checks and copies the pinned Mermaid into the site
+  - fonts.py   # and Roboto and Roboto Mono
   - home.py
   - palette.py   # the palette's CSS from the model's colours
   - web/page.py   # the web viewer's page (web/viewer.md) at viewer/

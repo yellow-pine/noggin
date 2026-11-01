@@ -3,6 +3,18 @@
    site serves its own (mermaid.py), and scripts from the site alone may run, so that fallback is blocked #}
 {% block extrahead %}
   <style>{{ config.extra.palette }}</style>
+  {# Material's fonts as it asks Google Fonts for them (theme.font), from the site's own files instead (fonts.py) #}
+  <style>
+    @font-face { font-family: "Roboto"; font-style: normal; font-weight: 100 900; font-display: fallback;
+      src: url("{{ 'assets/fonts/roboto-latin-wght-normal.woff2' | url }}") format("woff2"); }
+    @font-face { font-family: "Roboto"; font-style: italic; font-weight: 100 900; font-display: fallback;
+      src: url("{{ 'assets/fonts/roboto-latin-wght-italic.woff2' | url }}") format("woff2"); }
+    @font-face { font-family: "Roboto Mono"; font-style: normal; font-weight: 100 700; font-display: fallback;
+      src: url("{{ 'assets/fonts/roboto-mono-latin-wght-normal.woff2' | url }}") format("woff2"); }
+    @font-face { font-family: "Roboto Mono"; font-style: italic; font-weight: 100 700; font-display: fallback;
+      src: url("{{ 'assets/fonts/roboto-mono-latin-wght-italic.woff2' | url }}") format("woff2"); }
+    :root { --md-text-font: "Roboto"; --md-code-font: "Roboto Mono"; }
+  </style>
   {% if page and 'class="noggin-viewer"' in page.content %}
     {# the web viewer (web/viewer.mjs) and the three.js the site serves beside it at viewer/ (web/build.py); the Draco
        decoder also compiles its WASM in the Blob worker DRACOLoader makes (Material's search worker is the site's own).

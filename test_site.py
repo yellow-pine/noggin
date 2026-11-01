@@ -124,9 +124,37 @@ def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
         assert csp.format(viewer) in html.split("</head>")[0], page
         assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
         sheets = re.findall(r'<link[^>]* rel="stylesheet"[^>]* href="([^"]+)"', html)  # no Google Fonts (font: false)
-        assert sheets and [s for s in sheets if re.match(r"https?:|//", s)] == [], page
+        fonts = re.findall(r'url\("([^"]+)"\)', html.split("</head>")[0])  # the site's Roboto (fonts.py)
+        assert sheets and fonts and [s for s in sheets + fonts if re.match(r"https?:|//|data:", s)] == [], page
     assert 'class="mermaid"' in (site / "docs" / "how-it-works" / "index.html").read_text()
     assert 'class="noggin-viewer"' in (site / "viewer" / "index.html").read_text()
+
+
+def test_every_page_reads_in_the_sites_own_roboto(site):
+    """Roboto for text and Roboto Mono for code, the fonts Material would ask Google Fonts for (theme.font: false), from
+    the site itself (#308): every page declares both, upright and italic, from files the site serves with the hashes
+    fonts.py pins, and makes them Material's fonts."""
+    import fonts
+
+    pinned = set(fonts.FONTS.values())
+    for page in site.rglob("*.html"):
+        html = page.read_text()
+        if 'http-equiv="refresh"' in html:  # a moved page's stub: no theme
+            continue
+        head = html.split("</head>")[0]
+        faces = {}
+        for family, style, url in re.findall(r'font-family: "([^"]+)"; font-style: (\w+);[^}]*url\("([^"]+)"\)', head):
+            # 404.html's url is from the site's root (site_url's path)
+            file = site / url.removeprefix("/noggin/") if url.startswith("/") else page.parent / url
+            faces[family, style] = f"sha384-{base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()}"
+        assert sorted(faces) == [
+            ("Roboto", "italic"),
+            ("Roboto", "normal"),
+            ("Roboto Mono", "italic"),
+            ("Roboto Mono", "normal"),
+        ], page
+        assert set(faces.values()) == pinned, page
+        assert '--md-text-font: "Roboto"; --md-code-font: "Roboto Mono"' in head, page
 
 
 def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):

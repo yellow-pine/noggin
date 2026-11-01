@@ -65,7 +65,8 @@ jobs:
         with:
           filters: |
             site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/pages.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
+                   ".github/workflows/pages.yml", "macros.py", "mermaid.py", "fonts.py", "home.py", "vendored.py",
+                   "overrides/**"]
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
     needs: changes
@@ -328,15 +329,18 @@ jobs:
         with:
           name: viewer
           path: web/build
-      # Mermaid from npm (vendored.py's .cache) by its version in mkdocs.yml; vendored.py checks its hash cached or not
+      # Mermaid and the fonts from npm (vendored.py's .cache) by Mermaid's version in mkdocs.yml and fonts.py's pins;
+      # vendored.py checks each hash cached or not
       - id: mermaid
         run: |   # its own assignment, so a failing yq fails the step
           version=$(yq -e .extra.mermaid.version mkdocs.yml)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
-          path: .cache/mermaid@*
-          key: npm-mermaid-${{ steps.mermaid.outputs.version }}
+          path: |
+            .cache/mermaid@*
+            .cache/@fontsource-variable
+          key: npm-mermaid-${{ steps.mermaid.outputs.version }}-fonts-${{ hashFiles('fonts.py') }}
       # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports: no
       # entry carries this key, so the newest sim- entry is restored
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
