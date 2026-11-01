@@ -49,8 +49,8 @@ function mount(root) {
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
-  function stylise(root) {
-    look = root.userData;
+  function stylise(model) {
+    look = model.userData;
     band.value.set(look.highlight_from, look.highlight);
     ambient.intensity = Math.PI * look.ramp[0];
     const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * (x - look.ramp[0]))));
@@ -64,7 +64,7 @@ function mount(root) {
     };
     creases = new LineMaterial({ color: 0 });
     const meshes = [];
-    root.traverse((o) => o.isMesh && meshes.push(o));
+    model.traverse((o) => o.isMesh && meshes.push(o));
     for (const o of meshes) {
       const g = o.geometry;
       o.castShadow = o.receiveShadow = true;

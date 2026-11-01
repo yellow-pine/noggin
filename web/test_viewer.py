@@ -45,9 +45,15 @@ def test_the_viewer_plays_a_gesture_from_the_site_alone(server):
         expect(button(name="hero")).to_have_attribute("aria-pressed", "true", timeout=30_000)  # Stage 3 loaded
         gestures = page.get_by_role("navigation", name="Gesture").get_by_role("button")
         assert sorted(gestures.all_text_contents()) == sorted([*traces.GESTURES, "hero"])
+        # every button pressed from here on, in order: a slow software-drawn frame can play the whole wink at once
+        page.evaluate("""() => {
+          window.pressed = [];
+          const log = (m) => m.target.ariaPressed === "true" && pressed.push(m.target.textContent);
+          new MutationObserver((ms) => ms.forEach(log))
+            .observe(document.querySelector(".noggin-viewer"), { subtree: true, attributeFilter: ["aria-pressed"] });
+        }""")
         button(name="wink").click()
-        expect(button(name="wink")).to_have_attribute("aria-pressed", "true")
-        expect(button(name="hero")).to_have_attribute("aria-pressed", "true", timeout=30_000)  # the wink ran to its end
+        page.wait_for_function("() => pressed.join() === 'wink,hero'", timeout=30_000)  # the wink, then the hero
         button(name="Stage 1").click()
         expect(button(name="Stage 1")).to_have_attribute("aria-pressed", "true")
         expect(button(name="wink")).to_be_enabled(timeout=30_000)

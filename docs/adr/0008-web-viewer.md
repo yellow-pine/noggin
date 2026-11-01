@@ -34,7 +34,8 @@ watch the hero loop.
   in the theme's `viewer.html`: full width, no sidebars) adds the Stage buttons, and any docs page can drop in a small
   one. The theme (`overrides/main.html`) loads the module, the import map and the viewer's CSP on the pages that have
   one, Material's buttons style the controls, and a browser test (Playwright in Chrome, `web/test_viewer.py`) plays a
-  gesture on the built site with no request to another host but GitHub's repo facts in Material's header. three.js, the addons it
+  gesture on the built site with no request to another host but GitHub's repo facts in Material's header.
+  three.js, the addons it
   imports and the Draco decoder `DRACOLoader` fetches are copied into the site from the npm package when the viewer
   is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
   map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in
