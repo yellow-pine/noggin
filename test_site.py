@@ -61,7 +61,7 @@ def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
         "Notification permission_prompt\nattention: half lids, a real left-right scan",
         "Notification idle_prompt\nbored: drooping lids, heavy blinks, one long closure",
         "StopFailure\nwince",
-        "SessionEnd\nback to rest (a turn with no events for 15 min also returns to rest)",
+        "SessionEnd\nback to rest (a turn also ends 15 min after its prompt, whatever Triggers arrive)",
     ]:
         assert row in home
 
@@ -129,6 +129,22 @@ def test_the_diagrams_numbers_agree_with_the_code():
         f"is {duration(STALE_TURN_SECONDS)} old",
     ]:
         assert phrase in page, phrase
+
+
+def test_the_stale_turn_sentence_follows_the_director():
+    """The table says a turn ends a fixed time after its prompt, not after a quiet spell: the Director holds a turn
+    with a Trigger every minute exactly that long, then rests."""
+    import macros  # here, not at the top: it imports the model
+    from reactions.director import STALE_TURN_SECONDS, Director
+
+    d, ping = Director(), {"hook_event_name": "Notification", "session_id": "s", "notification_type": "idle_prompt"}
+    d.handle({"hook_event_name": "UserPromptSubmit", "session_id": "s"}, 0)
+    for minute in range(STALE_TURN_SECONDS // 60):
+        d.handle(ping, minute * 60)
+        assert d.tick(minute * 60) == []
+    assert d.tick(STALE_TURN_SECONDS + 1) == ["rest"]
+    sentence = f"ends {macros.duration(STALE_TURN_SECONDS)} after its prompt, whatever Triggers arrive"
+    assert sentence in macros.behaviour()
 
 
 def test_every_number_left_in_the_readme_agrees_with_the_code():
