@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1](https://github.com/yellow-pine/noggin/compare/v0.1.0...v0.1.1) (2026-11-01)
+
+
+### Features
+
+* an implementer agent type carrying the standing rules ([#387](https://github.com/yellow-pine/noggin/issues/387)) ([35cb7b9](https://github.com/yellow-pine/noggin/commit/35cb7b94b22cef257a0326adfac805083a5c0499))
+* **model:** the hero GIF at 64 colours, like every GIF ([#378](https://github.com/yellow-pine/noggin/issues/378)) ([be95550](https://github.com/yellow-pine/noggin/commit/be955501850f8835df23677ea770e72baf336585))
+* **site:** each release's docs under /noggin/vX.Y/ with a version switcher ([#383](https://github.com/yellow-pine/noggin/issues/383)) ([3830ee0](https://github.com/yellow-pine/noggin/commit/3830ee0aa1b4037840b47f3682c2536f645735fa))
+* **site:** footer and /version.json show the version and deployed commit ([#380](https://github.com/yellow-pine/noggin/issues/380)) ([d012071](https://github.com/yellow-pine/noggin/commit/d0120716ac90ba692849c919bc45ee455064f13b))
+
 ## 0.1.0 (2026-11-01)
 
 
