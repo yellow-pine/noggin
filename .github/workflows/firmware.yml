@@ -23,9 +23,10 @@ jobs:
           persist-credentials: false
       - env:
           GH_TOKEN: ${{ github.token }}
-          NOTES: https://wiki.bambulab.com/en/software/cyberbrick-apps/Firmware-release-notes
-          APP_NOTES: https://wiki.bambulab.com/en/software/cyberbrick-apps/PC-release-notes
+        # the vendor's addresses live in docs/credits.md only (test_vocabulary.py), so the links come from there
         run: |
+          NOTES=$(grep -o 'https://[^() ]*/Firmware-release-notes' docs/credits.md)
+          APP_NOTES=$(grep -o 'https://[^() ]*/PC-release-notes' docs/credits.md)
           version=$(curl -fsS "$NOTES" | python3 scripts/firmware_watch.py)
           title="Core firmware $version: update both Cores"
           echo "$title"
@@ -39,7 +40,7 @@ jobs:
 
           The Core's firmware changes only through the vendor's tools, by hand (#334). For each Core:
 
-          1. Update the CyberBrick app if it asks ($APP_NOTES), then update the Core to $version with it.
+          1. Update the Core to $version with the vendor's tools (their desktop app's own notes: $APP_NOTES).
           2. \`make backup-stock\`: refresh \`eyes/stock-backup\` with the new stock program, before the flash replaces it.
           3. If the new firmware brings another MicroPython (\`sys.implementation._mpy\` other than 774), re-pin
              \`[tool.noggin]\` in pyproject.toml and \`CORE_MPY\` in eyes/test_micropython.py first.
