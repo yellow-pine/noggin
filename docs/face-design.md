@@ -11,7 +11,7 @@ Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview render
 - Colours, all owned, all PLA (hex from the slicer, density 1.24 g/cm3, docs/research/2026-10-31-filament.md):
   Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black #000000, Apricot #FFB673. Face: Apricot skin, Absolute
   Black hair, lines and collar, Pure White / Absolute Black eyes; the four eyelid parts are reprinted in Apricot.
-- Printed parts as they are (data in model/geometry.py): eyes mech brackets,
+- Printed parts as they are (docs/references/build-photos/printed-parts.jpg; data in model/geometry.py): eyes mech brackets,
   lids, bars, crank, wire keeper = Milky Pink; eyeballs = Pure White; pupils, base plate, tilt cradle, bearing ring
   and the small black bits = Absolute Black; upright and tilt lever = Apricot; jaws, pan-tilt bars and servo
   mounts = Pure White. Material tracked per part (PETG Black possible for reprints).

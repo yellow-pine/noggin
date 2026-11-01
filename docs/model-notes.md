@@ -39,8 +39,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   program's own writes through the servos' dynamics: model/traces.py `commands`, lid fractions through
   eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), with
   a contact sheet per gesture; their sizes are under Numbers from the code below.
-- No real photo anywhere public (README, site) until there are staged ones (Cansin, 2026-11-01): the pictures are
-  Blender's, and the web viewer.
+- Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code
 
