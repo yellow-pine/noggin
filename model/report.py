@@ -14,7 +14,7 @@ import time
 
 import mujoco
 
-from model import beams, electrical, fits, mjcf, mujoco_report, stages
+from model import beams, convex_parts, electrical, fits, mjcf, mujoco_report, stages
 from model import geometry as g
 
 OUT = os.path.join(stages.REPO, "model", "build", "reports")  # CI thresholds them (model/test_report.py)
@@ -57,8 +57,10 @@ def simulate(doc):
 
 
 def main(docs):
-    """Each document in a process of its own (spawn, as mjcf.spec's pool), so CI's sim fits its PR budget."""
+    """Each document in a process of its own (spawn, as mjcf.spec's pool), so CI's sim fits its PR budget; each part's
+    convex pieces first, once, or two documents sharing a stale part would cut it into the same folder at once."""
     with concurrent.futures.ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as pool:
+        list(pool.map(mjcf.convex, *zip(*convex_parts.parts().values())))
         for line in pool.map(simulate, docs):
             print(line)
 

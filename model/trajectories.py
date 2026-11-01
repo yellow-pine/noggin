@@ -27,8 +27,8 @@ from model.render import hero, scene
 OUT = os.path.join(mjcf.BUILD, "trajectories")
 FPS = 1000 // traces.FRAME_MS
 PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is commanded at that rate
-# what a trajectory is computed from besides the Stage's meshes (stamp; their test files skipped): the Core program and its
-# calibration too, which model/traces.py plays
+# what a trajectory is computed from besides the Stage's meshes (stamp; their test files skipped): the Core program
+# and its calibration too, which model/traces.py plays
 SOURCES = [
     "model/geometry.py",
     "model/stages.py",
@@ -93,8 +93,8 @@ def play(model, writes, times):
 
 
 def stamp(doc):
-    """sha256 of SOURCES, the Stage's meshes and the MuJoCo and CoACD versions: a trajectory that no longer carries it is
-    stale."""
+    """sha256 of SOURCES, the Stage's meshes and the MuJoCo and CoACD versions: a trajectory that no longer carries
+    it is stale."""
     h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
     paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
     for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(

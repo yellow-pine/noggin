@@ -212,11 +212,11 @@ jobs:
       # missed their exact key (what they are made from changed)
       - if: ${{ matrix.shard == 'hero' && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
         run: make stl step
-      # the sim reports (make sim on our parts and envelopes, model/build/reports: never committed, docs/adr/0009), keyed
-      # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is main's reports for these
-      # very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads main's caches) as the
-      # baseline the new ones are diffed against in this job's summary. Main saves them for the PRs after it and for the
-      # site, which publishes them at /reports (pages.yml)
+      # the sim reports (make sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
+      # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
+      # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads
+      # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
+      # PRs after it and for the site, which publishes them at /reports (pages.yml)
       - if: ${{ matrix.shard == 'sim' }}
         id: reports
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
