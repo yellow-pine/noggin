@@ -79,7 +79,8 @@ MERMAID_CLI = [f"@mermaid-js/mermaid-cli@{MERMAID['cli']}", f"mermaid@{MERMAID['
 
 def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
     """The site's own copy, with its hash, and only on pages with a diagram; every page allows scripts from the site
-    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails."""
+    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails; no page names a
+    script elsewhere."""
     file = site / "assets" / "javascripts" / f"mermaid-{MERMAID['version']}.min.js"
     sha = base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()
     assert MERMAID["integrity"] == f"sha384-{sha}"
@@ -90,15 +91,18 @@ def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
         assert srcs == ([local] if 'class="mermaid"' in html else []), page
         assert f'integrity="{MERMAID["integrity"]}"' in html or not srcs
         assert csp in html.split("</head>")[0], page
+        assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
     assert 'class="mermaid"' in (site / "index.html").read_text()
 
 
 def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):
-    """mermaid.py checks the hash cached or fetched, so a tampered cache never reaches the site."""
+    """vendored.py checks the hash cached or fetched, so a tampered cache never reaches the site."""
     import mermaid
+    import vendored
 
-    monkeypatch.setattr(mermaid, "CACHE", tmp_path)
-    (tmp_path / f"mermaid-{MERMAID['version']}.min.js").write_text("alert(1)")
+    monkeypatch.setattr(vendored, "CACHE", tmp_path)
+    (tmp_path / f"mermaid@{MERMAID['version']}" / "dist").mkdir(parents=True)
+    (tmp_path / f"mermaid@{MERMAID['version']}" / "dist" / "mermaid.min.js").write_text("alert(1)")
     (tmp_path / "site" / "assets" / "javascripts").mkdir(parents=True)
     config = SimpleNamespace(extra={"mermaid": MERMAID}, site_dir=str(tmp_path / "site"))
     with pytest.raises(PluginError, match="sha384 differs"):

@@ -2,7 +2,9 @@
 gesture the model replays (model/traces.py) plus the hero loop; each Stage's GLB (`make web`, read here as `make sim`'s
 reports are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
 
+import base64
 import hashlib
+import json
 import os
 import re
 from html.parser import HTMLParser
@@ -21,6 +23,7 @@ class Page(HTMLParser):
     def __init__(self):
         super().__init__()
         self.refs, self.gestures, self.look = set(), [], set()
+        self.csp, self.importmap, self.modules = None, None, []
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -31,7 +34,14 @@ class Page(HTMLParser):
         if "data-gesture" in a:
             self.gestures.append(a["data-gesture"])
 
+        if tag == "meta" and a.get("http-equiv") == "Content-Security-Policy":
+            self.csp = a["content"]
+        self.importmap = self.importmap or tag == "script" and a.get("type") == "importmap"
+
     def handle_data(self, data):
+        if self.importmap is True:
+            self.importmap = json.loads(data)
+        self.modules += re.findall(r'from "([^"]+)"', data)
         self.look |= set(re.findall(r"\blook\.(\w+)", data))
         self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data))
 
@@ -44,22 +54,67 @@ def page():
 
 
 def test_the_page_loads_only_the_glbs_the_build_writes(page):
-    assert page.refs == {*STAGES.values(), "draco/"}
+    decoder = "examples/jsm/libs/draco/gltf/"
+    assert page.refs == {*STAGES.values(), "three/" + decoder}
+    assert {f for f in build.THREE if f.startswith(decoder)} == {
+        decoder + "draco_wasm_wrapper.js",
+        decoder + "draco_decoder.wasm",
+    }
     assert build.GLBS == STAGES
+
+
+@pytest.fixture(scope="module")
+def three():
+    folder = os.path.join(build.HERE, "build", "three")
+    if not os.path.isdir(folder):
+        pytest.skip(f"{folder} not built (make web)")
+    return folder
+
+
+def test_the_site_serves_the_three_it_checked(three):
+    """Each file is the pinned one, and only the pinned ones ship."""
+    served = {os.path.relpath(os.path.join(d, f), three) for d, _, fs in os.walk(three) for f in fs}
+    sha = {
+        f: base64.b64encode(hashlib.sha384(open(os.path.join(three, f), "rb").read()).digest()).decode() for f in served
+    }
+    assert {f: f"sha384-{h}" for f, h in sha.items()} == build.THREE
+
+
+def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
+    """The page's imports through its import map, then each served module's own import statements:
+    all land on a pinned file, and every pinned module is one of them."""
+    imports = {k: v.removeprefix("./three/") for k, v in page.importmap["imports"].items()}
+
+    def resolve(m, base):
+        return imports.get(m) or (
+            m.replace("three/addons/", imports["three/addons/"])
+            if m.startswith("three/addons/")
+            else os.path.normpath(os.path.join(os.path.dirname(base), m))
+        )
+
+    todo, seen = {resolve(m, "") for m in page.modules}, set()
+    while todo:
+        f = todo.pop()
+        assert f in build.THREE, f
+        seen.add(f)
+        statements = re.findall(
+            r"""^(?:import|export|\})[^'"\n]*?\bfrom ['"]([^'"]+)['"]""", open(os.path.join(three, f)).read(), re.M
+        )
+        todo |= {resolve(m, f) for m in statements} - seen
+    assert seen == {f for f in build.THREE if f.endswith(".js") and "/draco/" not in f}
+
+
+def test_the_page_runs_scripts_from_the_site_alone(page):
+    """three.js and its addons come from the site (web/build.py fetched and checked them); the CSP blocks any other
+    script, lets the Draco decoder compile its WASM in the Blob worker DRACOLoader makes, and blocks nothing else."""
+    assert page.importmap == {
+        "imports": {"three": "./three/build/three.module.js", "three/addons/": "./three/examples/jsm/"}
+    }
+    assert page.csp == "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src blob:"
 
 
 def test_one_button_per_gesture_and_the_hero(page):
     assert sorted(page.gestures) == sorted([*traces.GESTURES, "hero"])
-
-
-def test_the_site_serves_the_draco_decoder_it_checked():
-    folder = os.path.join(build.HERE, "build", "draco")
-    if not os.path.isdir(folder):
-        pytest.skip(f"{folder} not built (make web)")
-    assert {f: hashlib.sha256(open(os.path.join(folder, f), "rb").read()).hexdigest() for f in os.listdir(folder)} == {
-        "draco_wasm_wrapper.js": "8bb2952d2ba7d67e1414f8df819410cb0434a666be53f671fff75f68843d76f6",
-        "draco_decoder.wasm": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac",
-    }
 
 
 @pytest.fixture(scope="module", params=STAGES)
