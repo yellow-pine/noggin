@@ -27,7 +27,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
       # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
       # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
       # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
@@ -46,14 +46,15 @@ jobs:
         with:
           enable-cache: true
       # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
-      # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not
+      # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not (ours-convex-:
+      # the old ours- entries on main were saved by pages without the pieces, so every run decomposed again)
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev   # make sim's SPICE circuit, as in check
       - run: make test
         env:
           PYTEST_ADDOPTS: -m heavy
