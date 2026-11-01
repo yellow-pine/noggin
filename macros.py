@@ -21,7 +21,7 @@ MECH = {  # what each gesture looks like, by the name the director sends
     "attention": "attention: half lids, a real left-right scan",
     "bored": "bored: drooping lids, heavy blinks, one long closure",
     "wince": "wince",
-    "rest": "back to rest (a turn also ends {stale} after its prompt, whatever Triggers arrive)",
+    "rest": "back to rest (also when the last turn ends {stale} after its prompt, whatever Triggers arrive)",
 }
 
 
