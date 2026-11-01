@@ -1,8 +1,9 @@
 name: Release Please
 # Keeps the release PR (docs/adr/0010): the next version in pyproject.toml, uv.lock and .release-please-manifest.json,
-# and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on
-# RELEASE_PLEASE_TOKEN (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR would get no checks,
-# its auto-merge no push to main and its tag no Release Assets. Merged, the PR's next run tags vX.Y.Z and releases it.
+# and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token
+# minted per run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR
+# would get no checks, its auto-merge no push to main and its tag no Release Assets. Merged, the PR's next run tags
+# vX.Y.Z and releases it. Until the App's RELEASE_APP_CLIENT_ID variable exists, the run only leaves a notice.
 on:
   push:
     branches: [main]
@@ -16,19 +17,26 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     steps:
-      - name: Require the token
-        env:
-          TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      - name: Skip until the release App is set up
+        if: ${{ !vars.RELEASE_APP_CLIENT_ID }}
         run: |
-          [ -n "$TOKEN" ] || { echo "::error::set the RELEASE_PLEASE_TOKEN secret (CONTRIBUTING.md)"; exit 1; }
+          echo "::notice::Release Please skipped: set up the release App and its RELEASE_APP_CLIENT_ID variable (CONTRIBUTING.md)"
+      - name: Mint the release App's token
+        id: app
+        if: ${{ vars.RELEASE_APP_CLIENT_ID }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       - name: Update the release PR or release
         id: release
+        if: ${{ steps.app.outputs.token }}
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7   # v5.0.0
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ steps.app.outputs.token }}
       - name: Merge the release PR on green
         if: ${{ steps.release.outputs.pr }}
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           PR: ${{ steps.release.outputs.pr }}   # JSON; the step's env is read even when its `if` skips it
         run: gh pr merge "$(jq -r .number <<<"$PR")" --auto --squash -R "$GITHUB_REPOSITORY"

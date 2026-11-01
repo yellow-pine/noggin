@@ -30,9 +30,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes through the
   required checks and review like any PR and auto-merges on green; merged, it tags `vX.Y.Z` and creates the GitHub
   release, and the tag's `Release Assets` run attaches the Core program zip. Never edit the version, the manifest or
-  CHANGELOG.md by hand. The workflow needs the `RELEASE_PLEASE_TOKEN` secret, because what `GITHUB_TOKEN` creates
-  starts no workflow: a fine-grained token on this repo with Contents, Pull requests and Issues read and write, then
-  `gh secret set RELEASE_PLEASE_TOKEN` and run the workflow once (`gh workflow run release-please.yml`).
+  CHANGELOG.md by hand. The workflow runs as the release GitHub App, because what `GITHUB_TOKEN` creates starts no
+  workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and
+  write and no webhook. Each run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID`
+  variable) and private key (the `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists the run only leaves a
+  notice. The App's `<slug>[bot]` must be in review.yml's `allowed_bots`, or its release PR gets no review.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
