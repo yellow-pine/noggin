@@ -84,7 +84,8 @@ jobs:
           path: model/build/trajectories
           key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
           restore-keys: trajectories-
-      # Blender 5.2.2 as in site, cached unpacked (the untar took ~20 s a runner); sha256-checked when it is fetched
+      # Blender 5.2.2 as in site, cached unpacked (the untar took ~20 s a runner); else site's tarball cache, fetched only
+      # when neither is there: download.blender.org refused main's runners (403) on the first deploy; sha256-checked
       - if: ${{ steps.images.outputs.cache-hit != 'true' }}
         id: blender
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -92,8 +93,13 @@ jobs:
           path: ~/blender
           key: blender-5.2.2-linux-x64-unpacked
       - if: ${{ steps.images.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/blender.tar.xz
+          key: blender-5.2.2-linux-x64
+      - if: ${{ steps.images.outputs.cache-hit != 'true' && steps.blender.outputs.cache-hit != 'true' }}
         run: |
-          curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          [ -f ~/blender.tar.xz ] || curl -fsSL -o ~/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
           mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1 && rm ~/blender.tar.xz
       # Blender's X and GL libraries (Eevee renders on Mesa's software GL here) and ffmpeg for the GIFs and JPEGs
@@ -145,6 +151,9 @@ jobs:
       contents: read
       actions: read   # scripts/ci_budget.py reads when the run's jobs started
     steps:
+      # never a site without its pictures: the deploy would take the README's images down (as on #236's first deploy)
+      - if: ${{ needs.pictures.result != 'success' }}
+        run: exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
