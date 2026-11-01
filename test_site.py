@@ -5,6 +5,7 @@ never ship, and the nav reaches the web viewer's page at /viewer. The README's p
 
 import base64
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -283,31 +284,50 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
     assert f"![noggin]({site}hero.gif)" in (ROOT / "README.md").read_text()
 
 
-def test_the_pages_workflow_renders_every_part_of_the_pictures():
-    """Each part of the pictures (the Stage views, the hero, each gesture) is split over runners of the render job,
-    shards 1 to n of n (#226, #278)."""
+def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
+    """`make pictures-list` (the pages workflow's motions job, #297): the Stage views on every Stage, the hero on
+    stage 3 and each gesture of model/traces.py on stage 1, each with the Stages its trajectories bake on."""
+    from model import traces
+
+    out = subprocess.run(["make", "-s", "pictures-list"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    assert json.loads(out) == [
+        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3"},
+        {"motion": "hero", "stages": "noggin-stage3"},
+        *({"motion": g, "stages": "noggin-stage1"} for g in traces.GESTURES),
+    ]
+
+
+def test_the_pages_workflow_renders_one_job_per_motion_and_names_none():
+    """`render` fans out over the motions job's list (#297): a new gesture needs no workflow edit."""
     from model.render import pictures
 
-    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]
-    shards = {}
-    for s in jobs["render"]["strategy"]["matrix"]["include"]:
-        shards.setdefault(s["part"], []).append((s["shard"], s["of"]))
-    assert sorted(shards) == sorted(pictures.SITE)
-    for got in shards.values():
-        assert sorted(got) == [(i, got[0][1]) for i in range(1, got[0][1] + 1)]
+    text = (ROOT / ".github" / "workflows" / "pages.yml").read_text()
+    jobs = yaml.safe_load(text)["jobs"]
+    assert "make -s pictures-list" in jobs["motions"]["steps"][-1]["run"]
+    assert jobs["render"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.motions.outputs.list) }}"}
+    assert jobs["render"]["name"] == "render (${{ matrix.motion }})"
+    assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
 @pytest.mark.parametrize(
-    "result, passes", [("success", True), ("skipped", True), ("failure", False), ("cancelled", False)]
+    "motions, render, passes",
+    [
+        ("success", "success", True),
+        ("skipped", "skipped", True),
+        ("success", "failure", False),
+        ("success", "cancelled", False),
+        ("failure", "skipped", False),
+    ],
 )
-def test_the_required_pictures_check_is_every_runner_or_none(result, passes):
-    """`pictures`, the required check (#245), reports the render runners as one: green when every part passed or none
-    ran (nothing the pictures are made from changed), red when any failed or was cancelled."""
+def test_the_required_pictures_check_is_every_runner_or_none(motions, render, passes):
+    """`pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
+    motion passed or none ran (nothing the pictures are made from changed), red when any failed or was cancelled,
+    the motions list too (render then skips)."""
     job = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]["pictures"]
-    assert (job["needs"], job["if"]) == ("render", "${{ !cancelled() }}")
+    assert (job["needs"], job["if"]) == (["motions", "render"], "${{ !cancelled() }}")
     (step,) = job["steps"]
-    assert step["env"] == {"RESULT": "${{ needs.render.result }}"}
-    r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULT": result})
+    assert step["env"] == {"RESULTS": "${{ needs.motions.result }} ${{ needs.render.result }}"}
+    r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULTS": f"{motions} {render}"})
     assert (r.returncode == 0) is passes
 
 

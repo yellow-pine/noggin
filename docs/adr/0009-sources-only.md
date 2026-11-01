@@ -34,8 +34,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
 - **The pictures are built in CI** (#226): the pages workflow's `render` job renders the README's pictures in
   Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
-  their inputs gets them as artifacts. Each picture's frames are split by range over runners and `site` joins them
-  (#278).
+  their inputs gets them as artifacts. Each motion renders on its own runner, a matrix read from the code (`make
+  pictures-list`, #297), and `site` gathers them.
 
 ## Considered options
 
