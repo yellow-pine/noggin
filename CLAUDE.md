@@ -24,12 +24,13 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
 - README is for contributors: setup, checks, CI. Building and using the Mech live on the site (#279).
 - Derived, not listed: whatever the code can deduce (gesture names, servo ports, the eye program's files, Stage and document ids) is read from its one source; a copy that must stay gets a test against it (ADR 0011, test_derived.py).
+- Keep everything current: the newest stable release at least 14 days old, security fixes at once; the Core's firmware through the vendor's tools only (ADR 0012).
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
 ## Where things are
 
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: the site's home (`docs/index.md`) and `docs/use/gestures.md`, built by `macros.py` from the code (numbers in docs: ADR 0009).
-- Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. Never flash firmware with esptool.
+- Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. esptool only for read-only queries, never a write (ADR 0012).
 - The site: home `docs/index.md`, nav `mkdocs.yml`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Model pictures (Blender, from MuJoCo's trajectories; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`; CI builds the README's (`make pictures`) for the site's /images.

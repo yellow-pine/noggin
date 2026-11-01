@@ -131,5 +131,6 @@ nav:
           - docs/adr/0009-sources-only.md
           - docs/adr/0010-one-version.md
           - docs/adr/0011-derived-not-listed.md
+          - docs/adr/0012-keep-everything-current.md
       - Contributing: CONTRIBUTING.md
       - Credits: docs/credits.md

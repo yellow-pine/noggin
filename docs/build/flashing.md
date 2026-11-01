@@ -15,9 +15,10 @@ make restore-stock   # put the stock remote-control program back on the Core
     Secrets (the Wi-Fi password) are typed in a Terminal window (`make wifi`, `scripts/setup.sh`), never at Claude
     Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be answered.
 
-!!! danger "Never flash firmware"
-    Never flash firmware with esptool or any third-party tool: the vendor states this bricks the board. `make flash`
-    replaces the program only.
+!!! danger "Firmware only from the vendor"
+    Update the Core's firmware with the vendor's own app or desktop tool only (ADR 0012), then `make flash-usb`, since
+    the update replaces the eye program. Never write firmware with esptool or any third-party tool: the Core's flash
+    encryption leaves a third-party image unbootable. `make flash` replaces the program only.
 
 ## Talking to the Core
 

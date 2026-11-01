@@ -10,5 +10,5 @@ Report vulnerabilities privately to hello@yellowpine.com. Do not open a public i
 
 ## Out of scope
 
-- The Core's firmware (the vendor's; this project never modifies it).
+- The Core's firmware (the vendor's; this project only installs the vendor's own updates, ADR 0012).
 - Claude Code itself; report those to Anthropic.
