@@ -11,7 +11,7 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -84,6 +84,8 @@ flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropytho
 	$(MPR) resume cp eyes/boot.py :boot.py
 	$(MPR) resume exec "import os; [os.remove(f) for f in ('eyes.py', 'gaze_trace.py', 'wifi.py') if f in os.listdir()]"  # a .py shadows its .mpy
 	$(PY) eyes/interrupt.py reset
+wifi: venv       ## add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi stage alone (scripts/setup.sh wifi); type it in a Terminal window, never at Claude Code's ! prompt (no stdin for the password)
+	scripts/setup.sh wifi
 restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset

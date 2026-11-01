@@ -37,6 +37,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
+- Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
+  Claude Code's `!` prompt, which has no stdin.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 
 ## Code
