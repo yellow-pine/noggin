@@ -1,0 +1,9 @@
+/* The gesture GIFs, one size each: three a row, two on a phone (docs/index.md, docs/pictures.md) */
+.grid.gestures { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
+.grid.gestures figure { margin: 0; }
+@media (min-width: 45em) {
+  .grid.gestures { grid-template-columns: repeat(3, 1fr); }
+}
+/* a figure centred, as on GitHub's README */
+figure { text-align: center; }
+figure img { margin-inline: auto; }

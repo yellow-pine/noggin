@@ -1,14 +1,11 @@
-"""The viewer as Site Checks builds it (web/build.py, and MkDocs its page at viewer/): the page loads only what
-the build writes and runs scripts from the site alone; each Stage's GLB (`make web`, read here as `make sim`'s reports
-are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
+"""The viewer's GLBs as Site Checks builds them (web/build.py): each Stage's GLB (`make web`, read here as `make sim`'s
+reports are by model/test_report.py) carries every part, the look the page reads and one glTF clip per motion, frame for
+frame its trajectory. The page itself is the site's (site/src/pages/viewer.astro, its tests in site/)."""
 
-import base64
-import hashlib
 import json
 import os
 import re
 import struct
-from html.parser import HTMLParser
 
 import numpy as np
 import pytest
@@ -17,99 +14,11 @@ from model import stages, traces, trajectories
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
-MODULE = open(os.path.join(build.HERE, "viewer.mjs")).read()
+MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
-class Page(HTMLParser):
-    """The viewer's page as MkDocs built it: its CSP, import map, module scripts and Stage buttons."""
-
-    def __init__(self):
-        super().__init__()
-        self.csp, self.importmap, self.modules, self.stages = None, None, [], set()
-
-    def handle_starttag(self, tag, attrs):
-        a = dict(attrs)
-        if tag == "meta" and a.get("http-equiv") == "Content-Security-Policy":
-            self.csp = a["content"]
-        if tag == "script" and a.get("type") == "module":
-            self.modules.append(a.get("src"))
-        self.importmap = self.importmap or tag == "script" and a.get("type") == "importmap"
-        if "data-stage" in a:
-            self.stages.add(a["data-stage"])
-
-    def handle_data(self, data):
-        if self.importmap is True:
-            self.importmap = json.loads(data)
-
-
-@pytest.fixture(scope="module")
-def page(site):
-    p = Page()
-    p.feed((site / "viewer" / "index.html").read_text())
-    return p
-
-
-def test_the_page_loads_only_what_the_build_writes(page):
-    """Its one module and the Stages' GLBs and the Draco decoder beside it (viewer/), which the build writes."""
-    decoder = "examples/jsm/libs/draco/gltf/"
-    assert page.modules == ["viewer.mjs"] and "viewer.mjs" in build.MODULES
-    assert build.GLBS == STAGES and {f"{s}.glb" for s in page.stages} == set(STAGES.values())
-    assert re.findall(r'here\("([^"]+)"\)', MODULE) == ["three/" + decoder]
-    assert {f for f in build.THREE if f.startswith(decoder)} == {
-        decoder + "draco_wasm_wrapper.js",
-        decoder + "draco_decoder.wasm",
-    }
-    assert set(re.findall(r'from "\./([^"]+)"', MODULE)) <= set(build.MODULES)  # the module's own imports are copied
-
-
-@pytest.fixture(scope="module")
-def three():
-    folder = os.path.join(build.HERE, "build", "three")
-    if not os.path.isdir(folder):
-        pytest.skip(f"{folder} not built (make web)")
-    return folder
-
-
-def test_the_site_serves_the_three_it_checked(three):
-    """Each file is the pinned one, and only the pinned ones ship."""
-    served = {os.path.relpath(os.path.join(d, f), three) for d, _, fs in os.walk(three) for f in fs}
-    sha = {
-        f: base64.b64encode(hashlib.sha384(open(os.path.join(three, f), "rb").read()).digest()).decode() for f in served
-    }
-    assert {f: f"sha384-{h}" for f, h in sha.items()} == build.THREE
-
-
-def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
-    """The module's imports through the page's import map (its own modules aside: build.MODULES), then each served
-    module's own import statements: all land on a pinned file, and every pinned module is one of them."""
-    imports = {k: v.removeprefix("./three/") for k, v in page.importmap["imports"].items()}
-
-    def resolve(m, base):
-        return imports.get(m) or (
-            m.replace("three/addons/", imports["three/addons/"])
-            if m.startswith("three/addons/")
-            else os.path.normpath(os.path.join(os.path.dirname(base), m))
-        )
-
-    todo, seen = {resolve(m, "") for m in re.findall(r'from "([^".][^"]*)"', MODULE)}, set()  # not its own
-    while todo:
-        f = todo.pop()
-        assert f in build.THREE, f
-        seen.add(f)
-        statements = re.findall(
-            r"""^(?:import|export|\})[^'"\n]*?(?:\bfrom )?['"]([^'"]+)['"]""", open(os.path.join(three, f)).read(), re.M
-        )
-        todo |= {resolve(m, f) for m in statements} - seen
-    assert seen == {f for f in build.THREE if f.endswith(".js") and "/draco/" not in f}
-
-
-def test_the_page_runs_scripts_from_the_site_alone(page):
-    """three.js and its addons come from the site (web/build.py fetched and checked them), through an import map
-    relative to the page (viewer/); the CSP blocks any other script, lets the Draco decoder compile its WASM in the Blob
-    worker DRACOLoader makes, and blocks nothing else (Material's search runs in a worker from the site)."""
-    imports = {"three": "./three/build/three.module.js", "three/addons/": "./three/examples/jsm/"}
-    assert page.importmap == {"imports": imports}
-    assert page.csp == "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:"
+def test_one_glb_per_stage():
+    assert build.GLBS == STAGES
 
 
 @pytest.fixture(scope="module", params=STAGES)

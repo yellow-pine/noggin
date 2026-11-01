@@ -115,10 +115,16 @@ from Blender's glTF (docs/adr/0008); docs pages can embed a small one per Stage.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
-The project's public web site, built from the repo's Markdown: a landing page at its root, the build guide, how to use
-the Mech, the Model and the reference docs, and the Web viewer at /viewer (docs/adr/0009). The README is for
-contributors and stays on GitHub.
+The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
+docs/adr/0012): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs,
+and the Web viewer at /viewer (docs/adr/0009). The README is for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
+
+**Numbers from the code**:
+The values a doc shows that the code owns (the behaviour table, each Stage's parts and servos, the wiring, the picture
+sizes and colours): `macros.py` derives them, and the Site puts each where the doc's hidden `<!--{{ name }}-->` marker
+stands; GitHub shows a link to the Site's table instead (docs/adr/0009, 0012).
+_Avoid_: generated docs
 
 **Release**:
 One version of the whole repo, noggin vX.Y.Z: the Core program, the noggin service, the Model and the Site together,

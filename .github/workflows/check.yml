@@ -91,25 +91,8 @@ jobs:
       # model/electrical.py's SPICE circuit: spicelib runs the ngspice program in batch mode
       # (https://packages.ubuntu.com/noble/ngspice)
       - run: sudo apt-get update && sudo apt-get install -y ngspice shellcheck
-      # test_site.py draws the Mermaid diagrams in mermaid-cli's headless Chrome, whose sandbox needs the unprivileged user
-      # namespaces Ubuntu 24.04's AppArmor turns off (https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md)
-      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      # the site's Mermaid (vendored.py's .cache) and test_site.py's mermaid-cli (npx's install, Puppeteer's headless
-      # shell), by their versions in mkdocs.yml: a miss downloads them, and vendored.py checks the hash cached or not
-      - id: mermaid
-        run: |   # its own line, so a failing yq fails the step
-          v=$(yq -e '.extra.mermaid.version + "-cli-" + .extra.mermaid.cli' mkdocs.yml)
-          echo "key=mermaid-npm-$v" >> "$GITHUB_OUTPUT"   # npm-: .cache mirrors npm's paths (#268)
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: |
-            .cache
-            ~/.npm/_npx
-            ~/.cache/puppeteer
-          key: ${{ steps.mermaid.outputs.key }}
       - run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PUPPETEER_CHROME_SKIP_DOWNLOAD: true   # mermaid-cli runs the headless shell alone (docs/research: diagrams)
           PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
       - if: always()

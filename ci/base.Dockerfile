@@ -27,10 +27,9 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # the venv sits on another mount than uv's cache (no hard links)
 ENV UV_LINK_MODE=copy
 
-# Chrome for Testing at Playwright's channel="chrome" path (web/test_viewer.py), with the packages its deb.deps lists,
-# and mermaid-cli (test_site.py) at mkdocs.yml's versions (ci/test_images.py) in npx's cache, driving that Chrome.
-# A container has no user namespaces for Chrome's sandbox: Playwright passes --no-sandbox, mermaid-cli's Puppeteer
-# does not, so it gets a wrapper that does
+# Chrome for Testing at Playwright's channel="chrome" path (site/smoke.pw.mjs), with the packages its deb.deps lists,
+# which the site's mermaid-cli (a devDependency, site/site.test.mjs) drives too. A container has no user namespaces for
+# Chrome's sandbox: Playwright passes --no-sandbox, mermaid-cli's Puppeteer does not, so it gets a wrapper that does
 ARG CHROME=155.0.8059.84
 ARG CHROME_SHA256=cf0f049892dea22e6a6db26d47ed0d7776b7158edcbec4634086633df8bafcbc
 RUN curl -fsSL -o /tmp/chrome.zip https://storage.googleapis.com/chrome-for-testing-public/$CHROME/linux64/chrome-linux64.zip \
@@ -47,8 +46,3 @@ RUN useradd -u 1001 -m runner && install -d -o runner /opt/npm
 USER runner
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chrome-no-sandbox PUPPETEER_SKIP_DOWNLOAD=true \
     npm_config_cache=/opt/npm npm_config_prefer_offline=true
-ARG MERMAID=11.17.2
-ARG MERMAID_CLI=11.17.1
-RUN printf 'graph TD\n  A --> B\n' > /tmp/a.mmd \
- && npx -y -p @mermaid-js/mermaid-cli@$MERMAID_CLI -p mermaid@$MERMAID mmdc -q -i /tmp/a.mmd -o /tmp/a.svg \
- && rm -r /tmp/a.* $npm_config_cache/_cacache   # the tarballs: npx runs the installed tree (_npx)

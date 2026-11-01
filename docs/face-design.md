@@ -1,7 +1,7 @@
 # Morty face: design spec (grilled 2026-10-31)
 
-!!! info "Planned"
-    Not built yet: this page is the design spec.
+> [!NOTE]
+> **Planned.** Not built yet: this page is the design spec.
 
 Three screw-on 3D-printed modules, one per hardware stage, each leaving a complete-looking
 Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview renders, slicer

@@ -11,14 +11,16 @@ make flash           # install the eye program on the Core and reboot it: Wi-Fi 
 make restore-stock   # put the stock remote-control program back on the Core
 ```
 
-!!! warning "Type secrets in a Terminal window"
-    Secrets (the Wi-Fi password) are typed in a Terminal window (`make wifi`, `scripts/setup.sh`), never at Claude
-    Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be answered.
+> [!WARNING]
+> **Type secrets in a Terminal window.** Secrets (the Wi-Fi password) are typed in a Terminal window (`make wifi`,
+> `scripts/setup.sh`), never at Claude Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be
+> answered.
 
-!!! danger "Firmware only from the vendor"
-    Update the Core's firmware with the vendor's own app or desktop tool only (ADR 0012), then `make flash-usb`, since
-    the update replaces the eye program. Never write firmware with esptool or any third-party tool: the Core's flash
-    encryption leaves a third-party image unbootable. `make flash` replaces the program only.
+> [!CAUTION]
+> **Firmware only from the vendor.** Update the Core's firmware with the vendor's own app or desktop tool only (ADR
+> 0012), then `make flash-usb`, since the update replaces the eye program. Never write firmware with esptool or any
+> third-party tool: the Core's flash encryption leaves a third-party image unbootable. `make flash` replaces the program
+> only.
 
 ## Talking to the Core
 

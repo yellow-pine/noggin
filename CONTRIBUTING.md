@@ -77,11 +77,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
-  site at /reports (ADR 0009). `code` and Site Checks cache the site's Mermaid and three.js (`vendored.py`,
-  hash-checked on every build) by their versions (`npm-`). A cold parts cache is first cut part by part, one runner
-  per part whose CoACD pieces are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a
-  warm cache a run's critical path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in the
-  run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
+  site at /reports (ADR 0009). Site Checks' `site` job caches npm's downloads by `site/package-lock.json`
+  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0012). A cold parts cache is first cut part by part,
+  one runner per part whose CoACD pieces are stale (`convex`, `model/convex_parts.py`), so the model shards start warm.
+  With a warm cache a run's critical path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in
+  the run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
   picked it up, so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's
   slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `site` in
@@ -92,7 +92,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   GHCR: it pushes `:main`, with its build provenance, when a Dockerfile changes and every Monday without cache, and
   Dependabot proposes the new digests within a day (the run's summary has the same pin as one command); that PR's
   checks are the first to run in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read
-  only); `ci/test_images.py` keeps the image's mermaid-cli at `mkdocs.yml`'s versions.
+  only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job (`check.yml`, beside `code`
   and `model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `site` and `pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `mech`,

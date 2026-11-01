@@ -1,5 +1,6 @@
-"""The site's numbers from the code (docs/adr/0009, mkdocs-macros): `<!--{{ name }}-->` in a doc is filled here at
-build time, and GitHub, which hides HTML comments, shows the prose around it instead (mkdocs.yml has the delimiters).
+"""The site's numbers from the code (docs/adr/0009, 0012): `python -m macros` writes them as JSON for the site
+(site/src/macros.json, never committed), whose Markdown plugin (site/src/markdown.mjs) puts each where a doc says
+`<!--{{ name }}-->`; GitHub, which hides HTML comments, shows the prose around it instead.
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
@@ -8,7 +9,7 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
-stage_buttons: the web viewer's Stage buttons (web/viewer.md), one per geometry.STAGES, named as web/build.py's GLBs."""
+stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs."""
 
 import ast
 import json
@@ -145,14 +146,20 @@ def wiring():
     return "\n".join(rows)
 
 
-def stage_buttons():
-    return "\n".join(
-        f'<button class="md-button" data-stage="{doc.removeprefix("noggin-")}">Stage {n}</button>'
-        for n, doc in enumerate(g.STAGES, 1)
-    )
+def numbers():
+    parts, servos = stage_guides()
+    return {
+        "behaviour": behaviour(),
+        "pictures": picture_numbers(),
+        "stage_parts": parts,
+        "stage_servos": servos,
+        "wiring": wiring(),
+        "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
+    }
 
 
-def define_env(env):
-    env.variables["behaviour"], env.variables["pictures"] = behaviour(), picture_numbers()
-    env.variables["stage_parts"], env.variables["stage_servos"] = stage_guides()
-    env.variables["wiring"], env.variables["stage_buttons"] = wiring(), stage_buttons()
+if __name__ == "__main__":
+    import sys
+
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "site" / "src" / "macros.json")
+    out.write_text(json.dumps(numbers(), indent=1))

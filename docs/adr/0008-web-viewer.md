@@ -11,6 +11,9 @@
 > Amended 2026-11-01 (#271): the camera frames the Stage as the hero GIF does, and lines follow its size on screen.
 > Amended 2026-11-01 (#281): the viewer is a page of the docs site at /viewer/, in its theme (header, search, nav);
 > docs pages can drop in a small one per Stage.
+> Amended 2026-11-01 (#333, ADR 0012): the page is an Astro page (`site/src/pages/viewer.astro`) and the module lives
+> beside it in `site/src/viewer/`; Vite bundles three.js and its addons from npm, the Draco decoder is copied from
+> three's package, and vendored.py, the import map and the page's own CSP are gone (the site's one CSP covers it).
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -28,22 +31,17 @@ watch the hero loop.
   pictures' 1.06 margin). Lines follow the Stage's size on screen as the GIFs' do: `line_px` when it is as big as in a
   4:3 frame `line_at` (640) px wide, through every zoom and resize, never under 1 px nor over twice `line_px`.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The viewer is one module, `web/viewer.mjs`, and its framing module (`frame.mjs`, tested
-  with `node --test`), with no build step of its own. It draws every `<div class="noggin-viewer" data-stage="stage1">`
-  on a page, with a button per clip under it: the viewer's page (`web/viewer.md`, which a MkDocs hook puts at /viewer/
-  in the theme's `viewer.html`: full width beside the nav, no table of contents) adds the Stage buttons, and any docs
-  page can drop in a small one. The theme (`overrides/main.html`) loads the module, the import map and the viewer's CSP on the pages that have
-  one, Material's buttons style the controls, and a browser test (Playwright in Chrome, `web/test_viewer.py`) plays a
-  gesture on the built site with no request to another host but GitHub's repo facts in Material's header.
-  three.js, the addons it
-  imports and the Draco decoder `DRACOLoader` fetches are copied into the site from the npm package when the viewer
-  is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
-  map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in
-  `DRACOLoader`'s Blob worker), so a missing copy fails instead of falling back to a CDN.
+  other GLB. The viewer is one module, `site/src/viewer/viewer.mjs`, and its framing module (`frame.mjs`, tested
+  with Vitest), bundled by the site's build. It draws every `<div class="noggin-viewer" data-stage="stage1">` on a
+  page, with a button per clip under it: the viewer's page (`site/src/pages/viewer.astro`, in Starlight's theme with
+  no table of contents) adds the Stage buttons, and any page can drop in a small one. A browser test (Playwright in Chrome,
+  `site/smoke.pw.mjs`) plays a gesture on the built site with no request to another host but GitHub's repo facts in
+  the header. three.js and its addons come from npm, bundled by the site's build, and the Draco decoder `DRACOLoader`
+  fetches is copied from the same package; the lockfile's integrity hashes pin them (ADR 0012). The site's CSP lets
+  scripts from the site alone run (plus the decoder's WASM in `DRACOLoader`'s Blob worker).
 - **One source for the look.** Blender's export writes the look numbers (line width, crease angle, the light ramp,
   highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the page reads
-  them and holds no look numbers of its own. The canvas is see-through: the background is the site's palette
-  (`palette.py`, #282), the pictures' paper in the light scheme.
+  them and holds no look numbers of its own. The canvas is see-through: the background is the page's own, in either theme.
 - **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
   `model/`, `eyes/` or `web/`, and on demand. A red build on main leaves the last site up; on a PR
   touching what the site is made from it fails the required `site` check (#245). Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs

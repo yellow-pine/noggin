@@ -26,9 +26,8 @@ lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
-check: venv ours lint  ## CI's code job: the tests not marked model, the viewer's framing (node), lint, formatting, types, wizard syntax, plist validity, hook script syntax
+check: venv ours lint  ## CI's code job: the tests not marked model, lint, formatting, types, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
 	$(PY) -m pytest -q -m "not model"
-	node --test web/frame.test.mjs
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	bash -n scripts/setup.sh
@@ -110,16 +109,17 @@ pictures: venv ours trajectories   ## the README's pictures (model/render/pictur
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
 pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
 	@$(PY) -m model.render.pictures list
-web: venv ours trajectories   ## the web viewer in web/build: its modules, three.js and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with make site (its page) and python -m http.server -d site
+web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
-site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs and the web viewer's page, its GLBs and three.js go beside it in site/viewer once make web built them, the pictures to site/images once make pictures did, the sim reports to site/reports once make sim did; look with python -m http.server -d site
-	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
-	[ ! -d web/build ] || cp -R web/build/. site/viewer
-	[ ! -d model/build/images ] || cp -R model/build/images site/images
+site: venv       ## the site in site/dist (docs/adr/0009, 0012): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the viewer's GLBs go to site/dist/viewer once make web built them, the pictures to site/dist/images once make pictures did, the sim reports to site/dist/reports once make sim did; look with npm --prefix site run preview, check with npm --prefix site test
+	$(PY) -m macros
+	cd site && npm ci --no-audit --no-fund && npm run build
+	[ ! -d web/build ] || cp -R web/build/. site/dist/viewer
+	[ ! -d model/build/images ] || cp -R model/build/images site/dist/images
 	@$(MAKE) --no-print-directory site-reports
-site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
-	[ ! -d model/build/reports ] || { rm -rf site/reports && cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
+site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
+	[ ! -d model/build/reports ] || { rm -rf site/dist/reports && cp -R model/build/reports site/dist/reports && cd site/dist/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
 # the Core's MicroPython (pyproject [tool.noggin]): flash-usb's hmac and the stand-in build from it, CI caches mech/build on it (no comment after the value, as above)
 MICROPYTHON := v1.23.0
