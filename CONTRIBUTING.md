@@ -39,6 +39,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
 - After renaming a required check, run `gh pr update-branch --rebase` on every open PR so it reports the new name.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
+- Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
+  Claude Code's `!` prompt, which has no stdin.
 - Hardware facts and calibration lessons are in `docs/build-notes.md`. Never flash firmware with esptool (see ADR 0002).
 
 ## Code

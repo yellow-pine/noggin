@@ -200,6 +200,7 @@ finish() {
 
 run_wizard() {
 
+[[ "${1:-}" =~ ^(wifi)?$ ]] || { echo "usage: scripts/setup.sh [wifi]   (wifi: only the Join the Wi-Fi step, as make wifi)" >&2; exit 2; }
 TOTAL_STAGES=8
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
@@ -214,6 +215,37 @@ with serial.Serial(sys.argv[1], 115200, timeout=0.5) as s:
     print(s.read(200).decode(errors="replace").strip())
 PYEOF
 }
+
+join_wifi() {
+stage "Join the Wi-Fi"
+[[ -n "$(port)" ]] || { warn "no Core on USB: plug it in with the USB-C cable and run this again"; exit 1; }
+say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
+say "core.json names the Core (eyes / neck) and its servo ports. In a new place, run 'make wifi' for each Core."
+note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
+ask WIFI_SSID "Wi-Fi network name (SSID):"
+ask_secret WIFI_PASSWORD "Wi-Fi password:"
+until [[ "${CORE_NAME:-}" == eyes || "${CORE_NAME:-}" == neck ]]; do ask CORE_NAME "Which Core is plugged in? [eyes/neck]:"; done
+(umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" "$PY" -c 'import os, pathlib; from noggin.wifi import add_network; add_network(pathlib.Path("eyes/wifi.json"), os.environ["WIFI_SSID"], os.environ["WIFI_PASSWORD"])')
+PORTS='{"1": "l_lid", "2": "l_eye", "3": "r_lid", "4": "r_eye"}'; [[ "$CORE_NAME" == neck ]] && PORTS='{"1": "tilt", "2": "mouth", "3": "pan"}'
+printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
+make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
+"$MPR" resume cp eyes/wifi.json :wifi.json
+"$MPR" resume cp core.json :core.json
+rm -f core.json
+"$PY" eyes/interrupt.py reset
+say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
+"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(10); print(s.recv(128).decode())' \
+  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: run 'make wifi' again"
+pause
+}
+
+if [[ "${1:-}" == wifi ]]; then          # make wifi: this step alone, then the noggin service back if it was running
+  TOTAL_STAGES=1
+  # the installed plist, not make start: that would repoint the service at this checkout; also after a failure or Ctrl-C
+  launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && trap 'launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.noggin.plist" 2>/dev/null || true' EXIT
+  join_wifi
+  exit 0
+fi
 
 _clear
 printf '\n%s%s  noggin eye Mech setup%s\n' "$BOLD" "$BLUE" "$RESET"
@@ -256,25 +288,7 @@ say "Ping reply: $(board_send ping)"
 note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run this wizard."
 pause
 
-stage "Join the Wi-Fi"
-say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
-say "core.json names the Core (eyes / neck) and its servo ports. In a new place, re-run this stage for each Core."
-note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
-ask WIFI_SSID "Wi-Fi network name (SSID):"
-ask_secret WIFI_PASSWORD "Wi-Fi password:"
-until [[ "${CORE_NAME:-}" == eyes || "${CORE_NAME:-}" == neck ]]; do ask CORE_NAME "Which Core is plugged in? [eyes/neck]:"; done
-(umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" "$PY" -c 'import os, pathlib; from noggin.wifi import add_network; add_network(pathlib.Path("eyes/wifi.json"), os.environ["WIFI_SSID"], os.environ["WIFI_PASSWORD"])')
-PORTS='{"1": "l_lid", "2": "l_eye", "3": "r_lid", "4": "r_eye"}'; [[ "$CORE_NAME" == neck ]] && PORTS='{"1": "tilt", "2": "mouth", "3": "pan"}'
-printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
-make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
-"$MPR" resume cp eyes/wifi.json :wifi.json
-"$MPR" resume cp core.json :core.json
-rm -f core.json
-"$PY" eyes/interrupt.py reset
-say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
-"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(10); print(s.recv(128).decode())' \
-  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: re-run this stage"
-pause
+join_wifi
 
 stage "Calibrate lids and eyes"
 say "Calibration is live: eyes/calibration.json is pushed to the Core by the noggin service; nothing is reflashed."
