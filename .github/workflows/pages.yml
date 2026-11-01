@@ -3,7 +3,8 @@ name: Site Deploy
 # bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too (#221), and main's
 # latest sim reports at site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow
 # is done with the push (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact.
-# Not a required check: a red run leaves the last site up. Pages' source is GitHub Actions
+# `site` is a required check on PRs and merge groups that touch what the site is made from (the changes job, as in
+# mech.yml); a red main run leaves the last site up. Pages' source is GitHub Actions
 # (POST /repos/{owner}/{repo}/pages, build_type=workflow).
 on:
   workflow_run:
@@ -12,17 +13,38 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
-            ".github/workflows/pages.yml", "macros.py", "mermaid.py", "vendored.py", "overrides/**"]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
-# one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run
+# one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run, and
+# each merge group has its own
 concurrency:
-  group: pages-${{ github.event.pull_request.number || 'deploy' }}
+  group: pages-${{ github.event.pull_request.number || github.event.merge_group.head_ref || 'deploy' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions: {}
 jobs:
+  changes:   # as in mech.yml; main and workflow_dispatch build everything
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}   # a PR's files come from the API, no checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # dorny fetches a merge group's base from the public repo
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
+        with:
+          filters: |
+            site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
+                   ".github/workflows/pages.yml", "macros.py", "mermaid.py", "vendored.py", "overrides/**"]
   site:
-    if: ${{ !github.event.pull_request.draft }}
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}   # as in mech.yml
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -112,7 +134,7 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - run: make site
-      - if: ${{ github.event_name != 'pull_request' }}
+      - if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:
           path: site
@@ -133,8 +155,8 @@ jobs:
       - run: python3 scripts/ci_budget.py ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-  deploy:
-    if: ${{ github.event_name != 'pull_request' }}
+  deploy:   # site's result, not the implicit success(): changes, skipped on main, would skip this too
+    if: ${{ !cancelled() && needs.site.result == 'success' && github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
     needs: site
     runs-on: ubuntu-latest
     permissions:

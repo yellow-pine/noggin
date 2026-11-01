@@ -64,8 +64,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   within 3 min of its first job's start on a PR or in the merge queue, or it fails; on main, past 9 min it warns in the
   run summary (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a
   "re-run failed jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
-  noggin/ or mech/ and on main.
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs and merge groups
+  touching eyes/, noggin/ or mech/ and on main. `mech` and the site's `site` (`.github/workflows/pages.yml`) are
+  required checks too: each workflow runs on every PR and merge group, and a `changes` job (dorny/paths-filter) skips
+  the work when nothing it is made from changed, which GitHub counts as passing.
 
 ## Licence
 

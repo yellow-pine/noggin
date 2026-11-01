@@ -1,13 +1,15 @@
 name: Mech Checks
 # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service, the
 # Link's live checks on the Mech (docs/build-notes.md) as tests. On PRs touching the Core's program, the noggin service or
-# the stand-in, and always on main. Not a required check yet.
+# the stand-in (on merge groups too), and always on main. `mech` is a required check, so the workflow always runs and the
+# changes job filters (#245): a job its condition skips reports success.
 on:
   push:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["eyes/**", "noggin/**", "mech/**", "Makefile", "pyproject.toml", ".github/workflows/mech.yml"]   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
+  merge_group:
+    types: [checks_requested]
 concurrency:   # as in check.yml
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -20,8 +22,28 @@ defaults:
 # As check.yml: the scenarios on every core (xdist), the slowest in the job summary, the budget last (warm: the build's
 # cache hit).
 jobs:
+  changes:   # what the PR or merge group touches (dorny/paths-filter: a PR's files from the API, a group's from git)
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      mech: ${{ steps.filter.outputs.mech }}
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}   # a PR's files come from the API, no checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # dorny fetches a merge group's base from the public repo
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
+        with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
+          filters: |
+            mech: ["eyes/**", "noggin/**", "mech/**", "Makefile", "pyproject.toml", ".github/workflows/mech.yml"]
   mech:
-    if: ${{ !github.event.pull_request.draft }}
+    needs: changes
+    # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.mech != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
