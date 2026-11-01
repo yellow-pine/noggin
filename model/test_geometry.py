@@ -20,9 +20,9 @@ def test_mirror_x_maps_left_eye_to_right():
 
 def test_every_horn_limit_is_ours_with_its_reason():
     assert g.HORN_LIMITS == {
-        "l_lid": (59, 121),
+        "l_lid": (59.25, 106),
         "l_eye": (70, 110),
-        "r_lid": (59, 121),
+        "r_lid": (59.25, 106),
         "r_eye": (70, 110),
         "tilt": (30, 150),
         "rotate": (50, 160),

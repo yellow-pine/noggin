@@ -7,10 +7,12 @@ from model import lids
 
 
 @pytest.mark.parametrize("side", "LR")
-def test_closed_and_open_lie_either_side_of_the_recorded_renders(side):
+def test_closed_and_open_match_the_recorded_renders_and_open_lies_past_the_free_travel(side):
     closed, opened = lids.ends(side)
-    # front render 2026-10-31 (noggin-eyes): horn -25 shows a slit, +25 the whole eyeball
-    assert -35 < closed < -25 and 25 < opened <= g.HORN_LIMITS[f"{side.lower()}_lid"][1] - 90
+    # front render 2026-10-31 (noggin-eyes): horn -25 shows a slit, +25 the whole eyeball. Conflict (#210): the model's
+    # ears cross from +16.5 (geometry.LIMITS), so its lids cannot reach this open pose that the build shows
+    assert -35 < closed < -25 and 25 < opened
+    assert opened > g.HORN_LIMITS[f"{side.lower()}_lid"][1] - 90
 
 
 def test_mirror_mounted_sides_share_their_ends():

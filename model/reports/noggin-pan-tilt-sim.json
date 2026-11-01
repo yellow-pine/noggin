@@ -107,7 +107,7 @@
   }
  ],
  "inputs": {
-  "stamp": "221e25d02b53202655e6264dade6814c84157fb73306e06db3b3b8c733bb3177",
+  "stamp": "40f74596696e1c8c75cb691a0786656639b54e933144b23799cbca5c2cba75aa",
   "sources": {
    "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",

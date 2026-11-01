@@ -85,7 +85,8 @@ Measured per pair, one variable at a time, with the designer's meshes swapped in
   each other, so the closed end is the lips; Cansin (#189): the lids close quietly at lid_closed, edges just touching,
   no overlap. The lid teeth go to L 13.95, R 6.75 (inferred: the close lands at -30.75, 0.03 mm of lip), the top of the
   #134 window; the rest photo's face-value lid reading sits 1.2 / 0.9 below, the side its camera tilt moves it.
-- The two lids (1.03 mm) and the upper lid on the eye bracket's arm chamfer (0.78 mm) at the open end (+39): the lids'
+- Superseded by #210 (below: the ears cross from +16.5, the open end is +16). The two lids (1.03 mm) and the upper lid
+  on the eye bracket's arm chamfer (0.78 mm) at the open end (+39): the lids'
   ears meet at the back from +32, the upper ear the arm from +35, with the designer's lids and bracket alike. No shape
   in the sources clears them, so the open end is the model's free travel, +31 (geometry.LIMITS); the build's open
   command (L +48, R +41.5) and calibrated ends stay past it, accepted with the servo bracket hit (KNOWN_CALIBRATED).
@@ -94,3 +95,23 @@ Measured per pair, one variable at a time, with the designer's meshes swapped in
   bracket alike. The eye limits go to +-20 (free travel). Conflict, recorded: the program commands up to +-25 servo
   degrees and the calibration +-30, which would put the eyeball 1.5..2.5 mm into the plate in the model; the build runs
   them, so the four-bar's gain or the eyeball's back is off by more than any source's tolerance (inferred, unsettled).
+
+## The lid ears past +16.5 (#210)
+
+meshes.judge tests vertices, so it missed the lids' ears crossing edge through edge; MuJoCo's tuned pieces (#190) found
+them. Measured on the exact CadQuery solids (common volume of the two turned lids, model/printed/test_lid.py), one
+variable at a time:
+
+- The ears' back corners (the 45 deg brow chamfer behind the pivot, r 4.5..6 from it) meet from horn +16.5 (lids
+  +17.3 / -16.6, 34 deg apart) and cross 1.4 mm by +29; the upper lid reaches the eye bracket's arm from +28. The lips
+  meet at -30.72. Sections through the designer's lids at the ear layers show the same corners crossing at the same
+  angles, so it is not our redesign.
+- Rejected: the pivot (both lids turn on the same pins, so only their relative angle matters); the tooth or the shared
+  frame (#213: they move both ends together, the span stays); servo gain (180 +-10 deg, above); print tolerance
+  (0.2 mm is 1 deg of relative turn at the corners).
+- So the model's free travel is -30.75..+16 (geometry.LIMITS; the close at the program's lid_closed, the lips 0.03 mm in).
+  Conflict, recorded: the build's span from close to open command (72 servo deg, 153 deg between the lids in the model)
+  is far past the parts' 103 deg, and the model's lids look fully open (model/lids.py) only at +27.2, past the
+  ears. Inferred candidates, unsettled: the bars on a horn hole nearer the hub (8.75 mm gives 0.69x, which fits both
+  ends; the build notes say the second-from-last hole) or the servo's clutch (PG001, clutch protection) slipping at
+  the stops (it would explain the drifting lid teeth, #213).

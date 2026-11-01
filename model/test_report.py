@@ -11,16 +11,8 @@ from model import mujoco_report, report, stages
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
-# what the exact meshes do (model/test_mjcf.py), so these are overlaps the meshes have, which the exact-mesh check missed
-# where their edges cross (it tested vertices): the common region of the two deepest pieces lies inside both meshes (ray parity,
-# docs/research/2026-11-01-coacd-tuning.md 4). The build runs the lids without binding: open on #210, not accepted.
-_LIDS_CROSS = (
-    "the meshes cross: the lid ears 1.20 mm into each other at +29 (1.09 at +31, 0.28 at -31), the upper lid 0.36 mm and"
-    " the lower lid 0.11 mm into the eye bracket at +31; judge sees no vertex inside. Open on #210"
-)
+# what the exact meshes do (model/test_mjcf.py).
 KNOWN_PAIRS = {
-    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _LIDS_CROSS for s in "LR"},
-    **{frozenset((f"{s} {lid} lid:1", "eye bracket:1")): _LIDS_CROSS for s in "LR" for lid in ("upper", "lower")},
     **{
         frozenset((f"{s} eyeball:1", "eye bracket:1")): "the pieces 0.07 mm in at +-20 where the meshes touch with"
         " nothing 0.1 mm inside (model/test_mjcf.py holds the pieces to that)"
