@@ -22,7 +22,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
     directory: /site
     schedule:
       interval: weekly
-    cooldown:   # a release waits two weeks before its PR: time for a bad or hijacked one to be pulled
+    cooldown:   # as above
       default-days: 14
     commit-message:
       prefix: build
