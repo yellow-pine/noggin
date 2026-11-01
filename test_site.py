@@ -2,13 +2,18 @@
 broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
 never ship, and the nav reaches the web viewer the workflow puts at /viewer."""
 
+import base64
+import hashlib
 import os
 import re
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 import pytest
+import yaml
+from mkdocs.utils.yaml import get_yaml_loader
 
 ROOT = Path(__file__).resolve().parent
 
@@ -66,12 +71,25 @@ def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
         assert row in home
 
 
-MERMAID_CLI = ["@mermaid-js/mermaid-cli@11.17.1", "mermaid@11.17.2"]  # Material loads unpkg's mermaid@11: its newest
+# the Mermaid the site serves (mkdocs.yml extra.mermaid, overrides/main.html): the one every diagram renders with here
+MERMAID = yaml.load((ROOT / "mkdocs.yml").read_text(), Loader=get_yaml_loader())["extra"]["mermaid"]
+MERMAID_CLI = ["@mermaid-js/mermaid-cli@11.17.1", f"mermaid@{MERMAID['version']}"]
+
+
+def test_the_site_loads_the_mermaid_the_diagrams_render_with(site):
+    """Pinned with its hash, not Material's floating unpkg mermaid@11, and only on pages with a diagram; the CDN's bytes
+    must match the hash, or the browser blocks the script and Material falls back to that floating one."""
+    url = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID['version']}/dist/mermaid.min.js"
+    tag = f'<script src="{url}" integrity="{MERMAID["integrity"]}" crossorigin="anonymous"></script>'
+    assert tag in (site / "index.html").read_text()
+    assert "mermaid" not in (site / "GLOSSARY" / "index.html").read_text()
+    sha = base64.b64encode(hashlib.sha384(urllib.request.urlopen(url).read()).digest()).decode()
+    assert MERMAID["integrity"] == f"sha384-{sha}"
 
 
 def test_every_diagram_renders(tmp_path):
     """Every Mermaid block in the README and docs/ drawn by Mermaid's own CLI in headless Chrome (a parse or layout
-    error fails it); the 11 Material serves the site, GitHub its own 12 (docs/research/2026-11-01-diagrams.md)."""
+    error fails it); the site's Mermaid, GitHub its own 12 (docs/research/2026-11-01-diagrams.md)."""
     docs = [ROOT / "README.md", *(p for p in (ROOT / "docs").rglob("*.md") if "references" not in p.parts)]
     files = [p for p in docs if "```mermaid" in p.read_text()]
     assert ROOT / "README.md" in files

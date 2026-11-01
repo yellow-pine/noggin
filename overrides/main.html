@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{# Material uses a global mermaid if one is defined, else it loads unpkg's floating mermaid@11 (its diagrams docs) #}
+{% block scripts %}
+  {% if page and 'class="mermaid"' in page.content %}
+    {% set mermaid = config.extra.mermaid %}
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@{{ mermaid.version }}/dist/mermaid.min.js" integrity="{{ mermaid.integrity }}" crossorigin="anonymous"></script>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
