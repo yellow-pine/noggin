@@ -1,5 +1,6 @@
 """ci_budget.py: a warm PR or queue run over its budget fails, a warm main run over its budget warns; a cold one is only
-reported. The clock starts when the run's first job did, so time spent waiting for a runner is not counted."""
+reported. The clock starts when the run attempt's first job did, so time spent waiting for a runner, or an
+earlier attempt, is not counted."""
 
 from scripts.ci_budget import first_start, over
 
@@ -50,11 +51,20 @@ def test_the_clock_starts_at_the_first_job_that_ran_not_at_the_queued_run():
         },  # on its needs
         {"run_attempt": 2, "status": "completed", "conclusion": "skipped", "started_at": "2026-11-01T12:00:00Z"},
         {"run_attempt": 2, "status": "completed", "conclusion": "cancelled", "started_at": "2026-11-01T12:00:00Z"},
-        {
-            "run_attempt": 1,
-            "status": "completed",
-            "conclusion": "success",
-            "started_at": "2026-11-01T11:00:00Z",
-        },  # kept
     ]
-    assert first_start(jobs, attempt=2) == "2026-11-01T12:20:01Z"
+    assert first_start(jobs, attempt_started="2026-11-01T12:00:00Z") == "2026-11-01T12:20:01Z"
+
+
+def test_re_running_the_failed_jobs_measures_the_new_attempt_on_its_own():
+    """Attempt 1 started at 17:36:35 and went red; "re-run failed jobs" lists the jobs it kept under attempt 2 too,
+    with attempt 2's run_attempt but the start they had in attempt 1 (as in #265's run 41332342549)."""
+    passed = {"status": "completed", "conclusion": "success"}
+    attempt_2 = [
+        passed | {"started_at": "2026-11-01T17:39:20Z"},  # the job that failed, re-run
+        passed | {"started_at": "2026-11-01T17:36:35Z"},  # convex, kept
+        passed | {"started_at": "2026-11-01T17:36:44Z"},  # a model shard, kept
+    ]
+    started = first_start(attempt_2, attempt_started="2026-11-01T17:39:17Z")
+    assert started == "2026-11-01T17:39:20Z"
+    assert over("pull_request", started, "2026-11-01T17:40:33Z", warm=True) is None  # 73 s
+    assert over("pull_request", "2026-11-01T17:36:35Z", "2026-11-01T17:40:33Z", warm=True)  # from attempt 1: 238 s
