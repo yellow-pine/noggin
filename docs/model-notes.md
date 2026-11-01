@@ -10,9 +10,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
-- `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it): headlight
-  ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in (model/mjcf.py VIEW), the rest
-  their spool's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
+- `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
+  renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in
+  (model/mjcf.py VIEW), the rest their spool's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
