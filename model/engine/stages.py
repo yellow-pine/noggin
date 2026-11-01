@@ -336,7 +336,9 @@ def assemble(doc, frames, up, context=()):
         ]
         ports.update(sub.ports)  # part-local: they ride their part
     if doc in g.DESK:  # the desk build's own eye bracket (no rail, the stem 5 shorter)
-        parts["eye bracket:1"] = part(stl("desk eye bracket"), parts["eye bracket:1"].matrix, printed("desk eye bracket"))
+        parts["eye bracket:1"] = part(
+            stl("desk eye bracket"), parts["eye bracket:1"].matrix, printed("desk eye bracket")
+        )
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
         bottom = g.DESK_STEM_BOTTOM if doc in g.DESK else g.STEM_BOTTOM
         placements.append(("eye bracket:1", [bottom], [g.STEM_AT[doc]], TOL_MM))

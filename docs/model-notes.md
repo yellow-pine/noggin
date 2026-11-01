@@ -75,9 +75,7 @@ the model stabilises.
   - the horn limits, each with its reason (geometry.LIMITS);
   - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan turntable);
   - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).
-- Conflict, open (#147): the eyes on the desk base (stage 1; noggin-eyes and noggin-mouth carry it). Cansin's side
-  photo puts the servo brackets' feet on the plate top (geometry.pt_to_eyes_standalone), and the model keeps that; but
-  our eye bracket's rail (y -40.6..-30.6) then lies 5 mm deep in the solid plate and the L servo bracket 1.6 mm in it
-  (measured on the meshes; MuJoCo's overlap guard lists the pairs in model/test_mjcf.py TOUCH, the old engine never
-  measured parts that do not move). The rail on the plate top instead (5 mm higher, as it lies on the tilt arm) clears
-  both, with the feet 5 mm above the plate. Waits for Cansin's photo or measurement.
+- Conflict, settled (#172): the eyes on the desk base. Cansin's side photo has the servo brackets' feet on the plate
+  top, and the model kept that while the rail bracket's rail lay 5 mm in the plate and its stem sat on the pan boss. The
+  build was right: the desk build uses the designer's first bracket (no rail, geometry.DESK) with its stem in the
+  plate's 12 x 5 slot (docs/research/2026-11-01-eyes-on-plate.md).

@@ -499,4 +499,8 @@ STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-s
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres
 # 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
-STEM_AT = {"noggin-stage1": (0.0, -16.5, -2.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}
+STEM_AT = {
+    "noggin-stage1": (0.0, -16.5, -2.0),
+    "noggin-stage2": (0.0, -13.0, 35.9),
+    "noggin-stage3": (0.0, -13.0, 35.9),
+}

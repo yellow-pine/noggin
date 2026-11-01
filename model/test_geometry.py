@@ -178,8 +178,8 @@ def test_stage_documents_place_each_sub_assembly_once_in_the_pt_frame():
     assert on_stack(g.EYE_R) == (-29.5, -28.5, 81.5)
     assert on_stack(g.STEM_BOTTOM) == (0.0, -13.0, 35.9) == g.STEM_AT["noggin-stage2"]
     assert (
-        on_base(g.STEM_BOTTOM) == (0.0, 0.0, -7.0) == g.STEM_AT["noggin-stage1"]
-    )  # through the 5 mm plate, feet on its top
+        on_base(g.DESK_STEM_BOTTOM) == (0.0, -16.5, -2.0) == g.STEM_AT["noggin-stage1"]
+    )  # the desk bracket's stem flush through the 5 mm plate's slot (y -19..-14), feet on its top
     assert g.STEM_IN == {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
     for p in [(0, 0, 0), (59, 0, 0), (-14.8, -25.6, 51)]:
         assert all(abs(a - b) < 1e-9 for a, b in zip(on_stack(p), g.eyes_to_pt(p)))

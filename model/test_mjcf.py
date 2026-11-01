@@ -21,9 +21,6 @@ TOUCH = {
         frozenset(("base plate:1", p)): "on its posts or in its pocket"
         for p in ("receiver shield 1:1", "receiver shield 2:1", "switch board 1:1", "battery 1:1", "cable holder:1")
     },
-    frozenset(
-        ("base plate:1", "eye bracket:1")
-    ): "the stem in the pan recess (STEM_IN); it meets the bearing boss: open",
     frozenset(("tilt arm:1", "eye bracket:1")): "the stem in the tilt arm window (STEM_IN)",
     frozenset(("base plate:1", "bearing block:1")): "the bearing block in the pan recess",
     frozenset(("bearing block:1", "pan turntable:1")): "the turntable on its bearing",
@@ -40,14 +37,14 @@ TOUCH = {
     frozenset(("base plate:1", "pan servo:1")): "the plate's pieces fill the pan servo's pocket, 0.05 mm clear",
     frozenset(("base plate:1", "upright:1")): "the plate's pieces fill the recess under the upright, 0.5 mm clear",
     **{
-        frozenset(
-            (f"{s} servo bracket:1", "base plate:1")
-        ): "open conflict: feet on the plate per Cansin's side photo, the rail then in it (docs/model-notes.md, #147)"
-        for s in "LR"
+        frozenset(("base plate:1", p)): "the plate's pieces fill its stem slot and bridge the pan boss: the desk eyes"
+        " stand on the plate top, 0.0 mm, nothing inside (model/engine/test_meshes.py, #172)"
+        for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")
     },
 }
 # noggin-mouth carries the desk base as context, as its recorded sweep did: a pairing never built (the mouth rides the
-# neck, stage 3), so its jaw parts reach into the plate there.
+# neck, stage 3), so its jaw parts and the rail bracket they hang on reach into the plate there (TOUCH already lists the
+# bracket).
 MOUTH_ON_DESK = {
     frozenset(("base plate:1", p)) for p in ("top jaw:1", "bottom jaw:1", "jaw servo mount:1", "jaw servo:1")
 }

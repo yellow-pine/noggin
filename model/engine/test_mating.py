@@ -25,12 +25,9 @@ def check(doc, parts=None):
 
 def test_every_joint_names_features_our_parts_declare_and_no_declared_feature_goes_unused():
     declared = {**printed.FEATURES, **envelopes.FEATURES}
-    files = {
-        n: p.file
-        for doc in ("noggin-eyes", "noggin-pan-tilt", "noggin-mouth")
-        for n, p in stages.STAGES[doc].parts.items()
-    }
-    named = {(stages.stem(files[p]), f) for _, feats in mating.JOINTS for p, f in feats}
+    parts = [stages.STAGES[doc].parts for doc in ("noggin-eyes", "noggin-pan-tilt", "noggin-mouth")]
+    # by mesh: noggin-eyes builds the desk eye bracket, noggin-mouth the rail one
+    named = {(stages.stem(ps[p].file), f) for ps in parts for _, feats in mating.JOINTS for p, f in feats if p in ps}
     assert named == {(stem, f) for stem, feats in declared.items() for f in feats}
 
 
