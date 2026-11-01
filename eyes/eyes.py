@@ -207,7 +207,7 @@ class Eyes:
         self.lids(level + over, 40)
         self.lids(self.cal["lid_closed"] if shut is None else shut, 160, "in")
         wait(hold)
-        self.lids(level, 240, over=over)
+        self.lids(level, 240, "out", over=over)
 
     def saccade(self, angle):
         """Move the eyes along a real saccade's velocity profile (GazeBase, nearest amplitude), undershoot
@@ -244,16 +244,16 @@ class Eyes:
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):
-        """Surprise, a toon take: lids squash, pop wide, eyes dart aside, a moving hold, back to centre, double blink,
-        lids ease to rest past it and settle."""
+        """Surprise, a toon take (Williams pp. 285-289): lids squash, pop wide, eyes dart aside, cushion back to a
+        still-wide read pose, back to centre, double blink, lids ease to rest past it and settle."""
         side = self._side()
         amp, hold = {1: (12, 300), 2: (22, 550), 3: (25, 800)}[i]
-        wide = self.cal["lid_open"] - 0.15  # the moving hold's end, out of the open stop's margin (test_stall.py)
-        self.lids(self.cal["lid_think"], 100, "io")  # anticipation
+        wide = self.cal["lid_open"] - 0.15  # the read pose, out of the open stop's margin (test_stall.py)
+        self.lids(self.cal["lid_think"], 160, "io")  # anticipation
         wait(60)
         self.lids(self.cal["lid_open"])  # AU5: the take, as a step at the servo's full slew
         self.saccade(EYE_CENTER + side * amp)
-        self.lids(wide, hold, "io")  # a moving hold: the stare relaxes a little
+        self.lids(wide, hold, "io")  # cushion back from the accent while the stare holds
         if i == 3:
             self.saccade(EYE_CENTER - side * amp)
             wait(500)  # double-take
@@ -347,7 +347,7 @@ class Eyes:
                 self.rest_pose()
             else:  # a small look the other way first (anticipation), then a gaze-evoked blink with the saccade aside
                 self.think_side = self._side()
-                self.eyes(EYE_CENTER - self.think_side * 4, 80)
+                self.eyes(EYE_CENTER - self.think_side * 2, 60)
                 self.lids(self.cal["lid_closed"])
                 self.saccade(EYE_CENTER + self.think_side * 18)
                 self.lids(self.cal["lid_think"], 240, over=OVER)
