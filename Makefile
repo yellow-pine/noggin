@@ -11,7 +11,7 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -105,3 +105,17 @@ web: venv ours trajectories   ## the web viewer's site in web/build: the page an
 site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it; look with python -m http.server -d site
 	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
 	[ ! -d web/build ] || cp -R web/build site/viewer
+
+# the Core's MicroPython (pyproject [tool.noggin]); CI caches mech/build on it (no comment after the value, as above)
+MICROPYTHON := v1.23.0
+mech/build/micropython:   ## the unix port of it and micropython-lib's hmac (what flash-usb's mip gives the Core), for the Mech stand-in
+	rm -rf mech/build/src
+	git clone -q --depth 1 -b $(MICROPYTHON) https://github.com/micropython/micropython mech/build/src
+	$(MAKE) -C mech/build/src/ports/unix submodules
+	$(MAKE) -C mech/build/src/ports/unix -j4 FROZEN_MANIFEST= MICROPY_PY_FFI=0 MICROPY_PY_BTREE=0 MICROPY_PY_SSL=0 CFLAGS_EXTRA=-Wno-error   # newer compilers warn where v1.23.0 compiled clean
+	mkdir -p mech/build/lib
+	cp mech/build/src/lib/micropython-lib/python-stdlib/hmac/hmac.py mech/build/lib/
+	cp mech/build/src/ports/unix/build-standard/micropython mech/build/micropython
+	rm -rf mech/build/src
+mech: venv mech/build/micropython   ## the Mech stand-in: the Core's program on that MicroPython beside the real noggin service, the Link's live checks as tests (mech/)
+	$(PY) -m pytest -q mech

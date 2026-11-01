@@ -41,12 +41,14 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 
 ## Code
 
-- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`. Tests sit beside the code they test (`test_*.py` in the same folder).
+- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`, `mech/`. Tests sit beside the code they test (`test_*.py` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
 - Run `make check` before opening a PR. CI runs the same, split over two required jobs (`.github/workflows/check.yml`):
   `code` (everything but the tests marked `model`) and `model` (those, and `make sim`, split over two shards), pytest
   on every core (pytest-xdist). With a warm cache a run must finish within 3 min on a PR or in the merge queue and 9 min on main,
   or it fails (`scripts/ci_budget.py`); each job's slowest tests are in its run summary.
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
+  noggin/ or mech/ and on main.
 
 ## Licence
 

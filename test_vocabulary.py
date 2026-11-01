@@ -9,9 +9,12 @@ ROOT = Path(__file__).resolve().parent
 AVOID = ["daemon", "poke", "animation", "neutral", "puppeteer", "receiver"]
 FILES = [
     p
-    for d in ("eyes", "reactions", "noggin", "scripts", "web")
+    for d in ("eyes", "reactions", "noggin", "scripts", "web", "mech")
     for p in (ROOT / d).rglob("*")
-    if p.is_file() and p.suffix in (".py", ".sh", "") and "stock-backup" not in p.parts and p.name != "gaze_trace.py"
+    if p.is_file()
+    and p.suffix in (".py", ".sh", "")
+    and not {"stock-backup", "build"} & set(p.parts)  # the stock program, mech/build
+    and p.name != "gaze_trace.py"
 ]
 FILES.append(ROOT / "Makefile")
 ALLOWED = {"daemon": ["daemon=True"]}  # threading API, not our vocabulary
