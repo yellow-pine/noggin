@@ -19,6 +19,11 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **PR previews are artifacts.** A PR's `site` job builds the docs and uploads them as an artifact linked from its
   job summary; no external preview host. It is not a required check: `make check` builds the docs strictly too
   (test_site.py), so a broken page or link fails the required one.
+- **Numbers come from the code.** A doc's numbers that the code owns (the README's behaviour table, the picture sizes
+  and colours in docs/model-notes.md) are filled at build time by mkdocs-macros (`macros.py`, pinned in the dev group),
+  on the pages `mkdocs.yml` lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose
+  and a link to the site in their place; test_site.py fails if a duration GitHub still shows in the README is not the
+  code's (#227).
 - **Until their tickets land**, the pictures in docs/images and the reports in model/reports stay in git as they are.
 
 ## Considered options

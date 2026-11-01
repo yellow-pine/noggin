@@ -11,6 +11,21 @@ theme:
 plugins:
   - search
   - same-dir
+  # numbers from the code (macros.py), on the pages listed only; their Jinja sits in HTML comments, which GitHub hides,
+  # so the Markdown reads as prose there; an undefined name fails the build
+  - macros:
+      module_name: macros
+      render_by_default: false
+      force_render_paths: |
+        /README.md
+        /docs/model-notes.md
+      on_undefined: strict
+      j2_variable_start_string: "<!--{{"
+      j2_variable_end_string: "}}-->"
+      j2_block_start_string: "<!--{%"
+      j2_block_end_string: "%}-->"
+      j2_comment_start_string: "<!--{#"
+      j2_comment_end_string: "#}-->"
 # everything but the hand-written docs and their pictures (and the theme's own files, which this applies to as well);
 # docs/references is the designer's files, local only
 exclude_docs: |

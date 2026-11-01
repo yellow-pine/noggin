@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+import macros
+
 ROOT = Path(__file__).resolve().parent
 
 
@@ -49,3 +51,49 @@ def test_the_nav_reaches_every_decision_and_the_viewer(site):
     home = (site / "index.html").read_text()
     links = [f'href="docs/adr/{p.stem}/"' for p in (ROOT / "docs" / "adr").glob("*.md")] + ['href="viewer/"']
     assert [link for link in links if link not in home] == []
+
+
+def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
+    """reactions/director.py and install_hooks.py say which event plays what, eyes/eyes.py how often it blinks."""
+    home = re.sub(r"<[^>]+>", "", (site / "index.html").read_text())
+    for row in [
+        "SessionStart\nwink (hello)",
+        "UserPromptSubmit\nthinking: lids low, gaze averted, micro-saccades, a blink every 5-8 s",
+        "Stop\neureka, sized by how long the turn took: under 20 s small, under 3 min normal, longer big",
+        "Notification permission_prompt\nattention: half lids, a real left-right scan",
+        "Notification idle_prompt\nbored: drooping lids, heavy blinks, one long closure",
+        "StopFailure\nwince",
+        "SessionEnd\nback to rest (a turn with no events for 15 min also returns to rest)",
+    ]:
+        assert row in home
+
+
+def github(path):
+    """The page as GitHub shows it: HTML comments hidden (the site's macros sit in them)."""
+    return re.sub(r"<!--.*?-->", "", (ROOT / path).read_text(), flags=re.S)
+
+
+def test_github_shows_a_link_to_the_site_for_the_behaviour_table():
+    readme = github("README.md")
+    assert "| SessionStart |" not in readme and "(https://yellowpine.com/noggin/#what-it-does)" in readme
+
+
+def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site):
+    """model/render/pictures.py and blender.py, model/geometry.py SPOOLS, model/mjcf.py VIEW: as Cansin set them."""
+    notes = re.sub(r"<[^>]+>", "", (site / "docs" / "model-notes" / "index.html").read_text())
+    for row in [
+        "gestures\n600x450\n480 wide, 10 fps, 64 colours, at most 1 MB",
+        "hero\n800x600\n640 wide, 10 fps, 48 colours, at most 3 MB",
+        "Milky Pink\n#F7CED7\n#F7CED7\n#F7CED7",
+        "Absolute Black\n#000000\n#2B2B2E\n#5A5A60",
+        "Pure White\n#FFFFFF\n#FFFFFF\n#E8E8E8",
+        "background\n\n#F7F4EE\n#F7F4EE",
+    ]:
+        assert row in notes
+    assert "(https://yellowpine.com/noggin/docs/model-notes/#numbers-from-the-code)" in github("docs/model-notes.md")
+
+
+def test_every_duration_left_in_the_readme_agrees_with_the_code():
+    """The table is the site's; a duration GitHub still shows (say a blink every 5-8 s) must be one the code has."""
+    durations = r"\b\d+(?:-\d+)? (?:s|min)\b"
+    assert set(re.findall(durations, github("README.md"))) <= set(re.findall(durations, macros.behaviour()))

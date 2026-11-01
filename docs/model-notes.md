@@ -7,35 +7,45 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `make trajectories`; #150): `make render` for
   the views (each Stage at rest, a trajectory's first frame; sub-assemblies at their placement), `make gifs` for the
   gestures; code in model/render, output in model/build/pictures.
-- Parts carry their real spool's colour (PLA: Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black
-  #000000, drawn #2B2B2E so its shading and lines read, Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
-  and the PLA density (1.24 g/cm3). Electronics and servos are neutral greys,
-  darker for the boards (model/render/scene.py GREYS).
+- Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, in the table below; Absolute Black
+  drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
+  neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it): headlight
-  ambient 0.5, diffuse 0.5, specular 0; Absolute Black #5A5A60, Pure White #E8E8E8 (model/mjcf.py VIEW), the rest
-  their spool's colour; flat #F7F4EE sky (the pictures' background). Added in #150, merged on green: a directional key
+  ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in (model/mjcf.py VIEW), the rest
+  their spool's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
   shadow and one small highlight band, 2.5 px black Freestyle lines on silhouettes, borders and creases (faces
-  more than 60 degrees apart, so STL facets draw none), one key light at the camera's upper right, plain #F7F4EE
+  more than 60 degrees apart, so STL facets draw none), one key light at the camera's upper right, a plain
   background. STL facets are smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the
   eyeball so their outline stays whole.
-- Views, orthographic, 1600x1200, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
+- Views, orthographic, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
 - README media (#117), copied into docs/images: the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the engine's linkage solve, every pose within geometry.LIMITS and free of penetrations as the
-  engine judges them; 640 wide, 10 fps, 48 colours (64 went to 3.2 MB with the servos' own motion), at most 3 MB), the Stage strip
+  engine judges them), the Stage strip
   (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
   camera direction as the hero) and the six gesture GIFs: about 6 MB in all, no photos.
 - Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
   on the eyes with the base's front in view; one frame per 100 ms of the gesture's trajectory (MuJoCo playing the Core
   program's own writes through the servos' dynamics: model/traces.py `commands`, lid fractions through
-  eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), rendered 600x450 and encoded 480 wide, 10 fps, 64 colours, at most 1 MB each, with a contact sheet per gesture.
+  eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), with
+  a contact sheet per gesture; their sizes are in the table below.
 - Real photos stay in docs/build-photos for the model comparison, never in the README model media.
+
+## Numbers from the code
+The picture sizes and the colours, as model/render/pictures.py and blender.py, model/geometry.py SPOOLS and
+model/mjcf.py VIEW set them.
+
+<!--{{ pictures }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the tables above, which it builds from the code -->
+They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-notes/#numbers-from-the-code).
+<!-- #}-->
 
 ## Our printed parts (#50)
 - Every printed part gets an independent parametric CadQuery design in model/printed/: interfaces exact, in the

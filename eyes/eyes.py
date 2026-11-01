@@ -49,6 +49,7 @@ NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
+THINK_BLINK_MS = 5000, 8000  # sparse blinks while thinking: one every 5-8 s (the site's behaviour table reads it)
 
 
 def servo_map():
@@ -377,11 +378,12 @@ class Eyes:
                 if i in TRACE_BLINKS:
                     self.blink(level=self.cal["lid_think"])
             return
-        if now_ms >= self.next_blink:  # sparse blinks while thinking: one per 5-8 s
+        if now_ms >= self.next_blink:  # sparse blinks while thinking
             self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
             if self.next_blink:
                 self.blink(level=self.cal["lid_think"])
-            self.next_blink = now_ms + 5000 + self.rand % 3000
+            lo, hi = THINK_BLINK_MS
+            self.next_blink = now_ms + lo + self.rand % (hi - lo)
         if now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
