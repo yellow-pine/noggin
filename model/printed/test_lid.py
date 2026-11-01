@@ -9,6 +9,7 @@ import math
 import cadquery as cq
 
 from model import geometry as g
+from model import stages
 from model.printed import lid
 
 ENVELOPE_MM = 1.0
@@ -64,3 +65,20 @@ def test_ears_take_the_lid_bar_screw_on_the_lid_pins():
                 not inside(which, px, y, z) and not inside(which, px, y + 0.8, z) and not inside(which, px, y, z + 0.8)
             )
             assert inside(which, px, y + 1.2, z) and inside(which, px, y - 1.2, z), (which, px)
+
+
+def test_the_two_lids_clear_each_other_to_the_open_limit_and_their_ears_cross_past_it():
+    """#210: the ears' back corners cross edge through edge (no vertex inside, which meshes.judge missed), so the open
+    limit is checked on the exact solids: the lids' common volume is empty at it and not a degree past it, the
+    joints from the lid four-bar at that horn angle."""
+    stage = stages.STAGES["noggin-eyes"]
+
+    def common(horn):
+        joints = stages.pose(stage, "L lid horn", horn).joints
+        turned = [
+            solid(w).rotate(cq.Vector(), cq.Vector(1, 0, 0), joints[f"L {w} lid pivot"]) for w in ("upper", "lower")
+        ]
+        return turned[0].intersect(turned[1]).Volume()
+
+    opened = stages.limits("l_lid")[1]
+    assert common(opened) < 1e-3 < common(opened + 1)

@@ -25,8 +25,8 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   mesh without OCCT's zero-area seam slivers, so it keeps the surface instead of voxel-remeshing it at ~1 mm, and
   cuts at its default concavity (0.05 of the part's size) except where a part meets another closely, cut in mm
   (real-metric: the horn 0.08, the lids 0.15, the base plate, eye brackets, pan turntable and jaws 0.3).
-  model/test_mjcf.py holds every pair within 0.05 mm of the exact meshes at rest and at the LIMITS ends, but where the
-  meshes' edges cross (MuJoCo reads deeper, and is right) and three corners the pieces fill; since #151 against the
+  model/test_mjcf.py holds every pair within 0.05 mm of the exact meshes at rest and at the LIMITS ends, but three
+  corners the pieces fill (the lid ears whose edges crossed were the model's limits, #210); since #151 against the
   exact check's last readings, frozen in model/test_fixtures/exact-clearance.json.
 - **Linkages, actuators, cables, mating** (#148): the four-bars are equality constraints, the servos position
   actuators with their torque limits, the leads spatial tendons with the real lengths as limits, each screw or pin a

@@ -24,8 +24,8 @@ RATED_DEG_S = electrical.servo.rate(electrical.SERVO_MIN_V)  # 60 deg in 0.14 s 
 
 
 def _degs(horn):
-    lo, hi = horn.limits
-    return [*range(lo, hi, STEP_DEG), hi]
+    lo, hi = horn.limits  # a lid's closed end is fractional (geometry.LIMITS)
+    return [*np.arange(lo, hi, STEP_DEG).tolist(), hi]
 
 
 def poses(doc):

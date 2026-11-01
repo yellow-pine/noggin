@@ -4,7 +4,7 @@ as the head arrives, the lids drop with the nod and blink. Timing follows the Co
 closes in one 80 ms step, holds 135 ms and reopens over 300 ms; a saccade is one step. The head moves as far as the
 designer's (about 25 degrees of pan, 15 of nod, near the horn limits): its keys are in head degrees (the pan and tilt
 pivots' own), converted to horn degrees through the four-bar kinematics (model/stages.py pose); every other key is in model horn degrees
-from neutral inside geometry.LIMITS (a blink shuts the lids at -31: they meet at -30.7, model/lids.py).
+from neutral inside geometry.LIMITS (a blink shuts the lids at -30.75, where they meet: model/lids.py).
 Minimum-jerk between keys.
 Rendered by model/render/pictures.py (`make hero`)."""
 
@@ -17,7 +17,8 @@ from model import stages
 
 FPS, SECONDS = 10, 8.0  # 100 ms frames, as the gesture GIFs (12.5 fps went over 3 MB)
 STAGE = stages.STAGES["noggin-stage3"]
-LID_OPEN, LID_DOWN, LID_SHUT = 8.0, -4.0, -31.0  # lid horn: talking, in the nod, shut in a blink
+LID_OPEN, LID_DOWN = 8.0, -4.0  # lid horn: talking, in the nod
+LID_SHUT = g.HORN_LIMITS["l_lid"][0] - 90  # shut in a blink: the lips meet at the lid limit
 
 
 def blink(t, lid=LID_OPEN):

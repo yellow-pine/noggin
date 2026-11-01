@@ -36,19 +36,20 @@ def mirror_x(p):
 # Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
 # reason. The calibrated servo ends past them (eyes/calibration.json) are swept too.
 _LID = (
-    "one range for the mirrored lid pair, the model's free travel with every pair measured on the exact meshes (#189):"
-    " the lips meet at -30.72, the program's closed command (Cansin: the lids close quietly, edges just touching) and"
-    " the lid shells cannot pass each other (-31 is the whole degree past it); the two lids' ears meet at the back"
-    " from +32 (the upper lid's ear on the eye bracket's arm chamfer from +35)"
+    "one range for the mirrored lid pair, the model's free travel measured on the exact solids (#210; meshes.judge tests"
+    " vertices and missed the ears, which cross edge through edge): the lips meet at -30.72, the program's closed command"
+    " (-30.75, 0.03 mm of lip: Cansin, the lids close quietly, edges just touching) and the lid shells cannot pass each"
+    " other; the two lids' ears' back corners (the 45 deg chamfer behind the pivot) meet from +16.5, the designer's"
+    " lids alike, and the upper lid reaches the eye bracket's arm from +28"
 )
 _EYE = (
     "+-20: the eyeball's back rim (z 5) meets the eye bracket's front face (z 13) from +-21 (the eyeball turns 25 deg"
     " at horn 20: the bar's 12.56 mm horn arm drives its 10 mm one, #189); the eyeball bar rides on the bracket"
 )
 LIMITS = {
-    "l_lid": ((59, 121), _LID),
+    "l_lid": ((59.25, 106), _LID),
     "l_eye": ((70, 110), _EYE),
-    "r_lid": ((59, 121), _LID),
+    "r_lid": ((59.25, 106), _LID),
     "r_eye": ((70, 110), _EYE),
     "tilt": (
         (30, 150),

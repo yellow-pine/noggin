@@ -155,7 +155,7 @@ def sweep(doc):
     return {
         (h, d): mjcf.pose(model, {h: d})
         for h, horn in stages.STAGES[doc].horns.items()
-        for d in [*range(horn.limits[0], horn.limits[1], SWEEP_DEG), horn.limits[1]]
+        for d in [*np.arange(*horn.limits, SWEEP_DEG).tolist(), horn.limits[1]]
     }
 
 
@@ -182,19 +182,13 @@ def test_every_limit_poses_with_its_four_bars_closed(doc):
         assert worst < LOOP_MM, (ctrl, worst)
 
 
-# Pairs the pieces read deeper than the exact-mesh check did, each verified (docs/research/2026-11-01-coacd-tuning.md 4): it weighed
-# an overlap by its deepest vertex and missed edges that cross, MuJoCo by the shortest move that parts the two pieces,
-# and the common region of the deepest two pieces lies inside both meshes. How deep they may read (mm), never shallower.
-DEEPER = {
-    **{frozenset((f"{s} upper lid:1", f"{s} lower lid:1")): 1.3 for s in "LR"},  # the ears cross, 1.09 at +31: #210
-    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): 0.45 for s in "LR"},  # 0.36 at +31: #210
-}
 # Pairs whose pieces fill a corner their meshes leave open, which CoACD's surface-sampled concavity does not see at any
 # threshold tried (0.3 to 0.15 mm): how much nearer they may read (mm), measured on the Mac's pieces with a margin.
 FILLED = {
     frozenset(("bearing block:1", "pan turntable:1")): 1.0,  # 0.93 into the turntable's recess corner over the rim
     frozenset(("top jaw:1", "bottom jaw:1")): 0.3,  # 0.31 into the hinge pin's hole, where the meshes touch
     frozenset(("pan turntable:1", "tilt horn:1")): 0.1,  # tilt -60: 0.118 where the meshes clear 0.174
+    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): 0.15 for s in "LR"},  # lid -30.75: 0.094, meshes 0.199 (CI)
 }
 
 
@@ -210,7 +204,7 @@ DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deepe
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
     """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
     rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both
-    clamped to the report's detection band, the two pieces' margins), but for DEEPER and FILLED. A contact the meshes
+    clamped to the report's detection band, the two pieces' margins), but for FILLED. A contact the meshes
     called 0 mm had nothing deeper than DEPTH_MM in it, so the pieces may read that far in."""
     model = copy.copy(built(doc))
     mujoco_report.widen(model)
@@ -222,7 +216,7 @@ def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
         for key, mm in pose["mm"].items():
             pair = tuple(key.split(" / "))
             got, both = min(pieces.get(pair, band), band), frozenset(pair)
-            low = -DEEPER[both] if both in DEEPER else mm - FILLED.get(both, PENETRATION_MM)
+            low = mm - FILLED.get(both, PENETRATION_MM)
             low -= DEPTH_MM if abs(mm) < 1e-6 else 0
             miss = max(low - got, got - mm - PENETRATION_MM)
             if miss > off.get(pair, (0,))[0]:
