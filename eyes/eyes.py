@@ -49,6 +49,15 @@ NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
+SLEW = 428  # deg/s, the servo's rated slew at 4.8 V (eyes/servo.py, not flashed): no move asks for more
+OVER = 0.05  # toon overshoot past a lid level, then settle (docs/research/2026-11-01-toon-eyes.md)
+# glide's curves (f 0..1 of the time -> 0..1 of the way) and their steepest slope, for the slew guard
+EASE = {
+    "": (lambda f: f, 1),
+    "in": (lambda f: f * f, 2),  # slow in: a lid falling shut
+    "out": (lambda f: 1 - (1 - f) ** 2, 2),  # slow out: a lid reopening
+    "io": (lambda f: f * f * (3 - 2 * f), 1.5),  # both: a settle
+}
 
 
 def servo_map():
@@ -151,19 +160,19 @@ class Eyes:
             self.pwm[gpio].duty_ns(_pulse_ns(angle))
             self.pos[pin] = angle
 
-    def glide(self, ms, targets, step=20, ease=False):
-        """Linear move, or ease-out (fast first, asymptotic) like an eyelid reopening."""
+    def glide(self, ms, targets, step=20, ease=""):
+        """Move along an EASE curve over ms, in more steps when the servo could not keep up at SLEW."""
         start = {
             p: self.pos.get(
                 p, self._eye_angle(p, EYE_CENTER) if p in EYES else self._lid_angle(p, self.cal["lid_rest"])
             )
             for p in targets
         }
-        n = max(1, ms // step)
+        curve, peak = EASE[ease]
+        span = max(abs(targets[p] - start[p]) for p in targets)
+        n = max(1, ms // step, int(peak * span * 1000 / (SLEW * step)) + 1)
         for i in range(1, n + 1):
-            f = i / n
-            if ease:
-                f = 1 - (1 - f) ** 2
+            f = curve(i / n)
             self.set({p: start[p] + (targets[p] - start[p]) * f for p in targets})
             wait(step)
 
@@ -172,12 +181,12 @@ class Eyes:
             p.deinit()
         self.pwm.clear()
 
-    def lids(self, f, ms=0, ease=False):
-        t = {p: self._lid_angle(p, f) for p in LIDS}
-        self.glide(ms, t, ease=ease) if ms else self.set(t)
-
-    def lid(self, pin, f, ms=0, ease=False):
-        t = {pin: self._lid_angle(pin, f)}
+    def lids(self, f, ms=0, ease="", pins=LIDS, over=0.0):
+        """Lids to level f; with `over`, ease out to f + over first, then settle back in 100 ms."""
+        if over:
+            self.lids(f + over, ms, "out", pins)
+            ms, ease = 100, "io"
+        t = {p: self._lid_angle(p, f) for p in pins}
         self.glide(ms, t, ease=ease) if ms else self.set(t)
 
     def eyes(self, angle, ms=0):
@@ -188,14 +197,17 @@ class Eyes:
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
         return 1 if self.rand & 1 else -1
 
-    # Kinematics from docs/research/2026-10-31-natural-eye-motion.md. The 9 g servos slew ~60 deg
-    # per 100 ms, about the speed of a real blink close or a 20 deg saccade, so closes and saccades
-    # are commanded as steps; only openings and returns are glided.
-    def blink(self, level=None, hold=55, open_ms=300):
-        """Close as a step, hold, reopen with ease-out (real blinks close ~3x faster than they open)."""
-        self.lids(self.cal["lid_closed"])
-        wait(80 + hold)
-        self.lids(self.cal["lid_rest"] if level is None else level, open_ms, ease=True)
+    # Toon timing (#258, docs/research/2026-11-01-toon-eyes.md): anticipation, slow in and slow out, holds, overshoot
+    # and settle. Saccades keep real human shapes (docs/research/2026-10-31-natural-eye-motion.md).
+    def blink(self, level=None, hold=80, shut=None):
+        """A tiny lift, ease-in close, hold shut, ease-out reopen a little past the level, settle. From lid_rest:
+        40 + 160 + 80 + 240 + 100 ms."""
+        level = self.cal["lid_rest"] if level is None else level
+        over = min(OVER, self.cal["lid_open"] - level)  # never past lid_open, by the open stop
+        self.lids(level + over, 40)
+        self.lids(self.cal["lid_closed"] if shut is None else shut, 160, "in")
+        wait(hold)
+        self.lids(level, 240, over=over)
 
     def saccade(self, angle):
         """Move the eyes along a real saccade's velocity profile (GazeBase, nearest amplitude), undershoot
@@ -209,15 +221,19 @@ class Eyes:
             wait(60)
             return
         prof = gaze_trace.SACCADE[min(gaze_trace.SACCADE, key=lambda a: abs(a - abs(d)))]
+        jump = max(prof[k] - (prof[k - 1] if k else 0) for k in range(len(prof)))
+        dt = max(10, int(jump * abs(d) * 1000 / SLEW) + 1)  # a big saccade's samples spaced out to the slew
         for f in prof:
             self.eyes(cur + d * f)
-            wait(10)
+            wait(dt)
         self.eyes(angle)
 
     def replay(self, samples, blinks=()):
-        """Play a 25 Hz gaze clip around centre."""
+        """Play a 25 Hz gaze clip around centre, each sample's move capped at what the servo slews in a sample."""
+        lim = SLEW / gaze_trace.HZ  # pyright: ignore[reportOptionalMemberAccess]
         for i in range(len(samples)):
-            self.eyes(EYE_CENTER + _s8(samples[i]))
+            cur = self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0)
+            self.eyes(cur + max(-lim, min(lim, EYE_CENTER + _s8(samples[i]) - cur)))
             if i in blinks:
                 self.blink(level=self.cal["lid_think"])
             wait(1000 // gaze_trace.HZ)  # pyright: ignore[reportOptionalMemberAccess]
@@ -228,25 +244,29 @@ class Eyes:
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):
-        """Surprise: lids wide, eyes dart aside, hold, back to centre, double blink, lids ease to rest."""
+        """Surprise, a toon take: lids squash, pop wide, eyes dart aside, a moving hold, back to centre, double blink,
+        lids ease to rest past it and settle."""
         side = self._side()
         amp, hold = {1: (12, 300), 2: (22, 550), 3: (25, 800)}[i]
-        self.lids(self.cal["lid_open"])  # AU5: widen, as a step
+        wide = self.cal["lid_open"] - 0.15  # the moving hold's end, out of the open stop's margin (test_stall.py)
+        self.lids(self.cal["lid_think"], 100, "io")  # anticipation
+        wait(60)
+        self.lids(self.cal["lid_open"])  # AU5: the take, as a step at the servo's full slew
         self.saccade(EYE_CENTER + side * amp)
-        wait(hold)
+        self.lids(wide, hold, "io")  # a moving hold: the stare relaxes a little
         if i == 3:
             self.saccade(EYE_CENTER - side * amp)
             wait(500)  # double-take
         self.saccade(EYE_CENTER)
-        self.blink(level=self.cal["lid_open"], open_ms=250)
+        self.blink(level=wide)
         if i >= 2:
             wait(200)
-            self.blink(level=self.cal["lid_open"], open_ms=250)
-        self.lids(self.cal["lid_rest"], 300, ease=True)
+            self.blink(level=wide)
+        self.lids(self.cal["lid_rest"], 300, over=-0.04)
 
     def attention(self, i):
-        """Needs you: half lids, two slow pursuit sweeps (~40 deg/s), centre, lids open, one blink."""
-        self.lids(self.cal["lid_think"], 200)
+        """Needs you: half lids, two slow pursuit sweeps (~40 deg/s), centre, lids open past rest, settle, one blink."""
+        self.lids(self.cal["lid_think"], 200, "io")
         if gaze_trace is not None:  # a real person scanning left-right (HSS task)
             self.replay(gaze_trace.SCAN)
         else:
@@ -255,14 +275,15 @@ class Eyes:
                 self.eyes(EYE_CENTER + 25, 1250)
                 self.eyes(EYE_CENTER - 25, 1250)
         self.saccade(EYE_CENTER)
-        self.lids(self.cal["lid_rest"], 300, ease=True)
+        self.lids(self.cal["lid_rest"], 240, over=OVER)
         wait(200)
         self.blink()
 
     def bored(self, i):
-        """Drowsy: lids droop, lazy real gaze drift, slow heavy blinks, one long closure, settle."""
+        """Drowsy: lids droop, lazy real gaze drift, slow heavy blinks (lids falling shut, slow in), one long closure,
+        settle. No overshoot: heavy lids."""
         droop = 0.35 * self.cal["lid_rest"] / 0.28
-        self.lids(droop, 500)
+        self.lids(droop, 500, "io")
         if gaze_trace is not None:  # the calmest 6 s of a real viewing session, with heavy blinks on top
             calm, n = gaze_trace.CALM, len(gaze_trace.CALM)
             for k, (blink_at, hold) in enumerate(((n // 4, 500), (n // 2, 500), (3 * n // 4, 1500))):
@@ -270,40 +291,45 @@ class Eyes:
                 for j in range(start, blink_at):
                     self.eyes(EYE_CENTER + _s8(calm[j]))
                     wait(1000 // gaze_trace.HZ)
-                self.lids(self.cal["lid_closed"], 200 if hold < 1500 else 250)
+                self.lids(self.cal["lid_closed"], 200 if hold < 1500 else 250, "in")
                 wait(hold)
-                self.lids(droop if hold < 1500 else self.cal["lid_rest"], 900 if hold < 1500 else 1200, ease=True)
+                self.lids(droop if hold < 1500 else self.cal["lid_rest"], 900 if hold < 1500 else 1200, "out")
         else:
             self.eyes(EYE_CENTER - 6, 800)
             for _ in range(2):
-                self.lids(self.cal["lid_closed"], 200)
+                self.lids(self.cal["lid_closed"], 200, "in")
                 wait(500)
-                self.lids(droop, 900, ease=True)
+                self.lids(droop, 900, "out")
                 wait(700)
-            self.lids(self.cal["lid_closed"], 250)
+            self.lids(self.cal["lid_closed"], 250, "in")
             wait(1500)  # the stall-time rule (test_stall.py) caps closures at 2 s, ramps included
-            self.lids(self.cal["lid_rest"], 1200, ease=True)
+            self.lids(self.cal["lid_rest"], 1200, "out")
         self.saccade(EYE_CENTER)
 
     def wince(self, i):
-        """Both lids snap shut, eyes twitch (small real saccades), hold, reopen fast to ~80%, settle."""
+        """A flinch (no anticipation): both lids snap shut, eyes twitch (small real saccades), hold the squeeze, reopen
+        fast past rest, hold, settle."""
         self.lids(self.cal["lid_closed"])
         for a in (4, -4, 3):
             self.saccade(EYE_CENTER + a)
         self.saccade(EYE_CENTER)
         wait(150)
-        self.lids(self.cal["lid_rest"] + 0.1, 200, ease=True)
+        self.lids(self.cal["lid_rest"] + 0.1, 200, "out")
         wait(150)
-        self.lids(self.cal["lid_rest"], 300, ease=True)
+        self.lids(self.cal["lid_rest"], 300, "io")
 
     def wink(self, i):
-        """Slow wink: one lid closes over 400 ms, holds, reopens over 600 ms; eyes glance toward that side.
+        """Toon wink: eyes glance toward that side, the lid lifts a touch, closes over 200 ms (slow in) as the other
+        lid squints 20%, holds 350 ms, both reopen past rest and settle.
         1 = mech's left lid (viewer's right), 2 = mech's right lid (viewer's left), 3 = random."""
         pin = {1: L_LID, 2: R_LID}.get(i, L_LID if self._side() > 0 else R_LID)
+        other, rest = R_LID if pin == L_LID else L_LID, self.cal["lid_rest"]
         self.saccade(EYE_CENTER + (8 if pin == L_LID else -8))
-        self.lid(pin, self.cal["lid_closed"], 400, ease=True)
-        wait(500)
-        self.lid(pin, self.cal["lid_rest"], 600, ease=True)
+        self.lids(rest + OVER, 40, pins=(pin,))  # anticipation
+        shut = {pin: self._lid_angle(pin, self.cal["lid_closed"]), other: self._lid_angle(other, 0.8 * rest)}
+        self.glide(200, shut, ease="in")
+        wait(350)
+        self.lids(rest, 240, over=OVER)
         wait(150)
         self.saccade(EYE_CENTER)
 
@@ -319,11 +345,12 @@ class Eyes:
             self.mode = cmd
             if cmd == "rest":
                 self.rest_pose()
-            else:  # gaze-evoked blink with the saccade aside
+            else:  # a small look the other way first (anticipation), then a gaze-evoked blink with the saccade aside
                 self.think_side = self._side()
+                self.eyes(EYE_CENTER - self.think_side * 4, 80)
                 self.lids(self.cal["lid_closed"])
                 self.saccade(EYE_CENTER + self.think_side * 18)
-                self.lids(self.cal["lid_think"], 250, ease=True)
+                self.lids(self.cal["lid_think"], 240, over=OVER)
                 self.next_drift = 0
                 self.next_blink = 0
                 self.think_start = None
@@ -346,7 +373,7 @@ class Eyes:
         elif cmd in self.GESTURES and len(args) == 1 and args[0] in ("1", "2", "3"):
             self.GESTURES[cmd](self, int(args[0]))
             if self.mode == "thinking":
-                self.lids(self.cal["lid_think"], 200)
+                self.lids(self.cal["lid_think"], 200, "io")
 
     def tick(self, now_ms):
         """Call often. Drives the background modes."""
@@ -379,8 +406,9 @@ class Eyes:
             return
         if now_ms >= self.next_blink:  # sparse blinks while thinking: one per 5-8 s
             self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
-            if self.next_blink:
-                self.blink(level=self.cal["lid_think"])
+            if self.next_blink:  # spontaneous: one in four stops a little short of shut
+                partial = 0.04 if (self.rand >> 8) % 4 == 0 else 0
+                self.blink(level=self.cal["lid_think"], shut=self.cal["lid_closed"] + partial)
             self.next_blink = now_ms + 5000 + self.rand % 3000
         if now_ms < self.next_drift:
             return

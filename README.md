@@ -52,7 +52,8 @@ built from the code.
 <!-- #}-->
 
 Several sessions share the one Mech; a gesture already playing wins. Eye movements replay real human recordings
-(GazeBase); blink and lid timing follow the literature in `docs/research/`.
+(GazeBase); blinks and lids keep toon timing (anticipation, slow in and out, holds, overshoot and settle,
+`docs/research/2026-11-01-toon-eyes.md`).
 
 ## How it works
 
