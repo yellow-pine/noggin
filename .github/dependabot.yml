@@ -35,6 +35,8 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ..
     directory: /ci
     schedule:
       interval: weekly
+    cooldown:   # as above
+      default-days: 14
     ignore:
       - dependency-name: ubuntu
         update-types: ["version-update:semver-major"]
@@ -46,7 +48,7 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ..
   # Images run pushed (a Dockerfile change, the Monday rebuild), proposed for review like any other PR
   - package-ecosystem: docker
     directory: /.github/workflows
-    schedule:
+    schedule:   # no cooldown: our own build outputs, the weekly rebuild's security fixes
       interval: daily
     commit-message:
       prefix: ci
