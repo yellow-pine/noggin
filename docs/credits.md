@@ -16,4 +16,4 @@ simulation of the Mech). The designer's models carry their own licences and are 
 
 Built with [Claude Code](https://docs.claude.com/en/docs/claude-code), [CadQuery](https://cadquery.readthedocs.io),
 [MuJoCo](https://mujoco.org), [Blender](https://www.blender.org), [three.js](https://threejs.org),
-[MicroPython](https://micropython.org) on the Core and [MkDocs Material](https://squidfunk.github.io/mkdocs-material/).
+[MicroPython](https://micropython.org) on the Core and [Astro Starlight](https://starlight.astro.build).

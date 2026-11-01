@@ -1,8 +1,8 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, a button per clip under it. The
-// viewer's page (web/viewer.md) adds Stage buttons; a docs page drops a small one in with
+// viewer's page (src/pages/viewer.astro) adds Stage buttons; any page, a doc's Markdown too, drops a small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
-// and the theme (overrides/main.html) loads this module, three.js's import map and the viewer's CSP on that page.
+// and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -13,17 +13,15 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
 
-const here = (f) => new URL(f, import.meta.url).href;  // the GLBs and three.js sit beside this module, at viewer/
-const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(here("three/examples/jsm/libs/draco/gltf/")));  // web/build.py checks it
+// the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
+const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
+const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(here("draco/")));
 const FOV = 20;
 // the hero GIF's view (model/render/pictures.py HERO): 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
 // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
 // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
-const press = (b, on) => {
-  b.setAttribute("aria-pressed", on);
-  b.classList.toggle("md-button--primary", on);
-};
+const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]");
@@ -32,7 +30,7 @@ function mount(root) {
   canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
   const bar = root.appendChild(document.createElement("nav"));
   bar.setAttribute("aria-label", "Gesture");
-  // see-through: the page's own background (the site's palette, palette.py) behind the Mech, in either scheme
+  // see-through: the page's own background behind the Mech, in either theme
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(devicePixelRatio);
   renderer.shadowMap.enabled = true;
@@ -152,7 +150,6 @@ function mount(root) {
     mixer.addEventListener("finished", () => play(clips.hero && "hero"));
     bar.replaceChildren(...Object.keys(clips).map((name) => {  // a button per clip: each gesture, and the hero
       const b = document.createElement("button");
-      b.className = "md-button";
       b.textContent = name;
       b.addEventListener("click", () => play(name));
       return b;

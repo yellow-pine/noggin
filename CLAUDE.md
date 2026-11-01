@@ -31,10 +31,10 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: the site's home (`docs/index.md`) and `docs/use/gestures.md`, built by `macros.py` from the code (numbers in docs: ADR 0009).
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. esptool only for read-only queries, never a write (ADR 0012).
-- The site: home `docs/index.md`, nav `mkdocs.yml`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
+- The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Model pictures (Blender, from MuJoCo's trajectories; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`; CI builds the README's (`make pictures`) for the site's /images.
-- Web viewer (three.js page at the site's /viewer): `web/`, ADR 0008; `make web` builds it, `make site` the whole site.
+- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `make web` builds the GLBs, `make site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks: `make check`; CI's jobs and time budget: CONTRIBUTING.md. Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

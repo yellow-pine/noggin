@@ -18,6 +18,19 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
       # [tool.noggin] micropython when a vendor update changes the MicroPython the Core runs.
       - dependency-name: mpy-cross
       - dependency-name: "micropython-*"
+  - package-ecosystem: npm   # the site (site/package.json, docs/adr/0013)
+    directory: /site
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    cooldown:   # as above
+      default-days: 14
+    groups:
+      npm:
+        update-types: [minor, patch]
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

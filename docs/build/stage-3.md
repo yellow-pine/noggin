@@ -1,9 +1,9 @@
 # Stage 3: mouth
 
-!!! warning "Not yet built here"
-    No Stage 3 stands on the desk yet. This guide is read off the model (model/stages.py, model/geometry.py), which
-    follows the designer's mouth guide ([Credits](../credits.md)); where the model had to infer, it says so
-    ([Model notes](../model-notes.md)).
+> [!WARNING]
+> **Not yet built here.** No Stage 3 stands on the desk yet. This guide is read off the model (model/stages.py,
+> model/geometry.py), which follows the designer's mouth guide ([Credits](../credits.md)); where the model had to
+> infer, it says so ([Model notes](../model-notes.md)).
 
 Stage 2 with a jaw under the eyes: the full Mech, the one in the hero loop. One more servo, on Core 2.
 

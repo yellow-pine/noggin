@@ -15,8 +15,8 @@ Ports 1 and 2 are the Shield's left header, 3 and 4 the right. The eyes Core's r
 has no program yet: its ranges are the model's limits and its rest the model's neutral, 90 (the jaw's closed end), and
 its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
-!!! warning "The lids bind at the ends"
-    Verify a range on the real Mech before pushing past it.
+> [!WARNING]
+> **The lids bind at the ends.** Verify a range on the real Mech before pushing past it.
 
 ## Power
 

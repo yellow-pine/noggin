@@ -2,9 +2,10 @@ name: Site Checks
 # The site (docs/adr/0009), built and checked on PRs and on main (#310): `render` renders the README's pictures in
 # Blender (make pictures, #226; one runner per motion, the matrix `motions` reads from the code, #297; the required
 # `pictures` check sums them up) beside `viewer`, whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever
-# what they are made from changed (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with
-# them at site/images, the viewer at site/viewer and main's latest sim reports at site/reports, tests the viewer in
-# Chrome and uploads the site as an artifact: a PR's preview, and on main what Site Deploy (pages.yml) deploys once
+# what they are made from changed (#221); then `site` gathers the pictures and Astro Starlight builds the docs (make
+# site, docs/adr/0013) with them at site/dist/images, the viewer at site/dist/viewer and main's latest sim reports at
+# site/dist/reports, tests the built site (Vitest) and plays the viewer and search in Chrome (Playwright), and uploads
+# it as an artifact: a PR's preview, and on main what Site Deploy (pages.yml) deploys once
 # this run and Code Checks passed. `site` and `pictures` are required checks on PRs that touch what the site is made
 # from (the changes job, as for check.yml's mech). On main, `deploy-pending` sets the commit's `deploy` status
 # pending while this builds (#292); Site Deploy sets its outcome.
@@ -45,8 +46,8 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:
           filters: |
-            site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/site-checks.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
+            site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
+                   ".github/workflows/site-checks.yml", "macros.py"]
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
     needs: changes
@@ -152,9 +153,9 @@ jobs:
       - env:
           RESULTS: ${{ needs.motions.result }} ${{ needs.render.result }}
         run: for r in $RESULTS; do test "$r" = success || test "$r" = skipped || exit 1; done
-  # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
-  # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing. Beside the
-  # pictures, so neither waits for the other (#278)
+  # the viewer's GLBs (Blender's, in web/build) built and tested by make web when what they are made from changed, else
+  # the last ones built from the same inputs: a docs-only change bakes nothing. Beside the pictures, so neither waits
+  # for the other (#278)
   viewer:
     needs: changes
     if: >-   # as site
@@ -177,16 +178,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'vendored.py', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
-      # three.js from npm (vendored.py's .cache) by its version in web/build.py; vendored.py checks each hash cached or not
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        id: three
-        run: echo "version=$(grep -oP '^THREE_VERSION = "\K[^"]+' web/build.py)" >> "$GITHUB_OUTPUT"
-      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: .cache/three@*
-          key: npm-three-${{ steps.three.outputs.version }}
+          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed. The latest trajectories: make web
@@ -247,7 +239,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      # every motion's pictures (model/build/images, which make site puts at site/images)
+      # every motion's pictures (model/build/images, which make site puts at site/dist/images)
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           pattern: images-*
@@ -257,15 +249,12 @@ jobs:
         with:
           name: viewer
           path: web/build
-      # Mermaid from npm (vendored.py's .cache) by its version in mkdocs.yml; vendored.py checks its hash cached or not
-      - id: mermaid
-        run: |   # its own assignment, so a failing yq fails the step
-          version=$(yq -e .extra.mermaid.version mkdocs.yml)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      # Node by site/.nvmrc, npm's cache keyed on the lockfile (make site runs npm ci)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
-          path: .cache/mermaid@*
-          key: npm-mermaid-${{ steps.mermaid.outputs.version }}
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
       # main's latest sim reports (check.yml's sim shard saves them on main), which make site publishes at /reports: no
       # entry carries this key, so the newest sim- entry is restored. This runs beside Code Checks, so on main Site
       # Deploy swaps in the newest once Code Checks is done (make site-reports)
@@ -275,14 +264,17 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - run: make site
-      # the viewer in Chrome (the image's) on the built site: it plays a gesture and asks no other host for anything
-      - run: uv run --with playwright==1.64.0 pytest -q web/test_viewer.py
+      # the built site's HTML: pages, links, numbers, CSP; and the diagrams drawn by mermaid-cli in the image's Chrome
+      - run: npm --prefix site test
+      # the viewer plays a gesture, search finds a page, diagrams draw, in Chrome (the image's), with no CSP violation
+      # and no request to another host but api.github.com
+      - run: npm --prefix site run smoke
       # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
       - id: preview
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: site
-          path: site
+          path: site/dist
           include-hidden-files: true   # as upload-pages-artifact would take them
           if-no-files-found: error
       - if: ${{ github.event_name == 'pull_request' }}
@@ -298,7 +290,8 @@ jobs:
           BUILT: ${{ needs.render.outputs.cold == 'true' && 'rendered from this PR' || 'unchanged, the last build of the same inputs' }}
         run: |
           echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
-          echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open' >> "$GITHUB_STEP_SUMMARY"
+          echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).' >> "$GITHUB_STEP_SUMMARY"
           echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
       # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget's critical path
       # runs through render or viewer to here)

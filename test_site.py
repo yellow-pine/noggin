@@ -1,72 +1,17 @@
-"""The site (docs/adr/0009) as Site Checks builds it: MkDocs Material builds the repo's Markdown strictly, so a
-broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
-never ship, and the nav reaches the web viewer's page at /viewer. The README's pictures are built in CI too
-(#226): none in git, every one a site URL the render job builds."""
+"""The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
+(macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The README's pictures are built in
+CI too (#226): none in git, every one a site URL the render job builds."""
 
-import base64
-import hashlib
 import json
 import os
 import re
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 import yaml
-from mkdocs.exceptions import PluginError
-from mkdocs.utils.yaml import get_yaml_loader
 
 ROOT = Path(__file__).resolve().parent
-
-
-def test_every_doc_is_a_page(site):
-    adrs = [f"docs/adr/{p.stem}/index.html" for p in (ROOT / "docs" / "adr").glob("*.md")]
-    guides = [f"docs/{d}/{p.stem}/index.html" for d in ("build", "use") for p in (ROOT / "docs" / d).glob("*.md")]
-    docs = ["GLOSSARY", "CONTRIBUTING", "docs/model-notes", "docs/face-design", "docs/how-it-works", "docs/pictures"]
-    pages = ["index.html", *(f"{d}/index.html" for d in [*docs, "docs/credits"]), *adrs, *guides]
-    assert adrs and guides and [p for p in pages if not (site / p).is_file()] == []
-
-
-def test_a_page_that_moved_keeps_its_url(site):
-    """docs/build-notes.md split into the Build and Use pages (#280): its old URL sends a reader to Stage 1."""
-    assert 'content="0; url=../build/stage-1/"' in (site / "docs" / "build-notes" / "index.html").read_text()
-
-
-def test_the_home_page_is_the_landing_page(site):
-    """docs/index.md is the site's root (#280): its buttons lead into Build, Use and the viewer; the README, which is
-    for contributors, stays off the site."""
-    home = (site / "index.html").read_text()
-    buttons = [a for a in re.findall(r"<a [^>]*>", home) if "md-button" in a]
-    for target in [
-        'href="docs/build/parts/"',
-        'href="docs/use/noggin-service/"',
-        'href="https://yellowpine.com/noggin/viewer/"',
-    ]:
-        assert any(target in a for a in buttons), target
-    assert "make check" not in home and not (site / "README" / "index.html").exists()
-
-
-def test_no_real_photo_is_public(site):
-    """No real photo of the Mech on the site or in the README until there are staged ones (Cansin, 2026-11-01): every
-    picture shown or linked is a site URL CI renders in Blender, and no photo file ships."""
-    photo = re.compile(r"\.(?:jpe?g|heic)\b", re.I)
-    blender = "https://yellowpine.com/noggin/images/"
-    pages = {p: p.read_text() for p in site.rglob("*.html")}
-    links = [(p, u) for p, html in pages.items() for u in re.findall(r'(?:href|src)="([^"]+)"', html)]
-    links += [("README.md", u) for u in re.findall(r'(?:\]\(|src=")([^)"\s]+)', (ROOT / "README.md").read_text())]
-    assert [(p, u) for p, u in links if photo.search(u) and not u.startswith(blender)] == []
-    assert [f for f in site.rglob("*") if photo.search(f.name)] == []
-
-
-def test_the_home_page_finds_its_theme(site):
-    """exclude_docs applies to the theme's own files too: Material's CSS and JS must ship."""
-    refs = re.findall(r'(?:href|src)="(assets/[^"]+)"', (site / "index.html").read_text())
-    assert any(r.endswith(".css") for r in refs) and [r for r in refs if not (site / r).is_file()] == []
-
-
-def test_the_references_do_not_ship(site):
-    assert not (site / "docs" / "references").exists() and not (site / "model").exists()
 
 
 def test_no_generated_picture_is_tracked():
@@ -77,87 +22,22 @@ def test_no_generated_picture_is_tracked():
     assert [f for f in tracked if os.path.basename(f) in sum(pictures.SITE.values(), [])] == []
 
 
-def test_the_nav_reaches_every_decision_and_the_viewer(site):
-    home = (site / "index.html").read_text()
-    links = [f'href="docs/adr/{p.stem}/"' for p in (ROOT / "docs" / "adr").glob("*.md")] + ['href="viewer/"']
-    assert [link for link in links if link not in home] == []
-
-
-@pytest.mark.parametrize("page", ["index.html", "docs/use/gestures/index.html"])
-def test_the_behaviour_table_is_built_from_the_code(site, page):
+def test_the_behaviour_table_is_built_from_the_code():
     """reactions/director.py and install_hooks.py say which event plays what, eyes/eyes.py how often it blinks."""
-    home = re.sub(r"<[^>]+>", "", (site / page).read_text())
+    import macros  # here, not at the top: it imports the model
+
+    table = macros.behaviour()
     for row in [
-        "SessionStart\nwink (hello)",
-        "UserPromptSubmit\nthinking: lids low, gaze averted, micro-saccades, a blink every 5-8 s",
-        "Stop\neureka, sized by how long the turn took: under 20 s small, under 3 min normal, longer big",
-        "Notification permission_prompt\nattention: half lids, a real left-right scan",
-        "Notification idle_prompt\nbored: drooping lids, heavy blinks, one long closure",
-        "StopFailure\nwince",
-        "SessionEnd\nback to rest (also when the last turn ends 15 min after its prompt, whatever Triggers arrive)",
+        "| SessionStart | wink (hello) |",
+        "| UserPromptSubmit | thinking: lids low, gaze averted, micro-saccades, a blink every 5-8 s |",
+        "| Stop | eureka, sized by how long the turn took: under 20 s small, under 3 min normal, longer big |",
+        "| Notification permission_prompt | attention: half lids, a real left-right scan |",
+        "| Notification idle_prompt | bored: drooping lids, heavy blinks, one long closure |",
+        "| StopFailure | wince |",
+        "| SessionEnd | back to rest (also when the last turn ends 15 min after its prompt, whatever Triggers"
+        " arrive) |",
     ]:
-        assert row in home
-
-
-# the Mermaid the site serves (mkdocs.yml extra.mermaid, overrides/main.html): the one every diagram renders with here
-MERMAID = yaml.load((ROOT / "mkdocs.yml").read_text(), Loader=get_yaml_loader())["extra"]["mermaid"]
-MERMAID_CLI = [f"@mermaid-js/mermaid-cli@{MERMAID['cli']}", f"mermaid@{MERMAID['version']}"]
-
-
-def test_the_site_serves_the_mermaid_the_diagrams_render_with(site):
-    """The site's own copy, with its hash, and only on pages with a diagram; every page allows scripts from the site
-    alone, so Material's floating unpkg mermaid@11 can never load, not even when the site's copy fails (a page with the
-    web viewer also lets the Draco decoder compile its WASM in a Blob worker); no page names a script elsewhere."""
-    file = site / "assets" / "javascripts" / f"mermaid-{MERMAID['version']}.min.js"
-    sha = base64.b64encode(hashlib.sha384(file.read_bytes()).digest()).decode()
-    assert MERMAID["integrity"] == f"sha384-{sha}"
-    csp = """<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'{}">"""
-    for page in site.rglob("*.html"):
-        html, local = page.read_text(), os.path.relpath(file, page.parent)
-        if 'http-equiv="refresh"' in html:  # a moved page's stub (mkdocs-redirects): no theme, one inline script
-            assert re.findall(r"<script[^>]* src=", html) == [], page
-            continue
-        srcs = [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if "mermaid" in s]
-        assert srcs == ([local] if 'class="mermaid"' in html else []), page
-        assert f'integrity="{MERMAID["integrity"]}"' in html or not srcs
-        viewer = " 'wasm-unsafe-eval'; worker-src 'self' blob:" if 'class="noggin-viewer"' in html else ""
-        assert csp.format(viewer) in html.split("</head>")[0], page
-        assert [s for s in re.findall(r'<script[^>]* src="([^"]+)"', html) if re.match(r"https?:|//", s)] == [], page
-        sheets = re.findall(r'<link[^>]* rel="stylesheet"[^>]* href="([^"]+)"', html)  # no Google Fonts (font: false)
-        assert sheets and [s for s in sheets if re.match(r"https?:|//", s)] == [], page
-    assert 'class="mermaid"' in (site / "docs" / "how-it-works" / "index.html").read_text()
-    assert 'class="noggin-viewer"' in (site / "viewer" / "index.html").read_text()
-
-
-def test_a_mermaid_that_is_not_the_pinned_one_fails_the_build(tmp_path, monkeypatch):
-    """vendored.py checks the hash cached or fetched, so a tampered cache never reaches the site."""
-    import mermaid
-    import vendored
-
-    monkeypatch.setattr(vendored, "CACHE", tmp_path)
-    (tmp_path / f"mermaid@{MERMAID['version']}" / "dist").mkdir(parents=True)
-    (tmp_path / f"mermaid@{MERMAID['version']}" / "dist" / "mermaid.min.js").write_text("alert(1)")
-    (tmp_path / "site" / "assets" / "javascripts").mkdir(parents=True)
-    config = SimpleNamespace(extra={"mermaid": MERMAID}, site_dir=str(tmp_path / "site"))
-    with pytest.raises(PluginError, match="sha384 differs"):
-        mermaid.on_post_build(config)
-    assert list((tmp_path / "site").rglob("*.js")) == []
-
-
-def test_every_diagram_renders(tmp_path):
-    """Every Mermaid block in docs/ drawn by Mermaid's own CLI in headless Chrome (a parse or layout
-    error fails it); the site's Mermaid, GitHub its own 12 (docs/research/2026-11-01-diagrams.md)."""
-    docs = [ROOT / "README.md", *(p for p in (ROOT / "docs").rglob("*.md") if "references" not in p.parts)]
-    files = [p for p in docs if "```mermaid" in p.read_text()]
-    assert ROOT / "docs" / "how-it-works.md" in files
-    pkgs = [arg for pkg in MERMAID_CLI for arg in ("-p", pkg)]
-    for f in files:
-        r = subprocess.run(
-            ["npx", "-y", *pkgs, "mmdc", "-q", "-i", str(f), "-o", str(tmp_path / f.name)],
-            capture_output=True,
-            text=True,
-        )
-        assert r.returncode == 0, f"{f.relative_to(ROOT)}: {r.stderr[-2000:]}"
+        assert row in table
 
 
 def github(path):
@@ -178,11 +58,11 @@ SITE_TABLES = {
 
 
 @pytest.mark.parametrize("doc", SITE_TABLES)
-def test_github_links_to_the_site_for_the_tables_built_from_the_code(site, doc):
-    """GitHub hides the macros: its link lands on the site's page at the heading of the table built there."""
+def test_github_links_to_the_site_for_the_tables_built_from_the_code(doc):
+    """GitHub hides the macros: its link lands on the site's page at the heading of the table built there (that the
+    heading is there, site.test.mjs checks on the built site)."""
     page, anchor = SITE_TABLES[doc].split("#")
     assert f"(https://yellowpine.com/noggin/{page}#{anchor})" in github(doc)
-    assert f'id="{anchor}"' in (site / page / "index.html").read_text()
 
 
 def test_the_readme_is_for_contributors():
@@ -210,33 +90,37 @@ def test_the_gesture_grid_shows_every_gesture_the_model_plays(doc):
     assert grid and re.findall(r'images/(\w+)\.gif" alt="\1"', grid[1]) == list(traces.GESTURES)
 
 
-def test_the_wiring_table_is_built_from_the_code(site):
+def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
     centred) and the neck's model limits and its 90 neutral (geometry.LIMITS; the neck Core has no program yet)."""
-    page = re.sub(r"<[^>]+>", "", (site / "docs" / "build" / "wiring" / "index.html").read_text())
+    import macros  # here, not at the top: it imports the model
+
+    table = macros.wiring()
     for row in [
-        "1 (eyes)\n1\n3\nL lid\n39..102\n61.4",
-        "1 (eyes)\n2\n2\nL eye\n58..118\n88",
-        "1 (eyes)\n3\n1\nR lid\n39..102\n64",
-        "1 (eyes)\n4\n0\nR eye\n58..118\n88",
-        "2 (neck)\n1\n3\ntilt\n30..150\n90",
-        "2 (neck)\n2\n2\njaw\n15..90\n90",
-        "2 (neck)\n3\n1\npan\n50..160\n90",
+        "| 1 (eyes) | 1 | 3 | L lid | 39..102 | 61.4 |",
+        "| 1 (eyes) | 2 | 2 | L eye | 58..118 | 88 |",
+        "| 1 (eyes) | 3 | 1 | R lid | 39..102 | 64 |",
+        "| 1 (eyes) | 4 | 0 | R eye | 58..118 | 88 |",
+        "| 2 (neck) | 1 | 3 | tilt | 30..150 | 90 |",
+        "| 2 (neck) | 2 | 2 | jaw | 15..90 | 90 |",
+        "| 2 (neck) | 3 | 1 | pan | 50..160 | 90 |",
     ]:
-        assert row in page, row
+        assert row in table, row
 
 
-def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site):
+def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     """model/render/pictures.py and blender.py, model/geometry.py SPOOLS, model/mjcf.py VIEW: as Cansin set them."""
-    notes = re.sub(r"<[^>]+>", "", (site / "docs" / "model-notes" / "index.html").read_text())
+    import macros  # here, not at the top: it imports the model
+
+    notes = macros.picture_numbers()
     for row in [
-        "gestures\n400x300\n400 wide, 8 fps, 64 colours, at most 1 MB",
-        "hero\n800x400\n800 wide, 8 fps, 48 colours, at most 3 MB",
-        "Milky Pink\n#F7CED7\n#F7CED7\n#F7CED7",
-        "Absolute Black\n#000000\n#2B2B2E\n#5A5A60",
-        "Pure White\n#FFFFFF\n#FFFFFF\n#E8E8E8",
-        "background\n\n#F7F4EE\n#F7F4EE",
+        "| gestures | 400x300 | 400 wide, 8 fps, 64 colours, at most 1 MB |",
+        "| hero | 800x400 | 800 wide, 8 fps, 48 colours, at most 3 MB |",
+        "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
+        "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
+        "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
+        "| background | | #F7F4EE | #F7F4EE |",
     ]:
         assert row in notes
 
@@ -317,10 +201,10 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
     assert sorted(u.removeprefix(site) for u in urls) == sorted(sum(pictures.SITE.values(), []))
 
 
-def test_the_hero_is_800x400_and_centred_wherever_it_shows(site):
+def test_the_hero_is_800x400_and_leads_the_readme():
     """Cansin (#278, #293): the one 800x400 hero, at its size and centred, leads the README (GitHub drops CSS, so a
-    centred HTML paragraph, its width alone: GitHub's CSS would squash a fixed height on a phone) and shows on the site
-    in a figure, which Material centres."""
+    centred HTML paragraph, its width alone: GitHub's CSS would squash a fixed height on a phone); on the site it shows
+    in a figure at its size (site.test.mjs)."""
     from model.render import pictures
 
     hero = "https://yellowpine.com/noggin/images/hero.gif"
@@ -328,15 +212,6 @@ def test_the_hero_is_800x400_and_centred_wherever_it_shows(site):
     readme = (ROOT / "README.md").read_text()
     assert re.search(rf'^<p align="center"><img src="{hero}" width="800" alt="[^"]+"></p>$', readme, re.M)
     assert readme.index(hero) < readme.index("## ")
-    imgs = {
-        p.relative_to(site).as_posix(): re.findall(rf"(<figure>\s*)?(<img [^>]*{hero}[^>]*>)", p.read_text())
-        for p in site.rglob("*.html")
-    }
-    imgs = {p: found for p, found in imgs.items() if found}
-    assert {"index.html", "docs/pictures/index.html"} <= set(imgs)
-    for page, found in imgs.items():
-        for figure, img in found:
-            assert figure and 'width="800"' in img and 'height="400"' in img, (page, img)
 
 
 def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
@@ -392,46 +267,3 @@ def test_no_real_photos_are_tracked():
     globs = ["*.jpg", "*.jpeg", "*.heic", "*.JPG", "*.HEIC"]
     tracked = subprocess.run(["git", "ls-files", *globs], capture_output=True, text=True, check=True).stdout.split()
     assert tracked == [], tracked
-
-
-def schemes(html):
-    """Each Material colour scheme's CSS variables as the page sets them (palette.py)."""
-    blocks = re.findall(r"\[data-md-color-scheme=(\w+)\]\s*\{([^}]*)\}", html.split("</head>")[0])
-    return {s: dict(re.findall(r"(--[\w-]+):\s*([^;]+);", body)) for s, body in blocks}
-
-
-def test_the_palette_is_the_mechs_own_colours_light_and_dark(site):
-    """#282: paper background, spool pink header, near-black text (the pictures' background and the Absolute Black
-    Blender draws, docs/model-notes.md), and a dark scheme the reader can switch to on every page."""
-    for page in ["index.html", "docs/build/stage-1/index.html", "viewer/index.html"]:
-        html = (site / page).read_text()
-        light, dark = schemes(html)["default"], schemes(html)["slate"]
-        assert (light["--md-default-bg-color"], light["--md-default-fg-color"]) == ("#F7F4EE", "#2B2B2E"), page
-        assert (dark["--md-default-bg-color"], dark["--md-default-fg-color"]) == ("#2B2B2E", "#F7F4EE"), page
-        assert light["--md-primary-fg-color"] == dark["--md-primary-fg-color"] == "#F7CED7", page
-        assert len(re.findall(r'<input class="md-option" data-md-color-media=', html)) == 2, page
-
-
-def test_wcag_contrast():
-    """WCAG 2's own figures: black on white 21:1, #777 on white just under AA."""
-    from palette import contrast
-
-    assert contrast("#000000", "#FFFFFF") == pytest.approx(21) and contrast("#FFFFFF", "#000000") == pytest.approx(21)
-    assert contrast("#777777", "#FFFFFF") == pytest.approx(4.48, abs=0.01)
-
-
-def test_every_text_colour_reads_at_aa_in_both_schemes(site):
-    """Text (and its lighter shade), links and buttons on the page, the header's text on the pink, a hovered button's
-    text on its fill: each at least 4.5:1 (WCAG 2 AA)."""
-    from palette import contrast
-
-    for scheme, v in schemes((site / "index.html").read_text()).items():
-        bg = v["--md-default-bg-color"]
-        for fg, on in [
-            (v["--md-default-fg-color"], bg),
-            (v["--md-default-fg-color--light"], bg),  # headings, the nav's and contents' titles
-            (v["--md-typeset-a-color"], bg),
-            (v["--md-primary-bg-color"], v["--md-primary-fg-color"]),
-            (v["--md-accent-bg-color"], v["--md-accent-fg-color"]),
-        ]:
-            assert contrast(fg, on) >= 4.5, (scheme, fg, on)

@@ -1,9 +1,9 @@
 # Stage 2: neck
 
-!!! warning "Not yet built here"
-    No Stage 2 stands on the desk yet. This guide is read off the model (model/stages.py, model/geometry.py), which
-    follows the designer's pan-and-tilt guide ([Credits](../credits.md)); where the model had to infer, it says so
-    (docs/research/2026-10-31-neck.md, [Model notes](../model-notes.md)).
+> [!WARNING]
+> **Not yet built here.** No Stage 2 stands on the desk yet. This guide is read off the model (model/stages.py,
+> model/geometry.py), which follows the designer's pan-and-tilt guide ([Credits](../credits.md)); where the model had
+> to infer, it says so (docs/research/2026-10-31-neck.md, [Model notes](../model-notes.md)).
 
 The eyes move from the desk onto a pan-and-tilt neck: the head turns left and right (pan) and nods (tilt). Two more
 servos on a second Core.

@@ -1,9 +1,0 @@
-{% extends "main.html" %}
-{# the viewer's page (web/viewer.md, no table of contents): the Stage as wide as the window beside the nav #}
-{% block extrahead %}
-  {{ super() }}
-  <style>
-    .md-main__inner.md-grid { max-width: none; }
-    .noggin-viewer canvas { height: 60vh; }  /* the gestures under it in view on a laptop */
-  </style>
-{% endblock %}

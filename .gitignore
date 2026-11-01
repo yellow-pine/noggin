@@ -12,6 +12,5 @@ eyes/wifi.json
 .agents/
 
 web/build/
-site/
 mech/build/
 .cache/

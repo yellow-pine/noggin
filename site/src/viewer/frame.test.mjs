@@ -1,6 +1,5 @@
-// node --test web/frame.test.mjs (make check): the viewer's framing and line width, worked by hand
-import { test } from "node:test";
-import assert from "node:assert/strict";
+// The viewer's framing and line width, worked by hand (npm test)
+import { assert, test } from "vitest";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
 
 const cube = [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => [x, y, z])));

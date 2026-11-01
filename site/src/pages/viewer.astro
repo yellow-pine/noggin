@@ -1,0 +1,22 @@
+---
+// The web viewer's page (docs/adr/0008) in the site's theme: one button per Stage (macros.py, from model/geometry.py
+// STAGES) over the viewer (loaded by src/components/Footer.astro), which draws the Stage's GLB beside this page at viewer/.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { stages } from '../macros.json';
+---
+
+<StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
+  <p>
+    The Mech that reacts to Claude Code, as built in its model. Drag to turn it, scroll or pinch to zoom, and play each
+    gesture.
+  </p>
+  <div class="noggin-viewer" data-stage={stages.at(-1)}>
+    <nav aria-label="Stage">
+      {stages.map((stage, n) => <button data-stage={stage}>Stage {n + 1}</button>)}
+    </nav>
+  </div>
+</StarlightPage>
+
+<style is:global>
+  .noggin-viewer canvas { height: 60vh; } /* the gestures under it in view on a laptop */
+</style>

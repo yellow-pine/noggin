@@ -1,0 +1,11 @@
+---
+// Starlight's footer, and the web viewer (docs/adr/0008) on any page that has a <div class="noggin-viewer">: its module
+// and three.js load only there.
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default />
+
+<script>
+  if (document.querySelector('.noggin-viewer')) import('../viewer/viewer.mjs');
+</script>
