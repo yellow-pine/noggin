@@ -340,8 +340,8 @@ jobs:
           echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
           echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
           echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
-      # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget counts from the
-      # run's first job)
+      # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget's critical path
+      # runs through render or viewer to here)
       - run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && needs.viewer.outputs.warm == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}

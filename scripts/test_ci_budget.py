@@ -1,76 +1,118 @@
 """ci_budget.py: a warm PR run over its budget fails, a warm main run over its budget warns; a cold one is only
-reported. The clock starts when the run attempt's first job did, so time spent waiting for a runner, or an
-earlier attempt, is not counted."""
+reported. The budget measures the critical path: the longest chain of jobs along the workflow's needs, each counted
+from when a runner picked it up to when it finished, so time spent waiting for a runner, or an earlier attempt, is
+not counted."""
 
-from scripts.ci_budget import first_start, over
+from scripts.ci_budget import critical_path, over
 
-START = "2026-11-01T12:00:00Z"
-
-
-def test_a_warm_pr_run_within_three_minutes_passes():
-    assert over("pull_request", START, "2026-11-01T12:02:59Z", warm=True) is None
-
-
-def test_a_warm_pr_run_past_three_minutes_fails():
-    level, why = over("pull_request", START, "2026-11-01T12:03:01Z", warm=True) or ("", "")
-    assert level == "error" and "181 s > 180 s" in why
-
-
-def test_main_past_nine_minutes_warns_and_never_fails():
-    assert over("push", START, "2026-11-01T12:08:59Z", warm=True) is None
-    assert (over("push", START, "2026-11-01T12:09:01Z", warm=True) or ("",))[0] == "warning"
+# check.yml's jobs as yq -o=json reads them, down to what the budget reads: names and needs
+CHECK = {
+    "changes": {},
+    "mech": {"needs": "changes"},
+    "code": {},
+    "convex": {},
+    "convex-part": {"name": "convex ${{ matrix.part }}", "needs": "convex"},
+    "model-shard": {"name": "model ${{ matrix.shard }}", "needs": ["convex", "convex-part"]},
+    "model": {"needs": "model-shard"},
+}
 
 
-def test_a_cold_run_is_never_over():
-    assert over("pull_request", START, "2026-11-01T12:30:00Z", warm=False) is None
+def job(name: str, started: str, completed: str | None, conclusion: str | None = "success") -> dict:
+    return {
+        "name": name,
+        "status": "completed" if completed else "in_progress",
+        "conclusion": conclusion,
+        "started_at": f"2026-11-01T{started}Z",
+        "completed_at": completed and f"2026-11-01T{completed}Z",
+    }
 
 
-def test_an_event_without_a_budget_is_never_over():
-    assert over("workflow_dispatch", START, "2026-11-01T12:30:00Z", warm=True) is None
+# #304's first attempt (run 41349665861): a busy queue held the model shards up to 2.5 min for a runner, so the run
+# ended 285 s after its first job started and the old clock failed it, while no chain of jobs ran past 163 s
+QUEUED_BUT_FAST = [
+    job("changes", "21:00:34", "21:00:38"),
+    job("convex", "20:59:59", "21:00:03"),
+    job("code", "21:01:14", "21:02:56"),
+    job("model hero", "21:01:28", "21:02:36"),
+    job("model stage3", "21:01:45", "21:03:44"),
+    job("model stage2", "21:02:21", "21:04:12"),
+    job("model sim", "21:01:25", "21:03:33"),
+    job("model mouth pan-tilt", "21:01:37", "21:02:51"),
+    job("model mujoco", "21:01:14", "21:03:49"),  # 155 s, the slowest shard
+    job("convex ${{ matrix.part }}", "21:00:04", "21:00:04", "skipped"),
+    job("mech", "21:02:25", "21:02:59"),
+    job("model", "21:04:40", "21:04:44"),
+]
+ATTEMPT = "2026-11-01T20:59:50Z"
+NOW = "2026-11-01T21:04:44Z"
 
 
-def test_the_clock_starts_at_the_first_job_that_ran_not_at_the_queued_run():
+def test_a_busy_queue_does_not_count_only_the_jobs_own_run_times_along_their_needs():
+    took = critical_path(QUEUED_BUT_FAST, CHECK, ATTEMPT, NOW)
+    assert took == 4 + 155 + 4  # convex, model mujoco, model
+    assert over("pull_request", took, warm=True) is None
+
+
+def test_a_genuinely_slow_job_still_fails_the_run():
+    slow = [j | {"completed_at": "2026-11-01T21:04:34Z"} if j["name"] == "model mujoco" else j for j in QUEUED_BUT_FAST]
+    took = critical_path(slow, CHECK, ATTEMPT, NOW)
+    assert took == 4 + 200 + 4
+    level, why = over("pull_request", took, warm=True) or ("", "")
+    assert level == "error" and "208 s > 180 s" in why
+
+
+def test_a_job_still_running_counts_up_to_now_and_one_without_a_runner_not_at_all():
     jobs = [
-        {"run_attempt": 2, "status": "completed", "conclusion": "success", "started_at": "2026-11-01T12:20:05Z"},
-        {"run_attempt": 2, "status": "in_progress", "conclusion": None, "started_at": "2026-11-01T12:20:01Z"},
-        {
-            "run_attempt": 2,
-            "status": "queued",
-            "conclusion": None,
-            "started_at": "2026-11-01T12:00:00Z",
-        },  # no runner yet
-        {
-            "run_attempt": 2,
-            "status": "waiting",
-            "conclusion": None,
-            "started_at": "2026-11-01T12:00:00Z",
-        },  # on its needs
-        {"run_attempt": 2, "status": "completed", "conclusion": "skipped", "started_at": "2026-11-01T12:00:00Z"},
-        {"run_attempt": 2, "status": "completed", "conclusion": "cancelled", "started_at": "2026-11-01T12:00:00Z"},
+        job("convex", "12:00:00", "12:00:05"),
+        job("model hero", "12:00:10", None),  # the job this step runs in
+        job("model sim", "12:00:06", None) | {"status": "queued", "started_at": "2026-11-01T12:00:06Z"},
+        job("code", "12:00:00", None) | {"status": "waiting"},
+        job("mech", "12:00:00", "12:00:00", "cancelled"),
     ]
-    assert first_start(jobs, attempt_started="2026-11-01T12:00:00Z") == "2026-11-01T12:20:01Z"
+    assert critical_path(jobs, CHECK, "2026-11-01T11:59:58Z", "2026-11-01T12:01:10Z") == 5 + 60
 
 
 def test_re_running_the_failed_jobs_measures_the_new_attempt_on_its_own():
     """Attempt 1 started at 17:36:35 and went red; "re-run failed jobs" lists the jobs it kept under attempt 2 too,
-    with attempt 2's run_attempt but the start they had in attempt 1 (as in #265's run 41332342549)."""
-    passed = {"status": "completed", "conclusion": "success"}
+    with attempt 2's run_attempt but the run times they had in attempt 1 (as in #265's run 41332342549)."""
     attempt_2 = [
-        passed | {"started_at": "2026-11-01T17:39:20Z"},  # the job that failed, re-run
-        passed | {"started_at": "2026-11-01T17:36:35Z"},  # convex, kept
-        passed | {"started_at": "2026-11-01T17:36:44Z"},  # a model shard, kept
+        job("convex", "17:36:35", "17:36:40"),  # kept
+        job("model hero", "17:36:44", "17:38:50"),  # kept
+        job("code", "17:39:20", None),  # the job that failed, re-run
     ]
-    started = first_start(attempt_2, attempt_started="2026-11-01T17:39:17Z")
-    assert started == "2026-11-01T17:39:20Z"
-    assert over("pull_request", started, "2026-11-01T17:40:33Z", warm=True) is None  # 73 s
-    assert over("pull_request", "2026-11-01T17:36:35Z", "2026-11-01T17:40:33Z", warm=True)  # from attempt 1: 238 s
+    assert critical_path(attempt_2, CHECK, "2026-11-01T17:39:17Z", "2026-11-01T17:40:33Z") == 73
 
 
-def test_an_attempt_start_later_than_every_job_falls_back_to_the_earliest_job_that_ran(capsys):
+def test_an_attempt_start_later_than_every_job_falls_back_to_every_job_that_ran():
     """Should the attempt's recorded start come after every job's (clock skew), the budget still reports, not crash."""
-    passed = {"status": "completed", "conclusion": "success"}
-    jobs = [passed | {"started_at": "2026-11-01T12:00:05Z"}, passed | {"started_at": "2026-11-01T12:00:02Z"}]
-    started = first_start(jobs, attempt_started="2026-11-01T12:00:09Z")
-    assert started == "2026-11-01T12:00:02Z"
-    assert over("pull_request", started, "2026-11-01T12:01:02Z", warm=True) is None
-    assert "60 s since the first job started" in capsys.readouterr().out
+    jobs = [job("convex", "12:00:02", "12:00:05"), job("model hero", "12:00:05", None)]
+    assert critical_path(jobs, CHECK, "2026-11-01T12:00:09Z", "2026-11-01T12:01:05Z") == 3 + 60
+
+
+def test_a_matrix_job_without_a_name_is_listed_by_its_id_and_values():
+    workflow = {"motions": {}, "render": {"needs": "motions", "strategy": {"matrix": {"motion": ["a"]}}}}
+    jobs = [job("motions", "12:00:00", "12:00:10"), job("render (wave, 2)", "12:00:30", "12:01:00")]
+    assert critical_path(jobs, workflow, "2026-11-01T12:00:00Z", "2026-11-01T12:02:00Z") == 10 + 30
+
+
+def test_a_warm_pr_run_within_three_minutes_passes():
+    assert over("pull_request", 179, warm=True) is None
+
+
+def test_a_warm_pr_run_past_three_minutes_fails(capsys):
+    level, why = over("pull_request", 181, warm=True) or ("", "")
+    assert level == "error" and "181 s > 180 s" in why
+    assert "181 s along the critical path" in capsys.readouterr().out
+
+
+def test_main_past_nine_minutes_warns_and_never_fails():
+    assert over("push", 539, warm=True) is None
+    assert (over("push", 541, warm=True) or ("",))[0] == "warning"
+
+
+def test_a_cold_run_is_never_over():
+    assert over("pull_request", 1800, warm=False) is None
+
+
+def test_an_event_without_a_budget_is_never_over():
+    assert over("workflow_dispatch", 1800, warm=True) is None
