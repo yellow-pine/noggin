@@ -8,6 +8,7 @@
 > Amended 2026-11-01 (#221): a PR touching `model/`, `eyes/` or `web/` bakes and tests the GLBs too; every run reuses
 > the last GLBs built from the same inputs.
 > Amended 2026-11-01 (#268): the site serves three.js itself; the page runs scripts from the site alone.
+> Amended 2026-11-01 (#271): the camera frames the Stage as the hero GIF does, and lines follow its size on screen.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -20,10 +21,13 @@ watch the hero loop.
   `MeshToonMaterial` whose gradient map is the pictures' light per N.L (the two-step toon ramp mixed with the satin,
   sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
   and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right and
-  casting shadows as Eevee's sun does (#211 measured the pictures' two tones to be these cast shadows). Lines scale with the canvas as the GIFs' do with the picture: `line_px` at
-  640 px wide, never under one device pixel.
+  casting shadows as Eevee's sun does (#211 measured the pictures' two tones to be these cast shadows). On load and on a Stage switch the camera
+  frames the Stage as the hero GIF does (its view, 15 degrees to the right and up, every vertex in frame with the
+  pictures' 1.06 margin). Lines follow the Stage's size on screen as the GIFs' do: `line_px` when it is as big as in a
+  4:3 frame `line_at` (640) px wide, through every zoom and resize, never under 1 px nor over twice `line_px`.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The page is one static HTML file in `web/`, with no build step of its own. three.js, the addons it
+  other GLB. The page is one static HTML file in `web/` and its framing module (`frame.mjs`, tested
+  with `node --test`), with no build step of its own. three.js, the addons it
   imports and the Draco decoder `DRACOLoader` fetches are copied into the site from the npm package when the viewer
   is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
   map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in

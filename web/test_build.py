@@ -43,7 +43,7 @@ class Page(HTMLParser):
             self.importmap = json.loads(data)
         self.modules += re.findall(r'from "([^"]+)"', data)
         self.look |= set(re.findall(r"\blook\.(\w+)", data))
-        self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data))
+        self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data) + re.findall(r'from "\./([^"]+)"', data))
 
 
 @pytest.fixture(scope="module")
@@ -55,12 +55,13 @@ def page():
 
 def test_the_page_loads_only_the_glbs_the_build_writes(page):
     decoder = "examples/jsm/libs/draco/gltf/"
-    assert page.refs == {*STAGES.values(), "three/" + decoder}
+    assert page.refs == {*STAGES.values(), "three/" + decoder, "frame.mjs"}
     assert {f for f in build.THREE if f.startswith(decoder)} == {
         decoder + "draco_wasm_wrapper.js",
         decoder + "draco_decoder.wasm",
     }
     assert build.GLBS == STAGES
+    assert page.refs - {*STAGES.values(), "three/" + decoder} <= set(build.PAGE)  # the page's own modules are copied
 
 
 @pytest.fixture(scope="module")
@@ -81,8 +82,8 @@ def test_the_site_serves_the_three_it_checked(three):
 
 
 def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
-    """The page's imports through its import map, then each served module's own import statements:
-    all land on a pinned file, and every pinned module is one of them."""
+    """The page's imports through its import map (its own modules aside: build.PAGE), then each served module's own
+    import statements: all land on a pinned file, and every pinned module is one of them."""
     imports = {k: v.removeprefix("./three/") for k, v in page.importmap["imports"].items()}
 
     def resolve(m, base):
@@ -92,7 +93,7 @@ def test_every_module_the_page_imports_is_one_the_site_serves(page, three):
             else os.path.normpath(os.path.join(os.path.dirname(base), m))
         )
 
-    todo, seen = {resolve(m, "") for m in page.modules}, set()
+    todo, seen = {resolve(m, "") for m in page.modules if not m.startswith("./")}, set()  # not the page's own
     while todo:
         f = todo.pop()
         assert f in build.THREE, f
