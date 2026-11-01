@@ -2,7 +2,7 @@
 name = "noggin"
 version = "0.1.0"
 description = "Animatronic Mech that reacts to Claude Code"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "cadquery>=2.8.0",
     "coacd>=1.0.14",
@@ -41,8 +41,21 @@ markers = ["model: MuJoCo and the slowest mesh sweeps; CI runs them in its model
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py314"
 extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace bytes / the stock program
+
+# no 3.14 syntax (ruff format drops except parens) where our venv doesn't run them: the Core's MicroPython
+# (eyes/test_micropython.py), the stand-in's, and the runner's python3 in .github/workflows
+[tool.ruff.per-file-target-version]
+"eyes/boot.py" = "py312"
+"eyes/eyes.py" = "py312"
+"eyes/wifi.py" = "py312"
+"mech/core/*.py" = "py312"
+"noggin/core.py" = "py312"
+"scripts/ci_budget.py" = "py312"
+"scripts/claude_approved.py" = "py312"
+"scripts/deploy_status.py" = "py312"
+"scripts/pr_scopes.py" = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -53,7 +66,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
-pythonVersion = "3.12"  # the venv's (requires-python); else pyright asks whichever python is on PATH
+pythonVersion = "3.14"  # the venv's (requires-python); else pyright asks whichever python is on PATH
 include = ["eyes", "noggin", "reactions", "scripts", "mech", "conftest.py", "test_vocabulary.py"]
 exclude = ["eyes/stock-backup", "eyes/boot.py", "eyes/eyes.py", "eyes/gaze_trace.py", "eyes/wifi.py", "mech/core", "mech/build"]  # the Core's (eyes/test_micropython.py checks them against its MicroPython), the stand-in's MicroPython stubs, its build
 extraPaths = ["eyes"]  # conftest puts eyes/ on sys.path: `import eyes` is eyes/eyes.py, the Core program

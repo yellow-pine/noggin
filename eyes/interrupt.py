@@ -15,7 +15,7 @@ for _attempt in range(15):  # the noggin service may still be letting go of the 
     try:
         s = serial.Serial(ports[0], 115200, timeout=0.5, exclusive=True)
         break
-    except (serial.SerialException, OSError):
+    except serial.SerialException, OSError:
         time.sleep(0.2)
 else:
     sys.exit("Link busy: is the noggin service still running? (make stop)")
