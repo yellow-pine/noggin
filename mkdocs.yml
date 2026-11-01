@@ -28,6 +28,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+extra_css:
+  - assets/stylesheets/layout.css   # layout only (#293)
 hooks:
   - mermaid.py   # fetches, checks and copies the pinned Mermaid into the site
   - home.py
