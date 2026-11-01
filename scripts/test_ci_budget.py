@@ -70,7 +70,11 @@ def test_re_running_the_failed_jobs_measures_the_new_attempt_on_its_own():
     assert over("pull_request", "2026-11-01T17:36:35Z", "2026-11-01T17:40:33Z", warm=True)  # from attempt 1: 238 s
 
 
-def test_an_attempt_start_later_than_every_job_falls_back_to_the_earliest_job_that_ran():
+def test_an_attempt_start_later_than_every_job_falls_back_to_the_earliest_job_that_ran(capsys):
+    """Should the attempt's recorded start come after every job's (clock skew), the budget still reports, not crash."""
     passed = {"status": "completed", "conclusion": "success"}
     jobs = [passed | {"started_at": "2026-11-01T12:00:05Z"}, passed | {"started_at": "2026-11-01T12:00:02Z"}]
-    assert first_start(jobs, attempt_started="2026-11-01T12:00:09Z") == "2026-11-01T12:00:02Z"
+    started = first_start(jobs, attempt_started="2026-11-01T12:00:09Z")
+    assert started == "2026-11-01T12:00:02Z"
+    assert over("pull_request", started, "2026-11-01T12:01:02Z", warm=True) is None
+    assert "60 s since the first job started" in capsys.readouterr().out

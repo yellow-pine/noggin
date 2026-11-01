@@ -26,10 +26,10 @@ def first_start(jobs: list[dict], attempt_started: str) -> str:
         or j["status"] == "completed"
         and j["conclusion"] not in ("skipped", "cancelled")
     ]
-    this_attempt = [
+    since_attempt = [
         j for j in ran if datetime.fromisoformat(j["started_at"]) >= datetime.fromisoformat(attempt_started)
     ]
-    return min(this_attempt or ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
+    return min(since_attempt or ran, key=lambda j: datetime.fromisoformat(j["started_at"]))["started_at"]
 
 
 def over(event: str, started: str, now: str, warm: bool) -> tuple[str, str] | None:
