@@ -36,8 +36,8 @@ jobs:
   pr:
     name: propose
     needs: lock
-    # from main only: a dispatch on another branch would otherwise propose that branch's commits with the re-pin
-    if: github.ref == 'refs/heads/main'
+    # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -72,8 +72,7 @@ jobs:
           git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "Skills: re-pin skills-lock.json to upstream HEAD" skills-lock.json
-          # force: skills-bump is this workflow's own branch, rebuilt from main each run; the only ref it writes (main's
-          # ruleset rejects a direct push from GITHUB_TOKEN: only admins bypass it)
+          # force: skills-bump is this workflow's own branch, rebuilt from main each run, and the only ref it writes
           git -c core.hooksPath=/dev/null push -qf "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" skills-bump
           gh pr create --head skills-bump --title "Skills: re-pin skills-lock.json to upstream HEAD" \
             --body-file "$RUNNER_TEMP/body.md" || gh pr edit skills-bump --body-file "$RUNNER_TEMP/body.md"
