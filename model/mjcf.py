@@ -143,14 +143,17 @@ def _joints(stage):
     return hinges, moves, closures
 
 
-def spec(doc):
+def spec(doc, collide=True):
     """The document as an MjSpec: a body per part at its placement, its mesh drawn in its colour, its convex pieces
-    colliding and weighing the part's mass (mass()); the parts a joint moves hang under it (_joints())."""
+    colliding and weighing the part's mass (mass()); the parts a joint moves hang under it (_joints()). Without collide
+    there are no pieces (no CoACD): the drawn mesh weighs the part and nothing collides, enough for what plays with
+    contacts off (model/trajectories.py, #276)."""
     stage = stages.STAGES[doc]
     meshes = {stages.stem(p.file): (p.file, p.clip) for p in stage.parts.values()}
-    # spawn, not fork: CadQuery's OCCT threads may be running in the caller (model/ours.py)
-    with concurrent.futures.ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as pool:
-        pieces = dict(zip(meshes, pool.map(_convex, meshes.values())))
+    pieces = {stem: [] for stem in meshes}
+    if collide:  # spawn, not fork: CadQuery's OCCT threads may be running in the caller (model/ours.py)
+        with concurrent.futures.ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as pool:
+            pieces = dict(zip(meshes, pool.map(_convex, meshes.values())))
     volumes = {stem: [trimesh.load(p).volume for p in ps] for stem, ps in pieces.items()}
     s = mujoco.MjSpec()
     s.modelname = doc
@@ -204,11 +207,12 @@ def spec(doc):
         # make view only has to tell the parts apart: the part's colour, black and white pulled in (VIEW)
         colour = scene.colour(file)
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
-        # the drawn mesh carries no mass and touches nothing: the pieces do both, the part's mass spread by volume
-        body.add_geom(
-            type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, density=0, rgba=rgba, material="satin"
-        )
+        # the drawn mesh touches nothing and carries no mass where the pieces do both, the part's mass spread by volume
         kg = mass(_mesh(file, clip), stage.parts[name].material) / 1000
+        weight = {"density": 0} if pieces[stem] else {"mass": kg}
+        body.add_geom(
+            type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, rgba=rgba, material="satin", **weight
+        )
         for p, v in zip(pieces[stem], volumes[stem]):
             piece = f"{stem} {stages.stem(p)}"
             body.add_geom(type=mesh, meshname=piece, group=COLLISION, rgba=rgba, mass=kg * v / sum(volumes[stem]))
@@ -275,22 +279,23 @@ def spec(doc):
     return s
 
 
-def write(doc, folder=MJCF):
-    """<folder>/<doc>.xml (returned): model/build/mjcf by default, model/build/reports for the sim report's (make sim)."""
+def write(doc, folder=MJCF, *, collide=True):
+    """<folder>/<doc>.xml (returned; <doc>-drawn.xml without collide): model/build/mjcf by default, model/build/reports
+    for the sim report's (make sim)."""
     os.makedirs(folder, exist_ok=True)
-    s = spec(doc)
+    s = spec(doc, collide)
     s.meshdir = os.path.relpath(BUILD, folder)
     s.modelfiledir = folder
     s.compile()
-    path = os.path.join(folder, doc + ".xml")
+    path = os.path.join(folder, doc + ("" if collide else "-drawn") + ".xml")
     with open(path, "w") as f:
         f.write(s.to_xml())
     return path
 
 
-def model(doc):
-    """The document as MuJoCo loads it from its MJCF."""
-    return mujoco.MjModel.from_xml_path(write(doc))
+def model(doc, collide=True):
+    """The document as MuJoCo loads it from its MJCF (spec: without collide, no convex pieces)."""
+    return mujoco.MjModel.from_xml_path(write(doc, collide=collide))
 
 
 def pose(model, ctrl, deg_s=SLEW_DEG_S):

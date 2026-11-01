@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from model import geometry as g
-from model import mjcf, trajectories
+from model import mjcf
 from model.render import pictures
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
 
@@ -62,7 +62,7 @@ def behaviour():
 def picture_numbers():
     p, gif = pictures, "{} wide, {} fps, {} colours, at most {:g} MB".format
     gestures = gif(p.GIF_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.GIF_MAX_BYTES / 1e6)
-    hero = gif(p.HERO_WIDTH, trajectories.FPS, p.HERO_COLOURS, p.HERO_MAX_BYTES / 1e6)
+    hero = gif(p.HERO_WIDTH, p.GIF_FPS, p.HERO_COLOURS, p.HERO_MAX_BYTES / 1e6)
     size = "{}x{}".format
     lift = {g.SPOOLS["Absolute Black"]: constant("model/render/blender.py", "BLACK_LIFT")}
     return "\n".join(

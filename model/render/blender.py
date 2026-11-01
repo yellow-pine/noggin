@@ -1,11 +1,13 @@
 """Blender side of model/render/pictures.py: runs INSIDE Blender (`Blender -b -P model/render/blender.py -- job.json`).
 The job names each part's mesh (its own frame, metres) and colour, and the shots: output path, size, camera and every
 part's world matrix. Look (docs/model-notes.md): satin plastic in the spool colours mixed with a two-step toon shadow,
-one small highlight, 2.5 px black Freestyle lines on silhouettes, borders and creases, plain light background."""
+one small highlight, ART_PX black Line Art lines on silhouettes and creases, plain light background. Prints each frame's
+render time (`frame <file> <s>`), which pictures.py passes to its log."""
 
 import json
 import math
 import sys
+import time
 
 import bpy
 import numpy as np
@@ -13,9 +15,11 @@ from mathutils import Matrix, Vector
 
 BG = "#F7F4EE"
 BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
-LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B)
+LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B); the web viewer's lines
+ART_PX = 1.75  # the pictures' Line Art lines: 2.5 px read too bold (Cansin, #276)
 SHADOW_AT, HIGHLIGHT_AT = 0.7, 0.8  # where the toon ramps step, on the diffuse and glossy light
 CREASE = 60  # degrees between face normals that draw a crease line
+SAMPLES = 4  # Eevee's per frame: 64 (then 16) took CI's software GL tens of minutes (#226, #276)
 SUN, WORLD = 2.6, 0.4  # the key light's and the world's strength
 KEY = (0.62, 0.60, 0.51)  # key light toward the camera's upper right, in the camera's (right, up, back) frame
 
@@ -76,29 +80,33 @@ def setup():
     sc.render.engine = "BLENDER_EEVEE"
     sc.render.film_transparent = True  # the background is laid in after, so it does not light the parts
     sc.view_settings.view_transform = "Standard"  # spool colours as given
-    sc.eevee.taa_render_samples = 64
+    sc.eevee.taa_render_samples = SAMPLES
     sc.render.image_settings.file_format, sc.render.image_settings.color_mode = "PNG", "RGBA"
     world = bpy.data.worlds.new("w")
     sc.world = world
     world.node_tree.nodes["Background"].inputs["Strength"].default_value = WORLD
-    sc.render.use_freestyle = True
-    sc.render.line_thickness_mode, sc.render.line_thickness = "ABSOLUTE", 1.0
-    vl = sc.view_layers[0]
-    vl.use_freestyle = True
-    vl.freestyle_settings.crease_angle = math.radians(180 - CREASE)  # Freestyle measures the angle between the faces
-    ls = vl.freestyle_settings.linesets.new("lines")
-    ls.select_by_visibility, ls.visibility, ls.select_by_edge_types = True, "VISIBLE", True
-    for t in ("silhouette", "border", "crease"):
-        setattr(ls, "select_" + t, True)
-    ls.linestyle = bpy.data.linestyles.new("line")
-    ls.linestyle.color, ls.linestyle.thickness, ls.linestyle.chaining = (0, 0, 0), LINE_PX, "PLAIN"
+    # Line Art (a Grease Pencil modifier, on several CPU threads) draws the lines: Freestyle took ~90 % of a frame on one
+    # thread (docs/research/2026-11-01-render-profile.md, #276); its radius is set per shot (main), the stroke in metres
+    gp = bpy.data.grease_pencils.new("lines")
+    gp.layers.new("lines")
+    ink = bpy.data.materials.new("ink")
+    bpy.data.materials.create_gpencil_data(ink)
+    ink.grease_pencil.color = (0, 0, 0, 1)
+    gp.materials.append(ink)
+    lines = bpy.data.objects.new("lines", gp)
+    sc.collection.objects.link(lines)
+    art = lines.modifiers.new("lines", "LINEART")
+    art.source_type, art.target_layer, art.target_material = "SCENE", "lines", ink
+    art.use_contour, art.use_crease, art.use_crease_on_smooth, art.use_crease_on_sharp = True, True, True, False
+    art.use_intersection = art.use_material = art.use_edge_mark = art.use_loose = False
+    art.crease_threshold = math.radians(180 - CREASE)  # the angle between the faces, as Freestyle measured it
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
     sc.collection.objects.link(cam)
     sc.camera = cam
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
     sun.data.energy, sun.data.angle = SUN, math.radians(12)
     sc.collection.objects.link(sun)
-    return sc, cam, sun
+    return sc, cam, sun, art
 
 
 def load(parts):
@@ -130,8 +138,19 @@ def flatten(path, w, h):
     bpy.data.images.remove(img)
 
 
+def px_metres(cam, objs, width):
+    """One pixel's size in metres at the shown parts' centre: the line's radius follows the camera, so a line is ART_PX
+    wide on every shot (Line Art strokes are geometry, Freestyle's were pixels)."""
+    if cam.data.type == "ORTHO":
+        return cam.data.ortho_scale / width
+    shown = [ob.matrix_world @ Vector(c) for ob in objs.values() if not ob.hide_render for c in ob.bound_box]
+    centre = sum(shown, Vector()) / len(shown)
+    depth = (cam.matrix_world.inverted() @ centre).z * -1
+    return depth * cam.data.sensor_width / cam.data.lens / width
+
+
 def main(job):
-    sc, cam, sun = setup()
+    sc, cam, sun, art = setup()
     objs = load(job["parts"])
     for shot in job["shots"]:
         for name, ob in objs.items():
@@ -150,9 +169,12 @@ def main(job):
         sun.rotation_euler = (-key).to_track_quat("-Z", "Y").to_euler()
         w, h = shot["size"]
         sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
+        art.radius = ART_PX * px_metres(cam, objs, w)  # Blender 5.2 draws the stroke about `radius` wide (measured)
         sc.render.filepath = shot["out"]
+        t = time.monotonic()
         bpy.ops.render.render(write_still=True)
         flatten(shot["out"], w, h)
+        print(f"frame {shot['out']} {time.monotonic() - t:.2f}", flush=True)
 
 
 if __name__ == "__main__":  # web/glb.py imports the look

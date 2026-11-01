@@ -16,14 +16,18 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
-  shadow and one small highlight band, 2.5 px black Freestyle lines on silhouettes, borders and creases (faces
-  more than 60 degrees apart, so STL facets draw none), one key light at the camera's upper right, a plain
-  background. STL facets are smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the
-  eyeball so their outline stays whole.
+  shadow and one small highlight band, black lines on silhouettes and creases (faces more than 60 degrees apart, so
+  STL facets draw none; their width blender.py ART_PX in the pictures, LINE_PX in the web viewer), one key light at the camera's upper right, a plain background. STL facets are
+  smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the eyeball so their outline stays
+  whole. For CI's software GL (Cansin, 2026-11-01, #226, #276; docs/research/2026-11-01-render-profile.md): Blender's
+  Line Art draws the lines (Freestyle took ~90 % of a frame on one thread), Eevee takes 4 samples a frame (was 64), the
+  GIFs render at the size they ship, 8 fps, keeping toon timing's key frames (pictures.py at_fps).
 - Views, orthographic, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
-- README media (#117), copied into docs/images: the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
+- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, the pages
+  workflow's `pictures` job, views, gifs and hero each on its own runner; model/render/pictures.py SITE;
+  yellowpine.com/noggin/images/): the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
