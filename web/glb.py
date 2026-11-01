@@ -50,6 +50,7 @@ def main(job):
     for k, v in {
         "bg": look.BG,
         "line_px": look.LINE_PX,
+        "line_at": 640,  # line_px holds at this canvas width (Cansin's pick, #211)
         "crease": look.CREASE,
         "ramp": ramp,
         "highlight": look.TOON * look.HIGHLIGHT,

@@ -71,26 +71,30 @@
   const gestures = document.querySelectorAll("[data-gesture]");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(devicePixelRatio);
+  renderer.shadowMap.enabled = true;
   const camera = new THREE.PerspectiveCamera(20);
   const controls = new OrbitControls(camera, canvas);
-  // the key light rides at the camera's upper right; intensity PI makes a part colour x ramp (RE_Direct_Toon divides by PI)
+  // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
+  // divides by PI) and the ambient is the ramp's floor, so a shadowed point gets the N.L <= 0 light as in Eevee
   const key = new THREE.DirectionalLight(0xffffff, Math.PI);
-  camera.add(key, key.target);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  const ambient = new THREE.AmbientLight(0xffffff);
   const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("draco/"));  // web/build.py checks it
   // the gesture GIFs' view (model/render/pictures.py THREE_QUARTER): front-right, 25 deg up, in glTF's Y-up
   const VIEW = new THREE.Vector3(-0.641, 0.423, 0.641);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  let scene, mixer, clips, creases, look, loading = 0;
+  let scene, sphere, mixer, clips, creases, look, loading = 0;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
   function stylise(root) {
     look = root.userData;
     document.body.style.background = look.bg;
-    key.position.fromArray(look.key);
     band.value.set(look.highlight_from, look.highlight);
-    const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * x)));
+    ambient.intensity = Math.PI * look.ramp[0];
+    const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * (x - look.ramp[0]))));
     const gradient = new THREE.DataTexture(ramp, ramp.length, 1, THREE.RedFormat);  // nearest filtering
     gradient.needsUpdate = true;
     const hull = new THREE.MeshBasicMaterial({ color: 0, side: THREE.BackSide });
@@ -99,11 +103,12 @@
       s.vertexShader = "uniform vec2 outline;\n" + s.vertexShader.replace("#include <project_vertex>",
         "#include <project_vertex>\ngl_Position.xy += normalize(normalMatrix * normal).xy * outline * gl_Position.w;");
     };
-    creases = new LineMaterial({ color: 0, linewidth: look.line_px });
+    creases = new LineMaterial({ color: 0 });
     const meshes = [];
     root.traverse((o) => o.isMesh && meshes.push(o));
     for (const o of meshes) {
       const g = o.geometry;
+      o.castShadow = o.receiveShadow = true;
       o.material = new THREE.MeshToonMaterial({
         color: o.material.color, gradientMap: gradient, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
       });
@@ -111,7 +116,8 @@
         s.uniforms.band = band;
         s.fragmentShader = "uniform vec2 band;\n" + s.fragmentShader.replace("#include <opaque_fragment>",
           "outgoingLight = mix(outgoingLight, vec3(1.0), band.y * step(band.x, " +
-          "dot(normal, normalize(directionalLights[0].direction + geometryViewDir))));\n#include <opaque_fragment>");
+          "dot(normal, normalize(directionalLights[0].direction + geometryViewDir))) * " +
+          "step(1e-4, reflectedLight.directDiffuse.g));\n#include <opaque_fragment>");  // none in shadow, as in Eevee
       };
       // split normals at sharp edges would open the hull at every corner: it gets smooth ones
       const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
@@ -126,7 +132,9 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    outline.value.set(2 * look.line_px / w, 2 * look.line_px / h);
+    // lines scale with the canvas as the GIFs' do with the picture, never under one device pixel
+    creases.linewidth = Math.max(look.line_px * w / look.line_at, 1 / devicePixelRatio);
+    outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
     creases.resolution.set(w, h);
   }
 
@@ -150,8 +158,13 @@
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
     scene.background = new THREE.Color(look.bg);
-    scene.add(gltf.scene, camera);
-    const sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
+    scene.add(gltf.scene, camera, key, key.target, ambient);
+    sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
+    const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out
+    [box.left, box.right, box.bottom, box.top, box.near, box.far] = [-1, 1, -1, 1, 1, 3].map((x) => x * sphere.radius);
+    box.updateProjectionMatrix();
+    key.shadow.normalBias = sphere.radius / 1000;
+    key.target.position.copy(sphere.center);
     controls.target.copy(sphere.center);
     camera.position.copy(sphere.center).addScaledVector(VIEW, sphere.radius / Math.sin(THREE.MathUtils.degToRad(10)));
     camera.near = sphere.radius / 100;
@@ -176,6 +189,8 @@
     if (!scene) return;
     mixer.update(timer.getDelta());
     controls.update();
+    key.position.fromArray(look.key).normalize().applyQuaternion(camera.quaternion);
+    key.position.multiplyScalar(2 * sphere.radius).add(sphere.center);
     renderer.render(scene, camera);
   });
   load("stage3.glb");
