@@ -1,7 +1,7 @@
 """The viewer in a browser on the built site (make site, with make web's GLBs in site/viewer), Playwright driving the
 installed Chrome: it offers every gesture and the hero, plays a gesture to its end and back to the hero, switches Stage,
-and asks no other host for anything. CI runs it after make site (pages.yml); locally, after make site:
-uv run --with playwright==<the version pages.yml pins> pytest web/test_viewer.py"""
+and asks no other host for anything. CI runs it after make site (site-checks.yml); locally, after make site:
+uv run --with playwright==<the version site-checks.yml pins> pytest web/test_viewer.py"""
 
 import functools
 import http.server
@@ -12,7 +12,7 @@ import pytest
 
 from model import traces
 
-sync_api = pytest.importorskip("playwright.sync_api")  # not a dev dependency: CI's site job adds it (pages.yml)
+sync_api = pytest.importorskip("playwright.sync_api")  # not a dev dependency: CI's site job adds it (site-checks.yml)
 SITE = Path(__file__).resolve().parent.parent / "site"
 # Material's header asks GitHub for the repo's stars, forks and latest release (repo_url): data, not code
 GITHUB_FACTS = "https://api.github.com/repos/yellow-pine/noggin"

@@ -1,5 +1,5 @@
 # The site (docs/adr/0009): the repo's Markdown as it is, built by MkDocs Material, and the web viewer's page at viewer/;
-# the pages workflow adds the viewer's GLBs and three.js beside it and the pictures at images/ (make site). same-dir
+# Site Checks add the viewer's GLBs and three.js beside it and the pictures at images/ (make site). same-dir
 # lets the docs be the repo itself; home.py makes docs/index.md the home page, and the README, for contributors, stays
 # on GitHub.
 site_name: noggin

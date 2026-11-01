@@ -39,15 +39,16 @@ make site     # the site in site/ (python -m http.server -d site)
 | Workflow | File | Runs on | Does |
 |---|---|---|---|
 | Code Checks | `check.yml` | PRs, main | `code`: `make check`; `mech`: the Link's live checks on the Mech stand-in (`make mech`); `model`: the model tests, the sim and the STL/STEP export, sharded |
-| Site Deploy | `pages.yml` | PRs, main after Code Checks | `pictures` in Blender, then `site`: the docs, viewer and reports; main deploys to Pages, a PR uploads a preview artifact |
+| Site Checks | `site-checks.yml` | PRs, main | `pictures` in Blender, then `site`: the docs, viewer and reports, uploaded as an artifact (a PR's preview) |
+| Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages |
 | Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
 | PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit with an area's scope (ADR 0010) |
 | Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
 | Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
 | Release Assets | `release.yml` | `v*` tags | zips the Core's program and the setup wizard onto the release |
 
-Required checks on main: `code`, `model`, `mech`, `site`, `review`, `fetch skills` and `PR Title`. PRs go straight against main
-with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
+Required checks on main: `code`, `model`, `mech`, `site`, `pictures`, `review`, `fetch skills` and `PR Title`. PRs go
+straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 

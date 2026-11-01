@@ -5,7 +5,7 @@ a trajectory's first frame), the Stage strip and stage 3 exploded. `gifs` (`make
 its trajectory at 8 fps (at_fps), each with a contact sheet. `hero` (`make hero`): the README hero, stage 3
 talking (model/render/hero.py). `site` (`make pictures`): renders the README's pictures, motion by motion (SITE: the
 Stage views, the hero, each gesture) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/. `list` (`make pictures-list`): the motions as JSON, the pages workflow's render matrix
+yellowpine.com/noggin/images/. `list` (`make pictures-list`): the motions as JSON, Site Checks' render matrix
 (one job per motion, #297).
 Usage: python -m model.render.pictures views|gifs|hero [name ...] | site [motion ...] | list (Blender at $BLENDER)"""
 
@@ -55,7 +55,7 @@ EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off 
 }
 GIF_FPS, GIF_MAX_BYTES, GIF_WIDTH, GIF_COLOURS = 8, 1_000_000, 400, 64  # every GIF, the hero too (#276)
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
-# what the site serves, by the motion that renders it (the pages workflow renders each on its own runner, #297)
+# what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
 SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"], **{g: [f"{g}.gif"] for g in traces.GESTURES}}
 
 

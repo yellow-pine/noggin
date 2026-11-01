@@ -1,4 +1,4 @@
-"""The site (docs/adr/0009) as the pages workflow builds it: MkDocs Material builds the repo's Markdown strictly, so a
+"""The site (docs/adr/0009) as Site Checks builds it: MkDocs Material builds the repo's Markdown strictly, so a
 broken page or link fails here before it fails the deploy; every doc in the nav is a page, the local-only references
 never ship, and the nav reaches the web viewer's page at /viewer. The README's pictures are built in CI too
 (#226): none in git, every one a site URL the render job builds."""
@@ -340,7 +340,7 @@ def test_the_hero_is_800x400_and_centred_wherever_it_shows(site):
 
 
 def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
-    """`make pictures-list` (the pages workflow's motions job, #297): the Stage views on every Stage, the hero on
+    """`make pictures-list` (Site Checks' motions job, #297): the Stage views on every Stage, the hero on
     stage 3 and each gesture of model/traces.py on stage 1, each with the Stages its trajectories bake on."""
     from model import traces
 
@@ -352,11 +352,11 @@ def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
     ]
 
 
-def test_the_pages_workflow_renders_one_job_per_motion_and_names_none():
+def test_site_checks_render_one_job_per_motion_and_names_none():
     """`render` fans out over the motions job's list (#297): a new gesture needs no workflow edit."""
     from model.render import pictures
 
-    text = (ROOT / ".github" / "workflows" / "pages.yml").read_text()
+    text = (ROOT / ".github" / "workflows" / "site-checks.yml").read_text()
     jobs = yaml.safe_load(text)["jobs"]
     assert "make -s pictures-list" in jobs["motions"]["steps"][-1]["run"]
     assert jobs["render"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.motions.outputs.list) }}"}
@@ -378,7 +378,7 @@ def test_the_required_pictures_check_is_every_runner_or_none(motions, render, pa
     """`pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
     motion passed or none ran (nothing the pictures are made from changed), red when any failed or was cancelled,
     the motions list too (render then skips)."""
-    job = yaml.safe_load((ROOT / ".github" / "workflows" / "pages.yml").read_text())["jobs"]["pictures"]
+    job = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]["pictures"]
     assert (job["needs"], job["if"]) == (["motions", "render"], "${{ !cancelled() }}")
     (step,) = job["steps"]
     assert step["env"] == {"RESULTS": "${{ needs.motions.result }} ${{ needs.render.result }}"}

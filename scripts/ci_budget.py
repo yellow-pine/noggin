@@ -1,4 +1,4 @@
-"""The CI budget (#219), the last step of each job in .github/workflows (check, pages): with a warm cache a
+"""The CI budget (#219), the last step of each job in .github/workflows (check, site-checks): with a warm cache a
 run must finish within its event's budget, wall time from the start of the first job that ran in this run attempt
 (a "re-run failed jobs" is measured on its own; time spent waiting for a runner is not counted) to this step. Over
 it, a PR run fails; a run on main only warns, in the log and the job summary. A cold run (a cache that missed) is
