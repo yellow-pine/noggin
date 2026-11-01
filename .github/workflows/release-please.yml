@@ -1,0 +1,34 @@
+name: Release Please
+# Keeps the release PR (docs/adr/0010): the next version in pyproject.toml, uv.lock and .release-please-manifest.json,
+# and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on
+# RELEASE_PLEASE_TOKEN (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR would get no checks,
+# its auto-merge no push to main and its tag no Release Assets. Merged, the PR's next run tags vX.Y.Z and releases it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:   # one run at a time on main, never cancelled mid-release
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  release:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the token
+        env:
+          TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          [ -n "$TOKEN" ] || { echo "::error::set the RELEASE_PLEASE_TOKEN secret (CONTRIBUTING.md)"; exit 1; }
+      - name: Update the release PR or release
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7   # v5.0.0
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      - name: Merge the release PR on green
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          PR: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: gh pr merge "$PR" --auto --squash -R "$GITHUB_REPOSITORY"

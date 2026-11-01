@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "bf2643599a3ef68554ea35ba3a946637a4cb7566",
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "initial-version": "0.1.0",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "include-component-in-tag": false,
+      "pull-request-title-pattern": "chore: release noggin v${version}",
+      "pull-request-footer": "The release PR of docs/adr/0010 (spec #303): the version bump and the CHANGELOG.md entry, written by release-please from the PR titles merged since the last release.",
+      "extra-files": [{"type": "toml", "path": "uv.lock", "jsonpath": "$.package[?(@.name.value==='noggin')].version"}]
+    }
+  }
+}

@@ -120,6 +120,11 @@ the Mech, the Model and the reference docs, and the Web viewer at /viewer (docs/
 contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
+**Release**:
+One version of the whole repo, noggin vX.Y.Z: the Core program, the noggin service, the Model and the Site together,
+tagged on main with its CHANGELOG.md entry (docs/adr/0010).
+_Avoid_: build, drop, version of one part
+
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
 _Avoid_: banner, idle loop

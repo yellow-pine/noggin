@@ -1,10 +1,14 @@
 version: 2
-updates:
+updates:   # PR titles are Conventional Commits (docs/adr/0010): `build: bump ...`, `ci: bump ...`
   - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: build
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
