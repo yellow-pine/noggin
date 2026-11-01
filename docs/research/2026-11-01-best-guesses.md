@@ -22,7 +22,7 @@ changed at a time, and the penetrating vertices' extents to see which way each c
 
 - Symptom: the L eye horn 0.18 / 0.44 mm into the servo bracket and eye bracket at horn -32 (clean at -30, not at -31).
 - The program centres each eye at the mean of its calibrated ends, servo 88 (eyes/eyes.py `_eye_angle`), and the
-  rest-front photo (docs/build-photos/eyes-rest-front.jpg) has both pupils straight ahead there; the rest-top reading
+  rest-front photo (docs/references/build-photos/eyes-rest-front.jpg) has both pupils straight ahead there; the rest-top reading
   less its camera tilt gave +3.2 each (docs/research/2026-10-31-shafts.md). The model's neutral (eyes straight, the STL
   pose) is servo 88: geometry.HORN_AT_90 takes +2 for both eyes. The calibrated ends become -30 / +30, both clean.
 
@@ -62,7 +62,7 @@ Superseded in part by #189 (below): the teeth are L +13.95, R +6.75, the ends L 
 
 - Servo lead length: 250 mm, the length 9 g micro servo listings publish as typical; Bambu publishes none (the STEP cuts
   the wires). model/electrical.py SERVO_LEAD_MM, the corridors' limit (230 with the 20 mm slack).
-- Receiver PWM header numbering: docs/build-photos/eyes-top.jpg shows four leads in the shield's 2 x 2 header block, its
+- Receiver PWM header numbering: docs/references/build-photos/eyes-top.jpg shows four leads in the shield's 2 x 2 header block, its
   silkscreen too small to read. Kept the STEP port order (geometry.RECEIVER_STEP). Any other numbering moves a lead's end
   by at most 9.4 mm (the block's diagonal); the tightest eye lead (r_lid, 218.5 of 230) has 11.5 to spare, so no choice
   changes a result.

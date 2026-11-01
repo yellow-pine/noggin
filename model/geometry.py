@@ -138,7 +138,7 @@ STANDOFFS = {
         "receiver_1": [(26.0, 40.5, 16.0), (50.0, 40.5, 16.0), (26.0, 63.5, 16.0), (50.0, 63.5, 16.0)],
         "receiver_2": [(26.0, 73.5, 16.0), (50.0, 73.5, 16.0), (26.0, 96.5, 16.0), (50.0, 96.5, 16.0)],
         # the eyes build's cable holder (wire keeper), moved onto this base (pan-tilt guide p.23 step 18; Cansin's build,
-        # docs/build-photos/eyes-top.jpg): the eye leads pass under it
+        # docs/references/build-photos/eyes-top.jpg): the eye leads pass under it
         "cable_holder": [(6.0, 68.5, 13.0), (6.0, 92.5, 13.0)],
         "switch_post": [(34.5, 108.5, 9.0)],  # switch board 1's post in the two-clip holder at the back edge [M]
         "wire_holder": [(-7.5, 40.5, 9.0), (7.5, 40.5, 9.0)],  # the wire holder's posts [M]
@@ -363,7 +363,7 @@ BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0, "plug": (3.5, 52.5, 3.5)}
 # them (p.10 Y adapter, p.23): one pack and one switch board feed both receiver shields through a Y lead. Shield n sits
 # on standoff set n (1 front, 2 back), PCB on the standoff tops (z 16), the Core plugged in under it as in the receiver
 # STEP, its USB-C and the shield's XH socket toward the plate's +x edge (Cansin's build for shield 1,
-# docs/build-photos/eyes-top.jpg and references build-photos/eyes-side; guide p.23 for shield 2). Switch board 1 lies in
+# docs/references/build-photos/eyes-top.jpg and references build-photos/eyes-side; guide p.23 for shield 2). Switch board 1 lies in
 # the base's two-clip holder at the back edge, slide switch lever up at the back, reachable from behind (Cansin's build;
 # eyes guide p.13, pan-tilt guide p.23): PCB bottom on the clip shelves and the post (all top z 9), between the clip walls
 # (x 18 / 51) against the back wall (y 126), the slide switch's underside dropping between the shelves [M]. The pack lies

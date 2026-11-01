@@ -212,7 +212,7 @@ def test_one_channel_table_maps_each_cores_headers_to_its_servos():
 
 def test_receiver_shields_sit_on_the_base_standoff_tops_with_the_core_under_each():
     # base plate STL: the receiver standoffs top at z 16 (r 1.1 pins up to 18); the Core plugs in under the shield as in
-    # the receiver STEP and Cansin's build (docs/build-photos/eyes-top.jpg, references build-photos/eyes-side)
+    # the receiver STEP and Cansin's build (docs/references/build-photos/eyes-top.jpg, references build-photos/eyes-side)
     assert g.receiver_at(1) == (38.0, 52.0, 16.0) and g.receiver_at(2) == (38.0, 85.0, 16.0)
     m = g.align_rows(g.receiver_at(1), *g.RECEIVER_AXES)
     assert _apply(m, g.RECEIVER_STEP["xh_power"]) == (47.75, 52.0, 25.62)  # XH socket toward the plate's +x edge
@@ -247,7 +247,7 @@ def test_switch_board_1_lies_in_the_two_clip_holder_at_the_base_back_edge():
     assert (min(xs), max(xs), min(ys), max(ys), set(zs)) == (18.5, 50.5, 105.5, 126.0, {9.0})
     assert _apply(m, (0, 1, 0))[2] == 10.0  # parts up; the slide switch's underside drops between the shelves
     # switch STEP lever tip (-1.76, 15.16, 0): at the back-edge end above the back wall (top z 11), reachable from behind
-    # (Cansin's build, docs/build-photos/eyes-top.jpg)
+    # (Cansin's build, docs/references/build-photos/eyes-top.jpg)
     assert _apply(m, (-1.76, 15.16, 0)) == (34.5, 120.51, 24.16)
     # the XH sockets at the PCB ends: the pack's lead in at the -x end, the Y lead out at the +x end (the build photo)
     assert _apply(m, g.SWITCH_STEP["in"]) == (19.0, 119.5, 13.5) and _apply(m, g.SWITCH_STEP["out"]) == (

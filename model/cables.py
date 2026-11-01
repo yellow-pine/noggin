@@ -14,7 +14,7 @@ from model import electrical, stages
 # in order and a document takes the first whose parts it has: the eyes on the neck (stages 2, 3) or on the desk (the
 # stem in the base plate's slot: stage 1 and the eyes and mouth documents). Routing from the designer's guides (pan-tilt
 # steps 8-10, 13, 17-18: the leads pass under the cable holders and are zip-tied, "make sure this is still sufficient
-# length to allow for movement") and the eyes build photos (docs/build-photos: the leads leave the servos' backs and
+# length to allow for movement") and the eyes build photos (docs/references/build-photos: the leads leave the servos' backs and
 # loop to the keeper and the shield); every point is placed by eye from those photos: inferred.
 # On the neck (written in the eyes frame) the head tilts and pans over the stack: the leads leave the servos under the
 # servo brackets, clear of the lid servos, gather behind the bracket stem and drop behind the tilt arm between the pan
@@ -29,7 +29,7 @@ BEHIND = {
 }
 GATHER = ("eye bracket:1", (23.5, -38.5, 34.5), "gathered behind the bracket stem, guide step 18 photo (inferred)")
 # The eyes build's cable holder on its posts (6, 68.5..92.5), z 13..16: the eye leads pass under it on the plate (Cansin's
-# build, docs/build-photos/eyes-top.jpg; pan-tilt guide step 18: "Move the original cable hold ... Pass the servo wires
+# build, docs/references/build-photos/eyes-top.jpg; pan-tilt guide step 18: "Move the original cable hold ... Pass the servo wires
 # under the cable holder").
 CABLE_HOLDER = (
     "base plate:1",
@@ -77,7 +77,7 @@ ROUTES = {
         [("wire holder:1", (-5.0, 40.5, 6.0), "under the cable holder, guide steps 8-9 (inferred)")]
     ],
     # The pack's lead leaves its front end, crosses the plate and runs back up the middle to the switch board's input
-    # socket (Cansin's build, docs/build-photos/eyes-top.jpg; guide p.23 photo).
+    # socket (Cansin's build, docs/references/build-photos/eyes-top.jpg; guide p.23 photo).
     "pack 1 -> switch 1": [
         [
             (

@@ -7,7 +7,7 @@ model's error.
 
 ## The conflict and its two sources
 
-- The build: Cansin's side photo (docs/build-photos/eyes-side.jpg) shows the pink servo brackets standing flat on the black
+- The build: Cansin's side photo (docs/references/build-photos/eyes-side.jpg) shows the pink servo brackets standing flat on the black
   plate. The model has always put the feet on the plate top, z 3 (geometry.pt_to_eyes_standalone).
 - The model: our eye bracket (model/printed/eye_bracket.py) is the designer's main bracket v2 (03-mouth). Its rail,
   y -40.6..-30.6 in the eyes frame, reaches 5 mm below the feet (y -35.6). The stem sat in the pan bearing recess at
@@ -33,7 +33,7 @@ plate against the eye bracket and against both servo brackets.
    - STL nominals [M]: v1 has a box of x -28..87, y -40.6..4.0, z -4..18. Below y -30.7 it has only the stem
      (x 23.5..35.5), which ends at y -40.6. v2 has a box of y -45.6..8.5. It adds the rail (x -3.42..73.42) and the
      raised band to y 8.5, and its stem is 5 mm longer (docs/research/2026-10-31-model.md, 03-mouth).
-   - The photos: in docs/build-photos/eyes-front.jpg and eyes-rest-front.jpg, the servo brackets' plates come down to the
+   - The photos: in docs/references/build-photos/eyes-front.jpg and eyes-rest-front.jpg, the servo brackets' plates come down to the
      base plate either side of the stem. No rail crosses in front of them, and no row of rail holes shows. In
      printed-parts.jpg, the v2 bracket (rail and its row of holes) is a separate black print, the neck's.
    - Our servo brackets match their STLs: feet at y -35.6, plate z 18..21 (L/R servo bracket.stl, y -35.6..2.5). The
@@ -41,7 +41,7 @@ plate against the eye bracket and against both servo brackets.
 2. The wrong socket. The stem goes through the base plate's front slot, not the pan recess. The slot is a 12 x 5 through
    slot at x -6..6, y -19..-14, the stem's exact section (model/printed/base_plate.py RECTS [M]). The plate is 5 mm
    thick, which is the v1 stem's length below the feet, so the stem fills the slot flush with the underside.
-   - The photos: in docs/build-photos/eyes-top.jpg and eyes-rest-top.jpg, the bearing recess (black, round, with its
+   - The photos: in docs/references/build-photos/eyes-top.jpg and eyes-rest-top.jpg, the bearing recess (black, round, with its
      pivot hole) shows between the two servo brackets, behind the stem, and the stem does not cover it. In the side
      photo, the eyeballs reach about 30 mm in front of the plate's front edge, by the plate's 160 mm length. The model puts
      them 11 mm in front with the recess placement and 27.5 mm with the slot.
