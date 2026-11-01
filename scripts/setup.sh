@@ -288,7 +288,7 @@ board_send "eureka 3" >/dev/null; sleep 6
 confirm "Eyes together, straight at the end, nothing binding?" || warn "after install: 'noggin/noggin set l_eye_lo N' / l_eye_hi (centre = their average), r_eye likewise"
 note "Tuning by eye after install: 'noggin/noggin pose lids 0.28 eyes 95' holds a pose; 'noggin/noggin set l_lid_rest 70' applies + saves."
 note "Each lid: <lid>_lo closed, <lid>_rest at lid_rest, <lid>_hi open, both lids in the right servo's degrees. Never set *_lo/*_hi onto a hard stop: clutch servos slip."
-note "Lid levels: lid_closed (blink), lid_think, lid_rest, lid_open (eureka)."
+note "Lid levels, fractions 0 closed .. 1 open: lid_closed (blink), lid_think, lid_open (eureka); lid_rest is the level the <lid>_rest points stand for."
 pause
 
 stage "Install hooks and the noggin service"

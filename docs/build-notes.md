@@ -96,7 +96,7 @@ board with `mpremote ls` before replacing anything.
   still loads, converted.
 - 2026-11-01 (#213): the left lid showed only a slit at rest and thinking while
   the right showed half its pupil. Raising the left lid's open end until rest
-  matched broke the near-shut wink: the linkage makes equal servo steps unequal
+  matched broke the near-shut wink: the lid bars make equal servo steps unequal
   lid steps, so a straight line between the ends can't fit. Hence the rest
   point: tune closed, rest and open per lid, and compare both eyes at a
   half-open pose, not only at the ends.

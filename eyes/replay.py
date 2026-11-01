@@ -67,9 +67,7 @@ def shared_frame(cal):
         if name + "_flip" not in cal:
             continue
         lo, hi = cal[name + "_lo"], cal[name + "_hi"]
-        closed, opened = (hi, lo) if cal.pop(name + "_flip") else (lo, hi)
-        if pin in mod.MIRRORED:
-            closed, opened = 180 - closed, 180 - opened
+        closed, opened = (mod.mirror(pin, a) for a in ((hi, lo) if cal.pop(name + "_flip") else (lo, hi)))
         rest = closed + (opened - closed) * cal.get("lid_rest", mod.DEFAULT_CAL["lid_rest"])
         cal.update({name + "_lo": closed, name + "_rest": round(rest, 2), name + "_hi": opened})
     return cal

@@ -260,8 +260,10 @@ LID_HORN_ARM = (0.0, 0.99804, -0.06262)
 # Joint degrees of each eyes horn at servo 90 (lids: 90 in the shared lid frame, #213): the spline tooth it went on (#134,
 # #170). The calibrated lid_closed (52.5 in the shared frame) shuts the lids, their edges just touching with no overlap
 # (Cansin, #189: they close quietly), so the tooth puts it on the lips' meeting at -30.72: 6.75 (-30.75, 0.03 mm of
-# lip), inferred. Both lids take it: since #213 they share their numbers (l_lid_hi 144 -> 136 in the old frame made
-# both lids match at rest, Cansin), and the same numbers looking the same means the same tooth (L was 13.95).
+# lip), inferred. Both lids take it, the left inferred too (#213): it was 13.95, fitted the same way to the old left
+# close (servo 134.7, l_lid_hi 144); conflict: with 13.95 the model had both lids alike at rest (L -14.0, R -15.4) while
+# the build showed the left at a slit (Cansin, IMG_4024), and l_lid_hi 136 matched them (shared frame 44 / 67.8 / 129 on
+# both), so the same numbers looking the same takes the same tooth.
 # Conflicts (#213): Cansin saw the close as "the same small opening on both" and the wink (0.03) not fully shut; the
 # model keeps #189's lips just touching until the closed / rest / open points are retuned live. The rest-top photo
 # predates #213: read at face value it gives L +12.8, R +5.9 (docs/research/2026-10-31-shafts.md). Eyes +2, inferred

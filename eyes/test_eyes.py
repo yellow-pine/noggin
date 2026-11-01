@@ -86,7 +86,7 @@ def test_both_lids_take_the_same_numbers_and_the_left_servo_mirrors_them(eyes):
 
 
 def test_the_lid_map_runs_closed_rest_open_in_two_straight_pieces(eyes):
-    """#213: the linkage makes equal servo steps unequal lid steps, so each lid has a third point at lid_rest."""
+    """#213: the lid bars make equal servo steps unequal lid steps, so each lid has a third point at lid_rest."""
     eyes.handle_line("set r_lid_rest 80")  # well off the straight line 44..129 (67.8 at 0.28)
     rest = eyes.cal["lid_rest"]
     pos = [eyes._lid_angle(mod.R_LID, i / 100) for i in range(101)]

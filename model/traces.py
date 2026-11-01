@@ -47,7 +47,7 @@ _CORE.cal.update(CAL)
 def joint(servo, v):
     """Model horn degrees from neutral for a lid fraction or an eye position."""
     if "lid" in servo:
-        return sim.joint_deg(servo, _CORE._lid_pos(PIN[servo], v))
+        return sim.joint_deg(servo, _CORE._lid_shared(PIN[servo], v))
     lo, hi = geometry.HORN_LIMITS[servo]
     return v * ((hi - 90) if v > 0 else (90 - lo))
 

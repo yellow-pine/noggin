@@ -65,10 +65,17 @@ def servo_map():
 # of its two ends, lid levels are fractions (0 closed .. 1 open) along a lid's closed, rest and open points.
 # Lid positions are in one shared frame, the right lid servo's degrees (lo closed, hi open): the lid servos are
 # mounted mirror-image, so the same numbers fit both lids and the Core writes 180 - a to the MIRRORED servo.
-# The linkage makes equal servo steps unequal lid steps, so each lid has a third point, where it sits at
+# The lid bars make equal servo steps unequal lid steps, so each lid has a third point, where it sits at
 # lid_rest, and the map is straight from closed to rest and from rest to open.
 # Lid ends sit inside the mechanical stops: the clutch servos slip (and decalibrate) when stalled.
 MIRRORED = (L_LID,)
+
+
+def mirror(pin, a):
+    """Shared lid frame <-> servo degrees (the same map both ways)."""
+    return 180 - a if pin in MIRRORED else a
+
+
 DEFAULT_CAL = {
     "l_lid_lo": 44,
     "l_lid_rest": 67.8,
@@ -110,10 +117,10 @@ class Eyes:
     # --- calibration ------------------------------------------------------
     def range(self, pin):
         """The servo's (low, high) degrees."""
-        lo, hi = self.cal[NAME[pin] + "_lo"], self.cal[NAME[pin] + "_hi"]
-        return (180 - hi, 180 - lo) if pin in MIRRORED else (lo, hi)
+        lo, hi = mirror(pin, self.cal[NAME[pin] + "_lo"]), mirror(pin, self.cal[NAME[pin] + "_hi"])
+        return min(lo, hi), max(lo, hi)
 
-    def _lid_pos(self, pin, f):
+    def _lid_shared(self, pin, f):
         """A lid level (0 closed .. 1 open) in the shared frame: straight closed..rest, then rest..open."""
         name, r = NAME[pin], self.cal["lid_rest"]
         lo, rest, hi = self.cal[name + "_lo"], self.cal[name + "_rest"], self.cal[name + "_hi"]
@@ -123,8 +130,7 @@ class Eyes:
         return rest + (hi - rest) * (f - r) / (1 - r) if r < 1 else rest
 
     def _lid_angle(self, pin, f):
-        a = self._lid_pos(pin, f)
-        return 180 - a if pin in MIRRORED else a
+        return mirror(pin, self._lid_shared(pin, f))
 
     def _eye_angle(self, pin, angle):
         """Gesture angles are written around EYE_CENTER; the eye's real centre is the average of its ends."""
