@@ -31,8 +31,8 @@ watch the hero loop.
   other GLB. The viewer is one module, `web/viewer.mjs`, and its framing module (`frame.mjs`, tested
   with `node --test`), with no build step of its own. It draws every `<div class="noggin-viewer" data-stage="stage1">`
   on a page, with a button per clip under it: the viewer's page (`web/viewer.md`, which a MkDocs hook puts at /viewer/
-  in the theme's `viewer.html`: full width, no sidebars) adds the Stage buttons, and any docs page can drop in a small
-  one. The theme (`overrides/main.html`) loads the module, the import map and the viewer's CSP on the pages that have
+  in the theme's `viewer.html`: full width beside the nav, no table of contents) adds the Stage buttons, and any docs
+  page can drop in a small one. The theme (`overrides/main.html`) loads the module, the import map and the viewer's CSP on the pages that have
   one, Material's buttons style the controls, and a browser test (Playwright in Chrome, `web/test_viewer.py`) plays a
   gesture on the built site with no request to another host but GitHub's repo facts in Material's header.
   three.js, the addons it

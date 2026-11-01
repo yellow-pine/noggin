@@ -1,6 +1,6 @@
 ---
 template: viewer.html
-hide: [navigation, toc]
+hide: [toc]
 ---
 
 # Viewer
