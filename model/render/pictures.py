@@ -46,7 +46,7 @@ THREE_QUARTER = camera.three_quarter((0, -1, 0), (-1, 0, 0), g.Z, 25)
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 400)  # 2:1, the whole motion fitted wide (Cansin, #278)
-HERO_WIDTH, HERO_MAX_BYTES, HERO_COLOURS = 800, 3_000_000, 48  # 64 colours went to 3.2 MB with the servos' own motion
+HERO_WIDTH, HERO_MAX_BYTES = 800, 3_000_000  # GIF_COLOURS like every GIF: 1.56 MB at 48 colours left the room (#377)
 EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
     "noggin-base": (0, 0, 0),
     "noggin-stack": (0, 0, 45),
@@ -236,8 +236,7 @@ def gifs(names=None):
 
 def hero_gif():
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
-    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, GIF_FPS, at most 3 MB (48 colours: the servos' own motion
-    took 64 to 3.2 MB)."""
+    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, GIF_FPS, at most 3 MB, GIF_COLOURS."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
     poses = at_fps(trajectories.poses("noggin-stage3", "hero"), GIF_FPS)
     cam = camera.fit(
@@ -263,7 +262,6 @@ def join(motion):
             GIF_FPS,
             HERO_WIDTH,
             HERO_MAX_BYTES,
-            HERO_COLOURS,
         )
     else:
         encode(os.path.join(OUT, "gifs", motion), os.path.join(OUT, motion))

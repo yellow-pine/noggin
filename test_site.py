@@ -116,7 +116,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     notes = macros.picture_numbers()
     for row in [
         "| gestures | 400x300 | 400 wide, 8 fps, 64 colours, at most 1 MB |",
-        "| hero | 800x400 | 800 wide, 8 fps, 48 colours, at most 3 MB |",
+        "| hero | 800x400 | 800 wide, 8 fps, 64 colours, at most 3 MB |",
         "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
         "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
         "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
