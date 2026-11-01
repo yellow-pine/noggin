@@ -88,7 +88,7 @@ in [`docs/build-notes.md`](docs/build-notes.md); how work runs in [`CONTRIBUTING
 
 The Mech grows in three Stages: the eyes on the base, then on the pan-and-tilt neck, then with the mouth. `model/` is
 the Mech as code: our own parametric CadQuery parts, a simulation (MuJoCo, ADR 0007) that sweeps every linkage,
-finds every collision and the supply's voltage sag (SPICE) before a part is printed, and Blender pictures from
+finds its collisions and the supply's voltage sag (SPICE) before a part is printed, and Blender pictures from
 MuJoCo's trajectories (every picture here). How the pictures are made: [`docs/model-notes.md`](docs/model-notes.md).
 
 ## Licence

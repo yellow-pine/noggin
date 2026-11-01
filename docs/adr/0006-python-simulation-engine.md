@@ -1,8 +1,8 @@
 # Simulations run in Python; Fusion builds the documents
 
 > Engine superseded 2026-10-31 by ADR 0007 (#146) and deleted 2026-11-01 (#151): MuJoCo simulates, the exact-mesh
-> check went with the rest (its last readings are a frozen fixture, model/test_fixtures/exact-clearance.json). Only
-> the four-bar kinematics (model/linkage.py) and the document tables (model/stages.py) stay.
+> check went with the rest (its last readings are a frozen fixture, model/test_fixtures/exact-clearance.json). What
+> stays in model/: ADR 0007, "The old engine is retired".
 >
 > Fusion part superseded 2026-10-31 (#88): Fusion builds nothing any more; see the last update.
 

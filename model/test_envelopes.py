@@ -22,7 +22,7 @@ BOXES = {  # the STEP's box as the model uses it (servo and battery leads cut, m
 
 @functools.cache
 def solid(key):
-    """Built when the first test runs, not at collection (see model/printed/test_main_bracket.py)."""
+    """Built when the first test runs, not at collection (see model/printed/test_eye_bracket.py)."""
     return envelopes.ENVELOPES[key]().val()
 
 

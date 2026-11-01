@@ -1,4 +1,5 @@
 import functools
+import io
 import json
 import math
 
@@ -64,6 +65,22 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
     assert all(len(p["pos"]) == len(p["quat"]) == n for p in out["parts"].values())
     assert out["parts"]["L lid horn:1"]["quat"][0] != out["parts"]["L lid horn:1"]["quat"][n // 2]  # the wink moves it
     assert tj.stale("noggin-stage1")  # its other gestures are not baked here
+
+
+def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(monkeypatch):
+    """model/traces.py plays eyes/eyes.py under eyes/calibration.json, so an edit to either moves the stamp (#151 took
+    them out of the report's inputs)."""
+    monkeypatch.setattr(tj.report, "sources", lambda stage: {})  # the meshes are not what this checks
+    before = tj.stamp("noggin-stage1")
+    for edited in ("eyes/eyes.py", "eyes/calibration.json"):
+
+        def opened(path, mode="r", edited=edited):
+            with open(path, mode) as f:
+                data = f.read()
+            return io.BytesIO(data + b"#" if path.endswith(edited) else data)
+
+        monkeypatch.setattr(tj, "open", opened, raising=False)
+        assert tj.stamp("noggin-stage1") != before, edited
 
 
 def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():

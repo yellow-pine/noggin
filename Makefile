@@ -21,7 +21,7 @@ lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
-check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard syntax, plist validity, hook script syntax
+check: test lint  ## tests, lint, formatting, types, wizard syntax, plist validity, hook script syntax (CI's jobs: CONTRIBUTING.md)
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	bash -n scripts/setup.sh
