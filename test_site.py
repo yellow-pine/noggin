@@ -29,7 +29,7 @@ def site(tmp_path_factory):
 
 def test_every_doc_is_a_page(site):
     adrs = [f"docs/adr/{p.stem}/index.html" for p in (ROOT / "docs" / "adr").glob("*.md")]
-    docs = ["GLOSSARY", "CONTRIBUTING", "docs/build-notes", "docs/model-notes", "docs/face-design"]
+    docs = ["GLOSSARY", "CONTRIBUTING", "docs/build-notes", "docs/model-notes", "docs/face-design", "docs/how-it-works"]
     pages = ["index.html", *(f"{d}/index.html" for d in docs), *adrs]
     assert adrs and [p for p in pages if not (site / p).is_file()] == []
 
@@ -66,6 +66,25 @@ def test_the_home_page_builds_the_behaviour_table_from_the_code(site):
         assert row in home
 
 
+MERMAID = ["@mermaid-js/mermaid-cli@11.17.1", "mermaid@11.17.2"]  # the 11 Material loads (unpkg mermaid@11) resolves to
+
+
+def test_every_diagram_renders(tmp_path):
+    """Every Mermaid block in the README and docs/ drawn by Mermaid's own CLI in headless Chrome (a parse or layout
+    error fails it); the 11 Material serves the site, GitHub its own 12 (docs/research/2026-11-01-diagrams.md)."""
+    docs = [ROOT / "README.md", *(p for p in (ROOT / "docs").rglob("*.md") if "references" not in p.parts)]
+    files = [p for p in docs if "```mermaid" in p.read_text()]
+    assert ROOT / "README.md" in files
+    for f in files:
+        pkgs = [arg for pkg in MERMAID for arg in ("-p", pkg)]
+        r = subprocess.run(
+            ["npx", "-y", *pkgs, "mmdc", "-q", "-i", str(f), "-o", str(tmp_path / f.name)],
+            capture_output=True,
+            text=True,
+        )
+        assert r.returncode == 0, f"{f.relative_to(ROOT)}: {r.stderr[-2000:]}"
+
+
 def github(path):
     """The page as GitHub shows it: HTML comments hidden (the site's macros sit in them)."""
     return re.sub(r"<!--.*?-->", "", (ROOT / path).read_text(), flags=re.S)
@@ -89,6 +108,27 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code(site)
     ]:
         assert row in notes
     assert "(https://yellowpine.com/noggin/docs/model-notes/#numbers-from-the-code)" in github("docs/model-notes.md")
+
+
+def test_the_diagrams_numbers_agree_with_the_code():
+    """docs/how-it-works.md draws the Link (eyes/wifi.py, noggin/wifi.py) and the director's timings
+    (reactions/director.py) as GitHub shows them: each number must be the code's."""
+    from wifi import BEACON_MS  # eyes/wifi.py, the Core's (conftest puts eyes/ on the path)
+
+    from macros import duration
+    from noggin.wifi import ACK_SECONDS
+    from reactions.director import BUSY_SECONDS, STALE_TURN_SECONDS, TIERS
+
+    page = (ROOT / "docs" / "how-it-works.md").read_text()
+    busy = sorted(BUSY_SECONDS.values())
+    for phrase in [
+        f"every {BEACON_MS / 1000:g} s",
+        f"waiting {', '.join(f'{s:g}' for s in ACK_SECONDS)} s",
+        f"under {duration(TIERS[0][0])} small, under {duration(TIERS[1][0])} normal, longer big",
+        f"{busy[0]:g}-{busy[-1]:g} s",
+        f"no event for {duration(STALE_TURN_SECONDS)}",
+    ]:
+        assert phrase in page, phrase
 
 
 def test_every_number_left_in_the_readme_agrees_with_the_code():

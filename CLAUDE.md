@@ -17,7 +17,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - The digital model of the Mech is "the model" (folder model/), never "twin".
 - Don't spend effort on dataset/reference license checks; Cansin takes that on.
 - Ground truth for the model, in order: Cansin's build (photos, measurements), then our model (parts, MuJoCo, reports, tests). The designer's and vendor's files are credits (README) and history (docs/research) only. Planned edits go in notes only, never into the model, until they stabilise. Record every conflict with both sources; inference only fills what none settles, marked inferred.
-- Blender authors all public visuals (README, docs, PR pictures); the web page draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
 - When a dev-cycle step starts, write its name to `~/.claude/.cycle-step` (the status line shows it).
 
