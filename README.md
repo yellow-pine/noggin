@@ -43,6 +43,7 @@ make site     # the site in site/ (python -m http.server -d site)
 | Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages |
 | Claude Review | `review.yml` | PRs | `fetch skills`, then `review`: Claude approves or requests changes |
 | PR Title | `pr-title.yml` | PRs | `PR Title`: the title is a Conventional Commit of a known type (ADR 0010) |
+| PR Issue | `pr-issue.yml` | PRs | `PR Issue`: the body links its issue (`Closes #N` or `Refs #N`); bots' PRs pass |
 | Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
 | CI Images | `images.yml` | Dockerfile PRs, main, weekly | builds the images the Chrome and Blender jobs run in; main pushes them to GHCR |
 | Dependabot Auto-merge | `dependabot.yml` | Dependabot's PRs | turns on auto-merge (squash): the PR merges once the required checks and Claude's review pass |
