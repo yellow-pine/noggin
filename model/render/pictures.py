@@ -42,13 +42,14 @@ THREE_QUARTER = camera.three_quarter((0, -1, 0), (-1, 0, 0), g.Z, 25)
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 600)
+HERO_WIDTH, HERO_MAX_BYTES, HERO_COLOURS = 640, 3_000_000, 48  # 64 colours went to 3.2 MB with the servos' own motion
 EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
     "noggin-base": (0, 0, 0),
     "noggin-stack": (0, 0, 45),
     "noggin-eyes": (0, 0, 95),
     "noggin-mouth": (0, -45, 95),
 }
-GIF_FPS, GIF_MAX_BYTES = 10, 1_000_000
+GIF_FPS, GIF_MAX_BYTES, GIF_WIDTH, GIF_COLOURS = 10, 1_000_000, 480, 64
 
 
 def metres(mats):
@@ -201,10 +202,10 @@ def hero_gif():
     blender(
         "stage3", manifest, [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
     )
-    encode(folder, os.path.join(OUT, "hero"), trajectories.FPS, 640, 3_000_000, colours=48)
+    encode(folder, os.path.join(OUT, "hero"), trajectories.FPS, HERO_WIDTH, HERO_MAX_BYTES, HERO_COLOURS)
 
 
-def encode(frames, out, fps=GIF_FPS, width=480, max_bytes=GIF_MAX_BYTES, colours=64):
+def encode(frames, out, fps=GIF_FPS, width=GIF_WIDTH, max_bytes=GIF_MAX_BYTES, colours=GIF_COLOURS):
     """frames/NNN.png -> out.gif (one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")

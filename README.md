@@ -44,15 +44,12 @@ Built with
 
 ## What it does
 
-| Claude Code event | Mech |
-|---|---|
-| SessionStart | wink (hello) |
-| UserPromptSubmit | thinking: lids low, gaze averted, micro-saccades, a blink every 5-8 s |
-| Stop | eureka, sized by how long the turn took: under 20 s small, under 3 min normal, longer big |
-| Notification permission_prompt | attention: half lids, a real left-right scan |
-| Notification idle_prompt | bored: drooping lids, heavy blinks, one long closure |
-| StopFailure | wince |
-| SessionEnd | back to rest (a turn with no events for 15 min also returns to rest) |
+<!--{{ behaviour }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+Which Claude Code event plays which gesture is in [the table on the site](https://yellowpine.com/noggin/#what-it-does),
+built from the code.
+<!-- #}-->
 
 Several sessions share the one Mech; a gesture already playing wins. Eye movements replay real human recordings
 (GazeBase); blink and lid timing follow the literature in `docs/research/`.

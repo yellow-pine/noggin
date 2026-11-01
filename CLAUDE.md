@@ -23,7 +23,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 
 ## Where things are
 
-- Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: `README.md`.
+- Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: `README.md` on the site, built by `macros.py` from the code (numbers in docs: ADR 0009).
 - Hardware, calibration lessons, how to talk to the Core: `docs/build-notes.md`. Never flash firmware with esptool.
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
 - Model pictures (Blender from the engine poses; look, views, GIFs): `docs/model-notes.md`; `make render`, `make gifs`.

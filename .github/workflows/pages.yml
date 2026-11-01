@@ -7,10 +7,11 @@ on:
   push:
     branches: [main]
     paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml",
-            "uv.lock", ".github/workflows/pages.yml"]
+            "uv.lock", ".github/workflows/pages.yml", "macros.py", "reactions/**", "noggin/**"]   # macros.py reads the code
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock", ".github/workflows/pages.yml"]
+    paths: ["docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock", ".github/workflows/pages.yml",
+            "macros.py"]
   workflow_dispatch:
 # one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run
 concurrency:
