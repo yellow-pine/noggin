@@ -1,8 +1,7 @@
 # pyright: reportOptionalMemberAccess=false
 # noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711 (with the
-# program's version and commit),
-# serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop and,
-# while a gesture plays, from its waits (eyes.between_steps).
+# program's version and commit), serve command lines on UDP 4712, flash the eye program's files. Cooperative:
+# poll(now_ms) from the boot.py loop and, while a gesture plays, from its waits (eyes.between_steps).
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib

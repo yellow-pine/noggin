@@ -64,4 +64,7 @@ def stamp():
 
 
 if __name__ == "__main__":
-    print(stamp(), end="") if sys.argv[1:] == ["stamp"] else print(*(f"eyes/{m}.py" for m in MODULES))
+    if sys.argv[1:] == ["stamp"]:
+        print(stamp(), end="")
+    else:
+        print(*(f"eyes/{m}.py" for m in MODULES))
