@@ -11,7 +11,7 @@
     "jaw bar:1",
     "jaw servo:1"
    ],
-   "measurements": 81
+   "measurements": 72
   }
  },
  "contacts": [],
@@ -392,72 +392,72 @@
    [
     -30.5,
     -40.6,
-    -9.5
+    7.0
    ],
    [
     89.5,
     -20.6,
-    150.5
+    167.0
    ]
   ],
   "receiver shield 1:1": [
    [
     -23.5,
     -26.9,
-    53.0
+    69.5
    ],
    [
     6.5,
     -11.82,
-    82.0
+    98.5
    ]
   ],
   "Core 1:1": [
    [
     -21.89,
     -33.28,
-    55.9
+    72.4
    ],
    [
     6.0,
     -24.9,
-    79.1
+    95.6
    ]
   ],
   "switch board 1:1": [
    [
     -21.0,
     -34.2,
-    121.0
+    137.5
    ],
    [
     11.0,
     -14.44,
-    141.5
+    158.0
    ]
   ],
   "battery 1:1": [
    [
     51.07,
     -35.6,
-    89.3
+    105.8
    ],
    [
     79.43,
     -19.3,
-    140.5
+    157.0
    ]
   ],
   "cable holder:1": [
    [
     20.5,
     -25.6,
-    81.0
+    97.5
    ],
    [
     26.5,
     -22.6,
-    111.0
+    127.5
    ]
   ]
  },
@@ -545,7 +545,7 @@
   "com": [
    34.5,
    -25.2,
-   49.7
+   57.2
   ]
  },
  "calibrated": {},
@@ -1355,7 +1355,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "767f688b008570bffd27f40624aedfef44b95566e44f88719d3b8f56ddcc7307",
+  "stamp": "115fa4b562bc4ea32f8f5bbfa88aefc9b1bb1b26899da47fb019f2342fa02cd3",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -1422,9 +1422,9 @@
    ]
   },
   "l_lid servo -> Core 1 PWM1": {
-   "max_mm": 135.1,
+   "max_mm": 151.6,
    "at": {},
-   "min_mm": 135.1,
+   "min_mm": 151.6,
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 250,
@@ -1437,9 +1437,9 @@
    ]
   },
   "l_eye servo -> Core 1 PWM2": {
-   "max_mm": 132.8,
+   "max_mm": 149.3,
    "at": {},
-   "min_mm": 132.8,
+   "min_mm": 149.3,
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 250,
@@ -1452,9 +1452,9 @@
    ]
   },
   "r_lid servo -> Core 1 PWM3": {
-   "max_mm": 132.0,
+   "max_mm": 148.0,
    "at": {},
-   "min_mm": 132.0,
+   "min_mm": 148.0,
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 250,
@@ -1467,9 +1467,9 @@
    ]
   },
   "r_eye servo -> Core 1 PWM4": {
-   "max_mm": 129.4,
+   "max_mm": 145.3,
    "at": {},
-   "min_mm": 129.4,
+   "min_mm": 145.3,
    "min_at": {},
    "length_mm": 250,
    "limit_mm": 250,

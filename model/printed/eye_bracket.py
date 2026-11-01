@@ -2,7 +2,8 @@
 (model/geometry.py: L eye centre at the origin, +Y up, -Z front). A plate (z 13..18) behind the eyes: the top band
 the servo brackets screw onto, the stem the neck clamps, the bottom rail the jaw servo mount screws onto; and a frame
 in front of it at eye height carrying the lid pins and the eyeball forks. Interfaces exact, envelope within 1 mm,
-cosmetic detail dropped. Measured numbers: docs/research/2026-10-31-model.md [M]."""
+cosmetic detail dropped. Measured numbers: docs/research/2026-10-31-model.md [M]. The desk eye bracket is the
+designer's first one, the desk build's (geometry.DESK): no rail and no raised band, its stem 5 mm shorter."""
 
 import cadquery as cq
 
@@ -36,11 +37,13 @@ LID_PIN = {"r": 1.75, "x": (24.0, 20.93)}
 FORK = {"y": (0.0, 4.0), "r": 4.0, "hole_r": 1.6}  # round about each eyeball pivot, the M3 screw through it
 
 
-def build():
+def build(desk=False):
     out = box(BAND["x"], BAND["y"], PLATE_Z)
-    out = out.union(box(RAISED["x"], (BAND["y"][1] - 1, RAISED["top"]), PLATE_Z))
-    out = out.union(box(STEM["x"], (STEM["bottom"], BAND["y"][0] + 1), PLATE_Z))
-    out = out.union(box(RAIL["x"], RAIL["y"], PLATE_Z).edges("|Z").fillet(RAIL["r"]))
+    stem = g.DESK_STEM_BOTTOM[1] if desk else STEM["bottom"]
+    out = out.union(box(STEM["x"], (stem, BAND["y"][0] + 1), PLATE_Z))
+    if not desk:
+        out = out.union(box(RAISED["x"], (BAND["y"][1] - 1, RAISED["top"]), PLATE_Z))
+        out = out.union(box(RAIL["x"], RAIL["y"], PLATE_Z).edges("|Z").fillet(RAIL["r"]))
     out = out.union(cq.Workplane("XZ", origin=(0, FRAME_Y, 0)).polyline(FRAME_XZ).close().extrude(2 * FRAME_Y))
     round_z = POST_BOTTOM + FRAME_Y
     for x0, x1, top in POSTS:
@@ -66,7 +69,7 @@ def box(x, y, z):
     return cq.Workplane("XY").box(x[1] - x[0], y[1] - y[0], z[1] - z[0], centered=False).translate((x[0], y[0], z[0]))
 
 
-def features():
+def features(desk=False):
     """{feature: (centre, axis, r, half[, band])} the mating check fits on our mesh (model/engine/mating.py)."""
     z, half = fits.slab(*PLATE_Z)
     x, pin_half = fits.slab(*LID_PIN["x"][::-1])
@@ -80,7 +83,7 @@ def features():
     }
     stem = {f"{s} foot stem": ((g.CENTRE_X, y, z), "z", HOLE_R, half) for s, y in (("L", -31.6), ("R", -21.6))}
     rail = {f"rail {s}": ((x, -35.6, z), "z", HOLE_R, half) for s, x in (("L", 65.92), ("R", 70.92))}
-    return {**left, **{"R" + k[1:]: v for k, v in mirrored(left).items()}, **stem, **rail}
+    return {**left, **{"R" + k[1:]: v for k, v in mirrored(left).items()}, **stem, **({} if desk else rail)}
 
 
 def mirrored(features):

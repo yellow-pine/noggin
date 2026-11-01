@@ -25,6 +25,14 @@ def test_envelope_is_the_designers_box_within_a_millimetre():
     assert max(abs(a - b) for a, b in zip(lo + hi, designer[0] + designer[1])) <= ENVELOPE_MM
 
 
+def test_the_desk_eye_bracket_is_the_designers_first_box_within_a_millimetre():
+    """The desk build's bracket (the designer's first): no rail, no raised band, the stem's bottom at y -40.6."""
+    box = eye_bracket.build(desk=True).val().BoundingBox()
+    designer = (-28.0, -40.6, -4.0, 87.0, 4.0, 18.0)
+    got = (box.xmin, box.ymin, box.zmin, box.xmax, box.ymax, box.zmax)
+    assert max(abs(a - b) for a, b in zip(got, designer)) <= ENVELOPE_MM, got
+
+
 def inside(*p):
     return solid().isInside(cq.Vector(*p))
 
