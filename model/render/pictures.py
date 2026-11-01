@@ -3,13 +3,11 @@ baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses 
 `views` (`make render`): top/side/front of each sub-assembly (at its placement: nothing moves it) and Stage (at rest:
 a trajectory's first frame), the Stage strip and stage 3 exploded. `gifs` (`make gifs`): the six gestures on stage 1,
 its trajectory at 8 fps (at_fps), each with a contact sheet. `hero` (`make hero`): the README hero, stage 3
-talking (model/render/hero.py). `site` (`make pictures`): renders the README's pictures, part by part (SITE: the Stage
-views, the hero, each gesture) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/.
-`frames` renders one runner's shard of a part and `join` encodes the shards (the pages workflow splits each part's
-frames over runners, #278).
-Usage: python -m model.render.pictures views|gifs|hero [name ...] | site|join [part ...] | frames <part> <i>/<n>
-(Blender at $BLENDER)"""
+talking (model/render/hero.py). `site` (`make pictures`): renders the README's pictures, motion by motion (SITE: the
+Stage views, the hero, each gesture) into model/build/images, which the site serves at
+yellowpine.com/noggin/images/. `list` (`make pictures-list`): the motions as JSON, the pages workflow's render matrix
+(one job per motion, #297).
+Usage: python -m model.render.pictures views|gifs|hero [name ...] | site [motion ...] | list (Blender at $BLENDER)"""
 
 import json
 import math
@@ -57,8 +55,14 @@ EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off 
 }
 GIF_FPS, GIF_MAX_BYTES, GIF_WIDTH, GIF_COLOURS = 8, 1_000_000, 400, 64  # every GIF, the hero too (#276)
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
-# what the site serves, by the part of the pictures that renders it (the pages workflow splits each over runners)
+# what the site serves, by the motion that renders it (the pages workflow renders each on its own runner, #297)
 SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"], **{g: [f"{g}.gif"] for g in traces.GESTURES}}
+
+
+def motions():
+    """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (make trajectories TRAJ_DOCS)."""
+    stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3"}
+    return [{"motion": m, "stages": stages_of.get(m, "noggin-stage1")} for m in SITE]
 
 
 def metres(mats):
@@ -114,22 +118,8 @@ def blender(name, manifest, shots):
     print("".join(line for line in r.stdout.splitlines(True) if line.startswith("frame ")), end="")  # each frame's s
 
 
-def render_shots(jobs, shard=None):
-    """Blender over each (name, manifest, shots); with shard (i, n), 1-based, only the i-th of n even runs of all the
-    shots in order: the pages workflow splits a part's frames over n runners and joins them in its site job (#278)."""
-    if shard:
-        flat = [(name, s) for name, _, shots in jobs for s in shots]
-        i, n = shard
-        mine = flat[len(flat) * (i - 1) // n : len(flat) * i // n]
-        jobs = [(name, manifest, [s for m, s in mine if m == name]) for name, manifest, _ in jobs]
-    for name, manifest, shots in jobs:
-        if shots:
-            blender(name, manifest, shots)
-
-
-def views(names=None, shard=None):
-    """Top/side/front of every picture document, stage 3 exploded and (all Stages present) the strip; with a shard,
-    only its shard of the shots and nothing joined (render_shots)."""
+def views(names=None):
+    """Top/side/front of every picture document, stage 3 exploded and (all Stages present) the strip."""
     plans = {}
     for name, (frames, dirs) in DOCS.items():
         if not names or name in names:
@@ -149,7 +139,6 @@ def views(names=None, shard=None):
             _, hulls, mats, dirs = plans[doc]
             panels[doc, v] = camera.fit(points(hulls, mats), *dirs[v], panel_aspect, margin=MARGIN)
     scale = max((c.ortho_scale for c in panels.values()), default=0)
-    jobs = []
     for name, (manifest, hulls, mats, dirs) in plans.items():
         pts = points(hulls, mats)
         shots = [
@@ -165,10 +154,8 @@ def views(names=None, shard=None):
             apart = exploded(mats)
             cam = camera.fit(points(hulls, apart), HERO, g.Z, aspect, LENS, MARGIN)
             shots.append(shot("exploded.png", VIEW_SIZE, cam, apart))
-        jobs.append((name, manifest, shots))
-    render_shots(jobs, shard)
-    if not shard:
-        jpgs(len(panels) == len(STRIP), "stage3" in plans)
+        blender(name, manifest, shots)
+    jpgs(len(panels) == len(STRIP), "stage3" in plans)
 
 
 def jpgs(strip=True, apart=True):
@@ -221,10 +208,10 @@ def gesture_camera(eye_points, aspect):
     return camera.fit(eye_points, THREE_QUARTER, g.Z, aspect, LENS, 1.04)
 
 
-def gifs(names=None, shard=None):
+def gifs(names=None):
     """Each gesture's trajectory on stage 1 (model/trajectories.py: MuJoCo playing the Core program's writes, one frame
     per 100 ms, at_fps to GIF_FPS) through the three-quarter camera, encoded to <gesture>.gif (at most GIF_MAX_BYTES) with a
-    contact sheet <gesture>-sheet.png; with a shard, only its shard of the frames, unencoded (render_shots)."""
+    contact sheet <gesture>-sheet.png."""
     names = names or list(traces.GESTURES)
     _, manifest, hulls = prepare("stage1", g.STAGES["noggin-stage1"])
     poses = {name: trajectories.poses("noggin-stage1", name) for name in traces.GESTURES}
@@ -242,15 +229,15 @@ def gifs(names=None, shard=None):
         for old in os.listdir(folder):
             os.remove(os.path.join(folder, old))
         shots += [shot(os.path.join(folder, f"{i:03d}.png"), GIF_SIZE, cam, m) for i, m in enumerate(frames)]
-    render_shots([("stage1", manifest, shots)], shard)
-    for name in [] if shard else names:
+    blender("stage1", manifest, shots)
+    for name in names:
         join(name)
 
 
-def hero_gif(shard=None):
+def hero_gif():
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
     camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, GIF_FPS, at most 3 MB (48 colours: the servos' own motion
-    took 64 to 3.2 MB); with a shard, only its shard of the frames, unencoded (render_shots)."""
+    took 64 to 3.2 MB)."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
     poses = at_fps(trajectories.poses("noggin-stage3", "hero"), GIF_FPS)
     cam = camera.fit(
@@ -261,16 +248,15 @@ def hero_gif(shard=None):
     for old in os.listdir(folder):
         os.remove(os.path.join(folder, old))
     shots = [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
-    render_shots([("stage3", manifest, shots)], shard)
-    if not shard:
-        join("hero")
+    blender("stage3", manifest, shots)
+    join("hero")
 
 
-def join(part):
-    """A part of the site's pictures (SITE) from its rendered frames: the views' JPEGs, else its GIF."""
-    if part == "views":
+def join(motion):
+    """A motion of the site's pictures (SITE) from its rendered frames: the views' JPEGs, else its GIF."""
+    if motion == "views":
         jpgs()
-    elif part == "hero":
+    elif motion == "hero":
         encode(
             os.path.join(OUT, "gifs", "hero"),
             os.path.join(OUT, "hero"),
@@ -280,7 +266,7 @@ def join(part):
             HERO_COLOURS,
         )
     else:
-        encode(os.path.join(OUT, "gifs", part), os.path.join(OUT, part))
+        encode(os.path.join(OUT, "gifs", motion), os.path.join(OUT, motion))
 
 
 def encode(frames, out, fps=GIF_FPS, width=GIF_WIDTH, max_bytes=GIF_MAX_BYTES, colours=GIF_COLOURS):
@@ -306,14 +292,14 @@ def ffmpeg(*args):
     subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", *args], check=True)
 
 
-def render(part, shard=None):
-    """A part of the site's pictures (SITE); with a shard, only its shard of the frames (render_shots)."""
-    if part == "views":
-        views(["stage1", "stage2", "stage3"], shard)
-    elif part == "hero":
-        hero_gif(shard)
+def render(motion):
+    """A motion of the site's pictures (SITE)."""
+    if motion == "views":
+        views(["stage1", "stage2", "stage3"])
+    elif motion == "hero":
+        hero_gif()
     else:
-        gifs([part], shard)
+        gifs([motion])
 
 
 def main(what, names):
@@ -324,18 +310,14 @@ def main(what, names):
         gifs(names)
     elif what == "hero":
         hero_gif()
-    elif what == "frames":
-        part, shard = names
-        render(part, tuple(int(k) for k in shard.split("/")))
-    elif what in ("site", "join"):  # join: encode the parts' frames the runners rendered
+    elif what == "site":
         os.makedirs(IMAGES, exist_ok=True)
-        for part in names or SITE:
-            if what == "site":
-                render(part)
-            else:
-                join(part)
-            for f in SITE[part]:
+        for motion in names or SITE:
+            render(motion)
+            for f in SITE[motion]:
                 shutil.copy(os.path.join(OUT, f), IMAGES)
+    elif what == "list":
+        print(json.dumps(motions()))
     else:
         sys.exit(f"unknown: {what}")
 

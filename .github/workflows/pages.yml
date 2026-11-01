@@ -1,8 +1,8 @@
 name: Site Deploy
-# The site (docs/adr/0009): `render` renders the README's pictures in Blender (make pictures, #226; each part split
-# by frame range over runners, #278; the required `pictures` check sums them up) beside `viewer`, whose GLBs Blender bakes and make web tests (docs/adr/0008)
-# whenever what they are made from changed, on PRs too (#221); then `site` joins the frames into the pictures and MkDocs
-# builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
+# The site (docs/adr/0009): `render` renders the README's pictures in Blender (make pictures, #226; one runner per
+# motion, the matrix `motions` reads from the code, #297; the required `pictures` check sums them up) beside `viewer`,
+# whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever what they are made from changed, on PRs too
+# (#221); then `site` gathers the pictures and MkDocs builds the docs (make site) with them at site/images, the viewer at site/viewer and main's latest sim reports at
 # site/reports. Main deploys it to GitHub Pages (yellowpine.com/noggin/) once the check workflow is done with the push
 # (workflow_run: its sim shard has saved the reports by then); a PR uploads it as an artifact. `site` is a required
 # check on PRs that touch what the site is made from (the changes job, as for check.yml's mech). Main builds and
@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
 # one run per PR, and one for main: a newer one cancels the one in progress, deploy included (#283), so main deploys
 # its latest only; a run for a check run that was not green, or no push (a fork's PR from its main), builds nothing
-# (render, viewer and site below), so it gets a group of its own and cancels no deploy
+# (motions, render, viewer and site below), so it gets a group of its own and cancels no deploy
 concurrency:
   group: >-
     pages-${{ github.event.pull_request.number || github.event_name == 'workflow_run'
@@ -36,7 +36,7 @@ jobs:
   # shortcut: a run cancelled while still queued behind another never starts, so its commit gets no `deploy` status;
   # fine while main's commits come a few minutes apart, upgrade (a status per queued run) if they bunch up
   deploy-pending:
-    if: >-   # as render
+    if: >-   # as motions
       ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-latest
@@ -65,84 +65,61 @@ jobs:
           filters: |
             site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
                    ".github/workflows/pages.yml", "macros.py", "mermaid.py", "home.py", "vendored.py", "overrides/**"]
-  # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
-  # else the last frames rendered from the same inputs (a docs-only change renders nothing). Each part (pictures.py SITE)
-  # is split by frame range over runners, about 10 frames a runner (~4-5 s a frame on CI's software GL, plus ~30 s for
-  # Blender's first; #278), and the site job joins the shards into the pictures
-  render:
-    name: render (${{ matrix.part }} ${{ matrix.shard }}/${{ matrix.of }})
+  # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
+  motions:
     needs: changes
     if: >-   # as site
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
       && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
+          persist-credentials: false   # nothing here pushes
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
+        with:
+          enable-cache: false   # as in check.yml
+      - id: list
+        run: |   # its own assignment, so a failing make fails the step
+          list=$(make -s pictures-list)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+  # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
+  # else the last ones rendered from the same inputs (a docs-only change renders nothing). One runner per motion, which
+  # renders and encodes it (~4-5 s a frame on CI's software GL, plus ~30 s for Blender's first; a cold run ~7 min,
+  # Cansin, #297), and the site job gathers them
+  render:
+    name: render (${{ matrix.motion }})
+    needs: motions
+    if: ${{ !cancelled() && needs.motions.result == 'success' }}
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false   # every shard runs to its end; site fails unless all of them succeeded
-      matrix:   # every SITE part, its shards 1..of (test_site.py)
-        include:
-          - {part: views, shard: 1, of: 5}
-          - {part: views, shard: 2, of: 5}
-          - {part: views, shard: 3, of: 5}
-          - {part: views, shard: 4, of: 5}
-          - {part: views, shard: 5, of: 5}
-          - {part: hero, shard: 1, of: 10}
-          - {part: hero, shard: 2, of: 10}
-          - {part: hero, shard: 3, of: 10}
-          - {part: hero, shard: 4, of: 10}
-          - {part: hero, shard: 5, of: 10}
-          - {part: hero, shard: 6, of: 10}
-          - {part: hero, shard: 7, of: 10}
-          - {part: hero, shard: 8, of: 10}
-          - {part: hero, shard: 9, of: 10}
-          - {part: hero, shard: 10, of: 10}
-          - {part: bored, shard: 1, of: 10}
-          - {part: bored, shard: 2, of: 10}
-          - {part: bored, shard: 3, of: 10}
-          - {part: bored, shard: 4, of: 10}
-          - {part: bored, shard: 5, of: 10}
-          - {part: bored, shard: 6, of: 10}
-          - {part: bored, shard: 7, of: 10}
-          - {part: bored, shard: 8, of: 10}
-          - {part: bored, shard: 9, of: 10}
-          - {part: bored, shard: 10, of: 10}
-          - {part: attention, shard: 1, of: 5}
-          - {part: attention, shard: 2, of: 5}
-          - {part: attention, shard: 3, of: 5}
-          - {part: attention, shard: 4, of: 5}
-          - {part: attention, shard: 5, of: 5}
-          - {part: thinking, shard: 1, of: 5}
-          - {part: thinking, shard: 2, of: 5}
-          - {part: thinking, shard: 3, of: 5}
-          - {part: thinking, shard: 4, of: 5}
-          - {part: thinking, shard: 5, of: 5}
-          - {part: eureka, shard: 1, of: 3}
-          - {part: eureka, shard: 2, of: 3}
-          - {part: eureka, shard: 3, of: 3}
-          - {part: wince, shard: 1, of: 2}
-          - {part: wince, shard: 2, of: 2}
-          - {part: wink, shard: 1, of: 2}
-          - {part: wink, shard: 2, of: 2}
+      fail-fast: false   # every motion runs to its end; site fails unless all of them succeeded
+      matrix:
+        include: ${{ fromJSON(needs.motions.outputs.list) }}   # {motion, stages} (test_site.py)
     permissions:
       contents: read
       actions: read   # scripts/ci_budget.py reads the run's start
     outputs:
-      cold: ${{ steps.cold.outputs.cold }}   # set by a shard that rendered (an empty output is never set)
-    env:   # only the Stage a shard draws is baked (make trajectories): the gestures stage 1, the hero stage 3, views all
-      TRAJ_DOCS: ${{ matrix.part == 'hero' && 'noggin-stage3' || matrix.part != 'views' && 'noggin-stage1' || '' }}
+      cold: ${{ steps.cold.outputs.cold }}   # set by a runner that rendered (an empty output is never set)
+    env:   # only the Stages a motion draws are baked (make trajectories)
+      TRAJ_DOCS: ${{ matrix.stages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}   # main's commit, the one its deploy status is on (empty on a PR)
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      # this shard's frames (model/build/pictures without the PLYs Blender read)
+      # this motion's pictures (model/build/images)
       - id: frames
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
-          path: |
-            model/build/pictures
-            !model/build/pictures/meshes
-          key: pictures-${{ matrix.part }}-${{ matrix.shard }}of${{ matrix.of }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
+          path: model/build/images
+          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
@@ -183,50 +160,43 @@ jobs:
           echo "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168  $HOME/blender.tar.xz" | sha256sum -c
           mkdir ~/blender && tar -xJf ~/blender.tar.xz -C ~/blender --strip-components=1
       # Blender's X and GL libraries, even in the background (Eevee renders on Mesa's software GL here); all but libegl1
-      # come with the runner image. No ffmpeg: its 100 packages took 20-90 s a runner (imageio-ffmpeg's, in the site job)
+      # come with the runner image. No ffmpeg: its 100 packages took 20-90 s a runner (make pictures encodes with
+      # imageio-ffmpeg's)
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         run: sudo apt-get update && sudo apt-get install -y libxi6 libxkbcommon0 libxxf86vm1 libxfixes3 libxrender1 libsm6 libgl1 libegl1 libgl1-mesa-dri
       # its own step first, so the run's timings show the bake apart from the renders
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         run: make trajectories
+      # the trajectories cache is saved by viewer, whose key covers theirs and whose make web bakes every Stage
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         id: cold
         env:
-          PARTS: ${{ matrix.part }}
-          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
+          MOTIONS: ${{ matrix.motion }}
         run: |
           make pictures BLENDER=$HOME/blender/blender
           echo "cold=true" >> "$GITHUB_OUTPUT"
-      - if: ${{ always() && steps.frames.outputs.cache-hit != 'true' && steps.trajectories.outputs.cache-hit != 'true' && matrix.part == 'views' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/trajectories
-          key: ${{ steps.trajectories.outputs.cache-primary-key }}
       - if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
-          path: |
-            model/build/pictures
-            !model/build/pictures/meshes
+          path: model/build/images
           key: ${{ steps.frames.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
-          name: frames-${{ matrix.part }}-${{ matrix.shard }}of${{ matrix.of }}
-          path: |
-            model/build/pictures
-            !model/build/pictures/meshes
+          name: images-${{ matrix.motion }}
+          path: model/build/images
           if-no-files-found: error
       - run: python3 scripts/ci_budget.py ${{ steps.frames.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-  pictures:   # the required check (#245), render's runners under one name (as check.yml's model); render skipped passes
+  # the required check (#245), motions and render's runners under one name (as check.yml's model); both skipped passes
+  pictures:
     if: ${{ !cancelled() }}
-    needs: render
+    needs: [motions, render]
     runs-on: ubuntu-latest
     steps:
       - env:
-          RESULT: ${{ needs.render.result }}
-        run: test "$RESULT" = success || test "$RESULT" = skipped
+          RESULTS: ${{ needs.motions.result }} ${{ needs.render.result }}
+        run: for r in $RESULTS; do test "$r" = success || test "$r" = skipped || exit 1; done
   # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
   # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing. Beside the
   # pictures, so neither waits for the other (#278)
@@ -347,12 +317,12 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: false   # as in check.yml
-      # every shard's frames, joined into the pictures (model/build/images, which make site puts at site/images)
+      # every motion's pictures (model/build/images, which make site puts at site/images)
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
-          pattern: frames-*
+          pattern: images-*
           merge-multiple: true
-          path: model/build/pictures
+          path: model/build/images
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: viewer
@@ -373,7 +343,6 @@ jobs:
           path: model/build/reports
           key: sim-latest
           restore-keys: sim-
-      - run: make venv && .venv/bin/python -m model.render.pictures join
       - run: make site
       # the viewer in Chrome (the runner's) on the built site: it plays a gesture and asks no other host for anything
       - run: uv run --with playwright==1.64.0 pytest -q web/test_viewer.py
@@ -403,7 +372,7 @@ jobs:
           echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
           echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
           echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
-      # as in check.yml; warm: no shard of the pictures rendered and the viewer was warm (the budget counts from the
+      # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm (the budget counts from the
       # run's first job)
       - run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && needs.viewer.outputs.warm == 'true' }}
         env:
@@ -429,7 +398,7 @@ jobs:
   # always(): it runs on a cancelled run too, to say so; after deploy-pending, so its status is the last one
   deploy-status:
     needs: [deploy-pending, render, viewer, site, deploy]
-    if: >-   # as render
+    if: >-   # as motions
       ${{ always() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
       && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-latest

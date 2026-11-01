@@ -13,7 +13,7 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero pictures trajectories view web site lint fmt mech
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -105,8 +105,10 @@ gifs: venv ours trajectories     ## the six gesture GIFs + contact sheets on sta
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures gifs
 hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
-pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; PARTS= picks some (views, hero or a gesture); SHARD=i/n with one part renders only that shard of its frames, unjoined (the pages workflow, #278)
-	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures $(if $(SHARD),frames $(PARTS) $(SHARD),site $(PARTS))
+pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views, hero or a gesture)
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
+pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (the pages workflow's render matrix, #297; make -s for the JSON alone)
+	@$(PY) -m model.render.pictures list
 web: venv ours trajectories   ## the web viewer in web/build: its modules, three.js and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with make site (its page) and python -m http.server -d site
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
