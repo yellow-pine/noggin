@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read   # scripts/ci_budget.py reads the run's start
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -59,7 +60,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ steps.viewer-inputs.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
           restore-keys: trajectories-
       # Blender 5.2.2, the pinned Linux tarball (docs/research/2026-11-01-web-viewer.md), sha256-checked on every run
       - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
@@ -106,6 +107,10 @@ jobs:
         run: |
           echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
           echo 'unzip it and run `python -m http.server -d <folder>`.' >> "$GITHUB_STEP_SUMMARY"
+      # as in check.yml; warm: the GLBs or the trajectories hit their exact key (Blender bakes GLBs in about 40 s)
+      - run: python3 scripts/ci_budget.py ${{ steps.viewer.outputs.cache-hit == 'true' || steps.trajectories.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
   deploy:
     if: ${{ github.event_name != 'pull_request' }}
     needs: site
