@@ -14,6 +14,8 @@ Every dependency, tool, toolchain and firmware is kept at its **newest stable re
   Claude's review gate them, on what the bump changes, not its age), majors included.
 - **Pins Dependabot cannot see** get a weekly re-pin job that opens a PR (Blender's tarball and its sha256, like the
   reviewer's skills already).
+- **GitHub's runner image** is named (`ubuntu-26.04`), never `ubuntu-latest`, which moves under us (#392); it moves
+  to the next LTS by hand, when GitHub announces that as `ubuntu-latest`, two years apart, too rare for a re-pin job.
 - **Python** is the newest version every dependency ships wheels for.
 - **The Core's firmware** is updated with the vendor's own app or desktop tool (Bluetooth, or its wired upgrade tool),
   never with a third-party image. The Core has the ESP32-C3's flash encryption on (community evidence, to be read
