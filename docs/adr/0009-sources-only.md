@@ -26,7 +26,7 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   Core's servo count) is not the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
   model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
-  runs the sim only when that changed. A PR or merge group that runs it diffs the new reports against main's latest
+  runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
   (the newest `sim-` entry, which only main saves) in its job summary; the pages workflow runs once check is done on
   main (`workflow_run`) and publishes the newest entry at /reports. The stamp check (model/stale.py) is gone; the
   recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.

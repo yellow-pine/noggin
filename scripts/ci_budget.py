@@ -1,9 +1,9 @@
 """The CI budget (#219), the last step of each job in .github/workflows (check, mech, pages): with a warm cache a
 run must finish within its event's budget, wall time from the start of the first job that ran in this run attempt
 (a "re-run failed jobs" is measured on its own; time spent waiting for a runner is not counted) to this step. Over
-it, a PR or merge-queue run fails; a run on main only warns, in the log and the job summary. A cold run (a cache that
-missed) is only reported. Usage: python3 scripts/ci_budget.py <warm: true|false>, with GITHUB_EVENT_NAME,
-GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and GH_TOKEN (actions: read) set."""
+it, a PR run fails; a run on main only warns, in the log and the job summary. A cold run (a cache that missed) is
+only reported. Usage: python3 scripts/ci_budget.py <warm: true|false>, with GITHUB_EVENT_NAME, GITHUB_REPOSITORY,
+GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and GH_TOKEN (actions: read) set."""
 
 import json
 import os
@@ -11,7 +11,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 
-BUDGET_S = {"pull_request": 180, "merge_group": 180, "push": 540}  # the queue counts as a PR; push is main only
+BUDGET_S = {"pull_request": 180, "push": 540}  # push is main only
 
 
 def first_start(jobs: list[dict], attempt_started: str) -> str:

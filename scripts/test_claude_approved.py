@@ -1,21 +1,13 @@
-"""claude_approved.py: the `review` check in the merge queue passes only when claude[bot]'s last verdict on the PR's
-head is an approval."""
+"""claude_approved.py: review.yml's `review` passes only when claude[bot]'s last verdict on the PR's head is an
+approval."""
 
-from scripts.claude_approved import approved, pr_number
+from scripts.claude_approved import approved
 
 HEAD = "a" * 40
 
 
 def review(state, sha=HEAD, login="claude[bot]"):
     return {"user": {"login": login}, "state": state, "commit_id": sha}
-
-
-def test_the_pr_number_comes_from_the_merge_group_branch():
-    assert pr_number(f"refs/heads/gh-readonly-queue/main/pr-192-{'b' * 40}") == 192
-
-
-def test_the_pr_number_can_be_given_as_is():  # review.yml's own check after Claude decides approve
-    assert pr_number("247") == 247
 
 
 def test_an_approval_on_the_head_passes():

@@ -9,15 +9,17 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - One PR per concern. Keep it small.
 - Every ticket is built in its own worktree on its own branch, with a normal PR straight against main opened on the
   first push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is
-  green and every review conversation is resolved, GitHub puts it in the merge queue, which runs the checks again on
-  it merged onto current main and squash-merges it (the only method the repo allows) when they pass, then deletes the
-  branch. Whoever works the ticket keeps that PR green and answers each review thread (a fix, or a reply saying why
-  not) before resolving it. No integration or feature branches: a spec's tickets land on main one PR at a time. Main is
-  protected: a green PR with one approval is the only way in (it need not be up to date with main: the queue tests the
-  merged result). The approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is
-  re-reviewed; a PR that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main, on ready
-  (non-draft) PRs and on merge groups. A pushed branch is never merged locally: it lands through its own PR. Every
-  branch on GitHub has a PR, except on-hold work.
+  green and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight
+  onto main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers
+  each review thread (a fix, or a reply saying why not) before resolving it. No integration or feature branches: a
+  spec's tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It
+  need not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
+  approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
+  that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main and on ready (non-draft)
+  PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
+  deploy included; a release tag's run is never cancelled), so a cancelled run means a newer one superseded it. A
+  pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has a PR, except on-hold
+  work.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
@@ -28,14 +30,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   workflow re-pins to upstream HEAD (close and reopen its PR to start the checks, again after each refresh),
   Dependabot pins actions by SHA.
   Bots never commit to main: the `skills` workflow only pushes its own `skills-bump` branch and opens (or refreshes)
-  a PR from it, which goes through review and the merge queue like any other; main's ruleset rejects a bot's push.
+  a PR from it, which goes through review like any other; main's ruleset rejects a bot's push.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
   required `review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
   of a documented rule; ponytail suggestions never block) or decides approve but no approval lands on the head (re-run
-  the job) (`.github/workflows/review.yml`: mattpocock code-review plus
-  ponytail). In the merge queue `review` passes when claude[bot] approved the PR's head commit (`.github/workflows/queue.yml`). It
-  needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot
-  secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
+  the job) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail). It needs the
+  `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot secrets): run
+  `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
 - Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
 - After renaming a required check, run `gh pr update-branch --rebase` on every open PR so it reports the new name.
@@ -61,13 +62,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   diagram test's mermaid-cli by their versions in `mkdocs.yml` (`mermaid-npm-`); `pages` caches Mermaid and three.js
   by their versions (`npm-`). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
   are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
-  within 3 min of its first job's start on a PR or in the merge queue, or it fails; on main, past 9 min it warns in the
-  run summary (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a
-  "re-run failed jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs and merge groups
-  touching eyes/, noggin/ or mech/ and on main. `mech` and the site's `site` (`.github/workflows/pages.yml`) are
-  required checks too: each workflow runs on every PR and merge group, and a `changes` job (dorny/paths-filter) skips
-  the work when nothing it is made from changed, which GitHub counts as passing.
+  within 3 min of its first job's start on a PR, or it fails; on main, past 9 min it warns in the run summary
+  (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a "re-run failed
+  jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job, on PRs touching eyes/,
+  noggin/ or mech/ and on main. `mech` and the site's `site` (`.github/workflows/pages.yml`) are required checks too:
+  each workflow runs on every PR, and a `changes` job (dorny/paths-filter) skips the work when nothing it is made from
+  changed, which GitHub counts as passing.
 
 ## Licence
 

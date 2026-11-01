@@ -1,4 +1,4 @@
-"""ci_budget.py: a warm PR or queue run over its budget fails, a warm main run over its budget warns; a cold one is only
+"""ci_budget.py: a warm PR run over its budget fails, a warm main run over its budget warns; a cold one is only
 reported. The clock starts when the run attempt's first job did, so time spent waiting for a runner, or an
 earlier attempt, is not counted."""
 
@@ -14,10 +14,6 @@ def test_a_warm_pr_run_within_three_minutes_passes():
 def test_a_warm_pr_run_past_three_minutes_fails():
     level, why = over("pull_request", START, "2026-11-01T12:03:01Z", warm=True) or ("", "")
     assert level == "error" and "181 s > 180 s" in why
-
-
-def test_the_merge_queue_has_the_pr_budget():
-    assert (over("merge_group", START, "2026-11-01T12:03:01Z", warm=True) or ("",))[0] == "error"
 
 
 def test_main_past_nine_minutes_warns_and_never_fails():
