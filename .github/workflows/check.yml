@@ -11,42 +11,69 @@ concurrency:   # one run per workflow and PR (or branch); a new push to a PR can
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
-# Two jobs side by side, both required: check runs everything but the tests marked heavy (pyproject.toml), heavy runs
-# those and make sim.
+  actions: read   # scripts/ci_budget.py reads the run's start
+defaults:
+  run:
+    shell: bash   # -eo pipefail: make's exit code survives the tee
+# Two required checks side by side: code runs everything but the tests marked model (pyproject.toml); model passes when
+# both model shards do, which split those tests (the hero's collision sweep alone, the rest) and make sim. pytest runs on
+# every core (xdist), its slowest tests go to the job summary, and each job ends on the budget (scripts/ci_budget.py):
+# warm means the parts cache hit its exact key.
 jobs:
-  check:
+  code:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
+      # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
-          enable-cache: true
+          enable-cache: false
       # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
-      # and the heavy job's full save would be refused (a key is written once)
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
+      # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
+      - id: parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
+          restore-keys: ours-convex-
       # model/electrical.py's SPICE circuit: PySpice dlopens libngspice.so, the unversioned name only the -dev package
       # ships (https://packages.ubuntu.com/noble/amd64/libngspice0-dev/filelist)
       # and noggin/test_broker.py runs the real Mosquitto (https://packages.ubuntu.com/noble/mosquitto)
       - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev mosquitto shellcheck
-      - run: make check
+      - run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PYTEST_ADDOPTS: -m "not heavy"
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
+          OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
+      - if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
-  heavy:
+      - run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  model-shard:
+    name: model ${{ matrix.shard }}
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:   # the sweep is about half the model tests' time; a new model test lands in mujoco
+        include:
+          - shard: hero
+            tests: model/render/test_hero.py
+          - shard: mujoco
+            tests: --ignore=model/render/test_hero.py
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
-          enable-cache: true
+          enable-cache: false   # as in code
       # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
       # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not (ours-convex-:
       # the old ours- entries on main were saved by pages without the pieces, so every run decomposed again)
@@ -56,14 +83,24 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'uv.lock') }}
-      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev   # make sim's SPICE circuit, as in check
-      - run: make test
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/engine/stages.py', 'uv.lock') }}
+          restore-keys: ours-convex-   # as in code
+      - run: sudo apt-get update && sudo apt-get install -y libngspice0-dev   # make sim's SPICE circuit, as in code
+      # missed the exact key: decompose what is stale before the tests, in mjcf's own process pool, or several xdist
+      # workers would decompose the same part into the same folder at once
+      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+        run: make ours && .venv/bin/python -m model.mjcf
+      - run: make test | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PYTEST_ADDOPTS: -m heavy
+          PYTEST_ADDOPTS: -m model -n auto --dist loadgroup --durations=20 ${{ matrix.tests }}
+          OMP_NUM_THREADS: 1   # as in code
+      - if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
       # it (make sim-if-stale), main always runs it
-      - run: make ${{ github.event_name == 'push' && 'sim' || 'sim-if-stale' }}
+      - if: ${{ matrix.shard == 'mujoco' }}
+        run: make ${{ github.event_name == 'push' && 'sim' || 'sim-if-stale' }}
       # saved even when a test or make sim fails (a red main would otherwise never fill its cache); an interrupted build
       # is safe to keep, since each .key above is written last
       - if: ${{ always() && steps.parts.outputs.cache-hit != 'true' }}
@@ -73,3 +110,12 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
+      - run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  model:   # the required check: a skipped shard would count as passing, so the shards' result is checked (not on cancel)
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
+    needs: model-shard
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.model-shard.result }}" = success ]'

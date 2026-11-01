@@ -12,7 +12,7 @@ from model import trajectories as tj
 from model.engine import stages
 from model.render import pictures
 
-pytestmark = pytest.mark.heavy
+pytestmark = pytest.mark.model
 C = math.sqrt(0.5)  # cos and sin of 45 degrees: a quaternion turning 90 degrees
 
 

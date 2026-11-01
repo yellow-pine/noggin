@@ -27,6 +27,7 @@ dev = [
     "pygltflib>=1.16.5",
     "mkdocs-material==9.7.7",
     "mkdocs-same-dir==0.1.3",
+    "pytest-xdist==3.8.0",
 ]
 
 [tool.noggin]
@@ -34,7 +35,7 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 
 [tool.pytest.ini_options]
 testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py"]
-markers = ["heavy: MuJoCo and the slowest mesh sweeps; CI runs them in their own job (-m heavy) beside the rest"]
+markers = ["model: MuJoCo and the slowest mesh sweeps; CI runs them in its model job (-m model) beside the rest"]
 
 [tool.ruff]
 line-length = 120
