@@ -255,7 +255,9 @@ class Service:
             if len(parts) != 3 or parts[1] not in cal:
                 return log("unknown calibration key", repr(text))
             cal[parts[1]] = float(parts[2]) if "." in parts[2] else int(parts[2])
-            self.cal_file.write_text(json.dumps(cal, indent=1) + "\n")
+            tmp = self.cal_file.with_name(self.cal_file.name + ".tmp")  # same dir: os.replace swaps it in whole
+            tmp.write_text(json.dumps(cal, indent=1) + "\n")
+            os.replace(tmp, self.cal_file)
             return self.send([text] + self.held())  # a held pose re-applied: lid levels follow the limits
         if text.startswith("{"):
             try:
