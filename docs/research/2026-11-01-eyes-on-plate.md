@@ -67,5 +67,5 @@ plate against the eye bracket and against both servo brackets.
 
 ## Left open
 
-- The v2 bracket's colour. geometry.PRINTED gives "eye bracket" as Milky Pink, but the v2 print in printed-parts.jpg is
-  black. The pink one in the build is the desk bracket. This is not changed here.
+- The v2 bracket's colour: settled in #178. geometry.PRINTED gives "eye bracket" Absolute Black, as its print in
+  printed-parts.jpg; the pink one in the build is the desk bracket.

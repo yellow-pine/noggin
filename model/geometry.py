@@ -393,7 +393,6 @@ PRINTED = {
         "Milky Pink": [
             "L servo bracket",
             "R servo bracket",
-            "eye bracket",
             "desk eye bracket",
             "upper lid",
             "lower lid",
@@ -415,6 +414,7 @@ PRINTED = {
             "jaw servo mount",
         ],
         "Absolute Black": [
+            "eye bracket",  # the rail one: a black print in printed-parts.jpg
             "pupil",
             "base plate",
             "tilt arm",
