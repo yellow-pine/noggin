@@ -13,7 +13,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "mkdocs.yml", "Makefile", "pyproject.toml", "uv.lock",
-            ".github/workflows/pages.yml", "macros.py", "mermaid.py", "overrides/**"]
+            ".github/workflows/pages.yml", "macros.py", "mermaid.py", "vendored.py", "overrides/**"]
   workflow_dispatch:
 # one deployment at a time, never cancelled midway (GitHub's starter workflow); a new push to a PR cancels its run
 concurrency:
@@ -34,13 +34,30 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78   # v7.6.0
         with:
           enable-cache: false   # as in check.yml
-      # the viewer (Blender's GLBs and three.js's Draco decoder in web/build) built and tested by make web when what it
+      # the viewer (Blender's GLBs and three.js with its Draco decoder in web/build) built and tested by make web when what it
       # is made from changed, else the last one built from the same inputs: a docs-only change bakes nothing
       - id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
+          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'vendored.py', 'Makefile', 'uv.lock', '.github/workflows/pages.yml') }}
+      # the files the site serves from npm (vendored.py's .cache), by version: Mermaid's in mkdocs.yml on every run, and
+      # three.js's in web/build.py when the viewer is built; vendored.py checks each hash cached or not
+      - id: npm
+        run: |   # one assignment per line, so a failing yq or grep fails the step
+          mermaid=$(yq -e .extra.mermaid.version mkdocs.yml)
+          three=$(grep -oP '^THREE_VERSION = "\K[^"]+' web/build.py)
+          echo "mermaid=$mermaid" >> "$GITHUB_OUTPUT"
+          echo "three=$three" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: .cache/mermaid@*
+          key: npm-mermaid-${{ steps.npm.outputs.mermaid }}
+      - if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: .cache/three@*
+          key: npm-three-${{ steps.npm.outputs.three }}
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed

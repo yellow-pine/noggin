@@ -4,25 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>noggin</title>
-<!-- three.js, pinned with a hash per file (docs/adr/0008, docs/research/2026-11-01-web-toon.md); it draws Blender's glTF
-     in style B with the look numbers Blender writes into the GLB's extras -->
+<!-- three.js, served by the site (web/build.py fetched it and checked each file's sha384; docs/adr/0008); it draws
+     Blender's glTF in style B with the look numbers Blender writes into the GLB's extras. Scripts from the site alone
+     may run; DRACOLoader decodes in a Blob worker, which compiles the decoder's WASM -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src blob:">
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
-  },
-  "integrity": {
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js": "sha384-m8JoFX52V6NGv2usipnlLJKnJfL7IE8dbniPDDCSGSQv3Hm4n6PjfV6syVwfuoRc",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.core.js": "sha384-mdKeCwPEcbDvzaxwhm+MVuLoMou+E7jQqrs4tmu/n8HBYPGI1kZt0MkJxlMR4zFM",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js": "sha384-LSqANrugPGTgf0eYsQTloqKWy926dOOXo2iZ9y6wLMIDEQoU9AaCLJF1Vcc7oJXr",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js": "sha384-jmhN0si8z6E7+h0t9KiwQ71oyrC3PhTpols1FXeN/vODuFa/L4bPIe9sLbOlhjq7",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/DRACOLoader.js": "sha384-6vtmq3WPvctEi9PzdgMxiAGLRIRtWQSrgL9Pxy26rq+Lu2s8qY/tRpq2Ked1wfLW",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js": "sha384-Rm97j4mcjlLkGsYC2LX3nZG9VU2R8lgK0QE+DmBr4thue+H7J+SHm+68If2ZLBVg",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/SkeletonUtils.js": "sha384-Pozn8j5+YFr3ak8Pm90ayqDrGYn/DV7vVs/YIIqzJhzeJT0LQksoS1fZQ5lfsYlw",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineSegments2.js": "sha384-PodS3f4Ob57FETbMdk39akLP+W9/ScGjH/bBDerYOTsUt6dZc/i2Cbx7GW47tr5u",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineSegmentsGeometry.js": "sha384-c1W/XWY1D45CznDDaXT87QmzD1YKNwYHvQegG8dXjCyf5ZaKzaWqEUwHZTYfBw64",
-    "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/lines/LineMaterial.js": "sha384-ijlzWpc1yHwTvvgLgdhkrcd5RQTKG/twLNwGumhKSFZHITTXMnzRdHIrw8fmvM3o"
+    "three": "./three/build/three.module.js",
+    "three/addons/": "./three/examples/jsm/"
   }
 }
 </script>
@@ -80,7 +70,7 @@
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   const ambient = new THREE.AmbientLight(0xffffff);
-  const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("draco/"));  // web/build.py checks it
+  const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("three/examples/jsm/libs/draco/gltf/"));  // web/build.py checks it
   // the gesture GIFs' view (model/render/pictures.py THREE_QUARTER): front-right, 25 deg up, in glTF's Y-up
   const VIEW = new THREE.Vector3(-0.641, 0.423, 0.641);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line

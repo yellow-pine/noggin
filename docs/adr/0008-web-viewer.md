@@ -7,6 +7,7 @@
 > Amended 2026-11-01 (#225, ADR 0009): the viewer moved to yellowpine.com/noggin/viewer/, the site's docs took the root.
 > Amended 2026-11-01 (#221): a PR touching `model/`, `eyes/` or `web/` bakes and tests the GLBs too; every run reuses
 > the last GLBs built from the same inputs.
+> Amended 2026-11-01 (#268): the site serves three.js itself; the page runs scripts from the site alone.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -15,15 +16,18 @@ watch the hero loop.
 - **Baked, not simulated, in the browser.** Motion is MuJoCo's baked servo trajectories (#179), the same source as the
   GIFs and the hero. Blender keys every part's world pose per frame and exports one Draco-compressed GLB per Stage,
   with one named glTF animation per gesture plus `hero` (actions stashed so the exporter includes each).
-- **three.js draws it in style B** (MIT, one pinned version from the CDN, a sha384 hash per file in the import map):
+- **three.js draws it in style B** (MIT, one pinned version, served by the site; see the last paragraph of this bullet):
   `MeshToonMaterial` whose gradient map is the pictures' light per N.L (the two-step toon ramp mixed with the satin,
   sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
   and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right and
   casting shadows as Eevee's sun does (#211 measured the pictures' two tones to be these cast shadows). Lines scale with the canvas as the GIFs' do with the picture: `line_px` at
   640 px wide, never under one device pixel.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The page is one static HTML file in `web/`, with no build step. three.js's Draco decoder is fetched by
-  `DRACOLoader` with no integrity check, so the site serves its own copy, sha256-checked when the site is built.
+  other GLB. The page is one static HTML file in `web/`, with no build step of its own. three.js, the addons it
+  imports and the Draco decoder `DRACOLoader` fetches are copied into the site from the npm package when the viewer
+  is built, each checked against its sha384 in `web/build.py` (`vendored.py`, as the docs' Mermaid is), and the import
+  map points at those copies. The page's CSP lets scripts from the site alone run (plus the decoder's WASM in
+  `DRACOLoader`'s Blob worker), so a missing copy fails instead of falling back to a CDN.
 - **One source for the look.** Blender's export writes the look numbers (background, line width, crease angle, the
   light ramp, highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the
   page reads them and holds no look numbers of its own.
