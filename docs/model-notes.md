@@ -10,6 +10,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   #000000, drawn #2B2B2E so its shading and lines read, Apricot #FFB673; data in model/geometry.py SPOOLS/PRINTED)
   and the PLA density (1.24 g/cm3). Electronics and servos are neutral greys,
   darker for the boards (model/render/scene.py GREYS).
+- `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it): headlight
+  ambient 0.5, diffuse 0.5, specular 0; Absolute Black #5A5A60, Pure White #E8E8E8 (model/mjcf.py VIEW), the rest
+  their spool's colour; flat #F7F4EE sky (the pictures' background).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
   shadow and one small highlight band, 2.5 px black Freestyle lines on silhouettes, borders and creases (faces
   more than 60 degrees apart, so STL facets draw none), one key light at the camera's upper right, plain #F7F4EE
@@ -72,3 +75,9 @@ the model stabilises.
   - the horn limits, each with its reason (geometry.LIMITS);
   - masses of the boards, battery and horn from STEP volume x 1.9 g/cm3; two spool colours (wire holder, pan turntable);
   - the lid horns keep the STEP horn's r 0.5 hole in the mesh, though they are drilled to r 1.0 (axis unchanged).
+- Conflict, open (#147): the eyes on the desk base (stage 1; noggin-eyes and noggin-mouth carry it). Cansin's side
+  photo puts the servo brackets' feet on the plate top (geometry.pt_to_eyes_standalone), and the model keeps that; but
+  our eye bracket's rail (y -40.6..-30.6) then lies 5 mm deep in the solid plate and the L servo bracket 1.6 mm in it
+  (measured on the meshes; MuJoCo's overlap guard lists the pairs in model/test_mjcf.py TOUCH, the old engine never
+  measured parts that do not move). The rail on the plate top instead (5 mm higher, as it lies on the tilt arm) clears
+  both, with the feet 5 mm above the plate. Waits for Cansin's photo or measurement.

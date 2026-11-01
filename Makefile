@@ -6,9 +6,10 @@ BLENDER := /Applications/Blender.app/Contents/MacOS/Blender
 NOGGIN := noggin/noggin
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
+DOC ?= noggin-eyes
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs lint fmt
+.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs view lint fmt
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -85,6 +86,9 @@ restore-stock: interrupt
 	cd eyes/stock-backup && for f in *; do $(MPR) resume cp -r $$f : ; done
 	$(PY) eyes/interrupt.py reset
 
+view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
+	$(PY) -m model.mjcf $(DOC)
+	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
 render: venv ours   ## Blender pictures from the engine's poses: views, hero, Stage strip (model/build/pictures)
 	BLENDER=$(BLENDER) $(PY) -m model.render.pictures views
 gifs: venv ours     ## the six gesture GIFs + contact sheets on stage 1, from the Core program's commands
