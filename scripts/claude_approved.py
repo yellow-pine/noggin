@@ -1,5 +1,5 @@
-"""The `claude` check in the merge queue (.github/workflows/queue.yml). A merge group has no PR to review: it passes
-when claude[bot]'s last verdict on the queued PR's head commit is an approval, the review the PR's own `claude` check
+"""The `review` check in the merge queue (.github/workflows/queue.yml). A merge group has no PR to review: it passes
+when claude[bot]'s last verdict on the queued PR's head commit is an approval, the review the PR's own `review` check
 already gated on. Usage: GITHUB_REPOSITORY=o/r python3 scripts/claude_approved.py <merge group head_ref>"""
 
 import json

@@ -1,4 +1,4 @@
-"""claude_approved.py: the `claude` check in the merge queue passes only when claude[bot]'s last verdict on the PR's
+"""claude_approved.py: the `review` check in the merge queue passes only when claude[bot]'s last verdict on the PR's
 head is an approval."""
 
 from scripts.claude_approved import approved, pr_number

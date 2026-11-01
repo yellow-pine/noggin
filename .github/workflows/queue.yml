@@ -1,6 +1,6 @@
 name: queue
 # The review workflow's two required checks, as they report in the merge queue (check.yml runs there itself). A merge
-# group changes nothing the review judged, so `claude` passes when claude[bot] approved the queued PR's head
+# group changes nothing the review judged, so `review` passes when claude[bot] approved the queued PR's head
 # (scripts/claude_approved.py), and `fetch skills` has nothing to fetch. In its own file, not review.yml: the Claude
 # action skips a review.yml that differs from main's.
 on:
@@ -13,8 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "the PR's own run fetched the skills for its review"
-  claude:
-    name: claude
+  review:
     runs-on: ubuntu-latest
     permissions:
       contents: read
