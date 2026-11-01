@@ -76,10 +76,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   site at /reports (ADR 0009). `code` caches the site's Mermaid (`vendored.py`, hash-checked on every build) and the
   diagram test's mermaid-cli by their versions in `mkdocs.yml` (`mermaid-npm-`); Site Checks caches Mermaid and
   three.js by their versions (`npm-`). A cold parts cache is first cut part by part, one runner per part whose CoACD pieces
-  are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run must finish
-  within 3 min of its first job's start on a PR, or it fails; on main, past 9 min it warns in the run summary
-  (`scripts/ci_budget.py`; the wait for a runner before the first job starts does not count, and a "re-run failed
-  jobs" is timed from its own attempt). Each job's slowest tests are in its run summary.
+  are stale (`convex`, `model/convex_parts.py`), so the model shards start warm. With a warm cache a run's critical
+  path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in the run summary
+  (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner picked it up,
+  so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's slowest tests
+  are in its run summary.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `mech` job (`check.yml`, beside `code`
   and `model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `site` and `pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `mech`,
