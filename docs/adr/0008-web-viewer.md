@@ -16,7 +16,8 @@ watch the hero loop.
   sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
   and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The page is one static HTML file in `web/`, with no build step.
+  other GLB. The page is one static HTML file in `web/`, with no build step. three.js's Draco decoder is fetched by
+  `DRACOLoader` with no integrity check, so the site serves its own copy, sha256-checked when the site is built.
 - **One source for the look.** Blender's export writes the look numbers (background, line width, crease angle, the
   light ramp, highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the
   page reads them and holds no look numbers of its own.

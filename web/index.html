@@ -76,8 +76,7 @@
   // the key light rides at the camera's upper right; intensity PI makes a part colour x ramp (RE_Direct_Toon divides by PI)
   const key = new THREE.DirectionalLight(0xffffff, Math.PI);
   camera.add(key, key.target);
-  const loader = new GLTFLoader().setDRACOLoader(
-    new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/draco/gltf/"));
+  const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath("draco/"));  // web/build.py checks it
   // the gesture GIFs' view (model/render/pictures.py THREE_QUARTER): front-right, 25 deg up, in glTF's Y-up
   const VIEW = new THREE.Vector3(-0.641, 0.423, 0.641);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
@@ -148,6 +147,7 @@
     const gltf = await loader.loadAsync(src);
     if (mine !== loading) return;  // a later Stage click won
     stylise(gltf.scene);
+    scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
     scene.background = new THREE.Color(look.bg);
     scene.add(gltf.scene, camera);

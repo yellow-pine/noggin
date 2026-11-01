@@ -2,6 +2,7 @@
 gesture the model replays (model/traces.py) plus the hero loop; each Stage's GLB (`make web`, read here as `make sim`'s
 reports are by model/test_report.py) carries every part and one glTF clip per motion, frame for frame its trajectory."""
 
+import hashlib
 import os
 import re
 from html.parser import HTMLParser
@@ -33,6 +34,7 @@ class Page(HTMLParser):
 
     def handle_data(self, data):
         self.look |= set(re.findall(r"\blook\.(\w+)", data))
+        self.refs |= set(re.findall(r'setDecoderPath\("([^"]+)"\)', data))
 
 
 @pytest.fixture(scope="module")
@@ -43,12 +45,22 @@ def page():
 
 
 def test_the_page_loads_only_the_glbs_the_build_writes(page):
-    assert page.refs == set(STAGES.values())
+    assert page.refs == {*STAGES.values(), "draco/"}
     assert build.GLBS == STAGES
 
 
 def test_one_button_per_gesture_and_the_hero(page):
     assert sorted(page.gestures) == sorted([*traces.GESTURES, "hero"])
+
+
+def test_the_site_serves_the_draco_decoder_it_checked():
+    folder = os.path.join(build.HERE, "build", "draco")
+    if not os.path.isdir(folder):
+        pytest.skip(f"{folder} not built (make web)")
+    assert {f: hashlib.sha256(open(os.path.join(folder, f), "rb").read()).hexdigest() for f in os.listdir(folder)} == {
+        "draco_wasm_wrapper.js": "8bb2952d2ba7d67e1414f8df819410cb0434a666be53f671fff75f68843d76f6",
+        "draco_decoder.wasm": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac",
+    }
 
 
 @pytest.fixture(scope="module", params=STAGES)
