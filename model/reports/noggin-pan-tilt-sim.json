@@ -882,7 +882,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "842fd41f5ce1e674b839e6685d6ad25ff4eb8d7701c1027cce2e5f794f2f74f7",
+  "stamp": "ad95e2f4500188d0c2a16b22f90b14d42d02b624a70f1b3bc91a46dc60a8e1e4",
   "sources": {
    "model/build/ours/base plate.stl": "a1737976cae161f0",
    "model/build/ours/battery.stl": "a924d2ea2c057c7d",
@@ -1021,38 +1021,13 @@
   "pairs": [
    {
     "pair": [
-     "base plate:1",
-     "pan turntable:1"
-    ],
-    "rest_mm": -1.545,
-    "min_mm": -1.563,
-    "at": {
-     "pan horn": 60,
-     "tilt horn": -30
-    }
-   },
-   {
-    "pair": [
-     "base plate:1",
-     "upright:1"
-    ],
-    "rest_mm": -0.927,
-    "min_mm": -1.093,
-    "at": {
-     "pan horn": -40,
-     "tilt horn": -60
-    }
-   },
-   {
-    "pair": [
      "bearing block:1",
      "pan turntable:1"
     ],
-    "rest_mm": -1.788,
-    "min_mm": -1.79,
+    "rest_mm": -0.932,
+    "min_mm": -0.932,
     "at": {
-     "pan horn": 60,
-     "tilt horn": 20
+     "pan horn": -40
     }
    },
    {
@@ -1063,7 +1038,8 @@
     "rest_mm": -0.03,
     "min_mm": -0.03,
     "at": {
-     "pan horn": 70
+     "pan horn": 40,
+     "tilt horn": -60
     }
    },
    {
@@ -1074,8 +1050,8 @@
     "rest_mm": 0.0,
     "min_mm": 0.0,
     "at": {
-     "pan horn": -40,
-     "tilt horn": 20
+     "pan horn": -20,
+     "tilt horn": 50
     }
    },
    {
@@ -1083,10 +1059,11 @@
      "pan horn:1",
      "pan servo:1"
     ],
-    "rest_mm": -0.385,
-    "min_mm": -0.386,
+    "rest_mm": -0.237,
+    "min_mm": -0.237,
     "at": {
-     "pan horn": -10
+     "pan horn": -20,
+     "tilt horn": -50
     }
    },
    {
@@ -1095,9 +1072,9 @@
      "tilt horn:1"
     ],
     "rest_mm": null,
-    "min_mm": -0.136,
+    "min_mm": 0.118,
     "at": {
-     "pan horn": 30,
+     "pan horn": 40,
      "tilt horn": -60
     }
    },
@@ -1109,7 +1086,7 @@
     "rest_mm": -0.0,
     "min_mm": -0.0,
     "at": {
-     "pan horn": 60,
+     "pan horn": 30,
      "tilt horn": 60
     }
    },
@@ -1121,7 +1098,7 @@
     "rest_mm": -0.005,
     "min_mm": -0.006,
     "at": {
-     "pan horn": -10,
+     "pan horn": -20,
      "tilt horn": 60
     }
    },
@@ -1133,8 +1110,8 @@
     "rest_mm": -0.02,
     "min_mm": -0.02,
     "at": {
-     "pan horn": 70,
-     "tilt horn": 10
+     "pan horn": 50,
+     "tilt horn": -50
     }
    },
    {
@@ -1142,11 +1119,11 @@
      "tilt horn:1",
      "tilt servo:1"
     ],
-    "rest_mm": -0.385,
-    "min_mm": -0.386,
+    "rest_mm": -0.237,
+    "min_mm": -0.237,
     "at": {
-     "pan horn": 10,
-     "tilt horn": 50
+     "pan horn": 60,
+     "tilt horn": 20
     }
    }
   ],
@@ -1179,7 +1156,7 @@
     "hold_kgf_cm": 0.0,
     "at": {
      "pan horn": 40,
-     "tilt horn": 30
+     "tilt horn": -60
     },
     "rated_kgf_cm": 0.4,
     "stall_kgf_cm": 1.0
@@ -1198,15 +1175,15 @@
    }
   },
   "tip_over": {
-   "margin_mm": 57.3,
+   "margin_mm": 57.5,
    "at": {
     "pan horn": -40,
     "tilt horn": 60
    },
    "com": [
-    -2.7,
-    61.9,
-    7.8
+    -2.5,
+    62.3,
+    7.6
    ]
   }
  }

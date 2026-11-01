@@ -4,7 +4,6 @@ committed: their fingerprints recorded at sim time are hashed instead). The fixt
 
 import json
 import os
-import sys
 
 import pytest
 
@@ -36,29 +35,22 @@ KNOWN_CALIBRATED = {
     ("R lid horn", 45.75): _LID_OPEN,
     **{(f"{s} eye horn", end): _EYE_ENDS for s in "LR" for end in (-30, 30)},
 }
-# MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, each with what the exact meshes say
-# at the same pose (model/engine/meshes.judge): the convex pieces fill a part's own clearance, the meshes are clear. The
-# two lids, which the old engine's sweep never measures, are clear on the meshes at both lid limits (#189,
-# model/engine/test_meshes.py).
-_SHELL = "pieces only: the lid shell's pieces fill its 0.48 mm gap to the eyeball; the meshes stay 0.48 mm clear"
-_ON_PINS = (
-    "pieces only: the lids turn on the bracket's pins and on each other's ears; the meshes touch with nothing inside (on"
-    " the bracket at every step of the sweep, on each other at both limits), the pieces read up to 0.75 mm deeper than at"
-    " rest (+29..+31)"
-)
-_ON_RAIL = (
-    "pieces only: the eyeball bar rides the bracket's rail, 0 mm with nothing inside on the meshes; its pieces 0.07 mm"
-    " deeper at +-20 on the desk bracket"
+# MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
+# what the exact meshes do (model/test_mjcf.py), so these are overlaps the meshes have, which meshes.judge misses where
+# their edges cross (it tests vertices): the common region of the two deepest pieces lies inside both meshes (ray parity,
+# docs/research/2026-11-01-coacd-tuning.md 4). The build runs the lids without binding: open on #210, not accepted.
+_LIDS_CROSS = (
+    "the meshes cross: the lid ears 1.20 mm into each other at +29 (1.09 at +31, 0.28 at -31), the upper lid 0.36 mm and"
+    " the lower lid 0.11 mm into the eye bracket at +31; judge sees no vertex inside. Open on #210"
 )
 KNOWN_PAIRS = {
-    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _ON_PINS for s in "LR"},
-    **{frozenset((f"{s} {lid} lid:1", "eye bracket:1")): _ON_PINS for s in "LR" for lid in ("upper", "lower")},
-    **{frozenset((f"{s} eyeball bar:1", "eye bracket:1")): _ON_RAIL for s in "LR"},
-    **{frozenset((f"{s} pupil:1", f"{s} {lid} lid:1")): _SHELL for s in "LR" for lid in ("upper", "lower")},
-    frozenset(("base plate:1", "upright:1")): "pieces only: the plate's pieces fill the recess under the upright; the"
-    " meshes stay 0.5 mm clear at pan -40",
-    frozenset(("pan turntable:1", "tilt horn:1")): "pieces only: 0.14 mm in at tilt -60; the meshes stay 0.17 mm clear"
-    " there (geometry.LIMITS stops the tilt at its lower end for this chord)",
+    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _LIDS_CROSS for s in "LR"},
+    **{frozenset((f"{s} {lid} lid:1", "eye bracket:1")): _LIDS_CROSS for s in "LR" for lid in ("upper", "lower")},
+    **{
+        frozenset((f"{s} eyeball:1", "eye bracket:1")): "the pieces 0.07 mm in at +-20 where the meshes touch with"
+        " nothing 0.1 mm inside (model/test_mjcf.py holds the pieces to that)"
+        for s in "LR"
+    },
 }
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does.
 KNOWN_FULL_SPEED = {
@@ -279,9 +271,7 @@ def test_known_mujoco_exceptions_are_still_there():
         m = committed(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
-    # shortcut: KNOWN_PAIRS come from the Mac's CoACD pieces and Linux's differ (main's make sim); #190 makes them agree
-    if sys.platform == "darwin":
-        assert set(KNOWN_PAIRS) <= going
+    assert set(KNOWN_PAIRS) <= going
     assert swings == set(KNOWN_FULL_SPEED)
 
 

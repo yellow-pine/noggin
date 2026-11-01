@@ -38,12 +38,24 @@ def poses(doc):
 
 def _contacts(model, data):
     """{(body, body): mm} the closest the two bodies' pieces come, for the pairs within CLEARANCE_MM (negative: in)."""
-    mujoco.mj_forward(model, data)  # with contacts on, inside the pieces' margin
+    # contacts only, inside the pieces' margin: no constraints (finely cut nested shells meet in thousands of pieces)
+    mujoco.mj_kinematics(model, data)
+    mujoco.mj_collision(model, data)
+    assert not data.warning[mujoco.mjtWarning.mjWARN_CONTACTFULL].number, "contacts dropped: the arena is full"
     out = {}
     for c in data.contact[: data.ncon]:
         pair = tuple(sorted(model.body(model.geom_bodyid[g]).name for g in c.geom))
         out[pair] = min(out.get(pair, math.inf), c.dist * 1000)
     return out
+
+
+def widen(model):
+    """Contacts on `model` from CLEARANCE_MM out (the collision pieces' margin), the parent filter off, and multiccd off
+    (one contact, the true distance, per pair of pieces)."""
+    model.geom_margin[model.geom_group == mjcf.COLLISION] = CLEARANCE_MM / 1000
+    # a part on a joint against the rigid group it hangs on (a lid on the eye bracket riding the tilt arm): measured too;
+    # multiccd's extra points on two flat faces read up to 0.2 mm too deep (docs/research/2026-11-01-coacd-tuning.md 2)
+    model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_FILTERPARENT | mujoco.mjtDisableBit.mjDSBL_MULTICCD
 
 
 def _footprint(model, data):
@@ -64,12 +76,10 @@ def _worst(old, value, at, key):
 
 
 def measure(doc, model):
-    """The document's MuJoCo report (a dict, in the shape model/test_report.py reads). Widens the collision pieces'
-    margin to CLEARANCE_MM and turns MuJoCo's parent filter off on `model`, which is the report's own."""
+    """The document's MuJoCo report (a dict, in the shape model/test_report.py reads). Widens `model`, which is the
+    report's own (widen())."""
     stage, todo = stages.STAGES[doc], poses(doc)
-    model.geom_margin[model.geom_group == mjcf.COLLISION] = CLEARANCE_MM / 1000
-    # a part on a joint against the rigid group it hangs on (a lid on the eye bracket riding the tilt arm): measured too
-    model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_FILTERPARENT
+    widen(model)
     rest = _contacts(model, mjcf.pose(model, {}))
     pairs, residuals, actuators, slow = {}, {}, {}, {}
     tip = {} if {PAN, TILT} <= set(stage.horns) else None
