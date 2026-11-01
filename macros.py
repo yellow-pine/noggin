@@ -38,8 +38,8 @@ def duration(seconds):
 
 
 def behaviour():
-    # shortcut: the blink gap read off its line, since eyes/eyes.py is a sim-report input (an edit there means
-    # make sim); a named constant once #229 takes the reports out of git
+    # shortcut: the blink gap read off its line, since eyes/eyes.py is the Core's program and imports machine (only
+    # pytest stubs it); a module constant there if the line changes shape
     gap = r"self\.next_blink = now_ms \+ (\d+) \+ self\.rand % (\d+)"
     lo, spread = map(int, re.search(gap, (ROOT / "eyes/eyes.py").read_text()).groups())
     numbers = {

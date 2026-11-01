@@ -172,7 +172,7 @@ A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
 
 **Corridor**:
-A lead's route in the Model: a tube from one Port to the other through waypoints clipped to the parts that hold the
+A lead's route in the Model: a polyline from one Port to the other through waypoints clipped to the parts that hold the
 lead, so it rides pan and tilt (model/cables.py). MuJoCo carries it as a tendon no longer than the lead.
 _Avoid_: harness, cable path, routing
 

@@ -66,7 +66,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   part's frame per 100 ms to model/build/trajectories/<doc>/<motion>.json (position in metres, quaternion w x y z,
   MuJoCo's world), stamped with the engine's inputs, the meshes and its own sources; a Stage whose files carry its stamp
   is skipped; the hero only on the Stages with the neck (2 and 3, #180). Blender's pictures render from them
-  (`trajectories.poses`, #150) and the web viewer's glTF will (#180). A full-speed step of the pan
+  (`trajectories.poses`, #150) and the web viewer's GLBs do (web/build.py). A full-speed step of the pan
   servo to its -40 limit carries the stage 3 head through the pan four-bar's toggle (it ends 41.5 degrees round instead
   of 24.9): the hero's eased keys stay clear (the head within 1.4 degrees of its keys; model/test_trajectories.py holds it to 2), and
   the head program (the second Core) must ease its pan moves likewise.

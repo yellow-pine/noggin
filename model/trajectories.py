@@ -1,7 +1,7 @@
 """Trajectories (#179): each gesture (model/traces.py, the Core program's writes) and the README hero
 (model/render/hero.py) played on each Stage by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's
 place in the world per 100 ms frame: the one source of motion the pictures and GIFs render from (#150, poses()) and
-the web viewer will (#180).
+the web viewer's GLBs bake (web/build.py).
 Each servo slews its command at the rated no-load speed (eyes/servo.py Plant, at 4.8 V as mjcf's stall torque) and its
 position actuator follows under the load, its torque limited to the stall torque; contacts are off, as in mjcf.pose.
 `python -m model.trajectories` (`make trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
@@ -26,8 +26,18 @@ from model.render import hero, scene
 OUT = os.path.join(mjcf.BUILD, "trajectories")
 FPS = 1000 // traces.FRAME_MS
 PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is commanded at that rate
-# what a trajectory is computed from besides the sim report's inputs and the meshes (report.stamp)
-SOURCES = ["model/mjcf.py", "model/traces.py", "model/trajectories.py", "model/render/hero.py", "model/render/scene.py"]
+# what a trajectory is computed from besides the sim report's inputs and the meshes (report.stamp): the Core program and
+# its calibration too, which model/traces.py plays (#151 took them out of the report's inputs)
+SOURCES = [
+    "model/mjcf.py",
+    "model/traces.py",
+    "model/trajectories.py",
+    "model/render/hero.py",
+    "model/render/scene.py",
+    "eyes/eyes.py",
+    "eyes/gaze_trace.py",
+    "eyes/calibration.json",
+]
 
 
 def hero_commands():
