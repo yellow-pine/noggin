@@ -47,6 +47,9 @@ The mouth servo goes to Core 2, on the port in the table above ([Wiring](wiring.
 
 ## Pictures
 
-![Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them](https://yellowpine.com/noggin/images/exploded.jpg)
+<figure>
+<img src="https://yellowpine.com/noggin/images/exploded.jpg" alt="Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them" width="800">
+<figcaption>Stage 3 exploded: the base, the neck, the eyes and the mouth</figcaption>
+</figure>
 
 Turn it around in [the web viewer](https://yellowpine.com/noggin/viewer/), Stage 3.

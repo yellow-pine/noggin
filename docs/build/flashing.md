@@ -11,8 +11,13 @@ make flash           # install the eye program on the Core and reboot it: Wi-Fi 
 make restore-stock   # put the stock remote-control program back on the Core
 ```
 
-Secrets (the Wi-Fi password) are typed in a Terminal window (`make wifi`, `scripts/setup.sh`), never at Claude
-Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be answered.
+!!! warning "Type secrets in a Terminal window"
+    Secrets (the Wi-Fi password) are typed in a Terminal window (`make wifi`, `scripts/setup.sh`), never at Claude
+    Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be answered.
+
+!!! danger "Never flash firmware"
+    Never flash firmware with esptool or any third-party tool: the vendor states this bricks the board. `make flash`
+    replaces the program only.
 
 ## Talking to the Core
 
@@ -33,8 +38,7 @@ Code's `!` prompt: it has no stdin, so a hidden password prompt there cannot be 
   ever goes that way). Both send `eyes.mpy`, `gaze_trace.mpy` and `wifi.mpy`
   (`make mpy`, into eyes/build): less RAM to import than the .py. boot.py stays .py (the Core runs boot.py only).
   A .py shadows its .mpy (import looks for the .py first), so `flash-usb` removes them and Wi-Fi takes only .mpy;
-  a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB. Never flash firmware with esptool or any
-  third-party tool: the vendor states this bricks the board.
+  a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB.
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
 

@@ -9,10 +9,11 @@
 | 3    | 1    | Right lid | 70 to 120   | 90      |
 | 4    | 0    | Right eye | 75 to 120   | 90      |
 
-Ports 1 and 2 are the left header, 3 and 4 the right header. Ranges are the
-limits the designer's remote config uses; verify on the real mech before
-pushing past them, the lids bind at the ends. The ranges the program uses are the calibrated ones
-([Calibration](calibration.md)).
+Ports 1 and 2 are the left header, 3 and 4 the right header. Ranges are the limits the designer's remote config
+uses; the ranges the program uses are the calibrated ones ([Calibration](calibration.md)).
+
+!!! warning "The lids bind at the ends"
+    Verify a range on the real Mech before pushing past it.
 
 ## Power
 

@@ -1,0 +1,13 @@
+/* Layout only (#293); the colours are the palette's (#282) */
+
+/* a paragraph marked { .center }: the landing page's buttons under the centred hero */
+.md-typeset .center { text-align: center; }
+
+/* the six gesture GIFs, one size each: three a row, two on a phone */
+.md-typeset .grid.gestures { grid-template-columns: repeat(2, 1fr); }
+@media screen and (min-width: 45em) {
+  .md-typeset .grid.gestures { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* four cards two by two, not three and an orphan */
+.md-typeset .grid.cards.pairs { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }

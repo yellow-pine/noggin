@@ -10,19 +10,44 @@ An animatronic Mech on the desk that reacts to Claude Code. It winks when a sess
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
 Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
 
-![noggin: Stage 3 talking, turning and nodding](https://yellowpine.com/noggin/images/hero.gif)
+<figure>
+<img src="https://yellowpine.com/noggin/images/hero.gif" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
+<figcaption>Stage 3 talking, turning and nodding</figcaption>
+</figure>
 
 [Build one](build/parts.md){ .md-button .md-button--primary }
 [Use it](use/noggin-service.md){ .md-button }
 [Turn it in 3D](https://yellowpine.com/noggin/viewer/){ .md-button }
+{ .center }
 
 ## Gestures
 
-| eureka | attention | bored |
-|---|---|---|
-| ![eureka](https://yellowpine.com/noggin/images/eureka.gif) | ![attention](https://yellowpine.com/noggin/images/attention.gif) | ![bored](https://yellowpine.com/noggin/images/bored.gif) |
-| **wince** | **wink** | **thinking** |
-| ![wince](https://yellowpine.com/noggin/images/wince.gif) | ![wink](https://yellowpine.com/noggin/images/wink.gif) | ![thinking](https://yellowpine.com/noggin/images/thinking.gif) |
+<div class="grid gestures">
+<figure>
+<img src="https://yellowpine.com/noggin/images/eureka.gif" alt="eureka">
+<figcaption>eureka</figcaption>
+</figure>
+<figure>
+<img src="https://yellowpine.com/noggin/images/attention.gif" alt="attention">
+<figcaption>attention</figcaption>
+</figure>
+<figure>
+<img src="https://yellowpine.com/noggin/images/bored.gif" alt="bored">
+<figcaption>bored</figcaption>
+</figure>
+<figure>
+<img src="https://yellowpine.com/noggin/images/wince.gif" alt="wince">
+<figcaption>wince</figcaption>
+</figure>
+<figure>
+<img src="https://yellowpine.com/noggin/images/wink.gif" alt="wink">
+<figcaption>wink</figcaption>
+</figure>
+<figure>
+<img src="https://yellowpine.com/noggin/images/thinking.gif" alt="thinking">
+<figcaption>thinking</figcaption>
+</figure>
+</div>
 
 ## What it does
 
@@ -37,7 +62,10 @@ More in [Gestures and behaviour](use/gestures.md).
 
 ## The three Stages
 
-![The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)](https://yellowpine.com/noggin/images/stages.jpg)
+<figure>
+<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
+<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
+</figure>
 
 The Mech grows in three Stages, each a complete Mech on the desk.
 
@@ -71,7 +99,7 @@ The Mech grows in three Stages, each a complete Mech on the desk.
 
 ## Where next
 
-<div class="grid cards" markdown>
+<div class="grid cards pairs" markdown>
 
 -   **Build**
 
