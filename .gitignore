@@ -8,8 +8,10 @@ model/build/
 .DS_Store
 eyes/wifi.json
 
-# skills restored from skills-lock.json (npx skills experimental_install); .claude/skills links here
+# skills restored from skills-lock.json (ci/node_modules/.bin/skills experimental_install); .claude/skills links here
 .agents/
+# the CI tools from ci/package-lock.json
+ci/node_modules/
 
 web/build/
 mech/build/

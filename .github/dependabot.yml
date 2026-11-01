@@ -1,5 +1,5 @@
 version: 2
-updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|deps-dev): bump ...`, `ci(deps): bump ...`
+updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|deps-dev): bump ...`, `ci(deps|deps-dev): bump ...`
   - package-ecosystem: uv
     directory: /
     schedule:
@@ -29,6 +29,19 @@ updates:   # PR titles are Conventional Commits (docs/adr/0010): `build(deps|dep
       default-days: 14
     groups:
       npm:
+        update-types: [minor, patch]
+        patterns: ["*"]
+  - package-ecosystem: npm   # CI's tools (ci/package.json): the skills CLI the review and the weekly re-pin run
+    directory: /ci
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
+    cooldown:   # as above
+      default-days: 14
+    groups:
+      ci-tools:
         update-types: [minor, patch]
         patterns: ["*"]
   - package-ecosystem: github-actions
