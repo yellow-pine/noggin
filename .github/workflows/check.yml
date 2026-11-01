@@ -48,7 +48,8 @@ jobs:
       # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
       # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not (ours-convex-:
       # the old ours- entries on main were saved by pages without the pieces, so every run decomposed again)
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - id: parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/ours
@@ -61,3 +62,12 @@ jobs:
       # on our own parts and hardware envelopes (model/ours.py); a PR whose committed report stamps still match skips
       # it (make sim-if-stale), main always runs it
       - run: make ${{ github.event_name == 'push' && 'sim' || 'sim-if-stale' }}
+      # saved even when a test or make sim fails (a red main would otherwise never fill its cache); an interrupted build
+      # is safe to keep, since each .key above is written last
+      - if: ${{ always() && steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ steps.parts.outputs.cache-primary-key }}
