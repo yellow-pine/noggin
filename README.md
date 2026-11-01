@@ -5,6 +5,10 @@
 [![last commit](https://img.shields.io/github/last-commit/yellow-pine/noggin?style=flat)](https://github.com/yellow-pine/noggin/commits/main)
 [![license](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat)](LICENSE.md)
 [![python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyellow-pine%2Fnoggin%2Fmain%2Fpyproject.toml&style=flat)](https://github.com/yellow-pine/noggin/blob/main/pyproject.toml)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-D97757?style=flat&logo=claude&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
+[![CadQuery](https://img.shields.io/badge/CadQuery-1E5BA8?style=flat)](https://cadquery.readthedocs.io)
+[![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat&logo=blender&logoColor=white)](https://www.blender.org)
+[![MicroPython on the CyberBrick](https://img.shields.io/badge/MicroPython-on%20the%20CyberBrick-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
 
 An animatronic Mech on the desk that reacts to Claude Code. It winks when a session starts, drifts while Claude
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
@@ -28,11 +32,6 @@ simulation of the Mech).
 - [GazeBase](https://doi.org/10.1038/s41597-021-00959-y) (Griffith et al., CC BY 4.0) for the recorded eye movements.
 - Duke Doks' [Morty head](https://makerworld.com/en/models/1455413) (MakerWorld 1455413), the reference for the face.
 
-Built with
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-D97757?style=flat&logo=claude&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
-[![CadQuery](https://img.shields.io/badge/CadQuery-1E5BA8?style=flat)](https://cadquery.readthedocs.io)
-[![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat&logo=blender&logoColor=white)](https://www.blender.org)
-[![MicroPython on the CyberBrick](https://img.shields.io/badge/MicroPython-on%20the%20CyberBrick-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
 
 ## Gestures
 
