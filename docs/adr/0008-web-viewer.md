@@ -3,6 +3,7 @@
 > Decided with Cansin on 2026-11-01, spec #180; tickets #181 (the page and the Pages workflow) and #182 (the GLBs).
 > Follows ADR 0007: MuJoCo simulates, Blender draws, and now Blender also authors what the browser shows.
 > Amended 2026-11-01 (#194): three.js replaces `<model-viewer>` so the page shows style B, the pictures' look.
+> Amended 2026-11-01 (#211): the key light casts shadows, lines scale with the canvas.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -15,8 +16,7 @@ watch the hero loop.
   `MeshToonMaterial` whose gradient map is the pictures' light per N.L (the two-step toon ramp mixed with the satin,
   sampled from Blender's numbers) and one highlight band, black outlines on silhouettes (an inverted hull)
   and crease lines where faces meet at more than 60 degrees, the key light riding at the camera's upper right and
-  casting shadows as Eevee's sun does (a shadowed point keeps the ramp's N.L <= 0 light; #211 measured the pictures'
-  two tones to be these cast shadows). Lines scale with the canvas as the GIFs' do with the picture: `line_px` at
+  casting shadows as Eevee's sun does (#211 measured the pictures' two tones to be these cast shadows). Lines scale with the canvas as the GIFs' do with the picture: `line_px` at
   640 px wide, never under one device pixel.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
   other GLB. The page is one static HTML file in `web/`, with no build step. three.js's Draco decoder is fetched by

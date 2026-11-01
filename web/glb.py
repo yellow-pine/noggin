@@ -44,14 +44,13 @@ def main(job):
     # style B for the page (web/index.html reads the scene's extras and nothing else): the light a part gets per N.L
     # of the key light, 256 steps from -1 to 1 (three.js MeshToonMaterial's gradientMap), as Eevee lights the pictures:
     # TOON of the toon ramp on the diffuse light (the 0.8 grey Diffuse BSDF under the sun) plus the rest satin. A probe
-    # render of a sphere matched it within 1% (docs/research/2026-11-01-web-toon.md); the world adds under 1%. Where
-    # the key light is blocked (cast shadow) Eevee gives the N.L <= 0 light, ramp[0]: the page lights that as ambient.
+    # render of a sphere matched it within 1% (docs/research/2026-11-01-web-toon.md); the world adds under 1%.
     sun = [look.SUN / math.pi * max((i + 0.5) / 128 - 1, 0) for i in range(256)]
     ramp = [look.TOON * (1.0 if 0.8 * x > look.SHADOW_AT else look.SHADOW) + (1 - look.TOON) * x for x in sun]
     for k, v in {
         "bg": look.BG,
         "line_px": look.LINE_PX,
-        "line_at": 640,  # the canvas width line_px is drawn at, the hero GIF's: lines scale with the canvas (#211)
+        "line_at": 640,  # line_px holds at this canvas width (Cansin's pick, #211)
         "crease": look.CREASE,
         "ramp": ramp,
         "highlight": look.TOON * look.HIGHLIGHT,

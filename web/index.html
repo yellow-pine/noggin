@@ -74,8 +74,8 @@
   renderer.shadowMap.enabled = true;
   const camera = new THREE.PerspectiveCamera(20);
   const controls = new OrbitControls(camera, canvas);
-  // the key light rides at the camera's upper right; intensity PI makes a part colour x ramp (RE_Direct_Toon divides by PI).
-  // It casts shadows as Eevee's sun does in the pictures: a shadowed point keeps only the ambient, the ramp's N.L <= 0 light
+  // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
+  // divides by PI) and the ambient is the ramp's floor, so a shadowed point gets the N.L <= 0 light as in Eevee
   const key = new THREE.DirectionalLight(0xffffff, Math.PI);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -93,7 +93,7 @@
     look = root.userData;
     document.body.style.background = look.bg;
     band.value.set(look.highlight_from, look.highlight);
-    ambient.intensity = Math.PI * look.ramp[0];  // the ramp's floor: what a shadowed point keeps; the key adds the rest
+    ambient.intensity = Math.PI * look.ramp[0];
     const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * (x - look.ramp[0]))));
     const gradient = new THREE.DataTexture(ramp, ramp.length, 1, THREE.RedFormat);  // nearest filtering
     gradient.needsUpdate = true;
@@ -116,7 +116,8 @@
         s.uniforms.band = band;
         s.fragmentShader = "uniform vec2 band;\n" + s.fragmentShader.replace("#include <opaque_fragment>",
           "outgoingLight = mix(outgoingLight, vec3(1.0), band.y * step(band.x, " +
-          "dot(normal, normalize(directionalLights[0].direction + geometryViewDir))));\n#include <opaque_fragment>");
+          "dot(normal, normalize(directionalLights[0].direction + geometryViewDir))) * " +
+          "step(1e-4, reflectedLight.directDiffuse.g));\n#include <opaque_fragment>");  // none in shadow, as in Eevee
       };
       // split normals at sharp edges would open the hull at every corner: it gets smooth ones
       const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
