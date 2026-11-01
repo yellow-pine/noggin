@@ -19,11 +19,12 @@ def pt_to_eyes(p):
 
 
 def pt_to_eyes_standalone(p):
-    """Base plate point -> eyes frame for the eyes-only build (no neck): the eye bracket stem drops through the
-    pan bearing recess at the PT origin (builder-confirmed) and the servo brackets' feet rest on the plate top
-    (side photo), so plate top z=3 is y=-35.6."""
+    """Base plate point -> eyes frame for the eyes-only build (no neck): the desk eye bracket's stem drops through
+    the plate's 12 x 5 stem slot (x -6..6, y -19..-14; the bearing recess behind it, top photos) and the servo
+    brackets' feet rest on the plate top (side photo), so plate top z=3 is y=-35.6
+    (docs/research/2026-11-01-eyes-on-plate.md)."""
     x, y, z = p
-    return (29.5 - x, z - 38.6, y + 15.5)
+    return (29.5 - x, z - 38.6, y + 32.0)
 
 
 def mirror_x(p):
@@ -393,6 +394,7 @@ PRINTED = {
             "L servo bracket",
             "R servo bracket",
             "eye bracket",
+            "desk eye bracket",
             "upper lid",
             "lower lid",
             "eyeball bar",
@@ -468,12 +470,17 @@ MOUTH_PARTS = [
 
 # Stage configurations put the sub-assemblies, each at an (origin, x axis, z axis) frame
 # in the PT frame (align_rows takes the same triple). The eye bracket stem (eyes x 23.5..35.5, z 13..18, bottom
-# y=-45.6) is clamped in STEM_IN's part: through the pan recess of the base in the desk build (stage 1,
+# y=-45.6) is clamped in STEM_IN's part: through the base plate's stem slot in the desk build (stage 1,
 # pt_to_eyes_standalone), in the tilt arm window on the neck (stages 2 and 3, eyes_to_pt): the stem below the bracket's
 # rail is 5.0 long, the window 5.0 deep, so the rail lies on the arm top and the stem is flush below [M].
-EYES_ON_BASE = ((29.5, -15.5, 38.6), (-1, 0, 0), (0, 1, 0))
+EYES_ON_BASE = ((29.5, -32.0, 38.6), (-1, 0, 0), (0, 1, 0))
 EYES_ON_STACK = ((29.5, -28.5, 81.5), (-1, 0, 0), (0, 1, 0))
 STEM_BOTTOM = (29.5, -45.6, 15.5)  # centre of the stem's bottom face, eyes frame
+# The desk build (Cansin's pink print, the photos) uses the designer's first bracket, the desk eye bracket: no jaw rail,
+# its stem 5 shorter (bottom y=-40.6), so the feet stand on the plate top and the stem fills the 5 mm slot. The rail
+# one is the neck's (stages 2 and 3) and the mouth's (docs/research/2026-11-01-eyes-on-plate.md).
+DESK = {"noggin-eyes", "noggin-stage1"}
+DESK_STEM_BOTTOM = (29.5, -40.6, 15.5)
 STAGES = {
     "noggin-stage1": {"noggin-base": ((0, 0, 0), X, Z), "noggin-eyes": EYES_ON_BASE},
     "noggin-stage2": {
@@ -489,7 +496,7 @@ STAGES = {
     },
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
-# Where STEM_BOTTOM lands in the PT frame: through the 5 mm plate at the pan recess, feet on its top (stage 1, inferred
-# from the build photos: feet flat on the plate, the stem out of sight in it); in the tilt
-# arm window at (0, -13), the eye centres 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
-STEM_AT = {"noggin-stage1": (0.0, 0.0, -7.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}
+# Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
+# (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres
+# 78.5 above the plate top (stages 2 and 3) [M] (docs/research/2026-10-31-neck.md).
+STEM_AT = {"noggin-stage1": (0.0, -16.5, -2.0), "noggin-stage2": (0.0, -13.0, 35.9), "noggin-stage3": (0.0, -13.0, 35.9)}

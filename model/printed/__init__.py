@@ -26,6 +26,7 @@ from model.printed import (
 
 PARTS = {
     "eye bracket": eye_bracket.build,
+    "desk eye bracket": lambda: eye_bracket.build(desk=True),
     "lid bar": lid_bar.build,
     "lid crank": lid_bar.crank,
     "eyeball bar": eyeball_bar.build,
@@ -54,6 +55,7 @@ PARTS = {
 }
 FEATURES = {
     "eye bracket": eye_bracket.features(),
+    "desk eye bracket": eye_bracket.features(desk=True),
     "lid bar": lid_bar.features(),
     "lid crank": lid_bar.features(crank=True),
     "eyeball bar": eyeball_bar.features(),
