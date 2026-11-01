@@ -21,7 +21,20 @@ make restore-stock   # put the stock remote-control program back on the Core
 
 ## Talking to the Core
 
-- This board reports `3.4.0; MicroPython e7cd27f2 on 2025-06-09`; stock RC program 01.00.00.13.
+- The eyes Core reports `3.4.0; MicroPython 2e7b6351 on 2026-03-25` (read 2026-11-01; an earlier note had
+  `e7cd27f2 on 2025-06-09`); stock RC program 01.00.00.13. Its filesystem is LittleFS (the `vfs` partition starts
+  with `littlefs`: 978944 bytes, 239 blocks of 4096), so the `link.seq` writes are wear-levelled; about 66 KB of
+  heap is free at an idle REPL. `esp32.Partition` is cut down to `find`, `info` and block reads and writes, and only
+  the `vfs` partition is visible.
+- The eyes Core's USB-C carries data one way round only: flipped, it powers and boots but the Mac sees no device
+  (inferred from one plug each way). If `/dev/cu.usbmodem*` does not appear, turn the plug over.
+- Held KEY at plug-in (the vendor's download mode, LED off) shows no USB device on the Mac, in the orientation that
+  enumerates when it boots normally, so `esptool get-security-info` could not be run (2026-11-01). Flash encryption
+  is community evidence only (docs/research/2026-11-01-stack-alternatives.md); firmware updates go through the
+  vendor's app over Bluetooth (ADR 0012), then `make flash-usb` over the cable.
+- The vendor's phone app names the eyes Core `<vendor>-Eyes` and reports its firmware as 1.1.4.13, "the latest"
+  (2026-11-01). The vendor wiki's firmware release notes stop at 01.00.03.02 (2025-11-26), so the wiki lags the app;
+  how 1.1.4.13 maps to the `3.4.0` in `sys.version` is unknown.
 - mpremote's own Ctrl-C does not interrupt the stock RC app, and `mpremote soft-reset` waits for a
   raw REPL the eye program never gives. `eyes/interrupt.py` handles both; every Makefile board
   target goes through it, then uses `mpremote resume`.
