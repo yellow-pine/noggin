@@ -1,7 +1,7 @@
 """Trajectories (#179): each gesture (model/traces.py, the Core program's writes) and the README hero
 (model/render/hero.py) played on each Stage by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's
-place in the world per 100 ms frame: the one source of motion the pictures and GIFs (#150) and the web viewer (#180)
-will render from.
+place in the world per 100 ms frame: the one source of motion the pictures and GIFs render from (#150, poses()) and
+the web viewer will (#180).
 Each servo slews its command at the rated no-load speed (eyes/servo.py Plant, at 4.8 V as mjcf's stall torque) and its
 position actuator follows under the load, its torque limited to the stall torque; contacts are off, as in mjcf.pose.
 `python -m model.trajectories` (`make trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
