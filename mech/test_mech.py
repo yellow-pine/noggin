@@ -13,7 +13,7 @@ import uuid
 
 import pytest
 
-from mech.standin import MICROPYTHON, REPO, Mech, mpy
+from mech.standin import MICROPYTHON, Mech, mpy, program
 from noggin import service
 
 TOKEN = "00112233445566778899aabbccddeeff"  # synthetic: never eyes/wifi.json
@@ -37,7 +37,7 @@ def wait(log, text, after=-1, timeout=30.0):
 
 
 @pytest.fixture
-def standin(tmp_path, monkeypatch):
+def start(tmp_path, monkeypatch):
     """start(cable, ...) -> (ask, mech, log): the noggin service on temp files and free ports, a Mech stand-in that
     knows it, `ask(line)` (the CLI's socket line, its answer back) and the service's log lines."""
     log, running = [], []
@@ -91,8 +91,8 @@ def test_the_stand_in_runs_the_cores_micropython():
     assert out.stdout.strip() == b"774"  # eyes/test_micropython.py CORE_MPY
 
 
-def test_cable_pulled_mid_gesture_nothing_is_dropped(standin):
-    ask, mech, log = standin(cable=True)
+def test_cable_pulled_mid_gesture_nothing_is_dropped(start):
+    ask, mech, log = start(cable=True)
     wait(log, "Core on " + mech.tty)
     wait(log, "eyes beacon back")
     ask("demo wink 1")
@@ -104,15 +104,16 @@ def test_cable_pulled_mid_gesture_nothing_is_dropped(standin):
     assert not [line for line in log if "dropped" in line or "no ack" in line], log
 
 
-def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(standin, tmp_path):
-    ask, mech, log = standin()
+def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(start, tmp_path):
+    ask, mech, log = start()
     wait(log, "eyes beacon back")
     build = tmp_path / "mac" / "build"  # what `make mpy` writes beside calibration.json
     build.mkdir()
-    for f in service.FLASH_FILES:
-        mpy(REPO / "eyes" / f.replace(".mpy", ".py"), build / f)
+    program(build, "mac")  # the same program built elsewhere: other bytes, so each file swaps in
     assert ask("flash").startswith("flashed eyes: eyes.mpy gaze_trace.mpy wifi.mpy"), log
     good = (mech.root / "eyes.mpy").read_bytes()
+    assert good == (build / "eyes.mpy").read_bytes() and (mech.root / "eyes.mpy.bak").exists()
+    assert not (mech.root / "flash.trial").exists()  # reached `noggin ready`: off probation
     (tmp_path / "broken.py").write_text("while True:\n    pass\n")  # hangs: boot.py's 10 s run out
     mpy(tmp_path / "broken.py", build / "eyes.mpy")
     assert "never reached `noggin ready`" in ask("flash"), log
@@ -120,8 +121,8 @@ def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(stand
     assert ask("status").startswith("eyes wifi 127.0.0.1 ")
 
 
-def test_power_off_and_on_the_beacon_goes_stale_comes_back_and_the_calibration_is_resent(standin):
-    ask, mech, log = standin()
+def test_power_off_and_on_the_beacon_goes_stale_comes_back_and_the_calibration_is_resent(start):
+    ask, mech, log = start()
     n = wait(log, "sent eyes ['set lid_rest 0.28', 'rest']")
     off = time.time()
     mech.power_off()
@@ -133,8 +134,8 @@ def test_power_off_and_on_the_beacon_goes_stale_comes_back_and_the_calibration_i
     wait(log, "sent eyes ['set lid_rest 0.28', 'rest']", after=n)
 
 
-def test_moved_to_another_known_network_the_core_joins_it(standin):
-    ask, mech, log = standin(networks=("home", "office"), air={"home": -50, "office": -80})
+def test_moved_to_another_known_network_the_core_joins_it(start):
+    ask, mech, log = start(networks=("home", "office"), air={"home": -50, "office": -80})
     n = wait(log, "eyes beacon back")
     assert "joined home" in mech.log.read_text()  # the loudest known network (#195)
     mech.move({"office": -60, "cafe": -30})  # home out of range; cafe is louder but unknown

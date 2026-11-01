@@ -41,7 +41,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 
 ## Code
 
-- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`. Tests sit beside the code they test (`test_*.py` in the same folder).
+- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/`, `mech/`. Tests sit beside the code they test (`test_*.py` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
 - Run `make check` before opening a PR. CI runs the same, split over two required jobs (`.github/workflows/check.yml`):
   `code` (everything but the tests marked `model`) and `model` (those, and `make sim`, split over two shards), pytest

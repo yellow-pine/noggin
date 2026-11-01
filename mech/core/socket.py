@@ -1,11 +1,14 @@
 # The Mech stand-in's socket (mech/standin.py): the unix port's takes raw sockaddrs where the ESP32's takes (ip, port);
-# the Core's broadcast lands on localhost, and the Link's ports (eyes/wifi.py) on the ones the test picked.
+# the Core's broadcast lands on localhost, and the Link's ports on the ones the test picked (MECH_PORTS).
 import os
 
 import usocket  # the unix port's own, which this file shadows
 from usocket import *  # noqa: F403
 
-PORTS = {4711: int(os.getenv("MECH_BEACON_PORT")), 4712: int(os.getenv("MECH_COMMAND_PORT"))}
+PORTS = {}
+for pair in os.getenv("MECH_PORTS").split():
+    core, test = pair.split(":")
+    PORTS[int(core)] = int(test)
 
 
 def _sockaddr(addr):
