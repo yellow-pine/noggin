@@ -1,6 +1,7 @@
 # pyright: reportOptionalMemberAccess=false
 # noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711,
-# serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop.
+# serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop and,
+# while a gesture plays, from its waits (eyes.between_steps).
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
 import hashlib
@@ -136,7 +137,11 @@ def start(handle_line):
             name = json.load(f)["name"]  # "ports" is read by eyes.py
     except (OSError, KeyError, ValueError):
         name = "eyes"
-    return Wifi(handle_line, name, cfg)
+    link = Wifi(handle_line, name, cfg)
+    import eyes  # the program boot.py runs: its gestures' waits serve the Link (#205); boot.py only changes over USB
+
+    eyes.between_steps = lambda: link.poll(time.ticks_ms(), True)  # pyright: ignore[reportAttributeAccessIssue]
+    return link
 
 
 class Wifi:
@@ -155,12 +160,15 @@ class Wifi:
         except (OSError, ValueError):
             self.saved = -1
         self.last = (self.saved, None)  # (highest seq, its reply): a retried seq is acked again, an older one dropped
+        self.queue = []  # (seq, line, addr) acked, not run yet
 
-    def poll(self, now_ms):
+    def poll(self, now_ms, playing=False):
+        """playing: called from a gesture's waits (eyes.between_steps). Then no scan (it blocks a second or two), and
+        the lines received are acked but wait for the gesture to end, in order, as when the loop stopped for it."""
         self.uptime_ms += ticks_diff(now_ms, self.last_ms)
         self.last_ms = now_ms
         if not self.wlan.isconnected():
-            if self.join_at is None or ticks_diff(now_ms, self.join_at) >= JOIN_MS:
+            if not playing and (self.join_at is None or ticks_diff(now_ms, self.join_at) >= JOIN_MS):
                 self.join_at = now_ms
                 try:  # the driver retries the last network on its own, and it cannot scan while it joins
                     self.wlan.disconnect()
@@ -192,11 +200,15 @@ class Wifi:
             try:
                 data, addr = self.cmd.recvfrom(256)
             except OSError:  # EAGAIN: nothing waiting
-                return
+                break
             self.serve(data, addr)
+        # shortcut: a line acked just before the Wi-Fi drops waits until it is back (its err reply needs the socket),
+        # run it offline if that bites
+        while self.queue and not playing:  # a line's gesture polls here again (playing): what it receives queues
+            self.run_line(*self.queue.pop(0))
 
     def serve(self, data, addr):
-        """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then the line runs (and a parser exception
+        """Datagram `<tag> <seq> <command line>` -> `ok <seq>` on receipt, then poll runs the line (a parser exception
         follows as `err <seq> <reason>`); `put` and `commit` (flash) are answered once they ran, `ok` or `err`, and
         `reboot` resets the Core after its ack. seq must not go backwards (replays are dropped, and link.seq keeps a
         ceiling at or above every seq seen, across a reboot or a power cut); the highest seq is re-acked with its last
@@ -233,8 +245,11 @@ class Wifi:
                 self.reply(seq, f"err {seq} {type(e).__name__}", addr)
             return
         self.reply(seq, f"ok {seq}", addr)  # ack on receipt: a gesture runs longer than the ack window
+        self.queue.append((seq, line, addr))  # run by poll, after the gesture playing now (if any)
+
+    def run_line(self, seq, line, addr):
         try:
-            if reboot:  # after a flash
+            if line.strip() == "reboot":  # after a flash
                 time.sleep(0.2)  # let the ack leave first
                 reset()  # pyright: ignore[reportOptionalCall]
             else:
@@ -243,7 +258,8 @@ class Wifi:
             self.reply(seq, f"err {seq} {type(e).__name__}", addr)
 
     def reply(self, seq, body, addr):
-        self.last = (seq, body)
+        if seq >= self.last[0]:  # a queued line's err never lowers it below a newer seq already acked
+            self.last = (seq, body)
         self.cmd.sendto(self.signed(body), addr)
 
     def signed(self, body):
