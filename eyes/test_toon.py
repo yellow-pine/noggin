@@ -41,7 +41,7 @@ def ticks(e):
     "lines",
     [[f"{g} {i}"] for g in ("eureka", "attention", "bored", "wince", "wink") for i in (1, 2, 3)]
     + [["thinking", ticks], ["set think_trace 1", "thinking", ticks]],
-    ids=str,
+    ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),  # stable across xdist workers
 )
 def test_no_write_asks_more_than_the_servo_slews(lines):
     """Each write is reached before the next write of that servo comes, at the rated slew (eyes/servo.py); the last
