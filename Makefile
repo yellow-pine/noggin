@@ -11,7 +11,7 @@ DOC ?= noggin-eyes
 USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
+.PHONY: venv test check sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web site lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -27,11 +27,9 @@ check: test lint  ## tests, lint, formatting, types, wizard syntax, plist validi
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry into model/reports: placements, fits, beams, electrical and MuJoCo (model/report.py) with each MJCF (commit them), then threshold the reports
+sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry into model/build/reports: placements, fits, beams, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
 	$(PY) -m model.report $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
-sim-if-stale: venv ours   ## make sim unless every committed report still matches the inputs and our meshes as built now (CI on PRs)
-	$(PY) -m model.stale || $(MAKE) sim
 ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged
 	@key=$$(shasum $(OURS_SRC) | shasum); if [ "$$(cat model/build/ours/.key 2>/dev/null)" = "$$key" ]; then echo "model/build/ours: up to date"; else $(PY) -m model.ours && echo "$$key" > model/build/ours/.key; fi
 stl: venv    ## print-ready STLs of our printed parts (mm, the designer's frames, L and R each) in model/build/stl
@@ -104,9 +102,10 @@ hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loo
 web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
 	BLENDER=$(BLENDER) $(PY) -m web.build
 	$(PY) -m pytest -q web
-site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it; look with python -m http.server -d site
+site: venv       ## the site in site/ (docs/adr/0009): MkDocs builds the docs, the web viewer goes to site/viewer once make web built it, the sim reports to site/reports once make sim did; look with python -m http.server -d site
 	NO_MKDOCS_2_WARNING=1 $(PY) -m mkdocs build --strict
 	[ ! -d web/build ] || cp -R web/build site/viewer
+	[ ! -d model/build/reports ] || { cp -R model/build/reports site/reports && cd site/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
 # the Core's MicroPython (pyproject [tool.noggin]); CI caches mech/build on it (no comment after the value, as above)
 MICROPYTHON := v1.23.0

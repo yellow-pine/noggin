@@ -1,9 +1,10 @@
-"""Seam: the JSON reports `make sim` writes and commits (model/report.py, model/reports/<doc>-sim.json). CI checks
-every committed report: no problems, and its stamp still matches the inputs in the repo (our meshes are built, not
-committed: their fingerprints recorded at sim time are hashed instead). The fixture test checks the checker itself."""
+"""Seam: the JSON reports `make sim` writes (model/report.py, model/build/reports/<doc>-sim.json): build outputs, never
+committed (docs/adr/0009). Right after make sim (CI's sim shard) every built report must have no problems; a document
+not built here is skipped. The fixture test checks the checker itself."""
 
 import json
 import os
+import subprocess
 
 import pytest
 
@@ -93,19 +94,21 @@ def mujoco_problems(report):
     return out
 
 
-def committed(doc):
-    return json.load(open(os.path.join(HERE, "reports", f"{doc}-sim.json")))
+def built(doc):
+    path = os.path.join(report.OUT, f"{doc}-sim.json")
+    if not os.path.isfile(path):
+        pytest.skip(f"{doc} not simulated here: make sim")
+    return json.load(open(path))
+
+
+def test_reports_are_build_outputs_git_ignores():
+    path = os.path.join(report.OUT, "noggin-eyes-sim.json")
+    assert subprocess.run(["git", "check-ignore", "-q", path], cwd=stages.REPO).returncode == 0
 
 
 @pytest.mark.parametrize("doc", sorted(stages.DOCS))
-def test_committed_report_is_clean(doc):
-    assert problems(committed(doc)) == []
-
-
-@pytest.mark.parametrize("doc", sorted(stages.DOCS))
-def test_committed_report_is_stamped_with_the_inputs_in_the_repo(doc):
-    inputs = committed(doc)["inputs"]
-    assert inputs["stamp"] == report.stamp(inputs["sources"]), "stale: run `make sim` and commit model/reports"
+def test_built_report_is_clean(doc):
+    assert problems(built(doc)) == []
 
 
 def test_stamp_follows_the_recorded_part_fingerprints():
@@ -144,7 +147,7 @@ def test_known_mujoco_exceptions_are_still_there():
     swing lands, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
     going, swings = set(), set()
     for doc in stages.DOCS:
-        m = committed(doc)["mujoco"]
+        m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
     assert set(KNOWN_PAIRS) <= going

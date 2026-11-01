@@ -14,8 +14,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   (ADR 0008) sits at /viewer. The docs are the repo's Markdown as GitHub shows it, with no rewrite for the site, so
   a link to anything but a doc or a picture is an absolute GitHub URL (the build is strict and the site carries no
   code).
-- **Deployed with GitHub's own Pages actions.** The `pages` workflow builds the docs and the viewer's GLBs on a push to
-  main and deploys them together with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
+- **Deployed with GitHub's own Pages actions.** The `pages` workflow builds the docs and the viewer's GLBs once the
+  check workflow is done with a push to main and deploys them together with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
 - **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
   made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is not a required check: `make check` builds the docs strictly too
   (test_site.py), so a broken page or link fails the required one.
@@ -24,7 +24,13 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   on the pages `mkdocs.yml` lists only. Its Jinja sits in HTML comments, which GitHub hides, so GitHub shows the prose
   and a link to the site in their place; test_site.py fails if a number GitHub still shows in the README (a duration, a
   Core's servo count) is not the code's (#227).
-- **Until their tickets land**, the pictures in docs/images and the reports in model/reports stay in git as they are.
+- **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
+  model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
+  runs the sim only when that changed. A PR or merge group that runs it diffs the new reports against main's latest
+  (the newest `sim-` entry, which only main saves) in its job summary; the pages workflow runs once check is done on
+  main (`workflow_run`) and publishes the newest entry at /reports. The stamp check (model/stale.py) is gone; the
+  recorded Fusion sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
+- **Until its ticket lands**, the pictures in docs/images stay in git as they are.
 
 ## Considered options
 
