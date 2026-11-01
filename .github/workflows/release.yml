@@ -12,6 +12,7 @@ permissions:
   contents: write
 jobs:
   release:
+    name: Release Assets
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -21,22 +22,27 @@ jobs:
       TAG: ${{ github.ref_name }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       # the eye program's files that `make flash` copies (make mpy-list, no venv here; the assignment fails with make),
       # stamped with this release's version and commit as make mpy does (stamp.py, beside them), plus the setup wizard
-      - run: |
+      - name: Zip the Core's program
+        run: |
           program=$(make -s mpy-list PY=python3)
           python3 -m noggin.core stamp > eyes/stamp.py
           zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
-      - run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
+      - name: Attach the zip to the release
+        run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
       # the notes link this deploy once, a re-run or a re-pushed tag included
-      - run: |
+      - name: Link the run in the notes
+        run: |
           gh release view "$TAG" --json body --jq .body > notes.md
           grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s), the `release` environment\n' "$RUN_URL" >> notes.md
           gh release edit "$TAG" --notes-file notes.md
   # this release's docs, built once under /noggin/vX.Y/ and kept on the release; Site Deploy serves them (docs/adr/0014).
   # After `release`, so the two notes edits never race; a prerelease's docs are never served, so none are built
   docs:
+    name: Release Docs
     needs: release
     if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
@@ -44,29 +50,35 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in check.yml
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
           node-version-file: site/.nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
       # the docs and the viewer's page; the pictures and sim reports stay the live site's
-      - run: SITE_BASE="/noggin/${TAG%.*}" make site
+      - name: Build the docs
+        run: SITE_BASE="/noggin/${TAG%.*}" make site
       # shortcut: the viewer's GLBs are the live site's, the release commit's model only once main's deploy before the
       # tag has landed (the release PR only bumps the version); build them at the tag (make web, Blender) if that bites
-      - run: |
+      - name: Attach the docs to the release
+        run: |
           for stage in $(jq -r '.stages[]' site/src/macros.json); do
             curl -fsSo "site/dist/viewer/$stage.glb" "https://yellowpine.com/noggin/viewer/$stage.glb"
           done
           tar -czf "noggin-docs-$TAG.tar.gz" -C site/dist .
           gh release upload "$TAG" "noggin-docs-$TAG.tar.gz" --clobber
       # the notes link these docs once, where Site Deploy serves them
-      - run: |
+      - name: Link the docs in the notes
+        run: |
           gh release view "$TAG" --json body --jq .body > notes.md
           grep -qF '**Docs:**' notes.md || printf '\n**Docs:** https://yellowpine.com/noggin/%s/\n' "${TAG%.*}" >> notes.md
           gh release edit "$TAG" --notes-file notes.md

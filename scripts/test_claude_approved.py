@@ -1,4 +1,4 @@
-"""claude_approved.py: review.yml's `review` passes only when claude[bot]'s last verdict on the PR's head is an
+"""claude_approved.py: review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
 approval."""
 
 from scripts.claude_approved import approved

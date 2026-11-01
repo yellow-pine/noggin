@@ -13,16 +13,18 @@ concurrency:   # the newest run wins: it re-pins from scratch
 permissions: {}
 jobs:
   pin:
-    name: re-pin
+    name: Re-pin Blender
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false
-      - id: pin
+      - name: Find the newest Blender
+        id: pin
         # its own assignment, so a failed fetch or a hash the sources disagree on fails the step (inside echo's
         # arguments it would pass as "no change")
         run: |
@@ -30,7 +32,8 @@ jobs:
           echo "version=${out%% *}" >> "$GITHUB_OUTPUT"
           echo "sources=${out#* }" >> "$GITHUB_OUTPUT"
       # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
-      - if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
+      - name: Open or refresh the PR
+        if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.pin.outputs.version }}
