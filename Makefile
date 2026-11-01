@@ -97,16 +97,16 @@ restore-stock: interrupt
 view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 	$(HEAVY) $(PY) -m model.mjcf $(DOC)
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
-trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage: every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
-	$(HEAVY) $(PY) -m model.trajectories
+trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage (TRAJ_DOCS= picks some): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
+	$(HEAVY) $(PY) -m model.trajectories $(TRAJ_DOCS)
 render: venv ours trajectories   ## Blender pictures, each Stage at rest from its trajectories: views, Stage strip, stage 3 exploded (model/build/pictures)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures views
 gifs: venv ours trajectories     ## the six gesture GIFs + contact sheets on stage 1, from their trajectories
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures gifs
 hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
-pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; PARTS= picks some (views, hero or a gesture: the pages workflow renders each on its own runner)
-	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(PARTS)
+pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; PARTS= picks some (views, hero or a gesture); SHARD=i/n with one part renders only that shard of its frames, unjoined (the pages workflow, #278)
+	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures $(if $(SHARD),frames $(PARTS) $(SHARD),site $(PARTS))
 web: venv ours trajectories   ## the web viewer's site in web/build: the page and Blender's GLB per Stage from its trajectories (docs/adr/0008), then their tests; look with python -m http.server -d web/build
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web

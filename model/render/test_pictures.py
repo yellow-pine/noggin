@@ -48,6 +48,24 @@ def test_each_gif_frame_is_one_trajectory_frame_with_its_parts_where_the_traject
     assert shots[0]["camera"] == alone
 
 
+def test_the_shards_of_a_part_render_each_of_its_frames_once_in_order(monkeypatch):
+    """CI splits a part's frames over runners by range (#278): every shot once, in order, shares a frame apart."""
+    jobs = [("stage1", {}, [f"a{i}" for i in range(4)]), ("stage2", {}, [f"b{i}" for i in range(3)])]
+    calls = []
+    monkeypatch.setattr(pictures, "blender", lambda name, manifest, s: calls.append((name, s)))
+    sizes = []
+    for i in range(1, 4):
+        before = len(calls)
+        pictures.render_shots(jobs, (i, 3))
+        sizes.append(sum(len(s) for _, s in calls[before:]))
+    assert [s for _, shots in calls for s in shots] == [s for _, _, shots in jobs for s in shots]
+    assert all(s for _, s in calls) and calls[1] == ("stage1", ["a2", "a3"])  # a shard's shots go to their own Blender
+    assert max(sizes) - min(sizes) <= 1
+    calls.clear()
+    pictures.render_shots(jobs)
+    assert calls == [("stage1", jobs[0][2]), ("stage2", jobs[1][2])]
+
+
 @pytest.mark.parametrize(
     "name,bracket", [("stage1", "desk eye bracket"), ("eyes", "desk eye bracket"), ("mouth", "eye bracket")]
 )
