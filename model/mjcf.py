@@ -5,7 +5,7 @@ the pieces are decomposed once per mesh and cached in model/build/convex. `pytho
 model/build/mjcf/<doc>.xml (every document by default); `make view` opens one in MuJoCo's viewer.
 Each horn is a hinge on its servo shaft driven by a position actuator, each coupler a hinge on its horn pin and each
 rocker a hinge on its pivot; the four-bars close by a connect at the coupler's rocker pin, each lead is a spatial tendon
-no longer than the real lead, and each screw or pin joint a site per part at one point (#148, research note
+no longer than the real lead, and each screw or pin joint a site per part on its axis (#148, research note
 docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
 
 import concurrent.futures
@@ -26,8 +26,7 @@ import trimesh
 
 from model import electrical
 from model import geometry as g
-from model.engine import cables, masses, stages
-from model.engine import mating as pins
+from model.engine import cables, masses, mating, stages
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
@@ -43,8 +42,8 @@ TIMESTEP, SETTLE_S = 0.0005, 0.5
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
 LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
-# pose() slews each command at a quarter of the servo's rated 428 deg/s: quasi-static. At the rated speed the stage 3
-# head's inertia carries the pan four-bar through its toggle at pan horn -40 (a dynamic question for #149).
+# shortcut: pose() slews each command at a quarter of the servo's rated 428 deg/s, quasi-static, since at the rated speed
+# the stage 3 head's inertia carries the pan four-bar through its toggle at pan horn -40; #149 drives it at speed.
 SLEW_DEG_S = 100
 # The 9 g servo: its published stall torque at 4.8 V, the figure nearest the shield's 5 V servo rail
 # (electrical.SERVO_RAIL_V), as the actuator's force limit; full torque 0.5 deg off its command (a servo's deadband,
@@ -191,9 +190,8 @@ def spec(doc):
                 (j,) = js - moved
                 body = add(parent, parent_m, names[0])
                 point, axis = hinges[j]
-                inv = np.linalg.inv(stage.parts[names[0]].matrix)
                 hinge = body.add_joint(name=j, type=mujoco.mjtJoint.mjJNT_HINGE, pos=local(names[0], point) * MM)
-                hinge.axis = inv[:3, :3] @ axis
+                hinge.axis = stage.parts[names[0]].matrix[:3, :3].T @ axis  # a rotation's inverse is its transpose
                 if j in stage.horns:
                     hinge.armature = ARMATURE
                 for n in names[1:]:
@@ -228,18 +226,22 @@ def spec(doc):
     for lead, a, b, mm in electrical.leads():
         if a in stage.ports and b in stage.ports:
             route = next(r for r in cables.ROUTES[lead] if all(p in stage.parts for p, _, _ in r))
+            # cables' own (private) frame change: making it public would stale every committed sim report (model/stale.py)
             clips = [stage.ports[a], *((p, cables._local(p, q)) for p, q, _ in route), stage.ports[b]]
             tendon = s.add_tendon(name=lead, range=[0, mm * MM], limited=mujoco.mjtLimited.mjLIMITED_TRUE)
             for i, (part, q) in enumerate(clips):
                 bodies[part].add_site(name=f"{lead} {i}", pos=np.multiply(q, MM))
                 tendon.wrap_site(f"{lead} {i}")
-    # each screw or pin joint: a site per part at its first part's feature (the mating check's circle fit)
-    for joint, feats in pins.JOINTS:
+    # each screw or pin joint: a site per part on its own feature's axis (the mating check's circle fit), at the point
+    # nearest the first part's centre, so the pair is as far apart as the axes miss each other
+    for joint, feats in mating.JOINTS:
         if all(p in stage.parts for p, _ in feats):
-            found = pins.feature(stage.parts[feats[0][0]], feats[0][1])
-            assert found is not None, joint
-            for part, _ in feats:
-                bodies[part].add_site(name=f"{joint}: {part}", pos=local(part, found[0]) * MM)
+            found = [mating.feature(stage.parts[p], f) for p, f in feats]
+            assert all(found), joint
+            first = found[0][0]
+            for (part, _), (centre, axis, _) in zip(feats, found):
+                foot = centre + np.dot(first - centre, axis) * axis
+                bodies[part].add_site(name=f"{joint}: {part}", pos=local(part, foot) * MM)
     return s
 
 
@@ -262,20 +264,22 @@ def model(doc):
 
 def pose(model, ctrl):
     """MjData with each horn's servo at ctrl[horn] degrees from neutral (the others at neutral): from rest, each
-    command slews there at SLEW_DEG_S (a step flings a light linkage through its toggle), then is held under gravity for
+    command slews there at SLEW_DEG_S (a step flings a light four-bar through its toggle), then is held under gravity for
     SETTLE_S. Contacts are off: the parts' contacts are measured as distances (#149), not pushed apart."""
     data = mujoco.MjData(model)
-    flags = model.opt.disableflags
-    model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
     rate = math.radians(SLEW_DEG_S) * model.opt.timestep  # rad per step
     target = {h: math.radians(deg) for h, deg in ctrl.items()}
     steps = math.ceil(max(map(abs, target.values()), default=0) / rate)
-    for k in range(1, steps + 1):
-        for h, rad in target.items():
-            data.actuator(h).ctrl = rad * k / steps
-        mujoco.mj_step(model, data)
-    mujoco.mj_step(model, data, nstep=round(SETTLE_S / model.opt.timestep))
-    model.opt.disableflags = flags
+    flags = model.opt.disableflags
+    model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+    try:
+        for k in range(1, steps + 1):
+            for h, rad in target.items():
+                data.actuator(h).ctrl = rad * k / steps
+            mujoco.mj_step(model, data)
+        mujoco.mj_step(model, data, nstep=round(SETTLE_S / model.opt.timestep))
+    finally:  # the model is the caller's: its contacts come back on
+        model.opt.disableflags = flags
     return data
 
 
@@ -288,10 +292,10 @@ def residuals(model, data):
     }
 
 
-def mating(model, data):
+def mating_gaps(model, data):
     """{screw or pin joint: mm its parts' sites are apart at most}, for the joints whose parts the document has."""
     out = {}
-    for joint, feats in pins.JOINTS:
+    for joint, feats in mating.JOINTS:
         ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, f"{joint}: {p}") for p, _ in feats]
         if -1 not in ids:
             pts = data.site_xpos[ids]
