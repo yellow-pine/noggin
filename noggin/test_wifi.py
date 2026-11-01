@@ -15,7 +15,7 @@ import wifi as core_wifi  # eyes/wifi.py: the fake Core flashes with the Core's 
 
 from noggin.service import Service
 from noggin.test_service import FakeSerial, wait_for
-from noggin.wifi import tag
+from noggin.wifi import add_network, tag
 
 TOKEN = "s3cret"
 FAST = (0.05, 0.1, 0.2, 0.4)  # the real windows, quartered: an unacked line costs 0.75 s, not 3 s
@@ -428,3 +428,22 @@ def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, stat
     assert ("cp eyes/build/eyes.mpy :eyes.mpy" in out) == (path == "usb")
     assert "mpy-cross -o eyes/build/eyes.mpy eyes/eyes.py" in out  # both paths send what make compiled just now
     assert ("mip install hmac" in out) == (path == "usb")  # the Core's hmac comes from micropython-lib, over USB
+
+
+def test_add_network_keeps_the_others_and_the_token(tmp_path):
+    wf = tmp_path / "wifi.json"
+    wf.write_text(json.dumps({"ssid": "home", "password": "pw", "token": TOKEN}))  # the one-network shape before #195
+    add_network(wf, "studio", "pw2")
+    add_network(wf, "home", "new")  # the same SSID again: its password is updated, not a second entry
+    assert json.loads(wf.read_text()) == {
+        "networks": [{"ssid": "studio", "password": "pw2"}, {"ssid": "home", "password": "new"}],
+        "token": TOKEN,
+    }
+
+
+def test_add_network_to_no_file_makes_a_token(tmp_path):
+    wf = tmp_path / "wifi.json"
+    add_network(wf, "home", "pw")
+    cfg = json.loads(wf.read_text())
+    assert cfg["networks"] == [{"ssid": "home", "password": "pw"}]
+    assert len(cfg["token"]) == 32 and int(cfg["token"], 16) >= 0  # 128 random bits, hex

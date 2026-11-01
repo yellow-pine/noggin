@@ -9,6 +9,8 @@ import base64
 import hashlib
 import hmac
 import importlib.util
+import json
+import secrets
 import socket
 import time
 from pathlib import Path
@@ -23,6 +25,14 @@ _core_wifi = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_core_wifi)
 tag = _core_wifi.tag  # the Core's own function and ports: both sides always agree
 BEACON_PORT, COMMAND_PORT = _core_wifi.BEACON_PORT, _core_wifi.COMMAND_PORT
+
+
+def add_network(path, ssid, password):
+    """Add a known network to wifi.json, or update its password, keeping the others and the shared token (a new file
+    gets 128 random bits). The setup wizard calls this; the one-network shape from before #195 is migrated."""
+    cfg = json.loads(path.read_text()) if path.exists() else {}
+    nets = [n for n in _core_wifi.networks(cfg) if n["ssid"] != ssid] + [{"ssid": ssid, "password": password}]
+    path.write_text(json.dumps({"networks": nets, "token": cfg.get("token") or secrets.token_hex(16)}))
 
 
 class Wifi:

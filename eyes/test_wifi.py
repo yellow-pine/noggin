@@ -30,6 +30,9 @@ class FakeWLAN:
     connected = False
     connects = []
     configs = []
+    heard = []  # what scan() returns: (ssid, bssid, channel, RSSI, security, hidden)
+    disconnects = 0
+    disconnect_raises = False
     PM_NONE = 0
 
     def __init__(self, iface):
@@ -43,6 +46,14 @@ class FakeWLAN:
 
     def connect(self, ssid, password):
         FakeWLAN.connects.append((ssid, password))
+
+    def disconnect(self):
+        FakeWLAN.disconnects += 1
+        if FakeWLAN.disconnect_raises:
+            raise OSError("not connected")
+
+    def scan(self):
+        return FakeWLAN.heard
 
     def isconnected(self):
         return FakeWLAN.connected
@@ -79,6 +90,10 @@ class FakeSocket:
         pass
 
 
+def ap(ssid, rssi):
+    return (ssid, b"\x00" * 6, 6, rssi, 3, False)
+
+
 @pytest.fixture
 def link(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # the Core's filesystem: link.seq, flashed files
@@ -93,6 +108,9 @@ def link(monkeypatch, tmp_path):
     FakeWLAN.connected = False
     FakeWLAN.connects.clear()
     FakeWLAN.configs.clear()
+    FakeWLAN.heard = [ap(b"home", -70)]
+    FakeWLAN.disconnects = 0
+    FakeWLAN.disconnect_raises = False
     FakeSocket.sent.clear()
     FakeSocket.inbox.clear()
     handled = []
@@ -109,6 +127,47 @@ def test_joins_in_the_background_and_retries_until_connected(link):
     link.poll(15_000)  # retry after the join window
     assert len(FakeWLAN.connects) == 2
     assert FakeSocket.sent == []  # nothing beaconed while off the network
+
+
+def test_joins_the_known_network_heard_loudest(link):
+    link.cfg = {"networks": [{"ssid": "home", "password": "pw"}, {"ssid": "studio", "password": "pw2"}], "token": "t"}
+    FakeWLAN.heard = [ap(b"cafe", -30), ap(b"home", -80), ap(b"studio", -55), ap(b"home", -60)]
+    link.poll(0)
+    assert FakeWLAN.connects == [("studio", "pw2")]
+    assert FakeWLAN.disconnects == 1  # the driver's own retries of the last network stop: it cannot scan while joining
+
+
+def test_a_drop_gets_the_drivers_own_reconnect_before_a_scan(link):
+    link.poll(0)
+    FakeWLAN.connected = True
+    link.poll(60_000)
+    FakeWLAN.connected = False  # the access point blinked
+    link.poll(61_000)
+    assert FakeWLAN.disconnects == 1  # only the first join's
+    link.poll(70_000)
+    assert FakeWLAN.disconnects == 2 and FakeWLAN.connects == [("home", "pw")] * 2
+
+
+def test_joins_even_if_disconnect_refuses_while_not_connected(link):
+    FakeWLAN.disconnect_raises = True
+    link.poll(0)
+    assert FakeWLAN.connects == [("home", "pw")]
+
+
+def test_a_radio_error_does_not_stop_the_loop(link):
+    FakeWLAN.heard = None  # scan() handing back junk stands in for an OSError or a MemoryError
+    link.poll(0)
+    assert FakeWLAN.connects == []
+
+
+def test_keeps_scanning_while_no_known_network_is_in_range(link):
+    FakeWLAN.heard = [ap(b"cafe", -30)]
+    link.poll(0)
+    link.poll(15_000)
+    assert FakeWLAN.connects == []
+    FakeWLAN.heard = [ap(b"home", -70)]  # back in range
+    link.poll(30_000)
+    assert FakeWLAN.connects == [("home", "pw")]
 
 
 def test_beacons_name_ip_and_uptime_every_2s_once_joined(link):
@@ -205,7 +264,7 @@ def test_start_is_usb_only_without_wifi_json(tmp_path, monkeypatch):
 
 def test_start_reads_credentials_and_core_name(tmp_path, monkeypatch, link):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "wifi.json").write_text('{"ssid": "home", "password": "pw", "token": "t0k"}')
+    (tmp_path / "wifi.json").write_text('{"ssid": "home", "password": "pw", "token": "t0k"}')  # the shape before #195
     (tmp_path / "core.json").write_text('{"name": "neck", "ports": {"1": "tilt", "2": "mouth", "3": "pan"}}')
     w = mod.start(lambda line: None)
     w.poll(0)
@@ -213,6 +272,15 @@ def test_start_reads_credentials_and_core_name(tmp_path, monkeypatch, link):
     w.poll(2_000)
     assert FakeWLAN.connects == [("home", "pw")]
     assert sent("neck")[0][0].startswith("noggin neck 192.168.1.42 ")
+
+
+def test_start_reads_the_list_of_networks(tmp_path, monkeypatch, link):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "wifi.json").write_text(
+        '{"networks": [{"ssid": "away", "password": "a"}, {"ssid": "home", "password": "pw"}], "token": "t0k"}'
+    )
+    mod.start(lambda line: None).poll(0)
+    assert FakeWLAN.connects == [("home", "pw")]  # the fixture hears only home
 
 
 def test_older_seq_is_dropped_newer_runs(link):
