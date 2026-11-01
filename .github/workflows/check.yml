@@ -4,6 +4,8 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:   # the merge queue tests each PR merged onto current main before it lands
+    types: [checks_requested]
 concurrency:   # one run per workflow and PR (or branch); a new push to a PR cancels the one in progress, main runs all
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

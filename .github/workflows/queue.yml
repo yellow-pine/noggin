@@ -1,0 +1,29 @@
+name: queue
+# The review workflow's two required checks, as they report in the merge queue (check.yml runs there itself). A merge
+# group changes nothing the review judged, so `claude` passes when claude[bot] approved the queued PR's head
+# (scripts/claude_approved.py), and `fetch skills` has nothing to fetch. In its own file, not review.yml: the Claude
+# action skips a review.yml that differs from main's.
+on:
+  merge_group:
+    types: [checks_requested]
+permissions: {}
+jobs:
+  skills:
+    name: fetch skills
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "the PR's own run fetched the skills for its review"
+  claude:
+    name: claude
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/claude_approved.py "$HEAD_REF"
+        env:
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          GH_TOKEN: ${{ github.token }}
