@@ -49,6 +49,8 @@ jobs:
           subjectPattern: '^(?![A-Z]).*[^.]$'   # config-conventional's subject-case and subject-full-stop
           subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter or end with a period.'
       - name: Check one scope, the length and a break's !
+        # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it or add a !
+        if: ${{ github.event.pull_request.user.type != 'Bot' }}
         env:   # via env, never inlined into the script
           TITLE: ${{ github.event.pull_request.title }}
           BODY: ${{ github.event.pull_request.body }}

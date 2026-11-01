@@ -26,8 +26,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   test; a subject that doesn't start uppercase or end with a period; at most 100 characters. The scope is required,
   exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`, ...), a folder in docs/ (`adr`,
   `build`, ...), `deps` (`deps-dev`) for a dependency bump as Dependabot writes, `release` for the release PR;
-  `python3 scripts/pr_title.py` lists them. A body with a `BREAKING CHANGE:` footer needs the `!`. The required
-  `PR Title` check (`.github/workflows/pr-title.yml`) enforces it all; editing the title or body re-runs it.
+  `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it lands). A body with a
+  `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check (`.github/workflows/pr-title.yml`) enforces it
+  all (a bot's PR: its title's type and scope); editing the title or body re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
   finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-issue.yml`,
   `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
