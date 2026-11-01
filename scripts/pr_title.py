@@ -10,10 +10,10 @@ import re
 import subprocess
 import sys
 
-BOTS = {"deps", "deps-dev", "release"}
+BOT_SCOPES = {"deps", "deps-dev", "release"}
 
 
-def problem(title: str, body: str) -> str | None:
+def problem(title: str, body: str):  # the message, or None
     if re.match(r"\w+\([^)]*,", title):  # the action checks each scope of a list: the spec's scope is one noun
         return "Name one scope, not a list."
     if len(title) > 100:  # @commitlint/config-conventional's header-max-length
@@ -30,6 +30,6 @@ if __name__ == "__main__":
             sys.exit(1)
         sys.exit()
     files = subprocess.run(["git", "ls-files"], check=True, capture_output=True, text=True).stdout.splitlines()
-    folders = {"/".join(p[:2]) if p[0] == "docs" else p[0] for p in (f.split("/")[:-1] for f in files) if p}
-    scopes = {f.removeprefix("docs/") for f in folders}
-    print("\n".join(sorted({s for s in scopes if not s.startswith(".")} | BOTS)))
+    folders = [f.split("/")[:-1] for f in files]
+    scopes = {p[1] if p[0] == "docs" and len(p) > 1 else p[0] for p in folders if p}
+    print("\n".join(sorted({s for s in scopes if not s.startswith(".")} | BOT_SCOPES)))

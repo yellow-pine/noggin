@@ -8,7 +8,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Record my directives in this file. Keep it short: pointers, not restated facts.
 - Development cycle: grilling is interview-only, never build during it. Then the mattpocock skills cycle (research / prototype / domain-modeling as needed, plan, tdd, code-review, pr). Separate PRs for separate concerns.
 - Every branch gets its own PR straight against main with auto-merge on (`gh pr merge --auto --squash`); no integration or feature branches grouping tickets.
-- PR titles are strict Conventional Commits, `type(scope)[!]: subject`, scope required and derived from the repo: the required `PR Title` check and release-please read them (CONTRIBUTING.md, ADR 0010).
+- PR titles are strict Conventional Commits with a required scope: the required `PR Title` check and release-please read them (CONTRIBUTING.md, ADR 0010).
 - Standards and well-maintained open-source libraries first: wherever one covers the job, use it instead of custom code; always for security, protocols, parsing and numerics. Small glue stays custom (ponytail).
 - Never a paid service or paid tier (plugins, early access, hosted search); free and open-source only.
 - Install nothing into ~/.claude or launchd without an explicit go.

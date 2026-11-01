@@ -6,11 +6,11 @@
 >
 > Amended 2026-11-01 (#350): the PR Title check enforces only the type; a scope is free-form, an area recommended.
 >
-> Amended 2026-11-02 (#382): a scope is required again, exactly one, derived from the repo; the types and subject
-> rules are @commitlint/config-conventional's; a `BREAKING CHANGE:` footer needs `!` in the title.
->
 > Amended 2026-11-01 (#358): Release Assets is the release's deployment in the `release` environment, and the
 > release's notes link back to it.
+>
+> Amended 2026-11-02 (#382): a scope is required again, exactly one, derived from the repo; the types and subject
+> rules are @commitlint/config-conventional's; a `BREAKING CHANGE:` footer needs `!` in the title.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
