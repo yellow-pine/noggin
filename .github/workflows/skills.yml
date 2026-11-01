@@ -1,4 +1,4 @@
-name: skills
+name: Skills Updates
 # Weekly: re-pin skills-lock.json to each source's HEAD and open (or refresh) a PR, so the reviewer's skills change
 # only through a reviewed PR. A PR opened with GITHUB_TOKEN starts no workflows
 # (https://docs.github.com/en/actions/concepts/security/github_token): close and reopen it to run its checks.

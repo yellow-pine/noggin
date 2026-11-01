@@ -1,4 +1,4 @@
-name: release
+name: Release Assets
 on:
   push:
     tags: ["v*"]
