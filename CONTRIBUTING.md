@@ -17,9 +17,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main and on ready (non-draft)
   PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
-  deploy included; a release tag's run and Release Please's are never cancelled), so a cancelled run means a newer one superseded it. A
-  pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has a PR, except on-hold
-  work.
+  deploy included; a release tag's run and Release Please's are never cancelled), so a cancelled run means a newer
+  one superseded it. A pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has
+  a PR, except on-hold work.
 - A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
   `type(scope): subject`, `type!: subject` for a breaking change (docs/adr/0010). Types: feat, fix, perf, docs, ci,
   build, refactor, test, chore. The scope is optional and names an area, derived from the repo's top-level directories
