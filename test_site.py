@@ -235,7 +235,7 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
     jobs = yaml.safe_load(text)["jobs"]
     assert "make -s pictures-list" in jobs["motions"]["steps"][-1]["run"]
     assert jobs["render"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.motions.outputs.list) }}"}
-    assert jobs["render"]["name"] == "render (${{ matrix.motion }})"
+    assert jobs["render"]["name"] == "Render (${{ matrix.motion }})"
     assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
@@ -250,7 +250,7 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
     ],
 )
 def test_the_required_pictures_check_is_every_runner_or_none(motions, render, passes):
-    """`pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
+    """`Pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
     motion passed or none ran (nothing the pictures are made from changed), red when any failed or was cancelled,
     the motions list too (render then skips)."""
     job = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]["pictures"]

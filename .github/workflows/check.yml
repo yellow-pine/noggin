@@ -23,6 +23,7 @@ defaults:
 # cache is cut part by part first (convex, #223), so the model shards start warm.
 jobs:
   changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout); only mech filters
+    name: Changes
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
@@ -31,7 +32,8 @@ jobs:
     outputs:
       mech: ${{ steps.filter.outputs.mech }}
     steps:
-      - id: filter
+      - name: Filter the changed paths
+        id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
           filters: |
@@ -41,46 +43,58 @@ jobs:
   # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
   # (#245). Warm: the build's cache hit.
   mech:
+    name: Mech
     needs: changes
     # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.mech != 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
       # the unix port and hmac (make mech/build/micropython), keyed on the MicroPython tag the Makefile pins
-      - id: tag
+      - name: Read the MicroPython tag
+        id: tag
         run: echo "tag=$(sed -n 's/^MICROPYTHON := //p' Makefile)" >> "$GITHUB_OUTPUT"
-      - id: build
+      - name: Restore the MicroPython build
+        id: build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: mech/build
           key: micropython-unix-${{ steps.tag.outputs.tag }}
-      - run: make mech | tee "$RUNNER_TEMP/pytest.txt"
+      - name: Run make mech
+        run: make mech | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -n auto --durations=10
-      - if: always()
+      - name: List the slowest tests
+        if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      - run: python3 scripts/ci_budget.py ${{ steps.build.outputs.cache-hit == 'true' }}
+      - name: Check the CI budget
+        run: python3 scripts/ci_budget.py ${{ steps.build.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
   code:
+    name: Code
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
       # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false
       # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
       # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
       # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
-      - id: parts
+      - name: Restore the parts cache
+        id: parts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -90,28 +104,36 @@ jobs:
           restore-keys: ours-convex-
       # model/electrical.py's SPICE circuit: spicelib runs the ngspice program in batch mode
       # (https://packages.ubuntu.com/noble/ngspice)
-      - run: sudo apt-get update && sudo apt-get install -y ngspice shellcheck
-      - run: make check | tee "$RUNNER_TEMP/pytest.txt"
+      - name: Install ngspice and shellcheck
+        run: sudo apt-get update && sudo apt-get install -y ngspice shellcheck
+      - name: Run make check
+        run: make check | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
-      - if: always()
+      - name: List the slowest tests
+        if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
-      - run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
-      - run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
+      - name: Run shellcheck
+        run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
+      - name: Check the CI budget
+        run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
   convex:   # warm: only looks the parts cache up. Cold: from main's latest entry, lists the parts whose pieces are stale
+    name: Convex
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     outputs:
       key: ${{ steps.parts.outputs.cache-primary-key }}
       parts: ${{ steps.stale.outputs.parts }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      - id: parts
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Look up the parts cache
+        id: parts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -119,11 +141,13 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Set up uv
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in code
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Restore main's latest parts
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -131,13 +155,15 @@ jobs:
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
           restore-keys: ours-convex-   # as in code
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: List the stale parts
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         id: stale
         run: |
           make ours
           parts=$(.venv/bin/python -m model.convex_parts)   # its own line, so a failure fails the step
           echo "parts=$parts" >> "$GITHUB_OUTPUT"
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Upload our built parts
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: ours
@@ -146,7 +172,7 @@ jobs:
           retention-days: 1
           overwrite: true   # a re-run of every job uploads it again
   convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
-    name: convex ${{ matrix.part }}
+    name: Convex (${{ matrix.part }})
     needs: convex
     if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
     runs-on: ubuntu-latest
@@ -155,22 +181,28 @@ jobs:
       matrix:
         part: ${{ fromJSON(needs.convex.outputs.parts) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in code
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+      - name: Download our built parts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: ours
           path: model/build/ours
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - name: Cache this part's pieces
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/convex/${{ matrix.part }}
           key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
-      - run: make venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
+      - name: Cut the part
+        run: make venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
         env:
           PART: ${{ matrix.part }}
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+      - name: Upload the part's pieces
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: convex-${{ matrix.part }}
           path: model/build/convex/   # this part's folder alone
@@ -178,7 +210,7 @@ jobs:
           retention-days: 1
           overwrite: true   # as ours
   model-shard:
-    name: model ${{ matrix.shard }}
+    name: Model (${{ matrix.shard }})
     needs: [convex, convex-part]
     if: ${{ !cancelled() && !failure() && !github.event.pull_request.draft }}   # convex-part is skipped when warm
     runs-on: ubuntu-latest
@@ -203,15 +235,19 @@ jobs:
       # make sim's SPICE circuit (as in code; model/test_electrical.py runs it as mujoco collects it) and Mesa's EGL, which
       # renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job sets up, which pays
       # for the wait on convex
-      - run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+      - name: Install ngspice and EGL
+        run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in code
       # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
       # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not (ours-convex-:
       # the old ours- entries on main were saved by pages without the pieces, so every run decomposed again)
-      - id: parts
+      - name: Restore the parts cache
+        id: parts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -220,16 +256,19 @@ jobs:
           key: ${{ needs.convex.outputs.key }}
           restore-keys: ours-convex-   # as in code
       # missed: the parts convex built and cut over the entry restored
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Download our built parts
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: ours
           path: model/build/ours
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}   # a part cut again may have fewer pieces than restored
+      - name: Drop the parts cut again
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}   # a part cut again may have fewer pieces than restored
         run: jq -r '.[]' <<< "$PARTS" | while read -r part; do rm -rf "model/build/convex/$part"; done
         env:
           PARTS: ${{ needs.convex.outputs.parts }}
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Download the cut pieces
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           pattern: convex-*
@@ -237,47 +276,56 @@ jobs:
           merge-multiple: true
       # missed the exact key: decompose what is still stale (nothing, after convex-part) before the tests, in mjcf's own
       # process pool, or several xdist workers would decompose the same part into the same folder at once
-      - if: ${{ steps.parts.outputs.cache-hit != 'true' }}
+      - name: Rebuild and cut what is stale
+        if: ${{ steps.parts.outputs.cache-hit != 'true' }}
         run: make ours && .venv/bin/python -m model.mjcf
-      - run: |   # the install begun above
+      - name: Make the venv, wait for apt
+        run: |   # the install begun above
           make venv
           timeout 300 sh -c 'until [ -f "$RUNNER_TEMP/apt.rc" ]; do sleep 1; done' || echo "apt still running" > "$RUNNER_TEMP/apt.rc"
           [ "$(cat "$RUNNER_TEMP/apt.rc")" = 0 ] || { cat "$RUNNER_TEMP/apt.txt" "$RUNNER_TEMP/apt.rc"; exit 1; }
-      - if: ${{ matrix.shard != 'sim' }}
+      - name: Run make test
+        if: ${{ matrix.shard != 'sim' }}
         run: make test | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m model -n auto --dist loadgroup --durations=20 ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
           MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)
-      - if: ${{ always() && matrix.shard != 'sim' }}
+      - name: List the slowest tests
+        if: ${{ always() && matrix.shard != 'sim' }}
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # the print and FreeCAD exports as a smoke test, beside the short hero shard: on main, and on a PR whose parts
       # missed their exact key (what they are made from changed)
-      - if: ${{ matrix.shard == 'hero' && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
+      - name: Run make stl step
+        if: ${{ matrix.shard == 'hero' && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
         run: make stl step
       # the sim reports (make sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
       # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads
       # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
       # PRs after it and for the site, which publishes them at /reports (Site Deploy, pages.yml)
-      - if: ${{ matrix.shard == 'sim' }}
+      - name: Restore the sim reports
+        if: ${{ matrix.shard == 'sim' }}
         id: reports
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
           key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'uv.lock', 'Makefile', '.github/workflows/check.yml') }}
           restore-keys: sim-
-      - if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
+      - name: Run make sim
+        if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
         run: |
           [ ! -d model/build/reports ] || mv model/build/reports model/build/main-reports
           make sim
         env:
           OMP_NUM_THREADS: 1   # a document per process (model/report.py), as the xdist workers in make test
-      - if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit == 'true' }}
+      - name: Report the sim inputs unchanged
+        if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit == 'true' }}
         run: |
           echo "### Sim inputs unchanged: main's reports for them stand, no sim ran" >> "$GITHUB_STEP_SUMMARY"
-      - if: ${{ !cancelled() && matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
+      - name: Diff the reports against main's
+        if: ${{ !cancelled() && matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
         run: |
           {
             echo "### Sim reports against main's latest"
@@ -286,26 +334,31 @@ jobs:
             else printf '```diff\n%s\n```\n' "${d:0:900000}"   # the summary holds 1 MiB a step
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      - if: ${{ matrix.shard == 'sim' && github.event_name == 'push' && steps.reports.outputs.cache-hit != 'true' }}
+      - name: Save the sim reports
+        if: ${{ matrix.shard == 'sim' && github.event_name == 'push' && steps.reports.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
           key: ${{ steps.reports.outputs.cache-primary-key }}
       # saved even when a test or make sim fails (a red main would otherwise never fill its cache); an interrupted build
       # is safe to keep, since each .key above is written last
-      - if: ${{ always() && steps.parts.outputs.cache-hit != 'true' }}
+      - name: Save the parts cache
+        if: ${{ always() && steps.parts.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
-      - run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
+      - name: Check the CI budget
+        run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
   model:   # the required check: a skipped shard would count as passing, so the shards' result is checked (not on cancel)
+    name: Model
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     needs: model-shard
     runs-on: ubuntu-latest
     steps:
-      - run: '[ "${{ needs.model-shard.result }}" = success ]'
+      - name: Check every shard passed
+        run: '[ "${{ needs.model-shard.result }}" = success ]'

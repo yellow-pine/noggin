@@ -1,4 +1,4 @@
-"""review.yml's last gate: Claude can decide approve without the approval landing (#247), so `review` passes only when
+"""review.yml's last gate: Claude can decide approve without the approval landing (#247), so `Review` passes only when
 claude[bot]'s last verdict on the PR's head commit is an approval.
 Usage: GITHUB_REPOSITORY=o/r python3 scripts/claude_approved.py <PR number>"""
 
