@@ -29,7 +29,7 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   runs the sim only when that changed. A PR or merge group that runs it diffs the new reports against main's latest
   (the newest `sim-` entry, which only main saves) in its job summary; the pages workflow runs once check is done on
   main (`workflow_run`) and publishes the newest entry at /reports. The stamp check (model/stale.py) is gone; the
-  recorded Fusion sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
+  recorded sweeps (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
 - **Until its ticket lands**, the pictures in docs/images stay in git as they are.
 
 ## Considered options
