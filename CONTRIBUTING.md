@@ -16,7 +16,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   protected: a green PR with one approval is the only way in (it need not be up to date with main: the queue tests the
   merged result). The approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is
   re-reviewed; a PR that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main, on ready
-  (non-draft) PRs and on merge groups. A pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has a PR, except on-hold work.
+  (non-draft) PRs and on merge groups. A pushed branch is never merged locally: it lands through its own PR. Every
+  branch on GitHub has a PR, except on-hold work.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
@@ -26,9 +27,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
   workflow re-pins to upstream HEAD (close and reopen its PR to start the checks), Dependabot pins actions by SHA.
 - Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
-  required `claude` check fails with it when Claude requests changes (a bug, a spec
-  miss, a security issue or a breach of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus ponytail).
-  In the merge queue `claude` passes when claude[bot] approved the PR's head commit (`.github/workflows/queue.yml`). It
+  required `claude` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
+  of a documented rule; ponytail suggestions never block) (`.github/workflows/review.yml`: mattpocock code-review plus
+  ponytail). In the merge queue `claude` passes when claude[bot] approved the PR's head commit (`.github/workflows/queue.yml`). It
   needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot
   secrets): run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
