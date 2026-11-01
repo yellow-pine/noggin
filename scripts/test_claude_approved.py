@@ -48,7 +48,7 @@ def test_the_hook_wants_the_review_claude_is_about_to_report_and_the_gate_an_app
 
 
 def test_the_hook_refuses_a_verdict_until_its_review_is_on_the_head():
-    assert "gh pr review 378 --approve --body-file -" in refusal("approve", "CHANGES_REQUESTED", 378, HEAD)
-    assert "gh pr review 378 --request-changes --body-file -" in refusal("request_changes", None, 378, HEAD)
+    assert "gh pr review 378 --approve --body-file -" in (refusal("approve", "CHANGES_REQUESTED", 378, HEAD) or "")
+    assert "gh pr review 378 --request-changes --body-file -" in (refusal("request_changes", None, 378, HEAD) or "")
     assert refusal("approve", "APPROVED", 378, HEAD) is None
     assert refusal(None, None, 378, HEAD) is None  # the Verdict step never refuses: it exits 1
