@@ -30,7 +30,7 @@ dev = [
 micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the stubs and mpy-cross above pin the same
 
 [tool.pytest.ini_options]
-testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "test_vocabulary.py"]
+testpaths = ["eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py"]
 
 [tool.ruff]
 line-length = 120

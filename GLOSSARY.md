@@ -106,6 +106,15 @@ _Avoid_: twin, digital twin, CAD, simulation
 A cumulative build state of the Mech, the Sub-assemblies placed at frames (geometry.STAGES): Stage 1 = base + eyes (the desk eye bracket's stem in the plate's slot), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
 _Avoid_: part, module, phase, top assembly
 
+**Web viewer**:
+The public web page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the hero loop
+from Blender's glTF (docs/adr/0008).
+_Avoid_: twin viewer, web app, demo
+
+**Hero**:
+The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
+_Avoid_: banner, idle loop
+
 **Sub-assembly**:
 An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/engine/stages.py).
 

@@ -17,3 +17,4 @@ eyes/wifi.json
 *.crt
 *.crt.der
 *.pem
+web/build/
