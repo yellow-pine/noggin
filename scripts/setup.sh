@@ -257,13 +257,13 @@ note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run t
 pause
 
 stage "Join the Wi-Fi"
-say "Credentials go to the Core over USB as wifi.json; core.json names the Core (eyes / neck) and its servo ports."
-note "A copy stays in eyes/wifi.json (gitignored, read by the noggin service) so the second Core gets the same token."
+say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
+say "core.json names the Core (eyes / neck) and its servo ports. Re-run this stage in each new place."
+note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
 ask WIFI_SSID "Wi-Fi network name (SSID):"
 ask_secret WIFI_PASSWORD "Wi-Fi password:"
 until [[ "${CORE_NAME:-}" == eyes || "${CORE_NAME:-}" == neck ]]; do ask CORE_NAME "Which Core is plugged in? [eyes/neck]:"; done
-TOKEN=$("$PY" -c 'import json,sys; print(json.load(open("eyes/wifi.json"))["token"])' 2>/dev/null || openssl rand -hex 16)
-(umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" TOKEN="$TOKEN" "$PY" -c 'import json,os; json.dump({k: os.environ[v] for k, v in [("ssid","WIFI_SSID"),("password","WIFI_PASSWORD"),("token","TOKEN")]}, open("eyes/wifi.json","w"))')
+(umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" "$PY" -c 'import os, pathlib; from noggin.wifi import add_network; add_network(pathlib.Path("eyes/wifi.json"), os.environ["WIFI_SSID"], os.environ["WIFI_PASSWORD"])')
 PORTS='{"1": "l_lid", "2": "l_eye", "3": "r_lid", "4": "r_eye"}'; [[ "$CORE_NAME" == neck ]] && PORTS='{"1": "tilt", "2": "mouth", "3": "pan"}'
 printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
 make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
@@ -271,9 +271,9 @@ make -s interrupt                       # stops the noggin service and drops the
 "$MPR" resume cp core.json :core.json
 rm -f core.json
 "$PY" eyes/interrupt.py reset
-say "Listening 6 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
-"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(6); print(s.recv(128).decode())' \
-  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 6 s, or the SSID/password is wrong: re-run this stage"
+say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s>') ..."
+"$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(10); print(s.recv(128).decode())' \
+  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: re-run this stage"
 pause
 
 stage "Calibrate lids and eyes"

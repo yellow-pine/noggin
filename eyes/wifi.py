@@ -1,5 +1,5 @@
 # pyright: reportOptionalMemberAccess=false
-# noggin Core-side Wi-Fi Link (docs/adr/0005): join the home Wi-Fi, beacon on UDP 4711,
+# noggin Core-side Wi-Fi Link (docs/adr/0005): join the known Wi-Fi heard loudest, beacon on UDP 4711,
 # serve command lines on UDP 4712, flash the eye program's files. Cooperative: poll(now_ms) from the boot.py loop.
 # Importable on CPython for tests (network and socket are stubbed there).
 import binascii
@@ -107,6 +107,21 @@ def flash(line):
     replace(new, name)
 
 
+def networks(cfg):
+    """The known networks in wifi.json, [{"ssid", "password"}]; the one-network shape from before #195 still loads."""
+    if "networks" in cfg:
+        return cfg["networks"]
+    return [{"ssid": cfg["ssid"], "password": cfg["password"]}] if "ssid" in cfg else []
+
+
+def pick(heard, known):
+    """The known network heard loudest in a WLAN.scan() ((ssid, bssid, channel, RSSI, security, hidden) tuples, ssid
+    as bytes), or None when none is in range."""
+    by_ssid = {n["ssid"].encode(): n for n in known}
+    heard = [ap for ap in heard if ap[0] in by_ssid]
+    return by_ssid[max(heard, key=lambda ap: ap[3])[0]] if heard else None
+
+
 def start(handle_line):
     """The Link from wifi.json and core.json on the Core, or None without wifi.json (USB only)."""
     try:
@@ -146,8 +161,14 @@ class Wifi:
         self.last_ms = now_ms
         if not self.wlan.isconnected():
             if self.join_at is None or ticks_diff(now_ms, self.join_at) >= JOIN_MS:
-                self.wlan.connect(self.cfg["ssid"], self.cfg["password"])
                 self.join_at = now_ms
+                try:  # the driver retries the last network on its own, and it cannot scan while it joins
+                    self.wlan.disconnect()
+                    net = pick(self.wlan.scan(), networks(self.cfg))  # blocks a second or two
+                except OSError:  # a radio error must never stop the loop: scan again next window
+                    net = None
+                if net:
+                    self.wlan.connect(net["ssid"], net["password"])
             return
         if self.beacon is None:
             self.beacon = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

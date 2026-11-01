@@ -18,3 +18,13 @@ Accepted as-is: `send` blocks the service loop up to 3 s per unacked line (four 
 ## Update 2026-11-01: MQTT over mutual TLS evaluated and rejected (#157, #158)
 
 The standard alternative, Mosquitto with mutual TLS and the Cores as umqtt clients, was tried on the eyes Core. The Core's MicroPython build leaves about 19 KB of system heap, and mbedTLS needs about 35 KiB per connection, so the handshake starves (docs/research/2026-10-31-core-tls.md). The Link stays signed UDP: stdlib hmac, signed beacons and replies, seq with link.seq (#135). The Mosquitto and PKI code from #159 and #160 is unused until the Core firmware can hold TLS.
+
+## Update 2026-11-01: several known networks (#195)
+
+The Mech moves between places, so `wifi.json` holds a list, `{"networks": [{"ssid", "password"}, ...], "token"}`; the
+one-network shape from before still loads. While off the network the Core, every 10 s, stops the driver's own retries
+(`disconnect()`, else ESP-IDF refuses to scan), scans and joins the known network it hears loudest; none in range, it
+scans again 10 s later. The setup wizard's "Join the Wi-Fi" stage adds a network or updates its password, keeping the
+others and the token (`add_network` in noggin/wifi.py). Nothing else in the Link changes. Known limits: the scan blocks
+the Core's loop (eyes and USB) a second or two each 10 s while it is off the network; a hidden network (no SSID in the
+scan) is never joined; a known network with a wrong password is retried as long as it is the loudest.
