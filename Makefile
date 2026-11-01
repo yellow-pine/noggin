@@ -25,7 +25,7 @@ check: test lint  ## everything CI runs: tests, lint, formatting, types, wizard 
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
-sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry in Python into model/reports (commit them), then threshold the reports
+sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry into model/reports, the old engine and MuJoCo (model/mujoco_report.py) with each MJCF (commit them), then threshold the reports
 	$(PY) -m model.engine.run $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
 sim-if-stale: venv ours   ## make sim unless every committed report still matches the inputs and our meshes as built now (CI on PRs)

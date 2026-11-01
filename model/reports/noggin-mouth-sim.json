@@ -1355,7 +1355,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "6882c295ea7eab3404c3b98235a9476c8def5ddb944290cba995d400e3256fe9",
+  "stamp": "471ed0c46ae608d71b5fa74dc180269e9d421b4a4323574a44564027a497bf8b",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -1480,6 +1480,94 @@
     "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
     "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
    ]
+  }
+ },
+ "mujoco": {
+  "mujoco": "3.17.0",
+  "step_deg": 10,
+  "clearance_mm": 0.1,
+  "poses": 9,
+  "pairs": [
+   {
+    "pair": [
+     "bottom jaw:1",
+     "jaw bar:1"
+    ],
+    "rest_mm": -0.03,
+    "min_mm": -0.03,
+    "at": {
+     "jaw horn": -35
+    }
+   },
+   {
+    "pair": [
+     "bottom jaw:1",
+     "top jaw:1"
+    ],
+    "rest_mm": -1.699,
+    "min_mm": -1.699,
+    "at": {
+     "jaw horn": -45
+    }
+   },
+   {
+    "pair": [
+     "jaw bar:1",
+     "jaw horn:1"
+    ],
+    "rest_mm": 0.0,
+    "min_mm": 0.0,
+    "at": {
+     "jaw horn": 0
+    }
+   },
+   {
+    "pair": [
+     "jaw bar:1",
+     "jaw servo:1"
+    ],
+    "rest_mm": null,
+    "min_mm": 0.196,
+    "at": {
+     "jaw horn": -75
+    }
+   },
+   {
+    "pair": [
+     "jaw horn:1",
+     "jaw servo:1"
+    ],
+    "rest_mm": -0.386,
+    "min_mm": -0.386,
+    "at": {
+     "jaw horn": -25
+    }
+   }
+  ],
+  "residuals": {
+   "jaw hinge": {
+    "max_mm": 0.002,
+    "at": {
+     "jaw horn": 0
+    }
+   }
+  },
+  "actuators": {
+   "jaw horn": {
+    "hold_kgf_cm": 0.027,
+    "at": {
+     "jaw horn": 0
+    },
+    "rated_kgf_cm": 0.4,
+    "stall_kgf_cm": 1.0
+   }
+  },
+  "full_speed": {
+   "jaw horn": {
+    "deg_s": 428.6,
+    "off_deg": 0.0,
+    "at": -75
+   }
   }
  }
 }

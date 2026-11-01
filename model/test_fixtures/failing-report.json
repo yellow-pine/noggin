@@ -32,5 +32,12 @@
             {"joint": "L lid servo in its mount", "kind": "overlap", "parts": ["L lid servo:1", "L servo bracket:1"], "mm": 0.4, "ok": false},
             {"joint": "R lid servo in its mount", "kind": "seat", "parts": ["R lid servo:1", "R servo bracket:1"], "mm": 0.3, "ok": false},
             {"joint": "pan servo lead exit", "kind": "lead", "parts": ["pan servo:1", "pan servo tail mount:1"], "mm": null, "ok": false},
-            {"joint": "jaw servo / jaw servo mount lower tab screw", "kind": "coaxial", "parts": ["jaw servo:1", "jaw servo mount:1"], "mm": null, "ok": false, "missing": "jaw servo mount:1"}]
+            {"joint": "jaw servo / jaw servo mount lower tab screw", "kind": "coaxial", "parts": ["jaw servo:1", "jaw servo mount:1"], "mm": null, "ok": false, "missing": "jaw servo mount:1"}],
+ "mujoco": {"pairs": [{"pair": ["R eyeball bar:1", "eye bracket:1"], "rest_mm": -0.02, "min_mm": -0.12, "at": {"R eye horn": -22}},
+                      {"pair": ["pan turntable:1", "tilt bar:1"], "rest_mm": null, "min_mm": -0.08, "at": {"tilt horn": -60}},
+                      {"pair": ["L lid bar:1", "eye bracket:1"], "rest_mm": null, "min_mm": -0.01, "at": {"L lid horn": -49}}],
+            "residuals": {"tilt pivot": {"max_mm": 0.07, "at": {"tilt horn": 60}}, "pan pivot": {"max_mm": 0.01, "at": {"pan horn": 70}}},
+            "actuators": {"tilt horn": {"hold_kgf_cm": 0.45, "at": {"tilt horn": -60}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}},
+            "full_speed": {"pan horn": {"deg_s": 428.6, "off_deg": 29.1, "at": -40}, "tilt horn": {"deg_s": 428.6, "off_deg": 0.0, "at": 60}},
+            "tip_over": {"margin_mm": -2.0, "at": {"pan horn": 70, "tilt horn": 60}, "com": [1.0, 2.0, 3.0]}}
 }

@@ -1600,7 +1600,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "854b2a9ebc41ccb3dfbb4ef976cba7c51a08deb617eb930d9b20c81a86f2df6c",
+  "stamp": "e450e1242305f679c3428b73c13db6d53484240f9740f0f031f11c886be3fbca",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",
@@ -1740,6 +1740,482 @@
     "off the servo bracket's foot onto the plate, eyes build photos (inferred)",
     "under the cable holder, eyes-top build photo and guide step 18 (inferred)"
    ]
+  }
+ },
+ "mujoco": {
+  "mujoco": "3.17.0",
+  "step_deg": 10,
+  "clearance_mm": 0.1,
+  "poses": 32,
+  "pairs": [
+   {
+    "pair": [
+     "L eye horn:1",
+     "L eye servo:1"
+    ],
+    "rest_mm": -0.385,
+    "min_mm": -0.386,
+    "at": {
+     "L eye horn": 22
+    }
+   },
+   {
+    "pair": [
+     "L eye horn:1",
+     "L eyeball bar:1"
+    ],
+    "rest_mm": -0.02,
+    "min_mm": -0.02,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "L eyeball bar:1",
+     "L eyeball:1"
+    ],
+    "rest_mm": -0.225,
+    "min_mm": -0.231,
+    "at": {
+     "L eye horn": 22
+    }
+   },
+   {
+    "pair": [
+     "L eyeball bar:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -0.019,
+    "min_mm": -0.02,
+    "at": {
+     "L eye horn": 22
+    }
+   },
+   {
+    "pair": [
+     "L eyeball:1",
+     "L lower lid:1"
+    ],
+    "rest_mm": -1.171,
+    "min_mm": -1.178,
+    "at": {
+     "L lid horn": -39
+    }
+   },
+   {
+    "pair": [
+     "L eyeball:1",
+     "L upper lid:1"
+    ],
+    "rest_mm": -1.12,
+    "min_mm": -1.127,
+    "at": {
+     "L lid horn": 31
+    }
+   },
+   {
+    "pair": [
+     "L eyeball:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -0.225,
+    "min_mm": -0.941,
+    "at": {
+     "L eye horn": 22
+    }
+   },
+   {
+    "pair": [
+     "L lid bar:1",
+     "L lower lid:1"
+    ],
+    "rest_mm": -0.264,
+    "min_mm": -0.264,
+    "at": {
+     "L lid horn": 39
+    }
+   },
+   {
+    "pair": [
+     "L lid bar:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.01,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "L lid crank:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": 0.197,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "L lid horn:1",
+     "L lid servo:1"
+    ],
+    "rest_mm": -0.385,
+    "min_mm": -0.386,
+    "at": {
+     "L lid horn": -19
+    }
+   },
+   {
+    "pair": [
+     "L lower lid:1",
+     "L pupil:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.958,
+    "at": {
+     "L lid horn": -39
+    }
+   },
+   {
+    "pair": [
+     "L lower lid:1",
+     "L servo bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.031,
+    "at": {
+     "L lid horn": 39
+    }
+   },
+   {
+    "pair": [
+     "L lower lid:1",
+     "L upper lid:1"
+    ],
+    "rest_mm": -1.647,
+    "min_mm": -4.628,
+    "at": {
+     "L lid horn": -39
+    }
+   },
+   {
+    "pair": [
+     "L lower lid:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -3.174,
+    "min_mm": -3.334,
+    "at": {
+     "L lid horn": 39
+    }
+   },
+   {
+    "pair": [
+     "L pupil:1",
+     "L upper lid:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.847,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "L upper lid:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -1.834,
+    "min_mm": -2.575,
+    "at": {
+     "L lid horn": 39
+    }
+   },
+   {
+    "pair": [
+     "R eye horn:1",
+     "R eye servo:1"
+    ],
+    "rest_mm": -0.385,
+    "min_mm": -0.386,
+    "at": {
+     "R eye horn": 22
+    }
+   },
+   {
+    "pair": [
+     "R eye horn:1",
+     "R eyeball bar:1"
+    ],
+    "rest_mm": -0.02,
+    "min_mm": -0.02,
+    "at": {
+     "R eye horn": -22
+    }
+   },
+   {
+    "pair": [
+     "R eyeball bar:1",
+     "R eyeball:1"
+    ],
+    "rest_mm": -0.225,
+    "min_mm": -0.231,
+    "at": {
+     "R eye horn": -22
+    }
+   },
+   {
+    "pair": [
+     "R eyeball bar:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -0.019,
+    "min_mm": -0.02,
+    "at": {
+     "R eye horn": -22
+    }
+   },
+   {
+    "pair": [
+     "R eyeball:1",
+     "R lower lid:1"
+    ],
+    "rest_mm": -1.169,
+    "min_mm": -1.178,
+    "at": {
+     "R lid horn": 1
+    }
+   },
+   {
+    "pair": [
+     "R eyeball:1",
+     "R upper lid:1"
+    ],
+    "rest_mm": -1.12,
+    "min_mm": -1.127,
+    "at": {
+     "R lid horn": 31
+    }
+   },
+   {
+    "pair": [
+     "R eyeball:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -0.225,
+    "min_mm": -0.94,
+    "at": {
+     "R eye horn": -22
+    }
+   },
+   {
+    "pair": [
+     "R lid bar:1",
+     "R lower lid:1"
+    ],
+    "rest_mm": -0.264,
+    "min_mm": -0.264,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "R lid bar:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.01,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "R lid crank:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": 0.197,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "R lid horn:1",
+     "R lid servo:1"
+    ],
+    "rest_mm": -0.386,
+    "min_mm": -0.386,
+    "at": {
+     "R lid horn": 31
+    }
+   },
+   {
+    "pair": [
+     "R lower lid:1",
+     "R pupil:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.958,
+    "at": {
+     "R lid horn": -39
+    }
+   },
+   {
+    "pair": [
+     "R lower lid:1",
+     "R servo bracket:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.031,
+    "at": {
+     "R lid horn": 39
+    }
+   },
+   {
+    "pair": [
+     "R lower lid:1",
+     "R upper lid:1"
+    ],
+    "rest_mm": -1.647,
+    "min_mm": -4.628,
+    "at": {
+     "R lid horn": -39
+    }
+   },
+   {
+    "pair": [
+     "R lower lid:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -3.306,
+    "min_mm": -3.334,
+    "at": {
+     "R lid horn": 31
+    }
+   },
+   {
+    "pair": [
+     "R pupil:1",
+     "R upper lid:1"
+    ],
+    "rest_mm": null,
+    "min_mm": -0.847,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   {
+    "pair": [
+     "R upper lid:1",
+     "eye bracket:1"
+    ],
+    "rest_mm": -1.834,
+    "min_mm": -2.586,
+    "at": {
+     "R lid horn": 39
+    }
+   }
+  ],
+  "residuals": {
+   "L lower lid pivot": {
+    "max_mm": 0.002,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   "L upper lid pivot": {
+    "max_mm": 0.002,
+    "at": {
+     "L lid horn": -49
+    }
+   },
+   "L eyeball pivot": {
+    "max_mm": 0.0,
+    "at": {
+     "R eye horn": 22
+    }
+   },
+   "R lower lid pivot": {
+    "max_mm": 0.002,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   "R upper lid pivot": {
+    "max_mm": 0.002,
+    "at": {
+     "R lid horn": -49
+    }
+   },
+   "R eyeball pivot": {
+    "max_mm": 0.0,
+    "at": {
+     "R eye horn": 22
+    }
+   }
+  },
+  "actuators": {
+   "L lid horn": {
+    "hold_kgf_cm": 0.005,
+    "at": {
+     "L lid horn": -49
+    },
+    "rated_kgf_cm": 0.4,
+    "stall_kgf_cm": 1.0
+   },
+   "L eye horn": {
+    "hold_kgf_cm": 0.0,
+    "at": {
+     "L eye horn": 8
+    },
+    "rated_kgf_cm": 0.4,
+    "stall_kgf_cm": 1.0
+   },
+   "R lid horn": {
+    "hold_kgf_cm": 0.005,
+    "at": {
+     "R lid horn": -49
+    },
+    "rated_kgf_cm": 0.4,
+    "stall_kgf_cm": 1.0
+   },
+   "R eye horn": {
+    "hold_kgf_cm": 0.0,
+    "at": {
+     "R eye horn": 18
+    },
+    "rated_kgf_cm": 0.4,
+    "stall_kgf_cm": 1.0
+   }
+  },
+  "full_speed": {
+   "L lid horn": {
+    "deg_s": 428.6,
+    "off_deg": 0.0,
+    "at": 39
+   },
+   "L eye horn": {
+    "deg_s": 428.6,
+    "off_deg": 0.0,
+    "at": 22
+   },
+   "R lid horn": {
+    "deg_s": 428.6,
+    "off_deg": 0.0,
+    "at": 39
+   },
+   "R eye horn": {
+    "deg_s": 428.6,
+    "off_deg": 0.0,
+    "at": 22
+   }
   }
  }
 }

@@ -42,8 +42,8 @@ TIMESTEP, SETTLE_S = 0.0005, 0.5
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
 LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
-# shortcut: pose() slews each command at a quarter of the servo's rated 428 deg/s, quasi-static, since at the rated speed
-# the stage 3 head's inertia carries the pan four-bar through its toggle at pan horn -40; #149 drives it at speed.
+# shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default, since at the rated speed the stage 3 head
+# carries the pan four-bar through its toggle at pan -40 (model/mujoco_report.py); revisit with Core 2's choreography.
 SLEW_DEG_S = 100
 # The 9 g servo: its published stall torque at 4.8 V, the figure nearest the shield's 5 V servo rail
 # (electrical.SERVO_RAIL_V), as the actuator's force limit; full torque 0.5 deg off its command (a servo's deadband,
@@ -135,7 +135,6 @@ def spec(doc):
     volumes = {stem: [trimesh.load(p).volume for p in ps] for stem, ps in pieces.items()}
     s = mujoco.MjSpec()
     s.modelname = doc
-    s.meshdir = os.path.relpath(BUILD, MJCF)
     s.compiler.degree = False
     s.option.timestep = TIMESTEP
     for stem, (file, _) in meshes.items():
@@ -245,13 +244,14 @@ def spec(doc):
     return s
 
 
-def write(doc):
-    """model/build/mjcf/<doc>.xml (returned)."""
-    os.makedirs(MJCF, exist_ok=True)
+def write(doc, folder=MJCF):
+    """<folder>/<doc>.xml (returned): model/build/mjcf by default, model/reports for the committed one (make sim)."""
+    os.makedirs(folder, exist_ok=True)
     s = spec(doc)
-    s.modelfiledir = MJCF
+    s.meshdir = os.path.relpath(BUILD, folder)
+    s.modelfiledir = folder
     s.compile()
-    path = os.path.join(MJCF, doc + ".xml")
+    path = os.path.join(folder, doc + ".xml")
     with open(path, "w") as f:
         f.write(s.to_xml())
     return path
@@ -262,12 +262,12 @@ def model(doc):
     return mujoco.MjModel.from_xml_path(write(doc))
 
 
-def pose(model, ctrl):
+def pose(model, ctrl, deg_s=SLEW_DEG_S):
     """MjData with each horn's servo at ctrl[horn] degrees from neutral (the others at neutral): from rest, each
-    command slews there at SLEW_DEG_S (a step flings a light four-bar through its toggle), then is held under gravity for
-    SETTLE_S. Contacts are off: the parts' contacts are measured as distances (#149), not pushed apart."""
+    command slews there at deg_s (a step flings a light four-bar through its toggle), then is held under gravity for
+    SETTLE_S. Contacts are off: the parts' contacts are measured as distances (model/mujoco_report.py), not pushed apart."""
     data = mujoco.MjData(model)
-    rate = math.radians(SLEW_DEG_S) * model.opt.timestep  # rad per step
+    rate = math.radians(deg_s) * model.opt.timestep  # rad per step
     target = {h: math.radians(deg) for h, deg in ctrl.items()}
     steps = math.ceil(max(map(abs, target.values()), default=0) / rate)
     flags = model.opt.disableflags
