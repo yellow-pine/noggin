@@ -53,7 +53,7 @@ class Wifi:
         while True:
             try:
                 data, addr = self.beacons.recvfrom(256)
-            except (BlockingIOError, OSError):
+            except BlockingIOError, OSError:
                 break
             t, _, body = data.decode(errors="replace").partition(" ")
             parts = body.split()
@@ -108,7 +108,7 @@ class Wifi:
             self.cmd.settimeout(left)
             try:
                 data, addr = self.cmd.recvfrom(256)
-            except (TimeoutError, OSError):
+            except TimeoutError, OSError:
                 return None
             t, _, reply = data.decode(errors="replace").partition(" ")
             words = reply.split()

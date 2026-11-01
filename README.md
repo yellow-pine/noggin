@@ -25,7 +25,7 @@ An animatronic Mech on the desk that reacts to Claude Code.
 macOS or Linux, [uv](https://docs.astral.sh/uv/) and Node (the viewer's tests, the diagrams' renderer).
 
 ```
-make venv     # .venv from uv.lock, Python 3.12
+make venv     # .venv from uv.lock, Python 3.14
 make check    # what CI's code job runs: the tests not marked model, lint, formatting, types, script syntax
 make site     # the site in site/ (python -m http.server -d site)
 ```

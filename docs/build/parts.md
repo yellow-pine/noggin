@@ -28,5 +28,5 @@ range, filament is Bambu PLA Pure.
 
 ## On the Mac
 
-macOS, [uv](https://docs.astral.sh/uv/) (Python 3.12 and mpremote come with it) and Claude Code. `uv` manages
+macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it) and Claude Code. `uv` manages
 `.venv` and runs mpremote and pytest; the system Python is 3.9 and is not used.
