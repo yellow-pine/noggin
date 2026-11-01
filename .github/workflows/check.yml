@@ -53,7 +53,9 @@ jobs:
       # the site's Mermaid (mermaid.py's .cache) and test_site.py's mermaid-cli (npx's install, Puppeteer's headless
       # shell), by their versions in mkdocs.yml: a miss downloads them, and mermaid.py checks the hash cached or not
       - id: mermaid
-        run: echo "key=mermaid-$(yq '.extra.mermaid.version + "-cli-" + .extra.mermaid.cli' mkdocs.yml)" >> "$GITHUB_OUTPUT"
+        run: |   # its own line, so a failing yq fails the step
+          v=$(yq -e '.extra.mermaid.version + "-cli-" + .extra.mermaid.cli' mkdocs.yml)
+          echo "key=mermaid-$v" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
