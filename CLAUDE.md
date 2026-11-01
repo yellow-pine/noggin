@@ -10,6 +10,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Every branch gets its own PR straight against main with auto-merge on (`gh pr merge --auto --squash`); no integration or feature branches grouping tickets.
 - PR titles are Conventional Commits: the required `PR Title` check and release-please read them (CONTRIBUTING.md, ADR 0010).
 - Standards and well-maintained open-source libraries first: wherever one covers the job, use it instead of custom code; always for security, protocols, parsing and numerics. Small glue stays custom (ponytail).
+- Never a paid service or paid tier (plugins, early access, hosted search); free and open-source only.
 - Install nothing into ~/.claude or launchd without an explicit go.
 - Feature-first layout, never function-first; tests beside the code.
 - Keep it minimal (ponytail is active). Smallest thing that works.
