@@ -5,6 +5,7 @@ pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures
 mjcf.py)."""
 
 import ast
+import re
 from pathlib import Path
 
 from model import geometry as g
@@ -25,8 +26,8 @@ MECH = {  # what each gesture looks like, by the name the director sends
 
 
 def constant(path, name):
-    """A literal assigned at the top of a file that does not import here (the Core's program, a hooks script that
-    writes settings on import, Blender's)."""
+    """A literal assigned at the top of a file that does not import here (a hooks script that writes settings on
+    import, Blender's)."""
     tree = ast.parse((ROOT / path).read_text())
     assigns = (n for n in tree.body if isinstance(n, ast.Assign))
     return next(ast.literal_eval(n.value) for n in assigns if getattr(n.targets[0], "id", None) == name)
@@ -37,9 +38,12 @@ def duration(seconds):
 
 
 def behaviour():
-    lo, hi = constant("eyes/eyes.py", "THINK_BLINK_MS")
+    # shortcut: the blink gap read off its line, since eyes/eyes.py is a sim-report input (an edit there means
+    # make sim); a named constant once #229 takes the reports out of git
+    gap = r"self\.next_blink = now_ms \+ (\d+) \+ self\.rand % (\d+)"
+    lo, spread = map(int, re.search(gap, (ROOT / "eyes/eyes.py").read_text()).groups())
     numbers = {
-        "blink": f"{lo / 1000:g}-{hi / 1000:g} s",
+        "blink": f"{lo / 1000:g}-{(lo + spread) / 1000:g} s",
         "small": duration(TIERS[0][0]),
         "normal": duration(TIERS[1][0]),
         "stale": duration(STALE_TURN_SECONDS),
