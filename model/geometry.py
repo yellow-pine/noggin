@@ -259,16 +259,18 @@ LID_PINS = {"upper": (-22.0, 12.0, 0.0), "lower": (-22.0, -12.0, 0.0)}
 LID_HORN_ARM = (0.0, 0.99804, -0.06262)
 # Joint degrees of each eyes horn at servo 90: the spline tooth it went on (#134, #170). The calibrated lid_closed (L servo
 # 134.7, R 52.5) shuts the lids, their edges just touching with no overlap (Cansin, #189: they close quietly), so the
-# tooth puts it on the lips' meeting at -30.72: L 13.95, R 6.75 (-30.75, 0.03 mm of lip), inferred. The rest-top photo read at face value gives
-# L +12.8, R +5.9, and the camera tilt its eye readings show only raises the lid readings (docs/research/2026-10-31-
-# shafts.md). Eyes +2, inferred (#170): the program centres each eye at the mean of its calibrated ends, servo 88
-# (eyes/eyes.py _eye_angle), and the rest-front photo has both pupils straight ahead there, so servo 88 is the model's
-# neutral; the rest-top reading less its camera tilt gives +3.2 each (docs/research/2026-11-01-best-guesses.md).
+# tooth puts it on the lips' meeting at -30.72: L 13.95, R 6.75 (-30.75, 0.03 mm of lip), inferred. The rest-top photo
+# read at face value gives L +12.8, R +5.9, and the camera tilt its eye readings show only raises the lid readings
+# (docs/research/2026-10-31-shafts.md). Eyes +2, inferred (#170): the program centres each eye at the mean of its
+# calibrated ends, servo 88 (eyes/eyes.py _eye_angle), and the rest-front photo has both pupils straight ahead there, so
+# servo 88 is the model's neutral; the rest-top reading less its camera tilt gives +3.2 each
+# (docs/research/2026-11-01-best-guesses.md).
 HORN_AT_90 = {"l_lid": 13.95, "r_lid": 6.75, "l_eye": 2, "r_eye": 2}
 # The crank rides 1.2 mm out along the M2 screw, inferred (#170): the bar and crank turn on the screw under an unclamped
 # nut, so nothing holds the crank on the bar; flat on it (-27..-30) it would enter the eye bracket's outer edge (x -27..-28)
-# 1.0 mm from -32, which the real Mech runs through to its closed ends (-41 / -40), so the edge pushes it out to 0.2 mm
-# clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin (docs/research/2026-11-01-best-guesses.md).
+# 1.0 mm from -32, which the real Mech runs through to its closed ends (-40.05 / -39.25), so the edge pushes it out to
+# 0.2 mm clear and its stepped end stands 1.2 mm off the upper lid's ear on the lid pin
+# (docs/research/2026-11-01-best-guesses.md).
 CRANK_PLAY_MM = 1.2
 LID_LINKS = {
     "lid_bar": {"lid": "lower", "x": (-25.5, -25.5)},

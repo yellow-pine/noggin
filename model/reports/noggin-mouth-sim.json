@@ -1355,7 +1355,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "59345fee56d59b58875b9b7c782d1e59d16b32e0bcbd6d8fe8337dadcf1f03df",
+  "stamp": "4c763e2c36d9892a34ad86a8a8cee422220bf20143d3fd77aff6163ac3b6324c",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

@@ -23,13 +23,13 @@
    "measurements": 98
   },
   "L lid horn": {
-   "min_mm": 0.39,
+   "min_mm": 0.0,
    "at_deg": -31,
    "pair": [
-    "L lid crank:1",
+    "L lower lid:1",
     "eye bracket:1"
    ],
-   "measurements": 144
+   "measurements": 164
   },
   "L eye horn": {
    "min_mm": 0.0,
@@ -38,16 +38,16 @@
     "L eyeball bar:1",
     "eye bracket:1"
    ],
-   "measurements": 112
+   "measurements": 119
   },
   "R lid horn": {
-   "min_mm": 0.39,
+   "min_mm": 0.0,
    "at_deg": -31,
    "pair": [
-    "R lid crank:1",
+    "R lower lid:1",
     "eye bracket:1"
    ],
-   "measurements": 142
+   "measurements": 162
   },
   "R eye horn": {
    "min_mm": 0.0,
@@ -56,7 +56,7 @@
     "R eyeball bar:1",
     "eye bracket:1"
    ],
-   "measurements": 112
+   "measurements": 119
   },
   "jaw horn": {
    "min_mm": 0.2,
@@ -174,10 +174,130 @@
    ]
   },
   {
+   "horn": "L lid horn",
+   "deg": -31,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": -21,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": -11,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": -11,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": -1,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": -1,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 9,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 9,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 19,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 19,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 29,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 29,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 31,
+   "pair": [
+    "L lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L lid horn",
+   "deg": 31,
+   "pair": [
+    "L upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
    "horn": "L eye horn",
    "deg": -20,
    "pair": [
     "L eyeball bar:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L eye horn",
+   "deg": -20,
+   "pair": [
+    "L eyeball:1",
     "eye bracket:1"
    ]
   },
@@ -191,9 +311,25 @@
   },
   {
    "horn": "L eye horn",
+   "deg": -10,
+   "pair": [
+    "L eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L eye horn",
    "deg": 0,
    "pair": [
     "L eyeball bar:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L eye horn",
+   "deg": 0,
+   "pair": [
+    "L eyeball:1",
     "eye bracket:1"
    ]
   },
@@ -207,9 +343,137 @@
   },
   {
    "horn": "L eye horn",
+   "deg": 10,
+   "pair": [
+    "L eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L eye horn",
    "deg": 20,
    "pair": [
     "L eyeball bar:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "L eye horn",
+   "deg": 20,
+   "pair": [
+    "L eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -31,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -21,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -11,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -11,
+   "pair": [
+    "R upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -1,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": -1,
+   "pair": [
+    "R upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 9,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 9,
+   "pair": [
+    "R upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 19,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 19,
+   "pair": [
+    "R upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 29,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 29,
+   "pair": [
+    "R upper lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 31,
+   "pair": [
+    "R lower lid:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R lid horn",
+   "deg": 31,
+   "pair": [
+    "R upper lid:1",
     "eye bracket:1"
    ]
   },
@@ -223,9 +487,25 @@
   },
   {
    "horn": "R eye horn",
+   "deg": -20,
+   "pair": [
+    "R eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R eye horn",
    "deg": -10,
    "pair": [
     "R eyeball bar:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R eye horn",
+   "deg": -10,
+   "pair": [
+    "R eyeball:1",
     "eye bracket:1"
    ]
   },
@@ -239,7 +519,31 @@
   },
   {
    "horn": "R eye horn",
+   "deg": 0,
+   "pair": [
+    "R eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R eye horn",
    "deg": 10,
+   "pair": [
+    "R eyeball bar:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R eye horn",
+   "deg": 10,
+   "pair": [
+    "R eyeball:1",
+    "eye bracket:1"
+   ]
+  },
+  {
+   "horn": "R eye horn",
+   "deg": 20,
    "pair": [
     "R eyeball bar:1",
     "eye bracket:1"
@@ -249,7 +553,7 @@
    "horn": "R eye horn",
    "deg": 20,
    "pair": [
-    "R eyeball bar:1",
+    "R eyeball:1",
     "eye bracket:1"
    ]
   }
@@ -1002,6 +1306,15 @@
    "lo": -40.05,
    "hi": 52.95,
    "inferred": false,
+   "contacts": [
+    {
+     "deg": -40.05,
+     "pair": [
+      "L lower lid:1",
+      "eye bracket:1"
+     ]
+    }
+   ],
    "violations": [
     {
      "deg": 52.95,
@@ -1013,8 +1326,22 @@
     {
      "deg": 52.95,
      "pair": [
+      "L lower lid:1",
+      "eye bracket:1"
+     ]
+    },
+    {
+     "deg": 52.95,
+     "pair": [
       "L upper lid:1",
       "L eyeball bar:1"
+     ]
+    },
+    {
+     "deg": 52.95,
+     "pair": [
+      "L upper lid:1",
+      "eye bracket:1"
      ]
     }
    ]
@@ -1052,18 +1379,57 @@
       "eye bracket:1"
      ]
     }
+   ],
+   "violations": [
+    {
+     "deg": -30,
+     "pair": [
+      "L eyeball:1",
+      "eye bracket:1"
+     ]
+    },
+    {
+     "deg": 30,
+     "pair": [
+      "L eyeball:1",
+      "eye bracket:1"
+     ]
+    }
    ]
   },
   "R lid horn": {
    "lo": -39.25,
    "hi": 45.75,
    "inferred": false,
+   "contacts": [
+    {
+     "deg": -39.25,
+     "pair": [
+      "R lower lid:1",
+      "eye bracket:1"
+     ]
+    }
+   ],
    "violations": [
     {
      "deg": 45.75,
      "pair": [
       "R lower lid:1",
       "R servo bracket:1"
+     ]
+    },
+    {
+     "deg": 45.75,
+     "pair": [
+      "R lower lid:1",
+      "eye bracket:1"
+     ]
+    },
+    {
+     "deg": 45.75,
+     "pair": [
+      "R upper lid:1",
+      "eye bracket:1"
      ]
     }
    ]
@@ -1098,6 +1464,22 @@
      "deg": 30,
      "pair": [
       "R eyeball bar:1",
+      "eye bracket:1"
+     ]
+    }
+   ],
+   "violations": [
+    {
+     "deg": -30,
+     "pair": [
+      "R eyeball:1",
+      "eye bracket:1"
+     ]
+    },
+    {
+     "deg": 30,
+     "pair": [
+      "R eyeball:1",
       "eye bracket:1"
      ]
     }
@@ -2669,7 +3051,7 @@
  ],
  "warnings": [],
  "inputs": {
-  "stamp": "f760b0c72ff3b162cdf39925f4f2062cad6ff231b86863eb60a251d54ac0cd90",
+  "stamp": "4b97abf6416323b50d5fdbdd6a5720ad247d0ce615430ce62166a261e29975dc",
   "sources": {
    "model/build/ours/L eyeball.stl": "73e54404f14c6e38",
    "model/build/ours/L servo bracket.stl": "93807e1d01a352a3",

@@ -28,6 +28,8 @@ changed at a time, and the penetrating vertices' extents to see which way each c
 
 ## The lid horns' open end (L +52, R +45): accepted, listed
 
+Superseded in part by #189 (below): the teeth are L +13.95, R +6.75, the ends L +52.95, R +45.75, the free travel 62 deg.
+
 - Symptom: the lower lid's back rim 1.3 / 2.0 mm into the servo bracket's front face (z 18) from horn +39, across the
   lid's width; the L upper lid 0.35 mm into the eyeball bar at +52.
 - Rejected: a smaller lid tooth (the open ends sit 39 servo deg from 90 on both sides, which tooth 0 would put exactly
@@ -71,7 +73,8 @@ changed at a time, and the penetrating vertices' extents to see which way each c
 
 ## The joint-end overlaps (#189)
 
-The old engine skips a lid or eyeball on its bracket pivot and the two lids (model/engine/run.py PIVOT_PARTNER); #149's
+The old engine skipped a lid or eyeball on its bracket pivot (model/engine/run.py PIVOT_PARTNER, now measured) and never
+measures the two lids (both move with the horn); #149's
 MuJoCo report found them overlapping on the exact meshes at the LIMITS ends, which the build runs without binding.
 Measured per pair, one variable at a time, with the designer's meshes swapped in as the cross-check:
 
