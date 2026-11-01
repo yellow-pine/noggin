@@ -153,8 +153,9 @@ jobs:
       - env:
           RESULTS: ${{ needs.motions.result }} ${{ needs.render.result }}
         run: for r in $RESULTS; do test "$r" = success || test "$r" = skipped || exit 1; done
-  # the viewer's GLBs (Blender's, in web/build) built and tested by make web when what they are made from changed, else the last one built from the same inputs: a docs-only change bakes nothing. Beside the
-  # pictures, so neither waits for the other (#278)
+  # the viewer's GLBs (Blender's, in web/build) built and tested by make web when what they are made from changed, else
+  # the last ones built from the same inputs: a docs-only change bakes nothing. Beside the pictures, so neither waits
+  # for the other (#278)
   viewer:
     needs: changes
     if: >-   # as site
