@@ -7,6 +7,8 @@ NOGGIN := noggin/noggin
 PLIST := $(HOME)/Library/LaunchAgents/com.noggin.plist
 LABEL := gui/$(shell id -u)/com.noggin
 DOC ?= noggin-eyes
+# a Core on USB (the noggin service's PORT_GLOB); no comment after the value: make would keep the spaces before it
+USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
 .PHONY: venv test check sim sim-if-stale ours stl step install hooks unhooks start stop status log demo follow interrupt core-info backup-stock mpy flash flash-usb restore-stock render gifs hero trajectories view web lint fmt
@@ -71,8 +73,8 @@ mpy: venv        ## the eye program as .mpy for the Core's MicroPython (pyprojec
 	$(MPYC) -o eyes/build/eyes.mpy eyes/eyes.py
 	$(MPYC) -o eyes/build/gaze_trace.mpy eyes/gaze_trace.py
 	$(MPYC) -o eyes/build/wifi.mpy eyes/wifi.py
-flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh, else USB (USB=1 forces it)
-	@if [ -z "$(USB)" ] && $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
+flash: mpy       ## install the eye program and reboot the Core: over Wi-Fi while its beacon is fresh or no Core is on USB (the noggin service waits for the beacon), else USB (USB=1 forces it)
+	@if [ -z "$(USB)" ] && { [ -z "$(USB_PORTS)" ] || $(NOGGIN) status 2>/dev/null | grep -q '^eyes wifi '; }; then $(NOGGIN) flash; else $(MAKE) flash-usb; fi
 flash-usb: interrupt mpy ## the cable: the only way boot.py and hmac (micropython-lib, for the Link's tags) change, and the way back from anything Wi-Fi cannot fix
 	$(MPR) resume exec "import os; 'flash.trial' in os.listdir() and os.remove('flash.trial')"
 	$(MPR) resume mip install hmac

@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from noggin.wifi import BEACON_PORT, COMMAND_PORT, Wifi
+from noggin.wifi import BEACON_PORT, COMMAND_PORT, STALE, Wifi
 from reactions.director import Director
 
 SOCK = os.path.expanduser("~/.noggin.sock")  # AF_UNIX paths max 104 bytes: keep it short
@@ -90,7 +90,7 @@ class Service:
         wifi_file=WIFI_FILE,
         beacon_port=BEACON_PORT,
         command_port=COMMAND_PORT,
-        stale=6.0,
+        stale=STALE,
         duration=gesture_seconds,
         pause=5.0,
         broker=None,
@@ -99,6 +99,7 @@ class Service:
         self.director = Director()
         self.director.muted = self.mute_file.exists()
         self.link, self.last_probe, self.ready, self.running = None, 0.0, False, True
+        self.live = {}  # name -> uptime, of each Core whose beacon was fresh at the last loop
         self.mode = "follow"  # or the demo command that is playing; never persisted, so a restart follows
         self.duration, self.pause, self.demo, self.step, self.next_step = duration, pause, [], 0, 0.0
         token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
@@ -168,16 +169,21 @@ class Service:
             self.drop_link(e)
 
     def flash(self):
-        """The eye program, compiled into build/ beside calibration.json, to the eyes Core over Wi-Fi; the outcome."""
+        """The eye program, compiled into build/ beside calibration.json, to the eyes Core over Wi-Fi; the outcome.
+        Waits up to one stale window for a beacon: the service may have just started, or the Core be mid-gesture."""
+        end = time.time() + self.wifi.stale
+        while not self.wifi.fresh("eyes", time.time()) and time.time() < end:
+            self.wifi.poll(time.time())
+            time.sleep(0.05)
         if not self.wifi.fresh("eyes", time.time()):
-            msg = "flash failed: eyes is not on Wi-Fi (USB=1 make flash)"
+            msg = f"flash failed: no beacon from eyes in {self.wifi.stale} s (switched off? USB=1 make flash)"
         else:
             try:
                 build = self.cal_file.parent / "build"
                 msg = self.wifi.flash("eyes", {f: (build / f).read_bytes() for f in FLASH_FILES})
             except (RuntimeError, OSError) as e:
                 msg = f"flash failed: {e}"
-            self.send(self.cal_lines() + [self.director.mode()])  # a rebooted Core starts uncalibrated
+            self.live.pop("eyes", None)  # rebooted inside the window, uptime maybe not lower: the loop recalibrates it
         log(msg)
         return msg + "\n"
 
@@ -265,10 +271,15 @@ class Service:
                 self.link, self.last_probe = self.open_serial(), now
                 if self.link is not None:
                     self.send(self.cal_lines() + [self.director.mode()])  # calibrate, then catch up the mode
-            if "eyes" in self.wifi.poll(now):
-                self.send(
-                    self.cal_lines() + [self.director.mode()]
-                )  # a Core (back) on Wi-Fi: calibrate, catch up the mode
+            self.wifi.poll(now)
+            live = self.wifi.live(now)
+            for name in self.live.keys() - live.keys():
+                log(name, "beacon stale for", self.wifi.stale, "s")
+            for name in (live.keys() - self.live.keys()) | {n for n in live if live[n] < self.live.get(n, 0)}:
+                log(name, "beacon back:", self.wifi.status(name))  # new, or rebooted inside the stale window
+                if name == "eyes":  # a Core (back) on Wi-Fi: calibrate, catch up the mode
+                    self.send(self.cal_lines() + [self.director.mode()])
+            self.live = live
             if self.mode == "follow":
                 self.send(self.director.tick(now))
             else:

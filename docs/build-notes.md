@@ -59,8 +59,9 @@ pushing past them, the lids bind at the ends.
   still take a tuple in `str.startswith`, so `eyes/test_wifi.py` keeps its own check), and `mpy-cross` 1.23 compiles
   them. Bytecode-only .mpy files load on any 6.x ([mpyfiles](https://docs.micropython.org/en/v1.23.0/reference/mpyfiles.html)).
   The setup wizard warns when the board reports another version.
-- Upload files with `make flash`: over the Wi-Fi Link while the Core beacons, else `mpremote` over USB
-  (`USB=1` forces the cable; boot.py only ever goes that way). Both send `eyes.mpy`, `gaze_trace.mpy` and `wifi.mpy`
+- Upload files with `make flash`: over the Wi-Fi Link while the Core beacons or when no Core is on USB (the noggin
+  service then waits up to 22 s for its beacon), else `mpremote` over USB (`USB=1` forces the cable; boot.py only
+  ever goes that way). Both send `eyes.mpy`, `gaze_trace.mpy` and `wifi.mpy`
   (`make mpy`, into eyes/build): less RAM to import than the .py. boot.py stays .py (the Core runs boot.py only).
   A .py shadows its .mpy (import looks for the .py first), so `flash-usb` removes them and Wi-Fi takes only .mpy;
   a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB. Never flash firmware with esptool or any
@@ -159,7 +160,7 @@ range, filament is Bambu PLA Pure.
 scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
 make install         # host side only: hooks + the noggin service
 make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
-make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons, else USB (USB=1 forces it)
+make flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons or no Core is on USB, else USB (USB=1 forces it)
 make restore-stock   # put the stock remote-control program back on the Core
 noggin/noggin status # mode (follow or demo), Link (Wi-Fi or USB) per Core
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
