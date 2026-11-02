@@ -82,7 +82,7 @@ def test_another_sessions_pr_is_refused_untouched(repo):
 
 
 def test_take_swaps_the_label_rebases_in_this_sessions_worktree_pushes_and_prints_the_new_head(repo):
-    worktree(repo, "s2", "feat")  # the session it takes the PR from still has the branch checked out
+    theirs = worktree(repo, "s2", "feat")  # the session it takes the PR from still has the branch checked out
     git(repo, "branch", "other", "main")
     here = worktree(repo, "s1", "other")
 
@@ -94,6 +94,7 @@ def test_take_swaps_the_label_rebases_in_this_sessions_worktree_pushes_and_print
     assert run.stdout.strip() == new
     assert git(repo, "merge-base", "--is-ancestor", "origin/main", new) == ""  # raises unless main is under it
     assert git(repo.parent / "noggin-wt" / "s1" / "feat", "rev-parse", "HEAD") == new
+    assert git(theirs, "status", "--porcelain") == ""  # its branch did not move under its files
 
 
 def test_a_rebase_in_progress_is_refused_before_anything_is_labelled_or_pushed(repo):

@@ -38,16 +38,24 @@ head=$(echo "$info" | sed -n 2p)
 git fetch -q origin main "$branch"
 wt=${top%%/noggin-wt/*}/noggin-wt/$session/$branch
 if [ ! -d "$wt" ]; then
-	# -f: the session it was taken from may still have the branch checked out; the label says who works it now
-	if git show-ref -q --verify "refs/heads/$branch"; then git worktree add -q -f "$wt" "$branch"; else git worktree add -q -b "$branch" "$wt" "$head"; fi
+	if git worktree list --porcelain | grep -qx "branch refs/heads/$branch"; then
+		# the session it was taken from still has the branch: moving it would leave that worktree's files out of step
+		git worktree add -q --detach "$wt" "$head"
+	elif git show-ref -q --verify "refs/heads/$branch"; then
+		git worktree add -q "$wt" "$branch"
+	else
+		git worktree add -q -b "$branch" "$wt" "$head"
+	fi
 fi
 cd "$wt"
+on=$(git symbolic-ref -q --short HEAD || true) # empty when detached
+[ -z "$on" ] || [ "$on" = "$branch" ] || die "$wt has $on checked out, not PR #$pr's $branch"
 for d in rebase-merge rebase-apply; do
 	[ ! -e "$(git rev-parse --git-path $d)" ] || die "a rebase is in progress in $wt; finish it (git rebase --continue) or abort it first"
 done
 
 if [ "$owner" != "$session" ]; then
-	gh label create "session:$session" --force >/dev/null
+	gh label create "session:$session" --color ededed --force >/dev/null
 	gh pr edit "$pr" --add-label "session:$session" ${owner:+--remove-label "session:$owner"} >/dev/null
 fi
 
