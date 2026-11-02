@@ -23,8 +23,7 @@ MuJoCo's trajectories (every picture here). Main's sim reports are on the site a
 ## The hero
 
 <figure>
-<img src="https://yellowpine.com/noggin/images/hero-light.webp#gh-light-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
-<img src="https://yellowpine.com/noggin/images/hero-dark.webp#gh-dark-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
+<img src="https://yellowpine.com/noggin/images/hero.webp" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
 

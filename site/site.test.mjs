@@ -73,18 +73,15 @@ test('every link on the site lands on a page or file of it, and no .md link is l
   expect(broken).toEqual([]);
 });
 
-/** The heading a link's #fragment names on its page: none on a picture (/images/), nor for GitHub's
- * #gh-light-mode-only and #gh-dark-mode-only, which pick a picture's theme (#470). */
+/** The heading a link's #fragment names on its page: none on a picture (/images/), which is no page (#470). */
 const headingOf = (url) => {
   const [p, anchor] = url.split('#');
-  return anchor && !p.includes(`${HOME}/images/`) && !/^gh-(light|dark)-mode-only$/.test(anchor) ? anchor : undefined;
+  return anchor && !p.includes(`${HOME}/images/`) ? anchor : undefined;
 };
 
-test("a link's heading is its fragment, but not a picture's or a GitHub theme's", () => {
+test("a link's heading is its fragment, but not a picture's", () => {
   expect(headingOf(`${SITE}${BASE}/docs/model-notes/#numbers-from-the-code`)).toBe('numbers-from-the-code');
-  expect(headingOf(`${SITE}${HOME}/images/hero-dark.webp#top`)).toBeUndefined();
-  expect(headingOf(`${SITE}${BASE}/#gh-light-mode-only`)).toBeUndefined();
-  expect(headingOf(`${SITE}${BASE}/#gh-dark-mode-only`)).toBeUndefined();
+  expect(headingOf(`${SITE}${HOME}/images/hero.webp#top`)).toBeUndefined();
 });
 
 test("every site URL the repo's Markdown links to is a page with that heading", () => {
@@ -187,30 +184,26 @@ test("every page's footer links the version to its release (the releases before 
   }
 });
 
-const hero = (theme) => `${SITE}${HOME}/images/hero-${theme}.webp#gh-${theme}-mode-only`; // macros.py, test_site.py
+const hero = `${SITE}${HOME}/images/hero.webp`; // model/render/pictures.py SITE, test_site.py
 
-test('the hero shows at its size in a figure on the landing page and Pictures, in each theme', () => {
-  for (const url of [`${BASE}/`, route('docs/pictures.md')])
-    for (const theme of ['light', 'dark']) {
-      const img = page(url).querySelector(`figure img[src="${hero(theme)}"]`);
-      expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
-    }
+test('the hero shows at its size in a figure on the landing page and Pictures', () => {
+  for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
+    const img = page(url).querySelector(`figure img[src="${hero}"]`);
+    expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
+  }
 });
 
 test("the landing page opens with Stage 3's viewer, the hero its poster", () => {
   const viewer = page(`${BASE}/`).querySelector('.noggin-viewer');
   expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
-  expect(viewer.querySelector(`figure img[src="${hero('light')}"]`)).not.toBeNull();
+  expect(viewer.querySelector(`figure img[src="${hero}"]`)).not.toBeNull();
 });
 
 test('the landing page and Pictures show the Stage panels, each linking to its full size', () => {
   for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
     const links = page(url).querySelectorAll('.noggin-panels a');
-    expect(links.length, url).toBe(numbers.stages.length * 2 * 2); // side and isometric, light and dark
-    for (const a of links) {
-      const href = a.getAttribute('href'), theme = href.match(/-(light|dark)\.webp$/)?.[1];
-      expect(a.querySelector('img').getAttribute('src'), href).toBe(`${href}#gh-${theme}-mode-only`);
-    }
+    expect(links.length, url).toBe(numbers.stages.length * 2); // side and isometric
+    for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
   }
 });
 

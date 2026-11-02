@@ -2,10 +2,8 @@
 The job names each part's mesh (its own frame, metres) and colour, and the shots: output paths, size, camera and every
 part's world matrix per frame (one: a still; more: one animation, keeping one depsgraph). Look (docs/model-notes.md):
 satin plastic in the spool colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
-silhouettes and creases, a transparent background. Each frame renders once, in two themes: the render itself with
-black lines (the light theme), and through the compositor the job's dark-theme line colour added where the Grease
-Pencil pass has lines (black adds nothing, so the parts under a line keep their share). Prints each frame's render
-time (`frame <frame> <s>`), which pictures.py passes to its log."""
+silhouettes and creases in one mid grey (INK) that reads on the site's light and dark pages, a transparent background
+(#470). Prints each frame's render time (`frame <frame> <s>`), which pictures.py passes to its log."""
 
 import json
 import math
@@ -18,6 +16,7 @@ from mathutils import Matrix, Vector
 
 BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B); the web viewer's lines
+INK = "#5F5F5F"  # the pictures' lines: one grey that reads on the light and the dark theme (Cansin's pick, #489)
 ART_PX = 1.25  # the pictures' Line Art lines: 2.5 and 1.75 px read too bold (Cansin, #276)
 SHADOW_AT, HIGHLIGHT_AT = 0.7, 0.8  # where the toon ramps step, on the diffuse and glossy light
 CREASE = 60  # degrees between face normals that draw a crease line
@@ -95,7 +94,7 @@ def setup():
     gp.layers.new("lines")
     ink = bpy.data.materials.new("ink")
     bpy.data.materials.create_gpencil_data(ink)
-    ink.grease_pencil.color = (0, 0, 0, 1)
+    ink.grease_pencil.color = lin(INK)
     gp.materials.append(ink)
     lines = bpy.data.objects.new("lines", gp)
     sc.collection.objects.link(lines)
@@ -113,34 +112,6 @@ def setup():
     sun.data.energy, sun.data.angle = SUN, math.radians(SUN_ANGLE)
     sc.collection.objects.link(sun)
     return sc, cam, sun, art
-
-
-def dark_theme(sc, hexc):
-    """The compositor's dark theme: the render with hexc times the Grease Pencil pass's alpha added, written by a File
-    Output node (frameNNNN.png in its directory); the render itself stays the light theme."""
-    bpy.context.view_layer.use_pass_grease_pencil = True
-    tree = bpy.data.node_groups.new("themes", "CompositorNodeTree")
-    sc.compositing_node_group = tree
-    n, link = tree.nodes.new, tree.links.new
-    tree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
-    layers, light = n("CompositorNodeRLayers"), n("NodeGroupOutput")
-    link(layers.outputs["Image"], light.inputs[0])
-    coverage = n("CompositorNodeSeparateColor")
-    link(layers.outputs["Grease Pencil"], coverage.inputs[0])
-    tint, add = n("ShaderNodeMix"), n("ShaderNodeMix")
-    for node, blend in ((tint, "MULTIPLY"), (add, "ADD")):
-        node.data_type, node.blend_type = "RGBA", blend
-        node.inputs["Factor"].default_value = 1.0
-    tint.inputs["A"].default_value = lin(hexc)
-    link(coverage.outputs["Alpha"], tint.inputs["B"])
-    link(layers.outputs["Image"], add.inputs["A"])
-    link(tint.outputs["Result"], add.inputs["B"])
-    dark = n("CompositorNodeOutputFile")
-    dark.format.media_type, dark.format.file_format, dark.format.color_mode = "IMAGE", "PNG", "RGBA"
-    dark.file_name = ""  # its default prefixes the .blend's name ("Unsaved" in background mode)
-    dark.file_output_items.new("RGBA", "frame")
-    link(add.outputs["Result"], dark.inputs["frame"])
-    return dark
 
 
 def load(parts):
@@ -191,7 +162,6 @@ def px_metres(cam, objs, width):
 
 def main(job):
     sc, cam, sun, art = setup()
-    dark = dark_theme(sc, job["dark"])
     objs = load(job["parts"])
     lighten(objs)
     start = {}
@@ -225,8 +195,7 @@ def main(job):
         w, h = shot["size"]
         sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
         art.radius = ART_PX * px_metres(cam, objs, w)  # Blender 5.2 draws the stroke about `radius` wide (measured)
-        sc.render.filepath = os.path.join(shot["out"]["light"], "frame####")  # as the File Output node names them
-        dark.directory = shot["out"]["dark"] + os.sep
+        sc.render.filepath = os.path.join(shot["out"], "frame####")
         bpy.ops.render.render(animation=True)
 
 

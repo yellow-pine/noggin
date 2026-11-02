@@ -1,6 +1,6 @@
 """Every picture the site serves (SITE), rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
-baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150). Each picture has a light-theme
-and a dark-theme render (THEMES: its lines' colour) with a transparent background, as WebP (#470).
+baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150). Each picture is a WebP with a
+transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 `views` (`make render`): the Stage panels (each Stage at rest, a trajectory's first frame, from the side and isometric:
 PANELS). `hero` (`make hero`): the README hero, stage 3 talking (model/render/hero.py), its
 trajectory at 8 fps (at_fps) as one animation. `site` (`make pictures`): renders the site's pictures, motion by motion
@@ -32,9 +32,6 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
 PANELS = [(doc.removeprefix("noggin-"), view) for doc in g.STAGES for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
-# each theme's line colour: blender.py draws black lines and the dark theme's in its compositor; grey keeps the
-# black base readable on a dark page
-THEMES = {"light": "#000000", "dark": "#C8CACF"}
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # the hero: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
 _R = math.radians(15)
@@ -53,8 +50,8 @@ EXPLODE = {
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
 SITE = {
-    "views": [f"{name}-{view}-{theme}.webp" for name, view in PANELS for theme in THEMES],
-    "hero": [f"hero-{theme}.webp" for theme in THEMES],
+    "views": [f"{name}-{view}.webp" for name, view in PANELS],
+    "hero": ["hero.webp"],
 }
 
 
@@ -88,10 +85,10 @@ def points(hulls, mats):
 
 
 def shot(name, size, cam, poses):
-    """A Blender shot (blender.py), one frame per pose: each theme's in OUT/<theme>/<name>/frameNNNN.png."""
+    """A Blender shot (blender.py), one frame per pose in OUT/frames/<name>/frameNNNN.png."""
     c = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "ortho_scale": cam.ortho_scale}
     return {
-        "out": {theme: os.path.join(OUT, theme, name) for theme in THEMES},
+        "out": os.path.join(OUT, "frames", name),
         "size": list(size),
         "camera": c,
         "poses": [{n: np.asarray(m).tolist() for n, m in pose.items()} for pose in poses],
@@ -100,11 +97,9 @@ def shot(name, size, cam, poses):
 
 def blender(name, manifest, shots):
     job = os.path.join(OUT, "meshes", name, "job.json")
-    json.dump({"parts": manifest, "dark": THEMES["dark"], "shots": shots}, open(job, "w"))
+    json.dump({"parts": manifest, "shots": shots}, open(job, "w"))
     r = subprocess.run([BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
-    files = [
-        os.path.join(p, f"frame{i:04d}.png") for s in shots for p in s["out"].values() for i in range(len(s["poses"]))
-    ]
+    files = [os.path.join(s["out"], f"frame{i:04d}.png") for s in shots for i in range(len(s["poses"]))]
     missing = [f for f in files if not os.path.isfile(f)]
     if r.returncode or missing:
         sys.exit(f"Blender failed on {name}, missing {missing[:3]}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
@@ -159,41 +154,27 @@ def at_fps(frames, fps):
 
 def hero():
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
-    camera fitted to every pose, rendered as one animation and encoded to hero-<theme>.webp: HERO_FPS, looping, each at
-    most HERO_MAX_BYTES."""
+    camera fitted to every pose, rendered as one animation and encoded to hero.webp: HERO_FPS, looping, at most
+    HERO_MAX_BYTES."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
     poses = at_fps(trajectories.poses("noggin-stage3", "hero"), HERO_FPS)
     cam = camera.fit(
         np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
     )
-    for theme in THEMES:
-        shutil.rmtree(os.path.join(OUT, theme, "hero"), ignore_errors=True)
+    shutil.rmtree(os.path.join(OUT, "frames", "hero"), ignore_errors=True)
     blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses)])
-    out = os.path.join(OUT, "hero")
     encode("hero", HERO_FPS)
-    for theme in THEMES:
-        size = os.path.getsize(f"{out}-{theme}.webp")
-        if size > HERO_MAX_BYTES:
-            sys.exit(f"{out}-{theme}.webp is {size // 1024} KB, over {HERO_MAX_BYTES // 1000} KB")
-        print(f"hero-{theme}.webp: {len(poses)} frames, {size // 1024} KB")
+    size = os.path.getsize(os.path.join(OUT, "hero.webp"))
+    if size > HERO_MAX_BYTES:
+        sys.exit(f"hero.webp is {size // 1024} KB, over {HERO_MAX_BYTES // 1000} KB")
+    print(f"hero.webp: {len(poses)} frames, {size // 1024} KB")
 
 
 def encode(name, fps=None):
-    """Each theme's OUT/<theme>/<name> frames as OUT/<name>-<theme>.webp with their alpha: a still, or with fps a
-    looping animation."""
+    """OUT/frames/<name> as OUT/<name>.webp with its alpha: a still, or with fps a looping animation."""
     rate, codec = (["-framerate", str(fps)], ["libwebp_anim", "-loop", "0"]) if fps else ([], ["libwebp"])
-    for theme in THEMES:
-        frames = os.path.join(OUT, theme, name, "frame%04d.png")
-        ffmpeg(
-            *rate,
-            "-i",
-            frames,
-            "-c:v",
-            *codec,
-            "-quality",
-            str(WEBP_QUALITY),
-            os.path.join(OUT, f"{name}-{theme}.webp"),
-        )
+    frames = os.path.join(OUT, "frames", name, "frame%04d.png")
+    ffmpeg(*rate, "-i", frames, "-c:v", *codec, "-quality", str(WEBP_QUALITY), os.path.join(OUT, f"{name}.webp"))
 
 
 def ffmpeg(*args):

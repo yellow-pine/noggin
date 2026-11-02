@@ -12,7 +12,7 @@
 
 An animatronic Mech on the desk that reacts to Claude Code.
 
-<p align="center"><a href="https://yellowpine.com/noggin/viewer/"><img src="https://yellowpine.com/noggin/images/hero-light.webp#gh-light-mode-only" width="800" alt="noggin: Stage 3 talking, turning and nodding"><img src="https://yellowpine.com/noggin/images/hero-dark.webp#gh-dark-mode-only" width="800" alt="noggin: Stage 3 talking, turning and nodding"></a></p>
+<p align="center"><a href="https://yellowpine.com/noggin/viewer/"><img src="https://yellowpine.com/noggin/images/hero.webp" width="800" alt="noggin: Stage 3 talking, turning and nodding"></a></p>
 
 > [!TIP]
 > ## [Docs, build guide and live 3D viewer → https://yellowpine.com/noggin](https://yellowpine.com/noggin/)

@@ -33,10 +33,6 @@
 figure { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* each picture's light and dark render (#470): GitHub shows the one its #gh-*-mode-only fragment names, the site the
-   one for Starlight's theme, as its own light:sl-hidden and dark:sl-hidden do */
-[data-theme='light'] img[src$='#gh-dark-mode-only'], [data-theme='dark'] img[src$='#gh-light-mode-only'] { display: none; }
-
 /* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
    stacked by Stage, its views side by side */
 .noggin-panels {

@@ -108,13 +108,13 @@ def picture_numbers():
         [
             "| Pictures | Rendered | Served |",
             "|---|---|---|",
-            f"| Stage panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP, a light and a dark theme |",
+            f"| Stage panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
             f"| hero | {size(*p.HERO_SIZE)} | {p.HERO_FPS} fps, at most {p.HERO_MAX_BYTES / 1e6:g} MB |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `make view` |",
             "|---|---|---|---|",
             *(f"| {n} | {c} | {lift.get(c, c)} | {mjcf.VIEW.get(c, c)} |" for n, c in g.SPOOLS.items()),
-            *(f"| lines, {t} theme | | {c} | |" for t, c in p.THEMES.items()),
+            f"| lines | | {constant('model/render/blender.py', 'INK')} | |",
             f"| background | | transparent | {mjcf.SKY} |",
         ]
     )
@@ -122,19 +122,15 @@ def picture_numbers():
 
 def panels():
     """The Stage panels (model/render/pictures.py PANELS) as a grid, a column per Stage and a row per view, each
-    picture linking to its file and shown in its theme (#gh-*-mode-only: GitHub's, and site/src/styles/custom.css by
-    Starlight's theme); stacked by Stage on a phone (custom.css). The landing page's and Pictures' (#470)."""
+    picture linking to its file; stacked by Stage on a phone (site/src/styles/custom.css). The landing page's and
+    Pictures' (#470)."""
     site, views = "https://yellowpine.com/noggin/images/", list(pictures.VIEWS)
     cells = ["<span></span>", *(f"<span>{v.capitalize()}</span>" for v in views)]
     for n, doc in enumerate(g.STAGES, 1):
         cells.append(f"<strong>Stage {n}</strong>")
         for v in views:
-            files = [(t, f"{site}{doc.removeprefix('noggin-')}-{v}-{t}.webp") for t in pictures.THEMES]
-            imgs = "".join(
-                f'<a href="{f}"><img src="{f}#gh-{t}-mode-only" alt="Stage {n}, {v}" loading="lazy"></a>'
-                for t, f in files
-            )
-            cells.append(f"<div>{imgs}</div>")
+            f = f"{site}{doc.removeprefix('noggin-')}-{v}.webp"
+            cells.append(f'<a href="{f}"><img src="{f}" alt="Stage {n}, {v}" loading="lazy"></a>')
     return f'<div class="noggin-panels not-content" style="--views: {len(views)}">{"".join(cells)}</div>'
 
 

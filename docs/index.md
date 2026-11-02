@@ -6,8 +6,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 <div class="noggin-viewer hero" data-stage="stage3">
 <figure>
-<img src="https://yellowpine.com/noggin/images/hero-light.webp#gh-light-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
-<img src="https://yellowpine.com/noggin/images/hero-dark.webp#gh-dark-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
+<img src="https://yellowpine.com/noggin/images/hero.webp" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
 </div>

@@ -17,7 +17,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
-  shadow and one small highlight band, black lines on silhouettes and creases (faces more than 60 degrees apart, so
+  shadow and one small highlight band, grey lines on silhouettes and creases (faces more than 60 degrees apart, so
   STL facets draw none; their width blender.py ART_PX in the pictures, LINE_PX in the web viewer), one key light at the camera's upper right, a transparent background. STL facets are
   smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the eyeball so their outline stays
   whole. For CI's software GL (Cansin, 2026-11-01, #226, #276; docs/research/2026-11-01-render-profile.md): Blender's
@@ -27,11 +27,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   edge needs no samples), the hero renders as one animation (one depsgraph), the heaviest meshes are decimated for the
   pictures only (LIGHTER, LIGHTER_FACES; the GLBs keep theirs), Line Art culls back faces, and CI keeps Mesa's shader
   cache.
-- Every picture has a light-theme and a dark-theme render (Cansin, #470): black lines, or light grey ones that keep the
-  black base readable on a dark page (pictures.py THEMES), each with a transparent background, as WebP. Blender draws
-  the parts and then their lines alone once; ffmpeg lays the lines over the parts in each theme's colour. GitHub shows
-  the one its `#gh-light-mode-only` or `#gh-dark-mode-only` fragment names, the site the one for Starlight's theme
-  (site/src/styles/custom.css).
+- Every picture is one WebP with a transparent background, its lines one mid grey (blender.py INK) that reads on the
+  site's light and dark pages alike (Cansin, #470, #489: white lines on the dark theme read badly; of three greys
+  she took the darkest). No backdrop, disc or tint behind the Mech.
 - Stage panels (Cansin, #470): each Stage from its left side (+X) and isometric from its front left (+X, -Y, +Z),
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
   VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
