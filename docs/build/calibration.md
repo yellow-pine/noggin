@@ -29,5 +29,5 @@ The lids and eyes are calibrated per Mech in `eyes/calibration.json`, live with 
   (left) / 64 (right, which sat a bit more closed in thinking at the same number), open
   102 (the lid stops opening visibly there; no stop or clutch slip up to 133). At
   `lid_closed` 0.1 the blinks left a clear gap, so `lid_closed` is now 0: blinks and the
-  wink close at the closed end, and bored's long closure is 1.5 s (with its ramps it
-  stays under the 2 s stall cap). Eyes unchanged, 58..118.
+  wink close at the closed end, and bored's long closure is 1.3 s (with its minimum-jerk
+  ramps it stays under the 2 s stall cap, #619). Eyes unchanged, 58..118.

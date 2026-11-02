@@ -3,6 +3,7 @@ eyes/calibration.json, judged on its servo timeline (replay.play): never faster 
 shape (anticipation, ease-in close, holds, overshoot past the level and settle)."""
 
 import json
+import math
 import os
 
 import pytest
@@ -59,8 +60,58 @@ def after_rest(*lines, pin=R_LID):
     return [(t - start, a) for t, a in ev if t >= start], total - start
 
 
-def test_blink_lifts_eases_shut_holds_and_reopens_past_rest():
-    """Target (#258): a tiny lift, ~150 ms slow-in close, ~80 ms hold, ~250 ms slow-out reopen a little past rest,
+def clocked_ticks(e):
+    """A minute of tick() with the simulated clock running between them, as boot.py's loop has it."""
+    for t in range(0, 60_000, 100):
+        e.tick(t)
+        EYES.sleep_ms(100)
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [[f"{g} {i}"] for g in EYES.Eyes.GESTURES for i in (1, 2, 3)]
+    + [["thinking", clocked_ticks], ["set think_trace 1", "thinking", clocked_ticks], ["exercise 1", clocked_ticks]],
+    ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),
+)
+def test_a_servo_is_written_at_most_once_a_frame(lines):
+    """#619: the ESP32-C3's LEDC takes a new duty only at the next 20 ms PWM period, so a second write within one
+    is lost (docs/research/2026-11-02-literature-motion-control.md 1)."""
+    log, _ = replay.play(["rest", *lines], CAL)
+    last = {}
+    for t, pin, _ in log:
+        assert t - last.get(pin, -20) >= 20, (lines, pin, t, last.get(pin))
+        last[pin] = t
+
+
+def test_a_glide_is_minimum_jerk_at_rest_at_both_ends():
+    """#619: a move between keyframes follows minimum jerk, x = D(10t^3 - 15t^4 + 6t^5) (Flash & Hogan 1985): it
+    starts and lands at rest, where the old eases landed at full speed; a quarter of the time in it is 10.35% of the
+    way, half the time in half the way."""
+    ev, _ = after_rest(lambda e: e.lids(CAL["lid_open"] - 0.15, 400))
+    a0, a1 = lid(CAL["lid_rest"]), lid(CAL["lid_open"] - 0.15)
+    way = [(a - a0) / (a1 - a0) for _, a in ev]
+    assert [t for t, _ in ev] == list(range(0, 400, 20))  # one write a frame, over the 400 ms asked
+    assert way[4] == pytest.approx(0.1035, abs=1e-3) and way[9] == pytest.approx(0.5) and way[-1] == pytest.approx(1)
+    steps = [b - a for a, b in zip([0, *way], way, strict=False)]
+    assert max(steps[0], steps[-1]) < max(steps) / 50
+
+
+def test_a_short_move_stretches_to_the_acceleration_cap():
+    """#619: a 4 deg eye move asked in one frame takes two. Minimum jerk peaks at 5.77 D/T^2, so at the cap (half the
+    stall torque at 4.8 V on the rotor's inertia through the gears, 28,094 deg/s^2) it needs T = 29 ms, where the slew
+    alone (1.875 D/T at 428 deg/s) allows 18."""
+    ev, _ = after_rest(lambda e: e.eyes(EYES.EYE_CENTER + 4, 20), pin=L_EYE)
+    assert len(ev) == 2
+
+
+def test_the_cap_is_half_the_stall_torque_on_the_rotor():
+    """The Core's copy of the cap (eyes.py cannot import eyes/servo.py) against its source."""
+    stall_nm = servo.SPEC[4.8]["stall_kgfcm"] * 0.0980665
+    assert EYES.ACCEL == pytest.approx(math.degrees(stall_nm / 2 / servo.ARMATURE), abs=1)
+
+
+def test_blink_lifts_closes_holds_and_reopens_past_rest():
+    """Target (#258): a tiny lift, ~150 ms close, ~80 ms hold, ~250 ms reopen a little past rest,
     settle. The right lid: open is the high end."""
     ev, _ = after_rest(lambda e: e.blink())
     rest, shut = lid(CAL["lid_rest"]), lid(CAL["lid_closed"])
@@ -69,7 +120,7 @@ def test_blink_lifts_eases_shut_holds_and_reopens_past_rest():
     assert rest < ev[top][1] < lid(CAL["lid_rest"] + 0.1)  # anticipation: up a touch first
     assert ev[closed][0] - ev[top][0] >= 140  # the close
     steps = [ev[k][1] - ev[k + 1][1] for k in range(top, closed)]
-    assert steps[0] < steps[-1] / 3  # slow in: starts gently, lands fast
+    assert max(steps[0], steps[-1]) < max(steps) / 3  # minimum jerk (#619): starts and lands at rest
     assert ev[closed + 1][0] - ev[closed][0] >= 80  # held shut
     reopen = ev[closed + 1 :]
     peak = max(range(len(reopen)), key=lambda k: reopen[k][1])
