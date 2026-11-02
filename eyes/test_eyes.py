@@ -201,3 +201,25 @@ def test_neck_core_never_drives_the_eye_pins(tmp_path, monkeypatch, pwm_log):
     e.handle_line("eureka 2")
     e.handle_line("wink 1")  # eye servo names unknown here: skipped, not crashed
     assert pwm_log == []
+
+
+def test_take_writes_each_move_on_time_by_the_core_clock_however_slow_the_link_polls(eyes, pwm_log, monkeypatch):
+    """The servo test's moves (docs/build/tests.md) start with a ramp of 1 degree a frame to +25, then step -25, +25,
+    +5, -5, -1, 0 a second apart from 1.5 s; each lands within one slow poll of its time, never later, with 3 ms of
+    Link polling after every 20 ms sleep (a drift of 15 % if the waits were only summed), and the Core holds still."""
+    wall = [0]
+    monkeypatch.setattr(mod, "sleep_ms", lambda ms: wall.__setitem__(0, wall[0] + ms + 3))
+    monkeypatch.setattr(mod, "ticks_ms", lambda: wall[0])
+    eyes.handle_line("pose eyes 90")
+    pwm_log.clear()
+    original, at = eyes.set, []
+    monkeypatch.setattr(eyes, "set", lambda t: (at.extend([wall[0]] * (mod.R_EYE in t)), original(t)))
+    start = wall[0]
+    eyes.handle_line("take")
+    moves = [round(angle(d) - 88) for p, d in pwm_log if p == mod.R_EYE]
+    assert moves == [*range(26), -25, 25, 5, -5, -1, 0]
+    late = [
+        t - start - want for t, want in zip(at, [*range(0, 520, 20), 1500, 2500, 3500, 4500, 5500, 6500], strict=True)
+    ]
+    assert 0 <= min(late) and max(late) <= 3, late
+    assert eyes.mode == "pose"

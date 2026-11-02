@@ -11,11 +11,17 @@ import time
 from machine import PWM, Pin  # pyright: ignore[reportMissingImports]
 
 try:
-    from time import sleep_ms  # pyright: ignore[reportAttributeAccessIssue]
+    from time import sleep_ms, ticks_diff, ticks_ms  # pyright: ignore[reportAttributeAccessIssue]
 except ImportError:  # CPython
 
     def sleep_ms(ms):
         time.sleep(ms / 1000)
+
+    def ticks_ms():  # the waits' virtual clock: tests and the model replay the program in it
+        return clock
+
+    def ticks_diff(a, b):
+        return a - b
 
 
 try:
@@ -58,6 +64,11 @@ LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
 SLEW = 428  # deg/s, the servo's rated slew at 4.8 V (eyes/servo.py, not flashed): no move asks for more
 ACCEL = 28094  # deg/s^2, the cap: half the stall torque at 4.8 V on the rotor's inertia through the gears (servo.py)
 FRAME = 20  # ms, one 50 Hz PWM period: LEDC takes a new duty only at the next one, so a servo gets one write a frame
+# the servo test's moves (docs/build/tests.md, model/servo_take.py) as (ms, eye angle): a ramp of a degree a frame that
+# syncs the video, then steps both ways a second apart
+TAKE = [(i * FRAME, EYE_CENTER + i) for i in range(26)] + [
+    (1500 + 1000 * i, EYE_CENTER + d) for i, d in enumerate((-25, 25, 5, -5, -1, 0))
+]
 BUDGET = 2  # servos jumping at once: each draws ~0.6 A stall current till it arrives; pack, Shield, switch: 3 A
 OVER = 0.05  # toon overshoot past a lid level, then settle (docs/research/2026-11-01-toon-eyes.md)
 # ms from one blink to the next, (least, random spread): held still a face reads as lifeless after ~1.7 s
@@ -392,6 +403,13 @@ class Eyes:
                     self.lids(float(val), 150)
                 elif key == "eyes":
                     self.eyes(float(val), 150)
+        elif cmd == "take":  # each move on time by the Core's clock: the Link's polls in the waits never add up
+            self.mode = "pose"
+            t0 = ticks_ms()
+            for at, angle in TAKE:
+                while ticks_diff(ticks_ms(), t0) < at:
+                    wait(min(FRAME, at - ticks_diff(ticks_ms(), t0)))
+                self.eyes(angle)
         elif cmd == "exercise" and len(args) == 1:  # run-in: smooth mid-range cycling, never near a stop
             self.mode = "exercise"
             self.until = None

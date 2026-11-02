@@ -10,12 +10,9 @@ RATED_DEG_S = electrical.servo.rate(electrical.SERVO_MIN_V)  # 428.6 deg/s, the 
 
 
 def take(load_g, arm_mm, steps, seconds=0.8, fps=240):
-    """A take as the filmed one will be: command and horn degrees at the camera's frames, the horn played here."""
+    """A take as the filmed one will be: the camera's frames and the Core's writes, the horn played here."""
     t = np.arange(round(seconds * fps)) / fps
-    command = np.zeros_like(t)
-    for at, deg in steps:
-        command[t >= at] = deg
-    return {"load_g": load_g, "arm_mm": arm_mm, "t_s": t.tolist(), "command_deg": command.tolist()}
+    return {"load_g": load_g, "arm_mm": arm_mm, "t_s": t.tolist(), "command": [(0, 0), *steps]}
 
 
 def test_a_step_waits_the_pwm_frame_then_runs_no_faster_than_no_load_and_holds_the_command():

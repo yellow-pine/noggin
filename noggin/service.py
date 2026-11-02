@@ -1,12 +1,12 @@
 """noggin service: owns the Link to the Core and a Unix socket for Triggers and the CLI. Socket lines are either Trigger
 JSON from a Claude Code hook (forwarded to the Director) or plain commands: `on` / `off` (Mute, persisted as a file)
-/ `<gesture> <1-3>` / `thinking` / `rest` / `exercise <min>` (passed to the Core) / `pose ...` (passed on and held,
-dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload`, `on` and Link reconnect while
-unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file) / `demo [once |
-<gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks from demo or
-pose; the mode after any restart) / `status` (each Core's Link and program, the service's own version) / `flash`
-(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `just flash`). The whole calibration file is
-pushed whenever the Link connects. Run as `python -m noggin.service`."""
+/ `<gesture> <1-3>` / `thinking` / `rest` / `exercise <min>` / `take` (passed to the Core) / `pose ...` (passed on
+and held, dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`, `reload`, `on` and Link
+reconnect while unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file)
+/ `demo [once | <gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks
+from demo or pose; the mode after any restart) / `status` (each Core's Link and program, the service's own version) /
+`flash` (the eye program to the eyes Core over Wi-Fi, answered with the outcome; `just flash`). The whole calibration
+file is pushed whenever the Link connects. Run as `python -m noggin.service`."""
 
 import glob
 import json
@@ -36,7 +36,7 @@ READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a 
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
 FRAME = 0.02  # s, one 50 Hz servo frame (eyes/eyes.py FRAME)
 TOGETHER = 10.0  # s between both Cores' restarts for a pack cut: each boots and joins Wi-Fi at its own pace
-MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
+MANUAL = {"thinking", "rest", "release", "exercise", "take", *GESTURES}
 
 
 def log(*a):
