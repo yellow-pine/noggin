@@ -1,5 +1,5 @@
-# The CI image for the jobs that run Blender (docs/adr/0009, #288): the base image (BASE: on main the digest
-# images.yml just pushed, on a PR the base it just built) plus Blender from the official tarball, sha256-checked, and
+# The CI image for the jobs that run Blender (docs/adr/0009, #288): the base image (BASE: the digest images.yml just
+# pushed) plus Blender from the official tarball, sha256-checked, and
 # Mesa's EGL and llvmpipe, where Eevee renders in software. download.blender.org answers 403 to some runners (#367), so
 # the tarball falls back to Blender's official mirrors (mirror.blender.org's ?mirrorlist); any of them must match the hash.
 # Blender's own pip then uninstalls the bundled requests, urllib3, certifi and idna (only its remote asset libraries

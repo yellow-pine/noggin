@@ -2,7 +2,8 @@
 main's post-merge Checks catch what they no longer run, and a failure must surface at once. A failed Checks or Site
 Deploy run on main opens the issue (labels bug, ready-for-agent) with the commit, the failing jobs and their key log
 lines, or comments on the open one while main stays red; Site Deploy deploying a commit (its Checks passed, its site is
-up) closes it. A cancelled run was superseded and says nothing.
+up) closes it. CI Images builds on main alone (#729), so its failure files its own 'main red (CI Images)', which its
+next successful run closes. A cancelled run was superseded and says nothing.
 Usage: WORKFLOW=... CONCLUSION=... RUN_ID=... RUN_URL=... SHA=... GITHUB_REPOSITORY=o/r python3 scripts/main_red.py"""
 
 import json
@@ -11,17 +12,24 @@ import re
 import subprocess
 
 TITLE = "main red"
-WATCHED = ["Checks", "Site Deploy"]  # by their names, as main-red.yml's workflow_run names them
+WATCHED = ["Checks", "Site Deploy", "CI Images"]  # by their names, as main-red.yml's workflow_run names them
 RED = {"failure", "timed_out", "startup_failure"}
 KEY = re.compile(r"FAILED|Error")
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 LINES, WIDTH = 40, 300  # the issue stays readable; the run has the rest
 
 
+def title(workflow: str) -> str:
+    """CI Images' issue is its own: a deploy says nothing about the images"""
+    return f"{TITLE} (CI Images)" if workflow == "CI Images" else TITLE
+
+
 def verdict(workflow: str, conclusion: str, jobs: list[dict]) -> str | None:
-    """red for a failed run; green once Site Deploy's Deploy job put a commit up; else None"""
+    """red for a failed run; green once Site Deploy's Deploy job put a commit up, or CI Images pushed; else None"""
     if conclusion in RED:
         return "red"
+    if workflow == "CI Images":
+        return "green" if conclusion == "success" else None
     deployed = any(j["name"] == "Deploy" and j["conclusion"] == "success" for j in jobs)
     return "green" if workflow == "Site Deploy" and deployed else None
 
@@ -53,7 +61,7 @@ if __name__ == "__main__":
     state = verdict(e["WORKFLOW"], e["CONCLUSION"], jobs)
     # the issues API, not search, which lags a just-opened issue
     listed = json.loads(gh("issue", "list", "--limit", "500", "--json", "number,title"))  # the open ones
-    issue = next((str(i["number"]) for i in listed if i["title"] == TITLE), None)
+    issue = next((str(i["number"]) for i in listed if i["title"] == title(e["WORKFLOW"])), None)
     commit_url = f"https://github.com/{e['GITHUB_REPOSITORY']}/commit/{e['SHA']}"
     print(f"main red: {e['WORKFLOW']} {e['CONCLUSION']}, {state or 'nothing to do'}, open issue: {issue or 'none'}")
     if state == "red":
@@ -62,7 +70,8 @@ if __name__ == "__main__":
         if issue:
             gh("issue", "comment", issue, "--body", body)
         else:
-            gh("issue", "create", "--title", TITLE, "--label", "bug,ready-for-agent", "--body", body)
+            gh("issue", "create", "--title", title(e["WORKFLOW"]), "--label", "bug,ready-for-agent", "--body", body)
     elif state == "green" and issue:
         gh("issue", "edit", issue, "--remove-label", "ready-for-agent,in-progress,blocked,on-hold")
-        gh("issue", "close", issue, "--comment", f"Main is green again: Site Deploy deployed it ({e['RUN_URL']}).")
+        done = "deployed it" if e["WORKFLOW"] == "Site Deploy" else "pushed the images"
+        gh("issue", "close", issue, "--comment", f"Main is green again: {e['WORKFLOW']} {done} ({e['RUN_URL']}).")
