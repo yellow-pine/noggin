@@ -390,6 +390,8 @@ jobs:
       # as in check.yml; warm: no motion of the pictures rendered and the viewer was warm or skipped as cached (the
       # budget's critical path runs through render or viewer to here)
       - name: Check the CI budget
-        run: python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true' && needs.viewer.outputs.warm != 'false' }}
+        run: >-
+          python3 scripts/ci_budget.py ${{ needs.render.outputs.cold != 'true'
+          && (needs.viewer.outputs.warm == 'true' || needs.changes.outputs.viewer == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
