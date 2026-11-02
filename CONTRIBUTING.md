@@ -22,8 +22,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
   review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
-  repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on
-  pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
+  repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no
+  update-branch banner. CI runs on pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
   the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
   cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
   Every branch on GitHub has a PR, except on-hold work.
