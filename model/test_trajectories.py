@@ -67,8 +67,9 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     "doc,motion", [(d, m) for d in geometry.STAGES | geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
-    """#255, #663: every gesture and the hero as played on each Stage, and the next Mech's gestures and Rest: no pair of parts more than PENETRATION_MM deeper than
-    at rest at any step of the sim, not only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
+    """#255, #663: every gesture and the hero as played on each Stage, and the next Mech's gestures and Rest: no pair of
+    parts more than PENETRATION_MM deeper than at rest at any step of the sim, not only in the 100 ms frames the GIFs and
+    the web viewer draw (#627)."""
     assert overlaps(doc, motion) == {}
 
 

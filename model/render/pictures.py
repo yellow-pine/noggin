@@ -10,8 +10,8 @@ served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/001
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
 `site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS:
-its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649); `compare`: a PR's preview of them, the live site's above its own
-(PREVIEW_OUT).
+its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649); `compare`: a PR's preview of them,
+the live site's above its own (PREVIEW_OUT).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join | compare (Blender at $BLENDER)"""
 
 import functools
@@ -279,8 +279,8 @@ def next_played():
 
 
 def motion_pictures():
-    """The next Mech's motions (next_motions, next_played), its eye gimbal alone, each a looping WebP at HERO_FPS through one camera
-    from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
+    """The next Mech's motions (next_motions, next_played), its eye gimbal alone, each a looping WebP at HERO_FPS through
+    one camera from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
     doc = next(iter(g.NEXT))
     _, manifest, hull = prepare(doc)
     motions = next_motions(trajectories.poses(doc, "wink")[0]) | next_played()

@@ -107,7 +107,8 @@ def next_commands(motion):
     rest just over the pupil, open (gimbal.LID_EDGES), the lid following the pitch (#51). ([(ms, horn, servo degrees
     from centre)], rest's writes before ms 0; the frame times), as commands()."""
     log, end = writes(NEXT_MOTIONS[motion])
-    half = (lambda lo, hi: (hi - lo) / 2)(*_CORE.range(mod.L_EYE))
+    lo, hi = _CORE.range(mod.L_EYE)
+    half = (hi - lo) / 2
     levels = [CAL[k] for k in ("lid_closed", "lid_rest", "lid_open")]
     edges = [gimbal.LID_EDGES[0], gimbal.LID_REST, gimbal.LID_EDGES[1]]
     pitch, out = 0.0, []
