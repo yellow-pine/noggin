@@ -12,6 +12,7 @@ from pathlib import Path
 PUNCTUATION = "();<>|&`\n"  # ` too: an unquoted `cmd` is a command of its own
 KEYWORDS = ("do", "then", "else", "{", "!")  # what may stand before a loop's until/while in a simple command
 SHELLS = ("bash", "sh", "zsh", "dash")
+INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a pipe may not feed
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse (an open quote or heredoc); fix it, or write long text to a file first."
 
@@ -71,9 +72,9 @@ def tokens(command):
 
 
 def commands(command):
-    """The simple commands as (words, fed): fed is what its heredocs and here-strings feed it, a redirect's file is
-    dropped."""
-    found, words, fed, redirect = [], [], [], None
+    """The simple commands as (words, fed, piped): fed is what its heredocs and here-strings feed it, piped whether a
+    pipe feeds it; a redirect's file is dropped."""
+    found, words, fed, redirect, piped = [], [], [], None, False
     for token in tokens(command) + [";"]:
         if isinstance(token, Fed) or redirect == "<<<":
             fed.append(token)
@@ -84,8 +85,8 @@ def commands(command):
             redirect = token
         elif set(token) <= set(PUNCTUATION):
             if words or fed:
-                found.append((words, fed))
-            words, fed = [], []
+                found.append((words, fed, piped))
+            words, fed, piped = [], [], token in ("|", "|&")
         else:
             words.append(token)
     return found
@@ -116,11 +117,15 @@ def reason(command, makefile):
         segments = commands(command)
     except ValueError:
         return UNPARSED
-    for i, (words, fed) in enumerate(segments):
+    for i, (words, fed, piped) in enumerate(segments):
         first = next((w for w in words if "=" not in w), "")
+        if piped and Path(first).name in INTERPRETERS:
+            return "a pipe into a shell or interpreter hides its commands; pipe into jq, or run a script file."
+        if any(re.match(r"GIT_CONFIG_(PARAMETERS|COUNT|KEY_)", w) for w in words):
+            return "GIT_CONFIG_*: run the git command itself, with no config from the environment."
         inner = [f for f in fed if first not in TEXT] + [c for w in words for c in substitutions(w)]
-        if any(w in SHELLS for w in words) and "-c" in words[:-1]:
-            inner.append(words[words.index("-c") + 1])
+        shell = next((k for k, w in enumerate(words) if Path(w).name in SHELLS), len(words))
+        inner += [words[k + 1] for k in range(shell + 1, len(words) - 1) if re.fullmatch(r"-\w*c\w*", words[k])][:1]
         if "eval" in words:
             inner.append(" ".join(after(words, "eval") or []))
         why = next((r for r in (reason(c, makefile) for c in inner) if r), None)
@@ -130,7 +135,7 @@ def reason(command, makefile):
             (w for k, w in enumerate(words) if w in ("until", "while") and (k == 0 or words[k - 1] in KEYWORDS)), None
         )
         git, gh, make = after(words, "git"), after(words, "gh"), after(words, "make")
-        if git is not None and any(w.startswith(("alias.", "-calias.")) for w in git):
+        if git is not None and any(w.lower().removeprefix("-c").startswith("alias.") for w in git):
             return "git alias: run the git command itself, so the rules can see it."
         if git is not None and "stash" in git:
             return "git stash: work waits in commits; commit it on your branch (a WIP commit is fine)."
@@ -138,6 +143,8 @@ def reason(command, makefile):
             ("merge" in gh and any(w.startswith("--admin") for w in gh))
             or ("api" in gh and any(re.search(r"pulls/[^/]+/merge\b|mergePullRequest", w) for w in gh))
         )
+        if gh is not None and "graphql" in gh and any(w.startswith(("@", "--input")) or "=@" in w for w in gh):
+            return "gh api graphql from a file: put the query inline, so the rules can read it."
         if merge:
             return "gh merge: a PR lands through its checks and review; gh pr merge --auto --squash."
         heavy = heavy_targets(makefile) if make is not None else set()
@@ -147,7 +154,7 @@ def reason(command, makefile):
         if loop and any("pgrep" in w for w in words):
             return "pgrep in a loop matches itself; wait with gh pr checks --watch, gh run watch or kill -0 on a PID."
         body = next((segments[i:j] for j in range(i, len(segments)) if segments[j][0][:1] == ["done"]), segments[i:])
-        if loop == "until" and not any(Path(w).name == "sleep" for b, _ in body for w in b):
+        if loop == "until" and not any(Path(w).name == "sleep" for b, *_ in body for w in b):
             return "until without sleep spins the CPU; add sleep N to its body, or use gh pr checks --watch."
     return None
 
