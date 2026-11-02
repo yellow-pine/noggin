@@ -17,9 +17,9 @@ Every dependency, tool, toolchain and firmware is kept at its **newest stable re
 - **Pins Dependabot cannot see** get a weekly re-pin job that opens a PR (Blender's tarball and its sha256, like the
   reviewer's skills already).
 - **CI images** (ci/, ADR 0009) rebuild only when a Dockerfile changes (#472): Dependabot's `/ci` bumps of their base
-  images trigger the rebuild, and its `/ci/pins` entry then proposes the new digests. The distro's security fixes
-  (its archive's packages too) reach the images when Ubuntu republishes its image and that bump clears the cooldown:
-  up to about three weeks, accepted over a scheduled no-cache rebuild of unchanged images. They run only CI.
+  images trigger the rebuild. The distro's security fixes (its archive's packages too) reach the images when Ubuntu
+  republishes its image and that bump clears the cooldown: up to about three weeks, accepted over a scheduled no-cache
+  rebuild of unchanged images. They run only CI.
 - **GitHub's runner image** is named (`ubuntu-26.04`), never `ubuntu-latest`, which moves under us (#392); it moves
   to the next LTS by hand, when GitHub announces that as `ubuntu-latest`, two years apart, too rare for a re-pin job.
 - **Python** is the newest version every dependency ships wheels for.
