@@ -181,7 +181,7 @@ view doc="noggin-eyes": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture and the hero on each Stage, or on the documents named (or in TRAJ_DOCS, CI's Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
+# MuJoCo plays each gesture and the hero on each Stage, or on the documents named (or in TRAJ_DOCS, the Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
@@ -196,11 +196,11 @@ render: venv ours trajectories
 hero: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures hero
 
-# the hero's frames, rendered in shards (CI's Blender bins, #537), encoded into model/build/images/hero.webp
+# the hero's frames, rendered in shards (the Blender bins, #537), encoded into model/build/images/hero.webp
 hero-join: venv
     {{PY}} -m model.render.pictures join
 
-# the site's pictures (model/render/pictures.py SITE), or the motions named (views or hero; or in MOTIONS, CI's Blender bins), in model/build/images, which the site serves at images/
+# the site's pictures (model/render/pictures.py SITE), or the motions named (views or hero; or in MOTIONS, the Blender bins), in model/build/images, local only (docs/adr/0018)
 [group('heavy')]
 pictures *motions=env("MOTIONS", ""): venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{motions}}
@@ -213,7 +213,7 @@ model-shards-list: venv
 model-durations run:
     @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^(just|blender) ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
-# the pictures' motions and the viewer packed into Blender runners, each with the Stages it bakes, as JSON (Checks' Blender matrix, #297, #496; PICTURES=false or VIEWER=false leaves those out)
+# the pictures' motions and the viewer packed into Blender runners, each with the Stages it bakes, as JSON (Checks' Blender matrix until #640, #297, #496; PICTURES=false or VIEWER=false leaves those out)
 blender-bins: venv
     @{{PY}} -m model.shards blender
 
@@ -223,12 +223,10 @@ web: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build
     {{PY}} -m pytest -q web
 
-# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the viewer's GLBs go to site/dist/viewer once just web built them, the pictures to site/dist/images once just pictures did, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
+# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs; no picture or GLB (docs/adr/0018); the sim reports go to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
 site: venv && site-reports
     {{PY}} -m macros
     cd site && npm ci --ignore-scripts --no-audit --no-fund && npm run build
-    [ ! -d web/build ] || cp -R web/build/. site/dist/viewer
-    [ ! -d model/build/images ] || cp -R model/build/images site/dist/images
 
 # the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Checks saved
 site-reports:

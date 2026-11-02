@@ -39,22 +39,22 @@ test('the README, CLAUDE.md and the references never ship', () => {
   for (const f of ['readme', 'claude', 'docs/references']) expect(existsSync(path.join(DIST, f)), f).toBe(false);
 });
 
-test('the landing page leads into Build, Use and the viewer', () => {
+test('the landing page leads into Build and Use', () => {
   const links = page(`${BASE}/`).querySelectorAll('a').map((a) => a.getAttribute('href'));
-  for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md'), `${SITE}${HOME}/viewer/`])
+  for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md')])
     expect(links).toContain(target);
 });
 
-test('the sidebar reaches every decision and the viewer', () => {
+test('the sidebar reaches every decision', () => {
   const links = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
   const adrs = docs.filter((d) => d.startsWith('docs/adr/'));
   expect(adrs.length).toBeGreaterThan(10);
-  for (const target of [...adrs.map(route), `${BASE}/viewer/`]) expect(links).toContain(target);
+  for (const target of adrs.map(route)) expect(links).toContain(target);
 });
 
-// what just site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is,
-// and always in a Docs version, which never has them (docs/adr/0014)
-const ADDED = ['images', 'reports'];
+// what just site adds beside the build when it was built (the sim reports): a link there is checked when it is, and
+// always in a Docs version, which never has them (docs/adr/0014)
+const ADDED = ['reports'];
 const built = (file) =>
   BASE !== HOME || !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
 const pages = html; // every one Astro's, the reports' page too (#603)
@@ -73,23 +73,12 @@ test('every link on the site lands on a page or file of it, and no .md link is l
   expect(broken).toEqual([]);
 });
 
-/** The heading a link's #fragment names on its page: none on a picture (/images/), which is no page (#470). */
-const headingOf = (url) => {
-  const [p, anchor] = url.split('#');
-  return anchor && !p.includes(`${HOME}/images/`) ? anchor : undefined;
-};
-
-test("a link's heading is its fragment, but not a picture's", () => {
-  expect(headingOf(`${SITE}${BASE}/docs/model-notes/#numbers-from-the-code`)).toBe('numbers-from-the-code');
-  expect(headingOf(`${SITE}${HOME}/images/hero.webp#top`)).toBeUndefined();
-});
-
 test("every site URL the repo's Markdown links to is a page with that heading", () => {
   for (const doc of ['README.md', ...docs]) {
     const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#[\w-]+)?)/g);
     for (const [, url] of links) {
-      const file = fileOf(url), anchor = headingOf(url);
-      if (!file || !built(file)) continue; // a Docs version's: the live site's pictures and viewer
+      const file = fileOf(url), anchor = url.split('#')[1];
+      if (!file || !built(file)) continue; // a Docs version's: the live site's sim reports
       expect(existsSync(file), `${doc}: ${url}`).toBe(true);
       if (anchor) expect(parse(readFileSync(file, 'utf8')).getElementById(anchor), `${doc}: ${url}`).not.toBeNull();
     }
@@ -97,12 +86,12 @@ test("every site URL the repo's Markdown links to is a page with that heading", 
 });
 
 // a Docs version (docs/adr/0014) is the same site under /noggin/vX.Y/: what it links outside itself is the live site's
-test("a page links outside its version only to the live site's pictures, viewer and sim reports", () => {
+test("a page links outside its version only to the live site's sim reports", () => {
   const out = [];
   for (const f of html)
     for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
       const p = (el.getAttribute('href') ?? el.getAttribute('src')).replace(SITE, '');
-      const live = ['images', 'viewer', 'reports'].some((d) => p.startsWith(`${HOME}/${d}/`));
+      const live = p.startsWith(`${HOME}/reports/`);
       if (p.startsWith(`${HOME}/`) && !p.startsWith(`${BASE}/`) && !live) out.push(`${f}: ${p}`);
     }
   expect(out).toEqual([]);
@@ -204,11 +193,12 @@ test("every page's footer credits Yellow Pine with its logo, for the light theme
   }
 });
 
-test("every page's icon is the Mech's eye Blender renders, at /images like every picture", () => {
+test("every page's icon is Yellow Pine's pine, no render of the Mech (#640)", () => {
   for (const f of pages) {
     const icons = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('link[rel~="icon"]');
-    expect(icons.map((l) => l.getAttribute('href')), f).toEqual([`${SITE}${HOME}/images/favicon.png`]);
+    expect(icons.map((l) => l.getAttribute('href')), f).toEqual([`${BASE}/favicon.svg`]);
   }
+  expect(existsSync(path.join(DIST, 'favicon.svg'))).toBe(true);
 });
 
 test("the headings' Rubik is the site's own file, never another host's", () => {
@@ -245,48 +235,19 @@ test("each Stage's guide opens with the Stages in order, by their titles, its ow
   }
 });
 
-const hero = `${SITE}${HOME}/images/hero.webp`; // model/render/pictures.py SITE, test_site.py
-
-test('the hero shows at its size in a figure on the landing page and Pictures', () => {
-  for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
-    const img = page(url).querySelector(`figure img[src="${hero}"]`);
-    expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
-  }
-});
-
-test("the landing page opens with Stage 3's viewer, the hero its poster", () => {
-  const viewer = page(`${BASE}/`).querySelector('.noggin-viewer');
-  expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
-  expect(viewer.querySelector(`figure img[src="${hero}"]`)).not.toBeNull();
-});
-
-test('the landing page and Pictures show the Stage panels, each linking to its full size', () => {
-  for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
-    const links = page(url).querySelectorAll('.noggin-panels a');
-    expect(links.length, url).toBe(numbers.stages.length * 2); // side and isometric
-    for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
-  }
-});
-
-test("the viewer's page has a button per Stage and serves the Draco decoder from three's npm package", () => {
-  const viewer = page(`${BASE}/viewer/`).querySelector('.noggin-viewer');
-  expect(viewer.querySelectorAll('nav button').map((b) => b.getAttribute('data-stage'))).toEqual(numbers.stages);
-  expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
-  for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
-    const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
-    expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);
-  }
-});
-
-test('no real photo ships or is linked: every picture is one CI renders, at /images', () => {
-  const photo = /\.(jpe?g|heic)$/i;
-  const files = globSync('**/*', { cwd: DIST }).filter((f) => photo.test(f) && !f.startsWith('images/'));
-  expect(files).toEqual([]);
-  for (const f of html)
-    for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
+// #640 (docs/adr/0018): today's printed parts derive from the designer's models, so until the clean-room Mech (#51)
+// the site ships and links no picture of the Mech, photo or render, and no GLB, and no page draws the viewer
+test("no picture of the Mech or GLB ships or is linked, and no page draws the viewer", () => {
+  const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i;
+  expect(globSync('**/*', { cwd: DIST }).filter((f) => mech.test(f) || f.startsWith('images/'))).toEqual([]);
+  for (const f of html) {
+    const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
+    expect(doc.querySelectorAll('.noggin-viewer, .noggin-panels').length, f).toBe(0);
+    for (const el of doc.querySelectorAll('[href], [src]')) {
       const url = el.getAttribute('href') ?? el.getAttribute('src');
-      if (photo.test(url.split(/[?#]/)[0])) expect(url, f).toMatch(`${SITE}${HOME}/images/`);
+      expect(mech.test(url.split(/[?#]/)[0]) || url.includes(`${HOME}/images/`) || url.includes(`${HOME}/viewer/`), `${f}: ${url}`).toBe(false);
     }
+  }
 });
 
 test("every diagram renders with the site's Mermaid (mermaid-cli in the installed Chrome)", { timeout: 120_000 }, () => {

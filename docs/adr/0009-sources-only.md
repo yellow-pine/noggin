@@ -34,6 +34,7 @@
 > weekly without the layer cache, Mondays before the image scan, so the archive's security fixes and the newest gh
 > land without waiting for a base-image bump (ADR 0012).
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
+> Amended 2026-11-02 (#640, ADR 0018): CI builds no picture or GLB and the site serves none until the clean-room Mech.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

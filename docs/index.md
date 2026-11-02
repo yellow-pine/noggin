@@ -4,14 +4,7 @@ An animatronic Mech on the desk that reacts to Claude Code. It winks when a sess
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
 Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
 
-<div class="noggin-viewer hero" data-stage="stage3">
-<figure>
-<img src="https://yellowpine.com/noggin/images/hero.webp" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
-<figcaption>Stage 3 talking, turning and nodding</figcaption>
-</figure>
-</div>
-
-[Build one](build/parts.md) · [Use it](use/noggin-service.md) · [Turn it in 3D](https://yellowpine.com/noggin/viewer/)
+[Build one](build/parts.md) · [Use it](use/noggin-service.md)
 
 ## What it does
 
@@ -26,19 +19,13 @@ More in [Gestures and behaviour](use/gestures.md).
 
 ## The three Stages
 
-<!--{{ panels }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the grid above, which it builds from the code -->
-Each Stage from the side and isometric is in [the grid on the site](https://yellowpine.com/noggin/docs/pictures/).
-<!-- #}-->
-
 The Mech grows in three Stages, each a complete Mech on the desk.
 
 - **Stage 1: eyes.** Two eyeballs with lids on the base plate: four servos on one Core. Built here.
   [Build Stage 1](build/stage-1.md)
 - **Stage 2: neck.** The eyes on a pan-and-tilt neck: two more servos on a second Core.
   [Build Stage 2](build/stage-2.md)
-- **Stage 3: mouth.** A jaw under the eyes: the seventh servo. The full Mech, as the hero above.
+- **Stage 3: mouth.** A jaw under the eyes: the seventh servo. The full Mech.
   [Build Stage 3](build/stage-3.md)
 
 ## Where next
@@ -47,7 +34,5 @@ The Mech grows in three Stages, each a complete Mech on the desk.
   [Build guide](build/parts.md)
 - **Use.** The noggin service, the Claude Code hooks, what each gesture means and how to tune them.
   [Use the Mech](use/noggin-service.md)
-- **Web viewer.** Turn each Stage around and play its gestures in the browser.
-  [Open the viewer](https://yellowpine.com/noggin/viewer/)
 - **How it works.** The Link, a hook's way to a gesture and the model's pipeline, drawn.
   [How it works](how-it-works.md)

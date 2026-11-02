@@ -73,16 +73,12 @@ jobs:
         with:
           node-version-file: site/.nvmrc
           package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
-      # the docs and the viewer's page; the pictures and sim reports stay the live site's
+      # the docs; the sim reports stay the live site's. No picture or GLB: nothing derived from today's printed parts
+      # is published (#640, docs/adr/0018)
       - name: Build the docs
         run: SITE_BASE="/noggin/${TAG%.*}" uv run just site
-      # shortcut: the viewer's GLBs are the live site's, the release commit's model only once its own deploy has
-      # landed (Site Deploy and Release start together off its Checks); build them at the tag (just web) if that bites
       - name: Attach the docs to the release
         run: |
-          for stage in $(jq -r '.stages[]' site/src/macros.json); do
-            curl -fsSo "site/dist/viewer/$stage.glb" "https://yellowpine.com/noggin/viewer/$stage.glb"
-          done
           tar -czf "noggin-docs-$TAG.tar.gz" -C site/dist .
           gh release upload "$TAG" "noggin-docs-$TAG.tar.gz" --clobber
       # the notes link these docs once, where Site Deploy serves them

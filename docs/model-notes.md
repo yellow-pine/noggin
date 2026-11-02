@@ -3,6 +3,10 @@
 Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); structure: docs/adr/0004.
 
 ## Rendering rules (2026-10-31, #47)
+- Not published (Cansin, 2026-11-02, #640, docs/adr/0018): today's parts derive from the designer's models, so until
+  the clean-room Mech (#51) the pictures, the hero and the viewer's GLBs are rendered locally alone (`just render`,
+  `just hero`, `just web`); CI renders none and neither the site nor the README shows them. The rules below are how
+  they are made.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
   the Stage panels (each Stage at rest, a trajectory's first frame), `just hero` for the hero;
@@ -33,21 +37,19 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   she took the darkest). No backdrop, disc or tint behind the Mech.
 - Stage panels (Cansin, #470): each Stage from its left side (+X) and isometric from its front left (+X, -Y, +Z),
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
-  VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
+  VIEWS, PANELS). The landing page and Pictures showed them in one grid until #640 (macros.py panels): a column per Stage, a row
   per view, each linking to its file; on a phone stacked by Stage.
-- The site's icon (#603): Stage 1's right eye at rest from straight ahead (its eyeball, pupil and lids alone,
+- The site's icon (#603; until #640, now Yellow Pine's pine): Stage 1's right eye at rest from straight ahead (its eyeball, pupil and lids alone,
   orthographic, square), rendered with the panels in the same look and served as a PNG (pictures.py FAVICON). A PR
   renders it with its preview panel.
-- README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
-  `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
-  model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;
-  main's hero in frame shards of about a minute each that Checks' `Hero` job joins, model/shards.py, #537;
-  yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
+- README media (#117), never in git (#226: `just pictures`, the motions packable into runners (`just blender-bins`,
+  #297, #496), model/render/pictures.py SITE, a PR's preview panel pictures.py PREVIEW, #562; the hero in frame shards
+  of about a minute each, model/shards.py, #537; until #640 CI rendered them and the site served them): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
-  penetrations as MuJoCo's report judges a sweep), the Stage panels, no photos. The gestures play in the web viewer on
-  the landing page and at /viewer (#468), and Stage 3 explodes there (#482).
+  penetrations as MuJoCo's report judges a sweep), the Stage panels, no photos. The gestures played in the web viewer on
+  the landing page and at /viewer (#468), and Stage 3 exploded there (#482), until #640.
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code

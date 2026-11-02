@@ -98,9 +98,9 @@ flowchart TB
     M -- "just sim" --> R["Sim reports<br/>the site's /reports"]
     M -- "just trajectories" --> T["Trajectories<br/>every part, every frame"]
     T --> B["Blender"]
-    B -- "just render, just hero" --> I["Pictures<br/>README and docs"]
-    B -- "just web: glTF, a GLB per Stage" --> W["Web viewer<br/>the site's /viewer"]
+    B -- "just render, just hero" --> I["Pictures<br/>local only (#640)"]
+    B -- "just web: glTF, a GLB per Stage" --> W["Web viewer GLBs<br/>local only (#640)"]
 ```
 
-MuJoCo simulates and Blender draws (ADR 0007, ADR 0008); CI builds the reports and the viewer and the site serves them
-(ADR 0009).
+MuJoCo simulates and Blender draws (ADR 0007, ADR 0008); CI builds the reports and the site serves them
+(ADR 0009); the pictures and the viewer stay local until the clean-room Mech (ADR 0018).

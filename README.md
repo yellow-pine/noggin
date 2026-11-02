@@ -2,9 +2,7 @@
 
 <p align="center">An animatronic Mech on the desk that reacts to Claude Code.</p>
 
-<p align="center"><a href="https://yellowpine.com/noggin/viewer/"><img src="https://yellowpine.com/noggin/images/hero.webp" width="800" alt="noggin: Stage 3 talking, turning and nodding"></a></p>
-
-<p align="center"><a href="https://yellowpine.com/noggin/"><b>Docs</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/docs/build/parts/"><b>Build guide</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/viewer/"><b>3D viewer</b></a></p>
+<p align="center"><a href="https://yellowpine.com/noggin/"><b>Docs</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/docs/build/parts/"><b>Build guide</b></a></p>
 
 <p align="center">
 <a href="https://github.com/yellow-pine/noggin/actions/workflows/checks.yml"><img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=Checks&labelColor=2B2B2E"></a>

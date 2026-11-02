@@ -60,20 +60,9 @@ MODEL_TESTS = subprocess.run(
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
 DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfile"))  # the CI images' sources (#481)
-BLENDER = ["model/ours.py", "eyes/calibration.json", "ci/blender.Dockerfile", "uv.lock"]
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
-    "convex": (
-        [],
-        ["model/mjcf.py", "model/stages.py", "uv.lock"],
-    ),  # a part's pieces: its mesh, settings and clip  # just ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
-    "trajectories": (["model/trajectories.py"], ["uv.lock"]),
-    # the Blender jobs' outputs: the parts' make, the scripts Blender runs, the Core's calibration the trajectories play
-    # and Blender's pin
-    "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
-    "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
-    "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
     # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
@@ -146,19 +135,6 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
         if not covered(file, globs)
     }
     assert missed == set()
-
-
-def test_the_blender_jobs_keys_hash_no_makefile_workflow_or_test():
-    """A justfile, workflow or test edit renders no picture and bakes no GLB (#469): their keys hash only what the
-    render code reads."""
-    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
-    tooling = [
-        f
-        for f in tracked
-        if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
-    ]
-    found = patterns()
-    assert {(n, f) for n in ("pictures", "viewer") for globs in found[n] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():

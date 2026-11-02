@@ -115,8 +115,8 @@ FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_di
 
 
 def test_main_skips_by_input_as_a_pr_does_and_a_weekly_or_dispatched_run_runs_everything():
-    """#471: a push to main filters its changed paths against main's last commit whose checks passed and looks its
-    Blender outputs up, as a PR does; the weekly scheduled run on main does neither, so every job runs, nor does a
+    """#471: a push to main filters its changed paths against main's last commit whose checks passed, as a PR does;
+    the weekly scheduled run on main does neither, so every job runs, nor does a
     dispatch on any branch (#562: the full render for a look's approval, its Checks a real one). Its own concurrency
     group, so it never cancels a push's run (whose deploy would then never happen) nor one of those cancels it. Main's
     Site always runs: it builds the deploy."""
@@ -129,30 +129,33 @@ def test_main_skips_by_input_as_a_pr_does_and_a_weekly_or_dispatched_run_runs_ev
     steps = {s.get("id"): s for s in changes["steps"]}
     assert steps["filter"]["if"] == FULL
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
-    assert [steps[i]["if"] for i in ("pictures", "viewer")] == [FULL] * 2
     assert (
         changes["outputs"]["site"]
         == "${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}"
     )
 
 
-def test_main_alone_renders_the_pictures_a_pr_its_preview():
-    """#562: a PR's Blender bins render the preview panel, its own artifact, never the hero and the panels; its site
-    carries main's latest pictures, restored and never saved. Main saves what its bins rendered, for Changes to find;
-    a dispatch uploads its full render."""
-    jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-    (lists,) = [s for s in jobs["changes"]["steps"] if s.get("id") == "lists"]
-    assert lists["env"]["PREVIEW"] == "${{ github.event_name == 'pull_request' }}"
-    (upload,) = [s for s in jobs["blender"]["steps"] if s["name"] == "Upload the pictures"]
-    assert upload["with"]["name"].startswith("${{ github.event_name == 'pull_request' && 'preview' ||")
-    steps = {s["name"]: s for s in jobs["checks"]["steps"]}
-    assert "github.event_name == 'push'" in steps["Restore the pictures"]["if"]
-    latest = steps["Restore main's latest pictures"]
-    assert latest["uses"].startswith("actions/cache/restore@") and latest["with"]["restore-keys"] == "pictures-"
-    assert "github.event_name == 'pull_request'" in latest["if"]
-    assert "github.event_name != 'pull_request'" in steps["Download the pictures"]["if"]
-    assert "github.event_name == 'push'" in steps["Save the pictures"]["if"]
-    assert "github.event_name == 'workflow_dispatch'" in steps["Upload the pictures"]["if"]
+# what carries the geometry of today's printed parts: the built parts and their cut (STL), the pictures, the GLBs
+DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|\.(glb|stl|step|webp|png)\b")
+
+
+def test_no_workflow_publishes_todays_parts():
+    """#640 (docs/adr/0018): a public repo's artifacts and release assets are anyone's to download, so no workflow
+    uploads the parts, their cut, a picture or a GLB, the site carries none, and a release's docs fetch no GLB.
+    The Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
+    published = [
+        f"{f.name}: {step['name']}"
+        for f in WORKFLOWS
+        for job in yaml.safe_load(f.read_text())["jobs"].values()
+        for step in job.get("steps", [])
+        if ("upload-artifact" in step.get("uses", "") or "upload-pages-artifact" in step.get("uses", ""))
+        and DERIVED.search(str(step["with"]["path"]))
+        or DERIVED.search(step.get("run", ""))
+        and re.search(r"gh release upload|curl", step["run"])
+    ]
+    assert published == []
+    checks = (WORKFLOWS[0].parent / "checks.yml").read_text()
+    assert "site/dist/images" not in checks and "site/dist/viewer" not in checks
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():

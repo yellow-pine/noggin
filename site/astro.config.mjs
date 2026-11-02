@@ -24,7 +24,7 @@ export default defineConfig({
         "default-src 'self'",
         "connect-src 'self' blob: https://api.github.com",
         "worker-src 'self' blob:",
-        `img-src 'self' data: blob: ${SITE}${HOME}/images/`, // the pictures' absolute URLs, in previews and Docs versions too
+        "img-src 'self' data: blob:",
       ],
       scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
       styleDirective: {
@@ -59,7 +59,7 @@ export default defineConfig({
     }),
     starlight({
       title: 'noggin',
-      favicon: `${SITE}${HOME}/images/favicon.png`, // the Mech's eye, which Blender renders (model/render/pictures.py FAVICON)
+      // its icon: Starlight's default, public/favicon.svg, Yellow Pine's pine; no render of the Mech (#640)
       social: [{ icon: 'github', label: 'GitHub', href: REPO }],
       editLink: { baseUrl: `${REPO}/edit/main/site/` }, // a page's file path is relative to site/
       markdown: { processedDirs: ['..'] }, // asides and heading anchors on the repo's Markdown
@@ -89,12 +89,11 @@ export default defineConfig({
           label: 'Use',
           items: ['docs/use/noggin-service', 'docs/use/hooks', 'docs/use/gestures', 'docs/use/tuning'],
         },
-        { label: 'Viewer', link: '/viewer/' },
         'docs/how-it-works',
         {
           label: 'Model',
           // main's sim reports, which a Docs version (docs/adr/0014) links on the live site
-          items: ['docs/pictures', { label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` }, 'docs/model-notes'],
+          items: [{ label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` }, 'docs/model-notes'],
         },
         {
           label: 'Reference',
