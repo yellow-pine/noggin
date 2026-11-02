@@ -1,14 +1,20 @@
 # noggin
 
-[![check](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=checks&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/checks.yml)
-[![Claude review](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/review.yml?event=pull_request&label=Claude%20review&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/review.yml)
-[![last commit](https://img.shields.io/github/last-commit/yellow-pine/noggin?style=flat)](https://github.com/yellow-pine/noggin/commits/main)
+[![Checks](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=Checks&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/checks.yml)
+[![Site Deploy](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/pages.yml?branch=main&label=Site%20Deploy&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/pages.yml)
+[![Release](https://img.shields.io/github/v/release/yellow-pine/noggin?label=Release&style=flat)](https://github.com/yellow-pine/noggin/releases/latest)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/yellow-pine/noggin?label=OpenSSF%20Scorecard&style=flat)](https://scorecard.dev/viewer/?uri=github.com/yellow-pine/noggin)
 [![license](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat)](LICENSE.md)
+
 [![python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyellow-pine%2Fnoggin%2Fmain%2Fpyproject.toml&style=flat)](https://github.com/yellow-pine/noggin/blob/main/pyproject.toml)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-D97757?style=flat&logo=claude&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
 [![CadQuery](https://img.shields.io/badge/CadQuery-1E5BA8?style=flat)](https://cadquery.readthedocs.io)
+[![MuJoCo](https://img.shields.io/badge/MuJoCo-0B5A9C?style=flat)](https://mujoco.org)
 [![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat&logo=blender&logoColor=white)](https://www.blender.org)
 [![MicroPython on the Core](https://img.shields.io/badge/MicroPython-on%20the%20Core-2B2728?style=flat&logo=micropython&logoColor=white)](https://micropython.org)
+[![uv](https://img.shields.io/badge/uv-DE5FE9?style=flat&logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
+[![Astro Starlight](https://img.shields.io/badge/Astro%20Starlight-BC52EE?style=flat&logo=astro&logoColor=white)](https://starlight.astro.build)
+[![three.js](https://img.shields.io/badge/three.js-000000?style=flat&logo=threedotjs&logoColor=white)](https://threejs.org)
 
 An animatronic Mech on the desk that reacts to Claude Code.
 
