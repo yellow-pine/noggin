@@ -7,7 +7,8 @@ pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures
 mjcf.py).
 next_panels: the next Mech's panels' grid, each of its Stages in both looks (model/render/pictures.py PANELS,
 geometry.py STAGES, #629, #720), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of each of its
-parts, on docs/pictures.md (#649).
+parts, on docs/pictures.md (#649), and next_front: the front doors' own two there.
+front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage, and its looks (#720).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -155,13 +156,35 @@ def next_panels():
     return panels({doc: stage(doc) for doc in g.STAGES})
 
 
-def figures(labels, kind="parts"):
-    """{picture: label} as a grid, each picture under its label, linking to its file (site/src/styles/custom.css)."""
+def figures(labels, kind="parts", links=None):
+    """{picture: label} as a grid, each picture under its label, linking to its file or its links entry
+    (site/src/styles/custom.css)."""
     site, cells = "https://yellowpine.com/noggin/images/", []
     for f, label in labels.items():
         img = f'<img src="{site}{f}" alt="{label}" loading="lazy">'
-        cells.append(f'<figure><a href="{site}{f}">{img}</a><figcaption>{label}</figcaption></figure>')
+        href = (links or {}).get(f, site + f)
+        cells.append(f'<figure><a href="{href}">{img}</a><figcaption>{label}</figcaption></figure>')
     return f'<div class="noggin-{kind} not-content">{"".join(cells)}</div>'
+
+
+def front():
+    """The front doors' three (model/render/pictures.py FRONT, #739), side by side under their captions, Stage 1's
+    linking to Pictures, Stage 3's to it in the viewer, the exploded one opened exploded: the site's home (the README's
+    top is a copy, test_site.py)."""
+    site = "https://yellowpine.com/noggin/"
+    viewer = f"{site}viewer/?stage={BONY.index(pictures.STAGE3) + 1}"
+    links = dict(zip(pictures.FRONT, [f"{site}docs/pictures/", viewer, f"{viewer}&amp;explode=1"], strict=True))
+    return figures(front_labels(), "front", links)
+
+
+def front_labels():
+    one, three = stage(pictures.STAGE1), stage(pictures.STAGE3)
+    return dict(zip(pictures.FRONT, [f"{one}, from the front", three, f"{three}, exploded"], strict=True))
+
+
+def next_front():
+    """The front doors' own pictures (model/render/pictures.py FRONT, #739), beside the panels on Pictures."""
+    return figures({f: label for f, label in front_labels().items() if pictures.FRONT[f]}, "views")
 
 
 def next_motions():
@@ -266,6 +289,8 @@ def numbers():
         "behaviour": behaviour(),
         "pictures": picture_numbers(),
         "next_panels": next_panels(),
+        "next_front": next_front(),
+        "front": front(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},

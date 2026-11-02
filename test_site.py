@@ -250,26 +250,55 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per document, the sweep (#656), the 7 it plays (#663) and a picture per part
-    assert len(published) == 2 * len(g.STAGES) + 1 + 7 + len(stems) == len(set(published))
+    # side and isometric per document, the front doors' own two (#739), the sweep (#656), the 7 it plays (#663) and a
+    # picture per part
+    assert len(published) == 2 * len(g.STAGES) + 2 + 1 + 7 + len(stems) == len(set(published))
     assert {"next-stage1-isometric.webp", "next-eyes-rest.webp", "next-test-stand.webp"} <= {*published}
+    assert {"next-stage1-front.webp", "next-mech-back-side-exploded.webp"} <= {*published}
     assert build.PUBLIC == {f"{d}{look}": f"{d}{look}.glb" for look in LOOKS for d in STAGE_DOCS}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
 
 
-def test_the_home_and_the_readme_show_the_next_mech():
-    """#661: the site's home shows the next Mech assembled, the latest the site serves, and its eyes sweeping, linking
-    to Pictures and the viewer; the README's top shows it assembled too, linking to Pictures: head variant Back's,
-    the first, until Cansin picks one (#686)."""
-    from model import geometry as g
+FRONT = [  # #739: the front doors' three, in order, as Bones (#704): (picture, caption, link)
+    ("next-stage1-front.webp", "Stage 1, from the front", "docs/pictures/"),
+    ("next-mech-back-isometric.webp", "Stage 3", "viewer/?stage=3"),
+    ("next-mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
+]
+
+
+def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
+    """#739: the site's home shows Stage 1 from the front, Stage 3 isometric and Stage 3 from the side exploded, side
+    by side in that order, each under its caption and linking to Pictures or its Stage in the viewer; no eyes' sweep
+    (it is on Pictures)."""
+    import macros  # here, not at the top: it imports the model
 
     site = "https://yellowpine.com/noggin/"
-    picture = f"{site}images/{next(iter(g.NEXT))}-isometric.webp"
-    home, readme = (ROOT / "docs" / "index.md").read_text(), (ROOT / "README.md").read_text()
-    assert picture in home and "(pictures.md)" in home and f"{site}viewer/" in home
-    assert f"{site}images/next-eyes-sweep.webp" in home
-    assert picture in readme.split("## Setup")[0] and f"{site}docs/pictures/" in readme
+    home, grid = (ROOT / "docs" / "index.md").read_text(), macros.front()
+    assert "<!--{{ front }}-->" in home and "next-eyes-sweep" not in home
+    assert 'class="noggin-front not-content"' in grid
+    cells = re.findall(r'<figure><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>', grid)
+    assert cells == [(f"{site}{link}", f"{site}images/{f}", caption) for f, caption, link in FRONT]
+
+
+def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_one_centred_row():
+    """#739: the README's top shows the home's three, in order, each linking where the home's does under its caption,
+    at one img height (GitHub strips CSS, #716), in one centred one-row table."""
+    site = "https://yellowpine.com/noggin/"
+    top = (ROOT / "README.md").read_text().split("## Setup")[0]
+    row = re.search(r'<div align="center"><table><tr>(.*?)</tr></table></div>', top, re.S)
+    assert row
+    cells = re.findall(
+        r'<td align="center"><a href="([^"]+)"><img src="([^"]+)" height="(\d+)" alt="([^"]+)"></a>'
+        r"<br><sub>([^<]+)</sub>",
+        row[1],
+    )
+    assert [(link, src, alt) for link, src, _, alt, _ in cells] == [
+        (f"{site}{link}", f"{site}images/{f}", caption) for f, caption, link in FRONT
+    ]
+    assert [c for *_, c in cells] == [c for _, c, _ in FRONT]
+    assert len({h for _, _, h, _, _ in cells}) == 1
+    assert "next-eyes-sweep" not in top
 
 
 def test_the_viewer_switches_the_stage_and_the_look_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
