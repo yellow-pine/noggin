@@ -376,3 +376,16 @@ def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
     assert not (wf / "deploy-pending.yml").exists()
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
+
+
+def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
+    """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
+    found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
+    watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
+    (job,) = flows["main-red.yml"]["jobs"].values()
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
+    assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
+    assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
