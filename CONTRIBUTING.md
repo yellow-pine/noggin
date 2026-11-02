@@ -144,9 +144,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
   (#534), so a PR that changes a Dockerfile only builds them and its jobs still run main's.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
-- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
-  Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.
-  A main commit is green only once its `deploy` is.
+- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
+  (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.
 
 ## Licence
 

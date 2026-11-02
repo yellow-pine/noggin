@@ -340,3 +340,20 @@ def test_main_releases_itself_once_its_checks_pass():
     left = ["release-please.yml", "release-now.yml"]
     assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
+
+
+def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
+    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
+    failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
+    main, or on Release Docs' dispatch the newest such run."""
+    wf = WORKFLOWS[0].parent
+    flow = yaml.safe_load((wf / "pages.yml").read_text())
+    (job,) = flow["jobs"].values()
+    for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
+        assert f"github.event.workflow_run.{cond}" in job["if"], cond
+    assert "statuses" not in job["permissions"]
+    download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
+    assert "github.event.workflow_run.id" in str(next(s for s in job["steps"] if s.get("id") == "run"))
+    assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
+    assert not (wf / "deploy-pending.yml").exists()
+    assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()

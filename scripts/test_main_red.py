@@ -7,7 +7,7 @@ import yaml
 from scripts.main_red import WATCHED, report, verdict
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github" / "workflows"
-DEPLOYED = [{"name": "Checks", "conclusion": "success"}, {"name": "Deploy", "conclusion": "success"}]
+DEPLOYED = [{"name": "Deploy", "conclusion": "success"}]
 
 
 def test_a_failed_checks_or_site_deploy_run_is_red():
@@ -23,7 +23,7 @@ def test_main_is_green_once_a_commit_deploys():  # its Checks passed and its sit
 def test_anything_else_says_nothing():
     assert verdict("Checks", "success", []) is None  # its Site Deploy follows and says green
     assert verdict("Checks", "cancelled", []) is None  # superseded by a newer push
-    skipped = [{"name": "Checks", "conclusion": "success"}, {"name": "Deploy", "conclusion": "skipped"}]
+    skipped = [{"name": "Deploy", "conclusion": "skipped"}]
     assert verdict("Site Deploy", "success", skipped) is None  # red Checks: nothing deployed
 
 

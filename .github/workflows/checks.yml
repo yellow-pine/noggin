@@ -15,9 +15,8 @@ name: Checks
 # picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
 # `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML;
 # `Checks` adds the next Mech's pictures and GLB, tests and plays the site in Chrome (Playwright) and uploads it (on
-# main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). On main, Deploy
-# Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
-# outcome. Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
+# main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). Code and Site run
+# in our base image, Blender in our Blender image; the others on the bare runner.
 on:
   push:
     branches: [main]
