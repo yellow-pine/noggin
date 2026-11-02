@@ -176,7 +176,32 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     into_site = [c for r in runs for c in re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", r)]
     assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
     fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
-    assert fetched and all(".published.viewer" in r for r in fetched)
+    viewer, previews = [[r for r in fetched if key in r] for key in (".published.viewer", "gh release upload pr-")]
+    assert viewer and len(previews) == 1 and sorted(fetched) == sorted(viewer + previews)
+    # a PR's sticky comment (#657): the preview artifact's before/after alone, the next Mech's
+    assert re.findall(r"for f in (\S+); do cp", previews[0]) == ["preview/before-after*.webp"]
+    assert re.findall(r"gh release upload pr-previews .*", previews[0]) == [
+        'gh release upload pr-previews --clobber "$prefix"*.webp'  # only those copies
+    ]
+
+
+def test_a_prs_preview_comment_holds_the_least_and_publishes_no_release():
+    """#657: one sticky comment per PR shows the next Mech's before/after inline, its pictures assets of the one
+    `pr-previews` pre-release: never latest, nor a v* tag (Release Assets, semantic-release and the docs' versions read
+    only those). Its job alone writes, with contents and pull-requests only, and only on this repo's PRs: a fork's
+    and Dependabot's tokens are read-only."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    [job] = [j for j in flow["jobs"].values() if j["name"] == "Preview Comment"]
+    assert job["needs"] == "blender"
+    for cond in ("event_name == 'pull_request'", "head.repo.full_name == github.repository", "actor != 'dependabot"):
+        assert cond in job["if"], cond
+    assert job["permissions"] == {"contents": "write", "pull-requests": "write"}
+    writers = [j["name"] for j in flow["jobs"].values() if "write" in j.get("permissions", {}).values()]
+    assert writers == ["Preview Comment"] and "write" not in flow["permissions"].values()
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "gh release create pr-previews --prerelease --latest=false" in run
+    [sticky] = [s for s in job["steps"] if s.get("uses", "").startswith("marocchino/sticky-pull-request-comment@")]
+    assert sticky["with"]["header"]  # one comment, found again and edited in place on every preview
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():

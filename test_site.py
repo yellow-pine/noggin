@@ -216,7 +216,7 @@ def test_nothing_public_shows_todays_mech():
         "site/astro.config.mjs": (ROOT / "site" / "astro.config.mjs").read_text(),
     }
     named = {f: re.findall(r"noggin/images/([^\s\"')]+)", t) for f, t in texts.items()}
-    assert {f: [n for n in names if n not in pictures.published()] for f, names in named.items() if names} == {}
+    assert {f: names for f, names in named.items() if set(names) - set(pictures.published())} == {}
     assert [f for f, t in texts.items() if re.search(r"\{\{ panels \}\}|noggin-viewer|favicon\.png", t)] == []
 
 
@@ -276,6 +276,19 @@ def test_the_site_publishes_the_next_mech_alone():
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
     assert [doc for doc in g.NEXT if stages.todays(doc)] == []
+
+
+def test_the_home_and_the_readme_show_the_next_mech():
+    """#661: the site's home shows the next Mech assembled, the latest the site serves, linking to Pictures and the
+    viewer; the README's top shows it too, linking to Pictures: Base candidate (a)'s, the first, until Cansin picks
+    one (#642)."""
+    from model import geometry as g
+
+    site = "https://yellowpine.com/noggin/"
+    picture = f"{site}images/{next(iter(g.NEXT))}-isometric.webp"
+    home, readme = (ROOT / "docs" / "index.md").read_text(), (ROOT / "README.md").read_text()
+    assert picture in home and "(pictures.md)" in home and f"{site}viewer/" in home
+    assert picture in readme.split("## Setup")[0] and f"{site}docs/pictures/" in readme
 
 
 def test_the_hero_is_800x400():
