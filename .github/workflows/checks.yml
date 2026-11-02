@@ -1,22 +1,21 @@
 name: Checks
-# Runs `just check`, the model tests with the Mech stand-in, sim and STL/STEP export, and builds the site.
-# One workflow, one required check (#496): `Checks`, the gate every other job here leads into. On PRs, on main
-# (docs/adr/0009, #310), weekly and on any branch on demand (#562). `Changes` is the one fan-out: what the PR (its
-# files from the API) or main's push
-# (by git, against main's last commit whose Checks passed, #471) touches (dorny/paths-filter), the parts' cache looked
-# up, and from the code the model shards (just model-shards-list); work whose inputs did not change is skipped, which
-# the gate counts as passing. `Code` runs
-# just check; `Model` the tests marked model in four shards balanced on the seconds they measured (model/shards.py: the
-# hero's collision sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed,
-# and just mech, the Link's live checks on the Mech stand-in, #222), with just stl and just step on main or when the
-# parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. Every
-# artifact of a public repo is anyone's, so nothing derived from today's printed parts is rendered or uploaded (#640,
-# docs/adr/0019) and the parts pass between jobs in the Actions cache alone. `Blender` renders the next Mech alone (#649):
-# its panels, its eye gimbal in motion and a picture per part (just pictures next) and its viewer GLBs (just web
-# next), when what they are made from changed. `Site` builds the docs
-# (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the next Mech's
-# pictures and GLB, tests and plays the site in Chrome (Playwright), uploads it (a PR's preview, and on main what Site
-# Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
+# Runs the slim PR gate; on main `just check`, the model tests with the Mech stand-in, sim and STL/STEP export.
+# One workflow, one required check (#496): `Checks`, the gate every other job here leads into. A PR runs the slim gate
+# alone (#696): `Code` (just check-light) and `Site`, its build and HTML tests; everything else runs on main
+# (docs/adr/0009, #310), weekly and on any branch on demand (#562), and main fixes forward what it catches (#283).
+# `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
+# touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
+# work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
+# tests marked model in four shards balanced on the seconds they measured (model/shards.py: the hero's collision
+# sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed, and just mech,
+# the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
+# first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
+# derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
+# the Actions cache alone. `Blender` renders the next Mech alone (#649): its panels, its eye gimbal in motion and a
+# picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
+# `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; off PRs,
+# `Checks` adds the next Mech's pictures and GLB, tests and plays the site in Chrome (Playwright) and uploads it (on
+# main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). On main, Deploy
 # Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
 # outcome. Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
 on:
@@ -43,16 +42,13 @@ defaults:
 jobs:
   changes:
     name: Changes
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ github.event_name != 'pull_request' }}   # a PR runs the slim gate alone: Code and Site (#696)
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      pull-requests: read
       actions: read   # main's last checked commit
     outputs:
       model: ${{ steps.filter.outputs.model }}
-      # main's Site always runs: it builds the deploy
-      site: ${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}
       parts: ${{ steps.parts.outputs.cache-hit }}   # warm: convex skips
       parts-key: ${{ steps.parts.outputs.cache-primary-key }}
       next: ${{ steps.next.outputs.cache-hit }}   # warm: Blender skips, checks restores them
@@ -79,12 +75,10 @@ jobs:
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # mech: the justfile's MicroPython tag, pyproject's mpy-cross pin; model: test_derived.py's MADE_FROM says why
-          base: ${{ steps.checked.outputs.sha }}   # a PR's: its base branch, from the API
+          base: ${{ steps.checked.outputs.sha }}
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
-            site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "justfile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/*.yml", "ci/*.Dockerfile", "macros.py", "scripts/workflow_table.py"]
       # the next Mech's pictures' and GLB's key hashes only what they are made from (#469): the render code and the
       # parts' make (model/ours.py) with what they import or name (scripts/inputs.py), Blender's pin and uv.lock, so a
       # justfile, workflow or test edit renders nothing. Hashed here alone, on the runner's Python, for every job
@@ -144,10 +138,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
-      # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
-      # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
+      # just check's parts, off PRs (a PR's just check-light builds none). Restore only: this job never decomposes, so a
+      # save here would store the key without model/build/convex first and the model job's full save would be refused
+      # (a key is written once). restore-keys: a change to a part starts from main's latest entry and rebuilds only what
+      # its .key files miss
       - name: Restore the parts cache
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -155,8 +151,9 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
+      # a PR's slim gate runs just check-light, as the pre-push hook does; main and the full runs just check (#696)
       - name: Run just check
-        run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
+        run: uv run just ${{ github.event_name == 'pull_request' && 'check-light' || 'check' }} | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
@@ -314,16 +311,15 @@ jobs:
         if: ${{ always() && (matrix.tests != '' || contains(matrix.units, 'mech')) }}
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # the print and FreeCAD exports as a smoke test, beside the hero's sweep: on main, and on a PR whose parts
-      # missed their exact key (what they are made from changed)
+      # the print and FreeCAD exports as a smoke test, beside the hero's sweep
       - name: Run just stl step
-        if: ${{ contains(matrix.units, 'hero') && (github.event_name != 'pull_request' || steps.parts.outputs.cache-hit != 'true') }}
+        if: ${{ contains(matrix.units, 'hero') }}
         run: uv run just stl step
       # the sim reports (just sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (over-broad on purpose: any model module, the justfile, this file). An exact hit is
-      # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads
-      # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
-      # PRs after it and for the site, which publishes them at /reports (Site Deploy, pages.yml)
+      # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports as the
+      # baseline the new ones are diffed against in this job's summary. Saved for the site, which publishes them at
+      # /reports (Site Deploy, pages.yml)
       - name: Restore the sim reports
         if: ${{ contains(matrix.units, 'sim') }}
         id: reports
@@ -357,7 +353,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Save the sim reports
-        if: ${{ contains(matrix.units, 'sim') && github.event_name != 'pull_request' && steps.reports.outputs.cache-hit != 'true' }}
+        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
@@ -418,11 +414,10 @@ jobs:
             model/build/images
             web/build
           key: next-${{ needs.changes.outputs.next-hash }}
-  # the docs (Astro Starlight, just site)
+  # the docs (Astro Starlight, just site), on every run: a PR's slim gate, and main's deploy
   site:
     name: Site
-    needs: changes
-    if: ${{ needs.changes.outputs.site == 'true' }}
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
@@ -475,8 +470,9 @@ jobs:
         run: npm --prefix site run build && npm --prefix site test
         env:
           SITE_BASE: /noggin/v0.0
-  # the required check (#496): every job above passed or was skipped as its inputs were unchanged (a skipped required
-  # check passes, so this one never skips; a failed need fails it). Then the built site, played in the runner's Chrome
+  # the required check (#496): every job above passed, or was skipped as its inputs were unchanged or, on a PR, as
+  # main's alone (#696; a skipped required check passes, so this one never skips; a failed need fails it). Then, off
+  # PRs, the built site with the next Mech's pictures, played in the runner's Chrome
   checks:
     name: Checks
     needs: [changes, code, convex, model, blender, site]
@@ -487,20 +483,20 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, blender, site
+          allowed-skips: changes, convex, model, blender
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - name: Download the built site
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: built-site
           path: site
-      # the next Mech's, made from this run's inputs: Blender's of this run, or an earlier run's (main's, or this PR's)
+      # the next Mech's, made from this run's inputs: Blender's of this run, or an earlier run's
       - name: Restore the next Mech's pictures
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -509,34 +505,34 @@ jobs:
           key: next-${{ needs.changes.outputs.next-hash }}
           fail-on-cache-miss: true
       - name: Add the pictures and viewer
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: |   # as just site does: the next-* ones alone (docs/adr/0019)
           mkdir -p site/dist/images site/dist/viewer
           cp model/build/images/next-* site/dist/images/
           cp web/build/next-*.glb site/dist/viewer/
       - name: Set up Node
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
           node-version-file: site/.nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
       - name: Install the site's packages
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
       # the links Site checked, now with the pictures they point at, and that every picture and GLB is one the code
       # publishes (site.test.mjs)
       - name: Check the links and the pictures
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site test -- site.test.mjs -t "link|picture"
       # the viewer loads the next Mech, the diagrams draw, search finds a page, the version switcher switches, in the
       # runner's Chrome, with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site run smoke
-      # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
+      # on main what Site Deploy deploys (actions/download-artifact by this run's id); a dispatched run's preview
       - name: Upload the site
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ github.event_name != 'pull_request' }}
         id: preview
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
@@ -545,7 +541,7 @@ jobs:
           include-hidden-files: true   # as upload-pages-artifact would take them
           if-no-files-found: error
       - name: Link the preview
-        if: ${{ needs.site.result == 'success' && github.event_name != 'push' && github.event_name != 'schedule' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           URL: ${{ steps.preview.outputs.artifact-url }}
         run: |
@@ -555,8 +551,8 @@ jobs:
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
           } >> "$GITHUB_STEP_SUMMARY"
       # once for the run: its critical path, every job along its needs up to here. Warm: the parts and the next Mech's
-      # pictures cached from the same inputs
+      # pictures cached from the same inputs, or a PR, which needs neither
       - name: Check the CI budget
-        run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
+        run: python3 scripts/ci_budget.py ${{ github.event_name == 'pull_request' || needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}

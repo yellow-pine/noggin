@@ -141,25 +141,45 @@ def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code
 FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}"  # neither runs everything
 
 
-def test_main_skips_by_input_as_a_pr_does_and_a_weekly_or_dispatched_run_runs_everything():
-    """#471: a push to main filters its changed paths against main's last commit whose checks passed, as a PR does;
-    the weekly scheduled run on main does neither, so every job runs, nor does a
-    dispatch on any branch (#562: the full render for a look's approval, its Checks a real one). Its own concurrency
-    group, so it never cancels a push's run (whose deploy would then never happen) nor one of those cancels it. Main's
-    Site always runs: it builds the deploy."""
+def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
+    """#471: a push to main filters its changed paths against main's last commit whose checks passed; the weekly
+    scheduled run on main does not, so every job runs, nor does a dispatch on any branch (#562: the full render for a
+    look's approval, its Checks a real one). Its own concurrency group, so it never cancels a push's run (whose deploy
+    would then never happen) nor one of those cancels it."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     assert "cron" in flow[True]["schedule"][0]
     assert "workflow_dispatch" in flow[True]
     assert "github.event_name" in flow["concurrency"]["group"]
-    changes = flow["jobs"]["changes"]
-    assert changes["if"] == "${{ !github.event.pull_request.draft }}"
-    steps = {s.get("id"): s for s in changes["steps"]}
+    steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
     assert steps["filter"]["if"] == FULL
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
-    assert (
-        changes["outputs"]["site"]
-        == "${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}"
-    )
+
+
+OFF_PRS = "github.event_name != 'pull_request'"
+
+
+def test_a_pr_runs_the_slim_gate_alone():
+    """#696: a PR runs `just check-light` (Code) and the site's build and HTML tests (Site), then the gate; the model,
+    sim, Blender, Convex and the site's Chrome smoke run on main only, which fixes forward what they catch (#283)."""
+    jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
+
+    def on_prs(id_: str) -> bool:
+        """Whether a PR runs the job: no condition keeps it off PRs, and its needs run, or it runs past a skipped one."""
+        cond, needs = str(jobs[id_].get("if", "")), jobs[id_].get("needs", [])
+        past_skips = "cancelled()" in cond and "== 'success'" not in cond
+        needed = all(map(on_prs, [needs] if isinstance(needs, str) else needs))
+        return OFF_PRS not in cond and (past_skips or needed)
+
+    assert {id_ for id_ in jobs if on_prs(id_)} == {"code", "site", "checks"}
+    [check] = [s["run"] for s in jobs["code"]["steps"] if s["name"] == "Run just check"]
+    assert "${{ github.event_name == 'pull_request' && 'check-light' || 'check' }}" in check
+    gate = jobs["checks"]["steps"]
+    off = (OFF_PRS, "github.event_name == 'workflow_dispatch'")
+    assert [s["name"] for s in gate if not any(o in str(s.get("if", "")) for o in off)] == [
+        "Check every job passed",
+        "Check out the repo",
+        "Check the CI budget",
+    ]
 
 
 # what carries the geometry of a document: the built parts and their cut (STL), the renders' meshes and frames, the
