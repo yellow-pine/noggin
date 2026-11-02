@@ -131,6 +131,14 @@ def test_main_skips_by_input_as_a_pr_does_and_a_weekly_run_runs_everything():
     )
 
 
+def test_zizmor_asks_githubs_api_only_off_prs():
+    """#561: the online audits (GitHub's API: rate limits, rarely a PR's change) run on main's push and weekly; a PR
+    keeps just check's offline zizmor."""
+    steps = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
+    [online] = [s for s in steps if "zizmor" in s.get("run", "")]
+    assert online["if"] == "${{ github.event_name != 'pull_request' }}"
+
+
 def test_checks_never_run_on_edited():
     """#496: a title or body edit would cancel the running Checks (one run per group), or green a red one."""
     assert (

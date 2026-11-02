@@ -194,8 +194,10 @@ jobs:
       - name: Run shellcheck
         run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
       # just check runs it offline; with a token it adds the audits that ask GitHub's API (known-vulnerable-actions,
-      # impostor-commit among them)
+      # impostor-commit among them): on main's push and weekly only, since they hang on the API's rate limits and
+      # rarely turn on a PR's change (#561)
       - name: Run zizmor online
+        if: ${{ github.event_name != 'pull_request' }}
         run: .venv/bin/zizmor -q .
         env:
           GH_TOKEN: ${{ github.token }}
