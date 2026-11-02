@@ -15,8 +15,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   spec's tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It
   need not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
-  that edits review.yml gets no review and needs Cansin's bypass. CI runs on pushes to main and on ready (non-draft)
-  PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
+  that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
+  conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
+  `.github/workflows/review.yml` changed since the branch's base (claude-code-action reviews only a PR whose review.yml
+  matches main's, so `Review` fails with no verdict until then). The repo setting "Always suggest updating pull request
+  branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on pushes to main and on
+  ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
   deploy included; a release tag's run and Release Please's are never cancelled), so a cancelled run means a newer
   one superseded it. A pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has
   a PR, except on-hold work.
