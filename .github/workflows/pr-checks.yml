@@ -75,6 +75,9 @@ jobs:
     name: PR Issue
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: write   # dependency review's summary comment on a failing PR
     steps:
       - name: Check out the script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -92,3 +95,4 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294   # v5.0.0
         with:
           fail-on-severity: low   # the action's default: any known vulnerability fails
+          comment-summary-in-pr: on-failure   # a failing PR gets the findings as a comment (a 403 only warns)
