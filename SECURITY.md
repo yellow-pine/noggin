@@ -1,6 +1,10 @@
 # Security
 
-Report vulnerabilities privately to hello@yellowpine.com. Do not open a public issue. You will get a reply within a week.
+Report vulnerabilities privately through GitHub's [private vulnerability reporting](https://github.com/yellow-pine/noggin/security/advisories/new) (the Security tab's "Report a vulnerability"). Do not open a public issue. You will get a reply within a week.
+
+## Supported versions
+
+Only the [latest release](https://github.com/yellow-pine/noggin/releases/latest) gets security fixes.
 
 ## In scope
 
