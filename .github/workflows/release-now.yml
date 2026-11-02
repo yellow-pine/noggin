@@ -20,6 +20,9 @@ jobs:
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write   # the App's own three, named so a wider install never widens them
+          permission-pull-requests: write
+          permission-issues: write
       - name: Merge the release PR on green
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}

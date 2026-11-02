@@ -9,12 +9,13 @@ on:
 concurrency:   # one run per tag, never cancelled
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
-permissions:
-  contents: write
+permissions: {}
 jobs:
   release:
     name: Release Assets
     runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the zip and the notes
     environment:
       name: release
       url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
@@ -25,6 +26,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       # the eye program's files that `make flash` copies (make mpy-list, no venv here; the assignment fails with make),
       # stamped with this release's version and commit as make mpy does (stamp.py, beside them), plus the setup wizard
       - name: Zip the Core's program
@@ -66,8 +69,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
           node-version-file: site/.nvmrc
-          cache: npm
-          cache-dependency-path: site/package-lock.json
+          package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
       # the docs and the viewer's page; the pictures and sim reports stay the live site's
       - name: Build the docs
         run: SITE_BASE="/noggin/${TAG%.*}" make site
