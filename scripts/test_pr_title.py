@@ -1,7 +1,7 @@
 """pr_title.py: the PR check's title scopes are derived from the repo (its tracked top-level folders, docs/'s tracked
 subfolders, Dependabot's and release-please's), and it fails what the action can't see: a list of scopes, a header over
-100 characters. A body's BREAKING CHANGE footer is not read: it never reaches main. The action's subject pattern gives
-commitlint's verdicts."""
+100 characters. A body's BREAKING CHANGE footer is not read: it never reaches main. Its subject check gives
+commitlint's verdicts, and the action takes the same pattern from it."""
 
 import re
 import subprocess
@@ -63,10 +63,24 @@ def test_a_header_over_100_characters_fails_and_100_passes():
         ("`SECURITY.md` points at x", True),
         ("`PR` titles take any scope", True),
         ("1 more thing", True),
+        ("Blender 5.2.3 in the CI image, without its bundled requests, pip and setuptools", False),  # #545 (#548)
     ],
 )
-def test_the_subject_pattern_gives_commitlints_verdict(subject, passes):
-    assert bool(re.fullmatch(TITLE_STEP["with"]["subjectPattern"], subject)) is passes
+def test_the_subject_check_gives_commitlints_verdict(subject, passes):
+    for title in (f"docs(docs): {subject}", f"docs(docs)!: {subject}"):
+        result = run(title)
+        assert (result.returncode == 0) is passes
+        assert passes or "backticks" in result.stdout
+    # the pattern as the action gets it
+    assert bool(re.fullmatch(run("--subject-pattern").stdout.removesuffix("\n"), subject)) is passes
+
+
+def test_the_action_takes_its_subject_pattern_from_the_script():  # one source: they can't disagree (#548)
+    steps = next(job["steps"] for job in PR_CHECKS["jobs"].values() if TITLE_STEP in job["steps"])
+    output = re.fullmatch(r"\$\{\{ steps\.(\w+)\.outputs\.(\w+) }}", TITLE_STEP["with"]["subjectPattern"])
+    assert output, "subjectPattern must be a step's output"
+    step = next(s for s in steps if s.get("id") == output[1])
+    assert f'echo "{output[2]}=$(python3 scripts/pr_title.py --subject-pattern)" >> "$GITHUB_OUTPUT"' in step["run"]
 
 
 def test_the_subject_error_says_a_leading_acronym_goes_in_backticks():

@@ -36,10 +36,11 @@ jobs:
             scripts/pr_title.py
             scripts/pr_issue.py
           sparse-checkout-cone-mode: false
-      - name: List the scopes
-        id: scopes
+      - name: List the scopes and the subject pattern
+        id: title
         run: |
           { echo "scopes<<EOF"; python3 scripts/pr_title.py; echo EOF; } >> "$GITHUB_OUTPUT"
+          echo "subject=$(python3 scripts/pr_title.py --subject-pattern)" >> "$GITHUB_OUTPUT"
       - name: Check the title
         uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50   # v6.1.1
         env:
@@ -57,16 +58,11 @@ jobs:
             revert
             style
             test
-          scopes: ${{ steps.scopes.outputs.scopes }}
+          scopes: ${{ steps.title.outputs.scopes }}
           requireScope: true
-          # config-conventional's subject-full-stop, and its subject-case (never sentence-, start-, pascal- or
-          # upper-case), which fails exactly a subject whose first letter is a capital, a leading acronym or file name
-          # too (#509): sentence-case is upperFirst(s) === s (commitlint v21.2.4's @commitlint/ensure/src/to-case.ts;
-          # a subject not starting with a letter, `PR` in backticks say, is skipped by
-          # @commitlint/rules/src/subject-case.ts). scripts/test_pr_title.py holds it to commitlint's verdicts.
-          # shortcut: ASCII capitals only, a Unicode class needs the u flag the action doesn't set; upgrade if a title
-          # ever starts with a non-ASCII letter
-          subjectPattern: '^(?![A-Z]).*[^.]$'
+          # config-conventional's subject-case and subject-full-stop, from scripts/pr_title.py (its SUBJECT, why there),
+          # which checks a title before a push with the same pattern (#548)
+          subjectPattern: ${{ steps.title.outputs.subject }}
           subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter (put a leading acronym or file name in backticks) or end with a period.'
       - name: Check the scope and length
         # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it
