@@ -76,6 +76,12 @@ def tokens(command):
     return found
 
 
+def bash_parses(command):
+    """Whether bash's own parser reads the command, where shlex can't ($(…) holding a quote inside "…", #579). Never
+    with a heredoc: bash -n lets one stay open to the end, and bash would run its body unchecked."""
+    return "<<" not in command and not subprocess.run(["bash", "-n", "-c", command], capture_output=True).returncode
+
+
 def commands(command):
     """The simple commands as (words, fed, piped): fed is what its heredocs and here-strings feed it, piped whether a
     pipe feeds it; a redirect's file is dropped."""
@@ -169,7 +175,11 @@ def unsplit(command):
     """Why a for loop would run once, or None: zsh, the Bash tool's shell, doesn't split an unquoted $var or ${…}
     (#578). Only the outer command is zsh's; a heredoc or -c fed to bash splits. Each $ gets a \\NUL before it, which
     shlex drops outside quotes and keeps inside them, so the words show which $ stood unquoted."""
-    for words, *_ in commands(command.replace("$", "\\\0$")):
+    try:
+        segments = commands(command.replace("$", "\\\0$"))
+    except ValueError:  # only bash reads it, and main() let it run
+        return None
+    for words, *_ in segments:
         for k, word in enumerate(words[:-2]):
             loop = word == "for" and words[k + 2] == "in" and (k == 0 or words[k - 1] in KEYWORDS)
             # ${=var} and ${(f)…} are zsh's own splitting; $(…) splits in zsh too
@@ -183,7 +193,12 @@ def main():
         event = json.load(sys.stdin)
         command = event["tool_input"].get("command", "")
         # shortcut: the session's justfile, so just -f elsewhere passes; follow -f if agents start using it
-        why = reason(command, event.get("cwd", ".")) or unsplit(command)
+        why = reason(command, event.get("cwd", "."))
+        # shlex can misread the whole command, so its open quote may show only in a $(…) it cut wrong: ask bash about
+        # all of it; when bash reads it, the rules can't see into it and it runs
+        if why == UNPARSED and bash_parses(command):
+            why = None
+        why = why or unsplit(command)
     except Exception as error:  # fail closed: a guard that crashes must not wave the command through
         why = f"bash_guard.py failed ({error!r}); fix the hook or tell Cansin."
     if why:
