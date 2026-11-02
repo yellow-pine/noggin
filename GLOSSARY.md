@@ -149,14 +149,16 @@ A cumulative build state of the Mech, the Sub-assemblies placed at frames (geome
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour from
-Blender's glTF (docs/adr/0008), and Stage 3 exploded; off the Site until the clean-room Mech (docs/adr/0019).
+The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
+(docs/adr/0008): on the Site the Next Mech alone (docs/adr/0019); locally also each Stage, playing its gestures and
+the Tour, Stage 3 exploded.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
 The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
 docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs
-(docs/adr/0009); no picture of today's Mech (docs/adr/0019). The README is for contributors and stays on GitHub.
+(docs/adr/0009); pictures and the Web viewer of the Next Mech alone, never of today's (docs/adr/0019). The README is
+for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:

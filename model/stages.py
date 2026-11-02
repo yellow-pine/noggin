@@ -60,6 +60,13 @@ def printed(stem):
     return g.MATERIALS[g.PRINTED[key][1]]["density_g_cm3"], g.PRINTED[key][1]
 
 
+def todays(doc):
+    """The document's parts that are today's printed parts (geometry.PRINTED but the next Mech's, #618): what nothing
+    public may draw (docs/adr/0019, #649)."""
+    ours = {k.split(" (")[0] for k in g.PRINTED if not k.startswith("next ")}
+    return [n for n, p in STAGES[doc].parts.items() if stem(p.file) in ours]
+
+
 def part(file, matrix=None, material=None, clip=None):
     return Part(file, np.eye(4) if matrix is None else matrix, material, clip)
 

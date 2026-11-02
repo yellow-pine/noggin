@@ -1,6 +1,7 @@
 """Seam: model/render/pictures.py encode(), a picture's frames as WebP with their alpha (#470)."""
 
 import json
+import os
 import subprocess
 
 import imageio_ffmpeg
@@ -69,3 +70,41 @@ def test_the_site_s_motions_record_their_seconds_as_the_bins_weigh_them(tmp_path
     took = json.loads((tmp_path / "seconds" / "pictures.json").read_text())
     assert sorted(took) == ["blender hero frame", "blender hero setup", "blender views"]
     assert took["blender hero frame"] == 2.5
+
+
+def panel(path, height, colour):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pictures.ffmpeg("-f", "lavfi", "-i", f"color=c={colour}:s=800x{height},format=rgba", "-frames:v", "1", "-c:v",
+                    "libwebp", str(path))  # fmt: skip
+
+
+def size(path):
+    probe = [
+        imageio_ffmpeg.get_ffmpeg_exe(),
+        "-loglevel",
+        "error",
+        "-i",
+        str(path),
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgba",
+    ]
+    return len(subprocess.run([*probe, "-"], capture_output=True, check=True).stdout) // (800 * 4)
+
+
+def test_a_prs_preview_stacks_the_live_sites_next_mech_panels_above_its_own(tmp_path, monkeypatch):
+    """#649: the preview artifact's before/after panel, the live site's (main's) next Mech panels above this run's, one
+    column; a panel the live site lacks yet is left out of the top. Beside it, every picture this run publishes."""
+    monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
+    monkeypatch.setattr(pictures, "PREVIEW_OUT", str(tmp_path / "preview"))
+    monkeypatch.setattr(
+        pictures, "published", lambda: ["next-mech-side.webp", "next-mech-isometric.webp", "next-x.webp"]
+    )
+    for f in pictures.published():
+        panel(tmp_path / "images" / f, 100, "red")
+    panel(tmp_path / "live" / "next-mech-side.webp", 60, "blue")  # the live site has no isometric panel yet
+    pictures.compare((tmp_path / "live").as_uri() + "/")
+    assert sorted(os.listdir(tmp_path / "preview")) == sorted(["before", "before-after.webp", *pictures.published()])
+    assert os.listdir(tmp_path / "preview" / "before") == ["next-mech-side.webp"]
+    assert size(tmp_path / "preview" / "before-after.webp") == 60 + 100 + 100

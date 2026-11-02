@@ -40,7 +40,7 @@ def main(job):
             ob.animation_data.nla_tracks.new().name = motion
             ob.animation_data.nla_tracks[-1].strips.new(motion, 0, action)
             ob.animation_data.action = None
-        ob.matrix_world = Matrix(next(iter(job["motions"].values()))[0][name])  # at rest when nothing plays
+        ob.matrix_world = Matrix(job["rest"][name])  # at rest when nothing plays
     # style B for the page (site/src/viewer/viewer.mjs reads the scene's extras alone): the light a part gets per N.L
     # of the key light, 256 steps from -1 to 1 (three.js MeshToonMaterial's gradientMap), as Eevee lights the pictures:
     # TOON of the toon ramp on the diffuse light (the 0.8 grey Diffuse BSDF under the sun) plus the rest satin. A probe

@@ -5,14 +5,15 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-panels: the Stage panels' grid (model/render/pictures.py PANELS); next_panels: the next Mech's (geometry.py NEXT, #629).
-Neither is on a page since #640 (docs/adr/0019).
+panels: the Stage panels' grid (model/render/pictures.py PANELS), on no page since #640 (docs/adr/0019); next_panels:
+the next Mech's (geometry.py NEXT, #629) and next_parts: a picture of each of its parts, on docs/pictures.md (#649).
+published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
-stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
+stages: the Stages, one per geometry.STAGES (each Stage's guide, site/site.test.mjs).
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
 explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
@@ -32,6 +33,7 @@ from noggin.core import VERSION
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
 from scripts.workflow_table import table as workflows
+from web import build as viewer
 
 ROOT = Path(__file__).resolve().parent
 MECH = {  # what each gesture looks like, by the name the director sends
@@ -146,6 +148,17 @@ def next_panels():
     return panels(dict.fromkeys(g.NEXT, "Next Mech"))
 
 
+def next_parts():
+    """The next Mech's parts (model/render/pictures.py next_parts), each picture under its name, linking to its file."""
+    site, cells = "https://yellowpine.com/noggin/images/", []
+    for f, (doc, name) in pictures.next_parts().items():
+        stem = stages.stem(stages.STAGES[doc].parts[name].file)
+        label = HARDWARE.get(stem, stem.removeprefix("next "))
+        img = f'<img src="{site}{f}" alt="{label}" loading="lazy">'
+        cells.append(f'<figure><a href="{site}{f}">{img}</a><figcaption>{label}</figcaption></figure>')
+    return f'<div class="noggin-parts not-content">{"".join(cells)}</div>'
+
+
 HARDWARE = {
     "receiver": "Shield",
     "core": "Core",
@@ -238,6 +251,8 @@ def numbers():
         "pictures": picture_numbers(),
         "panels": panels(),
         "next_panels": next_panels(),
+        "next_parts": next_parts(),
+        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values())},
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),

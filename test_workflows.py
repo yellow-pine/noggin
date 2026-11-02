@@ -135,27 +135,48 @@ def test_main_skips_by_input_as_a_pr_does_and_a_weekly_or_dispatched_run_runs_ev
     )
 
 
-# what carries the geometry of today's printed parts: the built parts and their cut (STL), the pictures, the GLBs
-DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|\.(glb|stl|step|webp|png)\b")
+# what carries the geometry of a document: the built parts and their cut (STL), the renders' meshes and frames, the
+# pictures, the GLBs, the preview and the site that carry them
+DERIVED = re.compile(
+    r"model/build/(ours|convex|images|pictures|preview)|web/build|site/dist|\.(glb|stl|step|webp|png)\b"
+)
+# a Blender run in a workflow: the recipe and what it draws
+BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b([^\n|&;]*)")
 
 
-def test_no_workflow_publishes_todays_parts():
-    """#640 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so no workflow
-    uploads the parts, their cut, a picture or a GLB, the site carries none, and a release's docs fetch no GLB.
-    The Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
-    published = [
-        f"{f.name}: {step['name']}"
-        for f in WORKFLOWS
-        for job in yaml.safe_load(f.read_text())["jobs"].values()
-        for step in job.get("steps", [])
-        if ("upload-artifact" in step.get("uses", "") or "upload-pages-artifact" in step.get("uses", ""))
-        and DERIVED.search(str(step["with"]["path"]))
-        or DERIVED.search(step.get("run", ""))
-        and re.search(r"gh release upload|curl", step["run"])
+def test_ci_draws_uploads_and_serves_the_next_mech_alone():
+    """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
+    workflows render and bake the next Mech alone (just pictures next, just web next-mech: documents holding none of
+    today's printed parts), upload only the site and the PR's preview, never a part, its cut, a mesh or a frame, put
+    only the next-* pictures and GLBs in the site, and a release's docs fetch only the GLBs the site publishes. The
+    Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
+    from model import geometry as g
+    from model import stages
+    from model.render import pictures
+    from web import build
+
+    steps = [
+        s for f in WORKFLOWS for job in yaml.safe_load(f.read_text())["jobs"].values() for s in job.get("steps", [])
     ]
-    assert published == []
-    checks = (WORKFLOWS[0].parent / "checks.yml").read_text()
-    assert "site/dist/images" not in checks and "site/dist/viewer" not in checks
+    runs = [s.get("run", "") for s in steps]
+    drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
+    assert drawn == {("pictures", pictures.NEXT), ("web", " ".join(build.PUBLIC))}
+    assert {m for r in runs for m in re.findall(r"-m (model\.render\.\w+|web\.\w+)( \w+)?", r)} <= {
+        ("model.render.pictures", " compare")
+    }
+    assert [doc for doc in {*g.NEXT, *build.PUBLIC} if stages.todays(doc)] == []
+    uploaded = {
+        line.strip()
+        for s in steps
+        if "upload-artifact" in s.get("uses", "") or "upload-pages-artifact" in s.get("uses", "")
+        for line in str(s["with"]["path"]).splitlines()
+        if DERIVED.search(line)
+    }
+    assert uploaded == {"site/dist", "model/build/preview"}
+    into_site = [c for r in runs for c in re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", r)]
+    assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
+    fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
+    assert fetched and all(".published.viewer" in r for r in fetched)
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():

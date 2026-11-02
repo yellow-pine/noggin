@@ -1,7 +1,8 @@
 // The built site in Chrome (#513): the diagrams draw, search finds a page, the Docs version switcher opens the same
 // page in another version, the wordmark's eye looks at the pointer (#603), and nothing breaks the CSP, logs an error or
-// asks another host than api.github.com (the header's stars and forks). No viewer or hero until the clean-room Mech
-// (#640, docs/adr/0019).
+// asks another host than api.github.com (the header's stars and forks). The viewer loads the next Mech (#649), the only
+// one the site serves (docs/adr/0019).
+import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 let violations, errors, requests;
@@ -24,6 +25,21 @@ test.afterEach(async ({ baseURL }) => {
   const ours = [origin, `blob:${origin}`, 'data:', 'https://api.github.com/'];
   const elsewhere = requests.filter((u) => !ours.some((o) => u.startsWith(o)));
   expect(elsewhere).toEqual([]);
+});
+
+test('the viewer loads the next Mech, see-through, and the wheel zooms it', async ({ page }) => {
+  // CI always has the GLB; a local build has it once just web next-mech ran before just site
+  test.skip(!existsSync(new URL('dist/viewer/next-mech.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  await page.goto('viewer/');
+  const viewer = page.locator('.noggin-viewer');
+  await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+  await expect(viewer.getByRole('navigation', { name: 'Gesture' })).toBeHidden(); // still: nothing to play
+  // see-through, so the Mech sits on the page's own background in either theme
+  expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
+  await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
+  await page.locator('.noggin-viewer canvas').hover();
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => page.evaluate(() => window.zoomed)).toBe(true); // OrbitControls takes it from the page
 });
 
 // the wordmark's o is the Mech's eye (#603): its pupil looks at the pointer, unless the reader asks for less motion

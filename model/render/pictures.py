@@ -9,8 +9,11 @@ pictures, motion by motion (SITE; the gestures play in the web viewer, #468) int
 served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/0019). Checks packed the motions into its Blender bins (model/shards.py,
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
-Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
+`site next` (`just pictures next`): what the site serves, the next Mech's panels and a picture per part (NEXT, #649);
+`compare`: a PR's preview of them, the live site's above its own (PREVIEW_OUT).
+Usage: python -m model.render.pictures views | hero | site [motion ...] | join | compare (Blender at $BLENDER)"""
 
+import functools
 import json
 import math
 import os
@@ -18,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.request
 
 import imageio_ffmpeg
 import numpy as np
@@ -76,6 +80,29 @@ SITE = {
 # next Mech's panels, the design a PR shows Cansin (#51, #629), and the icon, which every page shows
 PREVIEW = [("stage3", "isometric"), *(p for p in PANELS if p[0] in g.NEXT), FAVICON]
 MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
+# what the site publishes (#649, docs/adr/0019): the next Mech alone, clean-room: its panels and a picture of each of
+# its parts, alone at rest, isometric, framed on its own (`just pictures next`, Checks' Blender job); every name next-
+NEXT = "next"
+NEXT_PANELS = [picture(n, v) for n, v in PANELS if n in g.NEXT]
+PART_SIZE = (400, 400)
+LIVE = "https://yellowpine.com/noggin/images/"  # where the site serves them: main's
+PREVIEW_OUT = os.path.join(stages.REPO, "model", "build", "preview")  # a PR's preview artifact (compare)
+
+
+@functools.cache
+def next_parts():
+    """{picture: (document, part)}: one per part of the next Mech's documents by its mesh, its first instance."""
+    out = {}
+    for doc in g.NEXT:
+        for name, p in stages.STAGES[doc].parts.items():
+            stem = stages.stem(p.file).removeprefix("next ")
+            out.setdefault(f"next-{stem.lower().replace(' ', '-')}.webp", (doc, name))
+    return out
+
+
+def published():
+    """Every picture the site serves (#649): the next Mech's panels, then its parts'."""
+    return [*NEXT_PANELS, *next_parts()]
 
 
 def motions(preview=False):
@@ -176,6 +203,51 @@ def frame(group, panels):
             blender(name, manifest, shots)
 
 
+def part_pictures():
+    """Each part of the next Mech (next_parts) alone, at rest as MuJoCo settles it, from VIEWS' isometric, framed tight
+    on its own."""
+    for doc in g.NEXT:
+        _, manifest, hull = prepare(doc)
+        mats = trajectories.poses(doc, "wink")[0]
+        shots = [
+            shot(
+                f.removesuffix(".webp"),
+                PART_SIZE,
+                camera.fit(points(hull, pose), *VIEWS["isometric"], 1, None, MARGIN),
+                [pose],
+            )
+            for f, (d, name) in next_parts().items()
+            if d == doc
+            for pose in [{name: mats[name]}]
+        ]
+        blender(doc, manifest, shots)
+    for f in next_parts():
+        encode(f.removesuffix(".webp"))
+
+
+def compare(live=LIVE):
+    """A PR's preview (#649) in PREVIEW_OUT: every picture it publishes, from IMAGES, the live site's (main's) next Mech
+    panels in before/, and before-after.webp, those above this run's, one column; a panel the site lacks yet is left out
+    of the top."""
+    shutil.rmtree(PREVIEW_OUT, ignore_errors=True)
+    os.makedirs(os.path.join(PREVIEW_OUT, "before"))
+    before = []
+    for f in NEXT_PANELS:
+        try:
+            with urllib.request.urlopen(live + f, timeout=30) as r:  # noqa: S310 # the site's https, or a test's file:
+                data = r.read()
+        except OSError:  # not on the site yet, or the site not answering: no before
+            continue
+        before.append(os.path.join(PREVIEW_OUT, "before", f))
+        open(before[-1], "wb").write(data)
+    rows = [*before, *(os.path.join(IMAGES, f) for f in NEXT_PANELS)]
+    out = os.path.join(PREVIEW_OUT, "before-after.webp")
+    ffmpeg(*(a for f in rows for a in ("-i", f)), "-filter_complex", f"vstack=inputs={len(rows)}", "-c:v", "libwebp",
+           "-quality", str(WEBP_QUALITY), out)  # fmt: skip
+    for f in published():
+        shutil.copy(os.path.join(IMAGES, f), PREVIEW_OUT)
+
+
 def at_fps(frames, fps):
     """Trajectory frames (trajectories.FPS a second) resampled to fps: per output frame the nearest one, unless a key
     frame lies within half an output frame, where a horn turns back or settles into a hold: toon timing's shut blinks
@@ -262,6 +334,9 @@ def render(motion):
     hero's frames' seconds."""
     if motion.startswith("hero"):
         return hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
+    elif motion == NEXT:
+        views([(n, v) for n, v in PANELS if n in g.NEXT])
+        part_pictures()
     else:
         views(PREVIEW) if motion == "preview" else views()
 
@@ -283,10 +358,13 @@ def main(what, names):
                 per = sum(frames[1:] or frames) / len(frames[1:] or frames)
                 setup = took.pop(f"blender {motion}") - len(frames) * per
                 took |= {"blender hero frame": per, "blender hero setup": setup}
-            for f in MOTIONS.get(motion, []):  # a hero frame shard's frames stay in OUT/frames/hero, for join
+            # a hero frame shard's frames stay in OUT/frames/hero, for join
+            for f in published() if motion == NEXT else MOTIONS.get(motion, []):
                 shutil.copy(os.path.join(OUT, f), IMAGES)
         os.makedirs(SECONDS, exist_ok=True)
         json.dump(took, open(os.path.join(SECONDS, "pictures.json"), "w"))
+    elif what == "compare":
+        compare()
     elif what == "join":
         join()
         os.makedirs(IMAGES, exist_ok=True)
