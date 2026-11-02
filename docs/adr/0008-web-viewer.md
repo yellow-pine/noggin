@@ -41,14 +41,15 @@ watch the hero loop.
   pictures' 1.06 margin). Lines follow the Stage's size on screen as the GIFs' do: `line_px` when it is as big as in a
   4:3 frame `line_at` (640) px wide, through every zoom and resize, never under 1 px nor over twice `line_px`.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
-  other GLB. The viewer is one module, `site/src/viewer/viewer.mjs`, and its framing module (`frame.mjs`, tested
-  with Vitest), bundled by the site's build. It draws every `<div class="noggin-viewer" data-stage="stage1">` on a
-  page, with a button per clip under it: the viewer's page (`site/src/pages/viewer.astro`, in Starlight's theme with
-  no table of contents) adds the Stage buttons, and any page can drop in a small one. A browser test (Playwright in Chrome,
-  `site/smoke.pw.mjs`) plays a gesture on the built site with no request to another host but GitHub's repo facts in
-  the header. three.js and its addons come from npm, bundled by the site's build, and the Draco decoder `DRACOLoader`
-  fetches is copied from the same package; the lockfile's integrity hashes pin them (ADR 0013). The site's CSP lets
-  scripts from the site alone run (plus the decoder's WASM in `DRACOLoader`'s Blob worker).
+  other GLB. The viewer is one module, `site/src/viewer/viewer.mjs`, its framing module (`frame.mjs`) and its deep
+  link, caption and explode offsets (`link.mjs`), both tested with Vitest, bundled by the site's build. It draws
+  every `<div class="noggin-viewer" data-stage="stage1">` on a page, with a button per clip under it: the viewer's
+  page (`site/src/pages/viewer.astro`, in Starlight's theme with no table of contents) adds the Stage buttons, and
+  any page can drop in a small one. A browser test (Playwright in Chrome, `site/smoke.pw.mjs`) loads Stage 1 on the
+  built site with no error and no request to another host but GitHub's repo facts in the header. three.js and its
+  addons come from npm, bundled by the site's build, and the Draco decoder `DRACOLoader` fetches is copied from the
+  same package; the lockfile's integrity hashes pin them (ADR 0013). The site's CSP lets scripts from the site alone
+  run (plus the decoder's WASM in `DRACOLoader`'s Blob worker).
 - **One source for the look.** Blender's export writes the look numbers (line width, crease angle, the light ramp,
   highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the page reads
   them and holds no look numbers of its own. The canvas is see-through: the background is the page's own, in either theme.

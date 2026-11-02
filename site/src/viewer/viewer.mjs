@@ -18,7 +18,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { explode, moments } from "../macros.json";
+import { address, caption as captionFor, offsets as offsetsFor, opened, title } from "./link.mjs";
 
 // the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -30,10 +30,10 @@ const FOV = 20;
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
 const APART_S = 1;  // the seconds Explode takes to move the parts apart, or back
 const press = (b, on) => b.setAttribute("aria-pressed", on);
-const TOUR = "Tour: every gesture in turn";
 
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]"), poster = root.querySelector("figure");
+  const names = [...stages].map((b) => b.dataset.stage), link = opened(location.search, names, root.dataset.stage);
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
   canvas.setAttribute("role", "img");
@@ -66,7 +66,7 @@ function mount(root) {
   let scene, sphere, reach, refPx, mixer, clips, tour, step, creases, look, current, loading = 0;
   // how far apart the parts are (0 together, 1 apart), where they are headed, each part's group with its offset, the
   // camera's framing together and apart, and the gesture in the address
-  let apart = 0, goal = 0, parts = [], framings, linked = new URLSearchParams(location.search).get("gesture");
+  let apart = 0, goal = 0, parts = [], framings, linked = link.gesture;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
@@ -128,7 +128,7 @@ function mount(root) {
     step = name ? -1 : 0;
     run(name ?? tour[0]);
     for (const b of bar.children) press(b, b.dataset.clip === (name ?? ""));
-    caption.textContent = name ? `${title(name)}: ${moments[name]}` : TOUR;
+    caption.textContent = captionFor(name);
   }
 
   function run(clip) {
@@ -161,18 +161,14 @@ function mount(root) {
 
   // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing
   function share(gesture) {
-    const n = [...stages].findIndex((b) => b.dataset.stage === current) + 1, link = new URLSearchParams();
     linked = gesture;
-    if (n) link.set("stage", n);
-    if (gesture) link.set("gesture", gesture);
-    if (goal) link.set("explode", 1);
-    history.replaceState(null, "", `${location.pathname}${link.size ? `?${link}` : ""}${location.hash}`);
+    history.replaceState(null, "", `${location.pathname}${address(names, current, gesture, goal === 1)}${location.hash}`);
   }
 
   async function load(stage, gesture, exploded) {
-    const mine = ++loading, offsets = explode[stage] ?? {};
+    const mine = ++loading, offsets = offsetsFor(stage);
     current = stage;
-    goal = exploded && stage in explode ? 1 : 0;  // a Stage switch puts it back together
+    goal = exploded ? 1 : 0;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of [...bar.children, toggle]) b.disabled = true;
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
@@ -254,10 +250,7 @@ function mount(root) {
     key.position.multiplyScalar(2 * reach).add(sphere.center);
     renderer.render(scene, camera);
   });
-  const link = new URLSearchParams(location.search);
-  load(stages[link.get("stage") - 1]?.dataset.stage ?? root.dataset.stage, link.get("gesture"), link.get("explode") === "1");
+  load(link.stage, link.gesture, link.exploded);
 }
-
-const title = (s) => s[0].toUpperCase() + s.slice(1);
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);

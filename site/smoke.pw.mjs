@@ -1,6 +1,7 @@
-// The built site in Chrome: the viewer plays a gesture and switches Stage, a deep link plays one, search finds a page,
-// the diagrams draw, the Docs version switcher opens the same page in another version, and nothing breaks the CSP or
-// asks another host than api.github.com (the header's stars and forks).
+// The built site in Chrome: the viewer loads a Stage, search finds a page, the Docs version switcher opens the same
+// page in another version, and nothing breaks the CSP, logs an error or asks another host than api.github.com (the
+// header's stars and forks). One test, as short as CI's software WebGL allows (#513): the viewer's logic is Vitest's
+// (src/viewer/link.test.mjs), the diagrams site.test.mjs's.
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -27,91 +28,24 @@ test.afterEach(async ({ baseURL }) => {
   expect(elsewhere).toEqual([]);
 });
 
-test('the viewer plays a gesture, says which event plays it, goes back to the Tour, and switches Stage', async ({ page }) => {
-  const glbs = existsSync(new URL('dist/viewer/stage3.glb', import.meta.url));
-  test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
-  await page.goto('viewer/');
-  const button = (name) => page.getByRole('button', { name, exact: true });
-  await expect(button('Stage 3')).toHaveAttribute('aria-pressed', 'true');
-  await expect(button('Tour')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 }); // Stage 3 loaded
-  // see-through, so the Mech sits on the page's own background in either theme
-  expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
-  const caption = page.locator('.noggin-viewer .noggin-caption');
-  await expect(caption).toHaveText('Tour: every gesture in turn');
-  // every button pressed and every line said from here on, in order: a slow software-drawn frame can play the whole
-  // wink at once
-  await page.evaluate(() => {
-    [window.pressed, window.said] = [[], []];
-    new MutationObserver((ms) => ms.forEach((m) => m.target.ariaPressed === 'true' && window.pressed.push(m.target.textContent)))
-      .observe(document.querySelector('.noggin-viewer'), { subtree: true, attributeFilter: ['aria-pressed'] });
-    const line = document.querySelector('.noggin-caption');
-    new MutationObserver(() => window.said.push(line.textContent)).observe(line, { childList: true, characterData: true, subtree: true });
-  });
-  await button('Wink').click();
-  await page.waitForFunction(() => window.pressed.join() === 'Wink,Tour', null, { timeout: 30_000 });
-  expect(await page.evaluate(() => window.said)).toEqual(['Wink: a session starts (SessionStart)', 'Tour: every gesture in turn']);
-  await button('Stage 1').click();
-  await expect(button('Wink')).toBeEnabled({ timeout: 30_000 });
-  await expect(button('Tour')).toHaveAttribute('aria-pressed', 'true'); // Stage 1 tours its gestures, with no hero
-  await expect(button('Explode')).toHaveCount(0); // only Stage 3 has an exploded view
-});
-
-test('a deep link opens the viewer on its Stage, playing its gesture, and the picker keeps it current', async ({ page }) => {
+test('the viewer loads Stage 1, search finds the servo pages, and the Docs version switcher opens another version', async ({ page }) => {
   const glbs = existsSync(new URL('dist/viewer/stage1.glb', import.meta.url));
   test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
-  // every button pressed, from the page's first script on: a slow software-drawn frame can play the whole wink at once
-  await page.addInitScript(() => {
-    window.pressed = [];
-    new MutationObserver((ms) => ms.forEach((m) => m.target.ariaPressed === 'true' && window.pressed.push(m.target.textContent)))
-      .observe(document, { subtree: true, attributeFilter: ['aria-pressed'] });
-  });
-  await page.goto('viewer/?gesture=wink&stage=1');
-  const button = (name) => page.getByRole('button', { name, exact: true });
-  await expect(button('Stage 1')).toHaveAttribute('aria-pressed', 'true');
-  await page.waitForFunction(() => window.pressed.includes('Wink'), null, { timeout: 30_000 });
-  // the picker keeps the address the deep link to what plays, so it can be shared
-  await button('Eureka').click();
-  await expect(page).toHaveURL(/\/viewer\/\?stage=1&gesture=eureka$/);
-  await button('Stage 3').click();
-  await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
-});
-
-test('a deep link opens Stage 3 exploded, and Explode puts it back together', async ({ page }) => {
-  const glbs = existsSync(new URL('dist/viewer/stage3.glb', import.meta.url));
-  test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
-  await page.goto('viewer/?stage=3&explode=1');
-  const button = (name) => page.getByRole('button', { name, exact: true });
-  await expect(button('Explode')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
-  await button('Explode').click();
-  await expect(button('Explode')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
-  await button('Explode').click();
-  await expect(page).toHaveURL(/\/viewer\/\?stage=3&explode=1$/);
-  await button('Tour').click();
-  await expect(page).toHaveURL(/\/viewer\/\?stage=3&explode=1$/); // the Tour is the default: no gesture
-});
-
-test('search finds the servo pages', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'Search' }).first().click();
-  await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox').fill('servo');
-  await expect(page.locator('.pagefind-ui__result').first()).toBeVisible({ timeout: 15_000 });
-});
-
-test('every diagram draws', async ({ page }) => {
-  await page.goto('docs/how-it-works/');
-  const diagrams = page.locator('pre.mermaid');
-  await expect(diagrams.first().locator('svg')).toBeVisible({ timeout: 15_000 });
-  for (const d of await diagrams.all()) await expect(d.locator('svg')).toBeVisible();
-});
-
-test('the Docs version switcher opens the same page in the chosen version', async ({ page }) => {
+  // the smallest Stage; what the viewer then plays, links and takes apart is link.test.mjs's (#513)
+  await page.goto('viewer/?stage=1');
+  await expect(page.getByRole('button', { name: 'Tour', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 45_000 });
+  // see-through, so the Mech sits on the page's own background in either theme
+  expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   // a deploy's versions.json with one Release's docs (scripts/docs_versions.py), and its page (docs/adr/0014)
   await page.route('**/noggin/versions.json', (r) =>
     r.fulfill({ json: [{ version: 'latest', title: 'latest', aliases: [] }, { version: 'v0.1', title: 'v0.1.2', aliases: [] }] }),
   );
   await page.route('**/noggin/v0.1/glossary/', (r) => r.fulfill({ contentType: 'text/html', body: '<title>v0.1</title>' }));
-  await page.goto('glossary/');
+  await page.goto('glossary/'); // a page with no viewer drawing beside the search
+  await page.getByRole('button', { name: 'Search' }).first().click();
+  await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox').fill('servo');
+  await expect(page.locator('.pagefind-ui__result').first()).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press('Escape');
   const select = page.getByRole('combobox', { name: 'Docs version' }).first();
   await expect(select).toHaveValue('latest');
   await select.selectOption('v0.1.2');

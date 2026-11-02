@@ -3,9 +3,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testMatch: '*.pw.mjs',
-  fullyParallel: true, // the other tests beside the viewer's software-drawn gesture, not after it (#386)
   reporter: 'list', // each test's time in CI's log too
-  timeout: 90_000,
+  timeout: 60_000,
   use: {
     baseURL: 'http://localhost:4321/noggin/',
     channel: 'chrome',
