@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-26.04
     # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
     container:
-      image: ${{ needs.images.outputs.base || 'no-image' }}   # ci/base.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.base || 'no-image' }}   # zizmor: ignore[unpinned-images] ci/base.Dockerfile, pinned by digest in ci/pins/Dockerfile
       env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
         UV_CACHE_DIR: /__w/uv-cache
         UV_LINK_MODE: hardlink
