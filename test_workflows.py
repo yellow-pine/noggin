@@ -52,6 +52,24 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
+def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
+    """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
+    Site Deploy, Release and Release Assets never cancel a run mid-way."""
+    wrong = []
+    for f in WORKFLOWS:
+        flow = yaml.safe_load(f.read_text())
+        group = str(flow.get("concurrency", {}).get("group", ""))
+        if "pull_request" in flow[True] and not (
+            "github.workflow" in group
+            and "github.event.pull_request.number" in group
+            and flow["concurrency"].get("cancel-in-progress") is True
+        ):
+            wrong.append(f.name)
+    assert wrong == []
+    for name in ("pages.yml", "semantic-release.yml", "release.yml"):
+        assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
+
+
 def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
     """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
     job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
