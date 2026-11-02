@@ -1,5 +1,5 @@
 name: PR Checks
-# Checks the PR's title is a Conventional Commit with one of the repo's scopes and its body links its issue.
+# Checks the PR's title is a Conventional Commit, its body links its issue, and it adds no vulnerable dependency.
 # Main's copy of each script checks it (a PR can't loosen its own check). Required checks `PR Title` and `PR Issue` (the
 # job names, which the ruleset matches); editing the title or body re-runs them.
 # `PR Title`: the title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
@@ -7,6 +7,8 @@ name: PR Checks
 # (scripts/pr_title.py).
 # `PR Issue`: the body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie
 # together (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: it passes.
+# `PR Issue` also runs GitHub's dependency review (actions/dependency-review-action): it fails a PR, a bot's too, that
+# adds a dependency with a known vulnerability (#500). It reads the dependency graph's diff over the API: no checkout.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
@@ -86,3 +88,7 @@ jobs:
         env:
           BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
         run: python3 scripts/pr_issue.py <<<"$BODY"
+      - name: Review the dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294   # v5.0.0
+        with:
+          fail-on-severity: low   # the action's default: any known vulnerability fails
