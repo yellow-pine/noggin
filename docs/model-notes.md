@@ -135,7 +135,11 @@ until the model stabilises.
   gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
   (closed shut past the cap's rim, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
-  (model/test_trajectories.py). The neck joining gaze shifts past ~15 deg (#51) waits on the neck moving (#642).
+  (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
+  the next Mech's calibration (traces.NEXT_CAL, 0.6, inferred), the pan in the eyes' degrees scaled as the yaw and
+  through its four-bar (neck.servo_for), the neck Core's writes a frame and a Wi-Fi round trip after the eyes Core's
+  (traces.DELAY_MS, 40 ms, inferred), within #51's 2 deg gaze error as the head arrives (model/test_traces.py); the
+  gestures' gaze is level, so the tilt carries none.
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through

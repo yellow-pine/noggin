@@ -13,5 +13,8 @@
  "lid_think": 0.16,
  "lid_closed": 0,
  "lid_open": 0.95,
- "think_trace": 0
+ "think_trace": 0,
+ "pan_lo": 60,
+ "pan_hi": 120,
+ "head_share": 0
 }
