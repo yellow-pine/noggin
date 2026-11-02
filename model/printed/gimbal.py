@@ -14,8 +14,12 @@ from scipy.spatial import ConvexHull
 from model import envelopes, fits, gates, neck
 from model import gimbal as gm
 from model.envelopes import box
+from model.printed import bone
 
-LEVER_R, NECK_R, CUP_R, ROD_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 2.0, 6.0  # ARM: every printed arm's width
+LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every printed arm's width
+# the Bones' (head, waist) as (semi-width, height): the tie-bar's heads flattened to its 3 mm slab, each push-rod's
+# inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so)
+TIE_BONE, ROD_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0))
 MM = 0.001  # MuJoCo's metres per mm
 CAP_BACK = gm.CAP_R * math.cos(math.radians(gm.CAP_HALF))  # the cap's flat back, on the core's seat
 
@@ -80,15 +84,14 @@ def yoke():
 
 
 def tie_bar():
-    """The tie-bar under the yokes' cranks: both eyes' pins and, on a tail back from its middle, the yaw horn's, one
-    parallelogram."""
-    c, horn = gm.EYE["L"][0], gm.YAW_Y + gm.CRANK
-    out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
-    out = out.union(box((-ARM / 2, ARM / 2), (gm.CRANK, horn), gm.TIE_Z)).union(
-        cyl("z", (0, horn, 0), ARM / 2, gm.TIE_Z)
-    )
-    for x, y in ((-c, gm.CRANK), (c, gm.CRANK), (0.0, horn)):
-        out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, gm.TIE_Z))
+    """The tie-bar under the yokes' cranks: a Bone (model/printed/bone.py) from each eye's pin back to the yaw horn's,
+    one parallelogram, flat on top within its slab where the cranks ride on it."""
+    c, horn = gm.EYE["L"][0], (0.0, gm.YAW_Y + gm.CRANK, gm.TIE_Z[0])
+    slab = box((-c - ARM, c + ARM), (0, horn[1] + ARM), (gm.TIE_Z[0] - 1, gm.TIE_Z[1]))  # past the bed: no shared face
+    arms = [bone.bone((x, gm.CRANK, gm.TIE_Z[0]), horn, *TIE_BONE).intersect(slab) for x in (-c, c)]
+    out = arms[0].union(arms[1])  # clipped first: the two heads on the horn's pin, fused unclipped, clip invalid
+    for x, y, _ in ((-c, gm.CRANK, 0), (c, gm.CRANK, 0), horn):
+        out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))
     return out
 
 
@@ -109,9 +112,10 @@ def bail():
 
 
 def push_rod():
-    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball."""
+    """One push-rod (drawn at x 0): a Bone back from the lever's ball to the bail arm's on its cups' rims, a cup round
+    each ball."""
     z, back = gm.LEVER, gm.BAIL[0]
-    out = cyl("y", (0, 0, z), ROD_R, (0, back))
+    out = bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
     for y in (0.0, back):
         out = out.union(ball(CUP_R, (0, y, z)).cut(box((-CUP_R, CUP_R), (y - CUP_R, y + CUP_R), (z - CUP_R, z - 2))))
     for y in (0.0, back):

@@ -339,6 +339,11 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
         ), name
 
 
+@pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))
+def test_a_bone_part_cuts_into_no_more_pieces_than_its_cap(stem):
+    assert 0 < len(mjcf.convex(stages.stl(stem))) <= mjcf.MAX_PIECES[stem]
+
+
 def test_mass_follows_density_or_the_documented_figure():
     cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3
     assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(1.24)

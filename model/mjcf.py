@@ -38,6 +38,8 @@ FINE_MM = {
     **dict.fromkeys(("upper lid", "lower lid"), 0.15),
     **dict.fromkeys(("base plate", "eye bracket", "desk eye bracket", "pan turntable", "top jaw", "bottom jaw"), 0.3),
 }
+# The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
+MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod"), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -96,6 +98,8 @@ def convex(file, clip=None):
     only when the mesh CoACD gets (_mesh) or the CoACD settings change."""
     mesh, stem = _mesh(file, clip), stages.stem(file)
     settings = {**COACD, "threshold": FINE_MM[stem], "real_metric": True} if stem in FINE_MM else COACD
+    if stem in MAX_PIECES:
+        settings = {**settings, "max_convex_hull": MAX_PIECES[stem]}
     seen = mesh.vertices.tobytes() + mesh.faces.tobytes() + json.dumps([settings, version("coacd")]).encode()
     key = hashlib.sha256(seen).hexdigest()
     folder = os.path.join(CONVEX, stem)
