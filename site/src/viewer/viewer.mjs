@@ -8,7 +8,8 @@
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
 // button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
-// macros.json has for it (Stage 3's, model/render/pictures.py EXPLODE, #482) and back, &explode=1 opens it so.
+// macros.json has for it (Stage 3's, model/render/pictures.py EXPLODE, #482) and back, &explode=1 opens it so. Only a
+// viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -37,7 +38,9 @@ function mount(root) {
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
   canvas.setAttribute("role", "img");
-  canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
+  const zoom = "zoom" in root.dataset;
+  const how = zoom ? "drag to turn it, scroll or pinch to zoom" : "drag to turn it";
+  canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model; ${how}`);
   // the bar (not-content: no Starlight Markdown spacing in it): the page's Stage buttons, the gestures, Explode
   const tools = root.appendChild(document.createElement("div"));
   tools.className = "noggin-controls not-content";
@@ -52,6 +55,7 @@ function mount(root) {
   renderer.shadowMap.enabled = true;
   const camera = new THREE.PerspectiveCamera(FOV);
   const controls = new OrbitControls(camera, canvas);
+  controls.enableZoom = zoom;
   // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
   // divides by PI) and the ambient is the ramp's floor, so a shadowed point gets the N.L <= 0 light as in Eevee
   const key = new THREE.DirectionalLight(0xffffff, Math.PI);

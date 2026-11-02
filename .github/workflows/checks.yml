@@ -800,8 +800,9 @@ jobs:
       - name: Check the links to the pictures
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site test -- site.test.mjs -t link
-      # the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches, in the
-      # runner's Chrome, with no CSP violation or console error and no request to another host but api.github.com
+      # the hero's wheel scrolls the page, the viewer loads Stage 1 and zooms, the diagrams draw, search finds a page,
+      # the version switcher switches, in the runner's Chrome, with no CSP violation or console error and no request to
+      # another host but api.github.com
       - name: Smoke-test the site in Chrome
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site run smoke

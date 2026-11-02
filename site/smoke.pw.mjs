@@ -1,6 +1,6 @@
-// The built site in Chrome, in one test as short as CI's software WebGL allows (#513): the viewer loads a Stage, the
-// diagrams draw, search finds a page, the Docs version switcher opens the same page in another version, and nothing
-// breaks the CSP, logs an error or asks another host than api.github.com (the header's stars and forks). What the
+// The built site in Chrome, in tests as short as CI's software WebGL allows (#513): the hero's wheel scrolls the page
+// and the viewer page's zooms (#598), the viewer loads a Stage, the diagrams draw, search finds a page, the Docs
+// version switcher opens the same page in another version, and nothing breaks the CSP, logs an error or asks another host than api.github.com (the header's stars and forks). What the
 // viewer plays, links and takes apart is Vitest's (src/viewer/state.test.mjs).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -28,6 +28,23 @@ test.afterEach(async ({ baseURL }) => {
   expect(elsewhere).toEqual([]);
 });
 
+// a wheel over the viewer's canvas: whether the viewer took it (OrbitControls prevents the default only to zoom)
+async function wheel(page) {
+  await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
+  await page.locator('.noggin-viewer canvas').hover();
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => page.evaluate(() => window.zoomed)).toBeDefined();
+  return page.evaluate(() => window.zoomed);
+}
+
+test("the hero's wheel scrolls the landing page and leaves the Mech's scale", async ({ page }) => {
+  test.skip(!existsSync(new URL('dist/viewer/stage3.glb', import.meta.url)) && !process.env.CI, 'no GLBs: just web');
+  await page.goto('');
+  await expect(page.locator('.noggin-viewer canvas')).toBeVisible({ timeout: 45_000 }); // Stage 3 replaced the poster
+  expect(await wheel(page)).toBe(false);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+});
+
 test('the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {
   // CI always has the GLBs; a local build has them once just web ran before just site
   if (existsSync(new URL('dist/viewer/stage1.glb', import.meta.url)) || process.env.CI) {
@@ -37,6 +54,7 @@ test('the viewer loads Stage 1, the diagrams draw, search finds a page, the vers
     await expect(button('Tour')).toHaveAttribute('aria-pressed', 'true', { timeout: 45_000 }); // loaded, touring
     // see-through, so the Mech sits on the page's own background in either theme
     expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
+    expect(await wheel(page)).toBe(true); // the wheel zooms here (OrbitControls takes it from the page)
   }
   // a deploy's versions.json with one Release's docs (scripts/docs_versions.py), and its page (docs/adr/0014)
   await page.route('**/noggin/versions.json', (r) =>
