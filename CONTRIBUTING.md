@@ -92,6 +92,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 ## Code
 
 - The code follows CLAUDE.md's directives.
+- The recipes live in the `justfile` (docs/adr/0016; `just --list`). Add a new recipe beside related ones, never at
+  the end of the file, where two PRs appending at once clash (#492).
 - `just check-light` is the local check (the pre-push hook `just venv` turns on runs it): lint, types and the tests
   marked neither `model` nor `build`, in seconds. Everything heavier is CI's: `just check` is its `Code` job, `just
   check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
