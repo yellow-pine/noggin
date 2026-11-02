@@ -56,15 +56,15 @@ worktrees-clean:
 check-light: venv lint
     {{PY}} -m pytest -q -n auto -m "not model and not build"
 
-# main's Code job: just check-light, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint), the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
+# main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), the tests marked build, wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
 check: check-light ours
     {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
-    {{BIN}}/zizmor -q --offline .
+    [ -n "${CI:-}" ] || {{BIN}}/zizmor -q --offline .   # CI's Code job runs it online, and shellcheck, which parses the scripts below (#732)
     {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum and printf into sort; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "build and not model"
-    bash -n scripts/setup.sh
-    for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done
+    [ -n "${CI:-}" ] || bash -n scripts/setup.sh
+    [ -n "${CI:-}" ] || for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done
     {{PY}} -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 
 # every test: just check, then the model tests under the heavy lock

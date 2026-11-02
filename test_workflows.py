@@ -204,11 +204,7 @@ def test_a_pr_runs_the_slim_gate_alone():
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
-    assert [s["name"] for s in jobs["checks"]["steps"]] == [
-        "Check every job passed",
-        "Check out the repo",
-        "Check the CI budget",
-    ]
+    assert [s["name"] for s in jobs["checks"]["steps"]] == ["Check every job passed"]  # no CI budget (#732)
 
 
 def test_a_pr_lists_no_job_every_pr_skips():
@@ -251,7 +247,8 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
         if DERIVED.search(line)
     }
     assert uploaded == {"site/dist"}  # #673: no PR preview
-    into_site = [c for r in runs for c in re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", r)]
+    site = re.search(r"(?m)^site:[^\n]*\n((?:    [^\n]*\n)+)", (WORKFLOWS[0].parents[2] / "justfile").read_text())[1]
+    into_site = re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", "\n".join([*runs, site]))
     assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
     fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
     viewer = [r for r in fetched if ".published.viewer" in r]
@@ -287,6 +284,20 @@ def test_zizmor_asks_githubs_api_only_off_prs():
     assert [s for s in flow["jobs"]["code"]["steps"] if ".venv/bin/zizmor" in s.get("run", "")]
     assert "pull_request" not in flow[True]
     assert "zizmor" not in (WORKFLOWS[0].parent / "pr-gate.yml").read_text()
+
+
+def test_ci_runs_zizmor_and_parses_the_shell_scripts_once():
+    """#732: just check's offline zizmor and bash -n / sh -n run locally alone; in CI the Code job's online zizmor and
+    shellcheck (which parses the same scripts) cover them."""
+    code = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
+    shellcheck = next(s["run"] for s in code if s.get("run", "").startswith("shellcheck "))
+    justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
+    check = re.search(r"(?m)^check:[^\n]*\n((?:    [^\n]*\n)+)", justfile)[1].splitlines()
+    local = [line.strip() for line in check if re.search(r"zizmor|\b(ba)?sh -n", line)]
+    assert len(local) == 3
+    assert all(line.startswith('[ -n "${CI:-}" ] || ') for line in local), local
+    parsed = re.findall(r"(?:sh -n|in) ([\w/. ]+?)(?:;|$)", "\n".join(local))
+    assert {f for files in parsed for f in files.split()} <= set(shellcheck.split())
 
 
 def test_the_pr_gate_never_runs_on_edited():

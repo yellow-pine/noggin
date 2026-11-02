@@ -62,10 +62,22 @@ MODEL_TESTS = subprocess.run(
 DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfile"))  # the CI images' sources (#481)
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
-    "sim": (["model/report.py"], ["uv.lock"]),
+    "sim": (["model/report.py", "model/test_report.py", "model/ours.py"], ["uv.lock"]),  # just sim: ours, report, test
     # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
     "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
+    # the release and title rules' tests (#732): the rules, their tests and the packages they run through (ADR 0010,
+    # 0017)
+    "release": (
+        [],
+        [
+            ".releaserc.json",
+            "ci/release.test.mjs",
+            "ci/commitlint.config.mjs",
+            "ci/commitlint.test.mjs",
+            "ci/package-lock.json",
+        ],
+    ),
     # Convex, Shards and the Model shards: the tests marked model, just sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
     # and the scripts, config and workflow that run them
@@ -147,6 +159,12 @@ def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
         if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
     assert {f for globs in patterns()["next"] for f in tooling if covered(f, globs)} == set()
+
+
+def test_the_sim_key_hashes_no_justfile_or_workflow():
+    """A CI edit re-runs no 10-13 min sim (#732): its key hashes what the reports are made from, as the next Mech's."""
+    tooling = ("justfile", ".github/workflows/checks.yml")
+    assert {f for globs in patterns()["sim"] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():
