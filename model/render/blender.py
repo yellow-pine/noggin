@@ -1,8 +1,10 @@
 """Blender side of model/render/pictures.py: runs INSIDE Blender (`Blender -b -P model/render/blender.py -- job.json`).
-The job names each part's mesh (its own frame, metres) and colour, and the shots: output path, size, camera and every
-part's world matrix. Look (docs/model-notes.md): satin plastic in the spool colours mixed with a two-step toon shadow,
-one small highlight, ART_PX black Line Art lines on silhouettes and creases, plain light background. Prints each frame's
-render time (`frame <file> <s>`), which pictures.py passes to its log."""
+The job names each part's mesh (its own frame, metres) and colour, and the shots: output paths, size, camera and every
+part's world matrix per frame (one: a still; more: one animation, keeping one depsgraph). Look (docs/model-notes.md):
+satin plastic in the spool colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
+silhouettes and creases, a transparent background. Each shot renders twice: the parts without their lines, then the
+lines alone (the parts held out), which pictures.py lays over the parts in each theme's colour. Prints each frame's
+render time (`frame <layer> <frame> <s>`), which pictures.py passes to its log."""
 
 import json
 import math
@@ -10,17 +12,17 @@ import sys
 import time
 
 import bpy
-import numpy as np
 from mathutils import Matrix, Vector
 
-BG = "#F7F4EE"
 BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B); the web viewer's lines
 ART_PX = 1.25  # the pictures' Line Art lines: 2.5 and 1.75 px read too bold (Cansin, #276)
 SHADOW_AT, HIGHLIGHT_AT = 0.7, 0.8  # where the toon ramps step, on the diffuse and glossy light
 CREASE = 60  # degrees between face normals that draw a crease line
-SAMPLES = 4  # Eevee's per frame: 64 (then 16) took CI's software GL tens of minutes (#226, #276)
+SAMPLES = 1  # Eevee's per frame: 64, 16 and 4 took CI's software GL minutes (#226, #276, #470)
 SUN, WORLD = 2.6, 0.4  # the key light's and the world's strength
+SUN_ANGLE = 0  # degrees: a hard sun, whose shadow edge needs no samples to smooth it (#470)
+LIGHTER, LIGHTER_FACES = 0.3, 5000  # pictures only: meshes over LIGHTER_FACES faces decimated to LIGHTER (#470)
 KEY = (0.62, 0.60, 0.51)  # key light toward the camera's upper right, in the camera's (right, up, back) frame
 
 
@@ -78,7 +80,7 @@ def setup():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
-    sc.render.film_transparent = True  # the background is laid in after, so it does not light the parts
+    sc.render.film_transparent = True  # the page's background shows through (#470)
     sc.view_settings.view_transform = "Standard"  # spool colours as given
     sc.eevee.taa_render_samples = SAMPLES
     sc.render.image_settings.file_format, sc.render.image_settings.color_mode = "PNG", "RGBA"
@@ -100,13 +102,15 @@ def setup():
     art.use_contour, art.use_crease, art.use_crease_on_smooth, art.use_crease_on_sharp = True, True, True, False
     art.use_intersection = art.use_material = art.use_edge_mark = art.use_loose = False
     art.crease_threshold = math.radians(180 - CREASE)  # the angle between the faces, as Freestyle measured it
+    art.use_back_face_culling = True  # the closed parts' back faces hide nothing a front face does not (#470)
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
     sc.collection.objects.link(cam)
     sc.camera = cam
+    cam.data.sensor_fit = "HORIZONTAL"  # the ortho scale and the sensor span the width, as camera.py fits them
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
-    sun.data.energy, sun.data.angle = SUN, math.radians(12)
+    sun.data.energy, sun.data.angle = SUN, math.radians(SUN_ANGLE)
     sc.collection.objects.link(sun)
-    return sc, cam, sun, art
+    return sc, cam, sun, art, lines
 
 
 def load(parts):
@@ -127,15 +131,21 @@ def load(parts):
     return objs
 
 
-def flatten(path, w, h):
-    """Lay the transparent render over the plain background, in place."""
-    img = bpy.data.images.load(path)
-    px = np.array(img.pixels[:]).reshape(h, w, 4)
-    bg = np.array([int(BG[i : i + 2], 16) / 255 for i in (1, 3, 5)])  # 8-bit PNG pixels are display values
-    a = px[..., 3:4]
-    img.pixels[:] = np.concatenate([px[..., :3] * a + bg * (1 - a), np.ones((h, w, 1))], axis=2).ravel()
-    img.save()
-    bpy.data.images.remove(img)
+def lighten(objs):
+    """The pictures' meshes (the GLBs keep theirs): the heavy ones decimated, every modifier applied once, not per frame."""
+    for ob in objs.values():
+        if len(ob.data.polygons) > LIGHTER_FACES:
+            d = ob.modifiers.new("lighter", "DECIMATE")
+            d.ratio = LIGHTER
+            ob.modifiers.move(len(ob.modifiers) - 1, 0)  # before the normals are weighted
+    graph = bpy.context.evaluated_depsgraph_get()
+    for ob in objs.values():
+        mats = list(ob.data.materials)
+        ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(graph))
+        ob.modifiers.clear()
+        ob.data.materials.clear()
+        for m in mats:
+            ob.data.materials.append(m)
 
 
 def px_metres(cam, objs, width):
@@ -150,13 +160,29 @@ def px_metres(cam, objs, width):
 
 
 def main(job):
-    sc, cam, sun, art = setup()
+    sc, cam, sun, art, lines = setup()
     objs = load(job["parts"])
+    lighten(objs)
+    start = {}
+    bpy.app.handlers.render_pre.append(lambda scene, *_: start.update(t=time.monotonic()))
+    bpy.app.handlers.render_post.append(
+        lambda scene, *_: print(
+            f"frame {start['layer']} {scene.frame_current} {time.monotonic() - start['t']:.2f}", flush=True
+        )
+    )
     for shot in job["shots"]:
+        poses = shot["poses"]
         for name, ob in objs.items():
-            ob.hide_render = name not in shot["pose"]  # a shot shows only the parts it poses
-            if not ob.hide_render:
-                ob.matrix_world = Matrix(shot["pose"][name])
+            ob.animation_data_clear()
+            ob.hide_render = name not in poses[0]  # a shot shows only the parts it poses
+            ob.rotation_mode = "QUATERNION"
+            for i, pose in enumerate(poses if not ob.hide_render else []):
+                ob.matrix_world = Matrix(pose[name])
+                if len(poses) > 1:
+                    ob.keyframe_insert("location", frame=i)
+                    ob.keyframe_insert("rotation_quaternion", frame=i)
+        sc.frame_start, sc.frame_end = 0, len(poses) - 1
+        sc.frame_set(0)
         c = shot["camera"]
         cam.matrix_world = Matrix(c["matrix"])
         cam.data.type = "PERSP" if c["lens"] else "ORTHO"
@@ -170,11 +196,19 @@ def main(job):
         w, h = shot["size"]
         sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
         art.radius = ART_PX * px_metres(cam, objs, w)  # Blender 5.2 draws the stroke about `radius` wide (measured)
-        sc.render.filepath = shot["out"]
-        t = time.monotonic()
-        bpy.ops.render.render(write_still=True)
-        flatten(shot["out"], w, h)
-        print(f"frame {shot['out']} {time.monotonic() - t:.2f}", flush=True)
+        for layer, out in shot["out"].items():  # the parts, then the lines alone: their alpha is the lines' coverage
+            alone = layer == "lines"
+            lines.hide_render = not alone
+            sun.data.use_shadow = not alone
+            for ob in objs.values():
+                ob.is_holdout = alone
+            start["layer"] = layer
+            if len(poses) > 1:
+                sc.render.filepath = out + "/###"
+                bpy.ops.render.render(animation=True)
+            else:
+                sc.render.filepath = out
+                bpy.ops.render.render(write_still=True)
 
 
 if __name__ == "__main__":  # web/glb.py imports the look

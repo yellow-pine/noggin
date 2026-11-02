@@ -60,9 +60,5 @@ feed both at stall), a planned edit not yet in the model ([Model notes](../model
 
 ## Pictures
 
-<figure>
-<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 2 is the second, the eyes on the neck">
-<figcaption>Stage 1 front, Stage 2 side (this guide), Stage 3 side and front</figcaption>
-</figure>
-
-Turn it around in [the web viewer](https://yellowpine.com/noggin/viewer/), Stage 2.
+Each Stage from the side and isometric is in [Pictures](../pictures.md). Turn it around in
+[the web viewer](https://yellowpine.com/noggin/viewer/), Stage 2.

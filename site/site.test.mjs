@@ -113,7 +113,9 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
     const shown = page(route(doc)).querySelectorAll('tr').map((tr) => tr.querySelectorAll('th, td').map((c) => plain(c.text)));
     for (const [, name, key] of source.matchAll(/^<!--\{\{\s*(\w+)(?:\[(\w+)\])?\s*\}\}-->$/gm)) {
       used++;
-      const table = rows(key === undefined ? numbers[name] : numbers[name][key]);
+      const value = key === undefined ? numbers[name] : numbers[name][key];
+      if (value.startsWith('<')) continue; // HTML, not a table: the Stage panels' grid, its own test below
+      const table = rows(value);
       expect(table.length, `${doc}: ${name}`).toBeGreaterThan(1);
       for (const row of table) expect(shown, `${doc}: ${name}`).toContainEqual(row);
     }
@@ -171,17 +173,31 @@ test("every page's footer links the version to its release (the releases before 
   }
 });
 
-test('the hero shows at its size in a figure on the landing page and Pictures', () => {
-  for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
-    const img = page(url).querySelector(`figure img[src="${SITE}${HOME}/images/hero.gif"]`);
-    expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
-  }
+const hero = (theme) => `${SITE}${HOME}/images/hero-${theme}.webp#gh-${theme}-mode-only`; // macros.py, test_site.py
+
+test('the hero shows at its size in a figure on the landing page and Pictures, in each theme', () => {
+  for (const url of [`${BASE}/`, route('docs/pictures.md')])
+    for (const theme of ['light', 'dark']) {
+      const img = page(url).querySelector(`figure img[src="${hero(theme)}"]`);
+      expect([img?.getAttribute('width'), img?.getAttribute('height')], url).toEqual(['800', '400']);
+    }
 });
 
 test("the landing page opens with Stage 3's viewer, the hero its poster", () => {
   const viewer = page(`${BASE}/`).querySelector('.noggin-viewer');
   expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
-  expect(viewer.querySelector(`figure img[src="${SITE}${HOME}/images/hero.gif"]`)).not.toBeNull();
+  expect(viewer.querySelector(`figure img[src="${hero('light')}"]`)).not.toBeNull();
+});
+
+test('the landing page and Pictures show the Stage panels, each linking to its full size', () => {
+  for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
+    const links = page(url).querySelectorAll('.noggin-panels a');
+    expect(links.length, url).toBe(numbers.stages.length * 2 * 2); // side and isometric, light and dark
+    for (const a of links) {
+      const href = a.getAttribute('href'), theme = href.match(/-(light|dark)\.webp$/)?.[1];
+      expect(a.querySelector('img').getAttribute('src'), href).toBe(`${href}#gh-${theme}-mode-only`);
+    }
+  }
 });
 
 test("the viewer's page has a button per Stage and serves the Draco decoder from three's npm package", () => {

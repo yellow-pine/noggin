@@ -6,18 +6,17 @@ import math
 import numpy as np
 import pytest
 
+from model import geometry as g
 from model import stages
 from model.render import pictures
 
 pytestmark = pytest.mark.model
 
 
-@pytest.mark.parametrize(
-    "name,bracket", [("stage1", "desk eye bracket"), ("eyes", "desk eye bracket"), ("mouth", "eye bracket")]
-)
-def test_each_picture_draws_the_eye_bracket_of_its_document(name, bracket):
-    # the desk build (geometry.DESK: the eyes document and stage 1) has the desk bracket; the mouth needs the rail one
-    stage = pictures.assembled(name, pictures.DOCS[name][0])
+@pytest.mark.parametrize("name,bracket", [("stage1", "desk eye bracket"), ("stage3", "eye bracket")])
+def test_each_picture_draws_the_eye_bracket_of_its_stage(name, bracket):
+    # the desk build (geometry.DESK: stage 1) has the desk bracket; the mouth needs the rail one
+    stage = pictures.assembled(name, g.STAGES[f"noggin-{name}"])
     assert stages.stem(stage.parts["eye bracket:1"].file) == bracket
 
 

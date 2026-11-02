@@ -6,10 +6,11 @@ and served by the site, never kept in git (ADR 0009). How they are made, their s
 
 ## The Stages
 
-<figure>
-<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
-<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
-</figure>
+<!--{{ panels }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the grid above, which it builds from the code -->
+Each Stage from the side and isometric is in [the grid on the site](https://yellowpine.com/noggin/docs/pictures/).
+<!-- #}-->
 
 See Stage 3 [exploded in the web viewer](https://yellowpine.com/noggin/viewer/?stage=3&explode=1): the base, the
 neck lifted off it, the eyes above and the mouth forward of them.
@@ -22,7 +23,8 @@ MuJoCo's trajectories (every picture here). Main's sim reports are on the site a
 ## The hero
 
 <figure>
-<img src="https://yellowpine.com/noggin/images/hero.gif" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
+<img src="https://yellowpine.com/noggin/images/hero-light.webp#gh-light-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
+<img src="https://yellowpine.com/noggin/images/hero-dark.webp#gh-dark-mode-only" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400" loading="lazy">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
 

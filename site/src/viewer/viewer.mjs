@@ -5,7 +5,7 @@
 // small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
-// <figure> inside is its poster until the Stage has loaded (the landing page's hero GIF, #468), and a deep link,
+// <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
 // button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
 // macros.json has for it (Stage 3's, model/render/pictures.py EXPLODE, #482) and back, &explode=1 opens it so.

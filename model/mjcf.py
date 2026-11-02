@@ -41,7 +41,7 @@ FINE_MM = {
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
-SKY = "#F7F4EE"  # the pictures' background (model/render/blender.py BG, which runs inside Blender: not importable)
+SKY = "#F7F4EE"  # a flat sky
 VIEW = {g.SPOOLS["Absolute Black"]: "#5A5A60", g.SPOOLS["Pure White"]: "#E8E8E8"}
 TIMESTEP, SETTLE_S = 0.0005, 0.5
 # A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.99 (the

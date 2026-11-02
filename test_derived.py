@@ -71,6 +71,7 @@ MADE_FROM = {
     "images": (["model/render/pictures.py"], ["uv.lock", *DOCKERFILES]),
     "pictures": (["model/render/pictures.py"], ["uv.lock", *DOCKERFILES]),  # every motion together, for changes (#386)
     "viewer": (["web/build.py"], ["uv.lock", *DOCKERFILES]),
+    "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
     # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and

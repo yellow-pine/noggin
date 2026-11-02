@@ -95,8 +95,7 @@ jobs:
           echo "list=$list" >> "$GITHUB_OUTPUT"
   # every deploy replaces the whole site, so every run has the pictures: rendered when what they are made from changed,
   # else the last ones rendered from the same inputs (a docs-only change renders nothing). One runner per motion, which
-  # renders and encodes it (~4-5 s a frame on CI's software GL, plus ~30 s for Blender's first; a cold run ~7 min,
-  # Cansin, #297), and the site job gathers them
+  # renders and encodes it (on CI's software GL, each frame's seconds in its log, #470), and the site job gathers them
   render:
     name: Render (${{ matrix.motion }})
     needs: motions
@@ -115,6 +114,7 @@ jobs:
       cold: ${{ steps.cold.outputs.cold }}   # set by a runner that rendered (an empty output is never set)
     env:   # only the Stages a motion draws are baked (make trajectories)
       TRAJ_DOCS: ${{ matrix.stages }}
+      MESA_SHADER_CACHE_DIR: /tmp/mesa-shader-cache   # cached below
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -151,6 +151,16 @@ jobs:
           path: model/build/trajectories
           key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
+      # llvmpipe's compiled shaders, so Blender's first frame does not compile Eevee's again (~10-20 s, #470); Mesa checks
+      # each entry against its own build, so an older cache only misses
+      - name: Restore Mesa's shader cache
+        if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        id: mesa
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: /tmp/mesa-shader-cache
+          key: mesa-${{ matrix.motion }}-${{ hashFiles('model/render/blender.py', 'ci/blender.Dockerfile') }}
+          restore-keys: mesa-${{ matrix.motion }}-
       # its own step first, so the run's timings show the bake apart from the renders
       - name: Run make trajectories
         if: ${{ steps.frames.outputs.cache-hit != 'true' }}
@@ -164,6 +174,12 @@ jobs:
         run: |
           make pictures BLENDER=blender
           echo "cold=true" >> "$GITHUB_OUTPUT"
+      - name: Save Mesa's shader cache
+        if: ${{ steps.frames.outputs.cache-hit != 'true' && steps.mesa.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: /tmp/mesa-shader-cache
+          key: ${{ steps.mesa.outputs.cache-primary-key }}
       - name: Save this motion's pictures
         if: ${{ steps.frames.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
