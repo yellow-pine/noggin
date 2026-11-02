@@ -33,7 +33,7 @@ jobs:
       # (stamp.py, beside them), plus the setup wizard
       - name: Zip the Core's program
         run: |
-          program=$(python3 -m noggin.core)
+          program=$(python3 -m noggin.core) && [ -n "$program" ]   # as just mpy-list, which fails on none
           python3 -m noggin.core stamp > eyes/stamp.py
           zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - name: Attach the zip to the release

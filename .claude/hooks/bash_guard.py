@@ -25,11 +25,11 @@ class Fed(str):
 
 def heavy_recipes(folder):
     """The recipes in the justfile's heavy group ([group('heavy')]), from just's JSON dump: CI builds those
-    (docs/adr/0011, read from the justfile, not listed). None without just or a justfile, where just runs nothing."""
+    (docs/adr/0011, read from the justfile, not listed). Empty without just or a justfile, where just runs nothing."""
     venv = Path(__file__).resolve().parents[2] / ".venv" / "bin" / "just"  # rust-just, the dev group's
     just = str(venv) if venv.is_file() else shutil.which("just")
     dump = just and subprocess.run([just, "--dump", "--dump-format", "json"], cwd=folder, capture_output=True)
-    if not dump or dump.returncode:
+    if not dump or dump.returncode:  # shortcut: no just yet lets uv run just <heavy> through; block if agents use it
         return set()
     return {name for name, r in json.loads(dump.stdout)["recipes"].items() if {"group": "heavy"} in r["attributes"]}
 

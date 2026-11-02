@@ -52,8 +52,10 @@ def test_the_stamp_is_the_repos_version_and_commit_without_the_venv():
 
 def test_both_flashes_send_the_stamp_with_the_program():
     program = " ".join(f"eyes/{m}.py" for m in core.MODULES)  # what mpy-list prints; -n leaves just's shell() unrun
-    dry = [JUST, "-n", f"PROGRAM={program}", "mpy", "flash-usb"]
+    dry = [JUST, "-n", f"PROGRAM={program}", "MICROPYTHON=vTAG", "mpy", "flash-usb"]
     just = subprocess.run(dry, cwd=ROOT, capture_output=True, text=True).stderr  # just -n prints to stderr
     assert "-m noggin.core stamp > eyes/build/stamp.py" in just, just
     for f in FLASH_FILES:  # what the Wi-Fi flash sends (noggin/service.py)
         assert f"-o eyes/build/{f}" in just and f"cp eyes/build/{f} :{f}" in just, (f, just)
+    assert "cp eyes/boot.py :boot.py" in just  # boot.py stays .py: the Core runs boot.py only
+    assert "mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@vTAG" in just  # the stand-in's

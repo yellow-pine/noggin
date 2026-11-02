@@ -55,7 +55,7 @@ check-light: venv lint
     {{PY}} -m pyright
     {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
     {{BIN}}/zizmor -q --offline .
-    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions); the only pipes are echo into sha256sum; USER runner is uid 1001 (useradd)
+    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "not model and not build"
 
 # CI's Code job: just check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
@@ -92,9 +92,11 @@ step: venv
 # host side: hooks + the noggin service
 install: venv hooks start
 
+# add noggin's hooks to ~/.claude/settings.json
 hooks:
     {{PY}} noggin/install_hooks.py
 
+# take noggin's hooks out of ~/.claude/settings.json
 unhooks:
     {{PY}} noggin/install_hooks.py --remove
 
@@ -108,11 +110,13 @@ stop:
     -launchctl bootout {{LABEL}} 2>/dev/null
     @while launchctl print {{LABEL}} >/dev/null 2>&1; do sleep 0.2; done
 
+# the noggin service's launchd state, its status and its last log lines
 status:
     -launchctl print {{LABEL}} | grep -E 'state|pid' | head -3
     -noggin/noggin status
     -tail -5 noggin.log
 
+# follow noggin.log
 log:
     tail -f noggin.log
 
@@ -166,6 +170,7 @@ flash-usb: interrupt mpy
 wifi: venv
     scripts/setup.sh wifi
 
+# put the stock remote-control program (eyes/stock-backup) back on the Core
 restore-stock: interrupt
     cd eyes/stock-backup && for f in *; do {{MPR}} resume cp -r $f : || exit 1; done
     {{PY}} eyes/interrupt.py reset
