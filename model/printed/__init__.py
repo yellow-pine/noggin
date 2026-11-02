@@ -15,6 +15,7 @@ from model.printed import (
     jaw_servo_mount,
     lid,
     lid_bar,
+    neck,
     pan_servo_mount,
     pan_turntable,
     pupil,
@@ -67,6 +68,14 @@ PARTS = {
     "next L lid": lambda: gimbal.lid("L"),
     "next R lid": lambda: gimbal.lid("R"),
     "next gimbal frame": gimbal.frame,
+    # the next Mech's neck and jaw (#641)
+    "next neck mount": neck.mount,
+    "next pan yoke": neck.yoke,
+    "next head mount": neck.head_mount,
+    "next jaw": neck.jaw,
+    "next pan bar": neck.pan_bar,
+    "next tilt bar": neck.tilt_bar,
+    "next jaw bar": neck.jaw_bar,
 }
 # test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
 COUPONS = {"clearance coupon": coupon.build}

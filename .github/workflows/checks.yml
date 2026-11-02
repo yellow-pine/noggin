@@ -13,7 +13,8 @@ name: Checks
 # artifact of a public repo is anyone's, so nothing derived from today's printed parts is rendered or uploaded (#640,
 # docs/adr/0019) and the parts pass between jobs in the Actions cache alone. `Blender` renders the next Mech alone (#649):
 # its panels, its eye gimbal in motion and a picture per part (just pictures next) and its viewer GLB (just web
-# next-mech), when what they are made from changed, with a PR's before/after (the `preview` artifact, just preview <pr>). `Site` builds the docs
+# next-mech), when what they are made from changed, with a PR's before/after (the `preview` artifact, just preview <pr>),
+# which `Preview Comment` shows in the PR's one sticky comment (#657). `Site` builds the docs
 # (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the next Mech's
 # pictures and GLB, tests and plays the site in Chrome (Playwright), uploads it (a PR's preview, and on main what Site
 # Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -112,7 +113,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
@@ -152,7 +153,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
@@ -490,7 +491,7 @@ jobs:
   # check passes, so this one never skips; a failed need fails it). Then the built site, played in the runner's Chrome
   checks:
     name: Checks
-    needs: [changes, code, convex, model, blender, site]
+    needs: [changes, code, convex, model, blender, site, preview-comment]
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     steps:
@@ -498,7 +499,7 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, blender, site
+          allowed-skips: convex, model, blender, site, preview-comment
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -575,3 +576,59 @@ jobs:
         run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  # a PR's sticky comment (#657): the next Mech's before/after inline, wherever Blender made a preview, edited in place
+  # on each push that makes one. Its pictures are assets of the one `pr-previews` pre-release, never latest and no v*
+  # tag, so no release, release note or docs version reads it; each PR keeps its newest run's, and every asset goes
+  # after 30 days (a release holds at most 1000). The only job that writes, and only on this repo's PRs: a fork's and
+  # Dependabot's tokens are read-only
+  preview-comment:
+    name: Preview Comment
+    needs: blender
+    if: >-
+      ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the pr-previews release's assets
+      pull-requests: write   # the comment
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Download the preview
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: preview
+          path: preview
+      # pr<N>-<run id>-<name>, a name per PR and run, so a comment never shows another push's picture
+      - name: Upload the before and after
+        env:
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh release view pr-previews >/dev/null 2>&1 \
+            || gh release create pr-previews --prerelease --latest=false --title "PR previews" \
+              --notes "The next Mech's before and after for each PR's preview comment (#657); not a release." \
+            || gh release view pr-previews >/dev/null   # another PR's run made it first
+          prefix="pr$PR-$GITHUB_RUN_ID-"
+          for f in preview/before-after*.webp; do cp "$f" "$prefix${f#preview/}"; done
+          gh release upload pr-previews --clobber "$prefix"*.webp
+          base="$GITHUB_SERVER_URL/$GH_REPO/releases/download/pr-previews"
+          {
+            echo "**The next Mech, before and after:** the live site's above, ${SHA:0:7}'s below ([its run]($RUN_URL);"
+            echo "every picture it publishes: \`just preview $PR\`)."
+            for f in "$prefix"*.webp; do echo; echo "![${f#"$prefix"}]($base/$f)"; done
+          } > comment.md
+          echo "prefix=$prefix" >> "$GITHUB_ENV"
+      - name: Post the comment
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88   # v3.0.5
+        with:
+          header: next-mech-preview
+          path: comment.md
+      - name: Prune the old pictures
+        run: |
+          cut=$(date -ud '30 days ago' +%FT%TZ)
+          gh release view pr-previews --json assets | jq -r --arg pr "pr$PR-" --arg keep "$prefix" --arg cut "$cut" \
+            '.assets[] | select((.name | startswith($pr) and (startswith($keep) | not)) or .createdAt < $cut) | .name' \
+            | xargs -r -n1 gh release delete-asset pr-previews --yes

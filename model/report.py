@@ -1,7 +1,7 @@
 """The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
-whole Mech, the next Mech's eye gimbal (model/gimbal.py; its lid drives' sweep, model/printed/gimbal.py), and the
-MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
+whole Mech, the next Mech's eye gimbal (model/gimbal.py; its lid drives' sweep, model/printed/gimbal.py) and neck
+(model/neck.py), and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
 model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads: build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
 Usage: python -m model.report [doc ...]"""
 
@@ -13,8 +13,9 @@ import sys
 import time
 
 import mujoco
+import numpy as np
 
-from model import beams, convex_parts, electrical, fits, gimbal, mjcf, mujoco_report, stages
+from model import beams, convex_parts, electrical, fits, gimbal, mjcf, mujoco_report, neck, stages
 from model import geometry as g
 from model.printed import gimbal as gimbal_parts
 
@@ -45,8 +46,22 @@ def report(doc):
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report
-    out["mujoco"] = mujoco_report.measure(doc, mujoco.MjModel.from_xml_path(mjcf.write(doc, OUT)))
+    model = mujoco.MjModel.from_xml_path(mjcf.write(doc, OUT))
+    if "next-neck" in stages.DOCS[doc][0]:  # the next Mech's neck moves by its own kinematics (#641)
+        out["neck"] = neck.report(head(doc, model))
+    out["mujoco"] = mujoco_report.measure(doc, model)
     return out
+
+
+def head(doc, model):
+    """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns, the eye gimbal and
+    neck.HEAD, as the MJCF weighs and places them."""
+    data = mujoco.MjData(model)
+    mujoco.mj_kinematics(model, data)
+    ids = [model.body(n).id for n in (*stages.next_eyes().parts, *neck.HEAD)]
+    kg = model.body_mass[ids]
+    com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
+    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc][0]["next-neck"][0]))
 
 
 def simulate(doc):

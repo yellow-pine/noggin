@@ -124,6 +124,13 @@ until the model stabilises.
   drives' sweep: each lid, bar, horn and shank against the frame and every other part over the lid x pitch grid at yaw
   0, sampled, until #627's adaptive clearance certifies it), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
+  Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
+  gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
+  tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
+  a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
+  report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
+  weighs, the flexing spans' bends), gated in model/test_report.py. It is static in MuJoCo like the gimbal until the
+  base ticket (#642) gives it a footprint; every size is inferred.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the

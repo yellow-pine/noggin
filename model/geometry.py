@@ -464,6 +464,13 @@ PRINTED |= {
             "next L lid",
             "next R lid",
             "next gimbal frame",
+            "next neck mount",
+            "next pan yoke",
+            "next head mount",
+            "next jaw",
+            "next pan bar",
+            "next tilt bar",
+            "next jaw bar",
         )
     },
     "next L eyeball cap": ("Pure White", "PLA Pure"),
@@ -538,9 +545,16 @@ STAGES = {
 }
 # The next Mech (#51, #629): its own documents beside the Stages, never one of them, clean-room (#618's licence check):
 # none of today's printed parts or their dimensions, only our Envelopes of the hardware we own (stages.next_hardware)
-# and our own parts as the clean-room tickets add them: the eye gimbal (#630, model/gimbal.py), its plate on z 0
-# in front of the hardware, laid out apart (inferred) until the neck and base tickets place it.
-NEXT = {"next-mech": {"next-hardware": ((0, 0, 0), X, Z), "next-eyes": ((0, -150, 67), X, Z)}}
+# and our own parts as the clean-room tickets add them: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641,
+# model/neck.py), both in the head's frame, the neck mount's foot on z 0 (neck.MOUNT_Z, model/test_neck.py) in front of
+# the hardware, laid out apart (inferred) until the base ticket (#642) places it.
+NEXT = {
+    "next-mech": {
+        "next-hardware": ((0, 0, 0), X, Z),
+        "next-neck": ((0, -150, 150), X, Z),
+        "next-eyes": ((0, -150, 150), X, Z),
+    }
+}
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres
