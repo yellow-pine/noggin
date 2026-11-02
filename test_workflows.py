@@ -164,7 +164,7 @@ def test_a_pr_runs_the_slim_gate_alone():
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
 
     def on_prs(id_: str) -> bool:
-        """Whether a PR runs the job: no condition keeps it off PRs, and its needs run, or it runs past a skipped one."""
+        """Whether a PR runs the job: nothing keeps it off PRs, and its needs run, or it runs past a skipped one."""
         cond, needs = str(jobs[id_].get("if", "")), jobs[id_].get("needs", [])
         past_skips = "cancelled()" in cond and "== 'success'" not in cond
         needed = all(map(on_prs, [needs] if isinstance(needs, str) else needs))
