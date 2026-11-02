@@ -10,6 +10,9 @@
 > own, as the `preview` artifact (`just preview <pr>`). Every name published starts `next-`, and tests hold what is
 > rendered, baked, uploaded and served to the Next Mech's documents, which carry none of today's printed parts
 > (test_workflows.py, test_site.py, site.test.mjs). Today's Mech stays unpublished.
+> Amended 2026-11-02 (#656, Cansin): the Next Mech in motion too, its eye gimbal's sweep, blink and wink as looping
+> WebPs (`next-eyes-<motion>.webp`, `just pictures next`) on Pictures, and a PR's preview stacks each motion it changed,
+> the live one above its own.
 > Amended 2026-11-02 (#657, Cansin): the PR's before/after is also inline in one sticky comment on the PR, its
 > pictures assets of the `pr-previews` pre-release (a PR keeps its newest run's; every asset goes after 30 days).
 

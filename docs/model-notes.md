@@ -13,11 +13,17 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/. A PR that changes them gets
   the `preview` artifact: the live site's panels above its own in one before-after.webp, and its pictures (`just
   preview <pr>` downloads it). Every published name starts `next-`.
+- The next Mech in motion (Cansin, 2026-11-02, #656): its eye gimbal alone sweeping its yaw and pitch with the lids
+  following, a blink and a wink (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps), each a looping
+  WebP through one camera from the hero's direction, rendered with the rest by `just pictures next`. The gimbal's own
+  kinematics move it (model/gimbal.py moved) until its MuJoCo document drives it; the gestures join once the next Mech
+  plays them, the neck and the jaw as their tickets land. A motion the PR changed gets before-after-<motion>.webp in the
+  preview, the live one above the PR's, frame by frame.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
   the Stage panels (each Stage at rest, a trajectory's first frame), `just hero` for the hero;
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
-  in the web viewer, not in GIFs (#468).
+  in the web viewer, not in GIFs (#468); the next Mech's eye gimbal moves in its own (#656).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and its material (geometry.MATERIALS, from the spool's TDS:
   density, and the across-layer values model/beams.py checks, #626). Electronics and servos are
