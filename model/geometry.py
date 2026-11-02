@@ -449,6 +449,26 @@ PRINTED = {
     }.items()
     for name in names
 }
+# The next Mech's Skeleton in black PETG, its Shells in PLA Pure (#51, GLOSSARY).
+PRINTED |= {
+    **{
+        name: ("Absolute Black", "PETG HF")
+        for name in (
+            "next eyeball core",
+            "next yaw yoke",
+            "next tie-bar",
+            "next bail",
+            "next push-rod",
+            "next pitch bar",
+            "next lid bar",
+            "next L lid",
+            "next R lid",
+            "next gimbal frame",
+        )
+    },
+    "next L eyeball cap": ("Pure White", "PLA Pure"),
+    "next R eyeball cap": ("Pure White", "PLA Pure"),
+}
 
 
 # The pan servo mounts trade places (27.9, the base's foot-hole pitch): the cutout goes to the shaft end, where the servo's
@@ -518,8 +538,9 @@ STAGES = {
 }
 # The next Mech (#51, #629): its own documents beside the Stages, never one of them, clean-room (#618's licence check):
 # none of today's printed parts or their dimensions, only our Envelopes of the hardware we own (stages.next_hardware)
-# until the clean-room tickets (#630 the eye gimbal, then the neck and base) add our own parts.
-NEXT = {"next-mech": {"next-hardware": ((0, 0, 0), X, Z)}}
+# and our own parts as the clean-room tickets add them: the eye gimbal (#630, model/gimbal.py), its plate on z 0
+# in front of the hardware, laid out apart (inferred) until the neck and base tickets place it.
+NEXT = {"next-mech": {"next-hardware": ((0, 0, 0), X, Z), "next-eyes": ((0, -150, 67), X, Z)}}
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres

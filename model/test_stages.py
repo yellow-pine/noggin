@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from model import geometry as g
-from model import stages
+from model import printed, stages
 
 REPORTS = os.path.join(os.path.dirname(__file__), "reports")
 
@@ -152,13 +152,16 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
     assert "tilt horn" not in s1.horns
 
 
-def test_the_next_mech_is_clean_room_its_owned_hardware_alone_in_its_own_document():
-    """#629, #618: the next Mech's document holds our Envelopes of the hardware we own (two Cores and Shields, the switch
-    board, the pack, seven servos), no printed part of today's, and is no Stage: today's Stages stay three."""
+def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document():
+    """#629, #618, #630: the next Mech's document holds our Envelopes of the hardware we own (two Cores and Shields, the
+    switch board, the pack, seven servos, a horn on each of the eyes Core's four) and its own printed parts, all named
+    "next", none of today's; it is no Stage: today's Stages stay three."""
     nxt = stages.STAGES["next-mech"]
     assert list(g.STAGES) == ["noggin-stage1", "noggin-stage2", "noggin-stage3"]
-    meshes = sorted(stages.stem(p.file) for p in nxt.parts.values())
-    assert meshes == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7)
+    meshes = [stages.stem(p.file) for p in nxt.parts.values()]
+    hardware = sorted(m for m in meshes if not m.startswith("next "))
+    assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7 + ["horn"] * 4)
+    assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS)
     assert nxt.horns == {}
 
 

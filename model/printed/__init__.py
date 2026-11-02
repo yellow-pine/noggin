@@ -10,6 +10,7 @@ from model.printed import (
     eye_bracket,
     eyeball,
     eyeball_bar,
+    gimbal,
     jaw_bar,
     jaw_servo_mount,
     lid,
@@ -53,6 +54,19 @@ PARTS = {
     "tilt arm": tilt_arm.build,
     "base plate": base_plate.build,
     "wire keeper": wire_keeper.build,
+    # the next Mech's eye gimbal (#630)
+    "next eyeball core": gimbal.core,
+    "next L eyeball cap": lambda: gimbal.cap("L"),
+    "next R eyeball cap": lambda: gimbal.cap("R"),
+    "next yaw yoke": gimbal.yoke,
+    "next tie-bar": gimbal.tie_bar,
+    "next bail": gimbal.bail,
+    "next push-rod": gimbal.push_rod,
+    "next pitch bar": gimbal.pitch_bar,
+    "next lid bar": gimbal.lid_bar,
+    "next L lid": lambda: gimbal.lid("L"),
+    "next R lid": lambda: gimbal.lid("R"),
+    "next gimbal frame": gimbal.frame,
 }
 # test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
 COUPONS = {"clearance coupon": coupon.build}
