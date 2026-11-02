@@ -87,11 +87,15 @@ def test_a_mark_missed_outranks_a_better_figure_after_it():
 
 
 @pytest.mark.model
-@pytest.mark.parametrize(
-    "doc,key,committed,tol",
-    [("next-mech-a", "tray_mm", base.TRAY, 1.0), ("next-mech-b", "tower_r_mm", base.TOWER_R, 0.05)],
-)
-def test_each_candidates_parameters_are_still_its_optimum(doc, key, committed, tol):
-    """The parameters drawn (ADR 0011) are what optimise() finds on the parts as drawn: rerun `python -m model.candidates` and
-    copy its numbers when this fails. COBYLA stops within its tolerance on a flat optimum, hence the tray's mm."""
-    assert candidates.optimise(doc)[key] == pytest.approx(committed, abs=tol)
+def test_the_tray_is_drawn_at_its_optimum():
+    """The tray drawn (ADR 0011) is where optimise() finds the tilt servo's least worst hold, within 0.002 kgf.cm of it
+    (the hold is flat there, so COBYLA's stop wanders about a mm), and as clear as optimise() asks: rerun
+    `python -m model.candidates` and copy its numbers when this fails."""
+    found = candidates.optimise("next-mech-a")
+    assert found["drawn_kgf_cm"] <= found["hold_kgf_cm"] + 0.002
+    assert found["drawn_clear_mm"] >= -0.05  # COBYLA meets a constraint to within its tolerance
+
+
+@pytest.mark.model
+def test_the_tower_is_drawn_at_its_optimum():
+    assert candidates.optimise("next-mech-b")["tower_r_mm"] == pytest.approx(base.TOWER_R, abs=0.05)

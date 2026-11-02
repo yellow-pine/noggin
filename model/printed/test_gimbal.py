@@ -4,6 +4,7 @@ shank beside them: no two overlap, and each cap's pupil seat turns toward the ot
 import itertools
 
 import cadquery as cq
+import mujoco
 import pytest
 
 from model import gimbal as gm
@@ -40,3 +41,21 @@ def test_the_pupil_seat_sits_toward_the_other_eye(side, inward):
     cap = gimbal.cap(side).val()
     y = -gm.CAP_R + 0.9
     assert not cap.isInside(cq.Vector(inward * 6.6, y, 0)) and cap.isInside(cq.Vector(-inward * 6.6, y, 0))
+
+
+@pytest.mark.build
+def test_the_skeleton_moves_every_part_as_the_gimbal_does():
+    """The hinges gates.certify reads (#655): at each (lid, pitch) row every part sits where gimbal.moved() puts it, the
+    parts that turn alike about one line on one hinge."""
+    poses = [(-60, -12), (-20, 0), (10, 14)]
+    model, rows = gimbal.skeleton(gimbal.at_rest())
+    data = mujoco.MjData(model)
+    for (lid, pitch), q in zip(poses, rows(poses)):
+        data.qpos[:] = q
+        mujoco.mj_kinematics(model, data)
+        for name, m in gm.moved(lid, pitch).items():
+            assert data.body(name).xmat.reshape(3, 3) == pytest.approx(m[:3, :3], abs=1e-9)
+            assert data.body(name).xpos * 1000 == pytest.approx(m[:3, 3], abs=1e-6)
+    # the lids, their horns, their bars, the cores with their caps, the push-rods (each L and R alike); the pitch horn,
+    # the bail, the pitch bar
+    assert model.njnt == 8

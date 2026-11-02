@@ -42,7 +42,8 @@ def optimise(doc):
     at each pose its sweep settles to; COBYLA), every point of the tray and its boards below the tilt axis staying
     CLEAR behind what the pan turns and the tilt does not (the yoke, the tilt servo and its bar), and every one CLEAR
     above the static parts behind those (the pack in its cradle), at every pose, the boards under the tray's flange
-    (model/base.py's numbers)."""
+    (model/base.py's numbers). (a) also gives the worst hold there and at the drawn place, and how clear the drawn place
+    is (mm past CLEAR): the hold is flat near its optimum, so COBYLA's stop wanders a mm or so between machines."""
     model = mjcf.model(doc, collide=False)
     if doc == "next-mech-b":
         return {"tower_r_mm": round(brentq(lambda r: base.sway(r, *_tip(model)) - base.MODE_HZ, 0.5, 20.0), 2)}
@@ -83,16 +84,21 @@ def optimise(doc):
         return min(behind, above, under)
 
     try:
-        s = minimize(
+        drawn = {"drawn_kgf_cm": hold([0.0, 0.0]), "drawn_clear_mm": clear([0.0, 0.0])}
+        found = minimize(
             hold,
             [0.0, 0.0],
             method="COBYLA",
             constraints={"type": "ineq", "fun": clear},
             options={"rhobeg": 5.0, "tol": 0.05},
-        ).x
+        )
     finally:
         model.body_pos[tray] = pos0
-    return {"tray_mm": [round(float(base.TRAY[0] + s[0]), 1), round(float(base.TRAY[1] + s[1]), 1)]}
+    s = found.x
+    return {"tray_mm": [round(float(base.TRAY[0] + s[0]), 1), round(float(base.TRAY[1] + s[1]), 1)]} | {
+        "hold_kgf_cm": float(found.fun),
+        **{k: float(v) for k, v in drawn.items()},
+    }
 
 
 if __name__ == "__main__":
