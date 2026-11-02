@@ -107,9 +107,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing;
   `gh workflow run checks.yml --ref <branch>` runs that full run on any branch (#562).
-  Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it:
-  every workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
-  `test_workflows.py`). Site Deploy, Release and Release Assets never cancel a run mid-way.
+  Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
+  workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
+  `test_workflows.py`). What Site Deploy and Release wait on (Checks) cancels on PRs only: main's runs queue and each
+  finishes, so merges minutes apart still deploy; a newer push replaces a run still waiting, never one running (#689).
+  Site Deploy, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
   was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
   `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks

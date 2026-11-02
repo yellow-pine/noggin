@@ -1,21 +1,58 @@
 """Seam: model/base.py, the next Mech's Base candidates (#642): where the boards go, the tower's sway, the leads that
 cross pan and tilt, and the ranking of two sim reports."""
 
+import itertools
+
+import numpy as np
 import pytest
+import trimesh
+from scipy.spatial import cKDTree
 
 from model import base, candidates, stages
+from model import geometry as g
 from model.test_envelopes import BOXES
+
+TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
+
+
+@pytest.mark.build
+@pytest.mark.parametrize("doc", sorted(g.NEXT))
+def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
+    """#687: the Viewer and the pictures draw the next Mech assembled, nothing lying apart: every part of each document
+    touches one that leads, part on part, down to the Torso. Each part's surface sampled about 1 mm apart, plus its
+    vertices: two touching faces have samples closer than TOUCH_MM, two 1 mm apart none."""
+    parts = stages.STAGES[doc].parts
+    meshes = {n: trimesh.load(p.file, force="mesh").apply_transform(p.matrix) for n, p in parts.items()}
+    points = {
+        n: np.vstack([m.vertices, trimesh.sample.sample_surface(m, int(m.area), seed=0)[0]]) for n, m in meshes.items()
+    }
+    trees = {n: cKDTree(p) for n, p in points.items()}
+    near = {n: set() for n in meshes}
+    for a, b in itertools.combinations(meshes, 2):
+        (lo_a, hi_a), (lo_b, hi_b) = meshes[a].bounds, meshes[b].bounds
+        if (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all() and trees[b].query(points[a])[0].min() < TOUCH_MM:
+            near[a].add(b)
+            near[b].add(a)
+    reached, todo = set(), ["next torso:1"]
+    while todo:
+        n = todo.pop()
+        if n not in reached:
+            reached.add(n)
+            todo += near[n]
+    assert sorted(set(parts) - reached) == []
 
 
 def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     """The row's copy of the Envelopes' extents (ADR 0011) is theirs, and the boards stand side by side GAP apart with
-    their backs on the plane asked for."""
-    for parts, (x0, x1), back in base._ROW:
+    their backs on the plane asked for and their bottoms level (#687): the switch board, 32 tall, its middle on -90, the
+    Shield, 30 tall, on -91."""
+    for parts, (x0, x1), back, bottom in base._ROW:
         (lo, hi) = BOXES[parts[0][1]]
         assert (x0, x1) == (lo[0], hi[0])
         assert back == min(BOXES[mesh][0][1] for _, mesh in parts)
+        assert bottom == min(BOXES[mesh][0][2] for _, mesh in parts)
     placed = base.boards(10.0, -90.0)
-    assert placed["next Shield 1"][1] == pytest.approx((-26.75, 20.68, -90.0))
+    assert placed["next Shield 1"][1] == pytest.approx((-26.75, 20.68, -91.0))
     assert placed["next Core 1"][1] == placed["next Shield 1"][1]
     assert placed["next switch board"][1] == pytest.approx((28.0, 14.6, -90.0))
 
