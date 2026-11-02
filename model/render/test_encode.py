@@ -98,9 +98,8 @@ def test_a_prs_preview_stacks_the_live_sites_next_mech_panels_above_its_own(tmp_
     column; a panel the live site lacks yet is left out of the top. Beside it, every picture this run publishes."""
     monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
     monkeypatch.setattr(pictures, "PREVIEW_OUT", str(tmp_path / "preview"))
-    monkeypatch.setattr(
-        pictures, "published", lambda: ["next-mech-side.webp", "next-mech-isometric.webp", "next-x.webp"]
-    )
+    monkeypatch.setattr(pictures, "NEXT_PANELS", ["next-mech-side.webp", "next-mech-isometric.webp"])
+    monkeypatch.setattr(pictures, "published", lambda: [*pictures.NEXT_PANELS, "next-x.webp"])
     for f in pictures.published():
         panel(tmp_path / "images" / f, 100, "red")
     panel(tmp_path / "live" / "next-mech-side.webp", 60, "blue")  # the live site has no isometric panel yet

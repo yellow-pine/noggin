@@ -10,6 +10,7 @@ from collections import namedtuple
 
 import numpy as np
 
+from model import base as candidates
 from model import geometry as g
 from model import gimbal, linkage, neck
 
@@ -19,6 +20,7 @@ OURS = os.path.join(
 )  # our printed parts and hardware envelopes (model/ours.py, just ours)
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
+BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (+-4 mm pivots, +-3 mm bar planes)
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
@@ -301,27 +303,32 @@ def mouth():
     return Sub(parts, horns, placements, servo_port("jaw"))
 
 
-NEXT_PITCH_MM = 60  # apart along x: wider than any Envelope's footprint (inferred layout)
-
-
-def next_hardware():
-    """next-hardware: the hardware the next Mech keeps (#51), our Envelopes alone, never a printed part of today's or its
-    dimensions (#618, #629): the Cores, the Shields, the switch board and the pack in a row, laid out apart until the
-    base ticket (#642) places them (inferred); the servos are the gimbal's (next_eyes) and the neck's (next_neck). Its
-    names carry "next" (cables reads every sub-assembly's parts by name)."""
-    board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
-    cores = range(1, len(g.CHANNELS) + 1)
-    row = [
-        *((f"next Core {n}", "core", board, None) for n in cores),
-        *((f"next Shield {n}", "receiver", board, None) for n in cores),
-        ("next switch board", "switch", board, None),
-        ("next pack", "battery", board, ("y", g.BATTERY_STEP["lead_y"])),
-    ]
+def next_base():
+    """next-base: the next Mech's base plate (#642, model/base.py) with the pack lying on it, the same in both Base
+    candidates."""
+    pack = translate((0, candidates.PACK_Y, candidates.PLATE[2][1] - g.BATTERY_STEP["floor_z"]))
     parts = {
-        f"{name}:1": part(stl(mesh), translate((NEXT_PITCH_MM * i, 0, 0)), mass, clip)
-        for i, (name, mesh, mass, clip) in enumerate(row)
+        "next base plate:1": part(stl("next base plate"), None, printed("next base plate")),
+        "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
     return Sub(parts, {}, [], {})
+
+
+def _boards(stem, placed):
+    """The carrier's part and the boards on it, placed (model/base.py boards())."""
+    parts = {f"{stem}:1": part(stl(stem), None, printed(stem))}
+    parts |= {f"{name}:1": part(stl(mesh), translate(at), BOARD) for name, (mesh, at) in placed.items()}
+    return Sub(parts, {}, [], {})
+
+
+def next_tray():
+    """next-tray: Base candidate (a)'s board tray with the boards on it; it rides the head (RIDES)."""
+    return _boards("next board tray", candidates.tray_boards())
+
+
+def next_tower():
+    """next-tower: Base candidate (b)'s board tower with the boards on its shelf; static."""
+    return _boards("next board tower", candidates.tower_boards())
 
 
 def next_eyes():
@@ -351,7 +358,9 @@ def next_eyes():
 def next_neck():
     """next-neck: the next Mech's neck and jaw (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the
     neck mount, the pan yoke, the head mount, the jaw and their bars, the neck Core's servos with their horns on the
-    drives. Static: model/neck.py moves it (its report rides the sim's)."""
+    drives. Each drive turns its horn as today's Stages do, so the MuJoCo report and the Core's servo names apply (#642):
+    the pan carries the yoke and the head, the tilt the head (neck.HEAD, and what rides the head mount: RIDES), the
+    mouth the jaw."""
     parts = {
         f"{stem}:1": part(stl(stem), None, printed(stem))
         for stem in (
@@ -366,7 +375,24 @@ def next_neck():
     }
     for label, (face, shaft, tab, arm) in neck.drives().items():
         parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
-    return Sub(parts, {}, [], {})
+    pins, head = neck.pins(), list(neck.HEAD)
+    carried = {
+        "pan": ["next pan yoke:1", "next tilt servo:1", "next tilt horn:1", "next tilt bar:1", *head],
+        "tilt": head,
+        "jaw": ["next jaw:1"],
+    }
+    horns = {}
+    for drive, crank, horn, bar in (
+        ("pan", "next pan horn:1", "pan horn", "next pan bar:1"),
+        ("tilt", "next tilt horn:1", "tilt horn", "next tilt bar:1"),
+        ("jaw", "next mouth horn:1", "jaw horn", "next jaw bar:1"),
+    ):
+        o4, _, o2, axis = pins[drive]
+        loop = Loop(f"{drive} pivot", neck.LINKAGES[drive], bar, carried[drive], (tuple(o4), tuple(axis)))
+        ends = sorted(neck.servo_for(drive, d) if d else 0.0 for d in neck.RANGES[drive])
+        still = [f"{d} pivot" for d in neck.RANGES if d != drive]
+        horns[horn] = Horn({"point": o2, "axis": axis}, tuple(ends), crank, [loop], still, None)
+    return Sub(parts, horns, [], {})
 
 
 SUBS = {
@@ -374,9 +400,11 @@ SUBS = {
     "noggin-stack": stack,
     "noggin-eyes": eyes,
     "noggin-mouth": mouth,
-    "next-hardware": next_hardware,
     "next-eyes": next_eyes,
     "next-neck": next_neck,
+    "next-base": next_base,
+    "next-tray": next_tray,
+    "next-tower": next_tower,
 }
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = (
@@ -403,6 +431,8 @@ DOCS = {
 RIDES = {
     "noggin-eyes": lambda doc: g.STEM_IN[doc] + ":1",
     "noggin-mouth": lambda doc: "eye bracket:1",
+    "next-eyes": lambda doc: "next head mount:1",  # the gimbal frame screwed on its flange
+    "next-tray": lambda doc: "next head mount:1",  # the tray screwed under the gimbal frame
 }  # clamped to that part
 
 
@@ -431,7 +461,7 @@ def assemble(doc, frames, up, context=()):
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
         bottom = g.DESK_STEM_BOTTOM if doc in g.DESK else g.STEM_BOTTOM
         placements.append(("eye bracket:1", [bottom], [g.STEM_AT[doc]], TOL_MM))
-    if doc in g.STEM_IN:
+    if doc in g.STEM_IN or doc in g.NEXT:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():
             if sub in frames:

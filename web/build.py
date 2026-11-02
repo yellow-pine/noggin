@@ -1,10 +1,10 @@
-"""The web viewer's GLBs (docs/adr/0008): one per Stage and the next Mech's (PUBLIC, the one the site serves, #649),
-written into one folder that the site serves at viewer/ beside the viewer's page and its module
+"""The web viewer's GLBs (docs/adr/0008): one per Stage and per next Mech document (PUBLIC, the ones the site serves,
+#649, #642), written into one folder that the site serves at viewer/ beside the viewer's page and its module
 (site/src/pages/viewer.astro, `just site`, docs/adr/0009). Each GLB is Blender's (web/glb.py): the Stage's parts in the
 pictures' look, one glTF clip per motion of its baked trajectories (model/trajectories.py, `just trajectories`); the
-hero's Stage's also the hero picture's camera (model/render/pictures.py hero_camera). The next Mech's is still
-(model/gimbal.py moves it, #630): no clips.
-Usage: python -m web.build [out [doc ...]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
+hero's Stage's also the hero picture's camera (model/render/pictures.py hero_camera). The next Mech's are still
+(model/gimbal.py moves its eyes, #630): no clips.
+Usage: python -m web.build [out [doc ... | next]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
 
 import json
 import os
@@ -48,6 +48,8 @@ def glb(doc, path):
 
 
 def build(out, docs=()):
+    """The documents' GLBs (every one by default; "next": PUBLIC's, the next Mech's) in out, emptied first."""
+    docs = [d for a in docs for d in (PUBLIC if a == pictures.NEXT else [a])]
     shutil.rmtree(out, ignore_errors=True)  # what an older build left would land on the site's
     os.makedirs(out)
     for doc in docs or GLBS:

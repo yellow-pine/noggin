@@ -471,6 +471,9 @@ PRINTED |= {
             "next pan bar",
             "next tilt bar",
             "next jaw bar",
+            "next base plate",
+            "next board tray",
+            "next board tower",
         )
     },
     "next L eyeball cap": ("Pure White", "PLA Pure"),
@@ -544,16 +547,13 @@ STAGES = {
     },
 }
 # The next Mech (#51, #629): its own documents beside the Stages, never one of them, clean-room (#618's licence check):
-# none of today's printed parts or their dimensions, only our Envelopes of the hardware we own (stages.next_hardware)
-# and our own parts as the clean-room tickets add them: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641,
-# model/neck.py), both in the head's frame, the neck mount's foot on z 0 (neck.MOUNT_Z, model/test_neck.py) in front of
-# the hardware, laid out apart (inferred) until the base ticket (#642) places it.
+# none of today's printed parts or their dimensions, only our Envelopes of the hardware we own and our own parts: the eye
+# gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the base, one document per Base candidate
+# (#642, model/base.py), all in the head's frame, the base plate on z 0 (base.PLATE, model/test_neck.py).
+_HEAD = ((0, -150, 153), X, Z)
 NEXT = {
-    "next-mech": {
-        "next-hardware": ((0, 0, 0), X, Z),
-        "next-neck": ((0, -150, 150), X, Z),
-        "next-eyes": ((0, -150, 150), X, Z),
-    }
+    f"next-mech-{c}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD, carrier: _HEAD}
+    for c, carrier in (("a", "next-tray"), ("b", "next-tower"))
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top

@@ -145,7 +145,7 @@ def panels(labels=None):
 
 def next_panels():
     """The next Mech's panels (#629), framed among themselves: Pictures' alone."""
-    return panels(dict.fromkeys(g.NEXT, "Next Mech"))
+    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-')})" for doc in g.NEXT})  # a Base candidate each
 
 
 def next_parts():

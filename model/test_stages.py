@@ -152,23 +152,26 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
     assert "tilt horn" not in s1.horns
 
 
-def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document():
-    """#629, #618, #630, #641: the next Mech's document holds our Envelopes of the hardware we own (two Cores and
-    Shields, the switch board, the pack, seven servos each with its horn on a drive) and its own printed parts, all named
-    "next", none of today's; it is no Stage: today's Stages stay three."""
-    nxt = stages.STAGES["next-mech"]
+@pytest.mark.parametrize("doc,carrier", [("next-mech-a", "next board tray"), ("next-mech-b", "next board tower")])
+def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
+    """#629, #618, #630, #641, #642: each of the next Mech's documents (a Base candidate) holds our Envelopes of the
+    hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
+    its own printed parts, all named "next", none of today's, its boards on its carrier; it is no Stage: today's Stages
+    stay three. Its neck's three servos drive it."""
+    nxt = stages.STAGES[doc]
     assert list(g.STAGES) == ["noggin-stage1", "noggin-stage2", "noggin-stage3"]
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
     assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7 + ["horn"] * 7)
     assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS)
-    assert nxt.horns == {}
+    assert carrier in meshes
+    assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn"}
 
 
 def test_todays_names_the_parts_of_todays_print_in_a_document_and_none_of_the_next_mechs():
     """#649 (docs/adr/0019): what nothing public may draw. The next Mech's document has none; a Stage's are its printed
     parts, its Envelopes not among them."""
-    assert stages.todays("next-mech") == []
+    assert [doc for doc in g.NEXT if stages.todays(doc)] == []
     stage1 = stages.todays("noggin-stage1")
     assert "desk eye bracket" in {stages.stem(stages.STAGES["noggin-stage1"].parts[n].file) for n in stage1}
     assert {"L lid servo:1", "R lid horn:1", "Core 1:1"}.isdisjoint(stage1)

@@ -13,7 +13,7 @@ import functools
 import numpy as np
 
 from model import geometry as g
-from model import stages
+from model import neck, stages
 
 FPS, SECONDS = 10, 8.0  # 100 ms frames, as the trajectories (12.5 fps went over 3 MB)
 STAGE = stages.STAGES["noggin-stage3"]
@@ -110,3 +110,13 @@ def at(t):
 
 def frames():
     return [at(i / FPS) for i in range(round(SECONDS * FPS))]
+
+
+def next_at(t):
+    """The next Mech's hero at t seconds (#642), {servo: horn degrees from neutral}: the same head keys through its own
+    four-bars (model/neck.py servo_for), the jaw's phrases scaled from the deepest syllable to the jaw's open end. The
+    eyes stay still: the gimbal is posed by its own kinematics (model/gimbal.py), not in MuJoCo."""
+    deepest, wide = -min(d for _, d in KEYS["mouth"]), max(neck.RANGES["jaw"])
+    jaw = max(0.0, -_eased(KEYS["mouth"], t)) / deepest * wide
+    out = {s: neck.servo_for(d, _eased(HEAD[s], t)) for s, d in (("rotate", "pan"), ("tilt", "tilt"))}
+    return {s: round(d, 2) for s, d in (out | {"mouth": neck.servo_for("jaw", jaw)}).items()}
