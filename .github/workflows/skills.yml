@@ -67,6 +67,12 @@ jobs:
               (.ref | test("^[0-9a-f]{40}$")) and (.computedHash | test("^[0-9a-f]{64}$"))))' skills-lock.json
           cp skills-lock.json "$RUNNER_TEMP/old.json"
           cp "$RUNNER_TEMP/lock/skills-lock.json" skills-lock.json
+      # one compare link per moved source, so the review reads the upstream change, not just new SHAs
+      - name: Write the PR's body
+        run: |
+          jq -rn --slurpfile o "$RUNNER_TEMP/old.json" --slurpfile n skills-lock.json '
+            ($o[0].skills | map({(.source): .ref}) | add) as $old | $n[0].skills | map({(.source): .ref}) | add
+            | to_entries[] | select($old[.key] != .value) | "- https://github.com/\(.key)/compare/\($old[.key])...\(.value)"' > "$RUNNER_TEMP/body.md"
       - name: Mint the bot App's token
         id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
@@ -75,20 +81,14 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write   # its own branch
           permission-pull-requests: write
+      # no diff, no PR; else it rebuilds skills-bump from main each run and force-pushes it, its one ref
       - name: Open or refresh the PR
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-        run: |
-          git diff --quiet && exit 0
-          # one compare link per moved source, so the review reads the upstream change, not just new SHAs
-          jq -rn --slurpfile o "$RUNNER_TEMP/old.json" --slurpfile n skills-lock.json '
-            ($o[0].skills | map({(.source): .ref}) | add) as $old | $n[0].skills | map({(.source): .ref}) | add
-            | to_entries[] | select($old[.key] != .value) | "- https://github.com/\(.key)/compare/\($old[.key])...\(.value)"' > "$RUNNER_TEMP/body.md"
-          git switch -C skills-bump
-          git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
-            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "build(deps): re-pin skills-lock.json to upstream HEAD" skills-lock.json
-          # force: skills-bump is this workflow's own branch, rebuilt from main each run, and the only ref it writes
-          git -c core.hooksPath=/dev/null push -qf "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" skills-bump
-          gh pr create --head skills-bump --title "build(deps): re-pin skills-lock.json to upstream HEAD" \
-            --body-file "$RUNNER_TEMP/body.md" || gh pr edit skills-bump --body-file "$RUNNER_TEMP/body.md"
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1   # v8.1.1
+        with:
+          token: ${{ steps.app.outputs.token }}
+          branch: skills-bump
+          add-paths: skills-lock.json
+          commit-message: "build(deps): re-pin skills-lock.json to upstream HEAD"
+          title: "build(deps): re-pin skills-lock.json to upstream HEAD"
+          body-path: ${{ runner.temp }}/body.md
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>

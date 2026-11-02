@@ -72,7 +72,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   against its `computedHash`.
 - Bumps arrive as PRs and merge through checks and review like any other: the weekly `skills` workflow re-pins the
   skills to upstream HEAD, the weekly `blender` one re-pins Blender to the newest stable release at least 14 days old
-  (`scripts/blender_pin.py`), each from its own `skills-bump` or `blender-bump` branch, and Dependabot pins actions by
+  (`scripts/blender_pin.py`), each from its own `skills-bump` or `blender-bump` branch, opened or refreshed by
+  peter-evans/create-pull-request (#748), and Dependabot pins actions by
   SHA and gets auto-merge on every PR, majors too. Bots never commit to main.
 - Waiting on CI: one background command that exits only on a terminal state (merged, failed, or needs a human). `gh pr
   checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
