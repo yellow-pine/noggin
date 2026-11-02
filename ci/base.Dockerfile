@@ -1,7 +1,7 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
 # (site-checks.yml's Site, check.yml's Code), from pinned sources; `uv sync` in the job brings our Python packages.
-# .github/workflows/images.yml builds it and -blender on top; the jobs pin them by digest. Dependabot bumps the FROM
-# digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
+# .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
+# FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS node
 FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 FROM mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e AS yq
