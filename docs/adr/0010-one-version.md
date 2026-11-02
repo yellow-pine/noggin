@@ -20,6 +20,9 @@
 >
 > Amended 2026-11-02 (#447): the App is the repo's bot App; the weekly Skills and Blender Updates open their PRs as it
 > too, so those PRs get their checks and review.
+>
+> Amended 2026-11-02 (#453): the squash commit is the title alone, so a body footer never reaches main; a break is the
+> title's `!`, and the PR Title check reads no body.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -34,7 +37,7 @@ copy, and the tag is `v` plus it.
   feat, fix, perf, refactor, revert, style, test; the subject doesn't start uppercase or end with a period; the header
   is at most 100 characters). The scope is required and is one noun, derived from the repo (ADR 0011): a tracked
   top-level folder, a tracked folder in docs/, `deps` (`deps-dev`) as Dependabot writes, or `release` for
-  release-please's PR. A body with a `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check enforces
+  release-please's PR. The required `PR Title` check enforces
   it all (amannn/action-semantic-pull-request, scripts/pr_title.py as on main).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
