@@ -46,9 +46,9 @@ def joint(servo, v):
     return v * ((hi - 90) if v > 0 else (90 - lo))
 
 
-def commands(gesture):
-    """The gesture as the Core writes it, from rest: ([(ms, servo, model horn degrees)] after every write, rest's own
-    writes before ms 0; the frame times in ms, one per 100 ms from 0, a frame past the last write)."""
+def writes(line):
+    """A command line as the Core writes it, from rest: ([(ms, servo, command)] after every write, rest's own writes
+    before ms 0, each command before the servo calibration: lid fraction, eye degrees from centre; the ms it ended)."""
     clock, log = [0], []  # virtual time; (ms, servo, command) after every write
     mod.sleep_ms = lambda ms: clock.__setitem__(0, clock[0] + ms)
     e = mod.Eyes()
@@ -67,15 +67,21 @@ def commands(gesture):
     e.set = set_and_log
     e.handle_line("rest")
     start = clock[0]  # every servo has a position from here on
-    if gesture == "thinking":
-        e.handle_line("thinking")
+    e.handle_line(line)
+    if line == "thinking":
         for t in range(clock[0], clock[0] + THINK_MS, FRAME_MS):
             clock[0] = t
             e.tick(t)
-    else:
-        e.handle_line(GESTURES[gesture])
-    writes = [(t - start, s, round(joint(s, a if "lid" in s else a / half[PIN[s]]), 2)) for t, s, a in log]
-    return writes, range(0, clock[0] - start + FRAME_MS + 1, FRAME_MS)
+    return [(t - start, s, a) for t, s, a in log], clock[0] - start
+
+
+def commands(gesture):
+    """The gesture as the Core writes it, from rest: ([(ms, servo, model horn degrees)] after every write, rest's own
+    writes before ms 0; the frame times in ms, one per 100 ms from 0, a frame past the last write)."""
+    log, end = writes(GESTURES[gesture])
+    half = {p: (hi - lo) / 2 for p, (lo, hi) in ((p, _CORE.range(p)) for p in mod.EYES)}
+    moved = [(t, s, round(joint(s, a if "lid" in s else a / half[PIN[s]]), 2)) for t, s, a in log]
+    return moved, range(0, end + FRAME_MS + 1, FRAME_MS)
 
 
 def record(gesture):

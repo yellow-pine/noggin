@@ -26,6 +26,12 @@ driven by the servo's own PD plus its latency, and MuJoCo 3.17 ships that motor.
   it. kp stays inferred: it acts within the half-degree deadband, finer than a video reads. Lighter loads let the
   armature and the delay trade off (both shift when the horn gets going). It writes model/servo_fit.json, whose values mjcf.SERVO then takes over; the sim and the
   trajectories key on it, so CI builds them again.
+- **The fitted delay is the one that plays the Takes as filmed, not the Core's own (#644).** The delay shifts the
+  horn's whole motion against the commands, as the video's offset from the Core's clock does, and nothing in the kit
+  shows when the Core writes (no light or sound the Core drives). `model/servo_take.py` puts each Take on the Core's
+  clock by its slow opening ramp, where the horn lags its commands alike under any load (within a millisecond in the
+  model), so a servo's Takes share one offset, and the fitted delay takes it in with the Core's own. A cue the Core
+  drives (a light on a free pin) would tell the two apart.
 
 ## Considered options
 

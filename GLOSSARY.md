@@ -234,6 +234,11 @@ A test piece we print to find a fit on our printer and filament before a Printed
 clearance coupon's pins and magnet pockets; not part of the Mech.
 _Avoid_: test part, calibration print, sample
 
+**Take**:
+One filmed run of a servo through the servo test's moves at one known load, and the record made of it: when each
+command was written and where the marked Horn was at each frame. The servo's values in the Model are fitted to Takes.
+_Avoid_: clip, recording, trial, run
+
 **Pivot**:
 A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the four-bar
 kinematics that pose a horn angle without simulating (model/linkage.py).
