@@ -107,7 +107,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - The code follows CLAUDE.md's directives.
 - The recipes live in the `justfile` (docs/adr/0016; `just --list`). Add a new recipe beside related ones, never at
   the end of the file, where two PRs appending at once clash (#492).
-- `just lint` (ruff and pyright) is the one local check, which the pre-push hook `just venv` turns on runs (#714).
+- `just lint` (ruff and pyright) is every change's local check, which the pre-push hook `just venv` turns on runs (#714).
+  A change to model/ (parts, geometry, MuJoCo) also passes `just linux-test <its tests>` before its push: `just ours`
+  and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
