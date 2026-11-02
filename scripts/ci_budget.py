@@ -1,10 +1,10 @@
 """The CI budget (#219, #327), the last step of each job in .github/workflows (check, site-checks): with a warm
 cache a run's critical path must stay within its event's budget. The critical path is the longest chain of jobs along
 the workflow's needs, each job counted from when a runner picked it up to when it finished (or to this step, still
-running): time spent waiting for a runner, or on a job's needs, is not counted, so a busy queue never fails a run and
-a slow job still does. Only this run attempt's jobs count (a "re-run failed jobs" is measured on its own). Over it, a
-PR run fails; a run on main only warns, in the log and the job summary. A cold run (a cache that missed) is only
-reported. Usage: python3 scripts/ci_budget.py <warm: true|false>, with GITHUB_EVENT_NAME, GITHUB_REPOSITORY,
+running): time spent waiting for a runner, or on a job's needs, is not counted, so a busy queue never trips it and a
+slow job still does. Only this run attempt's jobs count (a "re-run failed jobs" is measured on its own). Over it, a run
+warns, in the log and the job summary, and never fails, on a PR as on main (#442). A cold run (a cache that missed) is
+only reported. Usage: python3 scripts/ci_budget.py <warm: true|false>, with GITHUB_EVENT_NAME, GITHUB_REPOSITORY,
 GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, GITHUB_WORKFLOW_REF and GH_TOKEN (actions: read) set, and yq on the PATH."""
 
 import json
@@ -57,15 +57,12 @@ def critical_path(jobs: list[dict], workflow: dict, attempt_started: str, now: s
     return max(map(chain, took), default=0)
 
 
-def over(event: str, took: float, warm: bool) -> tuple[str, str] | None:
-    """("error" or "warning", why) when the run's critical path is over budget, or None."""
+def over(event: str, took: float, warm: bool) -> str | None:
+    """Why the run's critical path is over budget, or None."""
     budget = BUDGET_S.get(event)
     print(f"{event}: {took:.0f} s along the critical path, budget {budget} s, {'warm' if warm else 'cold'} cache")
     if warm and budget is not None and took > budget:
-        return (
-            "warning" if event == "push" else "error",
-            f"{event} run took {took:.0f} s > {budget} s along its critical path with a warm cache",
-        )
+        return f"{event} run took {took:.0f} s > {budget} s along its critical path with a warm cache"
     return None
 
 
@@ -82,10 +79,8 @@ if __name__ == "__main__":
     # owner/repo/.github/workflows/<file>@<ref>: the workflow file, checked out at the run's commit
     workflow = json.loads(out("yq", "-o=json", ".jobs", env["GITHUB_WORKFLOW_REF"].split("@")[0].split("/", 2)[2]))
     took = critical_path(list(map(json.loads, jobs)), workflow, started, datetime.now(UTC).isoformat())
-    result = over(env["GITHUB_EVENT_NAME"], took, sys.argv[1] == "true")
-    if result:
-        level, why = result
-        print(f"::{level}::{why}")
+    why = over(env["GITHUB_EVENT_NAME"], took, sys.argv[1] == "true")
+    if why:
+        print(f"::warning::{why}")
         with open(env["GITHUB_STEP_SUMMARY"], "a") as f:
-            f.write(f"**Over budget ({level}):** {why}\n")
-    sys.exit(1 if result and result[0] == "error" else 0)
+            f.write(f"**Over budget:** {why}\n")
