@@ -4,7 +4,7 @@ the model tests, just sim and just mech (the Mech stand-in); each goes, longest 
 seconds are the CI runs' own (model/durations.json, pytest-split's --store-durations plus just sim's and just mech's
 core-seconds: `just model-durations`), so a new document needs no workflow edit and no list of names. MODEL=false or
 MECH=false (the Changes job's filters) leaves that group's units out.
-And the Blender bins (`just blender-bins`; Checks ran them until #640, docs/adr/0018): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
+And the Blender bins (`just blender-bins`; Checks ran them until #640, docs/adr/0019): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
 when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds
 "blender <unit>" that main's last rendering run measured (MEASURED, #569), else those typed in
 model/durations.json; PREVIEW=true (a PR's, #562) makes the pictures the preview alone. The hero splits into frame

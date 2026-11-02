@@ -1,7 +1,7 @@
 // The built site in Chrome (#513): the diagrams draw, search finds a page, the Docs version switcher opens the same
 // page in another version, the wordmark's eye looks at the pointer (#603), and nothing breaks the CSP, logs an error or
 // asks another host than api.github.com (the header's stars and forks). No viewer or hero until the clean-room Mech
-// (#640, docs/adr/0018).
+// (#640, docs/adr/0019).
 import { expect, test } from '@playwright/test';
 
 let violations, errors, requests;

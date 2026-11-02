@@ -1,6 +1,6 @@
 """The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
 (macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The pictures are rendered locally
-alone until the clean-room Mech (#640, docs/adr/0018): none in git (#226), none on the site or in the README."""
+alone until the clean-room Mech (#640, docs/adr/0019): none in git (#226), none on the site or in the README."""
 
 import os
 import re
@@ -200,7 +200,7 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 
 def test_nothing_public_shows_todays_mech():
-    """#640 (docs/adr/0018): today's printed parts derive from the designer's models, so until the clean-room Mech
+    """#640 (docs/adr/0019): today's printed parts derive from the designer's models, so until the clean-room Mech
     (#51) neither the README nor a page of the site shows a picture of them or links the viewer, the site has no
     viewer page and its icon is no render."""
     texts = {
@@ -224,7 +224,10 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    assert sorted(pictures.SITE["views"]) == sorted([*panels, "favicon.png"])  # the site's icon: an eye (#603)
+    following = ["next-mech-side.webp", "next-mech-isometric.webp"]  # the next Mech's, beside them (#629)
+    assert sorted(pictures.SITE["views"]) == sorted(
+        [*panels, *following, "favicon.png"]
+    )  # the site's icon: an eye (#603)
     assert pictures.SITE["hero"] == ["hero.webp"]
 
 
@@ -238,6 +241,15 @@ def test_the_panels_grid_has_a_column_per_stage_and_a_row_per_view_each_linking_
     assert re.findall(r"<span>([^<]*)</span>", grid) == ["", "Side", "Isometric"]
     links = re.findall(r'<a href="([^"]+)"><img src="([^"]+)"', grid)
     assert len(links) == 6 and all(href == src and src.endswith(".webp") for href, src in links)
+
+
+def test_the_next_mech_has_its_own_panels():
+    """#629: the next Mech's panels in a grid of their own, framed among themselves (shown nowhere since #640)."""
+    import macros
+
+    grid = macros.next_panels()
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech"]
+    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == ["next-mech-side.webp", "next-mech-isometric.webp"]
 
 
 def test_the_hero_is_800x400():
@@ -263,12 +275,13 @@ def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
 
 
 def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
-    """Checks' Blender bins (just blender-bins, #297, #496): the Stage views on every Stage and the hero on stage 3,
-    each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""
+    """Checks' Blender bins (just blender-bins, #297, #496): the views on every Stage and the next Mech (#629) and the
+    hero on stage 3, each with the documents its trajectories bake on; the gestures play in the viewer, not in GIFs
+    (#468)."""
     from model.render import pictures
 
     assert pictures.motions() == [
-        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3"},
+        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech"},
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
 

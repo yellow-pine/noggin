@@ -152,8 +152,8 @@ def test_main_renders_the_hero_in_frame_shards_that_hold_every_frame_once():
 
 
 def test_a_pr_s_bins_render_the_preview_panel_in_place_of_the_site_s_pictures():
-    """PREVIEW=true (a PR, #562): one panel of the site's, at its framing, so it bakes every Stage as views does; main
-    alone renders SITE."""
+    """PREVIEW=true (a PR, #562): one panel of the site's and the next Mech's (#629), at their framing, so it bakes every
+    document views does; main alone renders SITE."""
     from model.render import pictures
 
     assert set(pictures.MOTIONS["preview"]) < set(pictures.SITE["views"])
@@ -161,12 +161,12 @@ def test_a_pr_s_bins_render_the_preview_panel_in_place_of_the_site_s_pictures():
     assert sorted(u for b in every for u in b["bin"].split()) == ["preview", "viewer"]
     (preview,) = [b for b in every if b["motions"]]
     assert preview["motions"] == "preview"
-    assert preview["stages"] in ("", " ".join(sorted(g.STAGES)))  # empty beside the viewer: it bakes them all
+    assert preview["stages"] in ("", " ".join(sorted(g.STAGES | g.NEXT)))  # empty beside the viewer: it bakes them all
     assert listed("blender-bins", PREVIEW="true", PICTURES="false") == listed("blender-bins", PICTURES="false")
 
 
 def test_the_model_matrix_is_the_changes_job_s_list():
-    """A new document needs no workflow edit (CI runs no Blender bin since #640, docs/adr/0018)."""
+    """A new document needs no workflow edit (CI runs no Blender bin since #640, docs/adr/0019)."""
     jobs = yaml.safe_load(open(f"{stages.REPO}/.github/workflows/checks.yml"))["jobs"]
     (lists,) = [s for s in jobs["changes"]["steps"] if s.get("id") == "lists"]
     assert "just model-shards-list" in lists["run"]

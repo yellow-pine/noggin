@@ -3,8 +3,8 @@ configurations), every part a body placed by model/geometry.py (through stages),
 its mesh from just ours and collides through its CoACD convex pieces, since MuJoCo collides a mesh by its convex hull;
 the pieces are decomposed once per mesh and cached in model/build/convex. `python -m model.mjcf [doc ...]` writes
 model/build/mjcf/<doc>.xml (every document by default); `just view` opens one in MuJoCo's viewer.
-Each horn is a hinge on its servo shaft driven by a position actuator, each coupler a hinge on its horn pin and each
-rocker a hinge on its pivot; the four-bars close by a connect at the coupler's rocker pin, each lead is a spatial tendon
+Each horn is a hinge on its servo shaft driven by its servo (drive(): a DC motor behind its own position loop), each
+coupler a hinge on its horn pin and each rocker a hinge on its pivot; the four-bars close by a connect at the coupler's rocker pin, each lead is a spatial tendon
 no longer than the real lead, and each screw or pin joint a site per part on its axis (#148, research note
 docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
 
@@ -48,16 +48,47 @@ TIMESTEP, SETTLE_S = 0.0005, 0.5
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
 LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
-# shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default, since at the rated speed the stage 3 head
-# carries the pan four-bar through its toggle at pan -40 (model/mujoco_report.py); revisit with Core 2's choreography.
+# shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default: at the rated speed the position actuator
+# carried the stage 3 head through the pan four-bar's toggle at pan -40; the DC motor (#625) lands that swing
+# (model/mujoco_report.py full_speed), so the rated speed may do now; revisit with Core 2's choreography.
 SLEW_DEG_S = 100
-# The 9 g servo: its published stall torque at 4.8 V, the figure nearest the shield's 5 V servo rail
-# (electrical.SERVO_RAIL_V), as the actuator's force limit; full torque 0.5 deg off its command (a servo's deadband,
-# inferred); the motor's inertia through the gears as the shaft's armature (eyes/servo.py, inferred; what keeps kp
-# stable at TIMESTEP); critically damped on it.
-STALL_NM = electrical.servo.SPEC[electrical.SERVO_MIN_V]["stall_kgfcm"] * 0.0980665
-KP, ARMATURE = STALL_NM / math.radians(0.5), electrical.servo.ARMATURE
-KV = 2 * math.sqrt(KP * ARMATURE)
+# The 9 g servo as a DC motor behind its own P loop (#625, docs/research/2026-11-02-literature-simulation.md 1):
+# its published stall torque and no-load speed at 4.8 V, the figures nearest the shield's 5 V servo rail
+# (electrical.SERVO_RAIL_V), referred to the horn; full torque 0.5 deg off its command (a servo's deadband); the motor's
+# inertia through the gears as the shaft's armature (eyes/servo.py; what keeps kp stable at TIMESTEP), critically
+# damped on it; a new command waits up to one 20 ms PWM frame. All inferred until
+# model/servo_fit.py fits the filmed servo into model/servo_fit.json, whose values then win.
+SERVO_V = electrical.SERVO_MIN_V
+STALL_NM = electrical.servo.SPEC[SERVO_V]["stall_kgfcm"] * 0.0980665
+FIT = os.path.join(os.path.dirname(__file__), "servo_fit.json")
+SERVO = {
+    "stall_nm": STALL_NM,
+    "no_load_rad_s": math.radians(electrical.servo.rate(SERVO_V)),
+    "kp": STALL_NM / math.radians(0.5),
+    "armature": electrical.servo.ARMATURE,
+    "delay_s": 0.02,
+    **(json.load(open(FIT)) if os.path.exists(FIT) else {}),
+}
+
+
+def drive(s, joint, values=SERVO, delay_max_s=None):
+    """A servo on the spec's hinge `joint` (an actuator of its name): a dcmotor at SERVO_V whose position loop commands
+    torque (MuJoCo's controller adds back-EMF to its voltage, as a current-driven motor: optimistic for the servo's
+    voltage H-bridge below the clamp), its voltage clamped at SERVO_V, so it stalls at stall_nm and runs no faster than
+    no_load_rad_s; its command read delay_s late from a history of delay_max_s (default delay_s)."""
+    kd = 2 * math.sqrt(values["kp"] * values["armature"])
+    s.joint(joint).armature = values["armature"]
+    servo = s.add_actuator(name=joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
+    servo.set_to_dcmotor(
+        motorconst=[0, 0],
+        resistance=0,
+        nominal=[SERVO_V, values["stall_nm"], values["no_load_rad_s"]],
+        controller=[values["kp"], 0, kd, 0, 0, SERVO_V],
+        ctrlspec=mujoco.mjtCtrlInput.mjINPUT_POS,
+    )
+    servo.ctrlrange = [-math.pi / 2, math.pi / 2]  # the servo's 0..180
+    servo.nsample = math.ceil((delay_max_s or values["delay_s"]) / s.option.timestep - 1e-9)
+    servo.delay, servo.interp = values["delay_s"], 1  # linear (XMLreference actuator interp), so the fit can move it
 
 
 def convex(file, clip=None):
@@ -227,8 +258,6 @@ def spec(doc, collide=True):
                 point, axis = hinges[j]
                 hinge = body.add_joint(name=j, type=mujoco.mjtJoint.mjJNT_HINGE, pos=local(names[0], point) * MM)
                 hinge.axis = stage.parts[names[0]].matrix[:3, :3].T @ axis  # a rotation's inverse is its transpose
-                if j in stage.horns:
-                    hinge.armature = ARMATURE
                 for n in names[1:]:
                     add(body, stage.parts[names[0]].matrix, n)
                 hang(js, body, stage.parts[names[0]].matrix)
@@ -253,9 +282,7 @@ def spec(doc, collide=True):
             solimp=LOOP_SOLIMP,
         )
     for h in stage.horns:
-        servo = s.add_actuator(name=h, target=h, trntype=mujoco.mjtTrn.mjTRN_JOINT)
-        servo.set_to_position(kp=KP, kv=KV)
-        servo.forcerange, servo.ctrlrange = [-STALL_NM, STALL_NM], [-math.pi / 2, math.pi / 2]  # the servo's 0..180
+        drive(s, h)
     # each lead from its first Port through the clips of its route (model/cables.py) to its second, as a cable:
     # a one-sided limit at the real lead's length (XMLreference.html#tendon-spatial)
     for lead, a, b, mm in electrical.leads():

@@ -72,7 +72,7 @@ def test_every_part_sits_where_stages_places_it(doc):
     mesh's bounding-box corners within 0.1 mm of model/stages.py's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
     stage = stages.STAGES[doc]
     model, data = forward(doc)
-    placed = stages.pose(stage, next(iter(stage.horns)), 0).parts
+    placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg, also where no horn is (next-mech)
     assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
     for name, matrix in placed.items():
         expected = mjcf.root(doc) @ matrix

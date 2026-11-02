@@ -32,3 +32,9 @@ Core's PWM takes a new pulse width only at the next frame. No write asks more of
 428°/s or its acceleration cap: `glide` takes more frames, a big saccade spaces its samples out, a
 replayed trace caps each sample's move (`eyes/test_toon.py`). Fixational jitter (±0.5°) is below one
 servo step and was dropped.
+
+A jump (a lid pop or snap, a saccade's sample) draws a servo's stall current until it arrives, and seven
+at once would ask the one pack for more than its 3 A. So each Core keeps a start budget: at most two
+servos jump at once, and a further jump waits, in whole frames, until one has arrived. The noggin service
+sends the neck Core each command one frame after the eyes Core, so the two Cores' gestures never start
+in the same frame (#620, `2026-11-02-literature-motion-control.md` 4).

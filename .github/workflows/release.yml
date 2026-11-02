@@ -74,7 +74,7 @@ jobs:
           node-version-file: site/.nvmrc
           package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
       # the docs; the sim reports stay the live site's. No picture or GLB: nothing derived from today's printed parts
-      # is published (#640, docs/adr/0018)
+      # is published (#640, docs/adr/0019)
       - name: Build the docs
         run: SITE_BASE="/noggin/${TAG%.*}" uv run just site
       - name: Attach the docs to the release

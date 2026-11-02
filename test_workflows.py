@@ -140,7 +140,7 @@ DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|\.(gl
 
 
 def test_no_workflow_publishes_todays_parts():
-    """#640 (docs/adr/0018): a public repo's artifacts and release assets are anyone's to download, so no workflow
+    """#640 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so no workflow
     uploads the parts, their cut, a picture or a GLB, the site carries none, and a release's docs fetch no GLB.
     The Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
     published = [

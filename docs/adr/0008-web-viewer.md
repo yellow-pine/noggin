@@ -27,7 +27,7 @@
 > Amended 2026-11-02 (#538, #496): the viewer is built in the Checks workflow's `Blender` jobs, and a red build fails
 > its required `Checks` gate, not a `site` check.
 > Amended 2026-11-02 (#547): "Built in CI" describes the Checks workflow and Site Deploy, not the Pages workflow.
-> Amended 2026-11-02 (#640, ADR 0018): the viewer is off the site and CI bakes no GLB until the clean-room Mech;
+> Amended 2026-11-02 (#640, ADR 0019): the viewer is off the site and CI bakes no GLB until the clean-room Mech;
 > `just web` bakes them locally.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages

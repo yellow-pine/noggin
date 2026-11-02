@@ -3,7 +3,7 @@
 Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); structure: docs/adr/0004.
 
 ## Rendering rules (2026-10-31, #47)
-- Not published (Cansin, 2026-11-02, #640, docs/adr/0018): today's parts derive from the designer's models, so until
+- Not published (Cansin, 2026-11-02, #640, docs/adr/0019): today's parts derive from the designer's models, so until
   the clean-room Mech (#51) the pictures, the hero and the viewer's GLBs are rendered locally alone (`just render`,
   `just hero`, `just web`); CI renders none and neither the site nor the README shows them. The rules below are how
   they are made.
@@ -43,7 +43,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   orthographic, square), rendered with the panels in the same look and served as a PNG (pictures.py FAVICON). A PR
   renders it with its preview panel.
 - README media (#117), never in git (#226: `just pictures`, the motions packable into runners (`just blender-bins`,
-  #297, #496), model/render/pictures.py SITE, a PR's preview panel pictures.py PREVIEW, #562; the hero in frame shards
+  #297, #496), model/render/pictures.py SITE, a PR's preview panel and the next Mech's, pictures.py PREVIEW, #562, #629; the hero in frame shards
   of about a minute each, model/shards.py, #537; until #640 CI rendered them and the site served them): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
@@ -89,9 +89,11 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
-The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
-the model stabilises.
-- The next Mech (#51, on hold; the spec lives there): linked eyes (one servo for left/right, one for up/down, each lid
+Today's documents follow Cansin's build, then our model (CLAUDE.md). What we plan to change in today's Mech stays here
+until the model stabilises.
+- The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
+  (geometry.NEXT, #629), clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
+  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each lid
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).

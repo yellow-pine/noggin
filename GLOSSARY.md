@@ -10,6 +10,29 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (the site's Credits page, docs/credits.md).
 _Avoid_: robot, head, beast, eye mech
 
+**Next Mech**:
+The Mech being designed to follow today's (#51): our own design on the Cores, Shields and servos we own, a Skeleton
+that wears a Character. Today's Mech stays the supported build until the next one is built.
+_Avoid_: Mech 2, new Mech
+
+**Skeleton**:
+The next Mech's structural parts, the same under every Character: the eye gimbal, the jaw, the neck, the base and the
+electronics mount, in black PETG.
+_Avoid_: frame, chassis, core
+
+**Shell**:
+One cosmetic part a Character puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in
+PLA Pure, held on by magnets.
+_Avoid_: skin, cover, cosmetic
+
+**Shell set**:
+Every Shell of one Character, pulled off and pressed on together to swap Characters.
+_Avoid_: kit, costume
+
+**Character**:
+Who the next Mech looks like, Morty or Bart: its Shell set and its gaze speed, picked in the noggin service's settings.
+_Avoid_: face, persona, theme
+
 **Core**:
 The controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
 _Avoid_: board, receiver, controller, ESP
@@ -41,6 +64,10 @@ _Avoid_: emulator, simulator, fake Core
 **Pose**:
 The angle of every servo at one instant.
 _Avoid_: position, frame, state
+
+**Start budget**:
+How many servos one Core lets jump at full speed at once (two): a jump draws stall current until the servo arrives, so any further jump waits for one to finish.
+_Avoid_: stall budget, current limit, power budget
 
 **Gesture**:
 A named, timed sequence of poses the Core plays to completion, such as eureka or attention.
@@ -117,13 +144,13 @@ _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
 The page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour from
-Blender's glTF (docs/adr/0008), and Stage 3 exploded; off the Site until the clean-room Mech (docs/adr/0018).
+Blender's glTF (docs/adr/0008), and Stage 3 exploded; off the Site until the clean-room Mech (docs/adr/0019).
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
 The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
 docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs
-(docs/adr/0009); no picture of today's Mech (docs/adr/0018). The README is for contributors and stays on GitHub.
+(docs/adr/0009); no picture of today's Mech (docs/adr/0019). The README is for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:

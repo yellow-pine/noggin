@@ -117,7 +117,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
-  public repo is anyone's, and today's parts derive from the designer's models (ADR 0018, `test_workflows.py`); the
+  public repo is anyone's, and today's parts derive from the designer's models (ADR 0019, `test_workflows.py`); the
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports
   against main's in its job summary.

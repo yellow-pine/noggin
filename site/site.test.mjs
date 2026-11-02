@@ -235,7 +235,7 @@ test("each Stage's guide opens with the Stages in order, by their titles, its ow
   }
 });
 
-// #640 (docs/adr/0018): today's printed parts derive from the designer's models, so until the clean-room Mech (#51)
+// #640 (docs/adr/0019): today's printed parts derive from the designer's models, so until the clean-room Mech (#51)
 // the site ships and links no picture of the Mech, photo or render, and no GLB, and no page draws the viewer
 test("no picture of the Mech or GLB ships or is linked, and no page draws the viewer", () => {
   const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i;

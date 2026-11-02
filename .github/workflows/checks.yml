@@ -11,7 +11,7 @@ name: Checks
 # and just mech, the Link's live checks on the Mech stand-in, #222), with just stl and just step on main or when the
 # parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. No
 # picture, hero or viewer GLB is rendered: nothing derived from today's printed parts is published, and every artifact
-# of a public repo is (#640, docs/adr/0018), so the parts pass between jobs in the Actions cache alone. `Site` builds
+# of a public repo is (#640, docs/adr/0019), so the parts pass between jobs in the Actions cache alone. `Site` builds
 # the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` plays the site
 # in Chrome (Playwright), uploads it (a PR's preview, and on main what Site Deploy, pages.yml, deploys) and checks the
 # CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -163,7 +163,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
   # then saves the cache the model shards restore. The cache, never an artifact: an artifact of a public repo is
-  # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0018)
+  # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0019)
   convex:
     name: Convex
     needs: changes
@@ -305,7 +305,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
-          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'justfile', '.github/workflows/checks.yml', 'uv.lock') }}
+          key: sim-${{ hashFiles('model/*.py', 'model/servo_fit.json', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'justfile', '.github/workflows/checks.yml', 'uv.lock') }}
           restore-keys: sim-
       - name: Run just sim
         if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
