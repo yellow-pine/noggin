@@ -1,0 +1,36 @@
+name: Scorecard
+# Rates the repo's supply-chain security with OpenSSF Scorecard weekly and on branch-protection changes (#500).
+# Its findings go to the Security tab (code scanning) and the public Scorecard API (publish_results), not a PR check.
+# Set up as ossf/scorecard-action's README and GitHub's starter workflow have it; publishing makes the Scorecard API
+# check the workflow (no env, no run steps, id-token only on this job, an Ubuntu runner).
+on:
+  schedule:
+    - cron: "0 5 * * 1"   # Mondays
+  branch_protection_rule:   # the Branch-Protection check, which reads only the default branch
+  workflow_dispatch:
+concurrency:   # the newest run wins: it scores main as it is now
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  analysis:
+    name: Scorecard Analysis
+    runs-on: ubuntu-26.04
+    permissions:
+      security-events: write   # upload the SARIF to code scanning
+      id-token: write   # publish the results, signed with GitHub's OIDC token
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e   # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true   # the README's recommended setting, for public repos
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee   # v4.39.0
+        with:
+          sarif_file: results.sarif
