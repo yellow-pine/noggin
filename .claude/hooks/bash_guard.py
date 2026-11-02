@@ -139,15 +139,32 @@ def split(command):
         raise ValueError(UNPARSED)
 
     def outermost(node):
+        """Each substitution bash runs as (start, end, body), outermost first."""
         if node.type in ("command_substitution", "process_substitution"):
-            return [node]
-        return [found for child in node.children for found in outermost(child)]
+            return [(node.start_byte, node.end_byte, source[node.children[0].end_byte : node.children[-1].start_byte])]
+        found = [span for child in node.children for span in outermost(child)]
+        heredoc = node.type == "heredoc_body"
+        opener = [c.text for c in node.parent.children if c.type == "heredoc_start"] if heredoc else []
+        if not opener or re.search(rb"['\"\\]", opener[0]):  # <<'EOF', <<"EOF", <<\EOF: the body stays text
+            return found
+        # an unquoted heredoc runs its `…` too, which bash's grammar leaves as text (#608); \` there is a plain `
+        masked, ticks = bytearray(source), []  # each $(…) found blanked, so a ` inside one stays its own
+        for start, stop, _ in found:
+            masked[start:stop] = b"_" * (stop - start)
+        for tick in re.compile(rb"\\.|`((?:\\.|[^`\\])*)(`?)", re.S).finditer(masked, node.start_byte, node.end_byte):
+            if tick[0][:1] == b"`" and not tick[2]:
+                raise ValueError(UNPARSED)  # an open `, which bash fails on
+            if tick[0][:1] == b"`":
+                body = source[tick.start(1) : tick.end(1)]
+                ticks.append((tick.start(), tick.end(), re.sub(rb"\\([$`\\])", rb"\1", body)))
+        # a $(…) inside a `…` goes with that `…`'s body
+        return sorted(ticks + [s for s in found if not any(t[0] < s[0] < t[1] for t in ticks)])
 
     text, end = b"", 0
-    for node in outermost(tree.root_node):
+    for start, stop, body in outermost(tree.root_node):
         key = f"_noggin_sub_{len(SUBS)}_"  # PLACEHOLDER
-        SUBS[key] = source[node.children[0].end_byte : node.children[-1].start_byte].decode()
-        text, end = text + source[end : node.start_byte] + key.encode(), node.end_byte
+        SUBS[key] = body.decode()
+        text, end = text + source[end:start] + key.encode(), stop
     return (text + source[end:]).decode()
 
 

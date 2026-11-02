@@ -78,6 +78,9 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("diff <(true) >(just sim)", "CI"),
         ("(echo hi)|python3", "pipe"),
         ("cat <<EOF\n$(git stash)\nEOF", "commit"),  # an unquoted heredoc runs its $(…)
+        ("cat <<EOF\n`git stash`\nEOF", "commit"),  # and its `…`, which bash's grammar leaves as text (#608)
+        ("cat <<EOF\na `echo $(git stash)` b\nEOF", "commit"),
+        ("cat <<EOF\n`git stash\nEOF", "parse"),  # bash fails on an open `, and a guard can't read it
         ('echo "${x:-$(git stash)}"', "commit"),
         ("cat < <(git stash)", "commit"),  # a redirect's target runs too
         ("echo hi > $(git stash)", "commit"),
@@ -139,6 +142,10 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         """echo "x: $(gh api repos/a/b --jq '"\\(.a)"')" """,  # shlex misreads it, bash can (#579)
         """echo "$(printf '"')" """,  # shlex raises on it, bash reads it
         "cat > notes.md <<'EOF'\n$(git stash) is text in a quoted heredoc\nEOF",
+        "cat <<'EOF'\n`git stash`\nEOF",
+        "cat <<EOF\nplain text with no backticks\nEOF",
+        "cat <<EOF\nan escaped \\`git stash\\` is text\nEOF",
+        "cat <<EOF\n$(printf '`')\nEOF",  # the ` is the $(…)'s text, not an open one in the heredoc
         "echo '$(git stash)'",
         "x=(e f) && echo $x",
         "git commit -m 'feat(eyes): x' && (echo a) && f() { :; }",
