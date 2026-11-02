@@ -1,8 +1,8 @@
 # Pictures
 
 The next Mech (#51) as its model has it, clean-room: our own parts and our Envelopes of the hardware we own, posed by
-MuJoCo and drawn by Blender in CI on every merge to main, never kept in git (ADR 0009, ADR 0019). Today's Mech is not
-shown: its printed parts derive from the designer's models. How the pictures are made: [Model notes](model-notes.md).
+MuJoCo and drawn by Blender in CI on every merge to main, never kept in git (ADR 0009, ADR 0019). How the pictures are
+made: [Model notes](model-notes.md).
 
 ## The next Mech
 

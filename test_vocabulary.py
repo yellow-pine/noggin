@@ -107,7 +107,8 @@ def test_vendor_and_designer_names_only_in_credits():
     designer's file names stay in docs/credits.md, README's credits line, the buy list and dated docs/research."""
     from model import printed
 
-    names = set(printed.PARTS)
+    # our names: the model's parts and today's Mech's, which GLOSSARY.md's Printed part lists (they left the model, #720)
+    names = set(printed.PARTS) | set(re.findall(r"^- ([a-z ]+):", (ROOT / "GLOSSARY.md").read_text(), re.M))
     # the stems, and their shortened forms the code used for parts (no "PandT" prefix, no version suffix)
     variants = {v for s in DESIGNER for v in (s, s.removeprefix("PandT "), s.removesuffix(" v2"))}
     banned = sorted(v for v in variants if " " in v and v not in names)

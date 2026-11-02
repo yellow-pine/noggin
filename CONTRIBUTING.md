@@ -85,7 +85,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Keep the session's own checkout clean and detached: `.claude/hooks/sync_checkout.py` fast-forwards it to origin/main
   at session start and before each subagent dispatch, so subagents load main's `.claude/agents/`, and blocks a dispatch
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
-- CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
+- CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: `scripts/required_checks.py`) and
   run `gh pr update-branch` on every open PR so it reports the new name. A required check names a gate job, one
@@ -126,7 +126,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
-  public repo is anyone's, and today's parts derive from the designer's models (ADR 0019, `test_workflows.py`); the
+  public repo is anyone's (ADR 0019, `test_workflows.py`); the
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.

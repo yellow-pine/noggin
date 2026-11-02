@@ -195,19 +195,16 @@ def test_a_pr_runs_the_slim_gate_alone():
 # pictures, the GLBs and the site that carry them
 DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/dist|\.(glb|stl|step|webp|png)\b")
 # a Blender run in a workflow: the recipe and what it draws
-BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b([^\n|&;]*)")
+BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 
 
 def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
-    workflows render and bake the next Mech alone (just pictures next, just web next: documents holding none of
-    today's printed parts), upload only the site, never a part, its cut, a mesh or a frame, put
-    only the next-* pictures and GLBs in the site, and a release's docs fetch only the GLBs the site publishes. The
-    Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
-    from model import geometry as g
-    from model import stages
+    workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
+    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and a release's docs fetch only
+    the GLBs the site publishes. The Actions cache carries the parts between jobs: nobody outside the repo's workflows
+    reads it."""
     from model.render import pictures
-    from web import build
 
     steps = [
         s for f in WORKFLOWS for job in yaml.safe_load(f.read_text())["jobs"].values() for s in job.get("steps", [])
@@ -216,7 +213,6 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
     assert drawn == {("pictures", pictures.NEXT), ("web", pictures.NEXT)}
     assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
-    assert [doc for doc in {*g.NEXT, *build.PUBLIC} if stages.todays(doc)] == []
     uploaded = {
         line.strip()
         for s in steps

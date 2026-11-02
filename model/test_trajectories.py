@@ -6,33 +6,21 @@ import math
 import numpy as np
 import pytest
 
-from model import electrical, gates, geometry, gimbal, mjcf, mujoco_report, traces
+from model import electrical, gates, geometry, gimbal, mjcf, mujoco_report, stages
 from model import trajectories as tj
-from model.render import hero
 from model.test_report import known
 
 pytestmark = pytest.mark.model
 SETTLED_DEG = 0.5  # a servo's deadband (mjcf.SERVO kp)
+DOC = next(iter(geometry.NEXT))
 
 
-# Pairs a gesture drives deeper than at rest because the calibrated servo ends reach past the model's free travel, with
-# why: excused only in the frames where their side's lid horn is past it (geometry.LIMITS), never at the closed end.
-_OPEN = (
-    "eureka widens the lids to lid_open (0.95: horn +29.4 L, +29.6 R) toward the calibrated open end 102 (+32.25,"
-    " geometry.HORN_AT_90), which the Mech runs without binding (#255: no stop or clutch slip up to 133) but which lies"
-    " past the model's free travel (geometry.LIMITS, #210): the ears' back corners cross from +16.5 and the upper lid"
-    " reaches the eye bracket's arm from +28. Conflict, recorded, not settled"
-)
 # Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
 NESTED = {
     frozenset((f"next {s} eyeball cap:1", f"next {s} lid:1")): "the lid's shell turns about the cap's own centre, its"
     " inside 1.5 mm out from the cap (gimbal.LID_R, CAP_R): its convex pieces fill that inside, so they read the cap"
     " 0.06 mm deeper than at rest as it yaws under a half-shut lid (attention); gimbal.report() holds the exact gap (#663)"
     for s in "LR"
-}
-KNOWN_CALIBRATED = {
-    **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _OPEN for s in "LR"},
-    **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _OPEN for s in "LR"},
 }
 
 
@@ -41,10 +29,10 @@ def built(doc):
     return mjcf.model(doc)
 
 
-def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
+def overlaps(doc, motion):
     """{(part, part): (ms, mm)} a reading of each pair whose pieces go PENETRATION_MM deeper than at rest anywhere in
     the motion as played, certified between the sim's steps (gates.certify, #627), the known pairs aside
-    (test_report.known, NESTED) and the calibrated pairs while their lid horn is past its free travel."""
+    (test_report.known, NESTED)."""
     model = built(doc)
     rest = mjcf.pose(model, {})
     floors = {
@@ -52,33 +40,21 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
         for p in gates.pairs(model)
         if not known(p) and frozenset(p) not in NESTED
     }
-
-    def excused(pair, data):
-        if frozenset(pair) not in calibrated:  # only today's lids are
-            return False
-        s = pair[0][0]  # pairs come sorted: a calibrated pair's lid first
-        return math.degrees(data.joint(f"{s} lid horn").qpos[0]) > geometry.HORN_LIMITS[f"{s.lower()}_lid"][1] - 90
-
     step_ms = model.opt.timestep * 1000
     writes, times = tj.commands(doc, motion)
     qpos = tj.play(model, writes, np.arange(0, times[-1] + step_ms / 2, step_ms), read=lambda d: d.qpos.copy())
-    found = gates.certify(model, np.array(qpos), floors, excused)
+    found = gates.certify(model, np.array(qpos), floors)
     return {pair: (row * step_ms, mm) for pair, (row, mm) in found.items()}
 
 
 @pytest.mark.parametrize(
-    "doc,motion", [(d, m) for d in geometry.STAGES | geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
+    "doc,motion", [(d, m) for d in geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
-    """#255, #663: every gesture and the hero as played on each Stage and on the next Mech (its neck and jaw, #642; its
-    gestures and Rest on its eye gimbal, #663): no pair of parts more than PENETRATION_MM deeper than at rest at any step
-    of the sim, not only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
+    """#255, #663: every motion as played on the next Mech (its gestures and Rest on its eye gimbal, #663; the next hero
+    on its neck and jaw, #642): no pair of parts more than PENETRATION_MM deeper than at rest at any step of the sim, not
+    only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
     assert overlaps(doc, motion) == {}
-
-
-def test_known_calibrated_pairs_still_overlap():
-    """When the model's lids can reach the calibrated open end, a KNOWN_CALIBRATED entry no longer overlaps: drop it."""
-    assert set(KNOWN_CALIBRATED) <= {frozenset(p) for p in overlaps("noggin-stage1", "eureka", calibrated={})}
 
 
 def turned(frames, body):
@@ -88,8 +64,8 @@ def turned(frames, body):
 
 
 def test_the_mech_at_rest_stays_at_rest():
-    model = built("noggin-stage3")
-    rest = [(-1, s, 0.0) for s in ("l_lid", "l_eye", "r_lid", "r_eye", "mouth", "tilt", "rotate")]
+    model = built(DOC)
+    rest = [(-1, h, 0.0) for h in stages.STAGES[DOC].horns]
     frames = tj.play(model, rest, range(0, 1001, 100))
     for pos, quat in frames[1:]:
         assert np.abs(pos - frames[0][0]).max() * 1000 < 0.01
@@ -99,11 +75,10 @@ def test_the_mech_at_rest_stays_at_rest():
 def test_a_step_reaches_its_target_no_faster_than_the_servo_slews():
     """A 30 degree step on the L lid servo: after its PWM frame's delay the horn never runs ahead of the rated slew, is
     within the deadband by 250 ms and its rise to 90 % takes the delay and the slew's time give or take 30 ms."""
-    model = built("noggin-stage1")
-    writes = [(-1, s, 0.0) for s in ("l_lid", "l_eye", "r_lid", "r_eye")] + [(0, "l_lid", 30.0)]
+    model = built(DOC)
+    writes = [(-1, h, 0.0) for h in stages.STAGES[DOC].horns] + [(0, "next L lid horn", -30.0)]
     times = range(0, 401, 5)
-    horn = model.body("L lid horn:1").id
-    deg = turned(tj.play(model, writes, times), horn)
+    deg = turned(tj.play(model, writes, times), model.body("next L lid horn:1").id)
     rate = electrical.servo.rate(electrical.SERVO_MIN_V) / 1000  # deg per ms
     delay = mjcf.SERVO["delay_s"] * 1000
     assert all(d <= rate * max(t - delay, 0) + SETTLED_DEG for t, d in zip(times, deg))
@@ -114,26 +89,22 @@ def test_a_step_reaches_its_target_no_faster_than_the_servo_slews():
 
 def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_path, monkeypatch):
     monkeypatch.setattr(tj, "OUT", str(tmp_path))
-    (path,) = tj.bake("noggin-stage1", ["wink"])
+    (path,) = tj.bake(DOC, ["wink"])
     out = json.load(open(path))
-    model = built("noggin-stage1")
-    assert (out["doc"], out["motion"], out["fps"], out["stamp"]) == (
-        "noggin-stage1",
-        "wink",
-        10,
-        tj.stamp("noggin-stage1"),
-    )
+    model = built(DOC)
+    assert (out["doc"], out["motion"], out["fps"], out["stamp"]) == (DOC, "wink", 10, tj.stamp(DOC))
     assert set(out["parts"]) == {model.body(b).name for b in range(1, model.nbody)}
-    n = len(traces.record("wink"))
+    n = len(tj.commands(DOC, "wink")[1])
     assert all(len(p["pos"]) == len(p["quat"]) == n for p in out["parts"].values())
-    assert out["parts"]["L lid horn:1"]["quat"][0] != out["parts"]["L lid horn:1"]["quat"][n // 2]  # the wink moves it
-    assert tj.stale("noggin-stage1")  # its other gestures are not baked here
+    lid = out["parts"]["next L lid horn:1"]["quat"]
+    assert lid[0] != lid[n // 2]  # the wink moves it
+    assert tj.stale(DOC)  # its other motions are not baked here
 
 
 def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(monkeypatch):
     """model/traces.py plays eyes/eyes.py under eyes/calibration.json, so an edit to either moves the stamp (#151 took
     them out of the report's inputs)."""
-    before = tj.stamp("noggin-stage1")
+    before = tj.stamp(DOC)
     for edited in ("eyes/eyes.py", "eyes/calibration.json"):
 
         def opened(path, mode="r", edited=edited):
@@ -142,29 +113,16 @@ def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(
             return io.BytesIO(data + b"#" if path.endswith(edited) else data)
 
         monkeypatch.setattr(tj, "open", opened, raising=False)
-        assert tj.stamp("noggin-stage1") != before, edited
-
-
-def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():
-    """Stage 3 plays the hero at full speed: the head follows its keys (hero.HEAD, the pan pivot's own degrees), read
-    the servo's PWM delay late (mjcf.drive), within 2 degrees, so the pan four-bar never passes its dead point (geometry.LIMITS rotate: it toggles at horn -43.4, where
-    the head would swing back the other way)."""
-    model = built("noggin-stage3")
-    frames = tj.play(model, *tj.hero_commands())
-    assert len(frames) == len(hero.frames())
-    head = turned(frames, model.body("pan turntable:1").id)
-    for k, deg in enumerate(head):
-        keyed = abs(hero._eased(hero.HEAD["rotate"], k / tj.FPS - mjcf.SERVO["delay_s"]))
-        assert abs(deg - keyed) < 2, (k, deg, keyed)
+        assert tj.stamp(DOC) != before, edited
 
 
 def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
     """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
     (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking lid shuts past the
     cap's rim (-65, model/test_gimbal.py) and the other squints; all come back to rest."""
-    model = built("next-mech-back")
+    model = built(DOC)
     names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
-    writes, times = tj.commands("next-mech-back", "wink")
+    writes, times = tj.commands(DOC, "wink")
     frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
     left, right, pitch, lid, other = frames.T
     assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
@@ -177,8 +135,8 @@ def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco()
     """#688: eureka's 22 deg dart on the next Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
     the 11 deg it carries (model/test_traces.py) within the servo's deadband, while the eyes counter-rotate back from
     the dart; the head comes back to rest."""
-    model = built("next-mech-back")
-    writes, times = tj.commands("next-mech-back", "eureka")
+    model = built(DOC)
+    writes, times = tj.commands(DOC, "eureka")
     names = ("next L yaw pivot", "pan pivot")
     yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
     side = np.sign(yaw[np.abs(yaw).argmax()])
@@ -191,7 +149,7 @@ def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco()
 def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
     """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
     (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""
-    model = built("next-mech-back")
+    model = built(DOC)
     yaw, pitch = gimbal.servos(gimbal.YAW, gimbal.PITCH)
     data = mjcf.pose(model, {"next yaw horn": yaw, "next pitch horn": pitch})
     for s in "LR":

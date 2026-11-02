@@ -14,7 +14,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model.printed import bone, gimbal
 
-# a horn's hub on its servo's spline: the Envelopes overlap there by design, as in today's Stages
+# a horn's hub on its servo's spline: the Envelopes overlap there by design
 ON_SPLINE = {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in gm.drives()}
 
 

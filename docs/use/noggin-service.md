@@ -12,8 +12,8 @@ noggin/noggin status # Link (Wi-Fi or USB) and program version per Core, the ser
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 just demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (just demo once, just demo bored 2)
 just follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
-just stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
-just render / hero   # the model's pictures (docs/model-notes.md)
+just stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and document
+just render          # the model's pictures (docs/model-notes.md)
 ```
 
 Posing, live calibration and the run-in are under [Tuning](tuning.md); flashing and the Wi-Fi under

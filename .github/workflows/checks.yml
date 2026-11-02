@@ -6,8 +6,8 @@ name: Checks
 # `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
 # work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
-# tests marked model in four shards balanced on the seconds they measured (model/shards.py: the hero's collision
-# sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed, and just mech,
+# tests marked model in four shards balanced on the seconds they measured (model/shards.py: each document, the rest
+# with just view's offscreen render, just sim when its inputs changed, and just mech,
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
-      # four, balanced on measured seconds: the hero's sweep, each document (pytest -k on its parameter id; its tests
+      # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
       # on one worker, --dist loadgroup), the rest, just sim and just mech (model/shards.py)
       matrix:
         include: ${{ fromJSON(needs.changes.outputs.shards) }}   # {shard, units, tests} (model/test_shards.py)
@@ -314,9 +314,9 @@ jobs:
         if: ${{ always() && (matrix.tests != '' || contains(matrix.units, 'mech')) }}
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # the print and FreeCAD exports as a smoke test, beside the hero's sweep
+      # the print and FreeCAD exports as a smoke test, beside the rest of the model tests
       - name: Run just stl step
-        if: ${{ contains(matrix.units, 'hero') }}
+        if: ${{ contains(matrix.units, 'rest') }}
         run: uv run just stl step
       # the sim reports (just sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (over-broad on purpose: any model module, the justfile, this file). An exact hit is

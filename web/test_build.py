@@ -1,9 +1,8 @@
-"""The viewer's GLBs as Checks builds them (web/build.py): each Stage's GLB (`just web`, read here as `just sim`'s
+"""The viewer's GLBs as Checks builds them (web/build.py): each document's GLB (`just web`, read here as `just sim`'s
 reports are by model/test_report.py) carries every part, the look the page reads and one glTF clip per motion, frame for
 frame its trajectory. The page itself is the site's (site/src/pages/viewer.astro, its tests in site/)."""
 
 import json
-import math
 import os
 import re
 import struct
@@ -11,18 +10,15 @@ import struct
 import numpy as np
 import pytest
 
-from model import stages, traces, trajectories
-from model.render import camera as render_camera
-from model.render import pictures
+from model import stages, trajectories
 from web import build
 
-STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
-STAGES["next-mech-back"] = "next-mech-back.glb"  # #649, #686 (Back alone since #712); #663
+STAGES = {"next-mech-back": "next-mech-back.glb"}  # #649, #686 (Back alone since #712); #663
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
-def test_one_glb_per_stage():
-    assert build.GLBS == STAGES
+def test_one_glb_per_document():
+    assert build.PUBLIC == STAGES
 
 
 @pytest.fixture(scope="module", params=STAGES)
@@ -45,35 +41,14 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb):
     assert look["line_at"] == 640  # lines scale with the canvas: line_px at 640 px wide (Cansin, #211)
 
 
-def test_every_part_of_the_stage_is_a_node(glb):
+def test_every_part_of_the_document_is_a_node(glb):
     doc, g = glb
     assert {n["name"] for n in g["nodes"] if "mesh" in n} == set(stages.STAGES[doc].parts)
 
 
-def test_one_clip_per_gesture_and_the_hero_on_stages_with_a_neck(glb):
+def test_one_clip_per_motion(glb):
     doc, g = glb
-    expected = [*traces.GESTURES] + ([] if doc == "noggin-stage1" else ["hero"]) if doc.startswith("noggin-") else []
-    expected = expected if doc.startswith("noggin-") else [*traces.NEXT_MOTIONS, "next hero"]
-    assert sorted(a["name"] for a in g.get("animations", [])) == sorted(expected)
-
-
-def test_the_hero_stage_carries_the_hero_pictures_camera(glb):
-    """The landing page swaps its poster (the hero picture) for the viewer, which starts from the picture's camera, so
-    the Mech neither jumps nor moves (#597): pictures.hero_camera's lens and frame, looking along HERO, glTF's Y-up."""
-    doc, g = glb
-    if doc != pictures.HERO_STAGE:
-        assert "cameras" not in g
-        return
-    (camera,) = g["cameras"]
-    aspect = pictures.HERO_SIZE[0] / pictures.HERO_SIZE[1]
-    assert camera["perspective"]["aspectRatio"] == pytest.approx(aspect)
-    half = render_camera.SENSOR_MM / 2 / pictures.LENS / aspect  # sensor fitted to the width (model/render/camera.py)
-    assert camera["perspective"]["yfov"] == pytest.approx(2 * math.atan(half))
-    (node,) = [n for n in g["nodes"] if "camera" in n]
-    x, y, z, w = node["rotation"]  # glTF's quaternion; the camera looks down its -Z
-    forward = -np.array([2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)])
-    hx, hy, hz = pictures.HERO
-    assert forward == pytest.approx(-np.array([hx, hz, -hy]), abs=1e-5)  # Blender's Z-up to glTF's Y-up
+    assert sorted(a["name"] for a in g.get("animations", [])) == sorted(trajectories.motions(doc))
 
 
 def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves(glb):

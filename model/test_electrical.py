@@ -1,6 +1,6 @@
 """Seam: model/electrical.py, the SPICE circuit of the Mech's supply (ngspice through spicelib): its operating point on a
 hand-checkable circuit, the pack by its charge (pack_ohm(), pack_ocv()) and when its protector cuts (cuts()),
-worst_case() (the entry the Mech-wide report merges) and leads() (what model/cables.py routes)."""
+worst_case() (the entry the Mech-wide report merges)."""
 
 from model import electrical
 
@@ -69,17 +69,3 @@ def test_at_the_cut_the_servos_sag_below_their_minimum_and_the_cores_keep_their_
     # and the servo lead: Core 1's shield (4 servos) sags further than Core 2's (3)
     assert all(abs(cutoff["servo_v"][n] - 4.552) < 0.001 for n in ("l_lid", "l_eye", "r_lid", "r_eye"))
     assert all(abs(cutoff["servo_v"][n] - 4.570) < 0.001 for n in ("tilt", "mouth", "pan"))
-
-
-def test_leads_run_every_servo_to_its_header_and_the_one_pack_through_its_switch_and_a_y_lead_to_both_shields():
-    assert electrical.CHANNELS["core1"] == {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}  # the build notes
-    assert electrical.CHANNELS["core2"] == {1: "tilt", 2: "mouth", 3: "pan"}
-    leads = {name: (a, b, mm) for name, a, b, mm in electrical.leads()}  # stages.py Port names
-    assert len(leads) == 7 + 1 + 2
-    assert leads["l_eye servo -> Core 1 PWM2"] == ("L eye servo lead", "Core 1 servo PWM2", 250)
-    assert leads["pan servo -> Core 2 PWM3"][0] == "pan servo lead"
-    assert leads["mouth servo -> Core 2 PWM2"][0] == "jaw servo lead"
-    assert leads["pack 1 -> switch 1"] == ("battery 1 lead", "switch board 1 in", 100)
-    # pan-tilt guide p.10: the Y adapter, one branch per shield from the switch board's output
-    assert leads["switch 1 -> shield 1"] == ("switch board 1 out", "Core 1 XH power", 100)
-    assert leads["switch 1 -> shield 2"] == ("switch board 1 out", "Core 2 XH power", 100)

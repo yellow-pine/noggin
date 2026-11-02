@@ -1,12 +1,11 @@
-"""The Mech as MuJoCo models (ADR 0007): one MJCF per document (stages.DOCS: the sub-assemblies and the Stage
-configurations), every part a body placed by model/geometry.py (through stages), in metres. Each part is drawn with
+"""The Mech as MuJoCo models (ADR 0007): one MJCF per document (stages.DOCS), every part a body placed by
+model/stages.py, in metres. Each part is drawn with
 its mesh from just ours and collides through its CoACD convex pieces, since MuJoCo collides a mesh by its convex hull;
 the pieces are decomposed once per mesh and cached in model/build/convex. `python -m model.mjcf [doc ...]` writes
 model/build/mjcf/<doc>.xml (every document by default); `just view` opens one in MuJoCo's viewer.
 Each horn is a hinge on its servo shaft driven by its servo (drive(): a DC motor behind its own position loop), each
-coupler a hinge on its horn pin and each rocker a hinge on its pivot; the four-bars close by a connect at the coupler's rocker pin, each lead is a spatial tendon
-no longer than the real lead, and each screw or pin joint a site per part on its axis (#148, research note
-docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
+coupler a hinge on its horn pin and each rocker a hinge on its pivot; the four-bars close by a connect at the coupler's
+rocker pin (#148, research note docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
 
 import concurrent.futures
 import glob
@@ -24,7 +23,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import cables, electrical, mating, stages
+from model import electrical, stages
 from model import geometry as g
 from model.render import scene
 
@@ -33,11 +32,7 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
-FINE_MM = {
-    "horn": 0.08,
-    **dict.fromkeys(("upper lid", "lower lid"), 0.15),
-    **dict.fromkeys(("base plate", "eye bracket", "desk eye bracket", "pan turntable", "top jaw", "bottom jaw"), 0.3),
-}
+FINE_MM = {"horn": 0.08}
 # The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
 MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod"), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
@@ -51,8 +46,8 @@ TIMESTEP, SETTLE_S = 0.0005, 0.5
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
 LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
 # shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default: at the rated speed the position actuator
-# carried the stage 3 head through the pan four-bar's toggle at pan -40; the DC motor (#625) lands that swing
-# (model/mujoco_report.py full_speed), so the rated speed may do now; revisit with Core 2's choreography.
+# once carried a head through its pan four-bar's toggle; the DC motor (#625) lands that swing (model/mujoco_report.py
+# full_speed), so the rated speed may do now; revisit with Core 2's choreography.
 SLEW_DEG_S = 100
 # The 9 g servo as a DC motor behind its own P loop (#625, docs/research/2026-11-02-literature-simulation.md 1):
 # its published stall torque and no-load speed at 4.8 V, the figures nearest the shield's 5 V servo rail
@@ -141,13 +136,6 @@ def _convex(args):
     return convex(*args)
 
 
-def root(doc):
-    """4x4 from the document's frame to MuJoCo's world: the Y-up eyes-frame documents (noggin-eyes, noggin-mouth) are
-    carried into the PT frame (stages.BASE_IN_EYES undone), so every model is Z-up with its base plate where the
-    Stages have it, and the viewer and gravity agree with it."""
-    return np.linalg.inv(stages.align(*stages.BASE_IN_EYES)) if stages.STAGES[doc].up == 1 else np.eye(4)
-
-
 def _quat(m):
     q = np.zeros(4)
     mujoco.mju_mat2Quat(q, np.ascontiguousarray(m[:3, :3]).flatten())
@@ -231,8 +219,7 @@ def spec(doc, collide=True):
         specular=[0.3] * 3,
     )
     s.add_material(name="satin", specular=0.3, shininess=0.5)
-    r = root(doc)
-    frame = s.worldbody.add_frame(pos=r[:3, 3] * MM, quat=_quat(r))  # the bodies keep the document's own numbers
+    frame = s.worldbody.add_frame()  # the document's frame is MuJoCo's world: z up
     hinges, moves, closures = _joints(stage)
     groups = {}  # parts moved by the same joints are one rigid group: the first carries the joint, the rest hang on it
     for name, js in moves.items():
@@ -299,26 +286,6 @@ def spec(doc, collide=True):
         )
     for h in stage.horns:
         drive(s, h)
-    # each lead from its first Port through the clips of its route (model/cables.py) to its second, as a cable:
-    # a one-sided limit at the real lead's length (XMLreference.html#tendon-spatial)
-    for lead, a, b, mm in electrical.leads():
-        if a in stage.ports and b in stage.ports:
-            route = next(r for r in cables.ROUTES[lead] if all(p in stage.parts for p, _, _ in r))
-            clips = [stage.ports[a], *((p, cables.local(p, q)) for p, q, _ in route), stage.ports[b]]
-            tendon = s.add_tendon(name=lead, range=[0, mm * MM], limited=mujoco.mjtLimited.mjLIMITED_TRUE)
-            for i, (part, q) in enumerate(clips):
-                bodies[part].add_site(name=f"{lead} {i}", pos=np.multiply(q, MM))
-                tendon.wrap_site(f"{lead} {i}")
-    # each screw or pin joint: a site per part on its own feature's axis (the mating check's circle fit), at the point
-    # nearest the first part's centre, so the pair is as far apart as the axes miss each other
-    for joint, feats in mating.JOINTS:
-        if all(p in stage.parts for p, _ in feats):
-            found = [mating.feature(stage.parts[p], f) for p, f in feats]
-            assert all(found), joint
-            first = found[0][0]
-            for (part, _), (centre, axis, _) in zip(feats, found):
-                foot = centre + np.dot(first - centre, axis) * axis
-                bodies[part].add_site(name=f"{joint}: {part}", pos=local(part, foot) * MM)
     return s
 
 
@@ -369,17 +336,6 @@ def residuals(model, data):
         * float(np.linalg.norm(data.site_xpos[model.eq_obj1id[i]] - data.site_xpos[model.eq_obj2id[i]]))
         for i in range(model.neq)
     }
-
-
-def mating_gaps(model, data):
-    """{screw or pin joint: mm its parts' sites are apart at most}, for the joints whose parts the document has."""
-    out = {}
-    for joint, feats in mating.JOINTS:
-        ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, f"{joint}: {p}") for p, _ in feats]
-        if -1 not in ids:
-            pts = data.site_xpos[ids]
-            out[joint] = 1000 * float(np.linalg.norm(pts - pts[0], axis=1).max())
-    return out
 
 
 if __name__ == "__main__":

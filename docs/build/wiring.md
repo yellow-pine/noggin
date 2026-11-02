@@ -12,8 +12,8 @@ built from the code.
 Ports 1 and 2 are the Shield's left header, 3 and 4 the right. The eyes Core's ranges are the calibrated ones
 ([Calibration](calibration.md)): the lids in the shared lid frame, the right lid servo's degrees (the Core writes
 180 - a to the left), closed at the low end, open at the high; the eyes rest centred between their ends. The neck Core
-has no program yet: its ranges are the model's limits and its rest the model's neutral, 90 (the jaw's closed end), and
-its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
+has no program yet: its ranges are the next Mech's neck's in the model and its rest the model's neutral, 90 (the jaw's
+closed end), and its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
 > [!WARNING]
 > **The lids bind at the ends.** Verify a range on the real Mech before pushing past it.

@@ -163,7 +163,7 @@ def test_the_jobs_run_in_our_images_by_the_main_tag():
 
 
 def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
-    assert covered("model/printed/lid.py", ["model/printed/**", "!model/build/**"])
+    assert covered("model/printed/gimbal.py", ["model/printed/**", "!model/build/**"])
     assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])
 
 

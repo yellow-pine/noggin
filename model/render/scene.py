@@ -1,5 +1,5 @@
-"""A Stage for Blender: each part's mesh written once in its own frame with its colour (geometry.SPOOLS; electronics and
-servos in greys), and the servos' horns by name (HORNS), which MuJoCo drives (model/trajectories.py)."""
+"""A document for Blender: each part's mesh written once in its own frame with its colour (geometry.SPOOLS; electronics
+and servos in greys), and the servos' horns by name (HORNS), which MuJoCo drives (model/trajectories.py)."""
 
 import os
 
@@ -8,15 +8,7 @@ import trimesh
 from model import geometry as g
 from model import stages
 
-HORNS = {
-    "l_lid": "L lid horn",
-    "l_eye": "L eye horn",
-    "r_lid": "R lid horn",
-    "r_eye": "R eye horn",
-    "mouth": "jaw horn",
-    "tilt": "tilt horn",
-    "rotate": "pan horn",
-}  # inner chains first: the tilt carries the eyes and mouth, the pan carries the tilt
+HORNS = {"mouth": "jaw horn", "tilt": "tilt horn", "rotate": "pan horn"}  # the neck Core's servos' horns (the hero's)
 
 GREYS = {
     "servo": "#7E8287",

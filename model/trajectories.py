@@ -1,16 +1,14 @@
-"""Trajectories (#179): each gesture (model/traces.py, the Core program's writes) and the README hero
-(model/render/hero.py) played on each Stage by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's
-place in the world per 100 ms frame: the one source of motion the pictures render from (#150, poses()) and
-the web viewer's GLBs bake (web/build.py).
+"""Trajectories (#179): each motion the next Mech plays, the eye program's gestures and Rest through its eye gimbal's
+command map (model/traces.py next_commands, #663) and the next hero (model/render/hero.py, #642), played on each document
+by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's place in the world per 100 ms frame: the one
+source of motion the pictures render from (#150, poses()) and the web viewer's GLBs bake (web/build.py).
 Each command goes straight to its servo, a DC motor behind its own P loop that reads it one PWM frame late
 (mjcf.drive, #625): the load, the stall torque and the no-load speed set how fast it follows; contacts are off, as in
 mjcf.pose.
-The next Mech plays the same program's gestures and Rest through its eye gimbal's command map (traces.next_commands,
-#663) on the servos of its MuJoCo model (model/stages.py next_eyes).
-`python -m model.trajectories [doc ... | next]` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
-Stage and the next Mech's documents (geometry.NEXT, their panels), skipping a Stage whose files still carry its stamp: {"doc", "motion", "fps", "stamp", "parts": {part: {"pos":
-[[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its mesh's, as model/build/ours
-draws it) in MuJoCo's Z-up world, which for a Stage is the PT frame the pictures use."""
+`python -m model.trajectories [doc ...]` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for
+every document (geometry.NEXT), skipping one whose files still carry its stamp: {"doc", "motion", "fps", "stamp",
+"parts": {part: {"pos": [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its
+mesh's, as model/build/ours draws it) in MuJoCo's Z-up world."""
 
 import glob
 import hashlib
@@ -36,18 +34,12 @@ SOURCES = [
     "model/geometry.py",
     "model/stages.py",
     "model/gimbal.py",  # the next Mech's (#663)
-    "model/neck.py",
-    "model/linkage.py",
     "model/neck.py",  # the next Mech's (#641, #642), which stages.py places from
-    "model/gimbal.py",
+    "model/linkage.py",
     "model/base.py",
-    "model/sim.py",
-    "model/fits.py",
     "model/electrical.py",
     "model/mjcf.py",
-    "model/cables.py",
-    "model/mating.py",
-    "model/printed/*.py",  # our parts and the features they declare (the mating sites)
+    "model/printed/*.py",  # our parts
     "model/envelopes.py",
     "eyes/servo.py",  # the servo's speed and torque
     "model/servo_fit.json",  # the filmed servo's, once fitted
@@ -61,24 +53,18 @@ SOURCES = [
 ]
 
 
-def hero_commands(at=hero.at):
-    """The hero as servo writes every PWM_MS, its first pose held from before ms 0 (the rest a gesture starts from)."""
+def hero_commands():
+    """The next hero as servo writes every PWM_MS, its first pose held from before ms 0 (the rest a gesture starts
+    from)."""
     ms = round(hero.SECONDS * 1000)
-    writes = [(t, s, d) for t in range(-PWM_MS, ms, PWM_MS) for s, d in at(max(t, 0) / 1000).items()]
+    writes = [(t, s, d) for t in range(-PWM_MS, ms, PWM_MS) for s, d in hero.next_at(max(t, 0) / 1000).items()]
     return writes, range(0, ms, traces.FRAME_MS)
 
 
-# the next Mech's hero (hero.next_at): the one motion that turns its neck and jaw (#642), the gestures moving the eyes
-MOTIONS = {
-    **{g: lambda g=g: traces.commands(g) for g in traces.GESTURES},
-    "hero": hero_commands,
-    "next hero": lambda: hero_commands(hero.next_at),
-}
-
-
 def commands(doc, motion):
-    """(writes, frame times) of the motion on the document: the next Mech's gestures and Rest through its gimbal (#663)."""
-    return traces.next_commands(motion) if doc in geometry.NEXT and motion in traces.NEXT_MOTIONS else MOTIONS[motion]()
+    """(writes, frame times) of the motion: a gesture or Rest through the eye gimbal (#663), or the next hero (#642), the
+    one motion that turns the neck and jaw."""
+    return hero_commands() if motion == "next hero" else traces.next_commands(motion)
 
 
 def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.copy())):
@@ -125,12 +111,8 @@ def stamp(doc):
 
 
 def motions(doc):
-    """The document's motions: every gesture, the hero on a Stage with the neck (Stages 2 and 3, #180); the next Mech's:
-    every gesture and Rest through its eye gimbal (#663) and the next hero (#642)."""
-    if doc in geometry.NEXT:
-        return [*traces.NEXT_MOTIONS, "next hero"]
-    hero = "pan horn" in stages.STAGES[doc].horns
-    return [m for m in MOTIONS if {"hero": hero, "next hero": False}.get(m, True)]
+    """The document's motions: every gesture and Rest through its eye gimbal (#663) and the next hero (#642)."""
+    return [*traces.NEXT_MOTIONS, "next hero"]
 
 
 def bake(doc, names=None):
@@ -173,7 +155,5 @@ def poses(doc, motion):
 
 
 if __name__ == "__main__":
-    for doc in [
-        d for a in sys.argv[1:] for d in (geometry.NEXT if a == "next" else [a])
-    ] or geometry.STAGES | geometry.NEXT:
+    for doc in [d for a in sys.argv[1:] for d in (geometry.NEXT if a == "next" else [a])] or geometry.NEXT:
         print(f"{doc}: {len(bake(doc))} trajectories" if stale(doc) else f"{doc}: fresh")

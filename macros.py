@@ -5,17 +5,13 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-panels: the Stage panels' grid (model/render/pictures.py PANELS), on no page since #640 (docs/adr/0019); next_panels:
-the next Mech's (geometry.py NEXT, #629), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of
-each of its parts, on docs/pictures.md (#649).
+next_panels: the next Mech's panels' grid (model/render/pictures.py PANELS, geometry.py NEXT, #629), next_motions: its
+eye gimbal in motion (#656) and next_parts: a picture of each of its parts, on docs/pictures.md (#649).
 published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro),
 and variants: the viewer's button per head variant, in the ranking's order (#686).
-stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
-(model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
-eyes/calibration.json, LIMITS for the neck).
+eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py next_neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
-stages: the Stages, one per geometry.STAGES (each Stage's guide, site/site.test.mjs).
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
 explode: the viewer's exploded next Mech (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
@@ -24,13 +20,12 @@ build, released: every page's footer and /version.json (site/src/components/Foot
 import ast
 import json
 import subprocess
-from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
 from model import mjcf, stages
 from model.printed import coupon as clearance
-from model.render import pictures
+from model.render import pictures, scene
 from noggin.core import VERSION
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
@@ -118,9 +113,7 @@ def picture_numbers():
         [
             "| Pictures | Rendered | Served |",
             "|---|---|---|",
-            f"| Stage panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
-            f"| hero | {size(*p.HERO_SIZE)} | {p.HERO_FPS} fps, at most {p.HERO_MAX_BYTES / 1e6:g} MB |",
-            f"| favicon | {size(*p.FAVICON_SIZE)} | PNG |",
+            f"| panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
             f"| the next Mech's parts | {size(*p.PART_SIZE)} | WebP |",
             f"| the next Mech in motion | {size(*p.MOTION_SIZE)} | {p.HERO_FPS} fps, looping |",
             "",
@@ -133,16 +126,16 @@ def picture_numbers():
     )
 
 
-def panels(labels=None):
-    """The Stage panels (model/render/pictures.py PANELS), or the documents labelled, as a grid, a column per document
-    and a row per view, each picture linking to its file; stacked by document on a phone (site/src/styles/custom.css).
-    The landing page's and Pictures' (#470)."""
+def panels(labels):
+    """The documents labelled as a grid of their panels (model/render/pictures.py PANELS), a column per document and a
+    row per view, each picture linking to its file; stacked by document on a phone (site/src/styles/custom.css).
+    Pictures' (#470)."""
     site, views = "https://yellowpine.com/noggin/images/", list(pictures.VIEWS)
     cells = ["<span></span>", *(f"<span>{v.capitalize()}</span>" for v in views)]
-    for doc, label in (labels or {doc: f"Stage {n}" for n, doc in enumerate(g.STAGES, 1)}).items():
+    for doc, label in labels.items():
         cells.append(f"<strong>{label}</strong>")
         for v in views:
-            f = f"{site}{doc.removeprefix('noggin-')}-{v}.webp"
+            f = f"{site}{pictures.picture(doc, v)}"
             cells.append(f'<a href="{f}"><img src="{f}" alt="{label}, {v}" loading="lazy"></a>')
     return f'<div class="noggin-panels not-content" style="--views: {len(views)}">{"".join(cells)}</div>'
 
@@ -184,46 +177,21 @@ HARDWARE = {
 }
 
 
-def stage_guides():
-    """Per Stage (1, 2, 3): the parts it adds to the Stage before it (and any it swaps out), and its new servos with
-    their Core, port and the model's range."""
-    spool = {
-        name.split(" (")[0]: s + (" (inferred)" if "inferred" in name else "") for name, (s, _) in g.PRINTED.items()
-    }
-    port = {servo: (core, n) for core, ports in g.CHANNELS.items() for n, servo in ports.items()}
-    servo_of = {label: key for key, label in g.SERVO_LABEL.items()}
-    parts, servos, before, horns = {}, {}, Counter(), set()
-    for n, doc in enumerate(g.STAGES, 1):
-        d = stages.STAGES[doc]
-        now = Counter(stages.stem(p.file) for p in d.parts.values())
-        rows = ["| Part | Count | Printed in |", "|---|---|---|"]
-        added = [(HARDWARE.get(s, s), k, spool.get(s, "bought")) for s, k in (now - before).items()]
-        rows += [f"| {name} | {k} | {made} |" for name, k, made in sorted(added, key=lambda r: r[0].lower())]
-        gone = before - now
-        parts[n] = "\n".join(rows + ([f"\nIt takes off: {', '.join(sorted(gone))}."] if gone else []))
-        rows = ["| Core | Port | Servo | The model's range | Why |", "|---|---|---|---|---|"]
-        for h in [h for h in d.horns if h not in horns]:
-            key = servo_of[h.removesuffix(" horn")]
-            core, n_port = port[key]
-            (lo, hi), why = g.LIMITS["rotate" if key == "pan" else key]  # the pan servo's limits go by "rotate"
-            rows.append(f"| {core.removeprefix('core')} | {n_port} | {key} | {lo:g}..{hi:g} | {why} |")
-        servos[n], before, horns = "\n".join(rows), now, set(d.horns)
-    return parts, servos
-
-
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
-    shared lid frame, the eyes resting centred between their ends), the neck's the model's limits and its
-    neutral."""
+    shared lid frame, the eyes resting centred between their ends), the neck's the next Mech's neck's limits (its horns
+    from neutral, 90) and that neutral."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
+    neck = stages.next_neck().horns
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
     for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
         for port, servo in ports.items():
             if core == "core1":
                 lo, hi = cal[servo + "_lo"], cal[servo + "_hi"]
                 rest = cal.get(servo + "_rest", (lo + hi) / 2)
-            else:
-                (lo, hi), rest = g.HORN_LIMITS["rotate" if servo == "pan" else servo], 90  # pan's limits go by "rotate"
+            else:  # the pan servo's horn goes by "rotate" (model/render/scene.py HORNS)
+                horn = neck[scene.HORNS["rotate" if servo == "pan" else servo]]
+                (lo, hi), rest = (round(90 + d, 1) for d in horn.limits), 90
             row = f"{n} ({name}) | {port} | {gpio[str(port)]} | {g.SERVO_LABEL[servo]} | {lo:g}..{hi:g} | {rest:g}"
             rows.append(f"| {row} |")
     return "\n".join(rows)
@@ -283,21 +251,16 @@ def released(v):
 
 
 def numbers():
-    parts, servos = stage_guides()
     return {
         "behaviour": behaviour(),
         "pictures": picture_numbers(),
-        "panels": panels(),
         "next_panels": next_panels(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "variants": variants()},
-        "stage_parts": parts,
-        "stage_servos": servos,
         "wiring": wiring(),
         "coupon": coupon(),
         "workflows": workflows(),
-        "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
         "moments": moments(),
         "explode": explode(),
         "build": (b := build()),
