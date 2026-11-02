@@ -15,14 +15,14 @@ defaults:
     shell: bash   # -eo pipefail: make's exit code survives the tee
 # Three required checks side by side, so this workflow's conclusion on main is one of the two Site Deploy waits for
 # (#295, #310): code runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the
-# Mech stand-in; model
+# Mech stand-in; model, on a PR touching the model's inputs and always on main (#402),
 # passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document,
 # the shards read from the code: model/shards.py; make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
 # stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
 # summary, and each job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold
 # cache is cut part by part first (convex, #223), so the model shards start warm.
 jobs:
-  changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout); only mech filters
+  changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout): mech's and model's inputs
     name: Changes
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-26.04
@@ -31,13 +31,15 @@ jobs:
       pull-requests: read
     outputs:
       mech: ${{ steps.filter.outputs.mech }}
+      model: ${{ steps.filter.outputs.model }}
     steps:
       - name: Filter the changed paths
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
-        with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
+        with:   # mech: the Makefile's MicroPython tag, pyproject's mpy-cross pin; model: test_derived.py's MADE_FROM says why
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
+            model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "Makefile", ".github/workflows/check.yml"]
   # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
   # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
   # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
@@ -118,9 +120,11 @@ jobs:
         run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  # Convex, Shards and the model shards: on main (changes skipped) and on a PR touching the model's inputs, as mech
   convex:   # warm: only looks the parts cache up. Cold: from main's latest entry, lists the parts whose pieces are stale
     name: Convex
-    if: ${{ !github.event.pull_request.draft }}
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.model != 'false' }}
     runs-on: ubuntu-26.04
     outputs:
       key: ${{ steps.parts.outputs.cache-primary-key }}
@@ -172,7 +176,8 @@ jobs:
   convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
     name: Convex (${{ matrix.part }})
     needs: convex
-    if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
+    # !cancelled(): the implicit success() would skip it on main, where changes (convex's need) is skipped
+    if: ${{ !cancelled() && needs.convex.result == 'success' && needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false   # the parts that do cut keep their caches
@@ -210,7 +215,8 @@ jobs:
   # model-shard's matrix from the code (make model-shards-list, model/shards.py): a new document needs no edit here
   shards:
     name: Shards
-    if: ${{ !github.event.pull_request.draft }}
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.model != 'false' }}
     runs-on: ubuntu-26.04
     outputs:
       list: ${{ steps.list.outputs.list }}
@@ -231,7 +237,11 @@ jobs:
   model-shard:
     name: Model (${{ matrix.shard }})
     needs: [convex, convex-part, shards]
-    if: ${{ !cancelled() && !failure() && !github.event.pull_request.draft }}   # convex-part is skipped when warm
+    # convex-part is skipped when warm; shards succeeded: not a draft, and the model's inputs changed or this is main.
+    # Its needs by name, not !failure(), which a failed changes (an ancestor) would trip, as mech runs on then
+    if: >-
+      ${{ !cancelled() && needs.shards.result == 'success' && needs.convex.result == 'success'
+      && needs.convex-part.result != 'failure' }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -362,11 +372,16 @@ jobs:
         run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-  model:   # the required check: a skipped shard would count as passing, so the shards' result is checked (not on cancel)
+  # the required check: a skipped shard would count as passing, so the shards' result is checked (not on cancel); they
+  # may skip only when the PR leaves the model's inputs alone
+  model:
     name: Model
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
-    needs: model-shard
+    needs: [changes, model-shard]
     runs-on: ubuntu-26.04
     steps:
       - name: Check every shard passed
-        run: '[ "${{ needs.model-shard.result }}" = success ]'
+        env:
+          RESULT: ${{ needs.model-shard.result }}
+          MODEL: ${{ needs.changes.outputs.model }}
+        run: test "$RESULT" = success || { test "$RESULT" = skipped && test "$MODEL" = false; }

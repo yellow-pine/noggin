@@ -25,7 +25,7 @@ def job(name: str, started: str, completed: str | None, conclusion: str | None =
 
 # #304's first attempt (run 41349665861, its jobs by today's names): a busy queue held the model shards up to 2.5 min
 # for a runner, so the run ended 285 s after its first job started and the old clock failed it, while no chain of jobs
-# ran past 163 s
+# ran past 167 s
 QUEUED_BUT_FAST = [
     job("Changes", "21:00:34", "21:00:38"),
     job("Convex", "20:59:59", "21:00:03"),
@@ -46,7 +46,7 @@ NOW = "2026-11-01T21:04:44Z"
 
 def test_a_busy_queue_does_not_count_only_the_jobs_own_run_times_along_their_needs():
     took = critical_path(QUEUED_BUT_FAST, CHECK, ATTEMPT, NOW)
-    assert took == 4 + 155 + 4  # Convex, Model (mujoco), Model
+    assert took == 4 + 4 + 155 + 4  # Changes, Convex, Model (mujoco), Model
     assert over("pull_request", took, warm=True) is None
 
 
@@ -55,9 +55,9 @@ def test_a_genuinely_slow_job_still_fails_the_run():
         j | {"completed_at": "2026-11-01T21:04:34Z"} if j["name"] == "Model (mujoco)" else j for j in QUEUED_BUT_FAST
     ]
     took = critical_path(slow, CHECK, ATTEMPT, NOW)
-    assert took == 4 + 200 + 4
+    assert took == 4 + 4 + 200 + 4
     level, why = over("pull_request", took, warm=True) or ("", "")
-    assert level == "error" and "208 s > 180 s" in why
+    assert level == "error" and "212 s > 180 s" in why
 
 
 def test_a_job_still_running_counts_up_to_now_and_one_without_a_runner_not_at_all():
