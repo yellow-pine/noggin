@@ -6,8 +6,8 @@ name: Checks
 # `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
 # work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
-# tests marked model in four shards balanced on the seconds they measured (model/shards.py: the hero's collision
-# sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed, and just mech,
+# tests marked model in four shards balanced on the seconds they measured (model/shards.py: each document, the rest
+# with just view's offscreen render, just sim when its inputs changed, and just mech,
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
@@ -75,7 +75,7 @@ jobs:
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
-            release: [".releaserc.json", "ci/release.test.mjs", "ci/package-lock.json"]
+            release: [".releaserc.json", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
       # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB
       # from the render code, the parts' make (model/ours.py) and Blender's pin; the sim reports from the sim, its
@@ -160,11 +160,12 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017), when they, the test or
-      # semantic-release changed ("false" alone skips: the weekly run's filter is empty)
-      - name: Test the release rules
+      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017), and a PR title's
+      # through commitlint's CLI (docs/adr/0010), when they, their tests or the packages changed ("false" alone skips:
+      # the weekly run's filter is empty)
+      - name: Test the release and title rules
         if: ${{ needs.changes.outputs.release != 'false' }}
-        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs ci/commitlint.test.mjs
       # SC2012 ls glob on /dev, SC2015 A && B || C on purpose. It parses them, so just check's bash -n and sh -n run
       # locally alone (#732)
       - name: Run shellcheck
@@ -176,12 +177,18 @@ jobs:
         run: .venv/bin/zizmor -q .
         env:
           GH_TOKEN: ${{ github.token }}
-      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
+      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450); a matrix job's
+      # checks come and go with its matrix, so a required check names a gate job, one without a matrix (#570). A job
+      # without a name reports its id
       - name: Check the required checks
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
-            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
-            | .venv/bin/python scripts/required_checks.py
+        run: |   # its own assignment, so a failing gh fails the step
+          required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
+            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context')
+          stale=$(comm -23 <(sort -u <<< "$required") \
+            <(yq -N '.jobs[] | select(.strategy.matrix == null) | .name // key' .github/workflows/*.yml | sort -u))
+          [ -z "$stale" ] && exit 0
+          sed "s|.*|::error::Required check '&' names no gate job (one without a matrix) in .github/workflows: rename it in main's ruleset too, or require the gate that needs the matrix job.|" <<< "$stale"
+          exit 1
         env:
           GH_TOKEN: ${{ github.token }}
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
@@ -230,7 +237,7 @@ jobs:
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
-      # four, balanced on measured seconds: the hero's sweep, each document (pytest -k on its parameter id; its tests
+      # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
       # on one worker, --dist loadgroup), the rest, just sim and just mech (model/shards.py)
       matrix:
         include: ${{ fromJSON(needs.changes.outputs.shards) }}   # {shard, units, tests} (model/test_shards.py)
@@ -312,9 +319,9 @@ jobs:
         if: ${{ always() && (matrix.tests != '' || contains(matrix.units, 'mech')) }}
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # the print and FreeCAD exports as a smoke test, beside the hero's sweep
+      # the print and FreeCAD exports as a smoke test, beside the rest of the model tests
       - name: Run just stl step
-        if: ${{ contains(matrix.units, 'hero') }}
+        if: ${{ contains(matrix.units, 'rest') }}
         run: uv run just stl step
       # the sim reports (just sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (Changes hashes them, #732). An exact hit is

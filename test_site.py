@@ -1,6 +1,6 @@
 """The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
 (macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The pictures are none in git
-(#226); the site shows the next Mech's alone, today's are rendered locally alone (#640, #649, docs/adr/0019)."""
+(#226); the site shows the next Mech's (#640, #649, docs/adr/0019)."""
 
 import os
 import re
@@ -18,7 +18,7 @@ def test_no_generated_picture_is_tracked():
     from model.render import pictures  # here, not at the top: it imports the model, as macros does
 
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
-    assert [f for f in tracked if os.path.basename(f) in sum(pictures.SITE.values(), [])] == []
+    assert [f for f in tracked if os.path.basename(f) in pictures.published()] == []
 
 
 def test_the_behaviour_table_is_built_from_the_code():
@@ -49,9 +49,6 @@ def github(path):
 SITE_TABLES = {
     "docs/index.md": "#what-it-does",
     "docs/use/gestures.md": "docs/use/gestures/#which-event-plays-what",
-    "docs/build/stage-1.md": "docs/build/stage-1/#parts-from-the-model",
-    "docs/build/stage-2.md": "docs/build/stage-2/#servos-it-adds",
-    "docs/build/stage-3.md": "docs/build/stage-3/#servos-it-adds",
     "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
     "docs/build/wiring.md": "docs/build/wiring/#servo-ports",
     "docs/build/tests.md": "docs/build/tests/#the-clearance-coupon",
@@ -83,7 +80,8 @@ def test_the_readme_is_for_contributors():
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
-    centred) and the neck's model limits and its 90 neutral (geometry.LIMITS; the neck Core has no program yet)."""
+    centred) and the next Mech's neck's limits and its 90 neutral (model/stages.py next_neck; the neck Core has no
+    program yet)."""
     import macros  # here, not at the top: it imports the model
 
     table = macros.wiring()
@@ -92,11 +90,10 @@ def test_the_wiring_table_is_built_from_the_code():
         "| 1 (eyes) | 2 | 2 | L eye | 58..118 | 88 |",
         "| 1 (eyes) | 3 | 1 | R lid | 39..102 | 64 |",
         "| 1 (eyes) | 4 | 0 | R eye | 58..118 | 88 |",
-        "| 2 (neck) | 1 | 3 | tilt | 30..150 | 90 |",
-        "| 2 (neck) | 2 | 2 | jaw | 15..90 | 90 |",
-        "| 2 (neck) | 3 | 1 | pan | 50..160 | 90 |",
     ]:
         assert row in table, row
+    neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| 90 \|$", table, re.M)
+    assert neck == [("1", "3", "tilt"), ("2", "2", "jaw"), ("3", "1", "pan")]
 
 
 def test_the_coupon_table_is_built_from_the_code():
@@ -121,8 +118,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     notes = macros.picture_numbers()
     assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
-        "| hero | 800x400 | 8 fps, at most 3 MB |",
-        "| favicon | 64x64 | PNG |",
+        "| panels | 800 wide, as tall as the tallest | WebP |",
         "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
         "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
         "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
@@ -220,31 +216,14 @@ def test_nothing_public_shows_todays_mech():
     assert [f for f, t in texts.items() if re.search(r"\{\{ panels \}\}|noggin-viewer|favicon\.png", t)] == []
 
 
-def test_every_stage_has_a_side_and_an_isometric_panel():
-    """Cansin (#470): the panels come from the Stages in the code, each from the side and isometric, one WebP each
-    with its lines in one grey for both themes (#489); the hero one WebP too."""
-    from model import geometry as g
+def test_every_document_has_a_side_and_an_isometric_panel():
+    """Cansin (#470): the panels come from the next Mech's documents in the code, each from the side and isometric, one
+    WebP each with its lines in one grey for both themes (#489)."""
     from model.render import pictures
 
-    panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
     # #686, Back alone since #712, its Skeleton as Bones and plain (#704)
-    following = [f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")]
-    assert sorted(pictures.SITE["views"]) == sorted(
-        [*panels, *following, "favicon.png"]
-    )  # the site's icon: an eye (#603)
-    assert pictures.SITE["hero"] == ["hero.webp"]
-
-
-def test_the_panels_grid_has_a_column_per_stage_and_a_row_per_view_each_linking_its_full_size():
-    """The grid the landing page and Pictures showed until #640 (Cansin, #470): one source, macros.py panels; each
-    picture links to its file."""
-    import macros
-
-    grid = macros.panels()
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Stage 1", "Stage 2", "Stage 3"]
-    assert re.findall(r"<span>([^<]*)</span>", grid) == ["", "Side", "Isometric"]
-    links = re.findall(r'<a href="([^"]+)"><img src="([^"]+)"', grid)
-    assert len(links) == 6 and all(href == src and src.endswith(".webp") for href, src in links)
+    panels = [f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")]
+    assert [pictures.picture(*p) for p in pictures.PANELS] == panels
 
 
 def test_the_next_mech_has_its_own_panels():
@@ -277,7 +256,6 @@ def test_the_site_publishes_the_next_mech_alone():
     assert build.PUBLIC == {d: f"{d}.glb" for d in ("next-mech-back", "next-mech-back-plain")}  # #712, #704
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
-    assert [doc for doc in g.NEXT if stages.todays(doc)] == []
 
 
 def test_the_home_and_the_readme_show_the_next_mech():
@@ -327,13 +305,6 @@ def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_ranking
     assert macros.variants() == unranked
 
 
-def test_the_hero_is_800x400():
-    """Cansin (#278, #293): the one 800x400 hero (shown nowhere until the clean-room Mech, #640)."""
-    from model.render import pictures
-
-    assert pictures.HERO_SIZE == (800, 400)
-
-
 def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
     """Cansin (#482, #664): the viewer's Explode moves each part of the next Mech, every head variant, by its
     sub-assembly's offset in model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up
@@ -349,22 +320,7 @@ def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
         assert set(apart) == set(stages.STAGES[doc].parts)
     assert explode["next-mech-back"]["next torso:1"] == [0, 0, 0]
     assert explode["next-mech-back"]["next board rack:1"] == pytest.approx([0, 0.095, -0.06])  # up with the head, back
-    assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
-
-
-def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
-    """Checks' Blender bins (just blender-bins, #297, #496): the views on every Stage and the next Mech (#629) and the
-    hero on stage 3, each with the documents its trajectories bake on; the gestures play in the viewer, not in GIFs
-    (#468)."""
-    from model.render import pictures
-
-    assert pictures.motions() == [
-        {
-            "motion": "views",
-            "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-back next-mech-back-plain",
-        },
-        {"motion": "hero", "stages": "noggin-stage3"},
-    ]
+    assert "exploded.jpg" not in pictures.published()
 
 
 @pytest.mark.parametrize(
@@ -409,12 +365,12 @@ def test_the_reports_page_lists_each_sim_report_the_build_adds(tmp_path):
     page = '<main><ul><li data-reports="">No reports in this build.</li></ul></main>'
     (tmp_path / "site" / "dist" / "reports" / "index.html").write_text(page)
     (tmp_path / "model" / "build" / "reports").mkdir(parents=True)
-    for f in ("noggin-eyes-report.json", "noggin-eyes-junit.xml"):
+    for f in ("next-mech-back-sim.json", "next-mech-back-junit.xml"):
         (tmp_path / "model" / "build" / "reports" / f).write_text("{}")
     subprocess.run([ROOT / "scripts" / "site_reports.sh"], cwd=tmp_path, check=True)
     built = tmp_path / "site" / "dist" / "reports"
     assert (built / "index.html").read_text() == (
-        '<main><ul><li><a href="noggin-eyes-junit.xml">noggin-eyes-junit.xml</a></li>'
-        '<li><a href="noggin-eyes-report.json">noggin-eyes-report.json</a></li></ul></main>'
+        '<main><ul><li><a href="next-mech-back-junit.xml">next-mech-back-junit.xml</a></li>'
+        '<li><a href="next-mech-back-sim.json">next-mech-back-sim.json</a></li></ul></main>'
     )
-    assert (built / "noggin-eyes-report.json").read_text() == "{}"
+    assert (built / "next-mech-back-sim.json").read_text() == "{}"

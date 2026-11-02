@@ -66,8 +66,18 @@ MADE_FROM = {
     # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
     "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
-    # the release rules' test (#732): the rules, the test and the semantic-release it runs them through (docs/adr/0017)
-    "release": ([], [".releaserc.json", "ci/release.test.mjs", "ci/package-lock.json"]),
+    # the release and title rules' tests (#732): the rules, their tests and the packages they run through (ADR 0010,
+    # 0017)
+    "release": (
+        [],
+        [
+            ".releaserc.json",
+            "ci/release.test.mjs",
+            "ci/commitlint.config.mjs",
+            "ci/commitlint.test.mjs",
+            "ci/package-lock.json",
+        ],
+    ),
     # Convex, Shards and the Model shards: the tests marked model, just sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
     # and the scripts, config and workflow that run them
@@ -171,7 +181,7 @@ def test_the_jobs_run_in_our_images_by_the_main_tag():
 
 
 def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
-    assert covered("model/printed/lid.py", ["model/printed/**", "!model/build/**"])
+    assert covered("model/printed/gimbal.py", ["model/printed/**", "!model/build/**"])
     assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])
 
 

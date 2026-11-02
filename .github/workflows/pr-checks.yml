@@ -4,8 +4,8 @@ name: PR Checks
 # ruleset matches; one job since #496, its own workflow since it runs on edited, which Checks never does); editing the
 # title or body re-runs it.
 # The title is its squash commit, which semantic-release reads (docs/adr/0010, 0017): a Conventional Commit,
-# `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
-# (scripts/pr_title.py).
+# `type(scope)[!]: subject`, which commitlint checks against @commitlint/config-conventional's types and rules, with
+# one scope derived from the repo (ci/commitlint.config.mjs).
 # The body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie together
 # (#356). A bot's PR (Dependabot, the skills and blender bumps) has no issue: it passes.
 # GitHub's dependency review (actions/dependency-review-action) fails a PR, a bot's too, that adds a dependency with a
@@ -33,43 +33,24 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref }}   # main's scripts and folders: a PR can't loosen its own check
           persist-credentials: false
           sparse-checkout: |   # git ls-files still lists every tracked file
-            scripts/pr_title.py
+            ci/commitlint.config.mjs
+            ci/package.json
+            ci/package-lock.json
             scripts/pr_issue.py
           sparse-checkout-cone-mode: false
-      - name: List the scopes and the subject pattern
-        id: title
-        run: |
-          { echo "scopes<<EOF"; python3 scripts/pr_title.py; echo EOF; } >> "$GITHUB_OUTPUT"
-          echo "subject=$(python3 scripts/pr_title.py --subject-pattern)" >> "$GITHUB_OUTPUT"
-      - name: Check the title
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50   # v6.1.1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      # the runner's Node, npm's cache keyed on the lockfile
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
-          types: |
-            build
-            chore
-            ci
-            docs
-            feat
-            fix
-            perf
-            refactor
-            revert
-            style
-            test
-          scopes: ${{ steps.title.outputs.scopes }}
-          requireScope: true
-          # config-conventional's subject-case and subject-full-stop, from scripts/pr_title.py (its SUBJECT, why there),
-          # which checks a title before a push with the same pattern (#548)
-          subjectPattern: ${{ steps.title.outputs.subject }}
-          subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter (put a leading acronym or file name in backticks) or end with a period.'
-      - name: Check the scope and length
-        # a bot's title is its own (Dependabot, the weekly bumps): it can't shorten it
-        if: ${{ github.event.pull_request.user.type != 'Bot' }}
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - name: Install commitlint
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      - name: Check the title
         env:   # via env, never inlined into the script
           TITLE: ${{ github.event.pull_request.title }}
-        run: python3 scripts/pr_title.py "$TITLE"
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}   # a bot's title is its own: no length limit
+        run: ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"$TITLE"
       - name: Check the body links an issue
         if: ${{ !cancelled() && github.event.pull_request.user.type != 'Bot' }}   # past a failed title check too
         env:

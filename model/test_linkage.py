@@ -1,15 +1,10 @@
-"""Seam: the planar four-bar solver, on a textbook linkage and on the eyes' recorded transmission curves."""
+"""Seam: the planar four-bar solver, on textbook linkages."""
 
-import json
 import math
-import os
 
 import pytest
 
-from model import geometry as g
 from model import linkage
-
-REPORTS = os.path.join(os.path.dirname(__file__), "reports")
 
 
 def test_parallelogram_rocker_follows_the_crank():
@@ -39,30 +34,3 @@ def test_unreachable_crank_angle_raises():
     )  # coupler 9.06 + rocker 1 < the 11 mm reach at 180
     with pytest.raises(linkage.Unreachable):
         solve(180)
-
-
-def lid_loop(key):
-    """The L lid four-bar from geometry.py: horn pivot -> horn pin (12.75 along +Y), bar to the lid pin, lid about the eye."""
-    spec = g.LID_LINKS[key]
-    o2 = g.PIVOTS["l_lid_horn"]["point"]
-    a0 = (spec["x"][0], o2[1] + g.HORN_STEP["pin"], o2[2])
-    b0 = (spec["x"][1],) + g.LID_PINS[spec["lid"]][1:]
-    return linkage.four_bar(o2, a0, g.EYE_L, b0, axis=g.X)
-
-
-@pytest.mark.parametrize("key, joint", [("lid_bar", "L lower lid pivot"), ("lid_crank", "L upper lid pivot")])
-def test_lid_linkage_matches_the_recorded_curve(key, joint):
-    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L lid horn"][joint]
-    solve = lid_loop(key)
-    for horn_deg, lid_deg in curves:
-        assert solve(horn_deg)[0] == pytest.approx(lid_deg, abs=1.0), (horn_deg, lid_deg)
-
-
-def test_eyeball_linkage_matches_the_recorded_curve():
-    curves = json.load(open(os.path.join(REPORTS, "noggin-eyes-report.json")))["curves"]["L eye horn"][
-        "L eyeball pivot"
-    ]
-    arm_end, eye_end = g.EYEBALL_BAR_PINS
-    solve = linkage.four_bar(g.PIVOTS["l_eye_horn"]["point"], arm_end, g.EYE_L, eye_end, axis=g.Y)
-    for horn_deg, eye_deg in curves:
-        assert solve(horn_deg)[0] == pytest.approx(eye_deg, abs=1.0), (horn_deg, eye_deg)

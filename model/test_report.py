@@ -16,17 +16,12 @@ HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
 # what the exact meshes do (model/test_mjcf.py).
 KNOWN_PAIRS = {
-    **{
-        frozenset((f"{s} eyeball:1", "eye bracket:1")): "the pieces 0.07 mm in at +-20 where the meshes touch with"
-        " nothing 0.1 mm inside (model/test_mjcf.py holds the pieces to that)"
-        for s in "LR"
-    },
-    **{
-        frozenset((f"next {s} push-rod:1", "next bail:1")): "the push-rod's cup round the bail arm's ball: its convex"
-        " pieces fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the"
-        " exact solids share no volume at pitch -15, 0 and 15 (#663)"
-        for s in "LR"
-    },
+    frozenset(
+        (f"next {s} push-rod:1", "next bail:1")
+    ): "the push-rod's cup round the bail arm's ball: its convex pieces"
+    " fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the exact solids"
+    " share no volume at pitch -15, 0 and 15 (#663)"
+    for s in "LR"
 }
 
 
@@ -36,7 +31,7 @@ def known(pair):
 
 
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
-# servos are DC motors (#625): the stage 3 pan swing to -40 no longer carries the head through the pan toggle.
+# servos are DC motors (#625).
 KNOWN_FULL_SPEED = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
@@ -48,24 +43,12 @@ KNOWN_PEAKS = {
     for horn in ("pan horn", "tilt horn")
 }
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
-KNOWN_TRANSMISSION = {
-    "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
-    " give 39 deg end to end, under the mouth GIF's 46 (docs/research/2026-10-31-neck.md)",
-    "jaw hinge": "29 deg at horn 0, the jaws closed (geometry.LIMITS mouth): the stock jaw bar's, recorded, not settled",
-}
+KNOWN_TRANSMISSION = {}
 
 
 def problems(report):
-    """Every threshold the report fails: misplaced parts, fits, beams, the electrical cap and sag, and the MuJoCo half."""
-    out = [f"placement: {v}" for v in report["placements"]]
-    for f in report.get("fits", []):
-        if not f["ok"]:
-            out.append(
-                f"fit {f['joint']}: {f['clearance']} mm radial clearance (hole r {f['hole_r']}, pin r {f['pin_r']})"
-            )
-    for b in report.get("beams", []):
-        if not b["ok"]:
-            out.append(f"beam {b['beam']}: SF {b['sf']} (deflection {b['deflection_mm']} mm)")
+    """Every threshold the report fails: the electrical cap and sag, the MuJoCo half, the gimbal and the neck."""
+    out = []
     e = report.get("electrical")  # model/electrical.py: a cut-off pack sags the servos (known), never a Core's reset
     if e:
         for core, a in e["nominal"]["shield_a"].items():
@@ -219,13 +202,13 @@ def built(doc):
 
 
 def test_reports_are_build_outputs_git_ignores():
-    path = os.path.join(report.OUT, "noggin-eyes-sim.json")
+    path = os.path.join(report.OUT, f"{next(iter(g.NEXT))}-sim.json")
     assert subprocess.run(["git", "check-ignore", "-q", path], cwd=stages.REPO).returncode == 0
 
 
 @pytest.mark.parametrize("doc", sorted(stages.DOCS))
 def test_built_report_is_clean(doc):
-    """Today's Stages and the leading head variant (Cansin's pick to be, #51) pass every gate. Another head variant may
+    """The leading head variant (Cansin's pick to be, #51) passes every gate. Another head variant may
     open a four-bar the ranking carries (#705: ranked last, its Viewer button saying so), and only that: whatever else
     it fails, or a loop the ranking misses, fails here."""
     r = built(doc)
@@ -247,9 +230,6 @@ def test_the_next_mechs_footprint_is_reported_and_is_its_torsos(doc):
 FIXTURE_PROBLEMS = {
     "passing": [],
     "failing": [
-        "placement: {'placement': 'eye bracket:1', 'mm': 5.0, 'tol': 0.5, 'actual': [[0.0, 0.0, 5.0]]}",
-        "fit eyeball bar / horn screw: 0.05 mm radial clearance (hole r 1.05, pin r 1.0)",
-        "beam lid bar: SF 1.65 (deflection 1.939 mm)",
         "electrical core1: 3.2 A with every servo at stall >= the 3.0 A cap",
         "electrical tilt servo: 4.7 V at stall on a nominal pack < the 4.8 V minimum",
         "electrical core2: 2.4 V on a 5.8 V pack < the 2.51 V brownout",

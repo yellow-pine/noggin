@@ -1,9 +1,10 @@
-"""The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
-configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
-whole Mech, the next Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
-(model/neck.py) and head variant (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
-model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the head variants'
-ranking from theirs to model/build/reports/next-mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
+"""The sim report (`just sim`, ADR 0007): for every document in stages.DOCS the electrical budget where both Cores are,
+the next Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
+(model/neck.py) and head variant (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py),
+measured on the document's MJCF, written beside it as model/build/reports/<doc>.xml. Written to
+model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the head variants' ranking from theirs to
+model/build/reports/next-mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's
+at /reports (docs/adr/0009).
 Usage: python -m model.report [doc ...]"""
 
 import concurrent.futures
@@ -16,40 +17,25 @@ import time
 import mujoco
 import numpy as np
 
-from model import base, beams, candidates, convex_parts, electrical, fits, gimbal, mjcf, mujoco_report, neck, stages
+from model import base, candidates, convex_parts, electrical, gimbal, mjcf, mujoco_report, neck, stages
 from model import geometry as g
 from model.printed import gimbal as gimbal_parts
 
 OUT = os.path.join(stages.REPO, "model", "build", "reports")  # CI thresholds them (model/test_report.py)
-TABLES = {
-    "noggin-eyes": (fits.EYES_JOINTS, beams.EYES_BEAMS),
-    "noggin-stack": (fits.PT_JOINTS, beams.PT_BEAMS),
-    "noggin-mouth": (fits.MOUTH_JOINTS, beams.MOUTH_BEAMS),
-}
 
 
 def report(doc):
     """The full report for one document, in the shape of model/build/reports/*-sim.json."""
     stage = stages.STAGES[doc]
-    joints, links = [], []
-    for sub in stages.DOCS[doc][0]:  # fits and beams of the sub-assemblies present
-        j, l = TABLES.get(sub, ([], []))
-        joints += j
-        links += l
-    out = {
-        "doc": doc,
-        "placements": stages.placements(stage),
-        "fits": fits.fit_table(joints),
-        "beams": beams.beam_table(links),
-    }
-    if "next-eyes" in stages.DOCS[doc][0]:  # the next Mech's eye gimbal moves by its own kinematics (#630)
+    out = {"doc": doc}
+    if "next-eyes" in stages.DOCS[doc]:  # the next Mech's eye gimbal moves by its own kinematics (#630)
         plain = doc.endswith("-plain")  # its Skeleton plain (#704)
         out["gimbal"] = {**gimbal.report(), "block_mm": gimbal_parts.bounds(plain), "sweep": gimbal_parts.sweep(plain)}
-    if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
+    if {"next Core 1:1", "next Core 2:1"} <= set(stage.parts):  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report
     model = mujoco.MjModel.from_xml_path(mjcf.write(doc, OUT))
-    if "next-neck" in stages.DOCS[doc][0]:  # the next Mech's neck moves by its own kinematics (#641)
+    if "next-neck" in stages.DOCS[doc]:  # the next Mech's neck moves by its own kinematics (#641)
         out["neck"] = neck.report(head(doc, model))
     if doc in g.NEXT:  # its head variant's figures for the ranking (#686)
         out["variant"] = candidates.report(doc, model)
@@ -65,7 +51,7 @@ def head(doc, model):
     ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
-    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc][0]["next-neck"][0]))
+    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["next-neck"][0]))
 
 
 def simulate(doc):

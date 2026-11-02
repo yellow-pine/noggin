@@ -1,21 +1,14 @@
-"""Seam: `just stl` and `just step` (model/ours.py): a printed part's STL is watertight and in the designer's frame and
-box, its STEP is a valid solid with the same box, and a Stage's STEP is valid, holds every part model/stages.py places, and
-spans the Stage's box at neutral, within 1 mm. Boxes: the designer's (model/printed/test_pupil.py, test_eye_bracket.py,
-test_base_plate.py)."""
+"""Seam: `just stl` and `just step` (model/ours.py): a printed part's STL is watertight in its shape's box, its STEP is a
+valid solid with the same box, and a document's STEP is valid and holds every part model/stages.py places, the Torso's
+foot on z 0."""
 
 import cadquery as cq
 import trimesh
 
-from model import ours, printed
+from model import geometry, ours, printed, stages
 
 BOX_MM = 1.0
-PUPIL = (50.17, -8.83, -20.49, 67.83, 8.83, -18.5)
-BRACKET = (-28.0, -45.6, -4.0, 87.0, 8.5, 18.0)
-EYEBALL_L = (-20.5, -20.5, -18.5, 20.5, 20.28, 5.0)  # a sphere: OCCT leaves zero-area facets at its pole
-# The base plate's x +-60, y 135 and underside z -2 (it sits at the PT origin; the desk bracket's stem ends flush with it,
-# geometry.STEM_AT), and, read off this export once (regression values), the eyeballs' front at y -52.5 and the lids'
-# top at z 62.6.
-STAGE1 = (-60.0, -52.5, -2.0, 60.0, 135.0, 62.6)
+DOC = next(iter(geometry.NEXT))
 
 
 def near(got, want):
@@ -27,11 +20,11 @@ def box(shape):
     return b.xmin, b.ymin, b.zmin, b.xmax, b.ymax, b.zmax
 
 
-def test_a_printed_parts_stl_is_watertight_in_its_designers_box(tmp_path):
-    for stem, want in (("pupil", PUPIL), ("eye bracket", BRACKET), ("L eyeball", EYEBALL_L)):
+def test_a_printed_parts_stl_is_watertight_in_its_shapes_box(tmp_path):
+    for stem in ("next pitch bar", "next L eyeball cap"):
         mesh = trimesh.load(ours.printable(stem, str(tmp_path / f"{stem}.stl")), force="mesh")
         assert mesh.is_watertight and mesh.volume > 0, stem
-        assert near(mesh.bounds.flatten(), want), (stem, mesh.bounds)
+        assert near(mesh.bounds.flatten(), box(ours.SHAPES[stem]().val())), (stem, mesh.bounds)
 
 
 def test_just_stl_prints_the_clearance_coupon_watertight_flat_on_the_bed(tmp_path):
@@ -41,13 +34,13 @@ def test_just_stl_prints_the_clearance_coupon_watertight_flat_on_the_bed(tmp_pat
     assert mesh.is_watertight and mesh.volume > 0 and mesh.bounds[0][2] == 0
 
 
-def test_a_printed_parts_step_is_one_valid_solid_in_its_designers_box(tmp_path):
-    shape = cq.importers.importStep(ours.export("eye bracket", str(tmp_path / "bracket.step"))).val()
+def test_a_printed_parts_step_is_one_valid_solid_in_its_shapes_box(tmp_path):
+    shape = cq.importers.importStep(ours.export("next pitch bar", str(tmp_path / "bar.step"))).val()
     assert shape.isValid() and len(shape.Solids()) == 1
-    assert near(box(shape), BRACKET), box(shape)
+    assert near(box(shape), box(ours.SHAPES["next pitch bar"]().val())), box(shape)
 
 
-def test_a_stages_step_holds_every_placed_part_at_neutral(tmp_path):
-    shape = cq.importers.importStep(ours.stage_step("noggin-stage1", str(tmp_path / "stage1.step"))).val()
-    assert shape.isValid() and len(shape.Solids()) == 31  # the parts Stage 1 places: base, eyes, servos, boards, pack
-    assert near(box(shape), STAGE1), box(shape)
+def test_a_documents_step_holds_every_placed_part_at_neutral(tmp_path):
+    shape = cq.importers.importStep(ours.stage_step(DOC, str(tmp_path / "doc.step"))).val()
+    assert shape.isValid() and len(shape.Solids()) == len(stages.STAGES[DOC].parts)
+    assert abs(box(shape)[2]) < 1e-6  # the Torso's foot (base.TORSO)

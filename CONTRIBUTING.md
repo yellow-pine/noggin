@@ -40,11 +40,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
   a subject that doesn't start with a capital (a leading acronym goes in backticks) or end with a period; at most 100
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
-  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them;
-  `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
-  lands). The required `PR` check
-  (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title
-  re-runs it.
+  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them
+  (main's: a new folder is a scope once it lands). The required `PR` check (`.github/workflows/pr-checks.yml`)
+  enforces it all with commitlint and `ci/commitlint.config.mjs` (a bot's title may pass 100 characters); editing the
+  title re-runs it. Check a title before you open the PR, at the repo's root after `npm ci --prefix ci`:
+  `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
+  is wrong.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
@@ -88,11 +89,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Keep the session's own checkout clean and detached: `.claude/hooks/sync_checkout.py` fast-forwards it to origin/main
   at session start and before each subagent dispatch, so subagents load main's `.claude/agents/`, and blocks a dispatch
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
-- CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
+- CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
-  main's ruleset too (`Code` fails while the ruleset names a check no gate job does: `scripts/required_checks.py`) and
-  run `gh pr update-branch` on every open PR so it reports the new name. A required check names a gate job, one
-  without a matrix (today `PR`, `Checks`, `Fetch Skills`, `Review`), never a matrix job (#570).
+  main's ruleset too (`Code` fails while the ruleset names a check no gate job does: its `Check the required checks`
+  step, yq and comm) and run `gh pr update-branch` on every open PR so it reports the new name. A required check names
+  a gate job, one without a matrix (today `PR`, `Checks`, `Fetch Skills`, `Review`), never a matrix job (#570).
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
@@ -115,9 +116,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue (#697).
-  Only the main session runs the full run on a branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a
-  main failure; an implementer's branch runs the slim gate alone.
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue,
+  labelled `main-red` (#697, #745). Only the main session runs the full run on a branch (`gh workflow run checks.yml
+  --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
@@ -135,7 +136,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
-  public repo is anyone's, and today's parts derive from the designer's models (ADR 0019, `test_workflows.py`); the
+  public repo is anyone's (ADR 0019, `test_workflows.py`); the
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.

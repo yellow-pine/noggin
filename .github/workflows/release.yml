@@ -1,8 +1,8 @@
 name: Release Assets
 # Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs.
-# A release tag's run (docs/adr/0010, 0017): the zip goes onto the release semantic-release made as its deployment in
-# the `release` environment (the Deployments panel links the release; the release's notes link this run), then the
-# release's docs (docs/adr/0014), and it dispatches Site Deploy so they are live at once (#414).
+# A release tag's run (docs/adr/0010, 0017): the zip goes onto the release semantic-release made (the release's notes
+# link this run; no environment, #754, so the release is no Deployment beside itself), then the release's docs
+# (docs/adr/0014), and it dispatches Site Deploy so they are live at once (#414).
 on:
   push:
     tags: ["v*"]
@@ -16,9 +16,6 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # the zip and the notes
-    environment:
-      name: release
-      url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
@@ -40,11 +37,11 @@ jobs:
           zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - name: Attach the zip to the release
         run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
-      # the notes link this deploy once, a re-run or a re-pushed tag included
+      # the notes link this run once, a re-run or a re-pushed tag included (the label older releases already carry)
       - name: Link the run in the notes
         run: |
           gh release view "$TAG" --json body --jq .body > notes.md
-          grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s), the `release` environment\n' "$RUN_URL" >> notes.md
+          grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s)\n' "$RUN_URL" >> notes.md
           gh release edit "$TAG" --notes-file notes.md
   # this release's docs, built once under /noggin/vX.Y/ and kept on the release; Site Deploy serves them (docs/adr/0014).
   # After `release`, so the two notes edits never race; a prerelease's docs are never served, so none are built

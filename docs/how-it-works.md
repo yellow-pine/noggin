@@ -92,14 +92,14 @@ config:
 ---
 flowchart TB
     accTitle: The model's pipeline
-    accDescr: Our CadQuery parts and hardware Envelopes become MuJoCo models, one per document. MuJoCo writes the sim reports and plays each gesture into Trajectories, from which Blender renders the pictures and the web viewer's GLB per Stage. The parts also export as STL and STEP files.
+    accDescr: Our CadQuery parts and hardware Envelopes become MuJoCo models, one per document. MuJoCo writes the sim reports and plays each gesture into Trajectories, from which Blender renders the pictures and the web viewer's GLB per document. The parts also export as STL and STEP files.
     P["Parts<br/>CadQuery: printed parts, Envelopes"] -- "meshes, CoACD pieces" --> M["MuJoCo<br/>one MJCF per document"]
     P -- "just stl step" --> F["STL, STEP<br/>to print, to open in CAD"]
     M -- "just sim" --> R["Sim reports<br/>the site's /reports"]
     M -- "just trajectories" --> T["Trajectories<br/>every part, every frame"]
     T --> B["Blender"]
-    B -- "just render, just hero" --> I["Pictures<br/>local only (#640)"]
-    B -- "just web: glTF, a GLB per Stage" --> W["Web viewer GLBs<br/>local only (#640)"]
+    B -- "just render, just pictures" --> I["Pictures<br/>the site's /images"]
+    B -- "just web: glTF, a GLB per document" --> W["Web viewer GLBs<br/>the site's /viewer"]
 ```
 
 MuJoCo simulates and Blender draws (ADR 0007, ADR 0008); CI builds the reports and the site serves them

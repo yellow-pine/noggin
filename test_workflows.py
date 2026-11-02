@@ -1,7 +1,9 @@
 """CI's names follow GitHub's own UI (#298): every job has a Title Case name ("Fetch Skills", "Model (hero)"), every
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run just check")."""
 
+import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -136,6 +138,36 @@ def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code
     assert (got_code, says in out, got_gh) == (code, True, gh)
 
 
+@pytest.mark.skipif(shutil.which("yq") is None, reason="yq is CI's image's (ci/base.Dockerfile)")
+def test_a_required_check_names_a_gate_job(tmp_path):
+    """#450, #570, #746: checks.yml's `Check the required checks` fails, naming each, on a check main's ruleset requires
+    that no job without a matrix in .github/workflows names (a job without a name reports its id), with `gh` faked."""
+    flows = tmp_path / ".github" / "workflows"
+    flows.mkdir(parents=True)
+    (flows / "check.yml").write_text(
+        "jobs:\n  code:\n    name: Code\n"
+        "  model:\n    name: Model (${{ matrix.shard }})\n    strategy:\n      matrix:\n        shard: [hero]\n"
+        "  site:\n    name: Fetch Site\n    strategy:\n      matrix:\n        os: [linux]\n"
+    )
+    (flows / "review.yml").write_text("jobs:\n  review:\n    name: Review\n  unnamed: {}\n")
+    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "checks.yml").read_text())
+    run = next(s["run"] for s in flow["jobs"]["code"]["steps"] if s.get("name") == "Check the required checks")
+
+    def step(*required: str) -> subprocess.CompletedProcess[str]:
+        (tmp_path / "gh").write_text("#!/bin/sh\nprintf '%s\\n' " + " ".join(f"'{r}'" for r in required) + "\n")
+        (tmp_path / "gh").chmod(0o755)
+        env = {"PATH": f"{tmp_path}:{os.environ['PATH']}", "GITHUB_REPOSITORY": "o/r"}
+        return subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", run], cwd=tmp_path, env=env, capture_output=True, text=True
+        )
+
+    assert step("Code", "Review", "unnamed").returncode == 0
+    stale = ["Lint", "Model (hero)", "Model (${{ matrix.shard }})", "Fetch Site", "model"]
+    failed = step("Code", *stale)
+    assert failed.returncode == 1
+    assert [line.split("'")[1] for line in failed.stdout.splitlines()] == sorted(stale)
+
+
 FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}"  # neither runs everything
 
 
@@ -189,19 +221,16 @@ def test_a_pr_lists_no_job_every_pr_skips():
 # pictures, the GLBs and the site that carry them
 DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/dist|\.(glb|stl|step|webp|png)\b")
 # a Blender run in a workflow: the recipe and what it draws
-BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b([^\n|&;]*)")
+BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 
 
 def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
-    workflows render and bake the next Mech alone (just pictures next, just web next: documents holding none of
-    today's printed parts), upload only the site, never a part, its cut, a mesh or a frame, put
-    only the next-* pictures and GLBs in the site, and a release's docs fetch only the GLBs the site publishes. The
-    Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
-    from model import geometry as g
-    from model import stages
+    workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
+    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and a release's docs fetch only
+    the GLBs the site publishes. The Actions cache carries the parts between jobs: nobody outside the repo's workflows
+    reads it."""
     from model.render import pictures
-    from web import build
 
     steps = [
         s for f in WORKFLOWS for job in yaml.safe_load(f.read_text())["jobs"].values() for s in job.get("steps", [])
@@ -210,7 +239,6 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
     assert drawn == {("pictures", pictures.NEXT), ("web", pictures.NEXT)}
     assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
-    assert [doc for doc in {*g.NEXT, *build.PUBLIC} if stages.todays(doc)] == []
     uploaded = {
         line.strip()
         for s in steps
@@ -225,6 +253,19 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
     viewer = [r for r in fetched if ".published.viewer" in r]
     assert viewer and sorted(fetched) == sorted(viewer)
+
+
+def test_a_job_names_an_environment_only_to_deploy():
+    """#754: a job naming an environment makes a Deployment record, so an environment with nothing in it (Release
+    Assets' `release`, #358) showed every release twice. A job names one only as a real deploy target, or with
+    `deployment: false` for its secrets or rules alone."""
+    named = {
+        (f.name, id_): env if isinstance(env, dict) else {"name": env}
+        for f in WORKFLOWS
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items()
+        if (env := job.get("environment"))
+    }
+    assert named and all(e["name"] == "github-pages" or e.get("deployment") is False for e in named.values()), named
 
 
 def test_no_check_job_writes():
@@ -374,3 +415,16 @@ def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
     assert not (wf / "deploy-pending.yml").exists()
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
+
+
+def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
+    """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
+    found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
+    watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
+    (job,) = flows["main-red.yml"]["jobs"].values()
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
+    assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
+    assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()

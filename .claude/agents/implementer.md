@@ -26,8 +26,7 @@ parts your ticket touches and follow them.
    2. `pr` for the body.
    3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push
       hook runs your one local check, `just lint` (ruff and pyright).
-   4. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in what
-      `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
+   4. Check the title as CONTRIBUTING.md says (commitlint exits 0), then open the PR as it describes.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
    - The PR merges on the slim gate (`PR`, `Checks`: `just check-light`, `Review`); main runs the site, the workflow
      linters, the model, sim and Blender after the merge, and a break there is fixed forward by a new PR (#283, #696,
