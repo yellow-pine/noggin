@@ -170,8 +170,10 @@ def link(a, b, x):
 
 
 def holes(out, pins, x):
-    """`out` with the M3 shank's bore along x through the slab `x` at each (y, z) of `pins`."""
+    """`out` with the M3 shank's bore along x through the slab `x` at each (y, z) of `pins`, in a boss the slab's full
+    thickness: a Bone's dome stops short of its far face, and the part pinned there meets this one face to face."""
     for y, z in pins:
+        out = out.union(cyl("x", (0, y, z), ARM / 2, x))
         out = out.cut(cyl("x", (0, y, z), gm.PIN_R, (x[0] - 1, x[1] + 1)))  # past the faces: no slivers on them
     return out
 

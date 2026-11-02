@@ -41,7 +41,7 @@ def test_no_two_parts_overlap_at_rest(plain):
 
 @pytest.mark.build
 def test_the_block_fits_the_compact_head():
-    """#684, #698: the gimbal, servos and horns included, fits a head of at most 126 W x 120 D x 150 H: the face as
+    """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
     assert all(b <= h for b, h in zip(gimbal.bounds(), gm.HEAD_MM))
 

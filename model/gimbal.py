@@ -84,7 +84,7 @@ PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2,
 # its servo under the eye then clears the pitch servo's collar), the link, and the lids' ears with their crank pins past
 # where a cap reaches yawed in (25.4)
 LID_X = {
-    **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (25.0, 28.0)},
+    **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (24.3, 27.3)},
     **{"bar": (16.5, 19.5), "link": (22.9, 25.9), "ear": (25.9, 28.9)},
 }
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo

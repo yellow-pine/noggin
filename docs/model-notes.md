@@ -120,7 +120,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   four-bar turning it against the upper about 0.8x (`gimbal.lower`); shut they meet 4 deg below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
   shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
-  the face is as wide as the lids' frame (120 mm, 138 before) and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
+  the face is as wide as the lids' frame (119 mm, 138 before), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), plain and as Bones (GLOSSARY; model/printed/bone.py), and
   Back is built in each (`next-mech-back`, `next-mech-back-plain`). As Bones the tie-bar and push-rods (#703, the
