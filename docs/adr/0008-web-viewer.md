@@ -14,6 +14,9 @@
 > Amended 2026-11-01 (#333, ADR 0013): the page is an Astro page (`site/src/pages/viewer.astro`) and the module lives
 > beside it in `site/src/viewer/`, loaded by the site's footer on any page with a viewer; Vite bundles three.js and its addons from npm, the Draco decoder is copied from
 > three's package, and vendored.py, the import map and the page's own CSP are gone (the site's one CSP covers it).
+> Amended 2026-11-02 (#468, spec #467): the home page opens with a viewer of Stage 3, the hero GIF its poster until it
+> loads (on scroll into view; on a phone on a "Play in 3D" tap), and the gesture GIFs are gone: each gesture is a deep
+> link, `/viewer/?gesture=<g>&stage=<n>`.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

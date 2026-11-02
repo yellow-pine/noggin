@@ -4,41 +4,22 @@ An animatronic Mech on the desk that reacts to Claude Code. It winks when a sess
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
 Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
 
+<div class="noggin-viewer hero" data-stage="stage3">
 <figure>
 <img src="https://yellowpine.com/noggin/images/hero.gif" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
+</div>
 
 [Build one](build/parts.md) · [Use it](use/noggin-service.md) · [Turn it in 3D](https://yellowpine.com/noggin/viewer/)
 
 ## Gestures
 
-<div class="grid gestures">
-<figure>
-<img src="https://yellowpine.com/noggin/images/eureka.gif" alt="eureka">
-<figcaption>eureka</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/attention.gif" alt="attention">
-<figcaption>attention</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/bored.gif" alt="bored">
-<figcaption>bored</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/wince.gif" alt="wince">
-<figcaption>wince</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/wink.gif" alt="wink">
-<figcaption>wink</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/thinking.gif" alt="thinking">
-<figcaption>thinking</figcaption>
-</figure>
-</div>
+<!--{{ gestures }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the row above, which it builds from the code -->
+Each gesture plays in [the viewer](https://yellowpine.com/noggin/viewer/).
+<!-- #}-->
 
 ## What it does
 

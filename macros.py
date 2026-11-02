@@ -3,6 +3,7 @@
 `<!--{{ name }}-->`; GitHub, which hides HTML comments, shows the prose around it instead.
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
 landing page and docs/use/gestures.md.
+gestures: the landing page's row of gestures (model/traces.py), each a deep link into the web viewer (#468).
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
@@ -21,7 +22,7 @@ from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
-from model import mjcf, stages
+from model import mjcf, stages, traces
 from model.render import pictures
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
@@ -72,9 +73,12 @@ def behaviour():
     return "\n".join(rows)
 
 
+def gestures():
+    return " · ".join(f"[{g}](https://yellowpine.com/noggin/viewer/?gesture={g}&stage=1)" for g in traces.GESTURES)
+
+
 def picture_numbers():
     p, gif = pictures, "{} wide, {} fps, {} colours, at most {:g} MB".format
-    gestures = gif(p.GIF_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.GIF_MAX_BYTES / 1e6)
     hero = gif(p.HERO_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.HERO_MAX_BYTES / 1e6)
     size = "{}x{}".format
     lift = {g.SPOOLS["Absolute Black"]: constant("model/render/blender.py", "BLACK_LIFT")}
@@ -84,7 +88,6 @@ def picture_numbers():
             "|---|---|---|",
             f"| views and the exploded stage 3 | {size(*p.VIEW_SIZE)} | |",
             f"| the Stage strip, per panel | {size(*p.STRIP_PANEL)} | |",
-            f"| gestures | {size(*p.GIF_SIZE)} | {gestures} |",
             f"| hero | {size(*p.HERO_SIZE)} | {hero} |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `make view` |",
@@ -166,6 +169,7 @@ def numbers():
     parts, servos = stage_guides()
     return {
         "behaviour": behaviour(),
+        "gestures": gestures(),
         "pictures": picture_numbers(),
         "stage_parts": parts,
         "stage_servos": servos,

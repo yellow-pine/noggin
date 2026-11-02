@@ -14,12 +14,6 @@ def _unit(v):
     return v / np.linalg.norm(v)
 
 
-def three_quarter(front, side, up, elevation_deg):
-    """Unit direction toward the corner between `front` and `side`, raised elevation_deg toward `up`."""
-    e = np.radians(elevation_deg)
-    return np.cos(e) * _unit(np.add(_unit(front), _unit(side))) + np.sin(e) * _unit(up)
-
-
 def fit(points, eye_dir, up, aspect, lens=None, margin=1.0):
     """Camera whose frame (width/height = aspect >= 1) holds every point, `margin` x the tightest fit."""
     back = _unit(eye_dir)

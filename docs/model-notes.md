@@ -5,8 +5,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Rendering rules (2026-10-31, #47)
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `make trajectories`; #150): `make render` for
-  the views (each Stage at rest, a trajectory's first frame; sub-assemblies at their placement), `make gifs` for the
-  gestures; code in model/render, output in model/build/pictures.
+  the views (each Stage at rest, a trajectory's first frame; sub-assemblies at their placement), `make hero` for the
+  hero GIF; code in model/render, output in model/build/pictures. The gestures play in the web viewer, not in GIFs
+  (#468).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
@@ -21,7 +22,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the eyeball so their outline stays
   whole. For CI's software GL (Cansin, 2026-11-01, #226, #276; docs/research/2026-11-01-render-profile.md): Blender's
   Line Art draws the lines (Freestyle took ~90 % of a frame on one thread), Eevee takes 4 samples a frame (was 64), the
-  GIFs render at the size they ship, 8 fps, keeping toon timing's key frames (pictures.py at_fps).
+  hero GIF renders at the size it ships, 8 fps, keeping toon timing's key frames (pictures.py at_fps).
 - Views, orthographic, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
   mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
   frame top from +Y, side from -X, front from -Z).
@@ -34,12 +35,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
   penetrations as MuJoCo's report judges a sweep), the Stage strip
   (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
-  camera direction as the hero) and the six gesture GIFs: about 6 MB in all, no photos.
-- Gesture GIFs: noggin-stage1, perspective from the Mech's front-right (right eye nearest) 25 degrees above, framed
-  on the eyes with the base's front in view; one frame per 100 ms of the gesture's trajectory (MuJoCo playing the Core
-  program's own writes through the servos' dynamics: model/traces.py `commands`, lid fractions through
-  eyes/calibration.json to the shared lid frame's degrees, plus the lid horns' spline tooth, geometry.HORN_AT_90), with
-  a contact sheet per gesture; their sizes are under Numbers from the code below.
+  camera direction as the hero), no photos. The gestures play in the web viewer on the home page and at /viewer (#468).
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code
@@ -72,7 +68,7 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
   no guide sheets. The designer's and the vendor's files are credits ([Credits](credits.md)) and history (docs/research) only.
-- Every picture (`make render`, `make gifs`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
+- Every picture (`make render`, `make hero`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
 - `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
   model/build/stl; future prints use ours.
 - `make step` (#98): every part and envelope, and each Stage at neutral (model/stages.py's placements, coloured, one

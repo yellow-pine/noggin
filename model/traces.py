@@ -2,7 +2,7 @@
 (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
 joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to the shared lid frame, then
-the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The GIFs are rendered from these frames by model/render/pictures.py (`make gifs`, docs/model-notes.md);
+the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The web viewer plays these frames (web/build.py, docs/adr/0008);
 `commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo."""
 
 import importlib.util

@@ -30,29 +30,5 @@ MuJoCo's trajectories (every picture here). Main's sim reports are on the site a
 
 ## The gestures
 
-<div class="grid gestures">
-<figure>
-<img src="https://yellowpine.com/noggin/images/eureka.gif" alt="eureka">
-<figcaption>eureka</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/attention.gif" alt="attention">
-<figcaption>attention</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/bored.gif" alt="bored">
-<figcaption>bored</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/wince.gif" alt="wince">
-<figcaption>wince</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/wink.gif" alt="wink">
-<figcaption>wink</figcaption>
-</figure>
-<figure>
-<img src="https://yellowpine.com/noggin/images/thinking.gif" alt="thinking">
-<figcaption>thinking</figcaption>
-</figure>
-</div>
+The gestures play in [the viewer](https://yellowpine.com/noggin/viewer/), each from the home page's
+[Gestures](index.md#gestures).
