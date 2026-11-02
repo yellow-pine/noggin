@@ -17,6 +17,7 @@ SHELLS = ("bash", "sh", "zsh", "dash")
 INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a pipe may not feed
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse (an open quote or heredoc); fix it, or write long text to a file first."
+UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
 
 class Fed(str):
@@ -164,11 +165,25 @@ def reason(command, folder):
     return None
 
 
+def unsplit(command):
+    """Why a for loop would run once, or None: zsh, the Bash tool's shell, doesn't split an unquoted $var or ${…}
+    (#578). Only the outer command is zsh's; a heredoc or -c fed to bash splits. Each $ gets a \\NUL before it, which
+    shlex drops outside quotes and keeps inside them, so the words show which $ stood unquoted."""
+    for words, *_ in commands(command.replace("$", "\\\0$")):
+        for k, word in enumerate(words[:-2]):
+            loop = word == "for" and words[k + 2] == "in" and (k == 0 or words[k - 1] in KEYWORDS)
+            # ${=var} and ${(f)…} are zsh's own splitting; $(…) splits in zsh too
+            if loop and any(re.search(r"(?<!\\)\0\$(\w|\{(?![=(]))", w) for w in words[k + 3 :]):
+                return UNSPLIT
+    return None
+
+
 def main():
     try:
         event = json.load(sys.stdin)
+        command = event["tool_input"].get("command", "")
         # shortcut: the session's justfile, so just -f elsewhere passes; follow -f if agents start using it
-        why = reason(event["tool_input"].get("command", ""), event.get("cwd", "."))
+        why = reason(command, event.get("cwd", ".")) or unsplit(command)
     except Exception as error:  # fail closed: a guard that crashes must not wave the command through
         why = f"bash_guard.py failed ({error!r}); fix the hook or tell Cansin."
     if why:

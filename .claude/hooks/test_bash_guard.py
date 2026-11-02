@@ -64,6 +64,10 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("gh api graphql -F query=@merge.graphql", "inline"),
         ("echo 'unbalanced", "parse"),
         ("bash <<EOF\necho don't\nEOF", "parse"),
+        ("for n in ${nums//,/ }; do gh api -X PATCH alerts/$n; done", "${=var}"),
+        ("for f in $files\ndo\n  echo $f\ndone", "${=var}"),
+        ('for f in "$a"$b; do :; done', "${=var}"),
+        ("if true; then for n in $nums; do :; done; fi", "${=var}"),
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -95,6 +99,13 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "git commit -F - <<EOF\nuntil now\nEOF\ngit push",
         "until [ -f out ]; do /bin/sleep 5; done",
         "cat <<< 'until x'",
+        "for n in 1 2 3; do echo $n; done",
+        'for n in "$nums" "${xs[@]}"; do :; done',
+        "for n in ${=nums}; do :; done",
+        "for f in $(ls); do echo $f; done",
+        "echo for n in $nums",
+        "bash <<'EOF'\nfor n in $nums; do echo $n; done\nEOF",
+        "cat > loop.sh <<'EOF'\nfor n in $nums; do echo $n; done\nEOF",
     ],
 )
 def test_anything_else_runs(command):
