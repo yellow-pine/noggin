@@ -1,28 +1,40 @@
 # Stage 3: mouth
 
 > [!WARNING]
-> **Not yet built here.** No Stage 3 stands on the desk yet. This guide was read off the model of today's Mech, which
-> followed the designer's mouth guide ([Credits](../credits.md)). The model now holds the next Mech alone (#720).
+> **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
+> [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
-Stage 2 with a jaw under the eyes: the full Mech. One more servo, on Core 2.
+Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. The character's Shells go on
+after it ([Skeleton and shells](../face-design.md)).
 
-## Parts it adds
+## Parts it adds, from the model
 
-The model had the plain jaws, the guide's first variant; the jaws with teeth are the same build.
+<!--{{ stage_parts[3] }}-->
 
-The servo gets calibrated as Stage 1's were ([Calibration](calibration.md)).
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The parts list is in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-3/#parts-it-adds-from-the-model),
+built from the model.
+<!-- #}-->
 
-## Assembly, as the model placed it
+## Servos it adds
 
-1. **Top jaw**, screwed under the eye bracket: it carries the jaw hinge pins.
-2. **Bottom jaw** on those pins; it turns to open the mouth.
-3. **Jaw servo mount** on the eye bracket's rail (the neck's eye bracket from [Stage 2](stage-2.md); Stage 1's desk
-   bracket has no rail), the mouth servo in it.
-4. **Jaw bar** from the jaw horn to the bottom jaw's lug, seated flush between the lug and the horn arm (inferred).
-5. **Horn** with the servo at 90 and the jaws closed: opening the mouth turns the horn the other way.
+<!--{{ stage_servos[3] }}-->
 
-The jaw rides on the eyes, so it pans and tilts with the head.
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The servo and its range are in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-3/#servos-it-adds),
+built from the model.
+<!-- #}-->
+
+The range is the model's, in servo degrees from the jaw shut, where every part sweeps clear; the real servo gets
+calibrated ([Calibration](calibration.md)).
+
+## Assembly, as the model places it
+
+1. **Jaw** on the head mount's lugs; it turns down to open the mouth.
+2. **Jaw servo** on the head mount, behind the mouth; the **jaw bar** joins its horn to the jaw.
+
+The jaw rides the head mount, so it pans and tilts with the head.
 
 ## Wiring
 
-The mouth servo goes to Core 2, on its port in [Wiring](wiring.md).
+The jaw servo goes to the neck Core, on its port in [Wiring](wiring.md).

@@ -18,7 +18,7 @@ flowchart LR
         CC["Claude Code<br/>hooks"] -- "Unix socket<br/>one line per event" --> NS["noggin service<br/>times each turn,<br/>drops Triggers while Busy"]
     end
     subgraph Mech
-        C1["Core 1: eyes<br/>ESP32-C3, MicroPython<br/>4 servos: lids and eyes"]
+        C1["Core 1: eyes<br/>ESP32-C3, MicroPython<br/>4 servos: eyes and lids"]
         C2["Core 2: neck<br/>ESP32-C3, MicroPython<br/>3 servos: pan, tilt, mouth"]
     end
     NS -- "Wi-Fi: UDP + HMAC" --> C1
@@ -103,4 +103,4 @@ flowchart TB
 ```
 
 MuJoCo simulates and Blender draws (ADR 0007, ADR 0008); CI builds the reports and the site serves them
-(ADR 0009); the pictures and the viewer stay local until the clean-room Mech (ADR 0019).
+(ADR 0009), the pictures and the viewer's GLBs among them, the Mech's alone (ADR 0019).

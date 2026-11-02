@@ -64,10 +64,9 @@ just restore-stock   # put the stock remote-control program back on the Core
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.
 
-## Stock program on the Core (from the designer's rc_mpy manifest)
+## Stock program on the Core (from its rc_mpy manifest)
 
-The designer's project page ships a manifest of the stock RC program it
-expects on the Core: `boot.py`, `app/rc_main.py`, compiled `app/control.mpy`,
+The stock RC program's manifest lists what it expects on the Core: `boot.py`, `app/rc_main.py`, compiled `app/control.mpy`,
 `app/devices.mpy`, `app/parser.mpy`, and `bbl/{__init__,buzzer,executor,leds,
 motors,servos,sleepModule}.py`. So `bbl` lives on the filesystem, not frozen,
 and the file list matches the GitHub repo's `src/app_rc/`. Local copy with

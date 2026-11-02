@@ -49,7 +49,6 @@ the head carries, and Rest brings the head back (#688, `eyes/eyes.py` `turn`,
 the eyes Core counter-rotates against the head the neck Core is turning; the noggin service's frame between them, plus
 a Wi-Fi round trip, is the gaze error it costs, which the model holds within 2° (`model/test_traces.py`).
 `pan_lo` and `pan_hi` are the pan servo's degrees that turn the head as far as the left eye turns at its own ends
-(`pan_lo` above `pan_hi` when the pan runs the other way). Today's Mech keeps `head_share` 0, the eyes alone: its pan
-four-bar turns the head the other way, about half a degree per servo degree (the model), and its pan is not calibrated
-yet. To try it: `noggin set pan_lo 150`, `noggin set pan_hi 30`, `noggin set head_share 0.6` (the pan's ends inferred).
-The next Mech's model plays it at 0.6.
+(`pan_lo` above `pan_hi` when the pan runs the other way). The model plays the Mech at 0.6 (inferred); the calibration
+ships 0, the eyes alone, until a built Mech's pan is calibrated: then `noggin set pan_lo`, `noggin set pan_hi` and
+`noggin set head_share 0.6`.

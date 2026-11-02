@@ -1,18 +1,48 @@
 # Stage 1: eyes
 
-The eyes on the base plate: the Stage built here. [Stage 2](stage-2.md) and [Stage 3](stage-3.md) were read off the
-model, which now holds the next Mech alone (#720).
+> [!WARNING]
+> **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
+> [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
-## What we built
+The eye block on its test stand: both eyes turn together, left and right on one servo and up and down on another, and
+each eye's upper and lower lid close on that eye's own servo. Four servos on the eyes Core, which stands against the
+stand's back.
 
-Two eyeballs with eyelids on a base plate, four 180° 9 g servos, a Core on a Shield, a switch board and a 14500 cell
-holder. Our board is mounted rotated 90° relative to the designer's photos, which changes nothing electrically. The
-eyes stand on the desk eye bracket, its stem in the base plate's slot. The parts are in [Parts](parts.md).
+## Parts it adds, from the model
 
-## Assembly
+<!--{{ stage_parts[1] }}-->
 
-The designer's eyes guide ([Credits](../credits.md)) is the assembly. Then:
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The parts list is in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-1/#parts-it-adds-from-the-model),
+built from the model.
+<!-- #}-->
 
-1. Wire the four servos to the Shield's ports ([Wiring](wiring.md)).
-2. Flash our program onto the Core ([Flashing](flashing.md)).
-3. Fit the horns with every servo at 90 and tune the lids ([Calibration](calibration.md)).
+## Servos it adds
+
+<!--{{ stage_servos[1] }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The servos and their ranges are in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-1/#servos-it-adds),
+built from the model.
+<!-- #}-->
+
+The ranges are the model's, in servo degrees, where every part sweeps clear; the real servos get calibrated
+([Calibration](calibration.md)).
+
+## Assembly, as the model places it
+
+1. **Gimbal frame**: the eye block's plate, carrying both eyes' pivots and the four servos behind and between the eyes.
+2. **Yaw yokes**, one per eye, turning left and right in the frame; the **tie-bar** joins them to the yaw servo's horn.
+3. **Eyeball cores** turning up and down in the yokes; the **bail** and its two **push-rods** turn both from the pitch
+   servo through the **pitch bar**.
+4. **Lids**: each eye's upper lid through its **lid bar** from its lid servo, the lower lid through a **lid link** off
+   that bar, so the two close against each other.
+5. **Eyeball caps** on the cores.
+6. **Test stand** screwed under the frame's plate, where the head mount goes in [Stage 2](stage-2.md); the eyes Core
+   on its Shield against the stand's back.
+
+## Wiring
+
+The four servos go to the eyes Core ([Wiring](wiring.md)); flash it ([Flashing](flashing.md)). The model's Stage 1
+carries no pack: the pack and the switch board sit beside the stand until the Torso holds them in Stage 2
+(inferred).

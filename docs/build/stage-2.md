@@ -1,42 +1,48 @@
 # Stage 2: neck
 
 > [!WARNING]
-> **Not yet built here.** No Stage 2 stands on the desk yet. This guide was read off the model of today's Mech, which
-> followed the designer's pan-and-tilt guide ([Credits](../credits.md)); where it had to infer, it said so
-> (docs/research/2026-10-31-neck.md). The model now holds the next Mech alone (#720).
+> **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
+> [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
-The eyes move from the desk onto a pan-and-tilt neck: the head turns left and right (pan) and nods (tilt). Two more
-servos on a second Core.
+The eye block leaves its test stand for the neck: the head turns left and right (pan) and nods (tilt) on its own
+pivots, each servo driving it through a bar. The Torso under it holds the pack and the pan servo; the boards ride in the
+back of the head. Two more servos, on the neck Core.
 
-## Parts it adds
+## Parts it adds, from the model
 
-The eye bracket swaps: Stage 1's desk eye bracket has no jaw rail and a stem 5 mm shorter; the neck's eye bracket has
-the rail the mouth hangs on in [Stage 3](stage-3.md).
+<!--{{ stage_parts[2] }}-->
 
-The two servos get calibrated as Stage 1's were ([Calibration](calibration.md)).
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The parts list is in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-2/#parts-it-adds-from-the-model),
+built from the model.
+<!-- #}-->
 
-## Assembly, as the model placed it
+## Servos it adds
 
-1. **Base plate.** It carries the pan pivot, the pan servo's two mounts, both Shields' standoffs, the battery box and
-   the switch board holder.
-2. **Bearing block** in the base plate's recess, and the **pan turntable** on it: the turntable turns on the pan axis
-   and carries the tilt servo tower and the upright.
-3. **Pan servo** in its two mounts: the lead mount (arched to let the lead out) at the shaft end, the tail mount at the
-   other. The pan bar (15 mm between holes, the shorter one) joins the pan horn to the upright's lever.
-4. **Upright** on the turntable, carrying the tilt pivot. The **tilt arm** turns on it; the tilt bar (20 mm) joins the
-   tilt horn to the arm's lever.
-5. **Horns** with the servos at 90: the tilt horn horizontal with its bar vertical, the pan horn about square to its bar. Each bar
-   screws to the horn's second hole from the end, drilled to 2 mm, with an M2 screw and nut.
-6. **Eyes** on the tilt arm: the eye bracket's stem fills the arm's window and its rail lies on the arm top, the eye
-   centres above the arm. The eyes face the plate's pointed end, away from the pack, the Cores and the
-   switch board.
-7. **Wire holder** on the base plate's two posts, holding the leads down.
+<!--{{ stage_servos[2] }}-->
 
-The head turns less than its servos: the stock linkages give about 0.47 of the pan servo's angle and 0.32 of tilt's.
-In the model pan swung 46° end to end and tilt about ±17° (docs/research/2026-10-31-neck.md).
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The servos and their ranges are in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-2/#servos-it-adds),
+built from the model.
+<!-- #}-->
+
+The ranges are the model's, in servo degrees, where every part sweeps clear; the real servos get calibrated
+([Calibration](calibration.md)).
+
+## Assembly, as the model places it
+
+1. **Torso**: the foot the Mech stands on, the pack lying low in it and the **neck mount** with the pan servo on top.
+2. **Pan yoke** turning on the neck mount; the **pan bar** joins it to the pan servo's horn.
+3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the head's centre of mass; the **tilt bar** joins
+   it to the tilt servo's horn.
+4. **Eye block** from [Stage 1](stage-1.md) on the head mount, in the test stand's place.
+5. **Board rack** under the back edge of the gimbal frame's plate, behind the eyes: both Cores on their Shields and the
+   switch board, upright.
+
+Each busy pivot is a greased M3 shank turning in a bore printed along the layers' axis.
 
 ## Wiring
 
-Core 2 sits on its own Shield and joins the Wi-Fi like Core 1 ([Wiring](wiring.md)). The Mech keeps the stock power:
-one pack and one switch board, a Y lead to both Shields; the gestures are to stay inside the pack's 3 A (a pack per Shield
-was dropped, #51).
+The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)). One pack and one switch board feed both
+Shields through a Y lead, split after the neck joint; the leads that cross the pan and tilt pivots are clamped at both
+ends and bent no tighter than ten times their diameter.

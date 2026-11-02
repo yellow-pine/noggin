@@ -27,18 +27,19 @@ More in [Gestures and behaviour](use/gestures.md).
 
 ## The three Stages
 
-The Mech grows in three Stages, each a complete Mech on the desk.
+The Mech is our own design, being designed and not built yet (#51). It grows in three Stages, each complete on the
+desk.
 
-- **Stage 1: eyes.** Two eyeballs with lids on the base plate: four servos on one Core. Built here.
-  [Build Stage 1](build/stage-1.md)
-- **Stage 2: neck.** The eyes on a pan-and-tilt neck: two more servos on a second Core.
-  [Build Stage 2](build/stage-2.md)
-- **Stage 3: mouth.** A jaw under the eyes: the seventh servo. The full Mech.
+- **Stage 1: eyes.** The eye block on a test stand: both eyes turn together on two servos, each eye's lids on its own,
+  four servos on the eyes Core. [Build Stage 1](build/stage-1.md)
+- **Stage 2: neck.** The eye block on a pan-and-tilt neck over the Torso, the boards in the back of the head: two more
+  servos on the neck Core. [Build Stage 2](build/stage-2.md)
+- **Stage 3: mouth.** A jaw under the eyes: the seventh servo, the whole Mech. Then a character's Shells on magnets.
   [Build Stage 3](build/stage-3.md)
 
 ## Where next
 
-- **Build.** Parts to buy and print, the three Stages, wiring, flashing the Core and calibrating the servos.
+- **Build.** Parts to buy and print, the three Stages, wiring, flashing the Cores and calibrating the servos.
   [Build guide](build/parts.md)
 - **Use.** The noggin service, the Claude Code hooks, what each gesture means and how to tune them.
   [Use the Mech](use/noggin-service.md)
