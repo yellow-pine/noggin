@@ -6,6 +6,7 @@ import math
 import numpy as np
 import pytest
 
+from model import geometry as g
 from model import gimbal, stages
 from model.render import pictures
 
@@ -14,7 +15,7 @@ from model.render import pictures
 def motions():
     """Each motion's frames from the next Mech's rest as model/stages.py places it, in metres, as MuJoCo's would be."""
     rest = {}
-    for n, p in stages.STAGES["next-mech"].parts.items():
+    for n, p in stages.STAGES[next(iter(g.NEXT))].parts.items():
         rest[n] = p.matrix.copy()
         rest[n][:3, 3] /= 1000
     return pictures.next_motions(rest)

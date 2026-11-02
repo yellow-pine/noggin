@@ -9,7 +9,7 @@ import pytest
 from model import electrical, gates, geometry, mjcf, mujoco_report, traces
 from model import trajectories as tj
 from model.render import hero
-from model.test_report import KNOWN_PAIRS
+from model.test_report import known
 
 pytestmark = pytest.mark.model
 SETTLED_DEG = 0.5  # a servo's deadband (mjcf.SERVO kp)
@@ -36,23 +36,21 @@ def built(doc):
 
 def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     """{(part, part): (ms, mm)} a reading of each pair whose pieces go PENETRATION_MM deeper than at rest anywhere in
-    the motion as played, certified between the sim's steps (gates.certify, #627), KNOWN_PAIRS aside and the calibrated
-    pairs while their lid horn is past its free travel."""
+    the motion as played, certified between the sim's steps (gates.certify, #627), the known pairs aside
+    (test_report.known) and the calibrated pairs while their lid horn is past its free travel."""
     model = built(doc)
     rest = mjcf.pose(model, {})
     floors = {
         p: min(gates.separation(model, rest, p), 0) - mujoco_report.PENETRATION_MM
         for p in gates.pairs(model)
-        if frozenset(p) not in KNOWN_PAIRS
+        if not known(p)
     }
 
     def excused(pair, data):
-        past = {
-            s
-            for s in "LR"
-            if math.degrees(data.joint(f"{s} lid horn").qpos[0]) > geometry.HORN_LIMITS[f"{s.lower()}_lid"][1] - 90
-        }
-        return frozenset(pair) in calibrated and pair[0][0] in past  # pairs come sorted: a calibrated pair's lid first
+        if frozenset(pair) not in calibrated:  # only today's lids are (the next Mech has no lid horn in MuJoCo)
+            return False
+        s = pair[0][0]  # pairs come sorted: a calibrated pair's lid first
+        return math.degrees(data.joint(f"{s} lid horn").qpos[0]) > geometry.HORN_LIMITS[f"{s.lower()}_lid"][1] - 90
 
     step_ms = model.opt.timestep * 1000
     writes, times = tj.MOTIONS[motion]()
@@ -63,11 +61,12 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
 
 @pytest.mark.certify
 @pytest.mark.parametrize(
-    "doc,motion", [(d, m) for d in geometry.STAGES for m in tj.motions(d)], ids=lambda x: x
+    "doc,motion", [(d, m) for d in geometry.STAGES | geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
-    """#255: every gesture and the hero as played on each Stage: no pair of parts more than PENETRATION_MM deeper than
-    at rest at any step of the sim, not only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
+    """#255: every gesture and the hero as played on each Stage and on the next Mech (its neck and jaw, #642): no pair
+    of parts more than PENETRATION_MM deeper than at rest at any step of the sim, not only in the 100 ms frames the GIFs
+    and the web viewer draw (#627)."""
     assert overlaps(doc, motion) == {}
 
 

@@ -3,6 +3,7 @@ features each declares for the mating check (model/mating.py)."""
 
 from model.printed import (
     bars,
+    base,
     base_plate,
     bearing_block,
     bottom_jaw,
@@ -76,6 +77,10 @@ PARTS = {
     "next pan bar": neck.pan_bar,
     "next tilt bar": neck.tilt_bar,
     "next jaw bar": neck.jaw_bar,
+    # the next Mech's base and its Base candidates' board carriers (#642)
+    "next base plate": base.plate,
+    "next board tray": base.tray,
+    "next board tower": base.tower,
 }
 # test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
 COUPONS = {"clearance coupon": coupon.build}

@@ -21,9 +21,28 @@ KNOWN_PAIRS = {
         for s in "LR"
     },
 }
+# Base candidate (b)'s tower rises on the pan axis through the head's middle (model/base.py): every pair with it is the
+# clearance gate the ranking drops (b) for (base.rank), a finding about (b), not a fault in the model (#642)
+TOWER = "next board tower:1"
+
+
+def known(pair):
+    """A pair (names) whose depth is no problem: in KNOWN_PAIRS, or with (b)'s tower."""
+    return frozenset(pair) in KNOWN_PAIRS or TOWER in pair
+
+
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
 # servos are DC motors (#625): the stage 3 pan swing to -40 no longer carries the head through the pan toggle.
 KNOWN_FULL_SPEED = {}
+# (document, servo) whose load peaks over half its stall along a motion, with why.
+KNOWN_PEAKS = {
+    (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
+    " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
+    " acceleration cap (#51), are a later ticket"
+    for doc in stages.DOCS
+    if doc.startswith("next-")
+    for horn in ("pan horn", "tilt horn")
+}
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {
     "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
@@ -129,10 +148,10 @@ def mujoco_problems(report):
     (its singularity margin or transmission angle under the gate, #627), a servo holding over its rated torque (in a pose
     of the sweep or along a motion), a servo's load peaking over half its stall torque along a motion, a joint a
     full-speed swing leaves off the slow pose, the centre of mass off the footprint, at rest or moving. Listed exceptions
-    (KNOWN_PAIRS, KNOWN_FULL_SPEED, KNOWN_TRANSMISSION) carry their reasons."""
+    (KNOWN_PAIRS and the TOWER's, KNOWN_FULL_SPEED, KNOWN_TRANSMISSION, KNOWN_PEAKS) carry their reasons."""
     m, doc, out = report.get("mujoco", {}), report["doc"], []
     for p in m.get("pairs", []):
-        if deeper(p) > mujoco_report.PENETRATION_MM and frozenset(p["pair"]) not in KNOWN_PAIRS:
+        if deeper(p) > mujoco_report.PENETRATION_MM and not known(p["pair"]):
             out.append(
                 f"mujoco {' / '.join(p['pair'])}: {p['min_mm']} mm at {p['at']}, {deeper(p)} deeper than at rest"
             )
@@ -169,7 +188,7 @@ def mujoco_problems(report):
             out.append(
                 f"mujoco {horn}: holds {a['hold_kgf_cm']} kgf.cm at {a['hold_at']} > its rated {a['rated_kgf_cm']}"
             )
-        if a["peak_kgf_cm"] > a["stall_kgf_cm"] / 2:
+        if a["peak_kgf_cm"] > a["stall_kgf_cm"] / 2 and (doc, horn) not in KNOWN_PEAKS:
             out.append(
                 f"mujoco {horn}: peaks at {a['peak_kgf_cm']} kgf.cm at {a['peak_at']} > half its stall {a['stall_kgf_cm']}"
             )
@@ -246,13 +265,16 @@ def test_fixture_reports(name):
 
 def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
-    swing lands, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
-    going, swings, low = set(), set(), set()
+    swing lands, or a KNOWN_PEAKS servo peaks under the mark, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
+    going, swings, low, peaks = set(), set(), set(), set()
     for doc in stages.DOCS:
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
         low |= {loop for loop, r in m["loops"].items() if r["transmission_deg"] < mujoco_report.TRANSMISSION_DEG}
+        servos = m["motions"]["servos"].items()
+        peaks |= {(doc, h) for h, a in servos if a["peak_kgf_cm"] > a["stall_kgf_cm"] / 2}
     assert set(KNOWN_PAIRS) <= going
     assert swings == set(KNOWN_FULL_SPEED)
     assert low == set(KNOWN_TRANSMISSION)
+    assert peaks == set(KNOWN_PEAKS)

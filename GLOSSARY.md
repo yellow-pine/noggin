@@ -20,6 +20,12 @@ The next Mech's structural parts, the same under every Character: the eye gimbal
 electronics mount, in black PETG.
 _Avoid_: frame, chassis, core
 
+**Base candidate**:
+One way to carry the next Mech's boards and pack, ranked against the other before Cansin picks: (a) the boards on a
+board tray riding the head behind and below the tilt Pivot, (b) the boards on a static board tower rising on the pan
+axis into the cranium. In both the pack lies low in the base, inside the shirt.
+_Avoid_: option, variant, layout
+
 **Eye gimbal**:
 The Skeleton's linked eyes: each eyeball core turns up/down inside a yoke that turns left/right, one servo turns both
 yokes through a tie-bar, one turns both cores through push-rods, and each lid turns about the up/down axis on a servo

@@ -12,8 +12,8 @@ name: Checks
 # parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. Every
 # artifact of a public repo is anyone's, so nothing derived from today's printed parts is rendered or uploaded (#640,
 # docs/adr/0019) and the parts pass between jobs in the Actions cache alone. `Blender` renders the next Mech alone (#649):
-# its panels, its eye gimbal in motion and a picture per part (just pictures next) and its viewer GLB (just web
-# next-mech), when what they are made from changed. `Site` builds the docs
+# its panels, its eye gimbal in motion and a picture per part (just pictures next) and its viewer GLBs (just web
+# next), when what they are made from changed. `Site` builds the docs
 # (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the next Mech's
 # pictures and GLB, tests and plays the site in Chrome (Playwright), uploads it (a PR's preview, and on main what Site
 # Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -112,7 +112,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
@@ -152,7 +152,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
@@ -392,7 +392,7 @@ jobs:
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
     env:
-      TRAJ_DOCS: next-mech   # the trajectories just pictures and just web draw from: the next Mech's alone
+      TRAJ_DOCS: next   # the trajectories just pictures and just web draw from: the next Mech's alone
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -409,8 +409,8 @@ jobs:
           restore-keys: ours-convex-
       - name: Run just pictures next
         run: uv run just BLENDER=blender pictures next
-      - name: Run just web next-mech
-        run: uv run just BLENDER=blender web next-mech
+      - name: Run just web next
+        run: uv run just BLENDER=blender web next
       - name: Save the next Mech's pictures
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:

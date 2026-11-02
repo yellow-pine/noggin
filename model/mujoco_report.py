@@ -69,16 +69,17 @@ def widen(model):
     model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_FILTERPARENT | mujoco.mjtDisableBit.mjDSBL_MULTICCD
 
 
-def _plate(model, data):
-    """The base plate's drawn mesh's vertices in MuJoCo's world (mm), where they are."""
-    g = next(
-        i
-        for i in range(model.ngeom)
-        if model.geom_group[i] == mjcf.VISUAL and model.body(model.geom_bodyid[i]).name == "base plate:1"
-    )
-    m = model.geom_dataid[g]
+def vertices(model, data, body):
+    """The body's (its id) drawn mesh's vertices in MuJoCo's world (mm), where they are."""
+    i = next(i for i in range(model.ngeom) if model.geom_group[i] == mjcf.VISUAL and model.geom_bodyid[i] == body)
+    m = model.geom_dataid[i]
     v = model.mesh_vert[model.mesh_vertadr[m] : model.mesh_vertadr[m] + model.mesh_vertnum[m]]
-    return (v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]) * 1000
+    return (v @ data.geom_xmat[i].reshape(3, 3).T + data.geom_xpos[i]) * 1000
+
+
+def _plate(model, data):
+    """The base plate's (today's or the next Mech's) drawn mesh's vertices in MuJoCo's world (mm), where they are."""
+    return vertices(model, data, next(b for b in range(model.nbody) if model.body(b).name.endswith("base plate:1")))
 
 
 def footprint(points):

@@ -9,6 +9,8 @@ from model.printed.gimbal import collar, cyl, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 COLUMN_R = 10.0  # the neck mount's column: its top is the yoke's thrust face, inside the pan bar's sweep
+NECK_R = 5.0  # the column's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
+POCKET = ((0.5, 10.0), (27.0, 41.0))  # (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
 Y, Z = nk.AXIS
 
 
@@ -26,9 +28,10 @@ def tie(x, y, z):
 
 def mount():
     """The neck mount (static, printed upright): a foot for the base, a column whose top the yoke turns on (the pan
-    shank's tapping hole down its axis), the pan servo's collar and the pan span's lower clamp in front."""
+    shank's tapping hole down its axis; narrowed where the pan bar swings past), the pan servo's collar and the pan span's lower clamp in front."""
     foot = box((-14, 42), (Y - 22, Y + 16), nk.MOUNT_Z)
-    out = foot.union(cyl("z", (0, Y, 0), COLUMN_R, (nk.MOUNT_Z[1], nk.DISC_Z[0])))
+    out = foot.union(cyl("z", (0, Y, 0), COLUMN_R, (nk.MOUNT_Z[1], nk.PAN_Z[0] - 1)))  # 1 mm under the bar
+    out = out.union(cyl("z", (0, Y, 0), NECK_R, (nk.PAN_Z[0] - 1, nk.DISC_Z[0])))
     r, (z0, _) = nk.PAN_SPAN
     out = out.union(box((-3, 3), (Y - r - 3, Y - COLUMN_R + 1), (z0 - 2, z0 + 2))).cut(
         box((-3, 3), (Y - r - 2, Y - r + 2), (z0 - 0.75, z0 + 0.75))
@@ -39,7 +42,7 @@ def mount():
 
 def yoke():
     """The pan yoke (printed upright): a disc on the column (the pan shank's bore) and a floor back under the tilt
-    servo (the pan lever's pin), the cheeks up to the tilt axis (the tilt shanks' tapping holes), the tilt servo's
+    servo (the pan lever's pin; a pocket through it where the tilt horn and bar swing), the cheeks up to the tilt axis (the tilt shanks' tapping holes), the tilt servo's
     collar, the pan span's upper clamp in front and the tilt span's clamp on a post outside the R cheek."""
     out = cyl("z", (0, Y, 0), nk.DISC_R, nk.DISC_Z).union(box((nk.LOOP_X[0], 38), (Y, Y + 35), nk.DISC_Z))
     r, (_, z1) = nk.PAN_SPAN
@@ -54,7 +57,7 @@ def yoke():
     cy, cz = Y + rho * 0.7071, Z - rho * 0.7071  # the clamp 45 deg up behind the axis
     out = out.union(box(nk.LOOP_X, (cy - 2, cy + 2), (nk.DISC_Z[1], cz - 2))).union(tie(sum(nk.LOOP_X) / 2, cy, cz))
     out = out.union(collar(_servo("tilt"), nk.DISC_Z[1]))
-    out = out.cut(cyl("z", (0, Y, 0), gm.PIN_R, nk.DISC_Z))
+    out = out.cut(cyl("z", (0, Y, 0), gm.PIN_R, nk.DISC_Z)).cut(box(*POCKET, nk.DISC_Z))
     return out.cut(cyl("z", (0, Y + nk.PAN_LEVER, 0), TAP_R, nk.DISC_Z))
 
 

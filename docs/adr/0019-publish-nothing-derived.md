@@ -16,6 +16,8 @@
 > Amended 2026-11-02 (#673, Cansin): no PR preview any more, it arrived too late to be useful: no before/after, no
 > `preview` artifact or `just preview`, no sticky comment and no `pr-previews` pre-release (deleted). A PR still
 > renders and bakes the next Mech when its inputs changed, for Checks to test the site with; main publishes them.
+> Amended 2026-11-02 (#642): the Next Mech's documents are its two Base candidates, `next-mech-a` and `next-mech-b`
+> (`just web next`), each published as `next-mech` was.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

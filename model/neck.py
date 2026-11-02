@@ -61,7 +61,7 @@ def _four_bar(o4, lever, horn, axis):
     return linkage.four_bar(horn, tuple(pin), o4, lever, axis)
 
 
-def _pins():
+def pins():
     """{drive: (rocker pivot, its lever's pin, the horn's pivot, axis)} at rest."""
     y, z = AXIS
     pan_z = sum(PAN_Z) / 2
@@ -72,13 +72,13 @@ def _pins():
     }
 
 
-LINKAGES = {d: _four_bar(o4, b, o2, axis) for d, (o4, b, o2, axis) in _pins().items()}
+LINKAGES = {d: _four_bar(o4, b, o2, axis) for d, (o4, b, o2, axis) in pins().items()}
 
 
 def drives():
     """{label: (horn's outer face centre, shaft direction, tab direction, arm direction at rest)}: the neck Core's three
     servos, each horn on its bar (model/stages.py mounts them, model/printed/neck.py seats them)."""
-    p = _pins()
+    p = pins()
     pan, tilt, jaw = (p[d][2] for d in ("pan", "tilt", "jaw"))
     return {
         "pan": ((pan[0], pan[1], PAN_Z[0]), g.Z, g.Y, g.Y),

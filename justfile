@@ -181,7 +181,7 @@ view doc="noggin-eyes": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture and the hero on each Stage and the next Mech, or on the documents named (or in TRAJ_DOCS, the Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
+# MuJoCo plays each gesture and the hero on each Stage and the next Mech, or on the documents named (next: the next Mech's; or in TRAJ_DOCS, the Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
@@ -217,7 +217,7 @@ model-durations run:
 blender-bins: venv
     @{{PY}} -m model.shards blender
 
-# the web viewer's GLBs in web/build, Blender's per Stage and the next Mech's (or the documents named; the next Mech's is the one the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
+# the web viewer's GLBs in web/build, Blender's per Stage and the next Mech's (or the documents named; next: the next Mech's, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
 web *docs: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build web/build {{docs}}
