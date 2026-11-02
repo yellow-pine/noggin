@@ -73,8 +73,11 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 
 Accepted as-is: the jobs' `:main` is mutable. Only main's `CI Images` run writes it (its push job, which runs on main
 alone, is the only one granted GHCR's `packages: write`); Cansin chose it over a custom digest-pin bump on 2026-11-02
-(#481). A main push that changes a Dockerfile may run Site Checks in the previous `:main` and cache those pictures
-under the new Dockerfile hash until another input changes.
+(#481). Both packages are public, owned by the yellow-pine org and linked to yellow-pine/noggin, whose only
+collaborator (and the org's only member) is Cansin, admin (`gh api`, 2026-11-02); whether they inherit the repo's
+access and grant no other repo Actions access is a package setting the API does not show, unchecked. A main push
+that changes a Dockerfile may run Site Checks in the previous `:main` and cache those pictures under the new
+Dockerfile hash until another input changes.
 
 ## Considered options
 
