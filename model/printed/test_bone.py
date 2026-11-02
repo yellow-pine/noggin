@@ -35,13 +35,13 @@ def test_overhang_reads_a_ceiling_and_skips_the_bed():
 
 def test_a_round_bone_stands_on_any_axis_elliptical_all_round():
     """Up z with its sections' height along y: an ellipse round the span, (2, 3) at the waist, (3, 4) at the joints, the
-    joints' heads full ellipsoids."""
+    joints' heads domed out near to an ellipsoid's tips, all one loft."""
     b = bone.bone((0, 0, 0), (0, 0, 20), head=(3.0, 4.0), waist=(2.0, 3.0), up=(0, 1, 0), round=True).val()
-    assert len(b.Solids()) == 1
+    assert b.isValid() and len(b.Solids()) == 1
     for x, y in ((1.9, 0), (-1.9, 0), (0, 2.9), (0, -2.9)):
         assert b.isInside(cq.Vector(x, y, 10)) and not b.isInside(cq.Vector(x * 1.1, y * 1.1, 10))
     assert (
-        b.isInside(cq.Vector(0, -3.9, 20)) and b.isInside(cq.Vector(0, 0, 22.9)) and b.isInside(cq.Vector(0, 0, -2.9))
+        b.isInside(cq.Vector(0, -3.9, 20)) and b.isInside(cq.Vector(0, 0, 22.5)) and b.isInside(cq.Vector(0, 0, -2.5))
     )
 
 
