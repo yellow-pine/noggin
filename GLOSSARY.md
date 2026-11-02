@@ -111,7 +111,7 @@ _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
 The Site's page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the hero loop
-from Blender's glTF (docs/adr/0008); docs pages can embed a small one per Stage.
+from Blender's glTF (docs/adr/0008); the landing page opens with one, and docs pages can embed a small one per Stage.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:

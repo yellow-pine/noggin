@@ -1,13 +1,13 @@
 """Every picture of the model, rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
 baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150).
 `views` (`make render`): top/side/front of each sub-assembly (at its placement: nothing moves it) and Stage (at rest:
-a trajectory's first frame), the Stage strip and stage 3 exploded. `gifs` (`make gifs`): the six gestures on stage 1,
-its trajectory at 8 fps (at_fps), each with a contact sheet. `hero` (`make hero`): the README hero, stage 3
-talking (model/render/hero.py). `site` (`make pictures`): renders the README's pictures, motion by motion (SITE: the
-Stage views, the hero, each gesture) into model/build/images, which the site serves at
+a trajectory's first frame), the Stage strip and stage 3 exploded. `hero` (`make hero`): the README hero, stage 3
+talking (model/render/hero.py), its trajectory at 8 fps (at_fps), with a contact sheet. `site` (`make pictures`):
+renders the README's pictures, motion by motion (SITE: the Stage views and the hero; the gestures play in the web
+viewer, #468) into model/build/images, which the site serves at
 yellowpine.com/noggin/images/. `list` (`make pictures-list`): the motions as JSON, Site Checks' render matrix
 (one job per motion, #297).
-Usage: python -m model.render.pictures views|gifs|hero [name ...] | site [motion ...] | list (Blender at $BLENDER)"""
+Usage: python -m model.render.pictures views [name ...] | hero | site [motion ...] | list (Blender at $BLENDER)"""
 
 import json
 import math
@@ -21,7 +21,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import stages, traces, trajectories
+from model import stages, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
@@ -37,32 +37,30 @@ DOCS = {  # picture name: (sub-assembly frames, views); the mouth is shown on th
     "mouth": ({"noggin-mouth": EYES, "noggin-eyes": EYES}, EYES_VIEWS),
     **{doc[len("noggin-") :]: (frames, PT_VIEWS) for doc, frames in g.STAGES.items()},
 }
-VIEW_SIZE, GIF_SIZE, STRIP_PANEL = (1600, 1200), (400, 300), (800, 600)  # GIFs rendered at the size they ship (#276)
+VIEW_SIZE, STRIP_PANEL = (1600, 1200), (800, 600)
 STRIP = [("stage1", "front"), ("stage2", "side"), ("stage3", "side"), ("stage3", "front")]  # the README's Stage strip
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
-# gestures: the Mech's front-right (right eye nearest), 25 deg up, framed on the eyes
-THREE_QUARTER = camera.three_quarter((0, -1, 0), (-1, 0, 0), g.Z, 25)
-# the hero and the exploded view: stage 3 from 15 deg to its right (right eye nearest, as the gestures), 15 deg up
+# the hero and the exploded view: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 400)  # 2:1, the whole motion fitted wide (Cansin, #278)
-HERO_WIDTH, HERO_MAX_BYTES = 800, 3_000_000  # GIF_COLOURS like every GIF: 1.56 MB at 48 colours left the room (#377)
+# the hero GIF (#276): 64 colours, as 1.56 MB at 48 left the room (#377)
+HERO_WIDTH, HERO_FPS, HERO_COLOURS, HERO_MAX_BYTES = 800, 8, 64, 3_000_000
 EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
     "noggin-base": (0, 0, 0),
     "noggin-stack": (0, 0, 45),
     "noggin-eyes": (0, 0, 95),
     "noggin-mouth": (0, -45, 95),
 }
-GIF_FPS, GIF_MAX_BYTES, GIF_WIDTH, GIF_COLOURS = 8, 1_000_000, 400, 64  # every GIF, the hero too (#276)
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
-SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"], **{g: [f"{g}.gif"] for g in traces.GESTURES}}
+SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"]}
 
 
 def motions():
     """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (make trajectories TRAJ_DOCS)."""
     stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3"}
-    return [{"motion": m, "stages": stages_of.get(m, "noggin-stage1")} for m in SITE]
+    return [{"motion": m, "stages": stages_of[m]} for m in SITE]
 
 
 def metres(mats):
@@ -203,42 +201,11 @@ def at_fps(frames, fps):
     return out
 
 
-def gesture_camera(eye_points, aspect):
-    """Stage 1 from its front-right, 25 deg up, framed on the eyes (the base's front shows below them)."""
-    return camera.fit(eye_points, THREE_QUARTER, g.Z, aspect, LENS, 1.04)
-
-
-def gifs(names=None):
-    """Each gesture's trajectory on stage 1 (model/trajectories.py: MuJoCo playing the Core program's writes, one frame
-    per 100 ms, at_fps to GIF_FPS) through the three-quarter camera, encoded to <gesture>.gif (at most GIF_MAX_BYTES) with a
-    contact sheet <gesture>-sheet.png."""
-    names = names or list(traces.GESTURES)
-    _, manifest, hulls = prepare("stage1", g.STAGES["noggin-stage1"])
-    poses = {name: trajectories.poses("noggin-stage1", name) for name in traces.GESTURES}
-    eyes = set(stages.eyes().parts)
-    # one camera for every gesture, fitted to the eyes in all their frames (whichever are rendered): lids at their
-    # widest stay in
-    cam = gesture_camera(
-        np.concatenate([points(hulls, m, eyes) for frames in poses.values() for m in frames]), GIF_SIZE[0] / GIF_SIZE[1]
-    )
-    shots = []
-    for name in names:
-        frames = at_fps(poses[name], GIF_FPS)
-        folder = os.path.join(OUT, "gifs", name)
-        os.makedirs(folder, exist_ok=True)
-        for old in os.listdir(folder):
-            os.remove(os.path.join(folder, old))
-        shots += [shot(os.path.join(folder, f"{i:03d}.png"), GIF_SIZE, cam, m) for i, m in enumerate(frames)]
-    blender("stage1", manifest, shots)
-    for name in names:
-        join(name)
-
-
 def hero_gif():
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
-    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, GIF_FPS, at most 3 MB, GIF_COLOURS."""
+    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, HERO_FPS, at most 3 MB, HERO_COLOURS."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
-    poses = at_fps(trajectories.poses("noggin-stage3", "hero"), GIF_FPS)
+    poses = at_fps(trajectories.poses("noggin-stage3", "hero"), HERO_FPS)
     cam = camera.fit(
         np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
     )
@@ -248,37 +215,21 @@ def hero_gif():
         os.remove(os.path.join(folder, old))
     shots = [shot(os.path.join(folder, f"{i:03d}.png"), HERO_SIZE, cam, m) for i, m in enumerate(poses)]
     blender("stage3", manifest, shots)
-    join("hero")
+    encode(folder, os.path.join(OUT, "hero"))
 
 
-def join(motion):
-    """A motion of the site's pictures (SITE) from its rendered frames: the views' JPEGs, else its GIF."""
-    if motion == "views":
-        jpgs()
-    elif motion == "hero":
-        encode(
-            os.path.join(OUT, "gifs", "hero"),
-            os.path.join(OUT, "hero"),
-            GIF_FPS,
-            HERO_WIDTH,
-            HERO_MAX_BYTES,
-        )
-    else:
-        encode(os.path.join(OUT, "gifs", motion), os.path.join(OUT, motion))
-
-
-def encode(frames, out, fps=GIF_FPS, width=GIF_WIDTH, max_bytes=GIF_MAX_BYTES, colours=GIF_COLOURS):
+def encode(frames, out):
     """frames/NNN.png -> out.gif (one shared palette, only changed rectangles stored) and out-sheet.png."""
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
-    palette = (  # 480 wide, 64 colours: bored's 117 frames fit 1 MB (600 wide or 96 colours did not)
-        f"scale={width}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={colours}:stats_mode=diff[p];"
+    palette = (
+        f"scale={HERO_WIDTH}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={HERO_COLOURS}:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     )
-    ffmpeg("-framerate", str(fps), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
+    ffmpeg("-framerate", str(HERO_FPS), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
     size = os.path.getsize(out + ".gif")
-    if size > max_bytes:
-        sys.exit(f"{out}.gif is {size // 1024} KB, over {max_bytes // 1000} KB")
+    if size > HERO_MAX_BYTES:
+        sys.exit(f"{out}.gif is {size // 1024} KB, over {HERO_MAX_BYTES // 1000} KB")
     step = math.ceil(n / 24)
     rows = math.ceil(math.ceil(n / step) / 6)
     sheet = f"select='not(mod(n\\,{step}))',scale=300:-2,tile=6x{rows}:padding=4:color=white"
@@ -294,18 +245,14 @@ def render(motion):
     """A motion of the site's pictures (SITE)."""
     if motion == "views":
         views(["stage1", "stage2", "stage3"])
-    elif motion == "hero":
-        hero_gif()
     else:
-        gifs([motion])
+        hero_gif()
 
 
 def main(what, names):
     os.makedirs(OUT, exist_ok=True)
     if what == "views":
         views(names)
-    elif what == "gifs":
-        gifs(names)
     elif what == "hero":
         hero_gif()
     elif what == "site":

@@ -1,6 +1,6 @@
-// The built site in Chrome: the viewer plays a gesture and switches Stage, search finds a page, the diagrams draw, the
-// Docs version switcher opens the same page in another version, and nothing breaks the CSP or asks another host than
-// api.github.com (the header's stars and forks).
+// The built site in Chrome: the viewer plays a gesture and switches Stage, a deep link plays one, search finds a page,
+// the diagrams draw, the Docs version switcher opens the same page in another version, and nothing breaks the CSP or
+// asks another host than api.github.com (the header's stars and forks).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -47,6 +47,26 @@ test('the viewer plays a gesture, back to the hero, and switches Stage', async (
   await button('Stage 1').click();
   await expect(button('wink')).toBeEnabled({ timeout: 30_000 });
   await expect(button('hero')).toHaveCount(0); // Stage 1 has no neck
+});
+
+test('a deep link opens the viewer on its Stage, playing its gesture, and the picker keeps it current', async ({ page }) => {
+  const glbs = existsSync(new URL('dist/viewer/stage1.glb', import.meta.url));
+  test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
+  // every button pressed, from the page's first script on: a slow software-drawn frame can play the whole wink at once
+  await page.addInitScript(() => {
+    window.pressed = [];
+    new MutationObserver((ms) => ms.forEach((m) => m.target.ariaPressed === 'true' && window.pressed.push(m.target.textContent)))
+      .observe(document, { subtree: true, attributeFilter: ['aria-pressed'] });
+  });
+  await page.goto('viewer/?gesture=wink&stage=1');
+  const button = (name) => page.getByRole('button', { name, exact: true });
+  await expect(button('Stage 1')).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForFunction(() => window.pressed.includes('wink'), null, { timeout: 30_000 });
+  // the picker keeps the address the deep link to what plays, so it can be shared
+  await button('eureka').click();
+  await expect(page).toHaveURL(/\/viewer\/\?stage=1&gesture=eureka$/);
+  await button('Stage 3').click();
+  await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
 });
 
 test('search finds the servo pages', async ({ page }) => {

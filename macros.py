@@ -74,8 +74,7 @@ def behaviour():
 
 def picture_numbers():
     p, gif = pictures, "{} wide, {} fps, {} colours, at most {:g} MB".format
-    gestures = gif(p.GIF_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.GIF_MAX_BYTES / 1e6)
-    hero = gif(p.HERO_WIDTH, p.GIF_FPS, p.GIF_COLOURS, p.HERO_MAX_BYTES / 1e6)
+    hero = gif(p.HERO_WIDTH, p.HERO_FPS, p.HERO_COLOURS, p.HERO_MAX_BYTES / 1e6)
     size = "{}x{}".format
     lift = {g.SPOOLS["Absolute Black"]: constant("model/render/blender.py", "BLACK_LIFT")}
     return "\n".join(
@@ -84,7 +83,6 @@ def picture_numbers():
             "|---|---|---|",
             f"| views and the exploded stage 3 | {size(*p.VIEW_SIZE)} | |",
             f"| the Stage strip, per panel | {size(*p.STRIP_PANEL)} | |",
-            f"| gestures | {size(*p.GIF_SIZE)} | {gestures} |",
             f"| hero | {size(*p.HERO_SIZE)} | {hero} |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `make view` |",
