@@ -159,7 +159,7 @@ def _motions(doc, model, plate):
 
 
 def vibration(doc, model, data, slow):
-    """The neck's figures for ranking the next Mech's candidates (#51), at data's pose: the head's mass times its centre
+    """The neck's figures for ranking the next Mech's head variants (#51), at data's pose: the head's mass times its centre
     of mass's height above the tilt axis, and per neck servo the inertia its output joint turns, its gain (the output's
     span over the servo's, from the slow sweep's ends) and the servo loop's own mode through it (the servo's kp on its
     rotor plus the load referred to its shaft). Not the lowest mode: the printed parts' compliance and the gears' backlash,

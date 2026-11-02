@@ -29,12 +29,12 @@ test.afterEach(async ({ baseURL }) => {
 
 test('the viewer loads the next Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
   // CI always has the GLBs; a local build has them once just web next ran before just site
-  test.skip(!existsSync(new URL('dist/viewer/next-mech-a.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.skip(!existsSync(new URL('dist/viewer/next-mech-back.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer'); // one, a button per Base candidate (#664)
+  const viewer = page.locator('.noggin-viewer'); // one, a button per head variant (#664, #686)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
-  await viewer.getByRole('button', { name: 'Board tower' }).click();
+  await viewer.getByRole('navigation', { name: 'Head' }).getByRole('button').nth(1).click(); // its labels follow the ranking
   await expect(page).toHaveURL(/\?stage=2$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await viewer.getByRole('button', { name: 'Explode' }).click();

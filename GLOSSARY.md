@@ -25,11 +25,12 @@ The next Mech's base: the Skeleton's compact body in the shirt and collar under 
 the neck mount with the pan servo; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
-**Base candidate**:
-One way to carry the next Mech's boards and pack, ranked against the other before Cansin picks: (a) the boards on a
-board tray riding the head behind and below the tilt Pivot, (b) the boards on a static board tower rising on the pan
-axis into the cranium. In both the pack lies low in the Torso.
-_Avoid_: option, variant, layout
+**Head variant**:
+One way to place the next Mech's boards in its compact head, ranked against the others before Cansin picks: Back, the
+boards upright in the back of the head behind the eye gimbal; Crown, the boards lying flat in the crown above it; Split,
+the Cores and Shields in the crown and the switch board low at the back of the neck. In each the pack lies low in the
+Torso.
+_Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
 The Skeleton's linked eyes: each eyeball core turns up/down inside a yoke that turns left/right, one servo turns both

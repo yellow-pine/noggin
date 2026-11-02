@@ -1,6 +1,6 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
-// it: the page's buttons (src/pages/viewer.astro, one per Base candidate, #664), the Tour and a chip per gesture, Explode;
+// it: the page's buttons (src/pages/viewer.astro, one per head variant, #664, #686), the Tour and a chip per gesture, Explode;
 // under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
 // small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>

@@ -309,7 +309,7 @@ def mouth():
 
 def next_base():
     """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
-    -x, the same in both Base candidates."""
+    -x, the same in every head variant."""
     pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
@@ -319,20 +319,30 @@ def next_base():
 
 
 def _boards(stem, placed):
-    """The carrier's part and the boards on it, placed (model/base.py boards())."""
+    """The carrier's part and the boards on it, placed (model/base.py)."""
     parts = {f"{stem}:1": part(stl(stem), None, printed(stem))}
-    parts |= {f"{name}:1": part(stl(mesh), translate(at), BOARD) for name, (mesh, at) in placed.items()}
+    parts |= {f"{name}:1": part(stl(mesh), at, BOARD) for name, (mesh, at) in placed.items()}
     return Sub(parts, {}, [], {})
 
 
-def next_tray():
-    """next-tray: Base candidate (a)'s board tray with the boards on it; it rides the head (RIDES)."""
-    return _boards("next board tray", candidates.tray_boards())
+def next_back():
+    """next-back: the boards upright on the board rack's back face, behind the eye gimbal; it rides the head (RIDES)."""
+    return _boards("next board rack", candidates.back_boards())
 
 
-def next_tower():
-    """next-tower: Base candidate (b)'s board tower with the boards on its shelf; static."""
-    return _boards("next board tower", candidates.tower_boards())
+def next_crown():
+    """next-crown: the boards lying flat on the crown shelf over the eye gimbal; it rides the head (RIDES)."""
+    return _boards("next crown shelf", candidates.crown_boards())
+
+
+def next_split():
+    """next-split: the Cores and Shields lying flat on the split shelf over the eye gimbal; it rides the head (RIDES)."""
+    return _boards("next split shelf", candidates.split_boards())
+
+
+def next_switch():
+    """next-switch: the switch board under its bracket, low at the back of the neck; it rides the pan yoke (RIDES)."""
+    return _boards("next switch bracket", candidates.switch_boards())
 
 
 def next_eyes():
@@ -491,8 +501,10 @@ SUBS = {
     "next-eyes": next_eyes,
     "next-neck": next_neck,
     "next-base": next_base,
-    "next-tray": next_tray,
-    "next-tower": next_tower,
+    "next-back": next_back,
+    "next-crown": next_crown,
+    "next-split": next_split,
+    "next-switch": next_switch,
 }
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = (
@@ -520,7 +532,8 @@ RIDES = {
     "noggin-eyes": lambda doc: g.STEM_IN[doc] + ":1",
     "noggin-mouth": lambda doc: "eye bracket:1",
     "next-eyes": lambda doc: "next head mount:1",  # the gimbal frame screwed on its flange
-    "next-tray": lambda doc: "next head mount:1",  # the tray screwed under the gimbal frame
+    **dict.fromkeys(("next-back", "next-crown", "next-split"), lambda doc: "next head mount:1"),  # under the plate
+    "next-switch": lambda doc: "next pan yoke:1",  # the bracket on the yoke's floor
 }  # clamped to that part
 
 

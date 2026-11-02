@@ -21,6 +21,8 @@
 > its GLB.
 > Amended 2026-11-02 (#642): the Next Mech's documents are its two Base candidates, `next-mech-a` and `next-mech-b`
 > (`just web next`), each published as `next-mech` was.
+> Amended 2026-11-02 (#686): its three head variants, `next-mech-back`, `next-mech-crown` and `next-mech-split`, in
+> place of the Base candidates.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

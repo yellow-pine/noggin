@@ -1,8 +1,8 @@
 """The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
 whole Mech, the next Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
-(model/neck.py) and Base candidate (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
-model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the Base candidates'
+(model/neck.py) and head variant (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
+model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the head variants'
 ranking from theirs to model/build/reports/next-mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
 Usage: python -m model.report [doc ...]"""
 
@@ -50,15 +50,15 @@ def report(doc):
     model = mujoco.MjModel.from_xml_path(mjcf.write(doc, OUT))
     if "next-neck" in stages.DOCS[doc][0]:  # the next Mech's neck moves by its own kinematics (#641)
         out["neck"] = neck.report(head(doc, model))
-    if doc in g.NEXT:  # its Base candidate's figures for the ranking (#642)
-        out["base"] = candidates.report(doc, model)
+    if doc in g.NEXT:  # its head variant's figures for the ranking (#686)
+        out["variant"] = candidates.report(doc, model)
     out["mujoco"] = mujoco_report.measure(doc, model)
     return out
 
 
 def head(doc, model):
     """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
-    and, in Base candidate (a), the board tray with the boards), as the MJCF weighs and places them."""
+    and the carrier with the boards riding the head mount in Back, Crown and Split), as the MJCF weighs and places them."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
     ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]
@@ -85,7 +85,7 @@ def main(docs):
         for line in pool.map(simulate, docs):
             print(line)
     ranked = [os.path.join(OUT, f"{doc}-sim.json") for doc in g.NEXT]
-    if set(g.NEXT) <= set(docs):  # the Base candidates ranked, beside their reports, when this run made both (#642)
+    if set(g.NEXT) <= set(docs):  # the head variants ranked, beside their reports, when this run made them all (#686)
         with open(os.path.join(OUT, "next-mech-ranking.json"), "w") as f:
             json.dump(base.rank({doc: json.load(open(p)) for doc, p in zip(g.NEXT, ranked)}), f, indent=1)
             f.write("\n")

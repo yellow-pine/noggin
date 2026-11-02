@@ -146,17 +146,21 @@ until the model stabilises.
   apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
   motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); since #663 the gimbal
   moves in MuJoCo too and plays the gestures.
-- The Base candidates (#642, model/base.py, the parts in model/printed/base.py, GLOSSARY): one document each,
-  next-mech-a and next-mech-b, both on one Torso (#685: the shirt is the base, a compact open box whose floor is the
-  foot, the neck mount with the pan servo on it and the pack lying across behind; its footprint in the sim report's
-  tip_over, footprint_mm). (a) the boards on a
-  tray screwed under the gimbal frame's plate behind the head mount, riding pan and tilt; (b) the boards on a shelf
-  over the lids, on a PETG rod standing on the pan axis, the only line a static post can rise along in a head that
-  pans, so it meets the neck's and the gimbal's middle (listed in model/test_report.py KNOWN_PAIRS for that reason).
-  Each one's parameters are optimised in MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds
-  the drawn numbers to it): (a)'s tray place for the tilt servo's least worst hold, kept clear of the yoke and the
-  pack; (b)'s rod radius, the thinnest that sways at 8 Hz. `just sim` ranks them from their reports into
-  model/build/reports/next-mech-ranking.json (base.rank: the clearance gate, #51's marks, then its criteria in order).
+- The head variants (#686, model/base.py, the parts in model/printed/base.py, GLOSSARY), in place of #642's two Base
+  candidates: one document each (geometry.NEXT), all on one Torso (#685: the
+  shirt is the base, a compact open box whose floor is the foot, the neck mount with the pan servo on it and the pack
+  lying across behind; its footprint in the sim report's tip_over, footprint_mm). Back: the boards upright on a rack
+  screwed under the gimbal frame plate's back edge, behind the eye gimbal; Crown: the boards lying flat on a shelf over
+  the eye gimbal, on a wall up from the plate's back edge; Split: the Cores and Shields so on a shelf for two, the switch
+  board lying under a bracket at the back of the pan yoke, low, riding the pan alone. Each one's parameters are
+  optimised in MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds the drawn numbers to it):
+  Back's row height, and the crowns' shelf height (the lowest clear of the gimbal's whole range) and the row's place
+  front to back, for the tilt servo's least worst hold. The sim report gives each one's head box (`variant.head_mm`,
+  width x depth x height of what rides the tilt) against #51's 140 x 120 x 150 and how far up it the eyes sit
+  (`eyes_up`), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance and
+  head-size gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and marks the
+  Viewer's buttons. Today none fits that head: Back's boards behind the gimbal make it 141.5 deep, the crowns 159 tall,
+  since the head mount and the jaw already hang 101 mm under the eyes (eyes_up 0.77 and 0.64, not the lower-middle).
   Every size is inferred; Cansin picks.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):

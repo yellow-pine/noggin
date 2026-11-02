@@ -1,106 +1,120 @@
-"""The next Mech's Base candidates in MuJoCo (#642; their numbers and ranking: model/base.py): each one's parameters
+"""The next Mech's head variants in MuJoCo (#686; their numbers and ranking: model/base.py): each one's parameters
 optimised on its MJCF (optimise(), `python -m model.candidates`, whose numbers model/base.py draws) and its figures for
 the sim report (report(), model/report.py), which rank() orders."""
 
+import itertools
+
 import mujoco
 import numpy as np
-from scipy.optimize import brentq, minimize
+from scipy.optimize import minimize_scalar
 
-from model import base, mjcf, mujoco_report, neck, stages
+from model import base, gimbal, mjcf, mujoco_report, stages
 from model import geometry as g
 
+GIMBAL = ("next yaw horn", "next pitch horn", "next L lid horn", "next R lid horn")
+# each variant's carrier and the boards on it, which optimise() moves
+CARRIER = {
+    "next-mech-back": ("next board rack", base.back_boards),
+    "next-mech-crown": ("next crown shelf", base.crown_boards),
+    "next-mech-split": ("next split shelf", base.split_boards),
+}
 
-def _tip(model):
-    """(grams on the tower's tip, the boards and the shelf, as the MJCF weighs the boards; its free length, mm: from the
-    neck mount's column, which holds it, to the boards' middles)."""
-    boards = sum(model.body(f"{n}:1").mass[0] for n in base.tower_boards()) * 1000
-    shelf = g.MATERIALS["PETG HF"]["density_g_cm3"] * (base.ROW_W + 6) * base.BOARD_D * base.TRAY_T / 1000
-    return boards + shelf, base.SHELF_Z + base.TRAY_T + base.BOARD_H / 2 - neck.DISC_Z[0]
+
+def _rest(model):
+    data = mujoco.MjData(model)
+    mujoco.mj_kinematics(model, data)
+    return data
+
+
+def _drawn(model, data, names):
+    return np.vstack([mujoco_report.vertices(model, data, model.body(n).id) for n in names])
+
+
+def head(doc, model):
+    """What rides the head (the tilt's parts) at rest: its box, mm, as gimbal.HEAD_MM (width, depth, height), and how
+    far up the box the eye centres sit (0 its bottom, 1 its top)."""
+    v = _drawn(model, _rest(model), stages.STAGES[doc].horns["tilt horn"].loops[0].rockers)
+    lo, hi = v.min(axis=0), v.max(axis=0)
+    eyes = stages.DOCS[doc][0]["next-eyes"][0][2]
+    return [round(float(s), 1) for s in hi - lo], round(float((eyes - lo[2]) / (hi[2] - lo[2])), 2)
 
 
 def report(doc, model):
-    """The candidate's figures for rank() from its document and its MJCF (model/report.py): the base's parts (the base
-    plate, the pack, the carrier and the boards) and how many are printed, the leads crossing pan and tilt, its
-    parameters and, for (b), the tower's sway."""
+    """The variant's figures for rank() from its document and its MJCF (model/report.py): the parts beside the neck and
+    the gimbal (the Torso, the pack, the carriers and the boards) and how many are printed, the leads crossing pan and
+    tilt, the head's box and the eyes' height in it, its parameters and, for a crown shelf, its wall's sway."""
     stage = stages.STAGES[doc]
     parts = [n for sub in g.NEXT[doc] if sub not in ("next-neck", "next-eyes") for n in stages.SUBS[sub]().parts]
+    size, eyes = head(doc, model)
     out = {
         "parts": parts,
         "printed": sum(stages.stem(stage.parts[n].file).startswith("next ") for n in parts),
         "leads": base.leads(stage),
+        "head_mm": size,
+        "eyes_up": eyes,
         "sway_hz": None,
     }
-    if "next board tower:1" in stage.parts:
-        return out | {"sway_hz": round(base.sway(base.TOWER_R, *_tip(model)), 1), "tower_r_mm": base.TOWER_R}
-    return out | {"tray_mm": list(base.TRAY)}
+    stem, boards = CARRIER[doc]
+    if stem == "next board rack":
+        return out | {"back_z_mm": base.BACK_Z}
+    # on the wall's tip: the boards and the whole carrier, as the MJCF weighs them (its wall and flange too: an
+    # underestimate of the mode)
+    tip = sum(model.body(f"{n}:1").mass[0] for n in (stem, *boards())) * 1000
+    wide = base.width(base.PAIR if "split" in stem else base._ROW) + 6
+    length = base.CROWN_Z + base.TRAY_T - gimbal.PLATE_Z[0]  # the wall, free from the plate's underside
+    y = base.SPLIT_Y if "split" in stem else base.CROWN_Y
+    return out | {
+        "sway_hz": round(base.sway(wide, base.TRAY_T, tip, length), 1),
+        "crown_mm": [y, base.CROWN_Z],
+    }
 
 
 def optimise(doc):
-    """The candidate's parameters at their optimum, derivative-free (scipy), on its MJCF without collision pieces:
-    (b) {"tower_r_mm"}: the thinnest tower whose sway is MODE_HZ (brentq); (a) {"tray_mm"}: the tray's place where the
-    tilt servo's worst hold against gravity over its range is least (MuJoCo's inverse dynamics, mujoco_report.torques,
-    at each pose its sweep settles to; COBYLA), every point of the tray and its boards below the tilt axis staying
-    CLEAR behind what the pan turns and the tilt does not (the yoke, the tilt servo and its bar), and every one CLEAR
-    above the static parts behind those (the pack in its cradle), at every pose, the boards under the tray's flange
-    (model/base.py's numbers). (a) also gives the worst hold there and at the drawn place, and how clear the drawn place
-    is (mm past CLEAR): the hold is flat near its optimum, so COBYLA's stop wanders a mm or so between machines."""
+    """The variant's parameters at their optimum on its MJCF without collision pieces (derivative-free, scipy): Back
+    {"back_z_mm"}: the row's height, within the gimbal's (from the plate's underside to its top), where the tilt
+    servo's worst hold against gravity over its range is least (MuJoCo's inverse dynamics, mujoco_report.torques, at
+    each pose its sweep settles to); Crown and Split {"crown_mm": [y, z]}: the shelf's underside z the lowest CLEAR over
+    the gimbal's top over its whole range (each of its horns at either end or at rest, every combination), then the
+    row's place front to back y, within the head's depth, where that hold is least. Each also gives the hold there and
+    at the drawn place."""
     model = mjcf.model(doc, collide=False)
-    if doc == "next-mech-b":
-        return {"tower_r_mm": round(brentq(lambda r: base.sway(r, *_tip(model)) - base.MODE_HZ, 0.5, 20.0), 2)}
-    stage, still = stages.STAGES[doc], mujoco.MjData(model)
-    mujoco.mj_kinematics(model, still)
-    tilted = set(stage.horns["tilt horn"].loops[0].rockers)
-    panned = set(stage.horns["pan horn"].loops[0].rockers) - tilted
-    tray = [model.body(n).id for n in ("next board tray:1", *(f"{b}:1" for b in base.tray_boards()))]
+    stage, still = stages.STAGES[doc], _rest(model)
+    stem, boards = CARRIER[doc]
+    group = [model.body(f"{b}:1").id for b in boards()]  # the boards alone: the carrier is redrawn round them
     lo, hi = stage.horns["tilt horn"].limits
-    poses = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
-    axis_z = (stage.horns["tilt horn"].frame @ [0, *neck.AXIS, 1])[2]
+    tilts = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
+    pos0, turn = model.body_pos[group].copy(), still.xmat[model.body("next head mount:1").id].reshape(3, 3)
+    origin = np.array(stages.DOCS[doc][0]["next-eyes"][0])
 
-    def drawn(names, data):
-        return np.vstack([mujoco_report.vertices(model, data, model.body(n).id) for n in names])
-
-    back = drawn(panned, still)[:, 1].max()
-    static = drawn(stages.next_base().parts, still)
-    floor = static[static[:, 1] > back][:, 2].max()
-    pos0, head = model.body_pos[tray].copy(), model.body("next head mount:1").id
-    turn = still.xmat[head].reshape(3, 3)
-
-    def place(s):
-        model.body_pos[tray] = pos0 + turn.T @ [0, s[0], s[1]] / 1000
-        for d in poses:
+    def hold(dy, dz):
+        model.body_pos[group] = pos0 + turn.T @ [0, dy, dz] / 1000
+        for d in tilts:
             mujoco.mj_kinematics(model, d)
-        return [np.vstack([mujoco_report.vertices(model, d, b) for b in tray]) for d in poses]
-
-    def hold(s):
-        place(s)
         k = model.actuator("tilt horn").id
-        return max(abs(mujoco_report.torques(model, d, moving=False)[k]) for d in poses) / mujoco_report.KGF_CM
+        return max(abs(mujoco_report.torques(model, d, moving=False)[k]) for d in tilts) / mujoco_report.KGF_CM
 
-    def clear(s):
-        vs = place(s)
-        behind = min(v[v[:, 2] < axis_z][:, 1].min(initial=np.inf) - back for v in vs) - base.CLEAR
-        above = min(v[:, 2].min() - floor for v in vs) - base.CLEAR
-        under = neck.FLANGE_Z[0] - base.BOARD_H / 2 - (base.TRAY[1] + s[1])  # the boards under the tray's flange
-        return min(behind, above, under)
-
+    eyes = list(stages.next_eyes().parts)
     try:
-        drawn = {"drawn_kgf_cm": hold([0.0, 0.0]), "drawn_clear_mm": clear([0.0, 0.0])}
-        found = minimize(
-            hold,
-            [0.0, 0.0],
-            method="COBYLA",
-            constraints={"type": "ineq", "fun": clear},
-            options={"rhobeg": 5.0, "tol": 0.05},
-        )
+        if stem == "next board rack":
+            top = _drawn(model, still, eyes)[:, 2].max() - origin[2]
+            span = (gimbal.PLATE_Z[0] + base.BOARD_H / 2, top - base.BOARD_H / 2)
+            found = minimize_scalar(lambda z: hold(0, z - base.BACK_Z), bounds=span, method="bounded")
+            return {"back_z_mm": round(float(found.x), 1), "hold_kgf_cm": float(found.fun), "drawn_kgf_cm": hold(0, 0)}
+        ends = [(0.0, *stage.horns[h].limits) for h in GIMBAL]
+        poses = [mjcf.pose(model, dict(zip(GIMBAL, c))) for c in itertools.product(*ends)]
+        moving = [n for n in eyes if n != "next gimbal frame:1"]
+        top = max(_drawn(model, d, moving)[:, 2].max() for d in poses) - origin[2]
+        z = round(float(top + base.CLEAR), 1)
+        y0 = base.SPLIT_Y if "split" in stem else base.CROWN_Y
+        front = _drawn(model, still, stage.horns["tilt horn"].loops[0].rockers)[:, 1].min() - origin[1]
+        span = (front + base.BOARD_H / 2, base.RACK_Y - base.BOARD_H / 2)  # the row on the shelf, inside the head
+        found = minimize_scalar(lambda y: hold(y - y0, z - base.CROWN_Z), bounds=span, method="bounded")
+        out = {"crown_mm": [round(float(found.x), 1), z], "hold_kgf_cm": float(found.fun)}
+        return out | {"drawn_kgf_cm": hold(0, 0)}
     finally:
-        model.body_pos[tray] = pos0
-    s = found.x
-    return {"tray_mm": [round(float(base.TRAY[0] + s[0]), 1), round(float(base.TRAY[1] + s[1]), 1)]} | {
-        "hold_kgf_cm": float(found.fun),
-        **{k: float(v) for k, v in drawn.items()},
-    }
+        model.body_pos[group] = pos0
 
 
 if __name__ == "__main__":
-    for doc in g.NEXT:
+    for doc in CARRIER:
         print(doc, optimise(doc))
