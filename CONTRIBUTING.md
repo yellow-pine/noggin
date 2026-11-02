@@ -74,10 +74,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
   `sleep 60; until gh pr checks N >/dev/null; [ $? != 8 ]; do sleep 60; done; sleep 60; gh pr view N --json
   state,mergeStateStatus,reviewDecision`. A build: `gh run watch`, or a loop with a sleep on its PID, which ends even when the build stops short.
-- Claude Code's deny list (`permissions.deny` in `.claude/settings.json`) refuses `git stash` (work waits in commits)
-  and each heavy recipe as `just X` or `uv run just X` (`test_derived.py` holds it to the justfile's heavy group). It
-  matches the command as written, so it catches a slip, not a workaround (#611); every other rule here holds because
-  you follow it.
+- Claude Code's deny list (`permissions.deny` in `.claude/settings.json`) refuses `git stash` (work waits in commits),
+  `gh pr merge --admin` and a push to main (a PR lands through auto-merge), and each heavy recipe as `just X` or `uv
+  run just X` (`test_derived.py` holds it to the justfile's heavy group). It matches the command as written, so it
+  catches a slip, not a workaround (#611); every other rule here holds because you follow it.
+- The deny list is advisory, for agents that follow these rules; main's ruleset is the enforcement.
 - Keep the session's own checkout clean and detached: `.claude/hooks/sync_checkout.py` fast-forwards it to origin/main
   at session start and before each subagent dispatch, so subagents load main's `.claude/agents/`, and blocks a dispatch
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).

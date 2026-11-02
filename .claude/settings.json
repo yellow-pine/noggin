@@ -2,6 +2,12 @@
   "permissions": {
     "deny": [
       "Bash(git stash *)",
+      "Bash(gh pr merge * --admin*)",
+      "Bash(gh pr merge --admin*)",
+      "Bash(git push * main)",
+      "Bash(git push * main *)",
+      "Bash(git push * HEAD:main*)",
+      "Bash(git push * :main*)",
       "Bash(just check *)",
       "Bash(just check-all *)",
       "Bash(just hero *)",
