@@ -516,6 +516,10 @@ STAGES = {
         "noggin-mouth": EYES_ON_STACK,
     },
 }
+# The next Mech (#51, #629): its own documents beside the Stages, never one of them, clean-room (#618's licence check):
+# none of today's printed parts or their dimensions, only our Envelopes of the hardware we own (stages.next_hardware)
+# until the clean-room tickets (#630 the eye gimbal, then the neck and base) add our own parts.
+NEXT = {"next-mech": {"next-hardware": ((0, 0, 0), X, Z)}}
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres

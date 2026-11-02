@@ -40,7 +40,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   renders it with its preview panel.
 - README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
   `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
-  model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;
+  model/render/pictures.py SITE; main alone renders them, a PR one panel and the next Mech's as a preview, pictures.py PREVIEW, #562, #629;
   main's hero in frame shards of about a minute each that Checks' `Hero` job joins, model/shards.py, #537;
   yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
@@ -87,9 +87,11 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
-The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
-the model stabilises.
-- The next Mech (#51, on hold; the spec lives there): linked eyes (one servo for left/right, one for up/down, each lid
+Today's documents follow Cansin's build, then our model (CLAUDE.md). What we plan to change in today's Mech stays here
+until the model stabilises.
+- The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
+  (geometry.NEXT, #629), clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
+  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each lid
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).

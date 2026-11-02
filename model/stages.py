@@ -289,7 +289,43 @@ def mouth():
     return Sub(parts, horns, placements, servo_port("jaw"))
 
 
-SUBS = {"noggin-base": base, "noggin-stack": stack, "noggin-eyes": eyes, "noggin-mouth": mouth}
+NEXT_PITCH_MM, NEXT_ROW_MM = 60, 80  # apart along x and y: wider than any Envelope's footprint (inferred layout)
+
+
+def next_hardware():
+    """next-hardware: the hardware the next Mech keeps (#51), our Envelopes alone, never a printed part of today's or its
+    dimensions (#618, #629): the Cores, the Shields, the switch board and the pack in a row, the servos in a row behind,
+    laid out apart until the clean-room tickets place them (inferred). Its names carry "next" (cables reads every
+    sub-assembly's parts by name)."""
+    board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
+    cores = range(1, len(g.CHANNELS) + 1)
+    rows = [
+        [
+            *((f"next Core {n}", "core", board, None) for n in cores),
+            *((f"next Shield {n}", "receiver", board, None) for n in cores),
+            ("next switch board", "switch", board, None),
+            ("next pack", "battery", board, ("y", g.BATTERY_STEP["lead_y"])),
+        ],
+        [
+            (f"next servo {n}", "servo", (SERVO_G, "documented"), ("x", g.SERVO_STEP["lead"][0]))
+            for n in range(1, sum(map(len, g.CHANNELS.values())) + 1)
+        ],
+    ]
+    parts = {
+        f"{name}:1": part(stl(mesh), translate((NEXT_PITCH_MM * i, NEXT_ROW_MM * r, 0)), mass, clip)
+        for r, row in enumerate(rows)
+        for i, (name, mesh, mass, clip) in enumerate(row)
+    }
+    return Sub(parts, {}, [], {})
+
+
+SUBS = {
+    "noggin-base": base,
+    "noggin-stack": stack,
+    "noggin-eyes": eyes,
+    "noggin-mouth": mouth,
+    "next-hardware": next_hardware,
+}
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = (
     g.pt_to_eyes_standalone((0, 0, 0)),
@@ -298,7 +334,8 @@ BASE_IN_EYES = (
 )  # the base as the eyes/mouth sweep documents carried it (context)
 # Documents the model simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
-# Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
+# Stage configurations (geometry.STAGES, PT frame, every horn), and the next Mech's beside them (geometry.NEXT). Frames
+# are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {
     "noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
     "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
@@ -307,7 +344,7 @@ DOCS = {
         1,
         {"noggin-eyes", "noggin-base"},
     ),
-    **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()},
+    **{doc: (frames, 2, set()) for doc, frames in (g.STAGES | g.NEXT).items()},
 }
 
 

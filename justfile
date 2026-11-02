@@ -181,12 +181,12 @@ view doc="noggin-eyes": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture and the hero on each Stage, or on the documents named (or in TRAJ_DOCS, CI's Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
+# MuJoCo plays each gesture and the hero on each Stage and the next Mech, or on the documents named (or in TRAJ_DOCS, CI's Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
 
-# Blender pictures, each Stage at rest from its trajectories: the Stage panels (model/build/pictures)
+# Blender pictures, each Stage and the next Mech at rest from its trajectories: the panels (model/build/pictures)
 [group('heavy')]
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views

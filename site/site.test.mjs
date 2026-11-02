@@ -262,7 +262,7 @@ test("the landing page opens with Stage 3's viewer, the hero its poster", () => 
 
 test('the landing page and Pictures show the Stage panels, each linking to its full size', () => {
   for (const url of [`${BASE}/`, route('docs/pictures.md')]) {
-    const links = page(url).querySelectorAll('.noggin-panels a');
+    const links = page(url).querySelector('.noggin-panels').querySelectorAll('a'); // the first: Pictures' next is the next Mech's
     expect(links.length, url).toBe(numbers.stages.length * 2); // side and isometric
     for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
   }

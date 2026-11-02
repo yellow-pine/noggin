@@ -10,6 +10,29 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (the site's Credits page, docs/credits.md).
 _Avoid_: robot, head, beast, eye mech
 
+**Next Mech**:
+The Mech being designed to follow today's (#51): our own design on the Cores, Shields and servos we own, a Skeleton
+that wears a Character. Today's Mech stays the supported build until the next one is built.
+_Avoid_: Mech 2, new Mech
+
+**Skeleton**:
+The next Mech's structural parts, the same under every Character: the eye gimbal, the jaw, the neck, the base and the
+electronics mount, in black PETG.
+_Avoid_: frame, chassis, core
+
+**Shell**:
+One cosmetic part a Character puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in
+PLA Pure, held on by magnets.
+_Avoid_: skin, cover, cosmetic
+
+**Shell set**:
+Every Shell of one Character, pulled off and pressed on together to swap Characters.
+_Avoid_: kit, costume
+
+**Character**:
+Who the next Mech looks like, Morty or Bart: its Shell set and its gaze speed, picked in the noggin service's settings.
+_Avoid_: face, persona, theme
+
 **Core**:
 The controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
 _Avoid_: board, receiver, controller, ESP
