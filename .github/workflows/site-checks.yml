@@ -18,7 +18,7 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  schedule:   # main's weekly full run (#471): no lookups, so every motion and the viewer run (each from its own cache)
+  schedule:   # main's weekly full run (#471): no lookups or output caches, so every motion renders and the viewer bakes
     - cron: "0 7 * * 1"
 concurrency:   # as check.yml's: one run per PR (or main), a new push cancels the one in progress; the weekly run apart
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
@@ -141,6 +141,7 @@ jobs:
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # this motion's pictures (model/build/images)
       - name: Restore this motion's pictures
+        if: ${{ github.event_name != 'schedule' }}   # the weekly run renders every motion again
         id: frames
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -179,7 +180,7 @@ jobs:
           make pictures BLENDER=blender
           echo "cold=true" >> "$GITHUB_OUTPUT"
       - name: Save this motion's pictures
-        if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        if: ${{ steps.frames.outputs.cache-hit != 'true' && github.event_name != 'schedule' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
@@ -233,6 +234,7 @@ jobs:
           hash=$(python3 scripts/lock_hash.py)
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Restore the viewer
+        if: ${{ github.event_name != 'schedule' }}   # the weekly run bakes the viewer again
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -270,7 +272,7 @@ jobs:
           path: model/build/trajectories
           key: ${{ steps.trajectories.outputs.cache-primary-key }}
       - name: Save the viewer
-        if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        if: ${{ steps.viewer.outputs.cache-hit != 'true' && github.event_name != 'schedule' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build

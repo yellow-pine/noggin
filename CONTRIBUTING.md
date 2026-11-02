@@ -26,7 +26,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
   review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
   repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no
-  update-branch banner. CI runs on pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
+  update-branch banner. CI runs on pushes to main, on ready (non-draft) PRs and weekly on main; every workflow runs only the latest commit of a PR or of main, cancelling
   the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
   cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
   Every branch on GitHub has a PR, except on-hold work.
@@ -120,7 +120,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
   but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
   `sim`, `trajectories`, `render`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
-  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
+  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR or main push what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
   three shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, each document, the
@@ -151,7 +151,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
   `Model`, `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing
   it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing. A
-  push to main filters the same way, against the commit before it (#471), but main's `Site` always runs, since it
+  push to main filters the same way, against main's last commit whose Code Checks passed on a push (#471), so a run a
+  newer push cancelled is made up for, but main's `Site` always runs, since it
   builds the deploy; every Monday a scheduled run on main runs everything, the filters' safety net, and deploys
   nothing. `Pictures` sums up the `Render` job's runners (one per
   motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
