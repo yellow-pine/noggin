@@ -425,7 +425,7 @@ jobs:
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
     strategy:
-      fail-fast: false
+      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       matrix:
         shard: [0, 1, 2, 3]   # Blender restores each
     env:
@@ -459,12 +459,24 @@ jobs:
             model/build/images
             web/build
           key: next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # the shards' pictures and GLB joined into the one entry Site (and later runs) restore
   blender:
     name: Blender
     needs: [changes, render]
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     steps:
+      - name: Check out cancel-on-failure   # its last step's local action alone
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+          sparse-checkout: .github/actions
       - name: Restore shard 0's pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
