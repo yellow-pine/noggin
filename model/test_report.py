@@ -1,5 +1,5 @@
-"""Seam: the JSON reports `make sim` writes (model/report.py, model/build/reports/<doc>-sim.json): build outputs, never
-committed (docs/adr/0009). Right after make sim (CI's sim shard) every built report must have no problems; a document
+"""Seam: the JSON reports `just sim` writes (model/report.py, model/build/reports/<doc>-sim.json): build outputs, never
+committed (docs/adr/0009). Right after just sim (CI's sim shard) every built report must have no problems; a document
 not built here is skipped. The fixture test checks the checker itself."""
 
 import json
@@ -97,7 +97,7 @@ def mujoco_problems(report):
 def built(doc):
     path = os.path.join(report.OUT, f"{doc}-sim.json")
     if not os.path.isfile(path):
-        pytest.skip(f"{doc} not simulated here: make sim")
+        pytest.skip(f"{doc} not simulated here: just sim")
     return json.load(open(path))
 
 

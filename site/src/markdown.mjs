@@ -28,7 +28,7 @@ const links = {
   },
 };
 
-// shortcut: read once per build; `make site` writes it first (python -m macros), a dev server needs a restart after
+// shortcut: read once per build; `just site` writes it first (python -m macros), a dev server needs a restart after
 let numbers;
 /** `<!--{{ name }}-->` (or `name[key]`) becomes that number's Markdown from the code (macros.py); a `<!--{# ... #}-->`
  * span, what GitHub shows in the table's place, goes. An unknown name fails the build. */

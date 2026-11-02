@@ -1,5 +1,5 @@
 """Seam: model/render/hero.py, the README hero's hand-keyed stage 3 timeline: every frame inside the model's limits
-(geometry.LIMITS) and, posed on stage 3 by MuJoCo, no pair of parts deeper than at rest (as make sim's report judges a
+(geometry.LIMITS) and, posed on stage 3 by MuJoCo, no pair of parts deeper than at rest (as just sim's report judges a
 sweep, model/mujoco_report.py)."""
 
 import functools

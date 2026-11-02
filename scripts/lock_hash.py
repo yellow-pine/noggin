@@ -1,4 +1,4 @@
-"""Print uv.lock's sha256 without the project's own version: what every CI cache and `make ours` key on in its place
+"""Print uv.lock's sha256 without the project's own version: what every CI cache and `just ours` key on in its place
 (#403), since a release's version bump is the one change to the lock that changes nothing they build. Run from the
 repo's root; the project's name is pyproject.toml's."""
 

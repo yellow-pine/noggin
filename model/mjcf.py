@@ -1,8 +1,8 @@
 """The Mech as MuJoCo models (ADR 0007): one MJCF per document (stages.DOCS: the sub-assemblies and the Stage
 configurations), every part a body placed by model/geometry.py (through stages), in metres. Each part is drawn with
-its mesh from make ours and collides through its CoACD convex pieces, since MuJoCo collides a mesh by its convex hull;
+its mesh from just ours and collides through its CoACD convex pieces, since MuJoCo collides a mesh by its convex hull;
 the pieces are decomposed once per mesh and cached in model/build/convex. `python -m model.mjcf [doc ...]` writes
-model/build/mjcf/<doc>.xml (every document by default); `make view` opens one in MuJoCo's viewer.
+model/build/mjcf/<doc>.xml (every document by default); `just view` opens one in MuJoCo's viewer.
 Each horn is a hinge on its servo shaft driven by a position actuator, each coupler a hinge on its horn pin and each
 rocker a hinge on its pivot; the four-bars close by a connect at the coupler's rocker pin, each lead is a spatial tendon
 no longer than the real lead, and each screw or pin joint a site per part on its axis (#148, research note
@@ -204,7 +204,7 @@ def spec(doc, collide=True):
         body = bodies[name] = parent.add_body(name=name, pos=rel[:3, 3] * MM, quat=_quat(rel))
         file, clip = stage.parts[name].file, stage.parts[name].clip
         stem = stages.stem(file)
-        # make view only has to tell the parts apart: the part's colour, black and white pulled in (VIEW)
+        # just view only has to tell the parts apart: the part's colour, black and white pulled in (VIEW)
         colour = scene.colour(file)
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh touches nothing and carries no mass where the pieces do both, the part's mass spread by volume
@@ -281,7 +281,7 @@ def spec(doc, collide=True):
 
 def write(doc, folder=MJCF, *, collide=True):
     """<folder>/<doc>.xml (returned; <doc>-drawn.xml without collide): model/build/mjcf by default, model/build/reports
-    for the sim report's (make sim)."""
+    for the sim report's (just sim)."""
     os.makedirs(folder, exist_ok=True)
     s = spec(doc, collide)
     s.meshdir = os.path.relpath(BUILD, folder)

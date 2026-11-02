@@ -6,14 +6,14 @@ over the Link: Wi-Fi first, USB-C as fallback (ADR 0003, ADR 0005). Drawn in [Ho
 ## Commands
 
 ```
-make install         # host side only: hooks + the noggin service
-make start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
+just install         # host side only: hooks + the noggin service
+just start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
 noggin/noggin status # Link (Wi-Fi or USB) and program version per Core, the service's version, the mode (follow, demo or pose)
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
-make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
-make follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
-make stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
-make render / hero   # the model's pictures (docs/model-notes.md)
+just demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (just demo once, just demo bored 2)
+just follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
+just stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
+just render / hero   # the model's pictures (docs/model-notes.md)
 ```
 
 Posing, live calibration and the run-in are under [Tuning](tuning.md); flashing and the Wi-Fi under
@@ -36,7 +36,7 @@ Wi-Fi step ran again, see #195), noggin service and program from main (9075717),
 - Cable out: every gesture kept playing over Wi-Fi. The unplug left the eyes offline for about 12 s and dropped one
   gesture until the next beacon (#196).
 - Wi-Fi flash: `noggin flash` installed main's program (back in 3 s). A deliberately broken `eyes.mpy` never reached
-  `noggin ready`; the Core went back to its .bak files and its beacon returned. `make flash` once misread the beacon
+  `noggin ready`; the Core went back to its .bak files and its beacon returned. `just flash` once misread the beacon
   as stale, fell back to `flash-usb` with no cable and stopped the noggin service (#196).
 - USB fallback: with Wi-Fi unreachable (wrong network) and the cable in, the service found the Core on serial, sent the
   calibration and gestures, and the Core answered.

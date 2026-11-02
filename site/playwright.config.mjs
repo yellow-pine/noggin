@@ -1,4 +1,4 @@
-// The browser smoke test (smoke.pw.mjs) on the built site, in the installed Chrome: npm run smoke, after make site.
+// The browser smoke test (smoke.pw.mjs) on the built site, in the installed Chrome: npm run smoke, after just site.
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({

@@ -29,7 +29,7 @@ test.afterEach(async ({ baseURL }) => {
 });
 
 test('the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {
-  // CI always has the GLBs; a local build has them once make web ran before make site
+  // CI always has the GLBs; a local build has them once just web ran before just site
   if (existsSync(new URL('dist/viewer/stage1.glb', import.meta.url)) || process.env.CI) {
     await page.goto('viewer/?stage=1'); // the smallest Stage
     const button = (name) => page.getByRole('button', { name, exact: true });

@@ -1,24 +1,20 @@
 name: CodeQL
-# Scans the code with CodeQL on every PR, on main and weekly, into the Security tab and the PR's code scanning results.
-# Advanced setup (#549): GitHub's default setup skips a PR that touches no code, and main's ruleset requires CodeQL
-# results on every PR, so a docs-only PR waited forever (#541). One job runs the three languages in turn (init takes
-# several, analyze uploads one result per language), none of which needs a build. Default setup is off: GitHub rejects
-# an advanced setup's uploads while it is on.
+# Scans the code with CodeQL on main and weekly into the Security tab; a finding gets a follow-up PR.
+# Not on PRs (#560): waiting on code scanning results stalled them, so main's ruleset no longer requires them. Advanced
+# setup (#549): one job runs the three languages in turn (init takes several, analyze uploads one result per language),
+# none of which needs a build. Default setup is off: GitHub rejects an advanced setup's uploads while it is on.
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: "0 4 * * 1"   # Mondays: new queries find old code
-concurrency:   # one run per PR (or main): a new push cancels the one in progress
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+concurrency:   # a new push to main cancels the run in progress
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions: {}
 jobs:
   analyze:
     name: Analyze
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read

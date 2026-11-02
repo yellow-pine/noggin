@@ -26,6 +26,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - README is for contributors: setup, checks, CI. Building and using the Mech live on the site (#279).
 - Derived, not listed: whatever the code can deduce (gesture names, servo ports, the eye program's files, Stage and document ids) is read from its one source; a copy that must stay gets a test against it (ADR 0011, test_derived.py).
 - Keep everything current: the newest stable release at least 14 days old, security fixes at once; Dependabot's cooldown enforces the 14 days, so review judges a bump on its merits, never rejecting or flagging it for being newer.
+- Security alerts (code scanning, Dependabot): fix what code can, one PR per tool; dismiss only what waits on time, policy or an upstream release, with the reason, linked to a re-check issue.
 - When a dev-cycle step starts, the main session writes its name to `~/.claude/.cycle-step` (the status line shows it); subagents name their steps in their reports.
 
 ## Where things are
@@ -34,8 +35,8 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
-- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `make render`, `make hero`; CI builds the README's (`make pictures`) for the site's /images.
-- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `make web` builds the GLBs, `make site` the whole site.
+- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `just render`, `just hero`; CI builds the README's (`just pictures`) for the site's /images.
+- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
-- Checks and CI: CONTRIBUTING.md. Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
+- Checks and CI: CONTRIBUTING.md. Board: `just flash`, `just start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

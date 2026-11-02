@@ -1,6 +1,6 @@
 """Pin fits at every pinned joint of a sub-assembly: a circle fitted (least squares) to our part's STL around the
 hole, compared with the fastener. Radial clearance outside CLEARANCE is flagged. `python -m model.fits`
-prints the eyes table. Our printed parts' STLs: model/build/ours (make ours)."""
+prints the eyes table. Our printed parts' STLs: model/build/ours (just ours)."""
 
 import functools
 import math
@@ -13,7 +13,7 @@ import trimesh
 CLEARANCE = (0.1, 0.4)  # mm radial, agreed in #20
 M2 = 2.0  # M2 screw shank diameter (the bars are screwed to the horn and the eyeball)
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OURS = os.path.join(REPO, "model/build/ours")  # our printed parts (model/ours.py, make ours)
+OURS = os.path.join(REPO, "model/build/ours")  # our printed parts (model/ours.py, just ours)
 M2_5 = 2.5  # M2.5 lever and pivot screws (guide: all screws M2.5 unless stated)
 
 

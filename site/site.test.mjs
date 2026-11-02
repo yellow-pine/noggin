@@ -1,6 +1,6 @@
-// The site as `make site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
+// The site as `just site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
 // by its H1, every link lands, the numbers are the code's (macros.json), each page's footer and /version.json give the
-// version and the commit, and each page's CSP lets only the site's own scripts run. Run after make site: npm test (Site
+// version and the commit, and each page's CSP lets only the site's own scripts run. Run after just site: npm test (Site
 // Checks), and on a Docs version's build with SITE_BASE (docs/adr/0014).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -53,7 +53,7 @@ test('the sidebar reaches every decision and the viewer', () => {
   for (const target of [...adrs.map(route), `${BASE}/viewer/`]) expect(links).toContain(target);
 });
 
-// what make site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is,
+// what just site adds beside the build when it was built (pictures, sim reports): a link there is checked when it is,
 // and always in a Docs version, which never has them (docs/adr/0014)
 const ADDED = ['images', 'reports'];
 const built = (file) =>

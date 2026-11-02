@@ -1,5 +1,5 @@
 """CI's names follow GitHub's own UI (#298): every job has a Title Case name ("Fetch Skills", "Model (hero)"), every
-step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run make check")."""
+step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run just check")."""
 
 import re
 import subprocess
@@ -42,8 +42,8 @@ def test_every_step_has_a_short_sentence_case_name():
 def test_the_convention_itself():
     assert all(TITLE.fullmatch(n) for n in ["Code", "Fetch Skills", "PR", "Model (${{ matrix.shard }})"])
     assert not any(TITLE.fullmatch(n) for n in ["code", "fetch skills", "Model hero)", "convex ${{ matrix.part }}"])
-    assert all(sentence_case(n) for n in ["Set up uv", "Run make check", "Restore the parts cache", "Verdict"])
-    assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run make check."])
+    assert all(sentence_case(n) for n in ["Set up uv", "Run just check", "Restore the parts cache", "Verdict"])
+    assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run just check."])
 
 
 def test_no_workflow_runs_on_ubuntu_latest():
@@ -150,3 +150,9 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert "pull_request" in jobs["build"]["if"]
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_codeql_scans_main_and_weekly_never_a_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+    on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
+    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]

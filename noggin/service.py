@@ -5,7 +5,7 @@ dropping hook Triggers, until `follow`; re-sent, after a `rest`, on every `set`,
 unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file) / `demo [once |
 <gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks from demo or
 pose; the mode after any restart) / `status` (each Core's Link and program, the service's own version) / `flash`
-(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `make flash`). The whole calibration file is
+(the eye program to the eyes Core over Wi-Fi, answered with the outcome; `just flash`). The whole calibration file is
 pushed whenever the Link connects. Run as `python -m noggin.service`."""
 
 import glob
@@ -31,7 +31,7 @@ DEMO_LINES = {"thinking", "rest"} | {f"{g} {n}" for g in GESTURES for n in "123"
 DEMO_LEVELS = {"eureka": "123", "wink": "3"}  # every eureka size, a wink to a random side; the rest at 2
 SEQUENCE = [f"{g} {n}" for g in GESTURES for n in DEMO_LEVELS.get(g, "2")] + ["thinking", "rest"]
 HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it this long
-FLASH_FILES = tuple(f"{m}.mpy" for m in (*MODULES, STAMP))  # eyes/build (make mpy); boot.py goes over USB alone, as .py
+FLASH_FILES = tuple(f"{m}.mpy" for m in (*MODULES, STAMP))  # eyes/build (just mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
 MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
@@ -121,7 +121,7 @@ class Service:
         for name in CORES:
             if self.wifi.fresh(name, now) and semver(core := self.wifi.programs[name][0]) < semver(VERSION):
                 lines.append(
-                    f"warning: {name} runs program {core}, older than the noggin service's {VERSION}: make flash"
+                    f"warning: {name} runs program {core}, older than the noggin service's {VERSION}: just flash"
                 )
         return "".join(line + "\n" for line in lines) + f"mode {self.mode}\n"
 
@@ -193,7 +193,7 @@ class Service:
             self.wifi.poll(time.time())
             time.sleep(0.05)
         if not self.wifi.fresh("eyes", time.time()):
-            msg = f"flash failed: no beacon from eyes in {self.wifi.stale} s (switched off? USB=1 make flash)"
+            msg = f"flash failed: no beacon from eyes in {self.wifi.stale} s (switched off? just flash-usb)"
         else:
             try:
                 build = self.cal_file.parent / "build"
@@ -339,5 +339,5 @@ class Service:
 
 if __name__ == "__main__":
     service = Service()
-    signal.signal(signal.SIGTERM, lambda *_: service.stop())  # `make stop` (launchd's SIGTERM)
+    signal.signal(signal.SIGTERM, lambda *_: service.stop())  # `just stop` (launchd's SIGTERM)
     service.run()

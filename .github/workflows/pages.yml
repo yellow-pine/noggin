@@ -75,7 +75,7 @@ jobs:
         with:
           ref: ${{ env.SHA }}
           sparse-checkout: |
-            Makefile
+            scripts/site_reports.sh
             scripts/docs_versions.py
           sparse-checkout-cone-mode: false
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
@@ -94,7 +94,7 @@ jobs:
           key: sim-latest
           restore-keys: sim-
       - name: Add the sim reports
-        run: make site-reports
+        run: scripts/site_reports.sh   # just site-reports, without setting up just
       # every Release's docs at vX.Y/ beside main's, and the switcher's versions.json (docs/adr/0014)
       # (Release Docs dispatches this once its asset is up, #414)
       - name: Add every release's docs

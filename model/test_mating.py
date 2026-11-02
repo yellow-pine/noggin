@@ -1,5 +1,5 @@
 """Seam: the mating joints (model/mating.py) on the features our parts declare (model/printed, model/envelopes.py),
-measured on their meshes (make ours); MuJoCo holds each joint's sites together (model/test_mjcf.py)."""
+measured on their meshes (just ours); MuJoCo holds each joint's sites together (model/test_mjcf.py)."""
 
 import numpy as np
 import pytest

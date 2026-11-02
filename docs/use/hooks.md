@@ -1,12 +1,12 @@
 # Hooks
 
-Claude Code tells the noggin service what it is doing through its hooks. `make install` (or the last step of
+Claude Code tells the noggin service what it is doing through its hooks. `just install` (or the last step of
 `scripts/setup.sh`) merges noggin's hooks into Claude Code's user settings, `~/.claude/settings.json`; running it again
-changes nothing, and `make unhooks` takes them out.
+changes nothing, and `just unhooks` takes them out.
 
 ```
-make hooks           # add noggin's hooks to ~/.claude/settings.json
-make unhooks         # take them out again
+just hooks           # add noggin's hooks to ~/.claude/settings.json
+just unhooks         # take them out again
 ```
 
 Each hook runs `noggin/hook.sh`, which passes the event's JSON to the noggin service's Unix socket, `~/.noggin.sock`,

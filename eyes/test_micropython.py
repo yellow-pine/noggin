@@ -34,8 +34,8 @@ def test_the_stubs_and_mpy_cross_are_the_cores_micropython():
         assert version(package).startswith(PIN + "."), package
 
 
-def test_the_makefile_tag_is_the_cores_micropython():  # the stand-in's unix port and both hmacs (make flash-usb, mech)
-    tag = re.search(r"^MICROPYTHON := (\S+)$", (REPO / "Makefile").read_text(), re.M)
+def test_the_justfile_tag_is_the_cores_micropython():  # the stand-in's unix port and both hmacs (just flash-usb, mech)
+    tag = re.search(r'^MICROPYTHON := "(\S+)"$', (REPO / "justfile").read_text(), re.M)
     assert tag and tag[1].startswith(f"v{PIN}."), tag
 
 

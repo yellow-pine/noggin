@@ -18,7 +18,7 @@ for _attempt in range(15):  # the noggin service may still be letting go of the 
     except serial.SerialException, OSError:
         time.sleep(0.2)
 else:
-    sys.exit("Link busy: is the noggin service still running? (make stop)")
+    sys.exit("Link busy: is the noggin service still running? (just stop)")
 with s:
     for _ in range(3):
         s.write(b"\x03")

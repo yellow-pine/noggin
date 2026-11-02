@@ -15,7 +15,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # what VTK (under CadQuery) and Blender load even in the background; the rest what the jobs' steps call (the runner
 # image's)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git jq make python3 shellcheck unzip xz-utils zstd \
+      ca-certificates curl git jq python3 shellcheck unzip xz-utils zstd \
       ngspice libgl1 libgomp1 \
       libice6 libsm6 libx11-6 libxcursor1 libxext6 libxfixes3 libxi6 libxkbcommon0 libxrender1 libxxf86vm1 \
  && rm -rf /var/lib/apt/lists/*

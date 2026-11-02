@@ -1,4 +1,4 @@
-"""worktrees_clean.py: make worktrees-clean removes a worktree whose branch is gone from origin or whose PR merged or
+"""worktrees_clean.py: just worktrees-clean removes a worktree whose branch is gone from origin or whose PR merged or
 closed, and keeps one never pushed, with uncommitted changes or unpushed commits, or on an open PR's branch. Real git: a
 bare origin, a clone and its worktrees; GitHub's PRs are a fake gh on PATH."""
 

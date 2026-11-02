@@ -11,5 +11,3 @@ indent_size = 4
 [*.{yml,yaml,json,md,mjs,js,ts,astro,css}]
 indent_size = 2
 
-[Makefile]
-indent_style = tab
