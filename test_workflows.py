@@ -290,6 +290,22 @@ def test_codeql_scans_weekly_never_a_push_or_pr():
     assert set(on) == {"schedule", "workflow_dispatch"}
 
 
+def test_dependabot_turns_on_auto_merge_as_the_bot_app():
+    """#733: a merge whose auto-merge GITHUB_TOKEN turned on starts no push workflow on main, so Dependabot's bumps
+    landed untested. The bot App turns it on, its token holding only what a merge needs (`workflows`: actions bumps
+    edit workflow files), and the job's GITHUB_TOKEN gets nothing."""
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "dependabot.yml").read_text())["jobs"].values()
+    assert job.get("permissions", {}) == {}
+    app = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@"))
+    assert {k for k in app["with"] if k.startswith("permission-")} == {
+        "permission-contents",
+        "permission-pull-requests",
+        "permission-workflows",
+    }
+    merge = next(s for s in job["steps"] if "gh pr merge --auto" in s.get("run", ""))
+    assert merge["env"]["GH_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+
+
 def test_main_releases_itself_once_its_checks_pass():
     """#582, docs/adr/0017: semantic-release runs after this repo's push to main passed Checks, on that commit, one run
     at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""

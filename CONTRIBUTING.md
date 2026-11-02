@@ -59,11 +59,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   feat, fix, perf, revert or a `!` break (before 1.0 a break bumps the minor, the rest the patch); docs, ci, chore,
   build, test, style and refactor release nothing. The tag starts `Release Assets`, which attaches the Core program
   zip and the release's docs (docs/adr/0014). No release PR, nothing committed back; tag nothing by hand.
-- The workflows that open PRs or push (Release, the weekly `skills` and `blender` ones, `Review`'s
-  rebase) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on
-  yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and write and no
-  webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the `RELEASE_APP_PRIVATE_KEY`
-  secret. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
+- The workflows that open PRs, push or merge (Release, the weekly `skills` and `blender` ones, `Review`'s
+  rebase, Dependabot Auto-merge) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a
+  private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
+  write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
+  `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
+  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or
+  its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
   --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
