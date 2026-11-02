@@ -34,17 +34,3 @@ def current(torque_kgfcm, speed_deg_s, volts=6.0):
     demand = f["i0_a"] + torque_kgfcm / f["kt_kgfcm_per_a"]
     cap = (volts - f["ke_v_per_deg_s"] * abs(speed_deg_s)) / f["r_ohm"]
     return min(demand, cap)
-
-
-class Plant:
-    """First-order servo: tracks the command at the rated slew; `holding` once it has arrived."""
-
-    def __init__(self, pos, volts=6.0):
-        self.pos, self.rate, self.holding = pos, rate(volts), True
-
-    def step(self, commanded_deg, dt):
-        d = commanded_deg - self.pos
-        lim = self.rate * dt
-        self.pos += max(-lim, min(lim, d))
-        self.holding = abs(commanded_deg - self.pos) < 1e-9
-        return self.pos

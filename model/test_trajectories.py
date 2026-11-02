@@ -13,7 +13,7 @@ from model.render import hero
 from model.test_report import KNOWN_PAIRS
 
 pytestmark = pytest.mark.model
-SETTLED_DEG = 0.5  # a servo's deadband (mjcf.KP)
+SETTLED_DEG = 0.5  # a servo's deadband (mjcf.SERVO kp)
 
 
 # Pairs a gesture drives deeper than at rest because the calibrated servo ends reach past the model's free travel, with
@@ -93,18 +93,19 @@ def test_the_mech_at_rest_stays_at_rest():
 
 
 def test_a_step_reaches_its_target_no_faster_than_the_servo_slews():
-    """A 30 degree step on the L lid servo: the horn never runs ahead of the rated slew, is within the deadband by
-    250 ms and its rise to 90 % takes the slew's time give or take 30 ms."""
+    """A 30 degree step on the L lid servo: after its PWM frame's delay the horn never runs ahead of the rated slew, is
+    within the deadband by 250 ms and its rise to 90 % takes the delay and the slew's time give or take 30 ms."""
     model = built("noggin-stage1")
     writes = [(-1, s, 0.0) for s in ("l_lid", "l_eye", "r_lid", "r_eye")] + [(0, "l_lid", 30.0)]
     times = range(0, 401, 5)
     horn = model.body("L lid horn:1").id
     deg = turned(tj.play(model, writes, times), horn)
     rate = electrical.servo.rate(electrical.SERVO_MIN_V) / 1000  # deg per ms
-    assert all(d <= rate * t + SETTLED_DEG for t, d in zip(times, deg))
+    delay = mjcf.SERVO["delay_s"] * 1000
+    assert all(d <= rate * max(t - delay, 0) + SETTLED_DEG for t, d in zip(times, deg))
     assert all(abs(d - 30) < SETTLED_DEG for t, d in zip(times, deg) if t >= 250)
     rise = next(t for t, d in zip(times, deg) if d >= 27)
-    assert abs(rise - 27 / rate) <= 30, rise
+    assert abs(rise - delay - 27 / rate) <= 30, rise
 
 
 def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_path, monkeypatch):

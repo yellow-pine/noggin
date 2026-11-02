@@ -2,8 +2,9 @@
 (model/render/hero.py) played on each Stage by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's
 place in the world per 100 ms frame: the one source of motion the pictures render from (#150, poses()) and
 the web viewer's GLBs bake (web/build.py).
-Each servo slews its command at the rated no-load speed (eyes/servo.py Plant, at 4.8 V as mjcf's stall torque) and its
-position actuator follows under the load, its torque limited to the stall torque; contacts are off, as in mjcf.pose.
+Each command goes straight to its servo, a DC motor behind its own P loop that reads it one PWM frame late
+(mjcf.drive, #625): the load, the stall torque and the no-load speed set how fast it follows; contacts are off, as in
+mjcf.pose.
 `python -m model.trajectories` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
 Stage, skipping a Stage whose files still carry its stamp: {"doc", "motion", "fps", "stamp", "parts": {part: {"pos":
 [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its mesh's, as model/build/ours
@@ -21,7 +22,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical, geometry, mjcf, stages, traces
+from model import geometry, mjcf, stages, traces
 from model.render import hero, scene
 
 OUT = os.path.join(mjcf.BUILD, "trajectories")
@@ -42,6 +43,7 @@ SOURCES = [
     "model/printed/*.py",  # our parts and the features they declare (the mating sites)
     "model/envelopes.py",
     "eyes/servo.py",  # the servo's speed and torque
+    "model/servo_fit.json",  # the filmed servo's, once fitted
     "model/traces.py",
     "model/trajectories.py",
     "model/render/hero.py",
@@ -73,8 +75,7 @@ def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.c
     assert all(h in command for _, h, _ in writes), "every servo is placed before ms 0"
     driven = list(command)
     ids = [model.actuator(h).id for h in driven]
-    plants = [electrical.servo.Plant(command[h], electrical.SERVO_MIN_V) for h in driven]
-    dt, per_ms = model.opt.timestep, round(0.001 / model.opt.timestep)
+    per_ms = round(0.001 / model.opt.timestep)
     i, step, out = sum(ms < 0 for ms, _, _ in writes), 0, []
     flags = model.opt.disableflags
     model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
@@ -84,7 +85,7 @@ def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.c
                 while i < len(writes) and writes[i][0] <= step / per_ms:
                     command[writes[i][1]] = writes[i][2]
                     i += 1
-                data.ctrl[ids] = [math.radians(p.step(command[h], dt)) for p, h in zip(plants, driven)]
+                data.ctrl[ids] = [math.radians(command[h]) for h in driven]
                 mujoco.mj_step(model, data)
                 step += 1
             out.append(read(data))
