@@ -47,6 +47,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
   VIEWS, PANELS); Pictures shows them in one grid (macros.py next_panels): a column per document, a row per view, each
   linking to its file; on a phone stacked by document.
+- The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, as Bones:
+  Stage 1 from the front, Stage 3's isometric panel and Stage 3 from the side, exploded by the viewer's offsets
+  (pictures.py FRONT, EXPLODE), the two new ones each framed tight on its own at the panels' size and also on Pictures.
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code

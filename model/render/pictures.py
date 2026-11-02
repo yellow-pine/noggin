@@ -2,9 +2,9 @@
 posed from its baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 `views` (`just render`): the panels (each document at rest, a trajectory's first frame, from the side and isometric,
-framed among themselves: PANELS). `site next` (`just pictures next`, Checks' Render shards, each its share: SHARD):
-what the site serves into model/build/images (#649): the panels, the eye gimbal in motion (NEXT_MOTIONS: its sweep,
-#656, and each motion it plays, #663) and a picture per part.
+framed among themselves: PANELS) and the front doors' own (FRONT, #739). `site next` (`just pictures next`, Checks'
+Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those, the eye gimbal in
+motion (NEXT_MOTIONS: its sweep, #656, and each motion it plays, #663) and a picture per part.
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
 
 import functools
@@ -49,6 +49,15 @@ EXPLODE = {
     "next-eyes": (0, 0, 95),
     "next-back": (0, 60, 95),
 }
+# the front doors (#739: the README's top, the site's home), side by side in this order, as Bones (#704): Stage 1 from
+# the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3 from the side, exploded (EXPLODE);
+# each (document, eye direction, exploded), framed tight on its own at the panels' size
+STAGE1, STAGE3 = next(iter(g.STAGES)), next(iter(g.NEXT))
+FRONT = {
+    f"{STAGE1}-front.webp": (STAGE1, (0, -1, 0), False),
+    f"{STAGE3}-isometric.webp": None,
+    f"{STAGE3}-side-exploded.webp": (STAGE3, VIEWS["side"][0], True),
+}
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site publishes (#649, docs/adr/0019): the next Mech's panels and a picture of each of its parts, alone at
 # rest, isometric, framed on its own; every name next-
@@ -87,8 +96,17 @@ def next_motion(motion):
 
 
 def published():
-    """Every picture the site serves (#649): the next Mech's panels, its motions (#656), then its parts'."""
-    return [*(picture(*p) for p in PANELS), *map(next_motion, NEXT_MOTIONS), *next_parts()]
+    """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), its motions (#656),
+    then its parts'."""
+    front = [f for f, how in FRONT.items() if how]
+    return [*(picture(*p) for p in PANELS), *front, *map(next_motion, NEXT_MOTIONS), *next_parts()]
+
+
+def exploded(doc, mats):
+    """mats ({part: world 4x4}, metres) with each part moved by its sub-assembly's EXPLODE offset, as the viewer's
+    Explode moves it (macros.py explode)."""
+    sub = {n: s for s in g.STAGES[doc] for n in stages.SUBS[s]().parts}
+    return {n: stages.translate(np.divide(EXPLODE[sub[n]], 1000)) @ m for n, m in mats.items()}
 
 
 def share(frames, i, n):
@@ -195,8 +213,12 @@ def views(mine):
     pad = PAD * max(w, h)
     w, h = w + 2 * pad, h + 2 * pad
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
-    for name, (manifest, _, mats, pts) in plans.items():
+    for name, (manifest, hull, mats, pts) in plans.items():
         shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
+        for f, (doc, eye, apart) in ((f, how) for f, how in FRONT.items() if how and how[0] == name):
+            pose = exploded(doc, mats) if apart else mats
+            cam = camera.fit(points(hull, pose), eye, g.Z, size[0] / size[1], None, MARGIN)
+            shots.append(shot(f.removesuffix(".webp"), size, cam, [pose]))
         render(name, manifest, shots, mine)
 
 

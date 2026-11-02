@@ -203,11 +203,13 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 figure:has(img) { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* the next Mech's parts and motions (macros.py figures): a picture each over its name, the motions wider */
-.noggin-parts, .noggin-motions { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-.noggin-parts figure, .noggin-motions figure { margin: 0; text-align: center; }
-.noggin-parts img, .noggin-motions img { display: block; width: 100%; height: auto; }
-.noggin-motions { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+/* the next Mech's parts and motions (macros.py figures): a picture each over its name, the motions and the front
+   doors' own wider, the home's three (macros.py front, #739) in three columns */
+.noggin-parts, .noggin-motions, .noggin-views, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
+:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }
+.noggin-motions, .noggin-views { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.noggin-front { grid-template-columns: repeat(3, 1fr); }
 
 /* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
    stacked by Stage, its views side by side */

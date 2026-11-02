@@ -8,11 +8,15 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 ## The next Mech, in progress
 
-[![The next Mech in progress, isometric](https://yellowpine.com/noggin/images/next-mech-back-isometric.webp)](pictures.md)
-[![Its eyes sweeping, the lids following](https://yellowpine.com/noggin/images/next-eyes-sweep.webp)](pictures.md)
+<!--{{ front }}-->
 
-The next Mech (#51), clean-room, as its model has it after the latest merge, and its eyes sweeping. Each part and
-motion in [Pictures](pictures.md), turn it in [the viewer](https://yellowpine.com/noggin/viewer/).
+<!--{# GitHub shows the line below; the site drops it for the pictures, which it builds from the code -->
+Its Stage 1 from the front, its Stage 3 isometric and exploded are on [the site's home](https://yellowpine.com/noggin/).
+<!-- #}-->
+
+The next Mech (#51), clean-room, as its model has it after the latest merge: Stage 1 from the front, Stage 3 whole and
+pulled apart. Each part and motion in [Pictures](pictures.md), turn it in
+[the viewer](https://yellowpine.com/noggin/viewer/).
 
 ## What it does
 
