@@ -86,6 +86,31 @@ def test_the_moved_parts_keep_their_pins_together(lid, pitch):
         assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
 
 
+@pytest.mark.parametrize("yaw", [-25, 25])
+@pytest.mark.parametrize("pitch", [-15, 15])
+def test_a_yaw_keeps_the_tie_bar_and_the_push_rods_on_their_pins(yaw, pitch):
+    """#656: with the eyes yawed the yaw horn, the tie-bar and the yokes turn together and each push-rod still meets its
+    lever's ball and its bail arm's: the motion pictures pose an assembly."""
+    m = gimbal.moved(0, pitch, yaw)
+    c, (by, bz) = gimbal.CRANK, gimbal.BAIL
+    pins = [(("next yaw horn:1", "next tie-bar:1"), (0, c, 0))]
+    for s, (x, _, _) in gimbal.EYE.items():
+        pins.append(((f"next {s} yaw yoke:1", "next tie-bar:1"), (x, c, 0)))
+        pins.append(((f"next {s} eyeball core:1", f"next {s} push-rod:1"), (x, 0, gimbal.LEVER)))
+        pins.append((("next bail:1", f"next {s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
+    for (a, b), p in pins:
+        assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
+    front = m["next L eyeball core:1"] @ (gimbal.EYE["L"][0], -1, 0, 1)
+    assert math.degrees(math.atan2(front[0] - gimbal.EYE["L"][0], -front[1])) == pytest.approx(yaw, abs=1e-3)
+
+
+def test_each_lid_takes_its_own_servo():
+    """A wink (#656): one lid closes while the other stays open."""
+    m = gimbal.moved({"L": -65, "R": 0}, 0)
+    edge = {s: m[f"next {s} lid:1"] @ (x, -1, 0, 1) for s, (x, _, _) in gimbal.EYE.items()}
+    assert [round(math.degrees(math.atan2(e[2], -e[1]))) for e in edge.values()] == [-65, 0]
+
+
 def test_the_lid_and_the_eyes_turn_as_commanded():
     """The lid servo's degrees turn the lid's edge up by as many; the core takes the eyes' pitch up."""
     m = gimbal.moved(20, 10)

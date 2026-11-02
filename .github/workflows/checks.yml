@@ -12,8 +12,8 @@ name: Checks
 # parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. Every
 # artifact of a public repo is anyone's, so nothing derived from today's printed parts is rendered or uploaded (#640,
 # docs/adr/0019) and the parts pass between jobs in the Actions cache alone. `Blender` renders the next Mech alone (#649):
-# its panels and a picture per part (just pictures next) and its viewer GLB (just web next-mech), when what they are
-# made from changed, with a PR's before/after panel (the `preview` artifact, just preview <pr>). `Site` builds the docs
+# its panels, its eye gimbal in motion and a picture per part (just pictures next) and its viewer GLB (just web
+# next-mech), when what they are made from changed, with a PR's before/after (the `preview` artifact, just preview <pr>). `Site` builds the docs
 # (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the next Mech's
 # pictures and GLB, tests and plays the site in Chrome (Playwright), uploads it (a PR's preview, and on main what Site
 # Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -382,7 +382,8 @@ jobs:
           key: ${{ steps.parts.outputs.cache-primary-key }}
   # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
   # changed: rendered and baked from its trajectories on CI's software GL and saved for checks (and later runs) to
-  # restore. A PR's preview artifact beside them: the live site's panels above this run's, and its pictures
+  # restore. A PR's preview artifact beside them: the live site's panels and each motion it changed above this run's,
+  # and its pictures
   blender:
     name: Blender
     needs: changes

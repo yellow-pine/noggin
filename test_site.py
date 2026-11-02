@@ -256,8 +256,8 @@ def test_the_next_mech_has_its_own_panels():
 
 
 def test_the_site_publishes_the_next_mech_alone():
-    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part of it, its viewer the next
-    Mech's GLB, every name starting next-, and no document they draw has a part of today's print."""
+    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels, its motions (#656) and one per part of it,
+    its viewer the next Mech's GLB, every name starting next-, and no document they draw has a part of today's print."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
@@ -265,8 +265,9 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.NEXT for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    assert len(published) == 2 + len(stems) == len(set(published))  # side, isometric and a picture per part
-    assert {"next-mech-isometric.webp", "next-eyeball-core.webp", "next-l-lid.webp", "next-servo.webp"} <= {*published}
+    # side, isometric, the motions (#656) and a picture per part
+    assert len(published) == 2 + 3 + len(stems) == len(set(published))
+    assert {"next-mech-isometric.webp", "next-eyes-blink.webp", "next-l-lid.webp", "next-servo.webp"} <= {*published}
     assert build.PUBLIC == {"next-mech": "next-mech.glb"}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)

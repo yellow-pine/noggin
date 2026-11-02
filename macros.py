@@ -6,7 +6,8 @@ landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
 panels: the Stage panels' grid (model/render/pictures.py PANELS), on no page since #640 (docs/adr/0019); next_panels:
-the next Mech's (geometry.py NEXT, #629) and next_parts: a picture of each of its parts, on docs/pictures.md (#649).
+the next Mech's (geometry.py NEXT, #629), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of
+each of its parts, on docs/pictures.md (#649).
 published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
@@ -119,6 +120,8 @@ def picture_numbers():
             f"| Stage panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
             f"| hero | {size(*p.HERO_SIZE)} | {p.HERO_FPS} fps, at most {p.HERO_MAX_BYTES / 1e6:g} MB |",
             f"| favicon | {size(*p.FAVICON_SIZE)} | PNG |",
+            f"| the next Mech's parts | {size(*p.PART_SIZE)} | WebP |",
+            f"| the next Mech in motion | {size(*p.MOTION_SIZE)} | {p.HERO_FPS} fps, looping |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `just view` |",
             "|---|---|---|---|",
@@ -148,15 +151,27 @@ def next_panels():
     return panels(dict.fromkeys(g.NEXT, "Next Mech"))
 
 
-def next_parts():
-    """The next Mech's parts (model/render/pictures.py next_parts), each picture under its name, linking to its file."""
+def figures(labels, kind="parts"):
+    """{picture: label} as a grid, each picture under its label, linking to its file (site/src/styles/custom.css)."""
     site, cells = "https://yellowpine.com/noggin/images/", []
-    for f, (doc, name) in pictures.next_parts().items():
-        stem = stages.stem(stages.STAGES[doc].parts[name].file)
-        label = HARDWARE.get(stem, stem.removeprefix("next "))
+    for f, label in labels.items():
         img = f'<img src="{site}{f}" alt="{label}" loading="lazy">'
         cells.append(f'<figure><a href="{site}{f}">{img}</a><figcaption>{label}</figcaption></figure>')
-    return f'<div class="noggin-parts not-content">{"".join(cells)}</div>'
+    return f'<div class="noggin-{kind} not-content">{"".join(cells)}</div>'
+
+
+def next_motions():
+    """The next Mech's eye gimbal in motion (model/render/pictures.py NEXT_MOTIONS, #656)."""
+    return figures({pictures.next_motion(m): f"Eye gimbal, {m}" for m in pictures.NEXT_MOTIONS}, "motions")
+
+
+def next_parts():
+    """The next Mech's parts (model/render/pictures.py next_parts), each picture under its name."""
+    labels = {}
+    for f, (doc, name) in pictures.next_parts().items():
+        stem = stages.stem(stages.STAGES[doc].parts[name].file)
+        labels[f] = HARDWARE.get(stem, stem.removeprefix("next "))
+    return figures(labels)
 
 
 HARDWARE = {
@@ -251,6 +266,7 @@ def numbers():
         "pictures": picture_numbers(),
         "panels": panels(),
         "next_panels": next_panels(),
+        "next_motions": next_motions(),
         "next_parts": next_parts(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values())},
         "stage_parts": parts,

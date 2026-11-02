@@ -14,6 +14,7 @@ parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid positiv
 import math
 
 import numpy as np
+import trimesh
 from scipy.optimize import brentq
 from scipy.spatial import cKDTree
 
@@ -124,30 +125,38 @@ def servos(yaw, pitch):
 
 
 def _carry(a0, b0, a, b):
-    """4x4 taking a part pinned at a0 and b0 (a plane across x) to its pins at a and b: a turn about x, then a shift."""
-    turn = math.atan2(b[2] - a[2], b[1] - a[1]) - math.atan2(b0[2] - a0[2], b0[1] - a0[1])
-    m = linkage.rotation(g.X, math.degrees(turn), a0)
-    m[:3, 3] += np.subtract(a, a0)
+    """4x4 taking a part pinned at a0 and b0 to its pins at a and b: the least turn about a0, then a shift (in a plane
+    across x, a turn about x)."""
+    m = trimesh.geometry.align_vectors(np.subtract(b0, a0), np.subtract(b, a))
+    m[:3, 3] = np.subtract(a, m[:3, :3] @ a0)
     return m
 
 
-def moved(lid, pitch):
-    """{next-eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg and the eyes at `pitch`, yaw 0
-    (#650): each lid, its bar and its horn; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
-    out = {}
+def moved(lid, pitch, yaw=0.0):
+    """{next-eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg (or {side: deg}, each its own) and
+    the L eye at (yaw, pitch) through the command map (#650, #656): each lid, its bar and its horn; yawed, the yaw horn,
+    the tie-bar and each yoke; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
+    out, lids = {}, lid if isinstance(lid, dict) else dict.fromkeys(EYE, lid)
     for s, (x, _, _) in EYE.items():
-        lid_m, horn_m = linkage.rotation(g.X, -lid, (x, 0, 0)), linkage.rotation(g.X, -lid, (x, *LID_HORN))
+        lid_m, horn_m = linkage.rotation(g.X, -lids[s], (x, 0, 0)), linkage.rotation(g.X, -lids[s], (x, *LID_HORN))
         crank, pin = (x, CRANK, 0), (x, LID_HORN[0] + CRANK, LID_HORN[1])
         out[f"next {s} lid:1"], out[f"next {s} lid horn:1"] = lid_m, horn_m
         out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
-    servo = servos(0, pitch)[1]
+    yaw_servo, servo = servos(yaw, pitch)
+    if yaw:  # else they stay at rest, left out: the lid drives' sweep (model/printed/gimbal.py) poses what is here
+        out["next yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo)
+        out["next tie-bar:1"] = tie = np.eye(4)
+        tie[:3, 3] = (horn @ (0, CRANK, 0, 1))[:3] - (0, CRANK, 0)  # a parallelogram: the bar shifts, never turns
     bail, a, b = _PITCH(servo)
     out["next pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
     out["next bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))
     out["next pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, BAIL[0] + BAIL_IN, BAIL[1]), a, b)
-    for s, (yaw, p) in eyes(0, servo).items():
+    for s, (y, p) in eyes(yaw_servo, servo).items():
         x = EYE[s][0]
-        core_m = linkage.rotation(g.Z, yaw, (x, 0, 0)) @ linkage.rotation(g.X, -p, (x, 0, 0))  # as core()
+        yoke = linkage.rotation(g.Z, y, (x, 0, 0))
+        if yaw:
+            out[f"next {s} yaw yoke:1"] = yoke
+        core_m = yoke @ linkage.rotation(g.X, -p, (x, 0, 0))  # as core()
         out[f"next {s} eyeball core:1"] = out[f"next {s} eyeball cap:1"] = core_m
         lever, arm = (x, 0, LEVER), (x, BAIL[0], BAIL[1] + LEVER)
         rod = (core_m @ [*lever, 1])[:3], (out["next bail:1"] @ [*arm, 1])[:3]

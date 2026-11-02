@@ -10,6 +10,9 @@
 > own, as the `preview` artifact (`just preview <pr>`). Every name published starts `next-`, and tests hold what is
 > rendered, baked, uploaded and served to the Next Mech's documents, which carry none of today's printed parts
 > (test_workflows.py, test_site.py, site.test.mjs). Today's Mech stays unpublished.
+> Amended 2026-11-02 (#656, Cansin): the Next Mech in motion too, its eye gimbal's sweep, blink and wink as looping
+> WebPs (`next-eyes-<motion>.webp`, `just pictures next`) on Pictures, and a PR's preview stacks each motion it changed,
+> the live one above its own.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

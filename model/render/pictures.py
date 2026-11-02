@@ -9,11 +9,13 @@ pictures, motion by motion (SITE; the gestures play in the web viewer, #468) int
 served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/0019). Checks packed the motions into its Blender bins (model/shards.py,
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
-`site next` (`just pictures next`): what the site serves, the next Mech's panels and a picture per part (NEXT, #649);
-`compare`: a PR's preview of them, the live site's above its own (PREVIEW_OUT).
+`site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS,
+#656) and a picture per part (NEXT, #649); `compare`: a PR's preview of them, the live site's above its own
+(PREVIEW_OUT).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join | compare (Blender at $BLENDER)"""
 
 import functools
+import io
 import json
 import math
 import os
@@ -26,9 +28,10 @@ import urllib.request
 import imageio_ffmpeg
 import numpy as np
 import trimesh
+from PIL import Image, ImageSequence
 
 from model import geometry as g
-from model import stages, trajectories
+from model import gimbal, stages, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
@@ -85,6 +88,20 @@ MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 NEXT = "next"
 NEXT_PANELS = [picture(n, v) for n, v in PANELS if n in g.NEXT]
 PART_SIZE = (400, 400)
+# the next Mech in motion (#656): its eye gimbal moved by its own kinematics (model/gimbal.py moved; its MuJoCo document
+# has no horns yet), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in degrees, eased from key to key and looping
+# from rest, at HERO_FPS; the lids follow the pitch (#51), shut past the cap's rim; next-eyes alone through one camera
+SHUT = gimbal.LID_EDGES[0] - gimbal.LID_REST
+_Y, _P = gimbal.YAW, gimbal.PITCH
+NEXT_MOTIONS = {
+    "sweep": [(0, 0, 0, 0, 0), (1, -_Y, 0, 0, 0), (2.5, _Y, 0, 0, 0), (3.5, 0, 0, 0, 0), (4.25, 0, _P, _P, _P),
+              (5.5, 0, -_P, -_P, -_P), (6.25, 0, 0, 0, 0)],
+    "blink": [(0, 0, 0, 0, 0), (0.5, 0, 0, 0, 0), (0.75, 0, 0, SHUT, SHUT), (0.875, 0, 0, SHUT, SHUT),
+              (1.25, 0, 0, 0, 0), (2, 0, 0, 0, 0)],
+    "wink": [(0, 0, 0, 0, 0), (0.5, 0, 0, 0, 0), (0.75, 0, 0, SHUT, 0), (1, 0, 0, SHUT, 0), (1.375, 0, 0, 0, 0),
+             (2, 0, 0, 0, 0)],
+}  # fmt: skip
+MOTION_SIZE = (480, 320)
 LIVE = "https://yellowpine.com/noggin/images/"  # where the site serves them: main's
 PREVIEW_OUT = os.path.join(stages.REPO, "model", "build", "preview")  # a PR's preview artifact (compare)
 
@@ -100,9 +117,34 @@ def next_parts():
     return out
 
 
+def next_motion(motion):
+    return f"next-eyes-{motion}.webp"
+
+
 def published():
-    """Every picture the site serves (#649): the next Mech's panels, then its parts'."""
-    return [*NEXT_PANELS, *next_parts()]
+    """Every picture the site serves (#649): the next Mech's panels, its motions (#656), then its parts'."""
+    return [*NEXT_PANELS, *map(next_motion, NEXT_MOTIONS), *next_parts()]
+
+
+def next_motions(rest):
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each of NEXT_MOTIONS, from `rest`, those parts at
+    rest as MuJoCo settles the next Mech: each moved in its own frame as model/gimbal.py moves it in next-eyes'."""
+    local = {n: p.matrix for n, p in stages.next_eyes().parts.items()}
+    out = {}
+    for motion, keys in NEXT_MOTIONS.items():
+        keys = np.array(keys, float)
+        t = np.arange(round(keys[-1, 0] * HERO_FPS)) / HERO_FPS
+        i = np.searchsorted(keys[:, 0], t, "right") - 1
+        ease = (1 - np.cos(np.pi * (t - keys[i, 0]) / (keys[i + 1, 0] - keys[i, 0]))) / 2
+        out[motion] = []
+        for yaw, pitch, left, right in keys[i, 1:] + (keys[i + 1, 1:] - keys[i, 1:]) * ease[:, None]:
+            m, frame = gimbal.moved({"L": left, "R": right}, pitch, yaw), {}
+            for n, p in local.items():
+                turn = np.linalg.inv(p) @ m[n] @ p if n in m else np.eye(4)
+                turn[:3, 3] /= 1000  # mm, as the meshes are drawn in metres
+                frame[n] = rest[n] @ turn
+            out[motion].append(frame)
+    return out
 
 
 def motions(preview=False):
@@ -225,27 +267,64 @@ def part_pictures():
         encode(f.removesuffix(".webp"))
 
 
+def motion_pictures():
+    """The next Mech's motions (next_motions), its eye gimbal alone, each a looping WebP at HERO_FPS through one camera
+    from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
+    doc = next(iter(g.NEXT))
+    _, manifest, hull = prepare(doc)
+    motions = next_motions(trajectories.poses(doc, "wink")[0])
+    pts = np.concatenate([points(hull, f) for frames in motions.values() for f in frames])
+    cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
+    names = {m: next_motion(m).removesuffix(".webp") for m in motions}
+    for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
+        shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
+    blender(doc, manifest, [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in motions.items()])
+    for name in names.values():
+        encode(name, HERO_FPS)
+
+
 def compare(live=LIVE):
     """A PR's preview (#649) in PREVIEW_OUT: every picture it publishes, from IMAGES, the live site's (main's) next Mech
     panels in before/, and before-after.webp, those above this run's, one column; a panel the site lacks yet is left out
-    of the top."""
+    of the top. Each motion (#656) the live site has otherwise: before-after-<motion>.webp, the live one above."""
     shutil.rmtree(PREVIEW_OUT, ignore_errors=True)
     os.makedirs(os.path.join(PREVIEW_OUT, "before"))
     before = []
     for f in NEXT_PANELS:
-        try:
-            with urllib.request.urlopen(live + f, timeout=30) as r:  # noqa: S310 # the site's https, or a test's file:
-                data = r.read()
-        except OSError:  # not on the site yet, or the site not answering: no before
-            continue
-        before.append(os.path.join(PREVIEW_OUT, "before", f))
-        open(before[-1], "wb").write(data)
+        if (data := fetch(live + f)) is not None:
+            before.append(os.path.join(PREVIEW_OUT, "before", f))
+            open(before[-1], "wb").write(data)
     rows = [*before, *(os.path.join(IMAGES, f) for f in NEXT_PANELS)]
     out = os.path.join(PREVIEW_OUT, "before-after.webp")
     ffmpeg(*(a for f in rows for a in ("-i", f)), "-filter_complex", f"vstack=inputs={len(rows)}", "-c:v", "libwebp",
            "-quality", str(WEBP_QUALITY), out)  # fmt: skip
     for f in published():
         shutil.copy(os.path.join(IMAGES, f), PREVIEW_OUT)
+    for motion in NEXT_MOTIONS:  # #656: a motion that changed, live above new, frame by frame
+        f = next_motion(motion)
+        new = open(os.path.join(IMAGES, f), "rb").read()
+        if (old := fetch(live + f)) not in (None, new):
+            top, bottom = (
+                [frame.convert("RGBA") for frame in ImageSequence.Iterator(Image.open(io.BytesIO(b)))]
+                for b in (old, new)
+            )
+            frames = []
+            for i in range(max(len(top), len(bottom))):  # the shorter holds its last frame
+                a, b = top[min(i, len(top) - 1)], bottom[min(i, len(bottom) - 1)]
+                frames.append(Image.new("RGBA", (max(a.width, b.width), a.height + b.height)))
+                frames[-1].paste(a)
+                frames[-1].paste(b, (0, a.height))
+            frames[0].save(os.path.join(PREVIEW_OUT, f"before-after-{motion}.webp"), save_all=True,
+                           append_images=frames[1:], duration=1000 // HERO_FPS, loop=0, quality=WEBP_QUALITY)  # fmt: skip
+
+
+def fetch(url):
+    """The bytes at url, the live site's (or a test's file:), or None: not on the site yet, or the site not answering."""
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:  # noqa: S310 # the site's https, or a test's file:
+            return r.read()
+    except OSError:
+        return None
 
 
 def at_fps(frames, fps):
@@ -337,6 +416,7 @@ def render(motion):
     elif motion == NEXT:
         views([(n, v) for n, v in PANELS if n in g.NEXT])
         part_pictures()
+        motion_pictures()
     else:
         views(PREVIEW) if motion == "preview" else views()
 

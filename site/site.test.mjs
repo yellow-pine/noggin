@@ -255,8 +255,8 @@ test("every picture and GLB the site ships, links or draws is one of the next Me
   }
 });
 
-test('Pictures shows the next Mech and each of its parts, each linking to its full size', () => {
-  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-parts a');
+test('Pictures shows the next Mech, it in motion and each of its parts, each linking to its full size', () => {
+  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-motions a, .noggin-parts a');
   expect(links.map((a) => a.getAttribute('href').split('/').at(-1))).toEqual(numbers.published.images);
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
