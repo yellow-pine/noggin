@@ -143,9 +143,13 @@ def split(command):
         if node.type in ("command_substitution", "process_substitution"):
             return [(node.start_byte, node.end_byte, source[node.children[0].end_byte : node.children[-1].start_byte])]
         found = [span for child in node.children for span in outermost(child)]
-        heredoc = node.type == "heredoc_body"
-        opener = [c.text for c in node.parent.children if c.type == "heredoc_start"] if heredoc else []
-        if not opener or re.search(rb"['\"\\]", opener[0]):  # <<'EOF', <<"EOF", <<\EOF: the body stays text
+        if node.type != "heredoc_body":
+            return found
+        kinds = [c.type for c in node.parent.children]  # its own heredoc_redirect: one << and one body, or fail closed
+        if node.parent.type != "heredoc_redirect" or kinds.count("heredoc_start") != 1 or kinds.count(node.type) != 1:
+            raise ValueError(UNPARSED)
+        opener = node.parent.children[kinds.index("heredoc_start")].text
+        if re.search(rb"['\"\\]", opener):  # <<'EOF', <<"EOF", <<\EOF: the body stays text
             return found
         # an unquoted heredoc runs its `…` too, which bash's grammar leaves as text (#608); \` there is a plain `
         masked, ticks = bytearray(source), []  # each $(…) found blanked, so a ` inside one stays its own
@@ -157,6 +161,10 @@ def split(command):
             if tick[0][:1] == b"`":
                 body = source[tick.start(1) : tick.end(1)]
                 ticks.append((tick.start(), tick.end(), re.sub(rb"\\([$`\\])", rb"\1", body)))
+        # a $(…) meeting a `…`: unless wholly inside and free of `, which ends the `…` there in bash, fail closed
+        meets = [(s, t) for s in found for t in ticks if s[0] < t[1] and t[0] < s[1]]
+        if any(b"`" in source[s[0] : s[1]] or not t[0] < s[0] < s[1] <= t[1] for s, t in meets):
+            raise ValueError(UNPARSED)
         # a $(…) inside a `…` goes with that `…`'s body
         return sorted(ticks + [s for s in found if not any(t[0] < s[0] < t[1] for t in ticks)])
 

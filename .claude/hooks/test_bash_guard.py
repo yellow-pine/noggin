@@ -81,6 +81,8 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("cat <<EOF\n`git stash`\nEOF", "commit"),  # and its `…`, which bash's grammar leaves as text (#608)
         ("cat <<EOF\na `echo $(git stash)` b\nEOF", "commit"),
         ("cat <<EOF\n`git stash\nEOF", "parse"),  # bash fails on an open `, and a guard can't read it
+        ("cat <<EOF\n`echo $(printf '`')`\nEOF", "parse"),  # a ` in a $(…) in a `…`: bash ends the `…` there
+        ("cat <<'A' <<B\nx\nA\n`git stash`\nB", "parse"),  # several heredocs: each body read by its own <<
         ('echo "${x:-$(git stash)}"', "commit"),
         ("cat < <(git stash)", "commit"),  # a redirect's target runs too
         ("echo hi > $(git stash)", "commit"),
