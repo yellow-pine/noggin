@@ -69,7 +69,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
           node-version-file: site/.nvmrc
-          package-manager-cache: false   # no cache a PR's run could have written (zizmor cache-poisoning)
+          package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
       # the docs and the viewer's page; the pictures and sim reports stay the live site's
       - name: Build the docs
         run: SITE_BASE="/noggin/${TAG%.*}" make site

@@ -26,7 +26,7 @@ macOS or Linux, [uv](https://docs.astral.sh/uv/), Node 24 (`site/.nvmrc`: the si
 
 ```
 make venv     # .venv from uv.lock, Python 3.14
-make check    # what CI's code job runs: the tests not marked model, lint, formatting, types, script syntax
+make check    # what CI's code job runs: the tests not marked model, lint, formatting, types, the workflows, script syntax
 make site     # the site in site/dist (npm --prefix site run preview); its tests: npm --prefix site test, npm --prefix site run smoke
 ```
 

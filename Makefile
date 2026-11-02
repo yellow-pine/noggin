@@ -33,7 +33,7 @@ check: venv ours lint  ## CI's Code job: the tests not marked model, lint, forma
 	$(PY) -m pytest -q -m "not model"
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
-	$(REPO)/.venv/bin/actionlint -shellcheck= -pyflakes=
+	$(REPO)/.venv/bin/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
 	$(REPO)/.venv/bin/zizmor -q --offline .
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
