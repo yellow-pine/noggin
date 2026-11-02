@@ -11,6 +11,8 @@
                       {"pair": ["pan turntable:1", "tilt bar:1"], "rest_mm": null, "min_mm": -0.08, "at": {"tilt horn": -60}},
                       {"pair": ["L lid bar:1", "eye bracket:1"], "rest_mm": null, "min_mm": -0.01, "at": {"L lid horn": -49}}],
             "residuals": {"tilt pivot": {"max_mm": 0.07, "at": {"tilt horn": 60}}, "pan pivot": {"max_mm": 0.01, "at": {"pan horn": 70}}},
+            "loops": {"pan pivot": {"margin_mm_rad": 1.2, "margin_at": {"pan horn": -40}, "transmission_deg": 5.3, "transmission_at": {"pan horn": -40}},
+                      "tilt pivot": {"margin_mm_rad": 16.2, "margin_at": {"tilt horn": 60}, "transmission_deg": 35.0, "transmission_at": {"tilt horn": -60}}},
             "actuators": {"tilt horn": {"hold_kgf_cm": 0.45, "at": {"tilt horn": -60}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}},
             "full_speed": {"pan horn": {"deg_s": 428.6, "off_deg": 29.1, "at": -40}, "tilt horn": {"deg_s": 428.6, "off_deg": 0.0, "at": 60}},
             "tip_over": {"margin_mm": -2.0, "at": {"pan horn": 70, "tilt horn": 60}, "com": [1.0, 2.0, 3.0]}}
