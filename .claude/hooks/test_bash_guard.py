@@ -42,6 +42,22 @@ def guard(command: str, cwd: Path = REPO) -> subprocess.CompletedProcess[str]:
         ("for i in 1 2; do until [ -f out ]; do :; done; done", "sleep"),
         ("until [ -f out ]; do :; done; sleep 1", "sleep"),
         ('until [ -z "$(pgrep -f make)" ]; do sleep 5; done', "gh pr checks --watch"),
+        ("bash <<'EOF'\nmake sim\nEOF", "CI"),
+        ("python3 - <<EOF\nimport os\nEOF\nbash <<'EOF'\ngit stash\nEOF", "commit"),
+        ("cat <<EOF\nok\nEOF\nbash <<X\ngit stash\nX", "commit"),
+        ("echo '<<EOF'\ngit stash\nEOF", "commit"),
+        ("bash -c 'git stash'", "commit"),
+        ('sh -c "cd .. && make render"', "CI"),
+        ("eval git stash", "commit"),
+        ('echo "$(git stash)"', "commit"),
+        ("echo `make sim`", "CI"),
+        ("x=$(git stash pop)", "commit"),
+        ("gh api -X PUT repos/yellow-pine/noggin/pulls/12/merge", "--auto --squash"),
+        ("gh api graphql -f query='mutation { mergePullRequest(input: {}) { clientMutationId } }'", "--auto --squash"),
+        ("git -c alias.s=stash s", "alias"),
+        ("git config alias.s stash", "alias"),
+        ("echo 'unbalanced", "parse"),
+        ("bash <<EOF\necho don't\nEOF", "parse"),
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -63,7 +79,11 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "until gh pr checks 12 >/dev/null; [ $? != 8 ]; do sleep 60; done",
         "while read -r f; do echo $f; done < files",
         "pgrep -f noggin",
-        "echo 'unbalanced",
+        "cat > notes.md <<'EOF'\ndon't run make sim or git stash here\nEOF",
+        "git commit -q -F - <<EOF\nit's done\nEOF",
+        "tee out.txt <<< 'git stash'",
+        "gh api repos/yellow-pine/noggin/pulls/12/reviews",
+        "make lint > sim.log",
         "gh pr create --body-file - <<'EOF'\nmake sim runs in CI\nuntil now nothing blocked git stash\nEOF",
         "git commit -F - <<EOF\nuntil now\nEOF\ngit push",
         "until [ -f out ]; do /bin/sleep 5; done",
@@ -81,3 +101,9 @@ def test_full_make_check_is_blocked_once_make_check_light_exists(tmp_path):
     assert "make lint" in guard("make check-all").stderr
     (tmp_path / "Makefile").write_text("check: lint\n\tpytest\ncheck-light: lint\n\tpytest -x\n")
     assert "make check-light" in guard("make check", tmp_path).stderr
+
+
+def test_a_hook_that_cannot_read_its_input_blocks():
+    result = subprocess.run(["python3", SCRIPT], input="not json", capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "bash_guard.py failed" in result.stderr
