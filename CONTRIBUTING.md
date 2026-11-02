@@ -9,7 +9,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - One PR per concern. Keep it small.
 - Every ticket is built in its own worktree on its own branch, the worktree at `../noggin-wt/<session>/<branch>` (the
   session's name as ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `make worktrees-clean`
-  removes the worktrees of merged or deleted branches), with a normal PR straight against main opened on the first
+  removes the worktrees of merged, closed or deleted branches), with a normal PR straight against main opened on the first
   push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is green
   and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight onto
   main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers each

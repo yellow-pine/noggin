@@ -27,7 +27,7 @@ lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
-worktrees-clean: venv  ## remove the worktrees of merged or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
+worktrees-clean: venv  ## remove the worktrees of merged, closed or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
 	$(PY) scripts/worktrees_clean.py
 check: venv ours lint  ## CI's Code job: the tests not marked model, lint, formatting, types, the workflows (actionlint; zizmor, offline), wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
 	$(PY) -m pytest -q -m "not model"

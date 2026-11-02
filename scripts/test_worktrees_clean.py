@@ -1,7 +1,9 @@
-"""worktrees_clean.py: make worktrees-clean removes a worktree whose branch is merged into origin/main or gone from
-origin, and keeps one never pushed, with uncommitted changes or unpushed commits, or on a live branch. Real git: a bare
-origin, a clone and its worktrees."""
+"""worktrees_clean.py: make worktrees-clean removes a worktree whose branch is gone from origin or whose PR merged or
+closed, and keeps one never pushed, with uncommitted changes or unpushed commits, or on an open PR's branch. Real git: a
+bare origin, a clone and its worktrees; GitHub's PRs are a fake gh on PATH."""
 
+import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -27,7 +29,23 @@ def clone(tmp_path, monkeypatch):
     repo = tmp_path / "clone"
     git(repo, "commit", "-q", "--allow-empty", "-m", "first")
     git(repo, "push", "-q", "origin", "HEAD:main")
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    (bin_ / "gh").write_text(f"#!/bin/sh\ncat {tmp_path / 'prs.json'}\n")
+    (bin_ / "gh").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_}{os.pathsep}{os.environ['PATH']}")
+    prs(repo)
     return repo
+
+
+def prs(repo, **heads):
+    """GitHub's PRs as `gh pr list --json headRefName,headRefOid,state` prints them: branch -> OPEN, MERGED or CLOSED
+    with the branch's tip as its head commit, or (state, sha) for an older PR on the same name."""
+    rows = []
+    for branch, pr in heads.items():
+        state, sha = pr if isinstance(pr, tuple) else (pr, git(repo, "rev-parse", branch).strip())
+        rows.append({"headRefName": branch, "headRefOid": sha, "state": state})
+    (repo.parent / "prs.json").write_text(json.dumps(rows))
 
 
 def worktree(repo, branch, *, commit=True, push=True):
@@ -45,15 +63,17 @@ def clean(repo):
     return subprocess.run([sys.executable, SCRIPT], cwd=repo, check=True, capture_output=True, text=True).stdout
 
 
-def test_a_worktree_merged_into_main_or_gone_from_origin_is_removed_and_named(clone):
+def test_a_worktree_whose_pr_merged_or_closed_or_whose_branch_is_gone_from_origin_is_removed_and_named(clone):
     merged = worktree(clone, "merged")
-    git(merged, "push", "-q", "origin", "merged:main")  # main fast-forwards onto it
+    git(merged, "push", "-q", "origin", "merged:main")  # main fast-forwards onto it; the branch stays on origin
+    closed = worktree(clone, "closed")
     squashed = worktree(clone, "squashed")
     git(clone.parent / "origin.git", "branch", "-D", "squashed")  # its PR squash-merged and GitHub deleted it
+    prs(clone, merged="MERGED", closed="CLOSED")  # gone from origin is enough: squashed needs no PR record
 
     out = clean(clone)
 
-    for path in (merged, squashed):
+    for path in (merged, closed, squashed):
         assert not path.exists()
         assert str(path) in out
 
@@ -67,9 +87,24 @@ def test_a_worktree_never_pushed_with_changes_unpushed_commits_or_a_live_branch_
     git(clone.parent / "origin.git", "branch", "-D", "dirty", "ahead")
     live = worktree(clone, "live")  # an open PR's branch
     fresh = worktree(clone, "fresh", commit=False, push=False)  # a session just started it, nothing on it yet
+    prs(clone, live="OPEN")
 
     out = clean(clone)
 
     for path in (dirty, unpushed, ahead, live, fresh):
+        assert path.exists()
+        assert str(path) not in out
+
+
+def test_a_pushed_branch_is_kept_with_its_pr_open_none_yet_or_only_an_old_one_on_its_name(clone):
+    opened = worktree(clone, "opened", commit=False)  # pushed before its first commit: an ancestor of main
+    started = worktree(clone, "started", commit=False)
+    reused = worktree(clone, "reused")  # a new branch on the name of an old closed PR
+    old_tip = git(clone, "rev-parse", "origin/main").strip()
+    prs(clone, opened="OPEN", reused=("CLOSED", old_tip))
+
+    out = clean(clone)
+
+    for path in (opened, started, reused):
         assert path.exists()
         assert str(path) not in out
