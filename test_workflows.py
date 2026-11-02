@@ -452,24 +452,29 @@ def gh_calls(tmp_path: Path) -> list[str]:
     return [c for c in log.read_text().splitlines() if not c.startswith("run view")] if log.exists() else []
 
 
+GATE = {"name": "Checks", "status": "completed"}
+
+
 @pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
 @pytest.mark.parametrize(
-    ("other", "calls"),
+    ("others", "calls"),
     [
-        ({"name": "Code", "status": "completed", "conclusion": "failure"}, ["run cancel 41"]),
-        ({"name": "Code", "status": "completed", "conclusion": "success"}, []),
+        ([{"name": "Code", "status": "completed", "conclusion": "failure"}], ["run cancel 41"]),
+        ([{"name": "Code", "status": "completed", "conclusion": "success"}, GATE | {"conclusion": "success"}], []),
+        ([GATE | {"conclusion": "failure"}], []),  # the gate ends the run itself
     ],
 )
-def test_main_cancels_a_checks_run_once_a_job_fails(tmp_path, other, calls):
+def test_main_cancels_a_checks_run_once_a_job_fails(tmp_path, others, calls):
     """#769: a failed run can neither deploy nor release, and main's runs queue one at a time (#689), so its Fail Fast
-    job cancels the rest at once (a 15-minute Blender held ~20 merges' runs back); a run that passes ends it alone."""
+    job cancels the rest at once (a 15-minute Blender held ~20 merges' runs back); the gate's end ends it, since a job
+    waiting on its needs is not listed yet."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     job = flow["jobs"]["fail-fast"]
     assert job["if"] == "${{ github.ref == 'refs/heads/main' }}" and job["permissions"] == {"actions": "write"}
     assert "needs" not in job and "fail-fast" not in str(flow["jobs"]["checks"]["needs"])
     (step,) = job["steps"]
     me = {"name": job["name"], "status": "in_progress", "conclusion": ""}
-    env = fake_gh(tmp_path, [me, {"name": "Site", "status": "completed", "conclusion": "success"}, other])
+    env = fake_gh(tmp_path, [me, {"name": "Site", "status": "completed", "conclusion": "success"}, *others])
     subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
     assert gh_calls(tmp_path) == calls
 

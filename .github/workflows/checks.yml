@@ -206,9 +206,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
-        run: |   # every 15 s until a job failed or every other job is done; a failing gh only polls again
-          until state=$(gh run view "$RUN_ID" --json jobs --jq '[.jobs[] | select(.name != "Fail Fast")]
-            | if any(.conclusion == "failure") then "failed" elif all(.status == "completed") then "done" else "" end')
+        # every 15 s until a job failed or the gate is done (a job waiting on its needs is not listed yet, so "all
+        # listed jobs done" can come early); a failing gh only polls again
+        run: |
+          until state=$(gh run view "$RUN_ID" --json jobs --jq '.jobs
+            | if any(.name == "Checks" and .status == "completed") then "done"
+              elif any(.conclusion == "failure") then "failed" else "" end')
             [ -n "$state" ]; do sleep 15; done
           [ "$state" = done ] || gh run cancel "$RUN_ID"
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
