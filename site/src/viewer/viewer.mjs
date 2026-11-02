@@ -37,6 +37,10 @@ function mount(root) {
   const names = [...stages].map((b) => b.dataset.stage), link = opened(location.search, names, root.dataset.stage);
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
+  else {  // the poster picture's box, so the swap keeps the Mech where it was (#597)
+    const { width, height } = poster.querySelector("img").attributes;
+    canvas.style.cssText = `max-width: ${width.value}px; aspect-ratio: ${width.value} / ${height.value}; margin-inline: auto`;
+  }
   canvas.setAttribute("role", "img");
   const zoom = "zoom" in root.dataset;
   const how = zoom ? "drag to turn it, scroll or pinch to zoom" : "drag to turn it";
@@ -122,7 +126,7 @@ function mount(root) {
   // lines follow the Stage's size on screen as the GIFs' do, through every zoom and resize
   function lineWidths() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    const r = radiusPx(sphere.radius, camera.position.distanceTo(sphere.center), FOV, h);
+    const r = radiusPx(sphere.radius, camera.position.distanceTo(sphere.center), camera.fov, h);
     creases.linewidth = lineWidth(look.line_px, r, refPx);
     outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
   }
@@ -208,12 +212,20 @@ function mount(root) {
         away.push(v.add(d).toArray());
       }
     });
-    const frame = (aspect, at = points) => fit(at, VIEW.toArray(), [0, 1, 0], FOV, aspect, MARGIN);
+    // a poster's viewer starts from the poster picture's camera (web/glb.py exports the hero's), its lens too (#597)
+    const shot = poster && gltf.cameras[0];
+    camera.fov = shot?.fov ?? FOV;
+    const frame = (aspect, at = points) => fit(at, VIEW.toArray(), [0, 1, 0], camera.fov, aspect, MARGIN);
     const aspect = canvas.clientWidth / canvas.clientHeight, gif = frame(GIF_ASPECT);
     framings = [frame(aspect), frame(aspect, away)];
     apart = goal;
     spread();
-    refPx = radiusPx(sphere.radius, Math.hypot(...gif.target, gif.distance), FOV, look.line_at / GIF_ASPECT);
+    if (shot) {  // turning about the point of its view line nearest the Stage's centre
+      shot.updateWorldMatrix(true, false);
+      const at = shot.getWorldPosition(camera.position), ahead = shot.getWorldDirection(new THREE.Vector3());
+      controls.target.copy(ahead).multiplyScalar(ahead.dot(v.copy(sphere.center).sub(at))).add(at);
+    }
+    refPx = radiusPx(sphere.radius, Math.hypot(...gif.target, gif.distance), camera.fov, look.line_at / GIF_ASPECT);
     camera.near = sphere.radius / 100;
     camera.far = reach * 100;
     resize();

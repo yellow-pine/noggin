@@ -25,8 +25,8 @@
 .noggin-controls > button { margin-inline-start: auto; order: 1; }
 .noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
 .noggin-caption { margin-top: 0.5rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
-/* the landing page's, the hero's shape, its Play in 3D under the poster on a phone (src/components/Footer.astro) */
-.noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
+/* the landing page's: its Play in 3D under the poster on a phone (src/components/Footer.astro); its canvas takes the
+   poster's box (src/viewer/viewer.mjs) */
 .noggin-viewer.hero > button { display: block; margin: 0.6rem auto; }
 
 /* a figure centred, as on GitHub's README */

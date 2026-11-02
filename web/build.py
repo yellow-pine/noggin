@@ -1,7 +1,8 @@
 """The web viewer's GLBs (docs/adr/0008): one per Stage, written into one folder that the site serves at viewer/ beside
 the viewer's page and its module (site/src/pages/viewer.astro, `just site`, docs/adr/0009). Each GLB is Blender's
 (web/glb.py): the Stage's parts in the pictures' look, one glTF clip per motion of its baked trajectories
-(model/trajectories.py, `just trajectories`).
+(model/trajectories.py, `just trajectories`); the hero's Stage's also the hero picture's camera
+(model/render/pictures.py hero_camera).
 Usage: python -m web.build [out]   (default web/build; `just web`, Blender at $BLENDER)"""
 
 import json
@@ -30,8 +31,12 @@ def glb(doc, path):
             m: [{n: x.tolist() for n, x in frame.items()} for frame in trajectories.poses(doc, m)]
             for m in trajectories.motions(doc)
         }
+        spec = {"parts": parts, "motions": motions, "fps": trajectories.FPS, "out": path}
+        if doc == pictures.HERO_STAGE:  # the hero picture's camera, for the page whose poster it is (#597)
+            cam = pictures.hero_camera(pictures.hulls(parts))
+            spec["camera"] = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "size": pictures.HERO_SIZE}
         job = os.path.join(tmp, "job.json")
-        json.dump({"parts": parts, "motions": motions, "fps": trajectories.FPS, "out": path}, open(job, "w"))
+        json.dump(spec, open(job, "w"))
         r = subprocess.run([pictures.BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
     if r.returncode or not os.path.isfile(path):
         sys.exit(f"Blender failed on {doc}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
