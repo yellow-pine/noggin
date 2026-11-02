@@ -87,6 +87,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - An agent building a ticket runs as the `implementer` subagent (`.claude/agents/implementer.md`), which carries the
   standing rules, so its brief is just the issue.
 - Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
+- A Claude Code hook (`.claude/settings.json`, `.claude/hooks/bash_guard.py`) blocks the commands agents reach for
+  against these rules (`git stash`, `gh pr merge --admin`, local heavy builds, a loop on `pgrep` or without a sleep),
+  each with a one-line reason naming the allowed alternative.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too and run `gh pr update-branch --rebase` on every open PR so it reports the new name.
