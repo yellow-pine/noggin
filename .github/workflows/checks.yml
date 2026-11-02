@@ -1,25 +1,22 @@
 name: Checks
-# Runs `just check`, the model tests with the Mech stand-in, sim and STL/STEP export, renders the pictures and builds the site.
+# Runs `just check`, the model tests with the Mech stand-in, sim and STL/STEP export, and builds the site.
 # One workflow, one required check (#496): `Checks`, the gate every other job here leads into. On PRs, on main
 # (docs/adr/0009, #310), weekly and on any branch on demand (#562). `Changes` is the one fan-out: what the PR (its
 # files from the API) or main's push
-# (by git, against main's last commit whose Checks passed, #471) touches (dorny/paths-filter), the caches of the parts,
-# the pictures and the viewer looked up, and from the code the model shards (just model-shards-list) and the Blender
-# bins (just blender-bins); work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs
+# (by git, against main's last commit whose Checks passed, #471) touches (dorny/paths-filter), the parts' cache looked
+# up, and from the code the model shards (just model-shards-list); work whose inputs did not change is skipped, which
+# the gate counts as passing. `Code` runs
 # just check; `Model` the tests marked model in four shards balanced on the seconds they measured (model/shards.py: the
 # hero's collision sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed,
 # and just mech, the Link's live checks on the Mech stand-in, #222), with just stl and just step on main or when the
-# parts changed; a cold parts cache is cut part by part first (`Convex`, #223), so the shards start warm. `Blender`
-# renders the README's pictures (just pictures, #226; a PR one panel, its preview, #562) and bakes the viewer's GLBs
-# (just web, docs/adr/0008) when what
-# they are made from changed, packed into bins longest first (#496) on the seconds main's last rendering run
-# measured (#569), main's hero in frame shards that `Hero` joins (#537). `Site` builds the docs beside them (just site,
-# docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the pictures and the viewer,
-# runs the link checks again with them, plays the site in Chrome (Playwright), uploads the site (a PR's preview, and on
-# main what Site Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
+# parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. No
+# picture, hero or viewer GLB is rendered: nothing derived from today's printed parts is published, and every artifact
+# of a public repo is (#640, docs/adr/0019), so the parts pass between jobs in the Actions cache alone. `Site` builds
+# the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` plays the site
+# in Chrome (Playwright), uploads it (a PR's preview, and on main what Site Deploy, pages.yml, deploys) and checks the
+# CI budget once (scripts/ci_budget.py). On main, Deploy
 # Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
-# outcome. Code and Site run in our base image, Blender in our Blender image (ci/, docs/adr/0009); the others on the
-# bare runner.
+# outcome. Code and Site run in our base image; the others on the bare runner.
 on:
   push:
     branches: [main]
@@ -27,8 +24,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   schedule:   # main's weekly full run (#471): no filters or output lookups, so every check runs, the filters' safety net
     - cron: "0 7 * * 1"
-  # the same full run on any branch, on demand (#562): the hero and the panels for a look's approval, since a PR renders
-  # one panel; every check runs, so the Checks it posts on the branch's head are a real one
+  # the same full run on any branch, on demand (#562): every check runs, so the Checks it posts on the branch's head
+  # are a real one
   workflow_dispatch:
 concurrency:   # one run per PR (or main): a new push cancels the one in progress, main runs its latest; the weekly run
   # has its own group, so it neither cancels a push's run (which Site Deploy waits for) nor is cancelled
@@ -55,12 +52,7 @@ jobs:
       site: ${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}
       parts: ${{ steps.parts.outputs.cache-hit }}   # warm: convex skips
       parts-key: ${{ steps.parts.outputs.cache-primary-key }}
-      pictures: ${{ steps.pictures.outputs.cache-hit }}   # warm: no Blender bin renders, checks restores them
-      viewer: ${{ steps.viewer.outputs.cache-hit }}   # warm: no Blender bin bakes, checks restores it
-      pictures-hash: ${{ steps.inputs.outputs.pictures }}
-      viewer-hash: ${{ steps.inputs.outputs.viewer }}
       shards: ${{ steps.lists.outputs.shards }}
-      bins: ${{ steps.lists.outputs.bins }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -88,16 +80,6 @@ jobs:
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "justfile", "pyproject.toml", "uv.lock",
                    ".github/workflows/*.yml", "ci/*.Dockerfile", "macros.py", "scripts/workflow_table.py"]
-      # the pictures' and the viewer's keys hash only what they are made from (#469): the render code and the parts'
-      # make (model/ours.py) with what they import or name (the trajectories' sources, the script Blender runs;
-      # scripts/inputs.py), Blender's pin and uv.lock, so a justfile, workflow or test edit renders nothing. Hashed here
-      # alone, on the runner's Python (the repo's syntax; the images' is older), for every job
-      - name: Hash the inputs
-        id: inputs
-        run: |   # each the inputs' sha256
-          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile uv.lock)
-          viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile uv.lock)
-          { echo "pictures=$pictures"; echo "viewer=$viewer"; } >> "$GITHUB_OUTPUT"
       # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
       - name: Look up the parts cache
         id: parts
@@ -108,60 +90,20 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
-      # whether the pictures and the viewer built from the same inputs are cached: then no Blender bin runs for them,
-      # nor pulls its image (#386). The weekly and dispatched runs render and bake again
-      - name: Look up the cached pictures
-        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
-        id: pictures
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/images
-          key: pictures-${{ steps.inputs.outputs.pictures }}
-          lookup-only: true
-      - name: Look up the cached viewer
-        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
-        id: viewer
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: web/build
-          key: viewer-${{ steps.inputs.outputs.viewer }}
-          lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
-      # the seconds each Blender bin measured in main's last run that rendered (blender-seconds-*), which the bins
-      # are packed on (model/shards.py MEASURED, #569); none (expired, or no run rendered): the typed ones
-      - name: Download main's measured Blender seconds
-        if: ${{ steps.pictures.outputs.cache-hit != 'true' || steps.viewer.outputs.cache-hit != 'true' }}
-        run: |   # its own assignment, so a failing gh fails the step; a run without them is skipped
-          ids=$(gh run list -R "$GITHUB_REPOSITORY" -w checks.yml -b main -s success -L 20 --json databaseId,event \
-            --jq '.[] | select(.event != "pull_request") | .databaseId')
-          while read -r id; do
-            if gh run download "$id" -R "$GITHUB_REPOSITORY" -p 'blender-seconds-*' -D model/build/main-seconds; then break; fi
-          done <<< "$ids"
-        env:
-          GH_TOKEN: ${{ github.token }}
-      # the model and Blender matrices from the code (model/shards.py): a new document or motion needs no edit here.
-      # "false" leaves a group out: the filters' (empty in the weekly run, so everything), and a site left alone or a
-      # cached output for the Blender units
-      - name: List the shards and bins
+      # the model matrix from the code (model/shards.py): a new document needs no edit here. "false" leaves a group
+      # out: the filters' (empty in the weekly run, so everything)
+      - name: List the shards
         id: lists
-        run: |   # each its own assignment, so a failing just fails the step
+        run: |   # its own assignment, so a failing just fails the step
           shards=$(uv run just model-shards-list)
-          bins=$(uv run just blender-bins)
-          { echo "shards=$shards"; echo "bins=$bins"; } >> "$GITHUB_OUTPUT"
+          echo "shards=$shards" >> "$GITHUB_OUTPUT"
         env:
           MODEL: ${{ steps.filter.outputs.model }}
           MECH: ${{ steps.filter.outputs.mech }}
-          PICTURES: >-
-            ${{ (github.event_name != 'pull_request' || steps.filter.outputs.site == 'true')
-            && steps.pictures.outputs.cache-hit != 'true' }}
-          VIEWER: >-
-            ${{ (github.event_name != 'pull_request' || steps.filter.outputs.site == 'true')
-            && steps.viewer.outputs.cache-hit != 'true' }}
-          # a PR renders the preview panel alone (model/render/pictures.py PREVIEW, #562): main renders them all
-          PREVIEW: ${{ github.event_name == 'pull_request' }}
   code:
     name: Code
     if: ${{ !github.event.pull_request.draft }}
@@ -219,13 +161,14 @@ jobs:
             | .venv/bin/python scripts/required_checks.py
         env:
           GH_TOKEN: ${{ github.token }}
-  convex:   # a cold parts cache: from main's latest entry, lists the parts whose pieces are stale
+  # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
+  # then saves the cache the model shards restore. The cache, never an artifact: an artifact of a public repo is
+  # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0019)
+  convex:
     name: Convex
     needs: changes
     if: ${{ needs.changes.outputs.model != 'false' && needs.changes.outputs.parts != 'true' }}
     runs-on: ubuntu-26.04
-    outputs:
-      parts: ${{ steps.stale.outputs.parts }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -245,67 +188,22 @@ jobs:
             model/build/convex
           key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-   # as in code
-      - name: List the stale parts
-        id: stale
-        run: |
-          uv run just ours
-          parts=$(.venv/bin/python -m model.convex_parts)   # its own line, so a failure fails the step
-          echo "parts=$parts" >> "$GITHUB_OUTPUT"
-      - name: Upload our built parts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+      - name: Build and cut the parts
+        run: uv run just ours && .venv/bin/python -m model.mjcf
+      - name: Save the parts cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
-          name: ours
-          path: model/build/ours/
-          include-hidden-files: true   # its .key: just ours in the jobs below then builds nothing
-          retention-days: 1
-          overwrite: true   # a re-run of every job uploads it again
-  convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
-    name: Convex (${{ matrix.part }})
-    needs: convex
-    if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
-    runs-on: ubuntu-26.04
-    strategy:
-      fail-fast: false   # the parts that do cut keep their caches
-      matrix:
-        part: ${{ fromJSON(needs.convex.outputs.parts) }}
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # nothing here pushes
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # as in convex
-      - name: Download our built parts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          name: ours
-          path: model/build/ours
-      - name: Cache this part's pieces
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/convex/${{ matrix.part }}
-          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
-      - name: Cut the part
-        run: uv run just venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
-        env:
-          PART: ${{ matrix.part }}
-      - name: Upload the part's pieces
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: convex-${{ matrix.part }}
-          path: model/build/convex/   # this part's folder alone
-          include-hidden-files: true   # its .key
-          retention-days: 1
-          overwrite: true   # as ours
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
   model:
     name: Model (${{ matrix.shard }})
-    needs: [changes, convex, convex-part]
-    # convex and convex-part are skipped when warm; their needs by name, not !failure(), which a failed ancestor would trip
+    needs: [changes, convex]
+    # convex is skipped when warm; its need by name, not !failure(), which a failed ancestor would trip
     if: >-
       ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.shards != '[]'
-      && needs.convex.result != 'failure' && needs.convex-part.result != 'failure' }}
+      && needs.convex.result != 'failure' }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -330,8 +228,9 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # as in convex
-      # our built parts and their convex pieces: just ours rebuilds only when model/build/ours/.key no longer matches,
-      # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not
+      # our built parts and their convex pieces, as Convex saved them: just ours rebuilds only when
+      # model/build/ours/.key no longer matches, model/mjcf.py decomposes a part again only when its
+      # model/build/convex/<part>/.key does not
       - name: Restore the parts cache
         if: ${{ env.MODEL == 'true' }}
         id: parts
@@ -342,27 +241,8 @@ jobs:
             model/build/convex
           key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-   # as in code
-      # missed: the parts convex built and cut over the entry restored
-      - name: Download our built parts
-        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          name: ours
-          path: model/build/ours
-      - name: Drop the parts cut again
-        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}   # a part cut again may have fewer pieces
-        run: jq -r '.[]' <<< "$PARTS" | while read -r part; do rm -rf "model/build/convex/$part"; done
-        env:
-          PARTS: ${{ needs.convex.outputs.parts || '[]' }}
-      - name: Download the cut pieces
-        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          pattern: convex-*
-          path: model/build/convex
-          merge-multiple: true
-      # missed the exact key: decompose what is still stale (nothing, after convex-part) before the tests, in mjcf's own
-      # process pool, or several xdist workers would decompose the same part into the same folder at once
+      # missed the exact key: decompose what is still stale before the tests, in mjcf's own process pool, or several
+      # xdist workers would decompose the same part into the same folder at once
       - name: Rebuild and cut what is stale
         if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
         run: uv run just ours && .venv/bin/python -m model.mjcf
@@ -425,7 +305,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
-          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'justfile', '.github/workflows/checks.yml', 'uv.lock') }}
+          key: sim-${{ hashFiles('model/*.py', 'model/servo_fit.json', 'model/printed/*.py', 'model/render/scene.py', 'model/render/hero.py', 'eyes/**', 'justfile', '.github/workflows/checks.yml', 'uv.lock') }}
           restore-keys: sim-
       - name: Run just sim
         if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
@@ -476,152 +356,7 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
-  # every deploy replaces the whole site, so every run has the pictures and the viewer: rendered or baked when what they
-  # are made from changed, else the last ones made from the same inputs (a docs-only change renders nothing). Each bin
-  # renders its motions of the pictures (on CI's software GL, each frame's seconds in its log, #470) and bakes and
-  # tests the viewer's GLBs (just web) when it holds the viewer; checks gathers them
-  blender:
-    name: Blender (${{ matrix.bin }})
-    needs: changes
-    if: ${{ needs.changes.outputs.bins != '[]' }}
-    runs-on: ubuntu-26.04
-    container:
-      image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
-    strategy:
-      fail-fast: false   # every bin runs to its end; checks fails unless all of them succeeded
-      matrix:
-        include: ${{ fromJSON(needs.changes.outputs.bins) }}   # {bin, motions, stages, viewer, images, frames} (model/test_shards.py)
-    env:   # only the Stages its motions draw are baked (just trajectories), every one with the viewer
-      TRAJ_DOCS: ${{ matrix.stages }}
-      MESA_SHADER_CACHE_DIR: /tmp/mesa-shader-cache   # cached below
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      # restore only, as in code; the trajectories need no convex pieces (mjcf.model collide=False: no CoACD, #276)
-      - name: Restore the parts cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: |
-            model/build/ours
-            model/build/convex
-          key: ${{ needs.changes.outputs.parts-key }}
-          restore-keys: ours-convex-
-      # the latest trajectories: just trajectories rebakes only the Stages whose stamp moved (model/trajectories.py)
-      - name: Restore the trajectories
-        id: trajectories
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
-          restore-keys: trajectories-
-      # llvmpipe's compiled shaders, so Blender's first frame does not compile Eevee's again (~10-20 s, #470); Mesa checks
-      # each entry against its own build, so an older cache only misses
-      - name: Restore Mesa's shader cache
-        if: ${{ matrix.motions != '' }}
-        id: mesa
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: /tmp/mesa-shader-cache
-          key: mesa-${{ matrix.bin }}-${{ hashFiles('model/render/blender.py', 'ci/blender.Dockerfile') }}
-          restore-keys: |   # a bin's name moves with the packing
-            mesa-${{ matrix.bin }}-
-            mesa-
-      # its own step first, so the run's timings show the bake apart from the renders
-      - name: Run just trajectories
-        run: uv run just trajectories
-      - name: Run just pictures
-        if: ${{ matrix.motions != '' }}
-        run: uv run just BLENDER=blender pictures
-        env:
-          MOTIONS: ${{ matrix.motions }}
-      - name: Run just web
-        if: ${{ matrix.viewer }}
-        run: |   # and its seconds, beside the motions' (model/render/pictures.py SECONDS)
-          start=$SECONDS
-          uv run just BLENDER=blender web
-          mkdir -p model/build/seconds
-          echo "{\"blender viewer\": $(( SECONDS - start ))}" > model/build/seconds/viewer.json
-      # saved by the viewer's bin, whose just web bakes every Stage; even when a web test fails: the bake stays good
-      - name: Save the trajectories
-        if: ${{ always() && matrix.viewer && steps.trajectories.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/trajectories
-          key: ${{ steps.trajectories.outputs.cache-primary-key }}
-      - name: Save the viewer
-        if: ${{ matrix.viewer && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: web/build
-          key: viewer-${{ needs.changes.outputs.viewer-hash }}
-      - name: Save Mesa's shader cache
-        if: ${{ matrix.motions != '' && steps.mesa.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: /tmp/mesa-shader-cache
-          key: ${{ steps.mesa.outputs.cache-primary-key }}
-      - name: Upload the pictures
-        if: ${{ matrix.images }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:   # a PR's: its preview, the one bin's, which checks links
-          name: ${{ github.event_name == 'pull_request' && 'preview' || format('images-{0}', strategy.job-index) }}
-          path: model/build/images
-          if-no-files-found: error
-      - name: Upload the frames
-        if: ${{ matrix.frames }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:   # its frame shard's, which Hero joins
-          name: frames-${{ strategy.job-index }}
-          path: model/build/pictures/frames
-          if-no-files-found: error
-          retention-days: 1
-      # each unit's seconds, which main's next runs pack their bins on (Changes, #569); kept the repo's default
-      # retention, so a run long after the last one that rendered still finds them
-      - name: Upload the measured seconds
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: blender-seconds-${{ strategy.job-index }}
-          path: model/build/seconds
-          if-no-files-found: error
-      - name: Upload the viewer
-        if: ${{ matrix.viewer }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: viewer
-          path: web/build
-          if-no-files-found: error
-  # the hero's frame shards' frames joined into hero.webp (just hero-join, #537), an images-* artifact as a bin's
-  hero:
-    name: Hero
-    needs: [changes, blender]
-    if: ${{ contains(needs.changes.outputs.bins, 'hero:') }}
-    runs-on: ubuntu-26.04
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
-      - name: Download the hero's frames
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          pattern: frames-*
-          merge-multiple: true
-          path: model/build/pictures/frames
-      - name: Run just hero-join
-        run: uv run just hero-join
-      - name: Upload the hero
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: images-hero
-          path: model/build/images
-          if-no-files-found: error
-  # the docs (Astro Starlight, just site) beside the Blender bins, without their pictures and viewer, which checks adds
+  # the docs (Astro Starlight, just site)
   site:
     name: Site
     needs: changes
@@ -679,14 +414,10 @@ jobs:
         env:
           SITE_BASE: /noggin/v0.0
   # the required check (#496): every job above passed or was skipped as its inputs were unchanged (a skipped required
-  # check passes, so this one never skips; a failed need fails it). Then the site whole: the pictures (the last ones
-  # rendered from the same inputs, else main's bins', saved here for changes to find; a PR's, main's latest) and the
-  # viewer's GLBs at
-  # site/dist/images and site/dist/viewer, as just site puts them, its links checked again with them, and played in
-  # the runner's Chrome
+  # check passes, so this one never skips; a failed need fails it). Then the built site, played in the runner's Chrome
   checks:
     name: Checks
-    needs: [changes, code, convex, convex-part, model, blender, hero, site]
+    needs: [changes, code, convex, model, site]
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     steps:
@@ -694,79 +425,17 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, convex-part, model, blender, hero, site
+          allowed-skips: convex, model, site
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      # main's: the ones made from the same inputs, else its bins', saved for changes to find. A PR's site carries
-      # main's latest with its own preview over them, as its bins render only the preview (#562), and saves none. The
-      # weekly and dispatched runs: the ones they rendered
-      - name: Restore the pictures
-        if: ${{ needs.site.result == 'success' && github.event_name == 'push' }}
-        id: images
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/images
-          key: pictures-${{ needs.changes.outputs.pictures-hash }}
-          fail-on-cache-miss: ${{ needs.changes.outputs.pictures == 'true' }}
-      - name: Restore main's latest pictures
-        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/images
-          key: pictures-${{ needs.changes.outputs.pictures-hash }}
-          restore-keys: pictures-   # main's newest when this PR's inputs are new
-          fail-on-cache-miss: true
-      # over main's, the ones this PR's bin rendered (its preview: a panel and the site's icon, #603), so a picture the
-      # PR adds is there for the link checks
-      - name: Add this PR's preview pictures
-        if: >-
-          ${{ needs.site.result == 'success' && github.event_name == 'pull_request'
-          && needs.changes.outputs.pictures != 'true' }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          name: preview
-          path: model/build/images
-      - name: Download the pictures
-        if: >-
-          ${{ needs.site.result == 'success' && github.event_name != 'pull_request'
-          && steps.images.outputs.cache-hit != 'true' }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          pattern: images-*
-          merge-multiple: true
-          path: model/build/images
-      - name: Save the pictures
-        if: >-
-          ${{ needs.site.result == 'success' && github.event_name == 'push'
-          && steps.images.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/images
-          key: ${{ steps.images.outputs.cache-primary-key }}
-      - name: Download the viewer
-        if: ${{ needs.site.result == 'success' && needs.changes.outputs.viewer != 'true' }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
-        with:
-          name: viewer
-          path: web/build
-      - name: Restore the viewer
-        if: ${{ needs.site.result == 'success' && needs.changes.outputs.viewer == 'true' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: web/build
-          key: viewer-${{ needs.changes.outputs.viewer-hash }}
-          fail-on-cache-miss: true
       - name: Download the built site
         if: ${{ needs.site.result == 'success' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: built-site
           path: site
-      - name: Add the pictures and viewer
-        if: ${{ needs.site.result == 'success' }}
-        run: cp -R model/build/images site/dist/images && cp -R web/build/. site/dist/viewer   # as just site does
       - name: Set up Node
         if: ${{ needs.site.result == 'success' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
@@ -777,14 +446,8 @@ jobs:
       - name: Install the site's packages
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
-      # the links Site checked, now with the pictures and the viewer they point at (site.test.mjs checks a link into
-      # images/ once it is there)
-      - name: Check the links to the pictures
-        if: ${{ needs.site.result == 'success' }}
-        run: npm --prefix site test -- site.test.mjs -t link
-      # the hero's wheel scrolls the page, the viewer loads Stage 1 and zooms, the diagrams draw, search finds a page,
-      # the version switcher switches, in the runner's Chrome, with no CSP violation or console error and no request to
-      # another host but api.github.com
+      # the diagrams draw, search finds a page, the version switcher switches, in the runner's Chrome, with no CSP
+      # violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site run smoke
@@ -798,41 +461,19 @@ jobs:
           path: site/dist
           include-hidden-files: true   # as upload-pages-artifact would take them
           if-no-files-found: error
-      - name: Upload the pictures
-        if: ${{ needs.site.result == 'success' && github.event_name == 'workflow_dispatch' }}   # a PR's: its preview
-        id: pictures
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: pictures
-          path: model/build/images
       - name: Link the preview
         if: ${{ needs.site.result == 'success' && github.event_name != 'push' && github.event_name != 'schedule' }}
         env:
           URL: ${{ steps.preview.outputs.artifact-url }}
-          PICTURES: ${{ steps.pictures.outputs.artifact-url }}
-          CACHED: ${{ needs.changes.outputs.pictures }}
-          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "Site preview with the web viewer: [the site artifact]($URL),"
+            echo "Site preview: [the site artifact]($URL),"
             echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
-            if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-              echo "Pictures rendered from this branch: [the pictures artifact]($PICTURES)."
-            elif [ "$CACHED" = true ]; then
-              echo "Pictures unchanged: main's, made from the same inputs."
-            else
-              echo "Pictures: main renders and deploys them once this lands; the site preview carries main's latest."
-              echo "This PR's preview panel (model/render/pictures.py PREVIEW): the preview artifact on"
-              echo "[this run's page]($RUN)."
-              echo 'The hero and every panel: `gh workflow run checks.yml --ref <branch>`.'
-            fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # once for the run: its critical path, every job along its needs up to here. Warm: the parts, the pictures and
-      # the viewer all cached from the same inputs
+      # once for the run: its critical path, every job along its needs up to here. Warm: the parts cached from the
+      # same inputs
       - name: Check the CI budget
-        run: >-
-          python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true'
-          && needs.changes.outputs.pictures == 'true' && needs.changes.outputs.viewer == 'true' }}
+        run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}

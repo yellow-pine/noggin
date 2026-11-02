@@ -10,5 +10,6 @@
             "residuals": {"tilt pivot": {"max_mm": 0.01, "at": {"tilt horn": 60}}},
             "actuators": {"tilt horn": {"hold_kgf_cm": 0.05, "at": {"tilt horn": -60}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}},
             "full_speed": {"tilt horn": {"deg_s": 428.6, "off_deg": 0.0, "at": 60}},
-            "tip_over": {"margin_mm": 25.0, "at": {"pan horn": 70, "tilt horn": -60}, "com": [-4.9, 36.6, 32.9]}}
+            "motions": {"names": ["eureka", "hero"], "servos": {"tilt horn": {"rest_kgf_cm": 0.01, "hold_kgf_cm": 0.05, "hold_at": {"motion": "hero", "ms": 400}, "peak_kgf_cm": 0.3, "peak_at": {"motion": "hero", "ms": 410}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}}},
+            "tip_over": {"margin_mm": 25.0, "at": {"pan horn": 70, "tilt horn": -60}, "com": [-4.9, 36.6, 32.9], "moving": {"margin_mm": 20.0, "at": {"motion": "hero", "ms": 410}, "shift_mm": 5.0}}}
 }

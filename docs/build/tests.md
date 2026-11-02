@@ -35,11 +35,11 @@ Clearance is per side: a hole is its pin plus twice its clearance across.
 ## Filming a servo
 
 The servo reports no position, so its motion comes from slow-motion video of a marked horn. One servo, filmed once, at
-two known loads; fitting the model to it is the servo model's own ticket.
+two known loads; `model/servo_fit.py` fits the model's servo to it (its docstring has the take files it reads).
 
 What you need: the spare servo and a horn, the eyes Core on its Shield and pack, a phone with slow motion, something to
 hold it still above the desk (a tripod, a stack of books), a black marker, a printed protractor or angle scale, a ruler,
-tape and a 2 euro coin (8.50 g).
+tape, a stiff strip about 6 cm long (a lolly stick, a cut ruler) and ten 2 euro coins (8.50 g each).
 
 1. Set up. Unplug the right eye servo's lead from the Shield's port 4 and plug the spare servo in instead. Lay it on
    the paper scale with its shaft pointing straight up, so the horn sweeps flat and gravity does not load it, and tape
@@ -65,11 +65,14 @@ tape and a 2 euro coin (8.50 g).
    Each `pose eyes` ramps the eyes evenly in 20 ms steps over 150 ms (eyes/eyes.py), so a step is a known ramp; the
    fit finds the delay between the command and the horn itself. One clip for the whole run is fine.
 4. Load A: the run above with the bare horn.
-5. Load B: tape the coin flat on the horn, its centre over the tip dot, and read its radius from the shaft on the scale.
+5. Load B: tape the strip along the horn's line, the ten coins stacked and taped on it 50 mm from the shaft, and
+   read their radius from the shaft on the scale. The load has to be a few times the gear train's own inertia: one
+   coin at the horn's tip barely changes how the servo gets going, and the fit then cannot tell the gear train from
+   the delay.
    Run the same moves again into a second clip.
 6. Put the servo back on port 4 when done.
 
 **Where the videos go.** Local only, never git: `docs/references/servo-video/` (docs/references is gitignored). Keep
 the original files at their slow-motion frame rate (AirDrop with Options, All Photos Data, or copy from Photos with
 "Export Unmodified Original"), named `A.mov` and `B.mov`, and a `notes.md` beside them: the date, which servo, the
-coin's radius, the pack's charge and anything that went differently from the steps above.
+coins' radius, the pack's charge and anything that went differently from the steps above.

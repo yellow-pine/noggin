@@ -13,7 +13,8 @@
             "residuals": {"tilt pivot": {"max_mm": 0.07, "at": {"tilt horn": 60}}, "pan pivot": {"max_mm": 0.01, "at": {"pan horn": 70}}},
             "actuators": {"tilt horn": {"hold_kgf_cm": 0.45, "at": {"tilt horn": -60}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}},
             "full_speed": {"pan horn": {"deg_s": 428.6, "off_deg": 29.1, "at": -40}, "tilt horn": {"deg_s": 428.6, "off_deg": 0.0, "at": 60}},
-            "tip_over": {"margin_mm": -2.0, "at": {"pan horn": 70, "tilt horn": 60}, "com": [1.0, 2.0, 3.0]}},
+            "motions": {"names": ["eureka", "hero"], "servos": {"tilt horn": {"rest_kgf_cm": 0.01, "hold_kgf_cm": 0.42, "hold_at": {"motion": "hero", "ms": 400}, "peak_kgf_cm": 0.55, "peak_at": {"motion": "hero", "ms": 410}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}}},
+            "tip_over": {"margin_mm": -2.0, "at": {"pan horn": 70, "tilt horn": 60}, "com": [1.0, 2.0, 3.0], "moving": {"margin_mm": -1.5, "at": {"motion": "hero", "ms": 410}, "shift_mm": 9.0}}},
  "gimbal": {"gaze_deg": 2.1, "play_deg": 1.4, "crosstalk_deg": 1.8, "hooke_deg": 1.6, "vergence_deg": 0.2,
             "toe_in_deg": 1.83, "cap_gap_mm": 0.8,
             "lid": {"edge_deg": [-48.0, 32.0], "servo_deg": [-95.0, 15.0], "clearance_mm": 0.3, "apart_mm": 0.4}}

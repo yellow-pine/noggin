@@ -96,7 +96,7 @@ The background state while any session is mid-turn: half lids, slow eye drifts, 
 _Avoid_: working, busy, idle animation
 
 **Rest**:
-The state when no session is mid-turn and no gesture is playing: lids at their rest level, eyes centred, servos holding so the mech is still.
+The state when no session is mid-turn and no gesture is playing: lids at their rest level, eyes centred, servos holding, the mech still but for an occasional blink (one every few seconds: a face held still reads as lifeless).
 _Avoid_: idle, sleep, neutral, home
 
 **Intensity**:
@@ -149,15 +149,14 @@ A cumulative build state of the Mech, the Sub-assemblies placed at frames (geome
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The Site's page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour
-from Blender's glTF (docs/adr/0008), and Stage 3 exploded; the landing page opens with one, and docs pages can
-embed a small one per Stage.
+The page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour from
+Blender's glTF (docs/adr/0008), and Stage 3 exploded; off the Site until the clean-room Mech (docs/adr/0019).
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
 The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
-docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs,
-and the Web viewer at /viewer (docs/adr/0009). The README is for contributors and stays on GitHub.
+docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs
+(docs/adr/0009); no picture of today's Mech (docs/adr/0019). The README is for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:
@@ -174,7 +173,7 @@ _Avoid_: build, drop, version of one part
 **Docs version**:
 The Site's docs as one Release had them, built from its tag under /noggin/vX.Y/ (the newest patch of each minor) and
 kept as a release asset; **latest** is main's, at /noggin/. The header's switcher lists them from /noggin/versions.json.
-The pictures and the sim reports are the live Site's in every version (docs/adr/0014).
+The sim reports are the live Site's in every version (docs/adr/0014).
 _Avoid_: docs snapshot, archived docs
 
 **Bot App**:
@@ -183,7 +182,7 @@ checks, review or Release Assets run as they would for a person's (docs/adr/0010
 _Avoid_: release App, bot token
 
 **Hero**:
-The Mech's showcase loop: Stage 3 talking, the README's lead picture and the first clip of the Tour.
+The Mech's showcase loop: Stage 3 talking, the first clip of the Tour (shown nowhere until the clean-room Mech).
 _Avoid_: banner, idle loop
 
 **Tour**:

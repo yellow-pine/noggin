@@ -32,6 +32,16 @@ def served(releases: list[dict]) -> list[tuple[str, str]]:
     return [(f"v{x}.{y}", newest[x, y][1]) for x, y in sorted(newest, reverse=True)]
 
 
+# what a Release's docs may no longer serve (#640, ADR 0019): the Mech's GLBs and pictures, which docs before it carried
+MECH = re.compile(r"^(\./)?images/|\.(glb|webp|gif|png|jpe?g)$")
+
+
+def unpack(asset_file: Path, into: Path) -> None:
+    """A Release's docs tarball into `into`, minus MECH."""
+    with tarfile.open(asset_file) as t:
+        t.extractall(into, members=[m for m in t.getmembers() if not MECH.search(m.name)], filter="data")
+
+
 def versions_json(versions: list[tuple[str, str]]) -> list[dict]:
     return [LATEST, *({"version": v, "title": tag, "aliases": []} for v, tag in versions)]
 
@@ -48,7 +58,6 @@ if __name__ == "__main__":
     for version, tag in versions:
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run(["gh", "release", "download", tag, "-R", repo, "-p", asset(tag), "-D", tmp], check=True)
-            with tarfile.open(Path(tmp) / asset(tag)) as t:
-                t.extractall(dist / version, filter="data")
+            unpack(Path(tmp) / asset(tag), dist / version)
         print(f"docs: {tag} at {version}/")
     (dist / "versions.json").write_text(json.dumps(versions_json(versions)) + "\n")

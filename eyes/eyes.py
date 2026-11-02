@@ -60,6 +60,10 @@ ACCEL = 28094  # deg/s^2, the cap: half the stall torque at 4.8 V on the rotor's
 FRAME = 20  # ms, one 50 Hz PWM period: LEDC takes a new duty only at the next one, so a servo gets one write a frame
 BUDGET = 2  # servos jumping at once: each draws ~0.6 A stall current till it arrives; pack, Shield, switch: 3 A
 OVER = 0.05  # toon overshoot past a lid level, then settle (docs/research/2026-11-01-toon-eyes.md)
+# ms from one blink to the next, (least, random spread): held still a face reads as lifeless after ~1.7 s
+# (docs/research/2026-11-02-literature-perception.md); the site's behaviour table reads these (macros.py)
+REST_BLINK = (3000, 3000)
+THINK_BLINK = (5000, 3000)
 
 
 def jerkless(f):
@@ -364,6 +368,7 @@ class Eyes:
         cmd, args = parts[0], parts[1:]
         if cmd in ("thinking", "rest"):
             self.mode = cmd
+            self.next_blink = 0
             if cmd == "rest":
                 self.rest_pose()
             else:  # a small look the other way first (anticipation), then a gaze-evoked blink with the saccade aside
@@ -373,14 +378,15 @@ class Eyes:
                 self.saccade(EYE_CENTER + self.think_side * 18)
                 self.lids(self.cal["lid_think"], 240, over=OVER)
                 self.next_drift = 0
-                self.next_blink = 0
                 self.think_start = None
                 self.trace_i = -1
         elif cmd == "release":  # unpower (e.g. muted overnight); next command re-powers
+            self.mode = "release"  # no rest blink re-powers it
             self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
             self.cal[args[0]] = type(DEFAULT_CAL[args[0]])(float(args[1]))
         elif cmd == "pose" and len(args) in (2, 4):  # pose lids <0-1> | eyes <angle> | both; holds
+            self.mode = "pose"  # still, no rest blink, while it is tuned
             for key, val in zip(args[::2], args[1::2]):
                 if key == "lids":
                     self.lids(float(val), 150)
@@ -393,6 +399,7 @@ class Eyes:
             self.next_drift = 0
         elif cmd in self.GESTURES and len(args) == 1 and args[0] in ("1", "2", "3"):
             self.GESTURES[cmd](self, int(args[0]))
+            self.next_blink = 0  # a blink fallen due while it played waits a whole gap, not straight after it
             if self.mode == "thinking":
                 self.lids(self.cal["lid_think"], 200)
 
@@ -413,6 +420,13 @@ class Eyes:
             self.eyes(lo + (hi - lo) * (0.30 + 0.40 * (self.rand % 997) / 997), 600)  # 30%-70% of the eye range
             self.next_drift = now_ms + 1500
             return
+        if self.mode == "rest":
+            if now_ms >= self.next_blink:
+                if self.next_blink:
+                    self.blink()
+                self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
+                self.next_blink = now_ms + REST_BLINK[0] + self.rand % REST_BLINK[1]
+            return
         if self.mode != "thinking":
             return
         if gaze_trace is not None and self.cal["think_trace"]:  # replay the recording, looping
@@ -430,7 +444,7 @@ class Eyes:
             if self.next_blink:  # spontaneous: one in four stops a little short of shut
                 partial = 0.04 if (self.rand >> 8) % 4 == 0 else 0
                 self.blink(level=self.cal["lid_think"], shut=self.cal["lid_closed"] + partial)
-            self.next_blink = now_ms + 5000 + self.rand % 3000
+            self.next_blink = now_ms + THINK_BLINK[0] + self.rand % THINK_BLINK[1]
         if now_ms < self.next_drift:
             return
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF

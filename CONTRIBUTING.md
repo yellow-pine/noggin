@@ -106,8 +106,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing;
-  `gh workflow run checks.yml --ref <branch>` runs that full run on any branch, for the hero and every panel when a
-  look needs approval (a PR renders one panel as its preview, #562).
+  `gh workflow run checks.yml --ref <branch>` runs that full run on any branch (#562).
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
   release tag's run and Release's are never cancelled).
 - The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
@@ -115,10 +114,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks
   passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
 - `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
-  `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. `Blender`
-  packs the pictures' motions and the viewer into runners longest first (`just blender-bins`), on the seconds each
-  bin measured in main's last run that rendered (its `blender-seconds-*` artifacts, #569), else the ones typed in
-  `model/durations.json`. The sim's reports are
+  `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
+  cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
+  workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
+  public repo is anyone's, and today's parts derive from the designer's models (ADR 0019, `test_workflows.py`); the
+  Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports
   against main's in its job summary.
 - With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
