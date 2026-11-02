@@ -149,7 +149,8 @@ def panels(labels=None):
 
 def next_panels():
     """The next Mech's panels (#629), framed among themselves: Pictures' alone."""
-    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-')})" for doc in g.NEXT})  # a head variant each
+    # a head variant each, in both its Skeleton's styles (#704)
+    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-').replace('-', ' ')})" for doc in g.NEXT})
 
 
 def figures(labels, kind="parts"):
@@ -266,7 +267,8 @@ def variants():
         fails = ranking["variants"][doc]["fails"] if ranked else []
         carriers = [s for s in g.NEXT[doc] if s not in ("next-neck", "next-eyes", "next-base")]
         about = [" ".join(stages.SUBS[s].__doc__.split()).split(": ", 1)[1].split(";")[0] for s in carriers]
-        label = doc.removeprefix("next-mech-").capitalize() + (f": {', '.join(fails)}" if fails else "")
+        name = doc.removeprefix("next-mech-").replace("-", " ").capitalize()  # next-mech-back-plain: "Back plain"
+        label = name + (f": {', '.join(fails)}" if fails else "")
         buttons.append({"glb": viewer.PUBLIC[doc].removesuffix(".glb"), "label": label, "about": " and ".join(about)})
     return {"ranked": ranked, "buttons": buttons}
 

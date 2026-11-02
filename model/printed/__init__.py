@@ -1,6 +1,9 @@
 """Our own printed parts (#50): independent parametric CadQuery designs, by our part name (GLOSSARY.md), and the
 features each declares for the mating check (model/mating.py)."""
 
+import functools
+
+from model.geometry import PLAIN
 from model.printed import (
     bars,
     base,
@@ -81,6 +84,41 @@ PARTS = {
     "next torso": base.torso,
     "next board rack": base.rack,
 }
+# The Skeleton drawn as Bones (#704): each builder's switch `plain` draws its plain style, the same interfaces; PARTS
+# holds it under the stem's plain name (geometry.PLAIN)
+STYLED = {
+    "next yaw yoke": gimbal.yoke,
+    "next tie-bar": gimbal.tie_bar,
+    "next bail": gimbal.bail,
+    "next push-rod": gimbal.push_rod,
+    "next torso": base.torso,
+    "next board rack": base.rack,
+}
+# the Skeleton's parts drawn plain alone: their Bones wait on the ticket reshaping them, which draws both styles
+UNSTYLED = {
+    "next eyeball core": "the eyeball's ball under its cap: none",
+    **dict.fromkeys(("next L lid", "next R lid", "next lid bar", "next pitch bar", "next gimbal frame"), "#698"),
+    **dict.fromkeys(
+        (
+            "next neck mount",
+            "next pan yoke",
+            "next head mount",
+            "next jaw",
+            "next pan bar",
+            "next tilt bar",
+            "next jaw bar",
+        ),
+        "#708",
+    ),
+}
+PARTS |= {stem + PLAIN: functools.partial(build, plain=True) for stem, build in STYLED.items()}
+
+
+def styled(stem, plain):
+    """The part `stem` in a style: its plain name where it has one (STYLED), else itself."""
+    return stem + PLAIN if plain and stem in STYLED else stem
+
+
 # test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
 COUPONS = {"clearance coupon": coupon.build}
 FEATURES = {

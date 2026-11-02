@@ -20,6 +20,14 @@ LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every print
 # the Bones' (head, waist) as (semi-width, height): the tie-bar's heads flattened to its 3 mm slab, each push-rod's
 # inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so)
 TIE_BONE, ROD_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0))
+# (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending; the bail's rod flat-bottomed with the
+# shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch bar's pin
+CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
+    ((4.5, 4.2), (3.0, 2.9)),
+    ((4.0, 7.0), (3.0, 6.0)),
+    ((2.4, 4.0), (2.2, 3.4)),
+    ((3.5, 6.5), (3.0, 5.0)),
+)
 MM = 0.001  # MuJoCo's metres per mm
 CAP_BACK = gm.CAP_R * math.cos(math.radians(gm.CAP_HALF))  # the cap's flat back, on the core's seat
 
@@ -66,56 +74,87 @@ def cap(side):
     return out.cut(seat)
 
 
-def yoke():
+def yoke(plain=False):
     """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis
-    with its crank (back) on the tie-bar."""
+    with its crank (back) on the tie-bar. As Bones (#704): the U a cradle round the core, its underside flaring at 45
+    deg into the stem, the crank a Bone in its slab; printed as drawn, on the stem and the crank."""
     y = gm.YOKE
     x0, x1, h = y["inner"], y["inner"] + y["wall"], y["half_y"]
-    out = box((-x1, x1), (-h, h), (-x1, -x0))
+    z = gm.YAW_CRANK_Z
+    if not plain:
+        r = math.hypot(x1, h)  # round the bosses' corners
+        # the cone tangent to the cradle 40 deg under its equator: the overhang no more than that on either
+        rt, zt = r * math.cos(math.radians(40)), -r * math.sin(math.radians(40))
+        flare = zt - (rt - y["stem_r"]) / math.tan(math.radians(40))
+        cone = cq.Solid.makeCone(y["stem_r"], rt, zt - flare, cq.Vector(0, 0, flare))
+        out = ball(r).union(cq.Workplane().add(cone)).union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], flare)))
+        out = out.intersect(box((-x1, x1), (-h, h), (y["stem_z"], 0))).cut(ball(x0))
+        crank = bone.bone((0, 0, z[0]), (0, gm.CRANK, z[0]), *CRANK_BONE).intersect(box((-9, 9), (-9, 20), z))
+        out = out.union(crank)
+    else:
+        out = box((-x1, x1), (-h, h), (-x1, -x0))
+        for s in (-1, 1):
+            out = out.union(box(sorted((s * x0, s * x1)), (-h, h), (-x1, 0)))
+        out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], -x1)))
+        out = out.union(box((-ARM / 2, ARM / 2), (0, gm.CRANK), z)).union(cyl("z", (0, gm.CRANK, 0), ARM / 2, z))
     for s in (-1, 1):
         xs = sorted((s * x0, s * x1))
-        out = out.union(box(xs, (-h, h), (-x1, 0))).union(cyl("x", (0, 0, 0), h, xs))
-        out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, xs))
-    out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], -x1)))
-    z = gm.YAW_CRANK_Z
-    out = out.union(box((-ARM / 2, ARM / 2), (0, gm.CRANK), z)).union(cyl("z", (0, gm.CRANK, 0), ARM / 2, z))
+        out = out.union(cyl("x", (0, 0, 0), h, xs)).cut(cyl("x", (0, 0, 0), gm.PIN_R, xs))
     out = out.cut(cyl("z", (0, gm.CRANK, 0), gm.PIN_R, z))
     return out.cut(cyl("z", (0, 0, 0), gm.PIN_R, (y["stem_z"], y["stem_z"] + 8)))
 
 
-def tie_bar():
-    """The tie-bar under the yokes' cranks: a Bone (model/printed/bone.py) from each eye's pin back to the yaw horn's,
-    one parallelogram, flat on top within its slab where the cranks ride on it."""
+def tie_bar(plain=False):
+    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Plain: a bar across
+    both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone (model/printed/bone.py) from
+    each eye's pin back to the yaw horn's, flat on top within its slab where the cranks ride on it."""
     c, horn = gm.EYE["L"][0], (0.0, gm.YAW_Y + gm.CRANK, gm.TIE_Z[0])
-    slab = box((-c - ARM, c + ARM), (0, horn[1] + ARM), (gm.TIE_Z[0] - 1, gm.TIE_Z[1]))  # past the bed: no shared face
-    arms = [bone.bone((x, gm.CRANK, gm.TIE_Z[0]), horn, *TIE_BONE).intersect(slab) for x in (-c, c)]
-    out = arms[0].union(arms[1])  # clipped first: the two heads on the horn's pin, fused unclipped, clip invalid
+    if plain:
+        out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
+        out = out.union(box((-ARM / 2, ARM / 2), (gm.CRANK, horn[1]), gm.TIE_Z))
+        out = out.union(cyl("z", (0, horn[1], 0), ARM / 2, gm.TIE_Z))
+    else:
+        slab = box(
+            (-c - ARM, c + ARM), (0, horn[1] + ARM), (gm.TIE_Z[0] - 1, gm.TIE_Z[1])
+        )  # past the bed: no shared face
+        arms = [bone.bone((x, gm.CRANK, gm.TIE_Z[0]), horn, *TIE_BONE).intersect(slab) for x in (-c, c)]
+        out = arms[0].union(arms[1])  # clipped first: the two heads on the horn's pin, fused unclipped, clip invalid
     for x, y, _ in ((-c, gm.CRANK, 0), (c, gm.CRANK, 0), horn):
         out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))
     return out
 
 
-def bail():
+def bail(plain=False):
     """The bail: its rod on an x axis behind the eyes, an arm up to a ball behind each eye, the input arm back to the
-    pitch bar's pin, the shanks' bores in its ends."""
+    pitch bar's pin, the shanks' bores in its ends. As Bones (#704): the rod and the input arm flat on the bed under
+    the rod, each arm a round strut; printed as drawn (its bores across the layers)."""
     by, bz = gm.BAIL
-    end, top = gm.EYE["L"][0] + 8.0, gm.LEVER - gm.BALL_R - 1.2
-    out = cyl("x", (0, by, bz), 3.0, (-end, end))
+    end, top, tip = gm.EYE["L"][0] + 8.0, gm.LEVER - gm.BALL_R - 1.2, by + gm.BAIL_IN
+    if not plain:
+        bed = bz - 3
+        out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD).intersect(box((-end, end), (0, 99), (bed, 99)))
+        out = out.union(bone.bone((0, by, bed), (0, tip, bed), *BAIL_INPUT).intersect(box((-2, 2), (0, 99), (bed, 99))))
+    else:
+        out = cyl("x", (0, by, bz), 3.0, (-end, end))
+        out = out.union(box((-2, 2), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (-2, 2)))
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
-        out = out.union(box((x - 1.5, x + 1.5), (by - ARM / 2, by + ARM / 2), (bz, top)))
-        out = out.union(ball_on(top, (x, by, gm.LEVER)))
+        if not plain:  # on the bed (its foot's head centred just over it: on it, cutting the bore fails)
+            arm = bone.bone((x, by, bed + 0.5), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
+            arm = arm.intersect(box((x - 9, x + 9), (0, 99), (bed, 99)))
+            out = out.union(arm).union(ball_on(top - BAIL_ARM[0][0], (x, by, gm.LEVER)))
+        else:
+            out = out.union(box((x - 1.5, x + 1.5), (by - ARM / 2, by + ARM / 2), (bz, top)))
+            out = out.union(ball_on(top, (x, by, gm.LEVER)))
         out = out.cut(cyl("x", (0, by, bz), gm.PIN_R, sorted((s * end, s * (end - 8)))))
-    tip = by + gm.BAIL_IN
-    out = out.union(box((-2, 2), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (-2, 2)))
     return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (-2, 2)))
 
 
-def push_rod():
-    """One push-rod (drawn at x 0): a Bone back from the lever's ball to the bail arm's on its cups' rims, a cup round
-    each ball."""
+def push_rod(plain=False):
+    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball. Plain:
+    an r 2 cylinder; as a Bone (#703), on its cups' rims."""
     z, back = gm.LEVER, gm.BAIL[0]
-    out = bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
+    out = cyl("y", (0, 0, z), 2.0, (0, back)) if plain else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
     for y in (0.0, back):
         out = out.union(ball(CUP_R, (0, y, z)).cut(box((-CUP_R, CUP_R), (y - CUP_R, y + CUP_R), (z - CUP_R, z - 2))))
     for y in (0.0, back):
@@ -209,15 +248,15 @@ def _moved(shape, m):
     return cq.Workplane().add(shape.val().transformGeometry(t))
 
 
-def at_rest():
+def at_rest(plain=False):
     """{next-eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
-    shank from the frame's upright through the lid's boss)."""
+    shank from the frame's upright through the lid's boss); `plain`: the Skeleton plain (#704)."""
     from model import stages
-    from model.printed import PARTS  # here: model.printed imports this module
+    from model.printed import PARTS, styled  # here: model.printed imports this module
 
     out = {}
     for name, p in stages.next_eyes().parts.items():
-        stem = stages.stem(p.file)
+        stem = styled(stages.stem(p.file), plain)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
     for s, sign in (("L", 1), ("R", -1)):
         x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["boss"][0] + 2, gm.LID_X["upright"][1]))
@@ -292,15 +331,16 @@ def _path(segments, step):
     return np.round(rows, 6)  # a value shared by two lines reads the same
 
 
-def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650): each lid, its bar, its horn and its shank against every other part over the lid x
-    pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()). Every pair at least LID_CLEAR_MM apart at rest
+def sweep(plain=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
+    """The lid drives' sweep (#650), the Skeleton `plain` or as Bones (#704): each lid, its bar, its horn and its shank
+    against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+    Every pair at least LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is
     reported. Every pair closer at rest (a pin, a face sliding on a face, the boss on its shank) is checked for overlap
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
-    rest = at_rest()
+    rest = at_rest(plain)
     drives = [f"next {s} {n}" for s in "LR" for n in ("lid:1", "lid bar:1", "lid horn:1", "lid shank")]
     spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
@@ -380,9 +420,9 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     return {"clearance_mm": round(closest[0], 2), "pair": closest[1], "at": closest[2], "overlaps": overlaps}
 
 
-def bounds():
+def bounds(plain=False):
     """The gimbal's bounding box at rest, mm: its width (x), depth (y) and height (z), servos and horns included (#684)."""
-    b = cq.Compound.makeCompound(list(at_rest().values())).BoundingBox()
+    b = cq.Compound.makeCompound(list(at_rest(plain).values())).BoundingBox()
     return [round(b.xlen, 1), round(b.ylen, 1), round(b.zlen, 1)]
 
 
