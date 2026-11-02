@@ -43,6 +43,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 ## Practices
 
 - Ponytail at full: the smallest complete change.
+- Edit files with the Edit tool, which fails loudly on a miss; a scripted replace asserts its match first
+  (`assert old in text`).
 - CLAUDE.md's directives hold, these above all: standards and libraries before custom code, never a paid service,
   ground truth's order and inferred guesses, Blender pictures and Mermaid diagrams, sources only (ADR 0009), derived
   not listed (ADR 0011), hardware never gating a merge.
