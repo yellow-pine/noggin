@@ -5,7 +5,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Rendering rules (2026-10-31, #47)
 - Today's Mech left the model (Cansin, 2026-11-02, #720): its Stages, sub-assemblies and printed parts, their tests,
   renders and the hero live in git history alone; the model holds the next Mech.
-- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Blender` job renders its two panels
+- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` shards render its two panels
   and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
   `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
   document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,

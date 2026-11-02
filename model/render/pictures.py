@@ -2,9 +2,9 @@
 posed from its baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 `views` (`just render`): the panels (each document at rest, a trajectory's first frame, from the side and isometric,
-framed among themselves: PANELS). `site next` (`just pictures next`, Checks' Blender job): what the site serves into
-model/build/images (#649): the panels, the eye gimbal in motion (NEXT_MOTIONS: its sweep, #656, and each motion it
-plays, #663) and a picture per part.
+framed among themselves: PANELS). `site next` (`just pictures next`, Checks' Render shards, each its share: SHARD):
+what the site serves into model/build/images (#649): the panels, the eye gimbal in motion (NEXT_MOTIONS: its sweep,
+#656, and each motion it plays, #663) and a picture per part.
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
 
 import functools
@@ -25,6 +25,8 @@ from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
+# "i/n" (from 0): `site next` renders shard i of n's share alone, Checks' Blender shards (#770)
+SHARD = os.environ.get("PICTURES_SHARD")
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the panels (Cansin, #470): each document from its left side and isometric from its front left, by eye direction and
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
@@ -85,6 +87,15 @@ def next_motion(motion):
 def published():
     """Every picture the site serves (#649): the next Mech's panels, its motions (#656), then its parts'."""
     return [*(picture(*p) for p in PANELS), *map(next_motion, NEXT_MOTIONS), *next_parts()]
+
+
+def share(frames, i, n):
+    """The pictures shard i of n (from 0) renders, of {picture: its frames}: each, longest first, to the shard with the
+    fewest frames so far (as model/shards.py deals the model's units)."""
+    loads = [[] for _ in range(n)]
+    for f in sorted(frames, key=lambda f: -frames[f]):
+        min(loads, key=lambda load: sum(frames[p] for p in load)).append(f)
+    return loads[i]
 
 
 def next_motions(rest):
@@ -158,9 +169,19 @@ def blender(name, manifest, shots):
     return [float(line.split()[2]) for line in frames]  # each frame's seconds
 
 
-def views():
+def render(name, manifest, shots, mine, fps=None):
+    """The shots of the pictures in mine alone (published(), or a Blender shard's share: share, #770), in one Blender
+    run, each encoded."""
+    shots = [s for s in shots if os.path.basename(s["out"]) + ".webp" in mine]
+    if shots:
+        blender(name, manifest, shots)
+    for s in shots:
+        encode(os.path.basename(s["out"]), fps)
+
+
+def views(mine):
     """The panels (PANELS: each document at rest as MuJoCo settles it, where every gesture starts), at one scale and one
-    frame: the largest silhouette among them."""
+    frame: the largest silhouette among them; those in mine alone are rendered."""
     plans = {}
     for doc in g.NEXT:
         _, manifest, hulls = prepare(doc)
@@ -174,14 +195,12 @@ def views():
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
     for name, (manifest, _, mats, pts) in plans.items():
         shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
-        blender(name, manifest, shots)
-    for name, v in PANELS:
-        encode(f"{name}-{v}")
+        render(name, manifest, shots, mine)
 
 
-def part_pictures():
-    """Each part of the next Mech (next_parts) alone, at rest as MuJoCo settles it, from VIEWS' isometric, framed tight
-    on its own."""
+def part_pictures(mine):
+    """Each part of the next Mech (next_parts) in mine alone, at rest as MuJoCo settles it, from VIEWS' isometric,
+    framed tight on its own."""
     for doc in g.NEXT:
         _, manifest, hull = prepare(doc)
         mats = trajectories.poses(doc, "wink")[0]
@@ -196,9 +215,7 @@ def part_pictures():
             if d == doc
             for pose in [{name: mats[name]}]
         ]
-        blender(doc, manifest, shots)
-    for f in next_parts():
-        encode(f.removesuffix(".webp"))
+        render(doc, manifest, shots, mine)
 
 
 def next_played():
@@ -212,20 +229,28 @@ def next_played():
     }
 
 
-def motion_pictures():
-    """The next Mech's motions (next_motions, next_played), its eye gimbal alone, each a looping WebP at HERO_FPS through
-    one camera from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
+def motions():
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]}: the keyed ones (next_motions), then the played."""
+    return next_motions(trajectories.poses(next(iter(g.NEXT)), "wink")[0]) | next_played()
+
+
+def frames():
+    """{picture: its frames} of published(): a still's one, a motion's as many as it plays."""
+    return dict.fromkeys(published(), 1) | {next_motion(m): len(f) for m, f in motions().items()}
+
+
+def motion_pictures(mine):
+    """The next Mech's motions (motions()) in mine, its eye gimbal alone, each a looping WebP at HERO_FPS through one
+    camera from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
     doc = next(iter(g.NEXT))
     _, manifest, hull = prepare(doc)
-    motions = next_motions(trajectories.poses(doc, "wink")[0]) | next_played()
-    pts = np.concatenate([points(hull, f) for frames in motions.values() for f in frames])
+    moves = motions()
+    pts = np.concatenate([points(hull, f) for frames in moves.values() for f in frames])
     cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
-    names = {m: next_motion(m).removesuffix(".webp") for m in motions}
+    names = {m: next_motion(m).removesuffix(".webp") for m in moves}
     for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
         shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
-    blender(doc, manifest, [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in motions.items()])
-    for name in names.values():
-        encode(name, HERO_FPS)
+    render(doc, manifest, [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in moves.items()], mine, HERO_FPS)
 
 
 def at_fps(frames, fps):
@@ -267,13 +292,16 @@ def ffmpeg(*args):
 def main(what, names):
     os.makedirs(OUT, exist_ok=True)
     if what == "views":
-        views()
+        views(set(published()))
     elif what == "site" and set(names) <= {NEXT}:
-        views()
-        part_pictures()
-        motion_pictures()
+        mine = published()
+        if SHARD:
+            mine = share(frames(), *map(int, SHARD.split("/")))
+        views(mine)
+        part_pictures(mine)
+        motion_pictures(mine)
         os.makedirs(IMAGES, exist_ok=True)
-        for f in published():
+        for f in mine:
             shutil.copy(os.path.join(OUT, f), IMAGES)
     else:
         sys.exit(f"unknown: {what} {' '.join(names)}")
