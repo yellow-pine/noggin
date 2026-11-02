@@ -275,7 +275,9 @@ test("the viewer's page draws the next Mech, a button per head variant, and serv
   expect([...stages].sort()).toEqual([...numbers.published.viewer].sort());
   // each button's whole label, a failing variant's with its mark ('Back: head size', #705), then its name before it
   expect(buttons.map((b) => b.text.trim())).toEqual(numbers.published.variants.buttons.map((v) => v.label));
-  expect(buttons.map((b) => b.text.split(':')[0].trim()).sort()).toEqual(['Back']);  // Back alone since #712
+  // each variant's name from its GLB, next-mech-back-plain.glb: 'Back plain' (Back alone since #712, Bones and plain #704)
+  const named = (f) => f.replace(/^next-mech-|\.glb$/g, '').replaceAll('-', ' ').replace(/^./, (c) => c.toUpperCase());
+  expect(buttons.map((b) => b.text.split(':')[0].trim()).sort()).toEqual(numbers.published.viewer.map(named).sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
     expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);
