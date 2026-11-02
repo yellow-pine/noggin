@@ -2,10 +2,10 @@ name: CI Images
 # Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR.
 # ghcr.io/yellow-pine/noggin-ci-base and -blender (base plus Blender; ci/, docs/adr/0009, #288) are what the jobs
 # needing a tool uv can't install run in, by digest (`container:`). Only main writes to the registry: on a push that
-# changes a Dockerfile, every Monday with no cache (the distro's security fixes) and on a dispatch from main, it pushes
-# both as :main with their build provenance (GitHub's attestations) and refreshes the layer cache; Dependabot (docker,
-# ci/pins/Dockerfile) then proposes the new digests as a PR, whose checks run in them before any job on main does. A PR
-# that changes a Dockerfile builds both from main's cache, read only, and pushes nothing.
+# changes a Dockerfile (Dependabot's base-image bumps in ci/ carry the distro's security fixes, #472) and on a dispatch
+# from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes the layer cache;
+# Dependabot (docker, ci/pins/Dockerfile) then proposes the new digests as a PR, whose checks run in them before any
+# job on main does. A PR that changes a Dockerfile builds both from main's cache, read only, and pushes nothing.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -13,8 +13,6 @@ on:
   push:
     branches: [main]
     paths: ["ci/*.Dockerfile", ".github/workflows/images.yml"]
-  schedule:
-    - cron: "0 4 * * 1"   # Mondays
   workflow_dispatch:
 concurrency:   # as in check.yml
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -85,7 +83,6 @@ jobs:
           tags: ${{ env.REPO }}-base:main
           outputs: type=image,push=true,compression=zstd,force-compression=true
           provenance: false   # one manifest, whose digest the jobs pin; the attestation below is GitHub's
-          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=registry,ref=${{ env.REPO }}-base:cache
           cache-to: type=registry,ref=${{ env.REPO }}-base:cache,mode=max
       - name: Push the Blender image
@@ -98,7 +95,6 @@ jobs:
           tags: ${{ env.REPO }}-blender:main
           outputs: type=image,push=true,compression=zstd,force-compression=true
           provenance: false
-          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=registry,ref=${{ env.REPO }}-blender:cache
           cache-to: type=registry,ref=${{ env.REPO }}-blender:cache,mode=max
       - name: Attest the base image
