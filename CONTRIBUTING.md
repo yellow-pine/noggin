@@ -9,8 +9,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   → TDD → code review → PR → retro. An agent building a ticket runs as the `implementer` subagent
   (`.claude/agents/implementer.md`), so its brief is just the issue.
 - One PR per concern, kept small, built in its own worktree at `../noggin-wt/<session>/<branch>` (the session's name as
-  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `just worktrees-clean` removes the worktrees
-  of merged, closed or deleted branches). Open the PR against main on the first push and turn auto-merge on at once
+  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `just worktrees-clean` deletes the local
+  branches whose PR merged or closed, and their clean worktrees, with gh-poi). Open the PR against main on the first push and turn auto-merge on at once
   (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
   conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
   branch on GitHub has a PR, except on-hold work.

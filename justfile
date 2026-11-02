@@ -47,9 +47,10 @@ lint: venv
 fmt: venv
     {{PY}} -m ruff format
 
-# remove the worktrees of merged, closed or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
-worktrees-clean: venv
-    {{PY}} scripts/worktrees_clean.py
+# delete the local branches whose PR merged or closed, and their clean worktrees (gh-poi, installed on first use)
+worktrees-clean:
+    gh extension list | grep -q seachicken/gh-poi || gh extension install seachicken/gh-poi
+    gh poi --state closed
 
 # the PR gate's Code job (#714): just lint and the tests marked neither model nor build, no CadQuery build
 check-light: venv lint
