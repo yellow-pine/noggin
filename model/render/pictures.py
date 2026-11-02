@@ -8,7 +8,7 @@ hero`): the README hero, stage 3 talking (model/render/hero.py), its trajectory 
 pictures, motion by motion (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site
 serves at yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py,
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders
-the `preview` motion alone, one panel and the icon (PREVIEW, #562).
+the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
 
 import json
@@ -72,16 +72,17 @@ SITE = {
     "views": [picture(*p) for p in [*PANELS, FAVICON]],
     "hero": ["hero.webp"],
 }
-# a PR's pictures in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it, and
-# the icon, which every page shows
-PREVIEW = [("stage3", "isometric"), FAVICON]
+# a PR's pictures in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it, the
+# next Mech's panels, the design a PR shows Cansin (#51, #629), and the icon, which every page shows
+PREVIEW = [("stage3", "isometric"), *(p for p in PANELS if p[0] in g.NEXT), FAVICON]
 MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 
 
 def motions(preview=False):
     """Each motion of SITE (or the preview alone) with the Stages it draws, whose trajectories its runner bakes (just
-    trajectories TRAJ_DOCS): the preview every Stage, for the panels' one scale."""
-    stages_of = {"views": " ".join(g.STAGES | g.NEXT), "hero": HERO_STAGE, "preview": " ".join(g.STAGES)}
+    trajectories TRAJ_DOCS): the preview every document views draws, for the panels' one scale."""
+    every = " ".join(g.STAGES | g.NEXT)
+    stages_of = {"views": every, "hero": HERO_STAGE, "preview": every}
     return [{"motion": m, "stages": stages_of[m]} for m in (["preview"] if preview else SITE)]
 
 
