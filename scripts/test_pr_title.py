@@ -1,14 +1,20 @@
 """pr_title.py: the PR Title check's scopes are derived from the repo (its tracked top-level folders, docs/'s tracked
 subfolders, Dependabot's and release-please's), and it fails what the action can't see: a list of scopes, a header over
-100 characters, a BREAKING CHANGE footer without `!`."""
+100 characters, a BREAKING CHANGE footer without `!`. The action's subject pattern gives commitlint's verdicts."""
 
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 SCRIPT = Path(__file__).with_name("pr_title.py")
+PR_CHECKS = yaml.safe_load((SCRIPT.parents[1] / ".github/workflows/pr-checks.yml").read_text())
+TITLE_STEP = next(
+    s for job in PR_CHECKS["jobs"].values() for s in job["steps"] if "semantic-pull-request" in s.get("uses", "")
+)
 
 
 def run(*args: str, body: str = "", cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -53,3 +59,30 @@ def test_a_body_that_only_mentions_a_breaking_change_needs_no_bang():
         run("docs(adr): explain", body="No `BREAKING CHANGE:` footer here.\nbreaking change: lower case").returncode
         == 0
     )
+
+
+# what commitlint v21.2.4 (cli, config-conventional) says of `docs(docs): <subject>` (#509): subject-case fails a
+# subject whose first letter is a capital, acronym or not; backticked text is stripped before the check
+@pytest.mark.parametrize(
+    ("subject", "passes"),
+    [
+        ("OpenSSF Scorecard weekly", False),
+        ("SECURITY.md points at x", False),
+        ("PR titles take any scope", False),
+        ("Add a thing", False),
+        ("Add A Thing", False),
+        ("ADD A THING", False),
+        ("add a thing.", False),
+        ("add a thing", True),
+        ("`OpenSSF` Scorecard weekly", True),
+        ("`SECURITY.md` points at x", True),
+        ("`PR` titles take any scope", True),
+        ("1 more thing", True),
+    ],
+)
+def test_the_subject_pattern_gives_commitlints_verdict(subject, passes):
+    assert bool(re.fullmatch(TITLE_STEP["with"]["subjectPattern"], subject)) is passes
+
+
+def test_the_subject_error_says_a_leading_acronym_goes_in_backticks():
+    assert "backticks" in TITLE_STEP["with"]["subjectPatternError"]
