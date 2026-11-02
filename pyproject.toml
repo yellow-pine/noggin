@@ -45,6 +45,7 @@ testpaths = [".claude/hooks", "ci", "eyes", "reactions", "noggin", "model", "scr
 markers = [
     "model: MuJoCo and the slowest mesh sweeps; CI runs them in its Model job (-m model) beside the rest",
     "build: reads our parts' STLs (model/build/ours, just ours); just check-light leaves them out",
+    "certify: the between-frames collision checks (#646); CI runs them on main only until #667 makes them fast (#679)",
 ]
 
 [tool.ruff]

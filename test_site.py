@@ -227,7 +227,7 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    following = ["next-mech-side.webp", "next-mech-isometric.webp"]  # the next Mech's, beside them (#629)
+    following = [f"{d}-{v}.webp" for d in ("next-mech-a", "next-mech-b") for v in ("side", "isometric")]  # #629, #642
     assert sorted(pictures.SITE["views"]) == sorted(
         [*panels, *following, "favicon.png"]
     )  # the site's icon: an eye (#603)
@@ -247,12 +247,17 @@ def test_the_panels_grid_has_a_column_per_stage_and_a_row_per_view_each_linking_
 
 
 def test_the_next_mech_has_its_own_panels():
-    """#629: the next Mech's panels in a grid of their own, framed among themselves (shown nowhere since #640)."""
+    """#629: the next Mech's panels in a grid of their own, framed among themselves, one per Base candidate (#642)."""
     import macros
 
     grid = macros.next_panels()
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech"]
-    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == ["next-mech-side.webp", "next-mech-isometric.webp"]
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech (a)", "Next Mech (b)"]
+    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == [
+        "next-mech-a-side.webp",
+        "next-mech-a-isometric.webp",
+        "next-mech-b-side.webp",
+        "next-mech-b-isometric.webp",
+    ]
 
 
 def test_the_site_publishes_the_next_mech_alone():
@@ -265,10 +270,11 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.NEXT for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side, isometric, the motions (#656) and a picture per part
-    assert len(published) == 2 + 1 + 7 + len(stems) == len(set(published))  # the sweep, the 7 it plays (#663)
-    assert {"next-mech-isometric.webp", "next-eyes-rest.webp", "next-l-lid.webp", "next-servo.webp"} <= {*published}
-    assert build.PUBLIC == {"next-mech": "next-mech.glb"}
+    # side and isometric per document (a Base candidate each, #642), the sweep (#656), the 7 it plays (#663) and a
+    # picture per part
+    assert len(published) == 2 * len(g.NEXT) + 1 + 7 + len(stems) == len(set(published))
+    assert {"next-mech-a-isometric.webp", "next-eyes-rest.webp", "next-board-tower.webp"} <= {*published}
+    assert build.PUBLIC == {"next-mech-a": "next-mech-a.glb", "next-mech-b": "next-mech-b.glb"}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
     assert [doc for doc in g.NEXT if stages.todays(doc)] == []
@@ -276,9 +282,12 @@ def test_the_site_publishes_the_next_mech_alone():
 
 def test_the_home_and_the_readme_show_the_next_mech():
     """#661: the site's home shows the next Mech assembled, the latest the site serves, and its eyes sweeping, linking
-    to Pictures and the viewer; the README's top shows it assembled too, linking to Pictures."""
+    to Pictures and the viewer; the README's top shows it assembled too, linking to Pictures: Base candidate (a)'s,
+    the first, until Cansin picks one (#642)."""
+    from model import geometry as g
+
     site = "https://yellowpine.com/noggin/"
-    picture = f"{site}images/next-mech-isometric.webp"
+    picture = f"{site}images/{next(iter(g.NEXT))}-isometric.webp"
     home, readme = (ROOT / "docs" / "index.md").read_text(), (ROOT / "README.md").read_text()
     assert picture in home and "(pictures.md)" in home and f"{site}viewer/" in home
     assert f"{site}images/next-eyes-sweep.webp" in home
@@ -314,7 +323,7 @@ def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
     from model.render import pictures
 
     assert pictures.motions() == [
-        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech"},
+        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-a next-mech-b"},
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
 

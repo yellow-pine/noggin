@@ -12,6 +12,7 @@ import trimesh
 
 from model import electrical, gimbal, mating, mjcf, mujoco_report, stages
 from model import geometry as g
+from model.test_report import TOWER
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -81,6 +82,24 @@ TOUCH = {
             ("next jaw:1", "next head mount:1"),
         ]
     },
+    # the base and the Base candidates' carriers (#642): the same; (b)'s tower meets the head's middle (test_report.TOWER)
+    **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
+    **{
+        frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
+        for carrier in ("next board tray:1", "next board tower:1")
+        for pair in [
+            *((carrier, f"{b}:1") for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")),
+            (carrier, "next switch board:1"),
+        ]
+    },
+    **{
+        frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
+        for pair in [
+            ("next board tray:1", "next gimbal frame:1"),
+            ("next base plate:1", "next neck mount:1"),
+            ("next base plate:1", "next pack:1"),
+        ]
+    },
 }
 # The desk documents only (geometry.DESK): the eyes stand on the plate top, touching.
 ON_PLATE = {frozenset(("base plate:1", p)) for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")}
@@ -120,7 +139,7 @@ def test_every_part_sits_where_stages_places_it(doc):
     mesh's bounding-box corners within 0.1 mm of model/stages.py's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
     stage = stages.STAGES[doc]
     model, data = forward(doc)
-    placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg, also where no horn is (next-mech)
+    placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg
     assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
     for name, matrix in placed.items():
         expected = mjcf.root(doc) @ matrix
@@ -150,7 +169,7 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
         rest = pieces[i + 1 :]  # thousands of pieces: a row at a time, another part's whose bounding spheres meet a's
         for b in rest[(body[rest] != body[a]) & (np.linalg.norm(pos[rest] - pos[a], axis=1) <= reach[rest] + reach[a])]:
             pair = tuple(sorted((model.body(body[a]).name, model.body(body[b]).name)))
-            if frozenset(pair) in allowed:
+            if frozenset(pair) in allowed or TOWER in pair:
                 continue
             mm = -1000 * mujoco.mj_geomDistance(model, data, a, b, 0.01, None)
             if mm > PENETRATION_MM:
@@ -248,7 +267,7 @@ EXACT = json.load(open(os.path.join(os.path.dirname(__file__), "test_fixtures", 
 DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deeper than this inside
 
 
-@pytest.mark.parametrize("doc", grouped([d for d in MOVING if d in EXACT]))  # the next Mech never had that check
+@pytest.mark.parametrize("doc", grouped(d for d in MOVING if d in EXACT))  # the next Mech's were never checked so
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
     """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
     rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both
@@ -306,7 +325,7 @@ def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
     for (h, d), data in sweep(doc).items():
         gaps = mjcf.mating_gaps(model, data)
         assert set(gaps) == {j for j, feats in mating.JOINTS if all(p in stage.parts for p, _ in feats)}
-        for joint, mm in gaps.items():  # none in the next Mech's documents
+        for joint, mm in gaps.items():  # none in the next Mech's documents yet
             assert mm < mating.COAXIAL_MM, (h, d, joint, mm)
 
 

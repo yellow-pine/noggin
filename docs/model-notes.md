@@ -94,8 +94,11 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   (model/gates.py loops, model/mujoco_report.py): the margin keeps a 0.1 mm pin fit's play under 2 deg, the angle stays
   at 40 deg or more, the stock pan and jaw bars excepted with their reasons (model/test_report.py KNOWN_TRANSMISSION).
 - Every pair of parts certified clear at every step of each gesture and the hero, not only at the 100 ms frames:
-  `mj_geomDistance` at the ends of a span, halved where the parts could move further than that (model/gates.py certify,
-  model/test_trajectories.py). The next Mech's lid drives are certified the same way, reading the exact solids (#655).
+  each pair of their convex pieces read at the ends of a span (the bounding spheres' gap, `mj_geomDistance` only where
+  that is too close), halved where the two pieces could move further than that, and a pair of pieces whose hinges all
+  turn about one point skipped while their distances from it keep them apart (model/gates.py certify,
+  model/test_trajectories.py; #667). The next Mech's lid drives are certified the same way, the bodies whole, reading
+  the exact solids (#655).
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
@@ -115,7 +118,7 @@ until the model stabilises.
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
-  Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in next-mech, moved
+  Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the next Mech's documents, moved
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
   beside the Hooke form, the vergence a print error makes, the lids' clearance and range, the caps' gap, and the lid
@@ -135,8 +138,21 @@ until the model stabilises.
   tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
-  weighs, the flexing spans' bends), gated in model/test_report.py. It is static in MuJoCo until the
-  base ticket (#642) gives it a footprint; every size is inferred.
+  weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. Since #642 it moves in
+  MuJoCo (its horns named as today's Stages', so the sim report's neck figures, tip-over and the Core's servo names
+  apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
+  motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); since #663 the gimbal
+  moves in MuJoCo too and plays the gestures.
+- The Base candidates (#642, model/base.py, the parts in model/printed/base.py, GLOSSARY): one document each,
+  next-mech-a and next-mech-b, both on one base plate with the pack lying behind the neck mount. (a) the boards on a
+  tray screwed under the gimbal frame's plate behind the head mount, riding pan and tilt; (b) the boards on a shelf
+  over the lids, on a PETG rod standing on the pan axis, the only line a static post can rise along in a head that
+  pans, so it meets the neck's and the gimbal's middle (listed in model/test_report.py KNOWN_PAIRS for that reason).
+  Each one's parameters are optimised in MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds
+  the drawn numbers to it): (a)'s tray place for the tilt servo's least worst hold, kept clear of the yoke and the
+  pack; (b)'s rod radius, the thinnest that sways at 8 Hz. `just sim` ranks them from their reports into
+  model/build/reports/next-mech-ranking.json (base.rank: the clearance gate, #51's marks, then its criteria in order).
+  Every size is inferred; Cansin picks.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the

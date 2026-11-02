@@ -7,6 +7,7 @@ import math
 import numpy as np
 import pytest
 
+from model import geometry as g
 from model import gimbal, stages
 from model.render import pictures
 
@@ -15,7 +16,7 @@ from model.render import pictures
 def motions():
     """Each motion's frames from the next Mech's rest as model/stages.py places it, in metres, as MuJoCo's would be."""
     rest = {}
-    for n, p in stages.STAGES["next-mech"].parts.items():
+    for n, p in stages.STAGES[next(iter(g.NEXT))].parts.items():
         rest[n] = p.matrix.copy()
         rest[n][:3, 3] /= 1000
     return pictures.next_motions(rest)
@@ -50,9 +51,9 @@ def test_each_motion_loops_from_rest_and_moves_the_eyes_alone(motions):
 def test_the_next_mech_plays_each_gesture_and_rest_in_the_pictures_as_mujoco_baked_it(monkeypatch):
     """#663: beside the keyed sweep, a picture of each motion the next Mech plays (its gestures and Rest), its eye gimbal
     alone, from its baked trajectory (here 3 s at the trajectory's 10 fps) at the hero's 8 fps."""
-    parts = stages.STAGES["next-mech"].parts
+    parts = stages.STAGES["next-mech-a"].parts
     baked = [{n: np.eye(4) * (1 + k) for n in parts} for k in range(30)]
-    monkeypatch.setattr(pictures.trajectories, "poses", lambda doc, m: baked if doc == "next-mech" else None)
+    monkeypatch.setattr(pictures.trajectories, "poses", lambda doc, m: baked if doc == "next-mech-a" else None)
     assert [m for m, keys in pictures.NEXT_MOTIONS.items() if keys is None] == [
         "eureka", "attention", "bored", "wince", "wink", "thinking", "rest"
     ]  # fmt: skip

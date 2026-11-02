@@ -97,6 +97,62 @@ def test_a_turn_too_short_to_close_the_gap_is_read_only_at_its_ends():
     assert len(reads) == 2
 
 
+def hub_on_a_block(post):
+    """A 4 mm hub turning about Z on the block under it, touching it, with a 30 mm arm of six 5 mm pieces 1 mm over
+    the block; with `post`, a 2 mm post on the block's body 25 mm out at 67.5 deg, across the arm's sweep."""
+    x, y = (0.025 * f(np.radians(67.5)) for f in (np.cos, np.sin))
+    arm = "".join(f'<geom type="box" size="0.0025 0.001 0.001" pos="{0.0025 + 0.005 * k} 0 0.001"/>' for k in range(6))
+    xml = f"""<mujoco><worldbody>
+      <body name="block"><geom type="box" size="0.002 0.002 0.002" pos="0 0 -0.003"/>
+        {f'<geom size="0.001" pos="{x} {y} 0"/>' if post else ""}</body>
+      <body name="arm"><joint axis="0 0 1"/><geom type="cylinder" size="0.002 0.001"/>{arm}</body>
+    </worldbody></mujoco>"""
+    return mujoco.MjModel.from_xml_string(xml)
+
+
+def test_a_hub_turning_on_its_block_is_certified_in_fewer_readings_than_the_sweep_has_steps(monkeypatch):
+    """#667: the hub touches the block at every step, so the bodies are never more than a step's reach apart; bounding
+    each pair of pieces by its own reach from the axis clears the hub over long spans and never reads the arm's far
+    pieces, where the arm's farthest reach read every close pair of pieces at every step."""
+    model, reads = hub_on_a_block(post=False), []
+    real = mujoco.mj_geomDistance
+    monkeypatch.setattr(mujoco, "mj_geomDistance", lambda *a: reads.append(a[2:4]) or real(*a))
+    assert gates.certify(model, SWEEP, {("arm", "block"): -0.05}) == {}
+    assert len(reads) < len(SWEEP)
+
+
+def test_a_far_piece_crossing_the_post_is_caught_while_the_hub_touches_its_block():
+    ((i, mm),) = gates.certify(hub_on_a_block(post=True), SWEEP, {("arm", "block"): -0.05}).values()
+    assert abs(np.degrees(SWEEP[i, 0]) - 67.5) < 10 and mm < -0.05
+
+
+def lid_round_a_ball(ball_pivot_mm):
+    """A 10 mm ball, and a 1 mm plate 0.3 mm off it turning about Z through the ball's centre; the ball turns about Z
+    through ball_pivot_mm along X."""
+    plate = " ".join(f"{x} {y} {z}" for x in (0.0103, 0.0113) for y in (-0.003, 0.003) for z in (-0.003, 0.003))
+    xml = f"""<mujoco><asset><mesh name="plate" vertex="{plate}"/></asset><worldbody>
+      <body name="ball"><joint axis="0 0 1" pos="{ball_pivot_mm / 1000} 0 0"/><geom size="0.01"/></body>
+      <body name="lid"><joint axis="0 0 1"/><geom type="mesh" mesh="plate"/></body>
+    </worldbody></mujoco>"""
+    return mujoco.MjModel.from_xml_string(xml)
+
+
+def test_a_lid_turning_round_the_ball_it_hugs_is_certified_without_a_reading(monkeypatch):
+    """#667: every hinge between the two turns about the ball's centre, so each piece keeps its distance from it: the
+    ball reaches 10 mm, the plate's face is 10.3 mm out, whatever the lid does."""
+    model, reads = lid_round_a_ball(0), []
+    real = mujoco.mj_geomDistance
+    monkeypatch.setattr(mujoco, "mj_geomDistance", lambda *a: reads.append(a[2:4]) or real(*a))
+    assert gates.certify(model, np.hstack([np.zeros_like(SWEEP), SWEEP]), {("ball", "lid"): -0.05}) == {}
+    assert reads == []
+
+
+def test_a_ball_swung_about_another_point_into_the_lid_is_caught():
+    """The ball's pivot 5 mm off the lid's: half a turn each brings the ball's centre to -10 mm, onto the lid's plate."""
+    ((i, mm),) = gates.certify(lid_round_a_ball(-5), np.hstack([SWEEP, SWEEP]), {("ball", "lid"): -0.05}).values()
+    assert mm < -0.05
+
+
 def test_the_pairs_a_motion_can_change_are_the_ones_a_hinge_turns_apart():
     model = mujoco.MjModel.from_xml_string("""<mujoco><worldbody>
       <body name="base"><geom size="0.001"/>

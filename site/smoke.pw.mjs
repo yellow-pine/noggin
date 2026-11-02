@@ -28,16 +28,16 @@ test.afterEach(async ({ baseURL }) => {
 });
 
 test('the viewer loads the next Mech, see-through, and the wheel zooms it', async ({ page }) => {
-  // CI always has the GLB; a local build has it once just web next-mech ran before just site
-  test.skip(!existsSync(new URL('dist/viewer/next-mech.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  // CI always has the GLBs; a local build has them once just web next ran before just site
+  test.skip(!existsSync(new URL('dist/viewer/next-mech-a.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer');
+  const viewer = page.locator('.noggin-viewer').first(); // a viewer per Base candidate (#642)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('navigation', { name: 'Gesture' })).toBeHidden(); // still: nothing to play
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
-  await page.locator('.noggin-viewer canvas').hover();
+  await viewer.locator('canvas').hover();
   await page.mouse.wheel(0, 200);
   await expect.poll(() => page.evaluate(() => window.zoomed)).toBe(true); // OrbitControls takes it from the page
 });

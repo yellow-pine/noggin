@@ -7,7 +7,7 @@ import functools
 import pytest
 
 from model import geometry as g
-from model import mjcf, mujoco_report, stages
+from model import mjcf, mujoco_report, neck, stages
 from model.render import hero, scene
 from model.test_report import KNOWN_PAIRS
 
@@ -71,3 +71,21 @@ def test_every_pose_is_clear_of_collisions(frame):
 def test_a_pose_past_the_tilt_limit_collides_as_the_sweep_found():
     # geometry.LIMITS tilt: 1.16 mm deep at -70 on the exact meshes, the tilt horn and bar in the pan turntable
     assert {("pan turntable:1", "tilt horn:1"), ("pan turntable:1", "tilt bar:1")} <= collisions({"tilt": -70.0})
+
+
+@pytest.mark.parametrize("servo,horn,drive", [("rotate", "pan horn", "pan"), ("tilt", "tilt horn", "tilt")])
+@pytest.mark.parametrize("doc", g.NEXT)
+def test_the_next_mech_plays_the_heros_head_keys_through_its_own_neck(doc, servo, horn, drive):
+    """#642: the next Mech's hero turns its head the hero's head degrees through its own four-bars (model/neck.py), each
+    frame inside the horn's limits; its jaw talks from shut to the jaw's open end."""
+    stage, joint = stages.STAGES[doc], horn.replace("horn", "pivot")
+    frames = [hero.next_at(i / hero.FPS) for i in range(len(FRAMES))]
+    head = [stages.pose(stage, horn, f[servo]).joints[joint] for f in frames]
+    keyed = [d for _, d in hero.HEAD[servo]]
+    assert (min(head), max(head)) == pytest.approx((min(keyed), max(keyed)), abs=0.1)
+    for f in frames:
+        for s, deg in f.items():
+            lo, hi = stage.horns[scene.HORNS[s]].limits
+            assert lo - 1e-6 <= deg <= hi + 1e-6, (s, deg)
+    jaw = [stages.pose(stage, "jaw horn", f["mouth"]).joints["jaw pivot"] for f in frames]
+    assert (min(jaw), max(jaw)) == pytest.approx((0.0, max(neck.RANGES["jaw"])), abs=0.5)

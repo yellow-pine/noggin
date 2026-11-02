@@ -92,7 +92,7 @@ _Y, _P = gimbal.YAW, gimbal.PITCH
 NEXT_MOTIONS = {
     "sweep": [(0, 0, 0, 0, 0), (1, -_Y, 0, 0, 0), (2.5, _Y, 0, 0, 0), (3.5, 0, 0, 0, 0), (4.25, 0, _P, _P, _P),
               (5.5, 0, -_P, -_P, -_P), (6.25, 0, 0, 0, 0)],
-    **dict.fromkeys(trajectories.motions(next(iter(g.NEXT)))),
+    **dict.fromkeys(trajectories.traces.NEXT_MOTIONS),
 }  # fmt: skip
 MOTION_SIZE = (480, 320)
 
