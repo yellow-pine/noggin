@@ -198,7 +198,8 @@ def compose(name, out, fps=None):
     outs = []
     for i, (theme, colour) in enumerate(THEMES.items()):
         red, green, blue = (int(colour[k : k + 2], 16) for k in (1, 3, 5))
-        graph.append(f"[l{i}]lutrgb=r={red}:g={green}:b={blue}[c{i}];[p{i}][c{i}]overlay[o{i}]")
+        # format=auto: the output keeps the parts' alpha (#489's review: overlay's default is yuv420)
+        graph.append(f"[l{i}]lutrgb=r={red}:g={green}:b={blue}[c{i}];[p{i}][c{i}]overlay=format=auto[o{i}]")
         codec = ["libwebp_anim", "-loop", "0"] if fps else ["libwebp"]
         outs += ["-map", f"[o{i}]", "-c:v", *codec, "-quality", str(WEBP_QUALITY), f"{out}-{theme}.webp"]
     ffmpeg(*ins, "-filter_complex", ";".join(graph), *outs)
