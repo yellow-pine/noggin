@@ -140,6 +140,18 @@ def test_the_behaviour_table_words_every_gesture_and_nothing_else():
     assert set(macros.MECH) == {*GESTURES, "thinking", "rest"}
 
 
+def test_the_viewer_says_which_claude_code_event_plays_each_gesture():
+    """Cansin (#482): under the viewer's bar, one line per gesture clip names the Claude Code event that plays it, from
+    the behaviour table's code (the director), never typed in a page."""
+    import macros  # here, not at the top: it imports the model
+    from model.traces import GESTURES
+
+    moments = macros.moments()
+    assert set(moments) == set(GESTURES)
+    assert moments["wink"] == "a session starts (SessionStart)"
+    assert moments["attention"] == "Claude asks for your permission (Notification permission_prompt)"
+
+
 def test_the_stale_turn_sentence_follows_the_director():
     """The table says the last turn ends a fixed time after its prompt, not after a quiet spell: the Director holds
     a turn with a Trigger every minute exactly that long, then rests."""
@@ -202,6 +214,23 @@ def test_the_hero_is_800x400_and_leads_the_readme():
         rf'^<p align="center"><a href="{viewer}"><img src="{hero}" width="800" alt="[^"]+"></a></p>$', readme, re.M
     )
     assert readme.index(hero) < readme.index("## ")
+
+
+def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
+    """Cansin (#482): the viewer's Explode moves each of Stage 3's parts by its sub-assembly's offset in
+    model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up (x, z, -y); Pictures
+    and the Stage 3 build guide link to it, and no picture of it is rendered."""
+    import macros  # here, not at the top: it imports the model
+    from model import stages
+    from model.render import pictures
+
+    explode = macros.explode()
+    assert list(explode) == ["stage3"] and set(explode["stage3"]) == set(stages.STAGES["noggin-stage3"].parts)
+    assert explode["stage3"]["top jaw:1"] == pytest.approx([0, 0.095, 0.045])  # the mouth: up and forward
+    assert explode["stage3"]["base plate:1"] == [0, 0, 0]
+    link = "https://yellowpine.com/noggin/viewer/?stage=3&explode=1"
+    assert all(link in (ROOT / "docs" / d).read_text() for d in ("pictures.md", "build/stage-3.md"))
+    assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
 
 
 def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
