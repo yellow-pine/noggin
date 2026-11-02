@@ -1,6 +1,6 @@
-// The built site in Chrome (#513): the diagrams draw, search finds a page, the Docs version switcher opens the same
-// page in another version, the wordmark's eye looks at the pointer (#603), and nothing breaks the CSP, logs an error or
-// asks another host than api.github.com (the header's stars and forks). The viewer loads the next Mech (#649), the only
+// The built site in Chrome (#513): the diagrams draw, search finds a page, the header names the newest release and an
+// old Docs version's URL lands on the docs (docs/adr/0021), the wordmark's eye looks at the pointer (#603), and nothing
+// breaks the CSP, logs an error or asks another host than api.github.com (the header's release, stars and forks). The viewer loads the next Mech (#649), the only
 // one the site serves (docs/adr/0019), and plays its gestures (#664).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -73,12 +73,12 @@ test('a code block reads left-aligned', async ({ page }) => {
   await expect(page.locator('.expressive-code .ec-line').first()).toHaveCSS('text-align', 'start');
 });
 
-test('the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {
-  // a deploy's versions.json with one Release's docs (scripts/docs_versions.py), and its page (docs/adr/0014)
-  await page.route('**/noggin/versions.json', (r) =>
-    r.fulfill({ json: [{ version: 'latest', title: 'latest', aliases: [] }, { version: 'v0.1', title: 'v0.1.2', aliases: [] }] }),
+test('the diagrams draw, search finds a page, the header names the newest release', async ({ page }) => {
+  // GitHub's newest release (docs/adr/0021), whatever it is when the test runs
+  const release = 'https://github.com/yellow-pine/noggin/releases/tag/v0.2.19';
+  await page.route('https://api.github.com/repos/yellow-pine/noggin/releases/latest', (r) =>
+    r.fulfill({ json: { tag_name: 'v0.2.19', html_url: release } }),
   );
-  await page.route('**/noggin/v0.1/docs/how-it-works/', (r) => r.fulfill({ contentType: 'text/html', body: '<title>v0.1</title>' }));
   // drawn in the page by the site's Mermaid, under its CSP
   await page.goto('docs/how-it-works/');
   const diagrams = page.locator('pre.mermaid');
@@ -88,8 +88,16 @@ test('the diagrams draw, search finds a page, the version switcher switches', as
   await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox').fill('servo');
   await expect(page.locator('.pagefind-ui__result').first()).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press('Escape');
-  const select = page.getByRole('combobox', { name: 'Docs version' }).first();
-  await expect(select).toHaveValue('latest');
-  await select.selectOption('v0.1.2');
-  await expect(page).toHaveURL(/\/noggin\/v0\.1\/docs\/how-it-works\/$/);
+  await expect(page.getByRole('link', { name: 'v0.2.19 (latest)' }).first()).toHaveAttribute('href', release);
+});
+
+// the Docs versions are gone (docs/adr/0021): an old one's URL lands on its page in the docs, or on the home
+test("an old Docs version's URL lands on the same page, or the home", async ({ page }) => {
+  await page.goto('v0.1/docs/how-it-works/');
+  await expect(page).toHaveURL(/\/noggin\/docs\/how-it-works\/$/);
+  // the home stubbed: its pictures are the live site's
+  await page.route(/\/noggin\/$/, (r) => r.fulfill({ contentType: 'text/html', body: '<title>home</title>' }));
+  await page.goto('v0.2.19/docs/gone/');
+  await expect(page).toHaveURL(/\/noggin\/$/);
+  errors = errors.filter((e) => !e.includes('status of 404')); // the old URL, and the page it lacks, answer 404
 });

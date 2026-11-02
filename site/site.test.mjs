@@ -1,7 +1,7 @@
 // The site as `just site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
 // by its H1, every link lands, the numbers are the code's (macros.json), each page's footer and /version.json give the
 // version and the commit, and each page's CSP lets only the site's own scripts run. Run after just site: npm test (Site
-// Checks), and on a Docs version's build with SITE_BASE (docs/adr/0014).
+// Checks).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, globSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'node-html-parser';
 import { expect, test } from 'vitest';
-import { BASE, HOME, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
+import { HOME, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
 
 const DIST = fileURLToPath(new URL('dist/', import.meta.url));
 const read = (f) => readFileSync(path.join(ROOT, f), 'utf8');
@@ -18,8 +18,8 @@ const numbers = JSON.parse(readFileSync(new URL('src/macros.json', import.meta.u
 /** The built file a site path (under the base) is served from, or undefined off the site. */
 const fileOf = (url) => {
   const p = url.replace(SITE, '').split(/[?#]/)[0];
-  if (p !== BASE && !p.startsWith(`${BASE}/`)) return undefined;
-  const rel = decodeURIComponent(p.slice(BASE.length + 1));
+  if (p !== HOME && !p.startsWith(`${HOME}/`)) return undefined;
+  const rel = decodeURIComponent(p.slice(HOME.length + 1));
   return path.join(DIST, rel === '' || rel.endsWith('/') ? `${rel}index.html` : rel);
 };
 const html = globSync('**/*.html', { cwd: DIST });
@@ -40,29 +40,27 @@ test('the README, CLAUDE.md and the references never ship', () => {
 });
 
 test('the landing page leads into Build and Use', () => {
-  const links = page(`${BASE}/`).querySelectorAll('a').map((a) => a.getAttribute('href'));
+  const links = page(`${HOME}/`).querySelectorAll('a').map((a) => a.getAttribute('href'));
   for (const target of [route('docs/build/parts.md'), route('docs/use/noggin-service.md')])
     expect(links).toContain(target);
 });
 
 test('the landing page has the sidebar every page has, itself first (#740)', () => {
   const sidebar = (url) => page(url).querySelectorAll('#starlight__sidebar a').map((a) => a.getAttribute('href'));
-  expect(sidebar(`${BASE}/`)).toEqual(sidebar(route('docs/build/parts.md')));
-  expect(sidebar(`${BASE}/`)[0]).toBe(`${BASE}/`);
+  expect(sidebar(`${HOME}/`)).toEqual(sidebar(route('docs/build/parts.md')));
+  expect(sidebar(`${HOME}/`)[0]).toBe(`${HOME}/`);
 });
 
 test('the sidebar reaches every decision, the pictures and the viewer', () => {
   const links = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
   const adrs = docs.filter((d) => d.startsWith('docs/adr/'));
   expect(adrs.length).toBeGreaterThan(10);
-  for (const target of [...adrs.map(route), route('docs/pictures.md'), `${BASE}/viewer/`]) expect(links).toContain(target);
+  for (const target of [...adrs.map(route), route('docs/pictures.md'), `${HOME}/viewer/`]) expect(links).toContain(target);
 });
 
-// what CI adds beside the build when it was built (the pictures, the sim reports): a link there is checked when it is,
-// and always in a Docs version, which never has them (docs/adr/0014)
+// what CI adds beside the build when it was built (the pictures, the sim reports): a link there is checked when it is
 const ADDED = ['images', 'reports'];
-const built = (file) =>
-  BASE !== HOME || !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
+const built = (file) => !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
 const pages = html; // every one Astro's, the reports' page too (#603)
 
 test('every link on the site lands on a page or file of it, and no .md link is left', () => {
@@ -84,23 +82,11 @@ test("every site URL the repo's Markdown links to is a page with that heading", 
     const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#[\w-]+)?)/g);
     for (const [, url] of links) {
       const file = fileOf(url), anchor = url.split('#')[1];
-      if (!file || !built(file)) continue; // a Docs version's: the live site's pictures, viewer and sim reports
+      if (!file || !built(file)) continue;
       expect(existsSync(file), `${doc}: ${url}`).toBe(true);
       if (anchor) expect(parse(readFileSync(file, 'utf8')).getElementById(anchor), `${doc}: ${url}`).not.toBeNull();
     }
   }
-});
-
-// a Docs version (docs/adr/0014) is the same site under /noggin/vX.Y/: what it links outside itself is the live site's
-test("a page links outside its version only to the live site's pictures, viewer and sim reports", () => {
-  const out = [];
-  for (const f of html)
-    for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
-      const p = (el.getAttribute('href') ?? el.getAttribute('src')).replace(SITE, '');
-      const live = ['images', 'viewer', 'reports'].some((d) => p.startsWith(`${HOME}/${d}/`));
-      if (p.startsWith(`${HOME}/`) && !p.startsWith(`${BASE}/`) && !live) out.push(`${f}: ${p}`);
-    }
-  expect(out).toEqual([]);
 });
 
 /** Text as written, before Astro's smart punctuation. */
@@ -150,10 +136,10 @@ test("every page's CSP lets only the site's scripts run: each inline one by its 
     expect(csp).toContain("default-src 'self'");
     for (const s of doc.querySelectorAll('script')) {
       const src = s.getAttribute('src');
-      if (src) expect(src.startsWith(`${BASE}/`), `${f}: ${src}`).toBe(true);
+      if (src) expect(src.startsWith(`${HOME}/`), `${f}: ${src}`).toBe(true);
       else expect(scripts, f).toContain(`'sha256-${createHash('sha256').update(s.rawText).digest('base64')}'`);
     }
-    for (const l of doc.querySelectorAll('link[rel="stylesheet"]')) expect(l.getAttribute('href')).toMatch(`${BASE}/`);
+    for (const l of doc.querySelectorAll('link[rel="stylesheet"]')) expect(l.getAttribute('href')).toMatch(`${HOME}/`);
   }
 });
 
@@ -183,10 +169,10 @@ test("every page's header names the site with its wordmark, whose o is the Mech'
   for (const f of pages) {
     const mark = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelector('header a.site-title');
     expect(mark?.text.trim(), f).toBe('noggin');
-    expect(mark.getAttribute('href'), f).toBe(`${BASE}/`);
+    expect(mark.getAttribute('href'), f).toBe(`${HOME}/`);
     expect(mark.querySelectorAll('.noggin-o .noggin-eye').length, f).toBe(1);
   }
-  expect(page(`${BASE}/`).querySelectorAll('h1 .noggin-o .noggin-eye').length).toBe(1); // and the landing page's title
+  expect(page(`${HOME}/`).querySelectorAll('h1 .noggin-o .noggin-eye').length).toBe(1); // and the landing page's title
 });
 
 test("every page's footer credits Yellow Pine with its logo, for the light theme and the dark", () => {
@@ -202,7 +188,7 @@ test("every page's footer credits Yellow Pine with its logo, for the light theme
 test("every page's icon is Yellow Pine's pine, no render of the Mech (#640)", () => {
   for (const f of pages) {
     const icons = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('link[rel~="icon"]');
-    expect(icons.map((l) => l.getAttribute('href')), f).toEqual([`${BASE}/favicon.svg`]);
+    expect(icons.map((l) => l.getAttribute('href')), f).toEqual([`${HOME}/favicon.svg`]);
   }
   expect(existsSync(path.join(DIST, 'favicon.svg'))).toBe(true);
 });
@@ -219,7 +205,7 @@ test("the headings' Rubik is the site's own file, never another host's", () => {
 });
 
 test("the sim reports' page is the site's own, listing each report the build has, or saying there is none", () => {
-  const reports = page(`${BASE}/reports/`);
+  const reports = page(`${HOME}/reports/`);
   expect(reports.querySelector('h1').text.trim()).toBe('Reports');
   const links = reports.querySelectorAll('main li a').map((a) => a.getAttribute('href'));
   const files = existsSync(path.join(DIST, 'reports'))
@@ -268,7 +254,7 @@ test('Pictures shows the next Mech, it in motion and each of its parts, each lin
 });
 
 test("the viewer's page draws the next Mech, a button per head variant, and serves three's Draco decoder", () => {
-  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664)
+  const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664)
   expect(viewers).toHaveLength(1);
   const buttons = viewers[0].querySelectorAll('nav button[data-stage]'); // in the ranking's order where there is one (#686)
   const stages = buttons.map((b) => `${b.getAttribute('data-stage')}.glb`);

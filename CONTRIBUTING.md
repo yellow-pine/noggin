@@ -64,7 +64,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `.releaserc.json`) tags `vX.Y.Z` and writes the GitHub release's notes when a title merged since the last tag is a
   feat, fix, perf, revert or a `!` break (before 1.0 a break bumps the minor, the rest the patch); docs, ci, chore,
   build, test, style and refactor release nothing. The tag starts `Release Assets`, which attaches the Core program
-  zip and the release's docs (docs/adr/0014). No release PR, nothing committed back; tag nothing by hand.
+  zip; the site serves the latest docs alone, labelled with the newest tag (docs/adr/0021). No release PR, nothing
+  committed back; tag nothing by hand.
 - The workflows that open PRs, push or merge (Release, the weekly `skills` and `blender` ones, `Review`'s
   rebase, Dependabot Auto-merge) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a
   private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and

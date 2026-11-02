@@ -13,6 +13,9 @@
 > Vitest and the Playwright smoke test in its container, and uploads the site; the gate only gates.
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 >
+> Amended 2026-11-02 (#778, ADR 0021): no Docs versions; the smoke test checks the header's newest release and that
+> an old version's URL (/noggin/vX.Y/…) lands on the same page, the one redirect.
+>
 > Amended 2026-11-02 (#603): the site keeps Starlight (search, Docs versions, dark mode) but no longer its default
 > look. Cansin picked direction A, "Googly", from a three-way prototype (branch `prototype/603-site-directions`):
 > Yellow Pine's brand v2.2 as the base (ink, paper, surfaces, links, an azure focus), the Mech's filament colours as
@@ -67,7 +70,7 @@ service anywhere.
   H1, every link lands, each number the JSON's, every inline script hashed in the CSP, no photo; and every diagram
   drawn by mermaid-cli (a devDependency, so the lockfile pins the Mermaid it uses, the site's). One Playwright smoke
   test in the installed Chrome (`site/smoke.pw.mjs`): the viewer loads Stage 1, the diagrams draw, search finds a page,
-  the Docs version switcher opens another version, with no CSP violation or console error and no request to another
+  the header names the newest release, an old Docs version's URL lands on the docs, with no CSP violation or console error and no request to another
   host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
   out of git, the workflows).
 - **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `just site`,

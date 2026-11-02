@@ -1,31 +1,28 @@
 name: Site Deploy
-# Deploys the site artifact Checks built once main's checks pass, with every release's docs beside it.
+# Deploys the site artifact Checks built once main's checks pass.
 # Main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009) is built once: Checks (checks.yml) builds and
 # tests it on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
 # no rebuild, from the Checks run that completed (#731). `Deploy` swaps in main's newest sim reports (Checks builds the
-# site beside the sim), unpacks every Release's docs beside main's (docs/adr/0014) and deploys; red or cancelled Checks
+# site beside the sim) and deploys the latest docs alone (docs/adr/0021); red or cancelled Checks
 # deploy nothing and leave the last site up, and Main Red (main-red.yml) reports a red run. Pages' source is GitHub
 # Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); the github-pages environment lists each deploy with
 # its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main] alone
-# also matches a fork's PR from a branch named main), on that push's commit (head_sha); or for Release Docs' dispatch
-# on main, with main's newest passed Checks run (#414).
+# also matches a fork's PR from a branch named main), on that push's commit (head_sha).
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the Deploy job acts only on this repo's push to main
     workflows: ["Checks"]   # by its name (test_workflows.py)
     types: [completed]
     branches: [main]
-  workflow_dispatch:   # Release Docs, once a release's docs are on it (#414): main's site again, with them
 permissions: {}
-env:   # the commit it deploys: the completed check run's, or main's head on a dispatch
-  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+env:   # the commit it deploys: the completed check run's
+  SHA: ${{ github.event.workflow_run.head_sha }}
 jobs:
   deploy:
     name: Deploy
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository
-      || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
     # one deploy at a time; a newer one waiting cancels an older waiting one, so main ends on its latest. Not in
     # progress: a deploy is a minute, and the same commit may come twice (both workflows completing together)
     concurrency:
@@ -41,30 +38,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out the deploy's scripts
+      - name: Check out the deploy's script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           ref: ${{ env.SHA }}
-          sparse-checkout: |
-            scripts/site_reports.sh
-            scripts/docs_versions.py
+          sparse-checkout: scripts/site_reports.sh
           sparse-checkout-cone-mode: false
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      # the Checks run that completed, or on a dispatch main's newest push run that passed
-      - name: Find the Checks run
-        id: run
-        run: >-
-          echo "id=${RUN_ID:-$(gh run list --repo "$GITHUB_REPOSITORY" --workflow Checks --branch main --event push
-          --status success --limit 1 --json databaseId --jq '.[0].databaseId')}" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
       - name: Download the site
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: site
           path: site/dist
-          run-id: ${{ steps.run.outputs.id }}
+          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
       # main's latest sim reports, which Checks' sim shard has saved by now (newest sim- entry, as in Checks' Site)
       - name: Restore main's sim reports
@@ -75,12 +61,6 @@ jobs:
           restore-keys: sim-
       - name: Add the sim reports
         run: scripts/site_reports.sh   # just site-reports, without setting up just
-      # every Release's docs at vX.Y/ beside main's, and the switcher's versions.json (docs/adr/0014)
-      # (Release Docs dispatches this once its asset is up, #414)
-      - name: Add every release's docs
-        run: python3 scripts/docs_versions.py site/dist
-        env:
-          GH_TOKEN: ${{ github.token }}
       - name: Upload the Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
         with:

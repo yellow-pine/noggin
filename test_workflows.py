@@ -227,9 +227,9 @@ BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
     workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
-    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and a release's docs fetch only
-    the GLBs the site publishes. The Actions cache carries the parts between jobs: nobody outside the repo's workflows
-    reads it."""
+    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and attach none of it to a
+    release (no release's docs since #778, docs/adr/0021). The Actions cache carries the parts between jobs: nobody
+    outside the repo's workflows reads it."""
     from model.render import pictures
 
     steps = [
@@ -250,9 +250,7 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     site = re.search(r"(?m)^site:[^\n]*\n((?:    [^\n]*\n)+)", (WORKFLOWS[0].parents[2] / "justfile").read_text())[1]
     into_site = re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", "\n".join([*runs, site]))
     assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
-    fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
-    viewer = [r for r in fetched if ".published.viewer" in r]
-    assert viewer and sorted(fetched) == sorted(viewer)
+    assert not [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
 
 
 def test_a_job_names_an_environment_only_to_deploy():
@@ -403,16 +401,19 @@ def test_main_releases_itself_once_its_checks_pass():
 def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
     failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
-    main, or on Release Docs' dispatch the newest such run."""
+    main. #778, docs/adr/0021: the latest docs alone, so no release's docs beside them, and nothing dispatches it."""
     wf = WORKFLOWS[0].parent
     flow = yaml.safe_load((wf / "pages.yml").read_text())
+    assert list(flow[True]) == ["workflow_run"]  # yaml reads `on:` as True
     (job,) = flow["jobs"].values()
     for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
         assert f"github.event.workflow_run.{cond}" in job["if"], cond
     assert "statuses" not in job["permissions"]
     download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
-    assert "github.event.workflow_run.id" in str(next(s for s in job["steps"] if s.get("id") == "run"))
-    assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
+    assert download["with"]["run-id"] == "${{ github.event.workflow_run.id }}"
+    release = yaml.safe_load((wf / "release.yml").read_text())
+    assert "docs" not in str(release["jobs"]) and "docs" not in str(flow["jobs"])
+    assert not (wf.parent.parent / "scripts" / "docs_versions.py").exists()
     assert not (wf / "deploy-pending.yml").exists()
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
 

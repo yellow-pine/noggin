@@ -3,7 +3,7 @@
 // elsewhere the page's title. A Stage's guide follows it with the Stages in order, as their guides' titles name them
 // ("Stage 1: eyes"), each an eye: its own open, the others half shut.
 import { getCollection } from 'astro:content';
-import { BASE } from '../pages.mjs';
+import { HOME } from '../pages.mjs';
 
 import Wordmark from './Wordmark.astro';
 
@@ -29,7 +29,7 @@ const stages = STAGE.test(entry.id)
       {stages.map((s) => {
         const [stage, name] = s.data.title.split(': ');
         return (
-          <a href={`${BASE}/${s.id}/`} aria-current={s.id === entry.id ? 'page' : undefined}>
+          <a href={`${HOME}/${s.id}/`} aria-current={s.id === entry.id ? 'page' : undefined}>
             <span class="noggin-eye" aria-hidden="true">
               <span class="noggin-pupil" />
               <span class="noggin-lid" />
