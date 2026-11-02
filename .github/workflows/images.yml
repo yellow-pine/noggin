@@ -2,11 +2,14 @@ name: CI Images
 # Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR.
 # ghcr.io/yellow-pine/noggin-ci-base and -blender (base plus Blender; ci/, docs/adr/0009, #288) are what the jobs
 # needing a tool uv can't install run in, by the :main tag (`container:`, #481). Only main writes to the registry: on a
-# push that changes a Dockerfile (Dependabot's base-image bumps in ci/ carry the distro's security fixes, #472) and on
-# a dispatch from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes the
-# layer cache; the next job to start pulls them. A PR that changes a Dockerfile builds both from main's cache, read
-# only, and pushes nothing.
+# push that changes a Dockerfile (Dependabot's base-image bumps in ci/ carry the distro's security fixes, #472), weekly
+# and on a dispatch from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes
+# the layer cache; the next job to start pulls them. The weekly run and a dispatch build without the cache, so the apt
+# layers take the security fixes and the newest gh, on Mondays before image-scan.yml's scan (#534). A PR that changes
+# a Dockerfile builds both from main's cache, read only, and pushes nothing.
 on:
+  schedule:
+    - cron: "0 4 * * 1"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths: ["ci/*.Dockerfile", ".github/workflows/images.yml"]
@@ -83,6 +86,7 @@ jobs:
           tags: ${{ env.REPO }}-base:main
           outputs: type=image,push=true,compression=zstd,force-compression=true
           provenance: false   # one manifest; the attestation below is GitHub's
+          no-cache: ${{ github.event_name != 'push' }}   # a cached apt layer would keep last build's packages
           cache-from: type=registry,ref=${{ env.REPO }}-base:cache
           cache-to: type=registry,ref=${{ env.REPO }}-base:cache,mode=max
       - name: Push the Blender image
@@ -95,6 +99,7 @@ jobs:
           tags: ${{ env.REPO }}-blender:main
           outputs: type=image,push=true,compression=zstd,force-compression=true
           provenance: false
+          no-cache: ${{ github.event_name != 'push' }}
           cache-from: type=registry,ref=${{ env.REPO }}-blender:cache
           cache-to: type=registry,ref=${{ env.REPO }}-blender:cache,mode=max
       - name: Attest the base image
