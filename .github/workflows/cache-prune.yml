@@ -1,0 +1,37 @@
+name: Cache Prune
+# Deletes the Actions caches whose key prefix no workflow uses any more, weekly.
+# scripts/cache_prune.py (#473) derives the prefixes from main's workflows and logs each cache it deletes; the 10 GB cap
+# otherwise evicts live caches first while retired ones (a Blender tarball, Mermaid's npm) sit unread.
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  prune:
+    name: Prune
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # its own cache would be one more to prune
+      - name: Delete the stale caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # from main only: another branch's workflows could miss a prefix main still uses (a dispatch elsewhere is a dry run)
+        run: |
+          gh cache list --limit 100000 --json id,key,sizeInBytes \
+            | uv run --no-project --with pyyaml==6.0.3 python scripts/cache_prune.py > "$RUNNER_TEMP/stale"
+          [ "$GITHUB_REF" = refs/heads/main ] || exit 0
+          xargs -r -n1 gh cache delete < "$RUNNER_TEMP/stale"

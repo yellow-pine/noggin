@@ -128,6 +128,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
   from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part
   by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
+  Every Monday `Cache Prune` deletes the caches whose key prefix no workflow on main uses any more (`scripts/cache_prune.py`,
+  #473), so retired caches never crowd live ones out of the 10 GB cap.
   With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed
   from when a runner picked it up, so a busy queue never trips it; a "re-run failed jobs" is timed on its own attempt). Each job's
