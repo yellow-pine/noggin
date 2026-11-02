@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from scripts.main_red import WATCHED, report, verdict
+from scripts.main_red import WATCHED, report, title, verdict
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github" / "workflows"
 DEPLOYED = [{"name": "Deploy", "conclusion": "success"}]
@@ -18,6 +18,13 @@ def test_a_failed_checks_or_site_deploy_run_is_red():
 
 def test_main_is_green_once_a_commit_deploys():  # its Checks passed and its site is up
     assert verdict("Site Deploy", "success", DEPLOYED) == "green"
+
+
+def test_a_ci_images_run_has_its_own_issue_closed_by_its_next_push():
+    """#729: a broken Dockerfile on main files its own 'main red', which only CI Images pushing again closes."""
+    assert title("CI Images") == "main red (CI Images)" and title("Checks") == title("Site Deploy") == "main red"
+    assert verdict("CI Images", "failure", []) == "red"
+    assert verdict("CI Images", "success", [{"name": "Push", "conclusion": "success"}]) == "green"
 
 
 def test_anything_else_says_nothing():
@@ -54,8 +61,8 @@ def test_a_long_log_keeps_its_first_key_lines():
     assert len(lines) == 40 and lines[0].startswith("J: FAILED t0 ") and max(map(len, lines)) <= 300
 
 
-def test_it_watches_checks_and_site_deploy_by_their_names():
+def test_it_watches_checks_site_deploy_and_ci_images_by_their_names():
     """A renamed workflow would never be watched again: Main Red's trigger names them as they name themselves."""
-    names = [yaml.safe_load((WORKFLOWS / f).read_text())["name"] for f in ("checks.yml", "pages.yml")]
+    names = [yaml.safe_load((WORKFLOWS / f).read_text())["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
     on = yaml.safe_load((WORKFLOWS / "main-red.yml").read_text())[True]  # yaml reads `on:` as True
     assert on["workflow_run"]["workflows"] == WATCHED == names

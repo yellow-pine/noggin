@@ -142,7 +142,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
-  (#534), so a PR that changes a Dockerfile only builds them and its jobs still run main's.
+  (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
+  `CI Images` run, which leaves `:main` as it was and files 'main red (CI Images)'.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
   (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.

@@ -1,12 +1,13 @@
 name: Main Red
-# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again.
+# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again; a failed
+# CI Images run (main alone builds the images, #729) opens 'main red (CI Images)', closed by its next push.
 # PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). scripts/main_red.py: a failed
 # run opens the issue (bug, ready-for-agent) with the commit, the failing jobs and their FAILED and Error lines, or
 # comments on the open one; a deploy closes it; a cancelled run (superseded) says nothing. It acts only for this
 # repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named main).
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checking out main
-    workflows: ["Checks", "Site Deploy"]   # as main_red.WATCHED (scripts/test_main_red.py)
+    workflows: ["Checks", "Site Deploy", "CI Images"]   # as main_red.WATCHED (scripts/test_main_red.py)
     types: [completed]
     branches: [main]
 concurrency:   # one at a time, so two red runs never open two issues

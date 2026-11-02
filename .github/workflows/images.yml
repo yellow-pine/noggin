@@ -7,58 +7,26 @@ name: CI Images
 # inputs (uv.lock, pyproject.toml, .python-version: Dependabot's Python bumps keep the baked venv current), weekly
 # and on a dispatch from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes
 # the layer cache; the next job to start pulls them. The weekly run and a dispatch build without the cache, so the apt
-# layers take the security fixes and the newest gh, on Mondays before image-scan.yml's scan (#534). A PR that changes
-# a Dockerfile builds both from main's cache, read only, and pushes nothing.
+# layers take the security fixes and the newest gh, on Mondays before image-scan.yml's scan (#534). No PR builds them
+# (#729): a broken Dockerfile fails main's run without moving :main, main's Code job lints it (hadolint), and
+# main-red.yml files 'main red (CI Images)'.
 on:
   schedule:
     - cron: "0 4 * * 1"
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["ci/*.Dockerfile", ".github/workflows/images.yml"]
   push:
     branches: [main]
     paths: ["ci/*.Dockerfile", ".github/workflows/images.yml", "uv.lock", "pyproject.toml", ".python-version"]
   workflow_dispatch:
-concurrency:   # as in pr-gate.yml, and a push's run on main too
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+concurrency:   # a newer run on main replaces a running one
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions: {}
 env:
   REPO: ghcr.io/yellow-pine/noggin-ci
 jobs:
-  build:   # a PR: both images built, base handed to -blender as an OCI layout, nothing pushed
-    name: Build
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069   # v4.4.1
-      - name: Build the base image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc   # v7.4.0
-        with:
-          context: .   # the repo: the venv's pyproject.toml, uv.lock and .python-version
-          file: ci/base.Dockerfile
-          tags: base:pr
-          outputs: type=oci,dest=${{ runner.temp }}/base,tar=false
-          cache-from: type=registry,ref=${{ env.REPO }}-base:cache
-      - name: Build the Blender image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc   # v7.4.0
-        with:
-          context: ci
-          file: ci/blender.Dockerfile
-          build-args: BASE=base
-          build-contexts: base=oci-layout://${{ runner.temp }}/base:pr
-          outputs: type=cacheonly
-          cache-from: type=registry,ref=${{ env.REPO }}-blender:cache
   push:
     name: Push
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' }}   # a dispatch can name another branch
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -83,7 +51,7 @@ jobs:
         id: base
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc   # v7.4.0
         with:
-          context: .   # as build's
+          context: .   # the repo: the venv's pyproject.toml, uv.lock and .python-version
           file: ci/base.Dockerfile
           tags: ${{ env.REPO }}-base:main
           outputs: type=image,push=true,compression=zstd,force-compression=true

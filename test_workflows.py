@@ -262,10 +262,16 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert (build[2:], scan[2:]) == (["*", "*", "1"], ["*", "*", "1"])  # both on Mondays
     assert int(build[1]) < int(scan[1])
     jobs = flows["images.yml"]["jobs"]
-    assert jobs["push"]["if"] == "${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}"
-    assert "pull_request" in jobs["build"]["if"]
+    assert jobs["push"]["if"] == "${{ github.ref == 'refs/heads/main' }}"
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_the_ci_images_build_on_main_alone():
+    """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
+    Dockerfiles in main's Code job, so a broken Dockerfile files 'main red' (main-red.yml)."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
 
 def test_the_jobs_in_our_images_use_its_synced_venv():
