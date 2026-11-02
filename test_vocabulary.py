@@ -14,7 +14,7 @@ FILES = [
     for p in (ROOT / d).rglob("*")
     if p.is_file()
     and p.suffix in (".py", ".sh", "")
-    and not {"stock-backup", "build"} & set(p.parts)  # the stock program, mech/build
+    and not {"stock-backup", "build", "node_modules"} & set(p.parts)  # the stock program, mech/build, ci's npm tools
     and p.name != "gaze_trace.py"
 ]
 FILES.append(ROOT / "justfile")
@@ -143,7 +143,7 @@ def test_our_recipes_run_with_just_never_make():
     hits = [
         f"{f}:{n}"
         for f in tracked
-        if not f.startswith(("docs/adr/", "docs/research/", "CHANGELOG.md")) and (ROOT / f).is_file()
+        if not f.startswith(("docs/adr/", "docs/research/")) and (ROOT / f).is_file()
         for n, line in enumerate((ROOT / f).read_text(errors="replace").splitlines(), 1)
         if stale.search(line)
     ]

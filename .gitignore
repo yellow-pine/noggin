@@ -8,12 +8,8 @@ model/build/
 .DS_Store
 eyes/wifi.json
 
-# skills restored from skills-lock.json (ci/node_modules/.bin/skills experimental_install); .claude/skills links here.
-# The project's own skills (release) are tracked
-.agents/*
-!.agents/skills/
-.agents/skills/*
-!.agents/skills/release/
+# skills restored from skills-lock.json (ci/node_modules/.bin/skills experimental_install); .claude/skills links here
+.agents/
 # the CI tools from ci/package-lock.json
 ci/node_modules/
 

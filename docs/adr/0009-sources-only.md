@@ -6,6 +6,8 @@
 > contributors and stays on GitHub, off the site.
 > Amended 2026-11-01 (#303, ADR 0010): release-please's release PR commits the generated CHANGELOG.md and the version
 > bump, and switches on its own auto-merge; it lands through the required checks and review like any PR.
+> Amended 2026-11-02 (#582, ADR 0017): no more: the version is the git tag and each release's notes are on its GitHub
+> release, so nothing generated is committed.
 > Amended 2026-11-01 (#310): PRs run checks, main runs the same checks then deploys. Site Checks builds the site on
 > both; Site Deploy deploys main's artifact once Code Checks and Site Checks passed, with no rebuild (only
 > main's newest sim reports swapped in).

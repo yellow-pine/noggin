@@ -1,5 +1,5 @@
 """pr_title.py: the PR check's title scopes are derived from the repo (its tracked top-level folders, docs/'s tracked
-subfolders, Dependabot's and release-please's), and it fails what the action can't see: a list of scopes, a header over
+subfolders, and Dependabot's), and it fails what the action can't see: a list of scopes, a header over
 100 characters. A body's BREAKING CHANGE footer is not read: it never reaches main. Its subject check gives
 commitlint's verdicts, and the action takes the same pattern from it."""
 
@@ -29,7 +29,7 @@ def test_scopes_are_the_tracked_folders_docs_subfolders_and_the_bots(tmp_path):
         (tmp_path / f).write_text("")
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(["git", "add", *tracked], cwd=tmp_path, check=True)
-    assert run(cwd=tmp_path).stdout.split() == ["adr", "deps", "deps-dev", "docs", "eyes", "release"]
+    assert run(cwd=tmp_path).stdout.split() == ["adr", "deps", "deps-dev", "docs", "eyes"]
 
 
 def test_a_title_with_a_list_of_scopes_fails_and_says_one():

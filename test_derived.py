@@ -16,7 +16,7 @@ from scripts.inputs import inputs
 
 ROOT = Path(__file__).resolve().parent
 LISTS = {"gesture": GESTURES, "servo": [s for ports in CORES.values() for s in ports.values()], "document": list(DOCS)}
-HISTORY = ("docs/research/", "docs/adr/", "CHANGELOG.md")  # what was decided or found then, in its own words
+HISTORY = ("docs/research/", "docs/adr/")  # what was decided or found then, in its own words
 ALLOWED = {  # (file, list): why it spells them
     ("GLOSSARY.md", "servo"): "the Servo entry defines the names",
     ("docs/how-it-works.md", "servo"): "the diagram's Core 2 label, drawn as GitHub shows it",

@@ -320,14 +320,9 @@ def test_no_real_photos_are_tracked():
     assert tracked == [], tracked
 
 
-def test_a_version_is_released_once_its_changelog_section_is_written(tmp_path):
-    """release-please's headings: the first release's bare, each later one's linking its compare (#372)."""
+def test_a_version_is_released_only_on_its_tag():
+    """The footer links a release only from its tagged commit (#372, docs/adr/0017): git describe's X.Y.Z, not
+    X.Y.Z-N-gHASH past it, nor a checkout without tags."""
     import macros  # here, not at the top: it imports the model
 
-    changelog = tmp_path / "CHANGELOG.md"
-    assert not macros.released("0.1.0", changelog)
-    changelog.write_text(
-        "# Changelog\n\n## [0.2.0](https://github.com/o/r/compare/v0.1.0...v0.2.0) (2026-12-01)\n\n"
-        "## 0.1.0 (2026-11-02)\n"
-    )
-    assert [macros.released(v, changelog) for v in ("0.1.0", "0.2.0", "0.2.1", "0.1")] == [True, True, False, False]
+    assert [macros.released(v) for v in ("0.2.6", "0.2.6-3-gabc1234", "0.0.0-untagged")] == [True, False, False]

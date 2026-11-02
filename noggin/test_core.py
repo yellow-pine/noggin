@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 import eyes  # the Core program (the root conftest stubs machine)
 from model.geometry import SERVO_LABEL
 from noggin import core
@@ -39,14 +41,27 @@ def test_just_lists_the_program_without_the_venv():
     assert out.stdout.split() == [f"eyes/{m}.py" for m in core.MODULES], out.stderr
 
 
+@pytest.mark.parametrize(
+    ("described", "version"),
+    [
+        ("v0.2.6", "0.2.6"),  # a release's own commit
+        ("v0.2.6-3-gabc1234", "0.2.6-3-gabc1234"),  # three commits past it
+        ("", "0.0.0-untagged"),  # no tag reachable (a shallow checkout) or no git
+    ],
+)
+def test_the_version_is_the_git_tag(described, version):
+    """The git tag is the one version (docs/adr/0017), as `git describe --tags` names it."""
+    assert core.version(described) == version
+
+
 def test_the_stamp_is_the_repos_version_and_commit_without_the_venv():
     """just mpy and the release workflow write eyes/build/stamp.py from `python -m noggin.core stamp`."""
     out = subprocess.run([sys.executable, "-S", "-m", "noggin.core", "stamp"], cwd=ROOT, capture_output=True, text=True)
     stamp = {}
     exec(out.stdout, stamp)  # noqa: S102 stamp.py's source, which noggin.core just printed
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout
-    assert re.fullmatch(r"\d+\.\d+\.\d+", stamp["VERSION"]), out
-    assert f'version = "{stamp["VERSION"]}"' in (ROOT / "pyproject.toml").read_text()  # the one source (ADR 0010)
+    assert re.fullmatch(r"\d+\.\d+\.\d+(-\d+-g[0-9a-f]+|-untagged)?", stamp["VERSION"]), out
+    assert stamp["VERSION"] == core.VERSION, out
     assert re.fullmatch(r"[0-9a-f]{7,40}(-dirty)?", stamp["COMMIT"]) and head.startswith(stamp["COMMIT"][:7]), out
 
 

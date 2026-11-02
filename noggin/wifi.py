@@ -66,7 +66,8 @@ class Wifi:
                 and parts[1].isalnum()
                 and parts[2] == addr[0]  # a captured beacon replayed from another host is not that Core
                 and parts[3].isdigit()
-                and re.fullmatch(r"\d+\.\d+\.\d+", parts[4])  # none: a program from before #357, or without stamp.mpy
+                # git describe's (docs/adr/0017); none: a program from before #357, or without stamp.mpy
+                and re.fullmatch(r"\d+\.\d+\.\d+(-\d+-g[0-9a-f]+|-untagged)?", parts[4])
                 and self.signed(parts[1], body, t)
             ):
                 self.cores[parts[1]] = (addr[0], parts[3], now)

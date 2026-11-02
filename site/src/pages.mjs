@@ -9,10 +9,10 @@ export const HOME = '/noggin'; // the live site's root, main's docs ('latest')
 // this build's base: a Docs version's is /noggin/vX.Y (release.yml, docs/adr/0014)
 export const BASE = process.env.SITE_BASE ?? HOME;
 export const REPO = 'https://github.com/yellow-pine/noggin';
-// the root's Markdown and docs/, but not the README and CLAUDE.md (for contributors and agents, on GitHub), the
-// generated changelog nor the designer's files (docs/references, local only)
+// the root's Markdown and docs/, but not the README and CLAUDE.md (for contributors and agents, on GitHub), nor
+// the designer's files (docs/references, local only)
 const INCLUDE = ['*.md', 'docs/**/*.md'];
-const EXCLUDE = ['README.md', 'CLAUDE.md', 'CHANGELOG.md', 'docs/references/**'];
+const EXCLUDE = ['README.md', 'CLAUDE.md', 'docs/references/**'];
 export const PATTERN = [...INCLUDE, ...EXCLUDE.map((p) => `!${p}`)];
 export const PAGES = new Set(globSync(INCLUDE, { cwd: ROOT, exclude: EXCLUDE }));
 

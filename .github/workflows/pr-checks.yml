@@ -3,11 +3,11 @@ name: PR Checks
 # Main's copy of each script checks it (a PR can't loosen its own check). Required check `PR` (the job name, which the
 # ruleset matches; one job since #496, its own workflow since it runs on edited, which Checks never does); editing the
 # title or body re-runs it.
-# The title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
+# The title is its squash commit, which semantic-release reads (docs/adr/0010, 0017): a Conventional Commit,
 # `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
 # (scripts/pr_title.py).
 # The body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie together
-# (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: it passes.
+# (#356). A bot's PR (Dependabot, the skills and blender bumps) has no issue: it passes.
 # GitHub's dependency review (actions/dependency-review-action) fails a PR, a bot's too, that adds a dependency with a
 # known vulnerability (#500). It reads the dependency graph's diff over the API.
 on:
@@ -65,7 +65,7 @@ jobs:
           subjectPattern: ${{ steps.title.outputs.subject }}
           subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter (put a leading acronym or file name in backticks) or end with a period.'
       - name: Check the scope and length
-        # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it
+        # a bot's title is its own (Dependabot, the weekly bumps): it can't shorten it
         if: ${{ github.event.pull_request.user.type != 'Bot' }}
         env:   # via env, never inlined into the script
           TITLE: ${{ github.event.pull_request.title }}

@@ -42,8 +42,8 @@ def log(*a):
 
 
 def semver(version):
-    """X.Y.Z as numbers, so 0.9.0 is older than 0.10.0."""
-    return tuple(map(int, version.split(".")))
+    """The release X.Y.Z as numbers, so 0.9.0 is older than 0.10.0; X.Y.Z-N-gHASH, N commits past it, counts as it."""
+    return tuple(map(int, version.split("-")[0].split(".")))
 
 
 def read_all(conn):

@@ -188,7 +188,7 @@ def test_beacons_name_ip_uptime_and_the_programs_version_every_2s_once_joined(li
 
 
 def test_the_longest_beacon_fits_the_256_bytes_the_noggin_service_reads(link, monkeypatch):
-    monkeypatch.setattr(mod, "VERSION", "999.999.999")
+    monkeypatch.setattr(mod, "VERSION", "999.999.999-99999-g" + "f" * 40)  # git describe's, N commits past a tag
     monkeypatch.setattr(mod, "COMMIT", "f" * 40 + "-dirty")  # git's full hash: the abbreviation only grows to it
     monkeypatch.setattr(FakeWLAN, "ifconfig", lambda self: ("255.255.255.255",))
     link.poll(0)

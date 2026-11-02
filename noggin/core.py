@@ -1,14 +1,13 @@
 """The Cores as the Mac knows them, read from their sources, never listed again (docs/adr/0011): each Core's servo ports
 (model/geometry.py CHANNELS), the eye program's modules (what eyes/boot.py imports from eyes/, and what those import)
 and the gestures it plays (eyes/eyes.py); read with ast, since they import machine. Also the repo's version (one source,
-pyproject.toml: docs/adr/0010) and commit, which the noggin service runs and `just mpy` stamps into the program.
+the git tag: docs/adr/0017) and commit, which the noggin service runs and `just mpy` stamps into the program.
 Standard library and geometry.py only: `python -m noggin.core` (`just mpy-list`) prints the program's files for just
 and the release workflow without the venv, `python -m noggin.core stamp` the program's stamp.py."""
 
 import ast
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 from model.geometry import CHANNELS
@@ -41,19 +40,24 @@ def _modules():
     return tuple(sorted(found - {"boot"}))  # boot.py only goes over USB, as .py
 
 
-def _commit():
-    """The checkout's commit, -dirty with uncommitted changes; unknown without git."""
+def _git(*args):
+    """git's output in the checkout, empty when git fails or is missing."""
     try:
-        git = ["git", "describe", "--always", "--dirty", "--exclude=*"]  # no tag names: the commit alone
-        return subprocess.run(git, cwd=EYES.parent, capture_output=True, text=True).stdout.strip() or "unknown"
+        return subprocess.run(["git", *args], cwd=EYES.parent, capture_output=True, text=True).stdout.strip()
     except OSError:
-        return "unknown"
+        return ""
+
+
+def version(described):
+    """The version `git describe --tags` names: X.Y.Z on a release's tag, X.Y.Z-N-gHASH N commits past it, and
+    0.0.0-untagged where no tag is reachable (a shallow checkout) or no git (docs/adr/0017)."""
+    return described.removeprefix("v") or "0.0.0-untagged"
 
 
 GESTURES = _gestures()
 MODULES = _modules()  # each flashed as eyes/build/<module>.mpy (just mpy)
-VERSION = tomllib.loads((EYES.parent / "pyproject.toml").read_text())["project"]["version"]
-COMMIT = _commit()
+VERSION = version(_git("describe", "--tags", "--match", "v[0-9]*"))
+COMMIT = _git("describe", "--always", "--dirty", "--exclude=*") or "unknown"  # no tag names: the commit, -dirty edited
 # the program's version and commit, eyes/build/stamp.py (just mpy, never in git), which eyes/wifi.py beacons
 STAMP = "stamp"
 

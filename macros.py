@@ -20,13 +20,13 @@ import ast
 import json
 import re
 import subprocess
-import tomllib
 from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
 from model import mjcf, stages
 from model.render import pictures
+from noggin.core import VERSION
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
 from scripts.workflow_table import table as workflows
@@ -195,16 +195,14 @@ def explode():
 
 
 def build():
-    """The one version (pyproject.toml, docs/adr/0010) and the commit built, the one Site Deploy deploys (#292)."""
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    """The one version (the git tag, docs/adr/0017) and the commit built, the one Site Deploy deploys (#292)."""
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True)
-    return {"version": project["version"], "commit": head.stdout.strip()}
+    return {"version": VERSION, "commit": head.stdout.strip()}
 
 
-def released(v, changelog=ROOT / "CHANGELOG.md"):
-    """Whether v has its GitHub release: release-please's release PR writes its CHANGELOG.md section, then tags it
-    (the changelog, not the tag: CI's shallow checkouts fetch no tags)."""
-    return changelog.exists() and re.search(rf"^## \[?{re.escape(v)}[\] ]", changelog.read_text(), re.M) is not None
+def released(v):
+    """Whether v has its GitHub release: git describe's bare X.Y.Z, on the tag itself (noggin/core.py)."""
+    return "-" not in v
 
 
 def numbers():

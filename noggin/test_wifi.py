@@ -148,7 +148,7 @@ def ask(path, text, timeout=1.0):
 
 @pytest.fixture
 def service_at(monkeypatch):
-    """The noggin service's own version and commit (noggin/core.py reads them from pyproject.toml and git)."""
+    """The noggin service's own version and commit (noggin/core.py reads them from git)."""
     monkeypatch.setattr("noggin.service.VERSION", "0.10.0")
     monkeypatch.setattr("noggin.service.COMMIT", "def5678")
 
@@ -173,6 +173,24 @@ def test_status_warns_when_the_core_runs_an_older_program_than_the_service(tmp_p
         "noggin service 0.10.0 def5678\n"
         "warning: eyes runs program 0.9.0, older than the noggin service's 0.10.0: just flash\nmode follow\n"
     )
+    s.stop()
+    core.running = False
+
+
+@pytest.mark.parametrize(
+    ("program", "warns"),
+    [
+        ("0.10.0-3-gabc1234 abc1234", False),  # flashed between releases: three commits past v0.10.0 (docs/adr/0017)
+        ("0.9.0-3-gabc1234 abc1234", True),  # past an older release: compared by its base X.Y.Z
+        ("0.0.0-untagged abc1234", True),  # flashed from a checkout without tags
+    ],
+)
+def test_a_program_between_releases_is_compared_by_its_release(tmp_path, service_at, program, warns):
+    core = FakeCore(program=program)
+    s, sock = start(tmp_path, core)
+    assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
+    status = ask(sock, "status\n")
+    assert f"program {program}\n" in status and ("warning: eyes runs program" in status) == warns, status
     s.stop()
     core.running = False
 

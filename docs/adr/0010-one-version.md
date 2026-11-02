@@ -26,6 +26,10 @@
 >
 > Amended 2026-11-02 (#538, #496): PR Title and PR Issue are one required check, `PR` (`pr-checks.yml`); the
 > required checks are PR, Checks, Fetch Skills and Review.
+>
+> Superseded in part 2026-11-02 (#582): ADR 0017. semantic-release releases main once its Checks pass, with no release
+> PR, gate, Release Now or CHANGELOG.md, and the git tag is the version (`pyproject.toml` keeps a placeholder). The one
+> version, the 0.x bump rules and the PR titles below still hold; the release-please parts are history.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
