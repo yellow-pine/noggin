@@ -7,8 +7,9 @@ A take is one JSON file, filmed at the phone's slow-motion rate with a marker on
 does not turn it: {"load_g": the mass taped to the horn, "arm_mm": its distance from the shaft, "t_s": [each frame's
 time], "command_deg": [the command the Core held at that frame, degrees from neutral], "horn_deg": [the marker's
 angle at that frame, degrees from neutral]}, the horn at rest at its first command when the take starts. Film the bare
-horn and a load a few times the gear train's inertia (200 g at 50 mm), steps both ways: the motor's run-up differs
-between them while the delay does not, which tells the armature from the delay (with 20 g and 100 g they trade off).
+horn and a load a few times the gear train's inertia (docs/build/tests.md: ten 2 euro coins at 50 mm), moves both
+ways: the motor's run-up differs between them while the delay does not, which tells the armature from the delay (with
+one coin at the tip they trade off, and the stall torque comes out 40 % off).
 
 `python -m model.servo_fit take.json ...` fits and writes model/servo_fit.json, whose values mjcf.SERVO then takes over
 the inferred ones (the model's sources change, so CI builds its outputs again)."""

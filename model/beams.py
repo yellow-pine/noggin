@@ -1,6 +1,7 @@
 """Hand beam estimates (no FEA on the personal license): each link as a cantilever under the servo stall force at
-the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from our parts' STLs.
-PLA E 3.5 GPa, yield 50 MPa; threshold SF >= 2 (#20). `python model/beams.py` prints the eyes table."""
+the horn pin, and the lid ears under the lid's weight. Sections and lid masses are read from our parts' STLs, each part
+in its own material (geometry.PRINTED) at its across-layer (Z) values (#626). Threshold SF >= 2 on the brief stall (#20),
+>= 3 on a held load (creep: ~1/3 of the Z strength, #626). `python model/beams.py` prints the eyes table."""
 
 import importlib.util
 import math
@@ -19,24 +20,29 @@ _spec = importlib.util.spec_from_file_location("geometry", os.path.join(HERE, "g
 geometry = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(geometry)
 
-E_MPA, YIELD_MPA, DENSITY = 3500.0, 50.0, geometry.MATERIALS["PLA Pure"]["density_g_cm3"]  # PLA (g/cm3)
 STALL_KGF_CM, HORN_PIN_MM = 1.2, 12.75  # the 9 g servo at 6 V (#20); bar pin radius on the horn
-G, MIN_SF = 9.81, 2.0
+G, MIN_SF, HELD_SF = 9.81, 2.0, 3.0  # held: printed plastic creeps (PETG plastically above ~50%, cams-am [ST])
 
 
 def stall_force_n():
     return STALL_KGF_CM * G * 10 / HORN_PIN_MM  # kgf.cm -> N.mm over the pin radius
 
 
-def cantilever(F, L, b, h):
-    """Tip load F (N) on length L (mm), rectangular section b x h (mm) bending about b (h is the depth)."""
+def material(path):
+    """The geometry.MATERIALS entry of the printed part an STL holds."""
+    stem = os.path.splitext(os.path.basename(path))[0]
+    return geometry.MATERIALS[next(m for k, (_, m) in geometry.PRINTED.items() if k.split(" (")[0] == stem)]
+
+
+def cantilever(F, L, b, h, material):
+    """Tip load F (N) on length L (mm), rectangular section b x h (mm) bending about b (h is the depth), in a
+    geometry.MATERIALS entry across its layers."""
     I = b * h**3 / 12
     sigma = F * L * (h / 2) / I
     return {
         "sigma_mpa": round(sigma, 2),
-        "deflection_mm": round(F * L**3 / (3 * E_MPA * I), 3),
-        "sf": round(min(YIELD_MPA / sigma, 999), 2),
-        "ok": YIELD_MPA / sigma >= MIN_SF,
+        "deflection_mm": round(F * L**3 / (3 * material["E_mpa"]["z"] * I), 3),
+        "sf": round(min(material["tensile_mpa"]["z"] / sigma, 999), 2),
     }
 
 
@@ -48,20 +54,22 @@ def extents(path, keep=lambda v: True):
 
 
 def mass_g(path):
-    """Printed mass from the mesh volume at PLA density."""
-    return abs(trimesh.load_mesh(path, process=False).volume) / 1000 * DENSITY
+    """Printed mass from the mesh volume at the part's density."""
+    return abs(trimesh.load_mesh(path, process=False).volume) / 1000 * material(path)["density_g_cm3"]
 
 
 def beam_table(beams):
     """beams: (name, model, F in N or a callable giving N, L mm, (stl, keep, b_axis, h_axis)). model "axial": a pinned
-    link, thresholded as a two-force member (sf = yield / (F / area)); "cantilever": thresholded on bending. The
-    cantilever numbers are always reported (sf_cantilever, deflection_mm) as information."""
+    link, thresholded as a two-force member (sf = strength / (F / area)); "cantilever": thresholded on bending. The
+    cantilever numbers are always reported (sf_cantilever, deflection_mm) as information. Every load but the stall is
+    held (a part's weight), so it needs HELD_SF."""
     out = []
     for name, model, F, L, (path, keep, b_axis, h_axis) in beams:
         ext = extents(path, keep)
         b, h = (ext["xyz".index(a)][1] - ext["xyz".index(a)][0] for a in (b_axis, h_axis))
-        F = F() if callable(F) else F
-        c = cantilever(F, L, b, h)
+        held, F = F is not stall_force_n, F() if callable(F) else F
+        m = material(path)
+        c = cantilever(F, L, b, h, m)
         row = {
             "beam": name,
             "model": model,
@@ -73,8 +81,8 @@ def beam_table(beams):
             "deflection_mm": c["deflection_mm"],
             "sf_cantilever": c["sf"],
         }
-        sf = min(YIELD_MPA / (F / (b * h)), 999) if model == "axial" else c["sf"]
-        out.append({**row, "sf": round(sf, 2), "ok": sf >= MIN_SF})
+        sf = min(m["tensile_mpa"]["z"] / (F / (b * h)), 999) if model == "axial" else c["sf"]
+        out.append({**row, "sf": round(sf, 2), "ok": sf >= (HELD_SF if held else MIN_SF)})
     return out
 
 
@@ -102,10 +110,11 @@ EYES_BEAMS = [
     ("upper lid ear", "cantilever", _lid_weight("upper lid"), 5.0, (fits.stl("upper lid"), _ear, "x", "y")),
     ("lower lid ear", "cantilever", _lid_weight("lower lid"), 5.0, (fits.stl("lower lid"), _ear, "x", "y")),
 ]
-EYES_RECORDED = {  # (sf, ok) read 2026-10-31; axially the 3 x 5 mm links are far from yield (the cantilever bound gave 1.65)
-    "lid bar": (81.23, True),
-    "lid crank": (81.23, True),
-    "eyeball bar": (81.23, True),
+EYES_RECORDED = {  # (sf, ok) read 2026-11-02 in PLA Pure across layers (#626); axially the 3 x 5 mm links are far from
+    # failing (the cantilever bound gives 0.99)
+    "lid bar": (48.74, True),
+    "lid crank": (48.74, True),
+    "eyeball bar": (48.74, True),
     "upper lid ear": (999, True),
     "lower lid ear": (999, True),
 }
@@ -116,9 +125,9 @@ PT_BEAMS = [
     ("pan bar", "axial", stall_force_n, 15.0, (fits.stl("pan bar"), lambda v: True, "z", "y")),
 ]
 PT_RECORDED = {
-    "tilt bar": (81.23, True),
-    "pan bar": (81.23, True),
-}  # read 2026-10-31: the same 3 x 5 mm section as the eyes bars
+    "tilt bar": (48.74, True),
+    "pan bar": (48.74, True),
+}  # read 2026-11-02: the same 3 x 5 mm section as the eyes bars
 
 # Mouth sub-assembly: the jaw bar as an axial link across its 44.1 mm in-plane pivot spacing (the 13 mm crank along
 # the pins is not modelled); section from its lower tab (x > 8: the
@@ -132,7 +141,7 @@ MOUTH_BEAMS = [
         (fits.stl("jaw bar"), lambda v: v[0] > 8, "y", "z"),
     ),
 ]
-MOUTH_RECORDED = {"jaw bar": (81.23, True)}  # read 2026-10-31 on ours
+MOUTH_RECORDED = {"jaw bar": (48.74, True)}  # read 2026-11-02 on ours
 
 
 if __name__ == "__main__":

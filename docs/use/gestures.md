@@ -25,7 +25,10 @@ fetch and bakes `eyes/gaze_trace.py`: real saccade velocity profiles at 10/20/25
 dart and return, undershoot and correction included), a 4 s horizontal-scan clip (attention), and a
 60 s video-viewing session (thinking, when `think_trace` is 1). Lids are not in the data; blinks and
 lids keep toon timing (#258, `docs/research/2026-11-01-toon-eyes.md`; the human kinematics behind it
-are in `2026-10-31-natural-eye-motion.md` and `2026-11-01-blink-kinematics.md`). No write asks more of
-a servo than its rated 428°/s: `glide` takes more steps, a big saccade spaces its samples out, a
+are in `2026-10-31-natural-eye-motion.md` and `2026-11-01-blink-kinematics.md`). Every move between
+keyframes follows minimum jerk, at rest at both ends so nothing rings (#619,
+`2026-11-02-literature-motion-control.md`), and each servo gets one write per 20 ms PWM frame, since the
+Core's PWM takes a new pulse width only at the next frame. No write asks more of a servo than its rated
+428°/s or its acceleration cap: `glide` takes more frames, a big saccade spaces its samples out, a
 replayed trace caps each sample's move (`eyes/test_toon.py`). Fixational jitter (±0.5°) is below one
 servo step and was dropped.

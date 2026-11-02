@@ -54,8 +54,8 @@ SLEW_DEG_S = 100
 # The 9 g servo as a DC motor behind its own P loop (#625, docs/research/2026-11-02-literature-simulation.md 1):
 # its published stall torque and no-load speed at 4.8 V, the figures nearest the shield's 5 V servo rail
 # (electrical.SERVO_RAIL_V), referred to the horn; full torque 0.5 deg off its command (a servo's deadband); the motor's
-# inertia through the gears as the shaft's armature (a micro motor's rotor through ~1:300, and what keeps kp stable at
-# TIMESTEP), critically damped on it; a new command waits up to one 20 ms PWM frame. All inferred until
+# inertia through the gears as the shaft's armature (eyes/servo.py; what keeps kp stable at TIMESTEP), critically
+# damped on it; a new command waits up to one 20 ms PWM frame. All inferred until
 # model/servo_fit.py fits the filmed servo into model/servo_fit.json, whose values then win.
 SERVO_V = electrical.SERVO_MIN_V
 STALL_NM = electrical.servo.SPEC[SERVO_V]["stall_kgfcm"] * 0.0980665
@@ -64,7 +64,7 @@ SERVO = {
     "stall_nm": STALL_NM,
     "no_load_rad_s": math.radians(electrical.servo.rate(SERVO_V)),
     "kp": STALL_NM / math.radians(0.5),
-    "armature": 1e-4,
+    "armature": electrical.servo.ARMATURE,
     "delay_s": 0.02,
     **(json.load(open(FIT)) if os.path.exists(FIT) else {}),
 }

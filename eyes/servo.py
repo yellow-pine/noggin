@@ -6,6 +6,8 @@ SPEC = {  # volts -> stall torque kgf.cm, stall A, no-load (running) A, standby 
 }
 STALL_KGFCM = SPEC[6.0]["stall_kgfcm"]
 STANDBY_A = SPEC[6.0]["standby_a"]
+# kg.m^2, the motor's inertia through the gears at the horn (inferred: a micro motor's rotor through ~1:300)
+ARMATURE = 1e-4
 
 
 def rate(volts=6.0):
