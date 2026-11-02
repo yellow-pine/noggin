@@ -47,9 +47,9 @@ Generated from `.github/workflows` (`make readme`):
 | Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site (#292); Site Deploy (pages.yml) sets its |
 | Firmware Watch | `firmware.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Watch | Opens an issue for each new Core firmware on the vendor's release notes |
 | CI Images | `images.yml` | `pull_request` (paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `push` (`main`; paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `schedule` (`0 4 * * 1`), `workflow_dispatch` | Build, Push | Builds the images the Chrome and Blender jobs run in; main pushes them to GHCR |
-| Site Deploy | `pages.yml` | `workflow_run` (workflows: `Code Checks`, `Site Checks`; `main`) | Checks, Deploy, Deploy Status | Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it |
+| Site Deploy | `pages.yml` | `workflow_run` (workflows: `Code Checks`, `Site Checks`; `main`), `workflow_dispatch` | Checks, Deploy, Deploy Status | Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it |
 | PR Checks | `pr-checks.yml` | `pull_request` | PR Title, PR Issue | The PR's title is a Conventional Commit with one of the repo's scopes (ADR 0010) and its body links its issue |
-| Release Now | `release-now.yml` | `workflow_dispatch` | Release Now | Releases whatever is pending (docs/adr/0010, #407): turns on the open release PR's auto-merge and labels it |
+| Release Now | `release-now.yml` | `workflow_dispatch` | Release Now | Releases whatever is pending (docs/adr/0010, #407): marks the open release PR ready (#414), turns on its auto-merge |
 | Release Please | `release-please.yml` | `push` (`main`), `workflow_dispatch` | Release Please | Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
 | Release Assets | `release.yml` | `push` (`v*`) | Release Assets, Release Docs | Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs |
 | Claude Review | `review.yml` | `pull_request` | Fetch Skills, Review | Claude reviews the PR and approves or requests changes |
