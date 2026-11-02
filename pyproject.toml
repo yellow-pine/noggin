@@ -28,6 +28,9 @@ dev = [
     "cogapp>=3.6.0",
 ]
 
+[tool.uv]
+required-version = ">=0.13.1"  # older uvs cannot install .python-version's Python: "No interpreter found" (#431)
+
 [tool.noggin]
 micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the stubs and mpy-cross above pin the same
 
