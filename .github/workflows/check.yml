@@ -80,13 +80,34 @@ jobs:
         run: python3 scripts/ci_budget.py ${{ steps.build.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  images:   # the CI images' digests (ci/pins/Dockerfile, where Dependabot bumps them, #444)
+    name: Images
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      base: ${{ steps.pins.outputs.base }}
+      blender: ${{ steps.pins.outputs.blender }}
+    steps:
+      - name: Check out the pins
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          sparse-checkout: ci/pins/Dockerfile
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Read the pins
+        id: pins
+        run: awk '$1 == "FROM" { print $4 "=" $2 }' ci/pins/Dockerfile >> "$GITHUB_OUTPUT"
   code:
     name: Code
-    if: ${{ !github.event.pull_request.draft }}
+    needs: images
+    # !cancelled(): a failed images leaves no image and fails code, never skips it (a skipped required check passes)
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
     container:
-      image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:f068d6e443985ce56ec81a404e5dff6f8bdab869aa519c1bf0ccf06046573d24   # ci/base.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.base }}   # ci/base.Dockerfile (images.yml)
       env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
         UV_CACHE_DIR: /__w/uv-cache
         UV_LINK_MODE: hardlink
