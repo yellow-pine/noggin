@@ -58,6 +58,29 @@ TOUCH = {
             *[(f"next {s} eyeball cap:1", f"next {s} eyeball core:1") for s in "LR"],
         ]
     },
+    # the next Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
+    **{
+        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on their collar"
+        for d, mount in (("pan", "next neck mount:1"), ("tilt", "next pan yoke:1"), ("mouth", "next head mount:1"))
+        for p in (f"next {d} horn:1", mount)
+    },
+    **{
+        frozenset(
+            pair
+        ): "screwed faces, the yoke on the mount's thrust face, pin-joined faces (0.0 mm, designed contacts)"
+        for pair in [
+            ("next head mount:1", "next gimbal frame:1"),
+            ("next head mount:1", "next pan yoke:1"),
+            ("next pan yoke:1", "next neck mount:1"),
+            ("next pan bar:1", "next pan yoke:1"),
+            ("next pan bar:1", "next pan horn:1"),
+            ("next tilt bar:1", "next tilt horn:1"),
+            ("next tilt bar:1", "next head mount:1"),
+            ("next jaw bar:1", "next mouth horn:1"),
+            ("next jaw bar:1", "next jaw:1"),
+            ("next jaw:1", "next head mount:1"),
+        ]
+    },
 }
 # The desk documents only (geometry.DESK): the eyes stand on the plate top, touching.
 ON_PLATE = {frozenset(("base plate:1", p)) for p in ("eye bracket:1", "L servo bracket:1", "R servo bracket:1")}
