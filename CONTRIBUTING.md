@@ -113,9 +113,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   images), `site/` (the site's npm package: its pages, the viewer's page and module, ADR 0013). Tests sit beside the
   code they test (`test_*.py`, `*.test.mjs` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
-- Run `make check` before opening a PR: the `Code` set, everything but the tests marked `model`. `make check-all` adds
-  those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
-  `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
+- Run `make check-light` before pushing (the pre-push hook `make venv` turns on runs it): lint, types and the tests
+  marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
+  but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
+  `sim`, `trajectories`, `render`, `gifs`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
@@ -127,6 +128,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
   from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part
   by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
+  Every Monday `Cache Prune` deletes the caches whose key prefix no workflow on main uses any more (`scripts/cache_prune.py`,
+  #473), so retired caches never crowd live ones out of the 10 GB cap.
   With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed
   from when a runner picked it up, so a busy queue never trips it; a "re-run failed jobs" is timed on its own attempt). Each job's
