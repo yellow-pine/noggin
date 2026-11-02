@@ -46,4 +46,4 @@ parts your ticket touches and follow them.
 
 Your final message, once the run has ended in one of its two states. Re-read `gh pr view --json state` right before
 writing it. Under 80 words: PR number, that merge state (or the blocker and who clears it), the cycle steps you ran, the
-decisions you made, anything left undone.
+decisions you made and the URL of the step 5 comment that records them (or "none"), anything left undone.
