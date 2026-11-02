@@ -1,4 +1,4 @@
-# The CI image for the jobs that run Blender (docs/adr/0009, #288): the base image (BASE: the digest images.yml just
+# The CI image for the jobs that run Blender (docs/adr/0009, #288): the base image (BASE: the digest ci-images.yml just
 # pushed) plus Blender from the official tarball, sha256-checked, and
 # Mesa's EGL and llvmpipe, where Eevee renders in software. download.blender.org answers 403 to some runners (#367), so
 # the tarball falls back to Blender's official mirrors (mirror.blender.org's ?mirrorlist); any of them must match the hash.

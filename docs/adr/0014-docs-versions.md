@@ -15,11 +15,11 @@ its own docs once and keeps them as a release asset, and every deploy serves the
 - **Latest at /noggin/, each Release's docs at /noggin/vX.Y/.** The site's base comes from `SITE_BASE` (default
   `/noggin`, `site/src/pages.mjs`), so links between docs and every Starlight asset stay inside the version. Only the
   newest patch of a minor is served: vX.Y.Z's docs are vX.Y's.
-- **Built once, at the tag** (Release Assets, `release.yml`): `SITE_BASE=/noggin/vX.Y just site`, the viewer's GLBs
+- **Built once, at the tag** (Release Assets, `release-assets.yml`): `SITE_BASE=/noggin/vX.Y just site`, the viewer's GLBs
   fetched from the live site (the release commit's model: its PR only bumps the version), packed as
   `noggin-docs-vX.Y.Z.tar.gz` and attached to the release, whose notes then link /noggin/vX.Y/. A prerelease builds
   none: it is never served. Each version carries its own Pagefind index.
-- **Assembled at deploy** (Site Deploy, `pages.yml`): `scripts/docs_versions.py` unpacks every release's docs asset
+- **Assembled at deploy** (Site Deploy, `site-deploy.yml`): `scripts/docs_versions.py` unpacks every release's docs asset
   (no drafts, no prereleases) into the site Checks built, at vX.Y/, and writes `versions.json` in Material for
   MkDocs' format (`version`, `title`, `aliases`), latest first. A deploy without releases ships the build's own
   `versions.json`, latest alone. No branch holds the site and nothing built is committed (ADR 0009). Main's docs are

@@ -5,6 +5,7 @@ name: CodeQL
 # Python and the workflows on each push. Advanced setup (#549): one job runs the three languages in turn (init takes
 # several, analyze uploads one result per language), none of which needs a build. Default setup is off: GitHub rejects
 # an advanced setup's uploads while it is on.
+run-name: "${{ github.event_name == 'schedule' && 'CodeQL: weekly scan' || format('CodeQL: manual by {0}', github.actor) }}"
 on:
   schedule:
     - cron: "0 4 * * 1"   # Mondays

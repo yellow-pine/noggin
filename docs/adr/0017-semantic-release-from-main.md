@@ -9,7 +9,7 @@ and stale merge refs (#543), on a repo where every PR already auto-merges on gre
 - **semantic-release, its default plugins only** (commit-analyzer, release-notes-generator, github; `.releaserc.json`),
   pinned in `ci/package.json` (ADR 0012). The conventionalcommits preset stays on 9.x while release-notes-generator
   bundles conventional-changelog-writer 8, which can't render 10.x; `ci/release.test.mjs` renders notes, so a bump
-  past it fails there. The `Release` workflow (`semantic-release.yml`) runs when Checks complete for
+  past it fails there. The `Release` workflow (`release.yml`) runs when Checks complete for
   this repo's push to main, and acts only on a success, on that push's commit: a red main never releases. When main
   moved on since, semantic-release sees its commit is no longer main's head and releases nothing; the newer commit's
   run releases both. One run at a time, never cancelled.

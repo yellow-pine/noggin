@@ -70,7 +70,7 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       github-actions-security:  # as above
         applies-to: security-updates
         patterns: ["*"]
-  # the CI images' sources (ci/*.Dockerfile FROM digests): main rebuilds :main once a bump lands (images.yml); Node
+  # the CI images' sources (ci/*.Dockerfile FROM digests): main rebuilds :main once a bump lands (ci-images.yml); Node
   # stays on its major, Ubuntu moves LTS to LTS
   - package-ecosystem: docker
     directory: /ci
