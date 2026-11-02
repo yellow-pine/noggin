@@ -1,6 +1,6 @@
 """Does a PR body link its issue? GitHub's closing keywords (close, fix, resolve and their forms; docs.github.com/en/
 issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue) or Refs, then #N or
-owner/repo#N. Exits 1 with an Actions error otherwise. Required check `PR Issue` (.github/workflows/pr-checks.yml).
+owner/repo#N. Exits 1 with an Actions error otherwise. Required check `PR` (.github/workflows/pr-checks.yml).
 With --list, prints each linked issue of this repo ($GITHUB_REPOSITORY) once instead (Issue Labels, issue-labels.yml).
 Usage: python3 scripts/pr_issue.py [--list] < body"""
 

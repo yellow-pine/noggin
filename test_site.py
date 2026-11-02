@@ -2,7 +2,6 @@
 (macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The README's pictures are built in
 CI too (#226): none in git, every one a site URL the render job builds."""
 
-import json
 import os
 import re
 import subprocess
@@ -264,33 +263,31 @@ def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
     assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
 
 
-def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
-    """`make pictures-list` (Site Checks' motions job, #297): the Stage views on every Stage and the hero on stage 3,
+def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
+    """Checks' Blender bins (make blender-bins, #297, #496): the Stage views on every Stage and the hero on stage 3,
     each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""
-    out = subprocess.run(["make", "-s", "pictures-list"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    assert json.loads(out) == [
+    from model.render import pictures
+
+    assert pictures.motions() == [
         {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3"},
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
 
 
-def test_site_checks_render_one_job_per_motion_and_names_none():
-    """`render` fans out over the motions job's list (#297): a new gesture needs no workflow edit."""
+def test_the_blender_bins_name_no_motion():
+    """A new motion needs no workflow edit (#297); the model shards' hero unit is the hero's collision sweep."""
     from model.render import pictures
 
-    text = (ROOT / ".github" / "workflows" / "site-checks.yml").read_text()
-    jobs = yaml.safe_load(text)["jobs"]
-    assert "make -s pictures-list" in jobs["motions"]["steps"][-1]["run"]
-    assert jobs["render"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.motions.outputs.list) }}"}
-    assert jobs["render"]["name"] == "Render (${{ matrix.motion }})"
+    text = yaml.safe_dump(
+        yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]["blender"]
+    )
     assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
-def test_site_checks_pictures_key_hashes_what_render_does():
-    """A PR whose pictures are cached skips the motions and render (#386): the pictures- key `changes` looks up and
-    `site` restores hashes what render's per-motion key does (the one hash `changes` makes, #469), else every PR run
-    would go cold."""
-    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]
+def test_checks_pictures_key_is_the_one_changes_looks_up():
+    """A PR whose pictures are cached renders nothing (#386): the pictures- key `changes` looks up is the one the gate
+    restores and saves (the one hash `changes` makes, #469), else every PR run would go cold."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]
 
     def key(job: str, id_: str) -> str:
         (step,) = [s for s in jobs[job]["steps"] if s.get("id") == id_]
@@ -298,33 +295,21 @@ def test_site_checks_pictures_key_hashes_what_render_does():
 
     assert jobs["changes"]["outputs"]["pictures-hash"] == "${{ steps.inputs.outputs.pictures }}"
     assert key("changes", "pictures") == "pictures-${{ steps.inputs.outputs.pictures }}"
-    assert key("site", "images") == "pictures-${{ needs.changes.outputs.pictures-hash }}"
-    assert key("render", "frames") == "images-${{ matrix.motion }}-${{ needs.changes.outputs.pictures-hash }}"
+    assert key("checks", "images") == "pictures-${{ needs.changes.outputs.pictures-hash }}"
 
 
-@pytest.mark.parametrize(
-    "motions, render, passes",
-    [
-        ("success", "success", True),
-        ("skipped", "skipped", True),
-        ("success", "failure", False),
-        ("success", "cancelled", False),
-        ("failure", "skipped", False),
-    ],
-)
-def test_the_required_pictures_check_is_every_runner_or_none(motions, render, passes):
-    """`Pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
-    motion passed or none ran (nothing the pictures are made from changed), red when any failed or was cancelled,
-    the motions list too (render then skips). A draft runs none of it (#414)."""
-    job = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]["pictures"]
-    assert (job["needs"], job["if"]) == (
-        ["motions", "render"],
-        "${{ !cancelled() && !github.event.pull_request.draft }}",
-    )
-    (step,) = job["steps"]
-    assert step["env"] == {"RESULTS": "${{ needs.motions.result }} ${{ needs.render.result }}"}
-    r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULTS": f"{motions} {render}"})
-    assert (r.returncode == 0) is passes
+def test_the_required_checks_gate_needs_every_job_and_never_skips():
+    """`Checks`, the one required check of the workflow (#496): it needs every other job, runs past a failed or skipped
+    one (a skipped required check passes) and fails unless each passed or was skipped as unchanged; Changes and Code
+    never skip. A draft runs none of it (#414)."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]
+    gate = jobs["checks"]
+    assert sorted(gate["needs"]) == sorted(j for j in jobs if j != "checks")
+    assert gate["if"] == "${{ !cancelled() && !github.event.pull_request.draft }}"
+    green = gate["steps"][0]
+    assert "re-actors/alls-green@" in green["uses"]
+    assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
+    assert {j.strip() for j in green["with"]["allowed-skips"].split(",")} == set(gate["needs"]) - {"changes", "code"}
 
 
 def test_no_real_photos_are_tracked():

@@ -5,7 +5,7 @@ import os
 
 from model import mjcf
 
-# Patched here, not in mjcf.py: mjcf.py is a sim input, so an edit runs the sim again in CI (check.yml's sim shard).
+# Patched here, not in mjcf.py: mjcf.py is a sim input, so an edit runs the sim again in CI (checks.yml's sim shard).
 # shortcut: replaces write()'s whole defaults tuple, right while folder is its only default; redo if write gains another.
 if worker := os.environ.get("PYTEST_XDIST_WORKER"):
     mjcf.write.__defaults__ = (os.path.join(mjcf.MJCF, worker),)

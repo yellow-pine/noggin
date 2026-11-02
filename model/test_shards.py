@@ -1,8 +1,10 @@
-"""Seam: `make model-shards-list`, Code Checks' model matrix (#305, #474): three shards balanced on the measured
-durations (model/durations.json), every unit (the hero's sweep, each document, the rest, make sim) on one, from the
-code."""
+"""Seams: `make model-shards-list`, Checks' model matrix (#305, #474, #496): four shards balanced on the measured
+durations (model/durations.json), every unit (the hero's sweep, each document, the rest, make sim, make mech) on one,
+from the code; and `make blender-bins`, Checks' Blender matrix: the cold Blender units packed longest first into bins
+no longer than the longest."""
 
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -19,9 +21,9 @@ def test_else(name): pass
 """
 
 
-def listed():
+def listed(target="model-shards-list", **env):
     out = subprocess.run(
-        ["make", "-s", "model-shards-list"], cwd=stages.REPO, capture_output=True, text=True, check=True
+        ["make", "-s", target], cwd=stages.REPO, capture_output=True, text=True, check=True, env=os.environ | env
     )
     return json.loads(out.stdout)
 
@@ -36,10 +38,10 @@ def collected(tests, folder):
     return {line.split("::")[1] for line in out.splitlines() if "::" in line} if tests else set()
 
 
-def test_three_shards_hold_every_unit_once():
+def test_four_shards_hold_every_unit_once():
     units = [u for s in listed() for u in s["units"]]
-    assert len(listed()) == shards.N == 3
-    assert sorted(units) == sorted(["hero", *(d.removeprefix("noggin-") for d in stages.DOCS), "rest", "sim"])
+    assert len(listed()) == shards.N == 4
+    assert sorted(units) == sorted(["hero", *(d.removeprefix("noggin-") for d in stages.DOCS), "rest", "sim", "mech"])
     assert [s["shard"] for s in listed()] == [" ".join(s["units"]) for s in listed()]
 
 
@@ -65,17 +67,56 @@ def test_the_shards_balance_the_measured_seconds():
     assert max(loads) - min(loads) <= max(took.values())
 
 
+def test_a_pr_touching_only_the_mech_runs_one_shard_of_make_mech_and_one_touching_neither_none():
+    """MODEL and MECH are the Changes job's filters: "false" leaves that group's units out (#496)."""
+    assert listed(MODEL="false") == [{"shard": "mech", "units": ["mech"], "tests": ""}]
+    assert "mech" not in [u for s in listed(MECH="false") for u in s["units"]]
+    assert listed(MODEL="false", MECH="false") == []
+
+
 def test_tests_count_under_the_unit_that_picks_them_and_an_unmeasured_unit_weighs_the_mean():
     took = shards.seconds(
-        {"model/test_mjcf.py::test_x[noggin-eyes]": 4, "model/render/test_hero.py::test_y[3]": 2, "make sim": 6}
+        {
+            "model/test_mjcf.py::test_x[noggin-eyes]": 4,
+            "model/render/test_hero.py::test_y[3]": 2,
+            "make sim": 6,
+            "make mech": 8,
+        }
     )
-    assert (took["eyes"], took["hero"], took["sim"]) == (4, 2, 6)
-    assert took["stage1"] == took["rest"] == 4  # the mean of the measured units
+    assert (took["eyes"], took["hero"], took["sim"], took["mech"]) == (4, 2, 6, 8)
+    assert took["stage1"] == took["rest"] == 5  # the mean of the measured units
 
 
-def test_the_model_matrix_is_the_shards_job_s_list():
-    """A new document or Stage needs no workflow edit."""
-    jobs = yaml.safe_load(open(f"{stages.REPO}/.github/workflows/check.yml"))["jobs"]
-    assert "make -s model-shards-list" in jobs["shards"]["steps"][-1]["run"]
-    assert jobs["model-shard"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.shards.outputs.list) }}"}
-    assert "shards" in jobs["model-shard"]["needs"]
+def test_the_blender_units_pack_longest_first_into_bins_no_longer_than_the_longest():
+    """hero 190 s, viewer 71, views 53 (run 41388039993): views and the viewer share a runner beside the hero's (#496)."""
+    assert shards.packed({"hero": 190, "viewer": 71, "views": 53}) == [["hero"], ["viewer", "views"]]
+    assert shards.packed({"a": 5, "b": 3, "c": 3, "d": 2}) == [["a"], ["b", "d"], ["c"]]
+    assert shards.packed({}) == []
+
+
+def test_the_blender_bins_are_the_cold_units_with_the_stages_they_bake():
+    """PICTURES and VIEWER say whether the pictures and the viewer are cold: each motion of the pictures, the viewer,
+    each in one bin; a bin with the viewer bakes every Stage (TRAJ_DOCS empty), as make web does."""
+    from model.render import pictures
+
+    every = listed("blender-bins")
+    assert sorted(u for b in every for u in b["bin"].split()) == sorted([*pictures.SITE, "viewer"])
+    for b in every:
+        assert b["motions"] == " ".join(u for u in b["bin"].split() if u in pictures.SITE)
+        assert b["viewer"] == ("viewer" in b["bin"].split())
+        stages_of = {m["motion"]: m["stages"].split() for m in pictures.motions()}
+        assert b["stages"] == (
+            "" if b["viewer"] else " ".join(sorted({s for m in b["motions"].split() for s in stages_of[m]}))
+        )
+    assert [b["bin"] for b in listed("blender-bins", PICTURES="false")] == ["viewer"]
+    assert sorted(b["motions"] for b in listed("blender-bins", VIEWER="false")) == sorted(pictures.SITE)
+    assert listed("blender-bins", PICTURES="false", VIEWER="false") == []
+
+
+def test_the_model_and_blender_matrices_are_the_changes_job_s_lists():
+    """A new document, Stage or motion needs no workflow edit."""
+    jobs = yaml.safe_load(open(f"{stages.REPO}/.github/workflows/checks.yml"))["jobs"]
+    (lists,) = [s for s in jobs["changes"]["steps"] if s.get("id") == "lists"]
+    assert "make -s model-shards-list" in lists["run"] and "make -s blender-bins" in lists["run"]
+    assert jobs["model"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.shards) }}"}
+    assert jobs["blender"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.bins) }}"}

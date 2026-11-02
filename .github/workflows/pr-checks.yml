@@ -1,14 +1,15 @@
 name: PR Checks
 # Checks the PR's title is a Conventional Commit, its body links its issue, and it adds no vulnerable dependency.
-# Main's copy of each script checks it (a PR can't loosen its own check). Required checks `PR Title` and `PR Issue` (the
-# job names, which the ruleset matches); editing the title or body re-runs them.
-# `PR Title`: the title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
+# Main's copy of each script checks it (a PR can't loosen its own check). Required check `PR` (the job name, which the
+# ruleset matches; one job since #496, its own workflow since it runs on edited, which Checks never does); editing the
+# title or body re-runs it.
+# The title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
 # `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
 # (scripts/pr_title.py).
-# `PR Issue`: the body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie
-# together (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: it passes.
-# `PR Issue` also runs GitHub's dependency review (actions/dependency-review-action): it fails a PR, a bot's too, that
-# adds a dependency with a known vulnerability (#500). It reads the dependency graph's diff over the API: no checkout.
+# The body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie together
+# (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: it passes.
+# GitHub's dependency review (actions/dependency-review-action) fails a PR, a bot's too, that adds a dependency with a
+# known vulnerability (#500). It reads the dependency graph's diff over the API.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
@@ -18,20 +19,22 @@ concurrency:   # one run per PR; a new push or title/body edit cancels the one i
 permissions:
   contents: read
 jobs:
-  title:
-    name: PR Title
+  pr:
+    name: PR
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write   # dependency review's summary comment on a failing PR
     steps:
-      - name: Check out the script
+      - name: Check out the scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.ref }}   # main's script and folders: a PR can't loosen its own check
+          ref: ${{ github.event.pull_request.base.ref }}   # main's scripts and folders: a PR can't loosen its own check
           persist-credentials: false
-          sparse-checkout: scripts/pr_title.py   # git ls-files still lists every tracked file
+          sparse-checkout: |   # git ls-files still lists every tracked file
+            scripts/pr_title.py
+            scripts/pr_issue.py
           sparse-checkout-cone-mode: false
       - name: List the scopes
         id: scopes
@@ -71,21 +74,6 @@ jobs:
         env:   # via env, never inlined into the script
           TITLE: ${{ github.event.pull_request.title }}
         run: python3 scripts/pr_title.py "$TITLE"
-  issue:
-    name: PR Issue
-    if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      pull-requests: write   # dependency review's summary comment on a failing PR
-    steps:
-      - name: Check out the script
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.ref }}   # main's script: a PR can't loosen its own check
-          persist-credentials: false
-          sparse-checkout: scripts/pr_issue.py
-          sparse-checkout-cone-mode: false
       - name: Check the body links an issue
         if: ${{ github.event.pull_request.user.type != 'Bot' }}
         env:

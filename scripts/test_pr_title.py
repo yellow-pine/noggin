@@ -1,4 +1,4 @@
-"""pr_title.py: the PR Title check's scopes are derived from the repo (its tracked top-level folders, docs/'s tracked
+"""pr_title.py: the PR check's title scopes are derived from the repo (its tracked top-level folders, docs/'s tracked
 subfolders, Dependabot's and release-please's), and it fails what the action can't see: a list of scopes, a header over
 100 characters. A body's BREAKING CHANGE footer is not read: it never reaches main. The action's subject pattern gives
 commitlint's verdicts."""

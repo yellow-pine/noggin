@@ -41,12 +41,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
   ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
   `release` for the release PR; `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
-  lands). The required `PR Title` check
+  lands). The required `PR` check
   (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title
   re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
-  yet. The required `PR Issue` check (`scripts/pr_issue.py` as on main) fails without one.
+  yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
   from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
   hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand, the rest by the `Issue Labels`
@@ -98,19 +98,22 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
   release tag's run and Release Please's are never cancelled).
-- A `Changes` job (dorny/paths-filter) skips a required job when nothing it is made from changed, which GitHub counts as
-  passing; `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose
-  Code Checks passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
-- `Model` runs on three shards, balanced by the seconds CI measured in `model/durations.json`; `make model-durations
-  RUN=<id>` refreshes it from a run's `durations-*` artifacts. The sim's reports are never committed: main's are on the
+- Required checks on main: `PR` (pr-checks.yml, which also runs on title and body edits), `Checks`, `Fetch Skills` and
+  `Review` (#496). `Checks` is the gate of `.github/workflows/checks.yml`: it fails unless every job there passed or was
+  skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
+  `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks
+  passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
+- `Model` runs on four shards, `make mech` one of their units, balanced by the seconds CI measured in
+  `model/durations.json`; `make model-durations RUN=<id>` refreshes it from a run's `durations-*` artifacts. `Blender`
+  packs the pictures' motions and the viewer into runners longest first (`make blender-bins`). The sim's reports are never committed: main's are on the
   site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports against main's in its job summary.
 - With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
   a Dockerfile changes, so a PR that changes one only builds them and its jobs still run main's.
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/), CI's `Mech` job.
-- Site Deploy deploys the very artifact Site Checks built, once main's Code Checks and Site Checks passed (#295, #310).
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
+- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
   Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.
   A main commit is green only once its `deploy` is.
 

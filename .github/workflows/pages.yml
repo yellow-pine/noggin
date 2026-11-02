@@ -1,21 +1,20 @@
 name: Site Deploy
-# Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it.
-# Main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009) is built once: Site Checks (site-checks.yml)
-# builds and tests it on PRs and on main, and this deploys a main commit's site artifact once both its check workflows
-# passed (#310), with no rebuild. It runs when either of them completes for a push to main; `checks`
-# (scripts/deploy_status.py) acts once both are done: it hands `deploy` the Site Checks run to download from when both
-# passed, else sets the commit's `deploy` status: failure linking the red one ("not deployed: checks failed", #295) or
-# error when a newer commit superseded it (a cancelled run). `deploy` swaps in the sim reports Code Checks saved (Site
-# Checks runs beside it), unpacks every Release's docs beside main's (docs/adr/0014), deploys, and `deploy-status` sets
-# success with the site's URL or why not (#292); Deploy Pending (deploy-pending.yml) sets it pending while Site Checks
-# build. A red run leaves the last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages,
-# build_type=workflow); deploy's github-pages environment lists each deploy with its URL in the repo's Deployments
-# panel. It acts only for this repository's push to main (branches: [main] alone also matches a fork's PR from a branch
-# named main), on that push's commit (head_sha), the one the status goes on; or for Release Docs' dispatch on main, on
-# main's head (#414).
+# Deploys the site artifact Checks built once main's checks pass, with every release's docs beside it.
+# Main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009) is built once: Checks (checks.yml) builds and
+# tests it on PRs and on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
+# no rebuild. It runs when Checks complete for a push to main; `checks` (scripts/deploy_status.py) hands `deploy` the
+# Checks run to download from when it passed, else sets the commit's `deploy` status: failure linking the red run
+# ("not deployed: checks failed", #295) or error when a newer commit superseded it (a cancelled run). `deploy` swaps in
+# main's newest sim reports (Checks builds the site beside the sim), unpacks every Release's docs beside main's
+# (docs/adr/0014), deploys, and `deploy-status` sets success with the site's URL or why not (#292); Deploy Pending
+# (deploy-pending.yml) sets it pending while Checks build. A red run leaves the last site up. Pages' source is GitHub
+# Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); deploy's github-pages environment lists each deploy
+# with its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main]
+# alone also matches a fork's PR from a branch named main), on that push's commit (head_sha), the one the status goes
+# on; or for Release Docs' dispatch on main, on main's head (#414).
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the Checks job acts only on this repo's push to main
-    workflows: ["Code Checks", "Site Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
+    workflows: ["Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
     types: [completed]
     branches: [main]
   workflow_dispatch:   # Release Docs, once a release's docs are on it (#414): main's head again, with them
@@ -62,7 +61,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      actions: read   # Site Checks' artifact
+      actions: read   # Checks' artifact
       pages: write
       id-token: write
     environment:
@@ -87,7 +86,7 @@ jobs:
           path: site/dist
           run-id: ${{ needs.checks.outputs.site-run }}
           github-token: ${{ github.token }}
-      # main's latest sim reports, which Code Checks' sim shard has saved by now (newest sim- entry, as in Site Checks)
+      # main's latest sim reports, which Checks' sim shard has saved by now (newest sim- entry, as in Checks' Site)
       - name: Restore main's sim reports
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:

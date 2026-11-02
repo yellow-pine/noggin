@@ -34,8 +34,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
   VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
   per view, each linking to its file; on a phone stacked by Stage.
-- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, Site Checks'
-  `Render` job, one runner per motion (`make pictures-list`, #297), gathered in its `Site` job;
+- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, Checks'
+  `Blender` bins, the motions packed into runners (`make blender-bins`, #297, #496), gathered in its `Checks` gate;
   model/render/pictures.py SITE;
   yellowpine.com/noggin/images/): the hero, an animated WebP (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its

@@ -40,7 +40,7 @@ def test_every_step_has_a_short_sentence_case_name():
 
 
 def test_the_convention_itself():
-    assert all(TITLE.fullmatch(n) for n in ["Code", "Fetch Skills", "PR Title", "Model (${{ matrix.shard }})"])
+    assert all(TITLE.fullmatch(n) for n in ["Code", "Fetch Skills", "PR", "Model (${{ matrix.shard }})"])
     assert not any(TITLE.fullmatch(n) for n in ["code", "fetch skills", "Model hero)", "convex ${{ matrix.part }}"])
     assert all(sentence_case(n) for n in ["Set up uv", "Run make check", "Restore the parts cache", "Verdict"])
     assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run make check."])
@@ -115,18 +115,24 @@ def test_main_skips_by_input_as_a_pr_does_and_a_weekly_run_runs_everything():
     """#471: a push to main filters its changed paths against main's last commit whose checks passed and looks its
     Blender outputs up, as a PR does; the weekly scheduled run on main does neither, so every job runs. Its own
     concurrency group, so it never cancels a push's run (whose deploy would then never happen) nor one of those
-    cancels it."""
-    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS if f.name in ("check.yml", "site-checks.yml")}
-    for flow in flows.values():
-        assert "cron" in flow[True]["schedule"][0]
-        assert "github.event_name" in flow["concurrency"]["group"]
-    changes = flows["check.yml"]["jobs"]["changes"]
-    assert changes["if"] == "${{ github.event_name != 'schedule' && !github.event.pull_request.draft }}"
-    (filter_,) = [s for s in changes["steps"] if s.get("id") == "filter"]
-    assert "if" not in filter_
-    assert filter_["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
-    # Site Checks' changes runs weekly too, for the keys' hash (#469); main's Site always runs: it builds the deploy
-    changes = flows["site-checks.yml"]["jobs"]["changes"]
-    assert [s["if"] for s in changes["steps"] if s.get("id") in ("pictures", "viewer")] == [
-        "${{ github.event_name != 'schedule' }}"
-    ] * 2
+    cancels it. Main's Site always runs: it builds the deploy."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    assert "cron" in flow[True]["schedule"][0]
+    assert "github.event_name" in flow["concurrency"]["group"]
+    changes = flow["jobs"]["changes"]
+    assert changes["if"] == "${{ !github.event.pull_request.draft }}"
+    steps = {s.get("id"): s for s in changes["steps"]}
+    assert steps["filter"]["if"] == "${{ github.event_name != 'schedule' }}"
+    assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
+    assert [steps[i]["if"] for i in ("pictures", "viewer")] == ["${{ github.event_name != 'schedule' }}"] * 2
+    assert (
+        changes["outputs"]["site"]
+        == "${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}"
+    )
+
+
+def test_checks_never_run_on_edited():
+    """#496: a title or body edit would cancel the running Checks (one run per group), or green a red one."""
+    assert (
+        "edited" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]["pull_request"]["types"]
+    )

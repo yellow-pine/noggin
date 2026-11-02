@@ -1,6 +1,6 @@
 """Does every required check main's ruleset names still name a job in .github/workflows? A renamed job strands the old
 name in the ruleset, and every PR waits on a check that never reports (#450). Exits 1 with an Actions error per stale
-check. Code job (.github/workflows/check.yml), which feeds it the ruleset's contexts from the GitHub API.
+check. Code job (.github/workflows/checks.yml), which feeds it the ruleset's contexts from the GitHub API.
 Usage: gh api repos/OWNER/REPO/rules/branches/main --jq ... | .venv/bin/python scripts/required_checks.py [workflows]"""
 
 import sys

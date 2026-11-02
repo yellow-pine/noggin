@@ -1,6 +1,6 @@
 # noggin
 
-[![check](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/check.yml?branch=main&label=check&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/check.yml)
+[![check](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=checks&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/checks.yml)
 [![Claude review](https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/review.yml?event=pull_request&label=Claude%20review&style=flat)](https://github.com/yellow-pine/noggin/actions/workflows/review.yml)
 [![last commit](https://img.shields.io/github/last-commit/yellow-pine/noggin?style=flat)](https://github.com/yellow-pine/noggin/commits/main)
 [![license](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat)](LICENSE.md)
@@ -39,8 +39,7 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 What each workflow in [.github/workflows](.github/workflows) does is on
 [the CI/CD page](https://yellowpine.com/noggin/docs/ci-cd/).
 
-Required checks on main: `Code`, `Model`, `Mech`, `Site`, `Pictures`, `Review`, `Fetch Skills`, `PR Title` and
-`PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
+Required checks on main: `PR`, `Checks`, `Fetch Skills` and `Review`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 

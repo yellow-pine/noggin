@@ -1,4 +1,4 @@
-"""The viewer's GLBs as Site Checks builds them (web/build.py): each Stage's GLB (`make web`, read here as `make sim`'s
+"""The viewer's GLBs as Checks builds them (web/build.py): each Stage's GLB (`make web`, read here as `make sim`'s
 reports are by model/test_report.py) carries every part, the look the page reads and one glTF clip per motion, frame for
 frame its trajectory. The page itself is the site's (site/src/pages/viewer.astro, its tests in site/)."""
 

@@ -9,8 +9,8 @@ import yaml
 
 from scripts.ci_budget import critical_path, over
 
-# check.yml's jobs as yq -o=json reads them (docs/adr/0011): a renamed job breaks these tests, not the budget
-CHECK = yaml.safe_load((Path(__file__).resolve().parents[1] / ".github/workflows/check.yml").read_text())["jobs"]
+# checks.yml's jobs as yq -o=json reads them (docs/adr/0011): a renamed job breaks these tests, not the budget
+CHECK = yaml.safe_load((Path(__file__).resolve().parents[1] / ".github/workflows/checks.yml").read_text())["jobs"]
 
 
 def job(name: str, started: str, completed: str | None, conclusion: str | None = "success") -> dict:
@@ -37,8 +37,7 @@ QUEUED_BUT_FAST = [
     job("Model (mouth pan-tilt)", "21:01:37", "21:02:51"),
     job("Model (mujoco)", "21:01:14", "21:03:49"),  # 155 s, the slowest shard
     job("Convex (${{ matrix.part }})", "21:00:04", "21:00:04", "skipped"),
-    job("Mech", "21:02:25", "21:02:59"),
-    job("Model", "21:04:40", "21:04:44"),
+    job("Checks", "21:04:40", "21:04:44"),
 ]
 ATTEMPT = "2026-11-01T20:59:50Z"
 NOW = "2026-11-01T21:04:44Z"
@@ -46,7 +45,7 @@ NOW = "2026-11-01T21:04:44Z"
 
 def test_a_busy_queue_does_not_count_only_the_jobs_own_run_times_along_their_needs():
     took = critical_path(QUEUED_BUT_FAST, CHECK, ATTEMPT, NOW)
-    assert took == 4 + 4 + 155 + 4  # Changes, Convex, Model (mujoco), Model
+    assert took == 4 + 4 + 155 + 4  # Changes, Convex, Model (mujoco), Checks
     assert over("pull_request", took, warm=True) is None
 
 
@@ -65,7 +64,7 @@ def test_a_job_still_running_counts_up_to_now_and_one_without_a_runner_not_at_al
         job("Model (hero)", "12:00:10", None),  # the job this step runs in
         job("Model (sim)", "12:00:06", None) | {"status": "queued", "started_at": "2026-11-01T12:00:06Z"},
         job("Code", "12:00:00", None) | {"status": "waiting"},
-        job("Mech", "12:00:00", "12:00:00", "cancelled"),
+        job("Site", "12:00:00", "12:00:00", "cancelled"),
     ]
     assert critical_path(jobs, CHECK, "2026-11-01T11:59:58Z", "2026-11-01T12:01:10Z") == 5 + 60
 

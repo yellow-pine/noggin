@@ -1,4 +1,4 @@
-"""The PR Title check's part the action can't do (docs/adr/0010, .github/workflows/pr-checks.yml, run as on main).
+"""The PR check's title part the action can't do (docs/adr/0010, .github/workflows/pr-checks.yml, run as on main).
 No argument: prints the scopes a title may name, one per line, derived from the repo (docs/adr/0011): each tracked
 top-level folder (no dot-folders), each tracked folder in docs/, and the bots' (Dependabot's deps and deps-dev,
 release-please's release).
