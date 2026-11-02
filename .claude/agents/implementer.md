@@ -25,8 +25,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
    --auto --squash` at once.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
-   - Bring main into your PR with `scripts/rebase_pr.sh <n>` (or `gh pr update-branch <n>` for a merge), only when the
-     rebase rule allows (CONTRIBUTING.md). Commits are the only place work waits; never merge locally, never stash.
+   - Bring main into your PR with `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main`, only when
+     the rebase rule allows (CONTRIBUTING.md); never force-push. Commits are the only place work waits; never stash.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
      thread with GraphQL `resolveReviewThread`.
