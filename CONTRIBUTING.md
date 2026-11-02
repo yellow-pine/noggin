@@ -112,7 +112,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - The code follows CLAUDE.md's directives.
 - The recipes live in the `justfile` (docs/adr/0016; `just --list`). Add a new recipe beside related ones, never at
   the end of the file, where two PRs appending at once clash (#492).
-- `just lint` (ruff and pyright) is the one local check, which the pre-push hook `just venv` turns on runs (#714).
+- `just lint` (ruff and pyright) is every change's local check, which the pre-push hook `just venv` turns on runs (#714).
+  A change to model/ (parts, geometry, MuJoCo) also passes `just linux-test <its tests>` before its push: `just ours`
+  and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
@@ -129,7 +131,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
   Site Deploy and Release wait on (Checks) never cancels: main's runs queue and each finishes, so merges minutes apart
-  still deploy; a newer push replaces a run still waiting, never one running (#689).
+  still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
+  neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
+  (`.github/actions/`), which cancels the rest of the run at once, and Main Red files it all the same (#769).
   Site Deploy, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
