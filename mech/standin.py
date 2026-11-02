@@ -1,5 +1,5 @@
-"""The Mech stand-in (#222): the Core's real program, boot.py and the files `make mpy` compiles, as .mpy the way
-flash-usb puts them on the Core, run by the Core's MicroPython (mech/build/micropython, `make mech/build/micropython`)
+"""The Mech stand-in (#222): the Core's real program, boot.py and the files `just mpy` compiles, as .mpy the way
+flash-usb puts them on the Core, run by the Core's MicroPython (mech/build/micropython, `just micropython`)
 with mech/core's machine, network and socket in place of the ESP32's. A folder is its filesystem; its stdin and stdout
 are its USB serial, copied to and from a pty while the cable is in."""
 
@@ -24,12 +24,12 @@ RESET = 128 + signal.SIGTERM  # mech/core/machine.py's reset, as the shell repor
 
 
 def mpy(src, dst, *opts):
-    """src compiled for the Core (pyproject [tool.noggin]), as `make mpy` does."""
+    """src compiled for the Core (pyproject [tool.noggin]), as `just mpy` does."""
     subprocess.run([Path(sys.executable).parent / "mpy-cross", *opts, "-o", dst, src], check=True)
 
 
 def program(dst, folder="eyes"):
-    """The files `make mpy` builds, into dst, stamp.mpy too; folder: the source folder named in their bytecode, so two
+    """The files `just mpy` builds, into dst, stamp.mpy too; folder: the source folder named in their bytecode, so two
     builds of the same program differ."""
     for m in MODULES:
         mpy(REPO / "eyes" / f"{m}.py", dst / f"{m}.mpy", "-s", f"{folder}/{m}.py")

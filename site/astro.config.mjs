@@ -1,5 +1,5 @@
 // The site (docs/adr/0009, 0013): Starlight's default look over the repo's Markdown, read in place
-// (src/content.config.ts), and the web viewer's page (src/pages/viewer.astro). `make site` builds it into dist/.
+// (src/content.config.ts), and the web viewer's page (src/pages/viewer.astro). `just site` builds it into dist/.
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { satteri } from '@astrojs/markdown-satteri';

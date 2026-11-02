@@ -17,7 +17,7 @@ except ImportError:  # CPython: tests set these
     network = socket = None
 import time
 
-try:  # the program's version and commit: make mpy writes stamp.py into eyes/build beside the program, never into git
+try:  # the program's version and commit: just mpy writes stamp.py into eyes/build beside the program, never into git
     from stamp import COMMIT, VERSION  # pyright: ignore[reportMissingImports]
 except ImportError:  # CPython, or a program put on without it: the noggin service ignores its beacon
     VERSION = COMMIT = "unknown"

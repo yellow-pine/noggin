@@ -9,7 +9,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   → TDD → code review → PR → retro. An agent building a ticket runs as the `implementer` subagent
   (`.claude/agents/implementer.md`), so its brief is just the issue.
 - One PR per concern, kept small, built in its own worktree at `../noggin-wt/<session>/<branch>` (the session's name as
-  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `make worktrees-clean` removes the worktrees
+  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `just worktrees-clean` removes the worktrees
   of merged, closed or deleted branches). Open the PR against main on the first push and turn auto-merge on at once
   (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
   conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
@@ -86,15 +86,17 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
   numbered the next free one. When Code fails because main took that number since, run
   `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
-- Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
+- Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`just wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
 
 ## Code
 
 - The code follows CLAUDE.md's directives.
-- `make check-light` is the local check (the pre-push hook `make venv` turns on runs it): lint, types and the tests
-  marked neither `model` nor `build`, in seconds. Everything heavier is CI's: `make check` is its `Code` job, `make
-  check-all` adds the `model` tests. The heavy targets take a machine-wide lock (`scripts/heavy.py`), so only one runs
+- The recipes live in the `justfile` (docs/adr/0016; `just --list`). Add a new recipe beside related ones, never at
+  the end of the file, where two PRs appending at once clash (#492).
+- `just check-light` is the local check (the pre-push hook `just venv` turns on runs it): lint, types and the tests
+  marked neither `model` nor `build`, in seconds. Everything heavier is CI's: `just check` is its `Code` job, `just
+  check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
@@ -103,9 +105,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
   `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks
   passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
-- `Model` runs on four shards, `make mech` one of their units, balanced by the seconds CI measured in
-  `model/durations.json`; `make model-durations RUN=<id>` refreshes it from a run's `durations-*` artifacts. `Blender`
-  packs the pictures' motions and the viewer into runners longest first (`make blender-bins`). The sim's reports are
+- `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
+  `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. `Blender`
+  packs the pictures' motions and the viewer into runners longest first (`just blender-bins`). The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports
   against main's in its job summary.
 - With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
@@ -113,7 +115,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
   a Dockerfile changes and weekly, uncached, before the Monday image scan (#534), so a PR that changes one only builds them and its jobs still run main's.
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
+- `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
   Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.
   A main commit is green only once its `deploy` is.

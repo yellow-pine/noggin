@@ -6,6 +6,8 @@ stdlib only."""
 import json
 import re
 import shlex
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,20 +23,15 @@ class Fed(str):
     """A heredoc's body or a here-string: text a command reads on stdin."""
 
 
-def heavy_targets(makefile):
-    """The targets whose recipe takes the heavy lock ($(HEAVY), scripts/heavy.py), and the full check once
-    check-light exists: CI builds those (docs/adr/0011, derived from the Makefile, not listed)."""
-    text = makefile.read_text() if makefile.is_file() else ""
-    heavy, targets = set(), []
-    for line in text.splitlines():
-        header = re.match(r"([\w-]+(?: [\w-]+)*):(?!=)", line)
-        if header:
-            targets = header.group(1).split()
-        elif line.startswith("\t") and "$(HEAVY)" in line:
-            heavy.update(targets)
-    if re.search(r"^check-light:", text, re.M):
-        heavy.add("check")
-    return heavy
+def heavy_recipes(folder):
+    """The recipes in the justfile's heavy group ([group('heavy')]), from just's JSON dump: CI builds those
+    (docs/adr/0011, read from the justfile, not listed). Empty without just or a justfile, where just runs nothing."""
+    venv = Path(__file__).resolve().parents[2] / ".venv" / "bin" / "just"  # rust-just, the dev group's
+    just = str(venv) if venv.is_file() else shutil.which("just")
+    dump = just and subprocess.run([just, "--dump", "--dump-format", "json"], cwd=folder, capture_output=True)
+    if not dump or dump.returncode:  # shortcut: no just yet lets uv run just <heavy> through; block if agents use it
+        return set()
+    return {name for name, r in json.loads(dump.stdout)["recipes"].items() if {"group": "heavy"} in r["attributes"]}
 
 
 def lex(text):
@@ -111,7 +108,7 @@ def after(words, word):
     return words[words.index(word) + 1 :] if word in words else None
 
 
-def reason(command, makefile):
+def reason(command, folder):
     """Why the command is blocked, or None. Fails closed: a command it cannot read is blocked."""
     try:
         segments = commands(command)
@@ -128,13 +125,13 @@ def reason(command, makefile):
         inner += [words[k + 1] for k in range(shell + 1, len(words) - 1) if re.fullmatch(r"-\w*c\w*", words[k])][:1]
         if "eval" in words:
             inner.append(" ".join(after(words, "eval") or []))
-        why = next((r for r in (reason(c, makefile) for c in inner) if r), None)
+        why = next((r for r in (reason(c, folder) for c in inner) if r), None)
         if why:
             return why
         loop = next(
             (w for k, w in enumerate(words) if w in ("until", "while") and (k == 0 or words[k - 1] in KEYWORDS)), None
         )
-        git, gh, make = after(words, "git"), after(words, "gh"), after(words, "make")
+        git, gh, just = after(words, "git"), after(words, "gh"), after(words, "just")
         if git is not None and any(w.lower().removeprefix("-c").startswith("alias.") for w in git):
             return "git alias: run the git command itself, so the rules can see it."
         if git is not None and "stash" in git:
@@ -147,10 +144,8 @@ def reason(command, makefile):
             return "gh api graphql from a file: put the query inline, so the rules can read it."
         if merge:
             return "gh merge: a PR lands through its checks and review; gh pr merge --auto --squash."
-        heavy = heavy_targets(makefile) if make is not None else set()
-        if make is not None and heavy & set(make):
-            light = "make check-light" if "check" in heavy else "make lint"
-            return f"make: heavy builds run in CI, not here; run {light} and the tests you touched, then push."
+        if just is not None and heavy_recipes(folder) & set(just):
+            return "just: heavy builds run in CI, not here; run just check-light and the tests you touched, then push."
         if loop and any("pgrep" in w for w in words):
             return "pgrep in a loop matches itself; gh run watch, or kill -0 on a PID (CONTRIBUTING's Waiting on CI)."
         body = next((segments[i:j] for j in range(i, len(segments)) if segments[j][0][:1] == ["done"]), segments[i:])
@@ -162,8 +157,8 @@ def reason(command, makefile):
 def main():
     try:
         event = json.load(sys.stdin)
-        # shortcut: the session's Makefile, so make -C elsewhere passes; follow -C if agents start using it
-        why = reason(event["tool_input"].get("command", ""), Path(event.get("cwd", ".")) / "Makefile")
+        # shortcut: the session's justfile, so just -f elsewhere passes; follow -f if agents start using it
+        why = reason(event["tool_input"].get("command", ""), event.get("cwd", "."))
     except Exception as error:  # fail closed: a guard that crashes must not wave the command through
         why = f"bash_guard.py failed ({error!r}); fix the hook or tell Cansin."
     if why:

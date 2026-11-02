@@ -51,9 +51,9 @@ jobs:
 
           1. Open the Core's device page in the vendor's app: it shows the installed version and whether a newer one
              exists. Update there if it offers one (the desktop app's notes: $APP_NOTES); if not, close this issue.
-          2. \`make backup-stock\`: refresh \`eyes/stock-backup\` with the new stock program, before the flash replaces it.
+          2. \`just backup-stock\`: refresh \`eyes/stock-backup\` with the new stock program, before the flash replaces it.
           3. If the new firmware brings another MicroPython (\`sys.implementation._mpy\` other than 774), re-pin
              \`[tool.noggin]\` in pyproject.toml and \`CORE_MPY\` in eyes/test_micropython.py first.
-          4. \`make flash-usb\`: the eye program back on.
+          4. \`just flash-usb\`: the eye program back on.
           EOF
           gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md"

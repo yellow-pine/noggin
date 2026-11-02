@@ -6,7 +6,7 @@ designer's (about 25 degrees of pan, 15 of nod, near the horn limits): its keys 
 pivots' own), converted to horn degrees through the four-bar kinematics (model/stages.py pose); every other key is in model horn degrees
 from neutral inside geometry.LIMITS (a blink shuts the lids at -30.75, where they meet: model/lids.py).
 Minimum-jerk between keys.
-Rendered by model/render/pictures.py (`make hero`)."""
+Rendered by model/render/pictures.py (`just hero`)."""
 
 import functools
 

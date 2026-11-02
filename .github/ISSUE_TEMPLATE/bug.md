@@ -8,6 +8,6 @@ labels: bug
 
 **What you expected**
 
-**How to reproduce** (Claude Code event, `noggin` command, or `make` target)
+**How to reproduce** (Claude Code event, `noggin` command, or `just` recipe)
 
-**Setup**: macOS version, Python (`uv run python --version`), Core (`make core-info`), Link (USB / Wi-Fi), `noggin status` output.
+**Setup**: macOS version, Python (`uv run python --version`), Core (`just core-info`), Link (USB / Wi-Fi), `noggin status` output.

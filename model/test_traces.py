@@ -58,7 +58,7 @@ def test_every_gesture_stays_inside_the_calibrated_lid_ends_and_eye_limits(gestu
 @pytest.mark.parametrize("side", "LR")
 def test_the_calibrated_closed_end_shuts_the_lids_edges_just_touching(side):
     """The real Mech's lids close at their calibrated closed end (lo 39, #255): the edges just touch, quiet, no overlap
-    (Cansin), and the pose is one make sim sweeps. The program's blinks close there (lid_closed 0)."""
+    (Cansin), and the pose is one just sim sweeps. The program's blinks close there (lid_closed 0)."""
     closed = traces.joint(f"{side.lower()}_lid", 0)
     assert -0.1 < lids.gap(side, closed) <= 0  # 0.1 deg of lip is 0.04 mm
     assert g.HORN_LIMITS[f"{side.lower()}_lid"][0] - 90 <= closed

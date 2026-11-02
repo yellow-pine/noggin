@@ -1,4 +1,4 @@
-"""The sim report (`make sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
+"""The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
 whole Mech, and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
 model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads:

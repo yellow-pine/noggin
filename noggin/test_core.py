@@ -9,6 +9,7 @@ from noggin import core
 from noggin.service import FLASH_FILES
 
 ROOT = Path(__file__).resolve().parent.parent
+JUST = Path(sys.executable).with_name("just")  # rust-just, the venv's
 
 
 def test_gestures_are_the_ones_the_core_plays():
@@ -31,15 +32,15 @@ def test_the_program_is_what_boot_imports_from_eyes():
     assert "replay" not in core.MODULES  # the Mac's copy of the clock, beside them in eyes/
 
 
-def test_make_lists_the_program_without_the_venv():
-    """The release workflow zips `make -s mpy-list PY=python3`: no site-packages (-S)."""
-    make = ["make", "-s", "mpy-list", f"PY={sys.executable} -S"]
-    out = subprocess.run(make, cwd=ROOT, capture_output=True, text=True)
+def test_just_lists_the_program_without_the_venv():
+    """`just PY=python3 mpy-list`, and the release workflow zips `python3 -m noggin.core`: no site-packages (-S)."""
+    just = [JUST, f"PY={sys.executable} -S", "mpy-list"]
+    out = subprocess.run(just, cwd=ROOT, capture_output=True, text=True)
     assert out.stdout.split() == [f"eyes/{m}.py" for m in core.MODULES], out.stderr
 
 
 def test_the_stamp_is_the_repos_version_and_commit_without_the_venv():
-    """make mpy and the release workflow write eyes/build/stamp.py from `python -m noggin.core stamp`."""
+    """just mpy and the release workflow write eyes/build/stamp.py from `python -m noggin.core stamp`."""
     out = subprocess.run([sys.executable, "-S", "-m", "noggin.core", "stamp"], cwd=ROOT, capture_output=True, text=True)
     stamp = {}
     exec(out.stdout, stamp)  # noqa: S102 stamp.py's source, which noggin.core just printed
@@ -50,7 +51,11 @@ def test_the_stamp_is_the_repos_version_and_commit_without_the_venv():
 
 
 def test_both_flashes_send_the_stamp_with_the_program():
-    make = subprocess.run(["make", "-n", "mpy", "flash-usb"], cwd=ROOT, capture_output=True, text=True).stdout
-    assert "-m noggin.core stamp > eyes/build/stamp.py" in make, make
+    program = " ".join(f"eyes/{m}.py" for m in core.MODULES)  # what mpy-list prints; -n leaves just's shell() unrun
+    dry = [JUST, "-n", f"PROGRAM={program}", "MICROPYTHON=vTAG", "mpy", "flash-usb"]
+    just = subprocess.run(dry, cwd=ROOT, capture_output=True, text=True).stderr  # just -n prints to stderr
+    assert "-m noggin.core stamp > eyes/build/stamp.py" in just, just
     for f in FLASH_FILES:  # what the Wi-Fi flash sends (noggin/service.py)
-        assert f"-o eyes/build/{f}" in make and f"cp eyes/build/{f} :{f}" in make, (f, make)
+        assert f"-o eyes/build/{f}" in just and f"cp eyes/build/{f} :{f}" in just, (f, just)
+    assert "cp eyes/boot.py :boot.py" in just  # boot.py stays .py: the Core runs boot.py only
+    assert "mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@vTAG" in just  # the stand-in's

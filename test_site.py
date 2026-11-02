@@ -264,7 +264,7 @@ def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
 
 
 def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
-    """Checks' Blender bins (make blender-bins, #297, #496): the Stage views on every Stage and the hero on stage 3,
+    """Checks' Blender bins (just blender-bins, #297, #496): the Stage views on every Stage and the hero on stage 3,
     each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""
     from model.render import pictures
 

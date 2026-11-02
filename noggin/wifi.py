@@ -141,7 +141,7 @@ class Wifi:
         commits = [f"commit {fname} {hashlib.sha256(data).hexdigest()}" for fname, data in files.items()]
         for line in commits:
             if not self.ok(name, line):
-                raise RuntimeError(f"{line.split()[1]} not swapped in (earlier files were): USB=1 make flash")
+                raise RuntimeError(f"{line.split()[1]} not swapped in (earlier files were): just flash-usb")
         self.send(name, ["reboot"])  # its ack can be lost to the reset: the beacon tells
         since = time.time()
         while time.time() - since < REBOOT_SECONDS:

@@ -109,7 +109,7 @@ def test_cable_pulled_mid_gesture_nothing_is_dropped(start):
 def test_wifi_flash_lands_and_a_broken_program_rolls_back_to_its_bak_files(start, tmp_path):
     ask, mech, log = start()
     wait(log, "eyes beacon back")
-    build = tmp_path / "mac" / "build"  # what `make mpy` writes beside calibration.json
+    build = tmp_path / "mac" / "build"  # what `just mpy` writes beside calibration.json
     build.mkdir()
     program(build, "mac")  # the same program built elsewhere: other bytes, so each file swaps in
     assert ask("flash").startswith("flashed eyes: eyes.mpy gaze_trace.mpy wifi.mpy stamp.mpy"), log

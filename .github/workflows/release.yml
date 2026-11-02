@@ -28,11 +28,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      # the eye program's files that `make flash` copies (make mpy-list, no venv here; the assignment fails with make),
-      # stamped with this release's version and commit as make mpy does (stamp.py, beside them), plus the setup wizard
+      # the eye program's files that `just flash` copies (noggin.core, as just mpy-list prints them; no venv here, and it
+      # needs none; the assignment fails with it), stamped with this release's version and commit as just mpy does
+      # (stamp.py, beside them), plus the setup wizard
       - name: Zip the Core's program
         run: |
-          program=$(make -s mpy-list PY=python3)
+          program=$(python3 -m noggin.core) && [ -n "$program" ]   # as just mpy-list, which fails on none
           python3 -m noggin.core stamp > eyes/stamp.py
           zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
       - name: Attach the zip to the release
@@ -72,9 +73,9 @@ jobs:
           package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
       # the docs and the viewer's page; the pictures and sim reports stay the live site's
       - name: Build the docs
-        run: SITE_BASE="/noggin/${TAG%.*}" make site
+        run: SITE_BASE="/noggin/${TAG%.*}" uv run just site
       # shortcut: the viewer's GLBs are the live site's, the release commit's model only once main's deploy before the
-      # tag has landed (the release PR only bumps the version); build them at the tag (make web, Blender) if that bites
+      # tag has landed (the release PR only bumps the version); build them at the tag (just web, Blender) if that bites
       - name: Attach the docs to the release
         run: |
           for stage in $(jq -r '.stages[]' site/src/macros.json); do
