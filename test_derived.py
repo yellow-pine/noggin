@@ -67,7 +67,9 @@ MADE_FROM = {
 
 
 # prefix-[matrix-]hash[-lock]: the lock step's hash is uv.lock minus the release's version bump (scripts/lock_hash.py)
-KEY = re.compile(r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}(-\$\{\{ steps\.lock\.outputs\.hash \}\})?")
+KEY = re.compile(
+    r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}(-\$\{\{ steps\.lock\.outputs\.hash \}\})?"
+)
 
 
 def patterns():
