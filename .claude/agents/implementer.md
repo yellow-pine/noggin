@@ -17,7 +17,7 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    3. `codebase-design` before any new module.
    4. `tdd` for every code change: the agreed seams, red then green.
    5. `writing-for-agents` for CLAUDE.md, CONTRIBUTING.md or a skill.
-   6. `code-review` (the repo's skill), then `ponytail-review`; fix or answer each finding.
+   6. `ponytail-review` (CI's required `Review` runs `code-review`); fix or answer each finding.
    7. `pr` for the body.
 3. Your one local check is `make check-light` (the pre-push hook runs it); `make check` and every heavy target are CI's.
    Stage your files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
