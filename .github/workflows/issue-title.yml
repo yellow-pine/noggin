@@ -41,7 +41,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
           TITLE: ${{ github.event.issue.title }}
-          PR_AUTHOR_TYPE: ${{ github.event.issue.user.type }}   # a bot's title is its own: no length limit
+          PR_AUTHOR_TYPE: ${{ github.event.issue.user.type }}   # a bot's title is its own: no length or case limit
         run: |
           marker='<!-- issue-title -->'
           for id in $(gh api --paginate "repos/$GH_REPO/issues/$ISSUE/comments" --jq ".[] | select(.user.login ==
