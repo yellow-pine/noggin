@@ -33,7 +33,7 @@ check-light: venv lint  ## seconds, no CadQuery build: lint, formatting, types, 
 	$(PY) -m pyright
 	$(REPO)/.venv/bin/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
 	$(REPO)/.venv/bin/zizmor -q --offline .
-	$(REPO)/.venv/bin/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum; USER runner is uid 1001 (useradd)
+	$(REPO)/.venv/bin/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum and printf into sort; USER runner is uid 1001 (useradd)
 	$(PY) -m pytest -q -n auto -m "not model and not build"
 check: check-light ours  ## CI's Code job: make check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
 	$(PY) -m pytest -q -n auto -m "build and not model"
