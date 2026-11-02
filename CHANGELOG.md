@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/yellow-pine/noggin/compare/v0.2.4...v0.2.5) (2026-11-02)
+
+
+### Documentation
+
+* **release:** the release skill waits on CI as CONTRIBUTING's Waiting on CI rule says ([#525](https://github.com/yellow-pine/noggin/issues/525)) ([6f8e92f](https://github.com/yellow-pine/noggin/commit/6f8e92fc1a3ee0f1bcd7b2402c9d6daa7d9de94d))
+
 ## [0.2.4](https://github.com/yellow-pine/noggin/compare/v0.2.3...v0.2.4) (2026-11-02)
 
 
