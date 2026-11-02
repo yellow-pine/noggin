@@ -304,6 +304,22 @@ def test_dependabot_turns_on_auto_merge_as_the_bot_app():
     assert merge["env"]["GH_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
 
 
+def test_bump_prs_open_through_create_pull_request():
+    """#748: the weekly bumps open their PR with peter-evans/create-pull-request as the bot App, whose token holds only
+    its own branch and the PR; no hand-rolled push or `gh pr` is left."""
+    for name in ("blender.yml", "skills.yml"):
+        jobs = yaml.safe_load((WORKFLOWS[0].parent / name).read_text())["jobs"].values()
+        steps = [s for job in jobs for s in job["steps"]]
+        app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token@"))
+        assert {k for k in app["with"] if k.startswith("permission-")} == {
+            "permission-contents",
+            "permission-pull-requests",
+        }
+        pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request@"))
+        assert pr["with"]["token"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+        assert not [s for s in steps if "git push" in s.get("run", "") or "gh pr" in s.get("run", "")], name
+
+
 def test_main_releases_itself_once_its_checks_pass():
     """#582, docs/adr/0017: semantic-release runs after this repo's push to main passed Checks, on that commit, one run
     at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""
