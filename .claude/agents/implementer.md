@@ -9,7 +9,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 ## Steps
 
-1. Read the issue (`gh issue view N`). Add a git worktree on a new branch off `origin/main` and work only there.
+1. Read the issue (`gh issue view N`). Add a git worktree at `../noggin-wt/<session>/<branch>` (your session's name as
+   ListAgents shows it, e.g. noggin-87) on a new branch off `origin/main` and work only there.
 2. Invoke the cycle's skills in this order, writing each one's name to `~/.claude/.cycle-step` as it starts:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.
    2. `domain-modeling` for a new term (GLOSSARY.md) or decision (a new ADR).
