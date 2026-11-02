@@ -24,7 +24,7 @@ defaults:
 jobs:
   changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout); only mech filters
     name: Changes
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read

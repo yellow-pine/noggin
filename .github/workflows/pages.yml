@@ -10,19 +10,23 @@ name: Site Deploy
 # leaves the last site up. Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow);
 # deploy's github-pages environment lists each deploy with its URL in the repo's Deployments panel. It acts only for
 # this repository's push to main (branches: [main] alone also matches a fork's PR from a branch named main), on that
-# push's commit (head_sha), the one the status goes on.
+# push's commit (head_sha), the one the status goes on; or for Release Docs' dispatch on main, on main's head (#414).
 on:
   workflow_run:
     workflows: ["Code Checks", "Site Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
     types: [completed]
     branches: [main]
+  workflow_dispatch:   # Release Docs, once a release's docs are on it (#414): main's head again, with them
 permissions: {}
+env:   # the commit it deploys: the completed check run's, or main's head on a dispatch
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 jobs:
   checks:
     name: Checks
     if: >-
       ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository }}
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -42,7 +46,6 @@ jobs:
         run: python3 scripts/deploy_status.py checks
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
   deploy:
     name: Deploy
@@ -69,7 +72,7 @@ jobs:
       - name: Check out the deploy's scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.SHA }}
           sparse-checkout: |
             Makefile
             scripts/docs_versions.py
@@ -92,8 +95,7 @@ jobs:
       - name: Add the sim reports
         run: make site-reports
       # every Release's docs at vX.Y/ beside main's, and the switcher's versions.json (docs/adr/0014)
-      # shortcut: a release whose docs asset lands after this commit's deploy shows from the next deploy on; dispatch
-      # Site Deploy from Release Assets if that wait matters
+      # (Release Docs dispatches this once its asset is up, #414)
       - name: Add every release's docs
         run: python3 scripts/docs_versions.py site/dist
         env:
@@ -125,7 +127,6 @@ jobs:
         run: python3 scripts/deploy_status.py deploy
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
           DEPLOY: ${{ needs.deploy.result }}
           PAGE_URL: ${{ needs.deploy.outputs.url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

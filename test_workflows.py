@@ -48,3 +48,25 @@ def test_no_workflow_runs_on_ubuntu_latest():
     """#392: `ubuntu-latest` moves under us when GitHub says so (26.04 from 2026-10-19); a named image moves when we
     do (ADR 0012)."""
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
+
+
+def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
+    """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
+    job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
+    `!cancelled()`) unless it needs that one's success. Dependabot's auto-merge acts only on its own PRs, not drafts."""
+    wrong = []
+    for f in WORKFLOWS:
+        flow = yaml.safe_load(f.read_text())
+        on = flow[True]  # yaml reads `on:` as True
+        if f.name == "dependabot.yml" or "pull_request" not in on:
+            continue
+        pr = on["pull_request"] if isinstance(on, dict) else None  # a bare trigger has the default types
+        if "ready_for_review" not in (pr or {}).get("types", []):
+            wrong.append((f.name, "types"))
+        for id_, job in flow["jobs"].items():
+            cond = str(job.get("if", ""))
+            past_skips = any(f in cond for f in ("cancelled()", "always()", "failure()")) and "== 'success'" not in cond
+            starts = not job.get("needs") or past_skips
+            if starts and "pull_request.draft" not in cond and "event_name != 'pull_request'" not in cond:
+                wrong.append((f.name, id_))
+    assert wrong == []

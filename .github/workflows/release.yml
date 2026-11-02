@@ -1,7 +1,7 @@
 name: Release Assets
 # A release tag's run (docs/adr/0010): attaches the zip to the release release-please made, as the release's deployment
 # in the `release` environment (the Deployments panel links the release; the release's notes link this run), then the
-# release's docs (docs/adr/0014).
+# release's docs (docs/adr/0014), and dispatches Site Deploy so they are live at once (#414).
 on:
   push:
     tags: ["v*"]
@@ -46,6 +46,9 @@ jobs:
     needs: release
     if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the docs asset and the notes
+      actions: write    # dispatch Site Deploy
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
@@ -82,3 +85,7 @@ jobs:
           gh release view "$TAG" --json body --jq .body > notes.md
           grep -qF '**Docs:**' notes.md || printf '\n**Docs:** https://yellowpine.com/noggin/%s/\n' "${TAG%.*}" >> notes.md
           gh release edit "$TAG" --notes-file notes.md
+      # main's site again, now with this release's docs at /noggin/vX.Y/ (#414); a dispatch is the one event
+      # GITHUB_TOKEN may start a workflow with
+      - name: Deploy the site with these docs
+        run: gh workflow run pages.yml --ref main
