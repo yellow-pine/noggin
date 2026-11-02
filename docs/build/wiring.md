@@ -20,7 +20,8 @@ its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
 ## Power
 
-- Battery -> switch board -> XH2.54 2-pin lead -> shield power input.
+- Battery -> switch board -> XH2.54 2-pin lead -> shield power input (a Y lead
+  to both shields once Core 2 is in).
 - Shield spec: 7.4 to 12.6 V. A single 3.7 V cell is below spec; two 14500
   cells in series (2S) are the minimum. Neither the Core nor the shield
   charges cells; charge externally.
@@ -36,7 +37,7 @@ its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
 The designer runs two Cores on two Shields. Ours: Core 2 ports 1 tilt, 2 mouth, 3 pan (the designer's
 config JSON; the mouth guide's "3rd position" wording is ambiguous). Both Cores join the Wi-Fi and are addressed
-directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Each shield
-is to get its own pack and switch board, a planned edit ([Model notes](../model-notes.md)): one pack cannot feed two
-shields at stall (2 x 2.6 A > 3 A). Electrical figures:
-docs/research/2026-10-31-electrical.md.
+directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md). Both shields
+run off the one pack and switch board through a Y lead, as [Stage 2](stage-2.md) has it; the gestures are to stay
+inside the pack's 3 A, since two shields at stall would draw more (2 x 2.6 A > 3 A; a pack per shield was dropped,
+#51). Electrical figures: docs/research/2026-10-31-electrical.md.
