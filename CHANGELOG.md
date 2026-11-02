@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/yellow-pine/noggin/compare/v0.2.3...v0.2.4) (2026-11-02)
+
+
+### Documentation
+
+* **docs:** one source per rule in the steering docs, and no body footer rule ([#516](https://github.com/yellow-pine/noggin/issues/516)) ([03a4d6e](https://github.com/yellow-pine/noggin/commit/03a4d6e6ab705b96c4626980a9bd3a452c1f5273))
+
 ## [0.2.3](https://github.com/yellow-pine/noggin/compare/v0.2.2...v0.2.3) (2026-11-02)
 
 
