@@ -5,30 +5,31 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 ## How work runs
 
 - Work starts from a GitHub issue (a ticket). Open one before a big change so the shape can be agreed first.
-- The cycle, in order: grilling (interview only, nothing is built) → research and domain modelling as needed → plan/spec → TDD → code review → PR → retro.
-- One PR per concern. Keep it small.
-- Every ticket is built in its own worktree on its own branch, the worktree at `../noggin-wt/<session>/<branch>` (the
-  session's name as ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `make worktrees-clean`
-  removes the worktrees of merged, closed or deleted branches), with a normal PR straight against main opened on the first
-  push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is green
-  and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight onto
-  main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers each
-  review thread (a fix, or a reply saying why not) before resolving it; Claude's approval resolves its own threads
-  that a later push outdated (`scripts/claude_approved.py`). No integration or feature branches: a spec's tickets land
-  on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It need
-  not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
-  approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
-  that edits review.yml gets no review and needs Cansin's bypass. So the rebase rule: bring main into your PR with
-  `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main` only when GitHub reports a conflict, a
-  required check was renamed or the PR needs a fix that just landed on main; never force-push. When main's
-  `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
-  a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
-  review re-runs on the new head (#433); `git pull --rebase` before your next push. A Dependabot PR gets `@dependabot rebase`. The
-  repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no
-  update-branch banner. CI runs on pushes to main, on ready (non-draft) PRs and weekly on main; every workflow runs only the latest commit of a PR or of main, cancelling
-  the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
-  cancelled run means a newer one superseded it. A pushed branch reaches main only through its own PR, never a local merge into main.
-  Every branch on GitHub has a PR, except on-hold work.
+- The cycle, in order, on mattpocock's skills: grilling (interview only, nothing is built) → research and domain modelling as needed → plan/spec
+  → TDD → code review → PR → retro. An agent building a ticket runs as the `implementer` subagent
+  (`.claude/agents/implementer.md`), so its brief is just the issue.
+- One PR per concern, kept small, built in its own worktree at `../noggin-wt/<session>/<branch>` (the session's name as
+  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `make worktrees-clean` removes the worktrees
+  of merged, closed or deleted branches). Open the PR against main on the first push and turn auto-merge on at once
+  (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
+  conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
+  branch on GitHub has a PR, except on-hold work.
+- Whoever works the ticket keeps its PR green and answers each review thread (a fix, or a reply saying why not) before
+  resolving it.
+- Main is protected: a green PR with Claude's approval is the only way in. A PR need not be up to date with main: the
+  rare break two green PRs make together is fixed forward on main (#283). Bring main into a PR as a merge (`gh pr
+  update-branch <n>`, or `git fetch && git merge origin/main`) only when GitHub reports a conflict, a required check was
+  renamed or the PR needs a fix that just landed on main, and push plain commits, never a force-push: each push
+  dismisses the approval and re-runs the review. A Dependabot PR gets `@dependabot rebase`.
+- Every ready PR gets Claude's review (`.github/workflows/review.yml`: mattpocock code-review plus ponytail):
+  claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
+  ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
+  approval lands on the head (re-run the job, #389). Its approval resolves its own threads a later push outdated
+  (`scripts/claude_approved.py`). A PR that edits review.yml gets no review and needs Cansin's bypass. When main's
+  review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
+  the new head (#433): `git pull --rebase` before your next push. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice,
+  for Actions and for Dependabot (whose PRs only see Dependabot secrets): run `claude setup-token`, then `gh secret set
+  CLAUDE_CODE_OAUTH_TOKEN` and `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
 - A PR's title is its squash commit, with no body (the repo's squash message setting is blank, Cansin, 2026-11-02:
   #388's body forced v0.2.0), so release-please reads the title alone, a body footer never reaches main, and a forced version goes in
   `release-as` in release-please-config.json, taken out once that release lands. The title is a
@@ -39,64 +40,43 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
   ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
   `release` for the release PR; `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
-  lands). A body with a `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check
-  (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title or
-  body re-runs it.
-- A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
-  finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-checks.yml`,
-  `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
-  Dependabot, the weekly bumps) has no issue and passes. `PR Issue` also runs GitHub's dependency review, which fails
-  any PR, a bot's too, that adds a dependency with a known vulnerability (#500).
-- Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
-  workflow keeps a release PR (`chore(release): release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry
-  from the titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It stays a
-  draft, so no check runs on it, until it is ready: then it goes through the required checks and review like any PR, and
-  auto-merges on green. It is ready when its newest changelog version has a Features or a BREAKING CHANGES section
-  (`scripts/release_gate.py`); fixes alone wait for the next feature, or for the `Release Now` workflow (`gh workflow
-  run release-now.yml`, or `/release`), which marks it ready, turns auto-merge on for whatever is pending and labels the
-  PR `release now` to keep it on (only the App's own label counts). Merged, it tags `vX.Y.Z` and creates the GitHub
-  release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built under
-  /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel), linked
-  from the release's notes, and then deploys the site so those docs are live at once. Never edit the version, the
-  manifest or CHANGELOG.md by hand. Both workflows, the weekly `skills` and `blender` ones and `Review`'s rebase (above)
-  run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow, so its PRs would get no checks: a
-  private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
-  write and no webhook. Each run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID`
-  variable) and private key (the `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists Release Please only leaves
-  a notice. The App's `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
-- Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
-  being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
-  last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
-  `on-hold` (paused by Cansin). The `Issue Labels` workflow keeps them in step: a PR sets each issue its body links
-  `in-progress` (dropping `ready-for-agent` and `blocked`), and closing an issue removes its state label; `blocked` and
-  `on-hold` are otherwise set by hand.
-- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json` to a commit (`ref`); the `skills` CLI
-  (`ci/package.json`, `npm ci --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`)
-  restores them into `.agents/skills` (gitignored but for the project's own skill, `release`), which the committed
-  `.claude/skills` link points at, and
-  `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
-  workflow re-pins to upstream HEAD,
-  Dependabot pins actions by SHA and bumps the CLI. Every Dependabot PR, majors too, gets auto-merge (`.github/workflows/dependabot.yml`)
-  and merges once the required checks and Claude's review pass.
-  Blender is pinned (version and the Linux tarball's sha256) in the workflows that run it; the weekly `blender`
-  workflow re-pins it to the newest stable release at least 14 days old (`scripts/blender_pin.py`), the same way.
-  Bots never commit to main: the `skills` and `blender` workflows only push their own `skills-bump` and `blender-bump`
-  branches and open (or refresh) a PR from each, which goes through review like any other; main's ruleset rejects a
-  bot's push.
-- Every ready PR gets a Claude review: claude[bot] submits a real Approve or Request changes review, and the
-  required `Review` check fails with it when Claude requests changes (a bug, a spec miss, a security issue or a breach
-  of a documented rule; ponytail suggestions never block) or decides approve but no approval lands on the head (re-run
-  the job; a hook refuses Claude's verdict until its review is on the head, #389) (`.github/workflows/review.yml`:
-  mattpocock code-review plus ponytail). It needs the
-  `CLAUDE_CODE_OAUTH_TOKEN` secret twice, for Actions and for Dependabot (whose PRs only see Dependabot secrets): run
-  `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and
-  `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
-- An agent building a ticket runs as the `implementer` subagent (`.claude/agents/implementer.md`), which carries the
-  standing rules, so its brief is just the issue.
-- Waiting on CI or a build: `gh pr checks --watch`, `gh run watch`, or a loop on the process's PID. Never `until ! pgrep -f <pattern>` (it matches itself) or a loop on a file count (it hangs when a build stops short).
-- A Claude Code hook (`.claude/settings.json`, `.claude/hooks/bash_guard.py`) blocks the commands agents reach for
-  against these rules (`git stash`, `gh pr merge --admin`, local heavy builds, a loop on `pgrep` or without a sleep),
-  each with a one-line reason naming the allowed alternative.
+  lands). The required `PR Title` check
+  (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title
+  re-runs it.
+- A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
+  `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
+  yet. The required `PR Issue` check (`scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it.
+  A bot's PR has no issue and passes. `PR Issue` also runs GitHub's dependency review, which fails any PR, a bot's too,
+  that adds a dependency with a known vulnerability (#500).
+- Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
+  from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
+  hardware), `on-hold` (paused by Cansin). The `Issue Labels` workflow sets `in-progress` on each issue a PR's body
+  links and clears the label when the issue closes; `blocked` and `on-hold` are otherwise set by hand.
+- Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). Release Please keeps a
+  release PR that bumps it and adds the CHANGELOG.md entry from the titles merged since the last release. It stays a
+  draft until its newest version has a Features or a BREAKING CHANGES section (`scripts/release_gate.py`); fixes alone
+  wait for the next feature, or for `gh workflow run release-now.yml` (or `/release`). Merged, it tags `vX.Y.Z`, and
+  `Release Assets` attaches the Core program zip and the release's docs (docs/adr/0014). Never edit the version, the
+  manifest or CHANGELOG.md by hand.
+- The workflows that open PRs or push (Release Please, Release Now, the weekly `skills` and `blender` ones, `Review`'s
+  rebase) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on
+  yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and write and no
+  webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the `RELEASE_APP_PRIVATE_KEY`
+  secret. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
+- Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
+  (gitignored but for the project's own `release` skill; the committed `.claude/skills` links there) with `npm ci
+  --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
+  against its `computedHash`.
+- Bumps arrive as PRs and merge through checks and review like any other: the weekly `skills` workflow re-pins the
+  skills to upstream HEAD, the weekly `blender` one re-pins Blender to the newest stable release at least 14 days old
+  (`scripts/blender_pin.py`), each from its own `skills-bump` or `blender-bump` branch, and Dependabot pins actions by
+  SHA and gets auto-merge on every PR, majors too. Bots never commit to main.
+- Waiting on CI: one background command that exits only on a terminal state (merged, failed, or needs a human). `gh pr
+  checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
+  `sleep 60; until gh pr checks N >/dev/null; [ $? != 8 ]; do sleep 60; done; sleep 60; gh pr view N --json
+  state,mergeStateStatus,reviewDecision`. A build: `gh run watch`, or a loop with a sleep on its PID.
+- A Claude Code hook (`.claude/hooks/bash_guard.py`) blocks the commands these rules ban, each with a one-line reason
+  naming the allowed alternative.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
@@ -108,62 +88,32 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
-- Hardware facts and calibration lessons are in the build guide, `docs/build/`. The Core's firmware is updated with the vendor's own tools only; esptool only for read-only queries (ADR 0012).
 
 ## Code
 
-- Feature-first layout: `eyes/`, `noggin/`, `reactions/`, `model/`, `web/` (the viewer's GLBs), `mech/`, `ci/` (the CI
-  images), `site/` (the site's npm package: its pages, the viewer's page and module, ADR 0013). Tests sit beside the
-  code they test (`test_*.py`, `*.test.mjs` in the same folder).
-- Smallest thing that works; no options or abstractions nobody asked for.
-- Run `make check-light` before pushing (the pre-push hook `make venv` turns on runs it): lint, types and the tests
-  marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
-  but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
-  `sim`, `trajectories`, `render`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
-  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR or main push what it touches, below), split over three required jobs
-  (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
-  view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
-  three shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, each document, the
-  rest and `make sim`, longest first onto the lightest, by the seconds CI measured, in `model/durations.json`; `make
-  model-durations RUN=<id>` refreshes it from a run's `durations-*` artifacts), pytest on every core (pytest-xdist). The
-  sim's shard runs `make sim` only when what the reports are made from changed:
-  their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
-  diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
-  site at /reports (ADR 0009). Site Checks' `Site` job caches npm's downloads by `site/package-lock.json`
-  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR or main push whose pictures and viewer
-  are cached from the same inputs, neither Blender job runs and `site` restores them (#386, #471). A cold parts cache is first cut part
-  by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
-  Every Monday `Cache Prune` deletes the caches whose key prefix no workflow on main uses any more (`scripts/cache_prune.py`,
-  #473), so retired caches never crowd live ones out of the 10 GB cap.
-  With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
-  its summary and never fails (#442; `scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed
-  from when a runner picked it up, so a busy queue never trips it; a "re-run failed jobs" is timed on its own attempt). Each job's
-  slowest tests are in its run summary.
-- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` and
-  Code Checks' `Code` in `ci/base.Dockerfile`, `Render` and `Viewer` in `ci/blender.Dockerfile` (base plus Blender),
-  by the `:main` tag in their `container:` (#481); every other job stays on the bare runner with setup-uv and apt,
-  since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to
-  GHCR: it pushes `:main`, with its build provenance, only when a Dockerfile changes (Dependabot keeps the
-  Dockerfiles' base images digest-pinned and bumps them, bringing the security fixes, #472), and every job that starts
-  after runs in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read only).
-- `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
-  and `Model`, so main's Code Checks cover all three, #295), on PRs and main pushes touching eyes/, noggin/ or mech/. The
-  site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
-  `Model`, `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing
-  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing. A
-  push to main filters the same way, against main's last commit whose Code Checks passed on a push (#471), so a run a
-  newer push cancelled is made up for, but main's `Site` always runs, since it
-  builds the deploy; every Monday a scheduled run on main runs everything, the filters' safety net, and deploys
-  nothing. `Pictures` sums up the `Render` job's runners (one per
-  motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
-  under one name.
-- A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
-  upload it as an artifact; Site Deploy (`pages.yml`) runs only on main, once both Code Checks and Site Checks passed
-  for the commit (#295), and deploys that very artifact (no rebuild) with main's newest sim reports at /reports and
-  every release's docs at /vX.Y/ (`scripts/docs_versions.py`, docs/adr/0014). Main's
-  commit carries a `deploy` status (#292): pending while Site Checks build, then success linking the site, failure
-  linking the run (or the red check run: "not deployed: checks failed"), or error when a newer commit superseded it
-  (`scripts/deploy_status.py`). A main commit is green only once its `deploy` is.
+- The code follows CLAUDE.md's directives.
+- `make check-light` is the local check (the pre-push hook `make venv` turns on runs it): lint, types and the tests
+  marked neither `model` nor `build`, in seconds. Everything heavier is CI's: `make check` is its `Code` job, `make
+  check-all` adds the `model` tests. The heavy targets take a machine-wide lock (`scripts/heavy.py`), so only one runs
+  at a time: several at once took the Mac to ~30 GB.
+- CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
+  Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
+  release tag's run and Release Please's are never cancelled). Each workflow's header comment says what it does.
+- A `Changes` job (dorny/paths-filter) skips a required job when nothing it is made from changed, which GitHub counts as
+  passing; `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose
+  Code Checks passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
+- `Model` runs on three shards, balanced by the seconds CI measured in `model/durations.json`; `make model-durations
+  RUN=<id>` refreshes it from a run's `durations-*` artifacts. The sim's reports are never committed: main's are on the
+  site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports against main's in its job summary.
+- With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
+  its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
+- The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
+  every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
+  a Dockerfile changes, so a PR that changes one only builds them and its jobs still run main's.
+- `make mech` runs the Link's live checks on the Mech stand-in (mech/), CI's `Mech` job.
+- Site Deploy deploys the very artifact Site Checks built, once main's Code Checks and Site Checks passed (#295, #310).
+  Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.
+  A main commit is green only once its `deploy` is.
 
 ## Licence
 

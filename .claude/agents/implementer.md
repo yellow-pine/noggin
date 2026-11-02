@@ -9,8 +9,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 ## Steps
 
-1. Read the issue (`gh issue view N`). Add a git worktree at `../noggin-wt/<session>/<branch>` (your session's name as
-   ListAgents shows it, e.g. noggin-87) on a new branch off `origin/main` and work only there.
+1. Read the issue (`gh issue view N`). Add a git worktree where CONTRIBUTING.md puts it, on a new branch off
+   `origin/main`, and work only there.
 2. Invoke the cycle's skills in this order:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.
    2. `domain-modeling` for a new term (GLOSSARY.md) or decision (a new ADR).
@@ -19,33 +19,23 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    5. `writing-for-agents` for CLAUDE.md, CONTRIBUTING.md or a skill.
    6. `ponytail-review` (CI's required `Review` runs `code-review`); fix or answer each finding.
    7. `pr` for the body.
-3. Your one local check is `make check-light` (the pre-push hook runs it); `make check` and every heavy target are CI's.
-   Stage your files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
-   scripts/pr_title.py "<title>" < body` exits 0, and its one scope is in what `python3 scripts/pr_title.py` prints);
-   open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
-   --auto --squash` at once. A PR whose proof (measurements, screenshots) needs CI's run says `Refs #N` until that proof
-   is in its body, then `Closes #N`.
+3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push hook
+   runs your one local check. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in
+   what `python3 scripts/pr_title.py` prints), open one PR against main with the title and issue link CONTRIBUTING.md
+   describes, then `gh pr merge --auto --squash` at once.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
-   - Bring main into your PR with `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main`, only when
-     the rebase rule allows (CONTRIBUTING.md); never force-push. Commits are the only place work waits; never stash.
+   - Bring main in only when CONTRIBUTING.md says to. Commits are the only place work waits.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
      thread with GraphQL `resolveReviewThread`.
-   - Wait in one background command that exits only on a terminal state (merged, failed, or needs a human); `gh pr
-     checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
-     `sleep 60; until gh pr checks N >/dev/null; [ $? != 8 ]; do sleep 60; done; sleep 60; gh pr view N --json
-     state,mergeStateStatus,reviewDecision`. The PR lands through its checks and review alone; never `--admin`.
+   - Wait as CONTRIBUTING.md's "Waiting on CI" says.
 5. A choice the ticket and docs leave open: make it, and record it on the issue as a `Decision (made while away)`
    comment.
 
 ## Practices
 
-- Ponytail at full: the smallest complete change.
 - Edit files with the Edit tool, which fails loudly on a miss; a scripted replace asserts its match first
   (`assert old in text`).
-- CLAUDE.md's directives hold, these above all: standards and libraries before custom code, never a paid service,
-  ground truth's order and inferred guesses, Blender pictures and Mermaid diagrams, sources only (ADR 0009), derived
-  not listed (ADR 0011), hardware never gating a merge.
 
 ## Report
 

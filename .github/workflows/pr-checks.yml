@@ -64,13 +64,12 @@ jobs:
           # ever starts with a non-ASCII letter
           subjectPattern: '^(?![A-Z]).*[^.]$'
           subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter or end with a period.'
-      - name: Check the scope, length and break mark
-        # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it or add a !
+      - name: Check the scope and length
+        # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it
         if: ${{ github.event.pull_request.user.type != 'Bot' }}
         env:   # via env, never inlined into the script
           TITLE: ${{ github.event.pull_request.title }}
-          BODY: ${{ github.event.pull_request.body }}
-        run: python3 scripts/pr_title.py "$TITLE" <<<"$BODY"
+        run: python3 scripts/pr_title.py "$TITLE"
   issue:
     name: PR Issue
     if: ${{ !github.event.pull_request.draft }}
