@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/yellow-pine/noggin/compare/v0.2.1...v0.2.2) (2026-11-02)
+
+
+### Features
+
+* **site:** the viewer explodes Stage 3 and its controls become one bar ([#487](https://github.com/yellow-pine/noggin/issues/487)) ([94e1674](https://github.com/yellow-pine/noggin/commit/94e167494085f92bd5287f28b1a1e88aa3ff4c8b))
+
+
+### Documentation
+
+* **docs:** implementers edit with the Edit tool, and a scripted replace asserts its match ([#488](https://github.com/yellow-pine/noggin/issues/488)) ([089c502](https://github.com/yellow-pine/noggin/commit/089c502c755b770bfa55ea14715e870aa2987fc5))
+
 ## [0.2.1](https://github.com/yellow-pine/noggin/compare/v0.2.0...v0.2.1) (2026-11-02)
 
 
