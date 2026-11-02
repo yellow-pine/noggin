@@ -56,6 +56,14 @@ test('the header is at most 100 characters, except a bot\'s', () => {
   assert.ok(passes(head + 'b'.repeat(101 - head.length), { env: { PR_AUTHOR_TYPE: 'Bot' } }));
 });
 
+test('a bot\'s subject may start with a capital, its type and scope still checked (#794)', () => {
+  const bot = { env: { PR_AUTHOR_TYPE: 'Bot' } };
+  assert.ok(passes('ci(deps-dev): Bump x from 1 to 2', bot));
+  assert.ok(!passes('ci(deps-dev): Bump x from 1 to 2'));
+  assert.ok(!passes('bump(deps-dev): Bump x from 1 to 2', bot));
+  assert.ok(!passes('ci(nowhere): Bump x from 1 to 2', bot));
+});
+
 test('the issues Main Red files have valid titles (#767)', () => {
   const titles = [...readFileSync(join(ci, '../.github/workflows/main-red.yml'), 'utf8').matchAll(/title="([^"]+)"/g)];
   assert.equal(titles.length, 2);

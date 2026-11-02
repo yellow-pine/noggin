@@ -42,10 +42,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
   ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them
   (main's: a new folder is a scope once it lands). The required `PR` check (`.github/workflows/pr-checks.yml`)
-  enforces it all with commitlint and `ci/commitlint.config.mjs` (a bot's title may pass 100 characters); editing the
-  title re-runs it. Check a title before you open the PR, at the repo's root after `npm ci --prefix ci`:
-  `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
-  is wrong.
+  enforces it all with commitlint and `ci/commitlint.config.mjs` (a bot's title may pass 100 characters and start its
+  subject with a capital); editing the title re-runs it. Check a title before you open the PR, at the repo's root
+  after `npm ci --prefix ci`: `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which
+  lists the scopes when one is wrong.
 - An issue's title is a Conventional Commit too, by the same rules, so it can become its PR's title (#767), whoever or
   whatever opens it: an automation writes a valid one from the start (Main Red's is `fix(ci): main red on <sha7>`) and
   finds its issues by label, never by a title anyone may edit. The `Issue Title` workflow
