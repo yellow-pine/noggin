@@ -48,19 +48,24 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Look up the cached pictures
         id: pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
       - name: Look up the cached viewer
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
@@ -298,6 +303,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # every motion's pictures (model/build/images, which make site puts at site/dist/images): the last ones rendered
       # from the same inputs, else render's, saved here all together for changes to find
       - name: Restore the pictures

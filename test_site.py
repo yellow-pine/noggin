@@ -244,8 +244,8 @@ def test_site_checks_pictures_key_hashes_what_render_does():
         (step,) = [s for s in jobs[job]["steps"] if s.get("id") == id_]
         return step["with"]["key"]
 
-    render = re.search(r"hashFiles\(.*\)", key("render", "frames"))[0]  # a key per motion over the same inputs
-    assert key("changes", "pictures") == key("site", "images") == f"pictures-${{{{ {render} }}}}"
+    render = key("render", "frames").removeprefix("images-${{ matrix.motion }}-")  # a key per motion, same inputs
+    assert key("changes", "pictures") == key("site", "images") == f"pictures-{render}"
 
 
 @pytest.mark.parametrize(
