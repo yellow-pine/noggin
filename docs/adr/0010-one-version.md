@@ -11,6 +11,9 @@
 >
 > Amended 2026-11-02 (#382): a scope is required again, exactly one, derived from the repo; the types and subject
 > rules are @commitlint/config-conventional's; a `BREAKING CHANGE:` footer needs `!` in the title.
+>
+> Amended 2026-11-02 (#407): the release PR auto-merges only when a feature or a breaking change is pending; anything
+> else waits for one, or for Release Now.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -30,10 +33,18 @@ copy, and the tag is `v` plus it.
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
-  release. It passes the required checks, Claude's review included, and auto-merges on green; merged, it tags `vX.Y.Z`
+  release. It passes the required checks, Claude's review included; merged, it tags `vX.Y.Z`
   and creates the GitHub release, its notes the version's CHANGELOG.md section (each entry links its PR, which links
   its issue (#356), and its commit), and the tag starts Release Assets, which attaches the Core program zip as the release's
   deployment in the `release` environment (the Deployments panel links the release; its notes link the run).
+- **Features and breaks release themselves; the rest waits (#407).** Every merge to main once released a fix on its own,
+  too often. After each update the workflow reads release-please's changelog in the PR body (scripts/release_gate.py):
+  a `Features` or `⚠ BREAKING CHANGES` section in the newest version's block turns the PR's auto-merge on, anything
+  else turns it off, so fixes and perf ship with the next feature. The `Release Now` workflow (or `/release`) turns it
+  on for whatever is pending and labels the PR `release now`, which keeps it on through later updates; only the App's
+  own label counts, since anyone with triage rights can add one. Release Now picks the PR by release-please's branch,
+  the App as author and the pending label. Both act as the release App, so the merge still tags and starts Release
+  Assets.
 - **A GitHub App's token, not `GITHUB_TOKEN`.** What `GITHUB_TOKEN` creates starts no workflow: the release PR would
   get no checks and its tag no assets. So the workflow mints a short-lived token per run from a small private GitHub
   App on yellow-pine (actions/create-github-app-token), not a personal token tied to one account (#328,
@@ -46,3 +57,5 @@ copy, and the tag is `v` plus it.
 - Tags by hand with `--generate-notes`: rejected, no CHANGELOG.md and nothing decides the bump.
 - semantic-release: rejected, it releases on every merge with no reviewed PR, so the bump and the changelog land
   unreviewed.
+- Gating the release PR on a list of commit types (#407): rejected, release-please already sorts the commits into its
+  changelog's sections, and a second list would drift from it (ADR 0011).

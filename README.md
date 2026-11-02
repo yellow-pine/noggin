@@ -49,7 +49,8 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 | Dependabot Auto-merge | `dependabot.yml` | Dependabot's PRs | turns on auto-merge (squash): the PR merges once the required checks and Claude's review pass |
 | Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
 | Firmware Watch | `firmware.yml` | weekly | opens an issue for each new Core firmware on the vendor's release notes |
-| Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
+| Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green when a feature or a break is pending; merged, tags and releases it |
+| Release Now | `release-now.yml` | by hand | auto-merges the release PR on green for whatever is pending |
 | Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release, with the release's docs, deployed to the `release` environment |
 
 Required checks on main: `Code`, `Model`, `Mech`, `Site`, `Pictures`, `Review`, `Fetch Skills`, `PR Title` and
