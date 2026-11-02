@@ -105,11 +105,12 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     notes = macros.picture_numbers()
     assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
-        "| hero | 800x400 | 800 wide, 8 fps, 64 colours, at most 3 MB |",
+        "| hero | 800x400 | 8 fps, at most 3 MB |",
         "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
         "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
         "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
-        "| background | | #F7F4EE | #F7F4EE |",
+        "| lines | | #5F5F5F | |",
+        "| background | | transparent | #F7F4EE |",
     ]:
         assert row in notes
 
@@ -183,23 +184,51 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 
 def test_every_picture_ci_builds_is_shown_from_the_site():
-    """The README's and the docs' pictures (the badges aside; Markdown images or the figures' <img>s) are the site's
-    absolute /images URLs of files in the pictures manifest, and each of those is shown somewhere."""
+    """The README's and the docs' pictures (the badges aside; Markdown images or the figures' <img>s, and the Stage
+    panels' grid, macros.py) are the site's absolute /images URLs of files in the pictures manifest, and each of those
+    is shown somewhere."""
+    import macros  # here, not at the top: it imports the model, as pictures does
     from model.render import pictures
 
-    docs = [
-        ROOT / "README.md",
-        *(p for p in (ROOT / "docs").rglob("*.md") if not {"references", "research"} & set(p.parts)),
+    texts = [
+        (ROOT / "README.md").read_text(),
+        *(p.read_text() for p in (ROOT / "docs").rglob("*.md") if not {"references", "research"} & set(p.parts)),
+        macros.panels(),
     ]
     urls = {
-        u
-        for d in docs
-        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", d.read_text()) + re.findall(r'<img src="([^"]+)"', d.read_text())
+        u.split("#")[0]
+        for t in texts
+        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", t) + re.findall(r'<img src="([^"]+)"', t)
         if u.startswith("http") and not u.startswith("https://img.shields.io/")
     }
     site = "https://yellowpine.com/noggin/images/"
     assert [u for u in urls if not u.startswith(site)] == []
     assert sorted(u.removeprefix(site) for u in urls) == sorted(sum(pictures.SITE.values(), []))
+
+
+def test_every_stage_has_a_side_and_an_isometric_panel():
+    """Cansin (#470): the panels come from the Stages in the code, each from the side and isometric, one WebP each
+    with its lines in one grey for both themes (#489); the hero one WebP too."""
+    from model import geometry as g
+    from model.render import pictures
+
+    panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
+    assert sorted(pictures.SITE["views"]) == sorted(panels)
+    assert pictures.SITE["hero"] == ["hero.webp"]
+
+
+def test_the_panels_grid_has_a_column_per_stage_and_a_row_per_view_each_linking_its_full_size():
+    """The landing page's and Pictures' grid (Cansin, #470): one source, macros.py panels; each picture links to its
+    file."""
+    import macros
+
+    grid = macros.panels()
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Stage 1", "Stage 2", "Stage 3"]
+    assert re.findall(r"<span>([^<]*)</span>", grid) == ["", "Side", "Isometric"]
+    links = re.findall(r'<a href="([^"]+)"><img src="([^"]+)"', grid)
+    assert len(links) == 6 and all(href == src and src.endswith(".webp") for href, src in links)
+    for page in ("index.md", "pictures.md"):
+        assert "<!--{{ panels }}-->" in (ROOT / "docs" / page).read_text()
 
 
 def test_the_hero_is_800x400_and_leads_the_readme():
@@ -208,7 +237,7 @@ def test_the_hero_is_800x400_and_leads_the_readme():
     viewer (#468); on the site it shows in a figure at its size (site.test.mjs)."""
     from model.render import pictures
 
-    hero = "https://yellowpine.com/noggin/images/hero.gif"
+    hero = "https://yellowpine.com/noggin/images/hero.webp"
     assert pictures.HERO_SIZE == (800, 400)
     readme = (ROOT / "README.md").read_text()
     viewer = "https://yellowpine.com/noggin/viewer/"

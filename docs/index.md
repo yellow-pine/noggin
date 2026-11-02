@@ -6,7 +6,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 <div class="noggin-viewer hero" data-stage="stage3">
 <figure>
-<img src="https://yellowpine.com/noggin/images/hero.gif" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
+<img src="https://yellowpine.com/noggin/images/hero.webp" alt="noggin: Stage 3 talking, turning and nodding" width="800" height="400">
 <figcaption>Stage 3 talking, turning and nodding</figcaption>
 </figure>
 </div>
@@ -26,10 +26,11 @@ More in [Gestures and behaviour](use/gestures.md).
 
 ## The three Stages
 
-<figure>
-<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
-<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
-</figure>
+<!--{{ panels }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the grid above, which it builds from the code -->
+Each Stage from the side and isometric is in [the grid on the site](https://yellowpine.com/noggin/docs/pictures/).
+<!-- #}-->
 
 The Mech grows in three Stages, each a complete Mech on the desk.
 

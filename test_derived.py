@@ -73,6 +73,7 @@ MADE_FROM = {
     "images": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),
     "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
     "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
+    "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
     # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),

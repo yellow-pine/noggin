@@ -5,9 +5,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Rendering rules (2026-10-31, #47)
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `make trajectories`; #150): `make render` for
-  the views (each Stage at rest, a trajectory's first frame; sub-assemblies at their placement), `make hero` for the
-  hero GIF; code in model/render, output in model/build/pictures. The gestures play in the web viewer, not in GIFs
-  (#468).
+  the Stage panels (each Stage at rest, a trajectory's first frame), `make hero` for the hero;
+  code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
+  in the web viewer, not in GIFs (#468).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
@@ -17,25 +17,32 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
-  shadow and one small highlight band, black lines on silhouettes and creases (faces more than 60 degrees apart, so
-  STL facets draw none; their width blender.py ART_PX in the pictures, LINE_PX in the web viewer), one key light at the camera's upper right, a plain background. STL facets are
+  shadow and one small highlight band, grey lines on silhouettes and creases (faces more than 60 degrees apart, so
+  STL facets draw none; their width blender.py ART_PX in the pictures, LINE_PX in the web viewer), one key light at the camera's upper right, a transparent background. STL facets are
   smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the eyeball so their outline stays
   whole. For CI's software GL (Cansin, 2026-11-01, #226, #276; docs/research/2026-11-01-render-profile.md): Blender's
-  Line Art draws the lines (Freestyle took ~90 % of a frame on one thread), Eevee takes 4 samples a frame (was 64), the
-  hero GIF renders at the size it ships, 8 fps, keeping toon timing's key frames (pictures.py at_fps).
-- Views, orthographic, fitted to the parts: top/side/front of each sub-assembly (base, stack, eyes, the
-  mouth on the eyes) and each Stage (PT frame top looking down Z, side from +X, front from -Y; eyes
-  frame top from +Y, side from -X, front from -Z).
+  Line Art draws the lines (Freestyle took ~90 % of a frame on one thread), the hero renders at the size it ships,
+  8 fps, keeping toon timing's key frames (pictures.py at_fps). Tuned for speed (Cansin, 2026-11-02, #470; the render
+  profile on #467): Eevee takes blender.py SAMPLES a frame (was 64, then 4) under a hard sun (SUN_ANGLE, so its shadow
+  edge needs no samples), the hero renders as one animation (one depsgraph), the heaviest meshes are decimated for the
+  pictures only (LIGHTER, LIGHTER_FACES; the GLBs keep theirs), Line Art culls back faces, and CI keeps Mesa's shader
+  cache.
+- Every picture is one WebP with a transparent background, its lines one mid grey (blender.py INK) that reads on the
+  site's light and dark pages alike (Cansin, #470, #489: white lines on the dark theme read badly; of three greys
+  she took the darkest). No backdrop, disc or tint behind the Mech.
+- Stage panels (Cansin, #470): each Stage from its left side (+X) and isometric from its front left (+X, -Y, +Z),
+  orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
+  VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
+  per view, each linking to its file; on a phone stacked by Stage.
 - README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, Site Checks'
   `Render` job, one runner per motion (`make pictures-list`, #297), gathered in its `Site` job;
   model/render/pictures.py SITE;
-  yellowpine.com/noggin/images/): the hero GIF (`make hero`: stage 3 from 15 degrees to its right, 15
+  yellowpine.com/noggin/images/): the hero, an animated WebP (`make hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
-  penetrations as MuJoCo's report judges a sweep), the Stage strip
-  (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), no photos. The gestures play
-  in the web viewer on the landing page and at /viewer (#468), and Stage 3 explodes there (#482).
+  penetrations as MuJoCo's report judges a sweep), the Stage panels, no photos. The gestures play in the web viewer on
+  the landing page and at /viewer (#468), and Stage 3 explodes there (#482).
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code

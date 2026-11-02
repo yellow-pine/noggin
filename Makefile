@@ -107,11 +107,11 @@ view: venv ours     ## a document (DOC=, default noggin-eyes; any stages.DOCS ke
 	$(PY) -m mujoco.viewer --mjcf=model/build/mjcf/$(DOC).xml
 trajectories: venv ours   ## MuJoCo plays each gesture and the hero on each Stage (TRAJ_DOCS= picks some): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
 	$(HEAVY) $(PY) -m model.trajectories $(TRAJ_DOCS)
-render: venv ours trajectories   ## Blender pictures, each Stage at rest from its trajectories: views, Stage strip (model/build/pictures)
+render: venv ours trajectories   ## Blender pictures, each Stage at rest from its trajectories: the Stage panels (model/build/pictures)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures views
-hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory
+hero: venv ours trajectories     ## the hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory, as light and dark WebP
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
-pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views or hero)
+pictures: venv ours trajectories   ## the site's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views or hero)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
 model-shards-list: venv   ## the model tests' three shards, balanced on model/durations.json, as JSON (Code Checks' model matrix, #305, #474; make -s for the JSON alone)
 	@$(PY) -m model.shards
