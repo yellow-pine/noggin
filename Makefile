@@ -15,10 +15,11 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean
+.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean
 
-venv:            ## .venv with pyserial, pytest, mpremote
+venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (pre-push: make check-light)
 	uv sync -q
+	git config core.hooksPath .githooks
 test: venv ours   ## every test, under the heavy lock (CI's model jobs select theirs with -m model)
 	$(HEAVY) $(PY) -m pytest -q
 readme: venv     ## the README's CI/CD table from .github/workflows (scripts/workflow_table.py, cog); make check fails while it is stale
@@ -29,12 +30,14 @@ fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
 worktrees-clean: venv  ## remove the worktrees of merged, closed or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
 	$(PY) scripts/worktrees_clean.py
-check: venv ours lint  ## CI's Code job: the tests not marked model, lint, formatting, types, the workflows (actionlint; zizmor, offline), wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
-	$(PY) -m pytest -q -m "not model"
+check-light: venv lint  ## seconds, no CadQuery build: lint, formatting, types, the workflows (actionlint; zizmor, offline) and the tests marked neither model nor build; .githooks/pre-push runs it
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
 	$(REPO)/.venv/bin/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
 	$(REPO)/.venv/bin/zizmor -q --offline .
+	$(PY) -m pytest -q -n auto -m "not model and not build"
+check: check-light ours  ## CI's Code job: make check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
+	$(PY) -m pytest -q -m "build and not model"
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"

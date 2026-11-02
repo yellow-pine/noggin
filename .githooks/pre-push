@@ -1,0 +1,3 @@
+#!/bin/sh
+# before every push: make check-light (ruff, pyright and the tests that need no parts build, CONTRIBUTING.md)
+exec make check-light

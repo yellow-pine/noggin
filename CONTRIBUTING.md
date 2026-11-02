@@ -115,8 +115,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   code they test (`test_*.py`, `*.test.mjs` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
 - Run `make check` before opening a PR: the `Code` set, everything but the tests marked `model`. `make check-all` adds
-  those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
-  `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
+  those. `make check-light` is that set without the CadQuery build (no tests marked `build`), in seconds; the pre-push
+  hook (`.githooks/pre-push`, which `make venv` turns on) runs it. The heavy targets (`make check-all`'s model tests,
+  `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
