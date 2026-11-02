@@ -105,6 +105,11 @@ until the model stabilises.
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
+  Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in next-mech, moved
+  by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play,
+  yaw/pitch crosstalk beside the Hooke form, the vergence a print error makes, the lids' clearance and range, the caps'
+  gap), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
+  `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the
