@@ -105,8 +105,9 @@ def blender(name, manifest, shots):
     files = [
         os.path.join(p, f"frame{i:04d}.png") for s in shots for p in s["out"].values() for i in range(len(s["poses"]))
     ]
-    if r.returncode or not all(os.path.isfile(f) for f in files):
-        sys.exit(f"Blender failed on {name}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
+    missing = [f for f in files if not os.path.isfile(f)]
+    if r.returncode or missing:
+        sys.exit(f"Blender failed on {name}, missing {missing[:3]}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
     print("".join(line for line in r.stdout.splitlines(True) if line.startswith("frame ")), end="")  # each frame's s
 
 

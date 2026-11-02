@@ -137,6 +137,7 @@ def dark_theme(sc, hexc):
     link(tint.outputs["Result"], add.inputs["B"])
     dark = n("CompositorNodeOutputFile")
     dark.format.media_type, dark.format.file_format, dark.format.color_mode = "IMAGE", "PNG", "RGBA"
+    dark.file_name = ""  # its default prefixes the .blend's name ("Unsaved" in background mode)
     dark.file_output_items.new("RGBA", "frame")
     link(add.outputs["Result"], dark.inputs["frame"])
     return dark
