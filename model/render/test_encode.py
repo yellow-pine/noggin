@@ -63,7 +63,7 @@ def test_the_site_s_motions_record_their_seconds_as_the_bins_weigh_them(tmp_path
     monkeypatch.setattr(pictures, "OUT", str(tmp_path))
     monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
     monkeypatch.setattr(pictures, "SECONDS", str(tmp_path / "seconds"))
-    monkeypatch.setattr(pictures, "MOTIONS", {})
+    monkeypatch.setattr(pictures, "SITE", {})
     monkeypatch.setattr(pictures, "render", lambda motion: [20.0, 2.0, 3.0] if motion.startswith("hero") else None)
     pictures.main("site", ["hero:0-3", "views"])
     took = json.loads((tmp_path / "seconds" / "pictures.json").read_text())
