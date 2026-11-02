@@ -133,8 +133,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - With a warm cache a run's critical path should stay within 2 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
-  every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
-  a Dockerfile changes and weekly, uncached, before the Monday image scan (#534), so a PR that changes one only builds them and its jobs still run main's.
+  every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
+  synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
+  venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
+  (#534), so a PR that changes a Dockerfile only builds them and its jobs still run main's.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
   Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.

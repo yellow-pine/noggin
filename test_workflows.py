@@ -176,6 +176,7 @@ def test_a_pr_runs_the_slim_gate_alone():
     assert "${{ github.event_name == 'pull_request' && 'check-light' || 'check' }}" in check
     assert [s["name"] for s in jobs["code"]["steps"] if OFF_PRS not in str(s.get("if", ""))] == [
         "Check out the repo",
+        "Link the image's venv",
         "Run just check",
         "List the slowest tests",
     ]
@@ -267,6 +268,19 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert "pull_request" in jobs["build"]["if"]
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_the_jobs_in_our_images_use_its_synced_venv():
+    """#725: the base image carries uv's Python and the venv synced from uv.lock; main rebuilds it when the venv's
+    inputs change, and every job running in our images links it as .venv before uv touches the checkout."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert {"uv.lock", "pyproject.toml", ".python-version"} <= set(images[True]["push"]["paths"])
+    for f in WORKFLOWS:
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items():
+            if "container" in job:
+                runs = [s.get("run", "") for s in job["steps"]]
+                link = next(i for i, r in enumerate(runs) if "ln -s /opt/uv/venv .venv" in r)
+                assert all("uv " not in r for r in runs[:link]), (f.name, id_)
 
 
 def test_codeql_scans_main_and_weekly_never_a_pr():
