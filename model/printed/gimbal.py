@@ -126,13 +126,7 @@ def push_rod():
 
 def link(a, b, x):
     """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    w = ARM / 2
-    side = np.array([a[1] - b[1], b[0] - a[0]]) * w / math.dist(a, b)
-    outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
-    out = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(outline).close().extrude(x[1] - x[0])
-    for y, z in (a, b):
-        out = out.union(cyl("x", (0, y, z), w, x))
-    return holes(out, (a, b), x)
+    return holes(lid_plain([a, b], x), (a, b), x)
 
 
 def holes(out, pins, x):
