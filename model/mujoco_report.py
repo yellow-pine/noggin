@@ -3,7 +3,7 @@
 reached quasi-statically by mjcf.pose, and reports per pose: contacts and penetration per pair (MuJoCo's signed
 distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
-the servo's rated speed, to see whether the joints land where the slow pose puts them. make sim writes it into
+the servo's rated speed, to see whether the joints land where the slow pose puts them. just sim writes it into
 model/build/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the MJCF model/build/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 

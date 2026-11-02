@@ -4,14 +4,14 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 
 ## Rendering rules (2026-10-31, #47)
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
-  posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `make trajectories`; #150): `make render` for
-  the Stage panels (each Stage at rest, a trajectory's first frame), `make hero` for the hero;
+  posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
+  the Stage panels (each Stage at rest, a trajectory's first frame), `just hero` for the hero;
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
   drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
-- `make view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
+- `just view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
   renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in
   (model/mjcf.py VIEW), the rest their spool's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
@@ -34,10 +34,10 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
   VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
   per view, each linking to its file; on a phone stacked by Stage.
-- README media (#117), built in CI and served from the site, never in git (#226: `make pictures`, Checks'
-  `Blender` bins, the motions packed into runners (`make blender-bins`, #297, #496), gathered in its `Checks` gate;
+- README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
+  `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
   model/render/pictures.py SITE;
-  yellowpine.com/noggin/images/): the hero, an animated WebP (`make hero`: stage 3 from 15 degrees to its right, 15
+  yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
@@ -67,18 +67,18 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 - model/envelopes.py draws a simple CadQuery envelope of each piece of hardware (servo, horn, Shield, Core, switch
   board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
   numbers (model/test_envelopes.py).
-- `make ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `make test` and `make sim`
+- `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
+  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
   no guide sheets. The designer's and the vendor's files are credits ([Credits](credits.md)) and history (docs/research) only.
-- Every picture (`make render`, `make hero`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
-- `make stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
+- Every picture (`just render`, `just hero`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
+- `just stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
   model/build/stl; future prints use ours.
-- `make step` (#98): every part and envelope, and each Stage at neutral (model/stages.py's placements, coloured, one
+- `just step` (#98): every part and envelope, and each Stage at neutral (model/stages.py's placements, coloured, one
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)

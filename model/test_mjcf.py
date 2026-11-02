@@ -113,7 +113,7 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
 # the viewer's tests on the worker that builds noggin-stage1 for its own tests (CI's --dist loadgroup): one build, not three
 @pytest.mark.xdist_group("noggin-stage1")
 def test_the_viewer_look_stays_as_cansin_kept_it():
-    """make view's settings, frozen 2026-11-01: the headlight that keeps colours, black and white pulled in."""
+    """just view's settings, frozen 2026-11-01: the headlight that keeps colours, black and white pulled in."""
     model, _ = forward("noggin-stage1")
     light = model.vis.headlight
     assert (list(light.ambient), list(light.diffuse), list(light.specular)) == ([0.5] * 3, [0.5] * 3, [0.0] * 3)
@@ -135,7 +135,7 @@ def test_the_viewer_adds_a_key_light_that_casts_shadows_and_satin_on_the_drawn_p
 
 @pytest.mark.xdist_group("noggin-stage1")
 def test_make_view_draws_the_mech_on_the_flat_sky_offscreen():
-    """A Stage as make view's free camera first sees it, rendered offscreen (CI: MUJOCO_GL=egl): the corners are the
+    """A Stage as just view's free camera first sees it, rendered offscreen (CI: MUJOCO_GL=egl): the corners are the
     flat sky, and the Mech covers part of the frame."""
     model, data = forward("noggin-stage1")
     with mujoco.Renderer(model, 240, 320) as r:

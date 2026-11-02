@@ -1,10 +1,10 @@
-"""Checks' model shards (`make model-shards-list`, #305, #474, #496): N runners, balanced on measured seconds. The units
+"""Checks' model shards (`just model-shards-list`, #305, #474, #496): N runners, balanced on measured seconds. The units
 are the hero's collision sweep, each document (stages.DOCS, picked by its id: pytest -k on the parameter), the rest of
-the model tests, make sim and make mech (the Mech stand-in); each goes, longest first, to the lightest shard. Their
-seconds are the CI runs' own (model/durations.json, pytest-split's --store-durations plus make sim's and make mech's
-core-seconds: `make model-durations`), so a new document needs no workflow edit and no list of names. MODEL=false or
+the model tests, just sim and just mech (the Mech stand-in); each goes, longest first, to the lightest shard. Their
+seconds are the CI runs' own (model/durations.json, pytest-split's --store-durations plus just sim's and just mech's
+core-seconds: `just model-durations`), so a new document needs no workflow edit and no list of names. MODEL=false or
 MECH=false (the Changes job's filters) leaves that group's units out.
-And Checks' Blender bins (`make blender-bins`): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
+And Checks' Blender bins (`just blender-bins`): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
 when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds in
 model/durations.json under "blender <unit>"."""
 
@@ -16,12 +16,12 @@ from model import stages
 
 N = 4  # runners (#496)
 HERO = "test_hero.py"  # -k on its module, model/render/test_hero.py
-MAKE = {"sim": "make sim", "mech": "make mech"}  # their keys in DURATIONS
+JUST = {"sim": "just sim", "mech": "just mech"}  # their keys in DURATIONS
 DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
 
 
 def units(model=True, mech=True):
-    """{unit: its pytest -k expression}, None for make sim and make mech: the model's units, mech's, or both."""
+    """{unit: its pytest -k expression}, None for just sim and just mech: the model's units, mech's, or both."""
     docs = {d.removeprefix("noggin-"): d for d in stages.DOCS}
     rest = " and ".join(f"not {k}" for k in [HERO, *docs.values()])
     return ({"hero": HERO, **docs, "rest": rest, "sim": None} if model else {}) | ({"mech": None} if mech else {})
@@ -30,11 +30,11 @@ def units(model=True, mech=True):
 def seconds(durations):
     """{unit: seconds}: each test's under the unit whose -k picks it (the rest otherwise); an unmeasured unit, the mean."""
     expr = units()
-    make = {v: k for k, v in MAKE.items()}
+    just = {v: k for k, v in JUST.items()}
     took = dict.fromkeys(expr, 0.0)
     for test, s in durations.items():
         if not test.startswith("blender "):
-            took[make.get(test) or next((u for u, k in expr.items() if k and u != "rest" and k in test), "rest")] += s
+            took[just.get(test) or next((u for u, k in expr.items() if k and u != "rest" and k in test), "rest")] += s
     measured = [s for s in took.values() if s]
     return {u: s or (sum(measured) / len(measured) if measured else 1.0) for u, s in took.items()}
 
@@ -68,8 +68,8 @@ def packed(weight):
 
 
 def blender(pictures=True, viewer=True):
-    """[{bin, motions, stages, viewer}]: stages are what the bin's make trajectories bakes (TRAJ_DOCS), every Stage
-    (empty) with the viewer, whose make web bakes them all."""
+    """[{bin, motions, stages, viewer}]: stages are what the bin's just trajectories bakes (TRAJ_DOCS), every Stage
+    (empty) with the viewer, whose just web bakes them all."""
     from model.render.pictures import motions  # Blender's side only: the model shards need none of it
 
     stages_of = {m["motion"]: m["stages"].split() for m in motions()} if pictures else {}

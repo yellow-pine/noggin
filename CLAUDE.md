@@ -34,8 +34,8 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
-- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `make render`, `make hero`; CI builds the README's (`make pictures`) for the site's /images.
-- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `make web` builds the GLBs, `make site` the whole site.
+- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `just render`, `just hero`; CI builds the README's (`just pictures`) for the site's /images.
+- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
-- Checks and CI: CONTRIBUTING.md. Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
+- Checks and CI: CONTRIBUTING.md. Board: `just flash`, `just start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

@@ -29,6 +29,7 @@ dev = [
     "zizmor>=1.31.1",
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
+    "rust-just>=1.59.0",  # just runs the recipes (justfile, docs/adr/0016)
 ]
 
 [tool.uv]
@@ -41,7 +42,7 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 testpaths = [".claude/hooks", "ci", "eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py", "test_workflows.py"]
 markers = [
     "model: MuJoCo and the slowest mesh sweeps; CI runs them in its Model job (-m model) beside the rest",
-    "build: reads our parts' STLs (model/build/ours, make ours); make check-light leaves them out",
+    "build: reads our parts' STLs (model/build/ours, just ours); just check-light leaves them out",
 ]
 
 [tool.ruff]

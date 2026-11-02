@@ -1,3 +1,3 @@
-# actionlint's config (make check): GitHub's hosted runner labels newer than its list, which it takes for self-hosted
+# actionlint's config (just check): GitHub's hosted runner labels newer than its list, which it takes for self-hosted
 self-hosted-runner:
   labels: [ubuntu-26.04]

@@ -16,7 +16,7 @@ FILES = [
     and not {"stock-backup", "build"} & set(p.parts)  # the stock program, mech/build
     and p.name != "gaze_trace.py"
 ]
-FILES.append(ROOT / "Makefile")
+FILES.append(ROOT / "justfile")
 ALLOWED = {"daemon": ["daemon=True"]}  # threading API, not our vocabulary
 
 
@@ -31,7 +31,7 @@ def test_no_avoid_words_in_code():
 
 
 def test_the_model_is_never_called_twin():
-    files = [p for p in (ROOT / "model").rglob("*.py")] + [ROOT / "Makefile"]
+    files = [p for p in (ROOT / "model").rglob("*.py")] + [ROOT / "justfile"]
     hits = [
         f"{f.relative_to(ROOT)}:{n}"
         for f in files

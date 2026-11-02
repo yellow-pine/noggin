@@ -1,8 +1,8 @@
 """The Cores as the Mac knows them, read from their sources, never listed again (docs/adr/0011): each Core's servo ports
 (model/geometry.py CHANNELS), the eye program's modules (what eyes/boot.py imports from eyes/, and what those import)
 and the gestures it plays (eyes/eyes.py); read with ast, since they import machine. Also the repo's version (one source,
-pyproject.toml: docs/adr/0010) and commit, which the noggin service runs and `make mpy` stamps into the program.
-Standard library and geometry.py only: `python -m noggin.core` (`make mpy-list`) prints the program's files for make
+pyproject.toml: docs/adr/0010) and commit, which the noggin service runs and `just mpy` stamps into the program.
+Standard library and geometry.py only: `python -m noggin.core` (`just mpy-list`) prints the program's files for just
 and the release workflow without the venv, `python -m noggin.core stamp` the program's stamp.py."""
 
 import ast
@@ -51,10 +51,10 @@ def _commit():
 
 
 GESTURES = _gestures()
-MODULES = _modules()  # each flashed as eyes/build/<module>.mpy (make mpy)
+MODULES = _modules()  # each flashed as eyes/build/<module>.mpy (just mpy)
 VERSION = tomllib.loads((EYES.parent / "pyproject.toml").read_text())["project"]["version"]
 COMMIT = _commit()
-# the program's version and commit, eyes/build/stamp.py (make mpy, never in git), which eyes/wifi.py beacons
+# the program's version and commit, eyes/build/stamp.py (just mpy, never in git), which eyes/wifi.py beacons
 STAMP = "stamp"
 
 

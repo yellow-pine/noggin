@@ -22,15 +22,16 @@ An animatronic Mech on the desk that reacts to Claude Code.
 
 ## Setup
 
-macOS or Linux, [uv](https://docs.astral.sh/uv/), Node 24 (`site/.nvmrc`: the site) and Chrome (the site's browser tests).
+macOS or Linux, [uv](https://docs.astral.sh/uv/), [just](https://just.systems/) (the dev dependencies have it: `uv run
+just`, or `uv tool install rust-just`), Node 24 (`site/.nvmrc`: the site) and Chrome (the site's browser tests).
 
 ```
-make venv     # .venv from uv.lock, Python 3.14
-make check    # what CI's code job runs: the tests not marked model, lint, formatting, types, the workflows, script syntax
-make site     # the site in site/dist (npm --prefix site run preview); its tests: npm --prefix site test, npm --prefix site run smoke
+just venv     # .venv from uv.lock, Python 3.14
+just check    # what CI's code job runs: the tests not marked model, lint, formatting, types, the workflows, script syntax
+just site     # the site in site/dist (npm --prefix site run preview); its tests: npm --prefix site test, npm --prefix site run smoke
 ```
 
-`make check-all` adds the model tests (MuJoCo and the slow mesh sweeps); they and the other heavy targets (`sim`,
+`just check-all` adds the model tests (MuJoCo and the slow mesh sweeps); they and the other heavy recipes (`sim`,
 `render`, `web`) run one at a time and are best left to CI. On the Mech itself: the
 [build guide](https://yellowpine.com/noggin/docs/build/parts/).
 

@@ -200,11 +200,12 @@ finish() {
 
 run_wizard() {
 
-[[ "${1:-}" =~ ^(wifi)?$ ]] || { echo "usage: scripts/setup.sh [wifi]   (wifi: only the Join the Wi-Fi step, as make wifi)" >&2; exit 2; }
+[[ "${1:-}" =~ ^(wifi)?$ ]] || { echo "usage: scripts/setup.sh [wifi]   (wifi: only the Join the Wi-Fi step, as just wifi)" >&2; exit 2; }
 TOTAL_STAGES=8
 cd "$(dirname "$0")/.."            # repo root
 PY=.venv/bin/python
 MPR=.venv/bin/mpremote
+JUST=.venv/bin/just
 port() { ls /dev/cu.usbmodem* 2>/dev/null | head -n1; }
 # board_send LINE: write one command to the Core over USB and print its reply (before the noggin service is installed)
 board_send() {
@@ -221,7 +222,7 @@ stage "Join the Wi-Fi"
 [[ -n "$(port)" ]] || { warn "no Core on USB: plug it in with the USB-C cable and run this again"; exit 1; }
 say "Adds this network to the ones the Core knows (wifi.json, over USB); it joins the known one it hears loudest."
 CORES=$("$PY" -c 'from noggin.core import CORES; print(*CORES, sep="/")')
-say "core.json names the Core ($CORES) and its servo ports. In a new place, run 'make wifi' for each Core."
+say "core.json names the Core ($CORES) and its servo ports. In a new place, run 'just wifi' for each Core."
 note "eyes/wifi.json (gitignored, read by the noggin service) keeps every network and the token the second Core shares."
 ask WIFI_SSID "Wi-Fi network name (SSID):"
 ask_secret WIFI_PASSWORD "Wi-Fi password:"
@@ -230,20 +231,20 @@ until [[ -n "${CORE_NAME:-}" && "/$CORES/" == *"/$CORE_NAME/"* ]]; do ask CORE_N
 PORTS=$("$PY" -c 'import json, sys; from noggin.core import CORES; print(json.dumps({str(p): s for p, s in CORES[sys.argv[1]].items()}))' "$CORE_NAME")
 (umask 077; WIFI_SSID="$WIFI_SSID" WIFI_PASSWORD="$WIFI_PASSWORD" "$PY" -c 'import os, pathlib; from noggin.wifi import add_network; add_network(pathlib.Path("eyes/wifi.json"), os.environ["WIFI_SSID"], os.environ["WIFI_PASSWORD"])')
 printf '{"name": "%s", "ports": %s}\n' "$CORE_NAME" "$PORTS" > core.json
-make -s interrupt                       # stops the noggin service and drops the Core to its REPL, as make flash does
+"$JUST" interrupt                       # stops the noggin service and drops the Core to its REPL, as just flash does
 "$MPR" resume cp eyes/wifi.json :wifi.json
 "$MPR" resume cp core.json :core.json
 rm -f core.json
 "$PY" eyes/interrupt.py reset
 say "Listening 10 s for the beacon on UDP 4711 (expected: '<tag> noggin $CORE_NAME <ip> <uptime s> <version> <commit>') ..."
 "$PY" -c 'import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(("",4711)); s.settimeout(10); print(s.recv(128).decode())' \
-  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: run 'make wifi' again"
+  && say "The Core is on the Wi-Fi." || warn "no beacon; joining can take longer than 10 s, the network is out of range, or the SSID/password is wrong: run 'just wifi' again"
 pause
 }
 
-if [[ "${1:-}" == wifi ]]; then          # make wifi: this step alone, then the noggin service back if it was running
+if [[ "${1:-}" == wifi ]]; then          # just wifi: this step alone, then the noggin service back if it was running
   TOTAL_STAGES=1
-  # the installed plist, not make start: that would repoint the service at this checkout; also after a failure or Ctrl-C
+  # the installed plist, not just start: that would repoint the service at this checkout; also after a failure or Ctrl-C
   launchctl print "gui/$(id -u)/com.noggin" >/dev/null 2>&1 && trap 'launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.noggin.plist" 2>/dev/null || true' EXIT
   join_wifi
   exit 0
@@ -260,11 +261,11 @@ say "Connect the Core to this Mac with the USB-C cable and switch the battery on
 note "USB powers the Core; the servos need the battery (or the USB-A -> XH2.54 lead)."
 until [[ -n "$(port)" ]]; do pause "Waiting for /dev/cu.usbmodem* ... press Enter to re-check"; done
 say "Found $(port)"
-make -s stop >/dev/null 2>&1 || true   # free the port if a noggin service from an earlier run holds it
+"$JUST" stop >/dev/null 2>&1 || true   # free the port if a noggin service from an earlier run holds it
 
 stage "What is on the Core"
 say "Reading MicroPython version and the file list."
-make -s core-info || warn "mpremote could not talk to the Core; is anything else holding the Link?"
+"$JUST" core-info || warn "mpremote could not talk to the Core; is anything else holding the Link?"
 want=$("$PY" -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['tool']['noggin']['micropython'])")
 have=$("$MPR" resume exec "import sys; print('%d.%d' % sys.implementation.version[:2])" 2>/dev/null | tr -d '\r')
 [[ "$have" == "$want" ]] || warn "The Core runs MicroPython ${have:-?}, not the $want this repo type-checks and compiles .mpy for (pyproject.toml [tool.noggin]): the eye program may not load."
@@ -277,14 +278,14 @@ if [[ -d eyes/stock-backup && -n "$(ls -A eyes/stock-backup)" ]]; then
   say "eyes/stock-backup already exists; keeping it."
 else
   say "Copying every file off the Core into eyes/stock-backup/ (needed to go back to the remote app)."
-  confirm "Back up now?" && make -s backup-stock
+  confirm "Back up now?" && "$JUST" backup-stock
 fi
 pause
 
 stage "Flash the eye program"
-warn "This replaces boot.py on the Core. The stock remote app stops working until 'make restore-stock'."
+warn "This replaces boot.py on the Core. The stock remote app stops working until 'just restore-stock'."
 confirm "Flash eyes/eyes.py + eyes/boot.py now?" || { warn "stopped before flashing"; exit 1; }
-make -s flash USB=1                     # the first install carries boot.py and micropython-lib's hmac, which only go over USB
+"$JUST" flash-usb                       # the first install carries boot.py and micropython-lib's hmac, which only go over USB
 sleep 2
 say "Ping reply: $(board_send ping)"
 note "Expected: 'noggin ready' and/or 'ok'. If empty, unplug/replug and re-run this wizard."
@@ -309,8 +310,8 @@ pause
 
 stage "Install hooks and the noggin service"
 say "Adds async hooks to ~/.claude/settings.json and starts the noggin service (launchd com.noggin)."
-confirm "Install now?" && make -s install
-sleep 2; make -s status
+confirm "Install now?" && "$JUST" install
+sleep 2; "$JUST" status
 pause
 
 stage "End-to-end test"

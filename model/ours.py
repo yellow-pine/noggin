@@ -1,7 +1,7 @@
 """Our geometry as files: every printed part (printed.PARTS, by our part name) and every hardware envelope
-(envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `make ours`: all of them
-as STLs in model/build/ours (stages.OURS), which MuJoCo (make sim, everywhere) and the renders read. `make stl`: the
-printed parts as print-ready STLs in model/build/stl. `make step`: every shape and each Stage at neutral (model/stages.py's
+(envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `just ours`: all of them
+as STLs in model/build/ours (stages.OURS), which MuJoCo (just sim, everywhere) and the renders read. `just stl`: the
+printed parts as print-ready STLs in model/build/stl. `just step`: every shape and each Stage at neutral (model/stages.py's
 placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
 own process before the model reads them: CadQuery's OCCT threads must not be running when a process pool forks."""
 

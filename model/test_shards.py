@@ -1,6 +1,6 @@
-"""Seams: `make model-shards-list`, Checks' model matrix (#305, #474, #496): four shards balanced on the measured
-durations (model/durations.json), every unit (the hero's sweep, each document, the rest, make sim, make mech) on one,
-from the code; and `make blender-bins`, Checks' Blender matrix: the cold Blender units packed longest first into bins
+"""Seams: `just model-shards-list`, Checks' model matrix (#305, #474, #496): four shards balanced on the measured
+durations (model/durations.json), every unit (the hero's sweep, each document, the rest, just sim, just mech) on one,
+from the code; and `just blender-bins`, Checks' Blender matrix: the cold Blender units packed longest first into bins
 no longer than the longest."""
 
 import json
@@ -8,6 +8,7 @@ import os
 import shlex
 import subprocess
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -21,9 +22,14 @@ def test_else(name): pass
 """
 
 
-def listed(target="model-shards-list", **env):
+def listed(recipe="model-shards-list", **env):
     out = subprocess.run(
-        ["make", "-s", target], cwd=stages.REPO, capture_output=True, text=True, check=True, env=os.environ | env
+        [Path(sys.executable).with_name("just"), recipe],
+        cwd=stages.REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+        env=os.environ | env,
     )
     return json.loads(out.stdout)
 
@@ -79,8 +85,8 @@ def test_tests_count_under_the_unit_that_picks_them_and_an_unmeasured_unit_weigh
         {
             "model/test_mjcf.py::test_x[noggin-eyes]": 4,
             "model/render/test_hero.py::test_y[3]": 2,
-            "make sim": 6,
-            "make mech": 8,
+            "just sim": 6,
+            "just mech": 8,
         }
     )
     assert (took["eyes"], took["hero"], took["sim"], took["mech"]) == (4, 2, 6, 8)
@@ -96,7 +102,7 @@ def test_the_blender_units_pack_longest_first_into_bins_no_longer_than_the_longe
 
 def test_the_blender_bins_are_the_cold_units_with_the_stages_they_bake():
     """PICTURES and VIEWER say whether the pictures and the viewer are cold: each motion of the pictures, the viewer,
-    each in one bin; a bin with the viewer bakes every Stage (TRAJ_DOCS empty), as make web does."""
+    each in one bin; a bin with the viewer bakes every Stage (TRAJ_DOCS empty), as just web does."""
     from model.render import pictures
 
     every = listed("blender-bins")
@@ -117,6 +123,6 @@ def test_the_model_and_blender_matrices_are_the_changes_job_s_lists():
     """A new document, Stage or motion needs no workflow edit."""
     jobs = yaml.safe_load(open(f"{stages.REPO}/.github/workflows/checks.yml"))["jobs"]
     (lists,) = [s for s in jobs["changes"]["steps"] if s.get("id") == "lists"]
-    assert "make -s model-shards-list" in lists["run"] and "make -s blender-bins" in lists["run"]
+    assert "just model-shards-list" in lists["run"] and "just blender-bins" in lists["run"]
     assert jobs["model"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.shards) }}"}
     assert jobs["blender"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.bins) }}"}

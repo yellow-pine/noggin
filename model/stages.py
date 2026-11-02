@@ -16,7 +16,7 @@ from model import linkage
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(
     REPO, "model", "build", "ours"
-)  # our printed parts and hardware envelopes (model/ours.py, make ours)
+)  # our printed parts and hardware envelopes (model/ours.py, just ours)
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (+-4 mm pivots, +-3 mm bar planes)
@@ -45,7 +45,7 @@ def translate(p):
 
 
 def stl(stem):
-    """Our part's mesh (make ours): a printed part or a hardware envelope."""
+    """Our part's mesh (just ours): a printed part or a hardware envelope."""
     return os.path.join(OURS, stem + ".stl")
 
 
