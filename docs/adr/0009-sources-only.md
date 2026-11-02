@@ -14,6 +14,9 @@
 > JSON from `macros.py` fills the same hidden markers; the built site's tests run in Site Checks, not `make check`.
 > Amended 2026-11-02 (#373, ADR 0014): each release's docs are built from its tag, attached to the release, and Site
 > Deploy serves them at /noggin/vX.Y/ beside main's.
+> Amended 2026-11-02 (#397): the README's CI/CD table is generated from .github/workflows into a cog block in the
+> README, committed, and `cog --check` in `make check` fails while it is stale. The README is off the site (#280) yet
+> GitHub must show the table, and GitHub renders committed Markdown only; a site page and a link would lose it there.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

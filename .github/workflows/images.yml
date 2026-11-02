@@ -1,4 +1,5 @@
 name: CI Images
+# Builds the images the Chrome and Blender jobs run in; main pushes them to GHCR
 # Our CI images (ci/, docs/adr/0009, #288): ghcr.io/yellow-pine/noggin-ci-base and -blender (base plus Blender), which
 # the jobs needing a tool uv can't install run in by digest (`container:`). Only main writes to the registry: on a push
 # that changes a Dockerfile, every Monday with no cache (the distro's security fixes) and on a dispatch from main, it

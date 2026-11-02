@@ -1,4 +1,5 @@
 name: Firmware Watch
+# Opens an issue for each new Core firmware on the vendor's release notes
 # Weekly: the newest Core firmware on the vendor's release notes page (#334; scripts/firmware_watch.py). The Core's
 # firmware changes only through the vendor's own app, by Cansin, so a new version opens an issue rather than a PR. The
 # issues are the state: one per version, found by title, open or closed, so nothing is committed.

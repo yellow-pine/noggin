@@ -36,22 +36,26 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 
 ## CI/CD at a glance
 
-| Workflow | File | Runs on | Does |
-|---|---|---|---|
-| Code Checks | `check.yml` | PRs, main | `Code`: `make check`; `Mech`: the Link's live checks on the Mech stand-in (`make mech`); `Model`: the model tests, the sim and the STL/STEP export, sharded |
-| Site Checks | `site-checks.yml` | PRs, main | `Pictures` in Blender, then `Site`: the docs, viewer and reports, uploaded as an artifact (a PR's preview) |
-| Deploy Pending | `deploy-pending.yml` | main | sets the commit's `deploy` status pending while Site Checks build |
-| Site Deploy | `pages.yml` | main after Code Checks and Site Checks pass | deploys Site Checks' site artifact to Pages, with every release's docs beside it |
-| Claude Review | `review.yml` | PRs | `Fetch Skills`, then `Review`: Claude approves or requests changes |
-| PR Checks | `pr-checks.yml` | PRs | `PR Title`: the title is a Conventional Commit with one of the repo's scopes (ADR 0010); `PR Issue`: the body links its issue (`Closes #N` or `Refs #N`); bots' PRs pass |
-| Skills Updates | `skills.yml` | weekly | re-pins `skills-lock.json` and opens a PR |
-| CI Images | `images.yml` | Dockerfile PRs, main, weekly | builds the images the Chrome and Blender jobs run in; main pushes them to GHCR |
-| Dependabot Auto-merge | `dependabot.yml` | Dependabot's PRs | turns on auto-merge (squash): the PR merges once the required checks and Claude's review pass |
-| Blender Updates | `blender.yml` | weekly | re-pins Blender to the newest stable release at least 14 days old and opens a PR |
-| Firmware Watch | `firmware.yml` | weekly | opens an issue for each new Core firmware on the vendor's release notes |
-| Release Please | `release-please.yml` | main | keeps the release PR (version bump, CHANGELOG.md), auto-merged on green when a feature or a break is pending; merged, tags and releases it |
-| Release Now | `release-now.yml` | by hand | auto-merges the release PR on green for whatever is pending |
-| Release Assets | `release.yml` | `v*` tags | zips the Core's program, stamped with the release's version and commit, and the setup wizard onto the release, with the release's docs, deployed to the `release` environment |
+Generated from `.github/workflows` (`make readme`):
+
+<!-- [[[cog import cog, scripts.workflow_table as w; cog.outl(w.table()) ]]] -->
+| Workflow | File | Triggers | Jobs | Does |
+|---|---|---|---|---|
+| Blender Updates | `blender.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Blender | Re-pins Blender to the newest stable release at least 14 days old and opens a PR |
+| Code Checks | `check.yml` | `push` (`main`), `pull_request` | Changes, Mech, Code, Convex, Shards, Model | `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export |
+| Dependabot Auto-merge | `dependabot.yml` | `pull_request` | Auto-merge | Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass |
+| Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site (#292); Site Deploy (pages.yml) sets its |
+| Firmware Watch | `firmware.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Watch | Opens an issue for each new Core firmware on the vendor's release notes |
+| CI Images | `images.yml` | `pull_request` (paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `push` (`main`; paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `schedule` (`0 4 * * 1`), `workflow_dispatch` | Build, Push | Builds the images the Chrome and Blender jobs run in; main pushes them to GHCR |
+| Site Deploy | `pages.yml` | `workflow_run` (workflows: `Code Checks`, `Site Checks`; `main`) | Checks, Deploy, Deploy Status | Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it |
+| PR Checks | `pr-checks.yml` | `pull_request` | PR Title, PR Issue | The PR's title is a Conventional Commit with one of the repo's scopes (ADR 0010) and its body links its issue |
+| Release Now | `release-now.yml` | `workflow_dispatch` | Release Now | Releases whatever is pending (docs/adr/0010, #407): turns on the open release PR's auto-merge and labels it |
+| Release Please | `release-please.yml` | `push` (`main`), `workflow_dispatch` | Release Please | Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
+| Release Assets | `release.yml` | `push` (`v*`) | Release Assets, Release Docs | Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs |
+| Claude Review | `review.yml` | `pull_request` | Fetch Skills, Review | Claude reviews the PR and approves or requests changes |
+| Site Checks | `site-checks.yml` | `push` (`main`), `pull_request` | Changes, Motions, Render, Pictures, Viewer, Site | The pictures in Blender, then the docs, viewer and reports, uploaded as an artifact (a PR's preview) |
+| Skills Updates | `skills.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Skills, Propose | Re-pins skills-lock.json and opens a PR |
+<!-- [[[end]]] -->
 
 Required checks on main: `Code`, `Model`, `Mech`, `Site`, `Pictures`, `Review`, `Fetch Skills`, `PR Title` and
 `PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).

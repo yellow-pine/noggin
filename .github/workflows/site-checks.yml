@@ -1,4 +1,5 @@
 name: Site Checks
+# The pictures in Blender, then the docs, viewer and reports, uploaded as an artifact (a PR's preview)
 # The site (docs/adr/0009), built and checked on PRs and on main (#310): `Render` renders the README's pictures in
 # Blender (make pictures, #226; one runner per motion, the matrix `Motions` reads from the code, #297; the required
 # `Pictures` check sums them up) beside `Viewer`, whose GLBs Blender bakes and make web tests (docs/adr/0008) whenever

@@ -1,4 +1,5 @@
 name: Blender Updates
+# Re-pins Blender to the newest stable release at least 14 days old and opens a PR
 # Weekly: re-pin Blender to the newest stable release at least 14 days old (#334; scripts/blender_pin.py rewrites the
 # version and the Linux tarball's sha256 wherever the pin lives) and open (or refresh) a PR. A PR opened with
 # GITHUB_TOKEN starts no workflows (https://docs.github.com/en/actions/concepts/security/github_token): close and

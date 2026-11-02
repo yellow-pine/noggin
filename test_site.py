@@ -74,10 +74,6 @@ def test_the_readme_is_for_contributors():
         in readme
     )
     assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
-    workflows = list((ROOT / ".github" / "workflows").glob("*.yml"))
-    assert [
-        p.name for p in workflows if f"| {yaml.safe_load(p.read_text())['name']} | `{p.name}` |" not in readme
-    ] == []
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
