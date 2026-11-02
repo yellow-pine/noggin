@@ -40,6 +40,8 @@
 > tests); the model, sim, Blender and Convex and the site's Chrome smoke build on main alone, which fixes forward.
 > Amended 2026-11-02 (#714, Cansin): a PR's Checks run only Code (`just check-light`: ruff, pyright, the fast tests);
 > the site's build and the workflow and Dockerfile linters moved to main too.
+> Amended 2026-11-02 (#722, Cansin): that slim gate is its own workflow, PR Gate (`pr-gate.yml`: Code, then the
+> required `Checks` gate), so a PR lists no job every PR skips; Checks (`checks.yml`) runs on main alone.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

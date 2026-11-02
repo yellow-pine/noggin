@@ -1,6 +1,6 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
-# (checks.yml's Site and Code), from pinned sources (gh the one exception, below), and uv's Python with the venv synced
-# from uv.lock (#725), which a job links as its .venv.
+# (checks.yml's Site and Code, pr-gate.yml's Code), from pinned sources (gh the one exception, below), and uv's Python
+# with the venv synced from uv.lock (#725), which a job links as its .venv.
 # .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
 # FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS node
