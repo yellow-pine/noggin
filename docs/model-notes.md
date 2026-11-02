@@ -96,8 +96,11 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   (model/gates.py loops, model/mujoco_report.py): the margin keeps a 0.1 mm pin fit's play under 2 deg, the angle stays
   at 40 deg or more, the stock pan and jaw bars excepted with their reasons (model/test_report.py KNOWN_TRANSMISSION).
 - Every pair of parts certified clear at every step of each gesture and the hero, not only at the 100 ms frames:
-  `mj_geomDistance` at the ends of a span, halved where the parts could move further than that (model/gates.py certify,
-  model/test_trajectories.py). The next Mech's lid drives are certified the same way, reading the exact solids (#655).
+  each pair of their convex pieces read at the ends of a span (the bounding spheres' gap, `mj_geomDistance` only where
+  that is too close), halved where the two pieces could move further than that, and a pair of pieces whose hinges all
+  turn about one point skipped while their distances from it keep them apart (model/gates.py certify,
+  model/test_trajectories.py; #667). The next Mech's lid drives are certified the same way, the bodies whole, reading
+  the exact solids (#655).
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
