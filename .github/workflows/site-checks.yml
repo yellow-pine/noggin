@@ -7,7 +7,8 @@ name: Site Checks
 # site/dist/images, the viewer at site/dist/viewer and main's latest sim reports at site/dist/reports, tests the built
 # site (Vitest) and plays the viewer and search in Chrome (Playwright), and uploads it as an artifact: a PR's preview,
 # and on main what Site Deploy (pages.yml) deploys once this run and Code Checks passed. `Site` and `Pictures` are
-# required checks on PRs that touch what the site is made from (the changes job, as for check.yml's mech). On main,
+# required checks on PRs that touch what the site is made from (the changes job, as for check.yml's mech); on a PR or
+# main push whose pictures or viewer are cached from the same inputs, neither Blender job runs (#386, #471). On main,
 # Deploy Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy
 # sets its outcome.
 # render and viewer run in our Blender image, site in the base one (Chrome for the viewer's test; ci/, docs/adr/0009);
@@ -17,12 +18,16 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-concurrency:   # as check.yml's: one run per PR (or main), a new push cancels the one in progress
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  schedule:   # main's weekly full run (#471): no lookups or output caches, so every motion renders and the viewer bakes
+    - cron: "0 7 * * 1"
+concurrency:   # as check.yml's: one run per PR (or main), a new push cancels the one in progress; the weekly run apart
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 permissions: {}
 jobs:
-  changes:   # as check.yml's on a PR; on main it only hashes the inputs, and main builds everything
+  # the PR's paths filtered as check.yml's; the keys' hash; and on a PR or main push the lookups. Main's Site always
+  # runs (it builds the deploy), and the weekly run only hashes
+  changes:
     name: Changes
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
@@ -61,7 +66,7 @@ jobs:
           viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile)
           { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
       - name: Look up the cached pictures
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name != 'schedule' }}
         id: pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -69,7 +74,7 @@ jobs:
           key: pictures-${{ steps.inputs.outputs.pictures }}
           lookup-only: true
       - name: Look up the cached viewer
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name != 'schedule' }}
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -136,6 +141,7 @@ jobs:
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # this motion's pictures (model/build/images)
       - name: Restore this motion's pictures
+        if: ${{ github.event_name != 'schedule' }}   # the weekly run renders every motion again
         id: frames
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -174,7 +180,7 @@ jobs:
           make pictures BLENDER=blender
           echo "cold=true" >> "$GITHUB_OUTPUT"
       - name: Save this motion's pictures
-        if: ${{ steps.frames.outputs.cache-hit != 'true' }}
+        if: ${{ steps.frames.outputs.cache-hit != 'true' && github.event_name != 'schedule' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
@@ -228,6 +234,7 @@ jobs:
           hash=$(python3 scripts/lock_hash.py)
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Restore the viewer
+        if: ${{ github.event_name != 'schedule' }}   # the weekly run bakes the viewer again
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -265,7 +272,7 @@ jobs:
           path: model/build/trajectories
           key: ${{ steps.trajectories.outputs.cache-primary-key }}
       - name: Save the viewer
-        if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
+        if: ${{ steps.viewer.outputs.cache-hit != 'true' && github.event_name != 'schedule' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
