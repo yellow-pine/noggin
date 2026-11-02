@@ -46,7 +46,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
   finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-checks.yml`,
   `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
-  Dependabot, the weekly bumps) has no issue and passes.
+  Dependabot, the weekly bumps) has no issue and passes. `PR Issue` also runs GitHub's dependency review, which fails
+  any PR, a bot's too, that adds a dependency with a known vulnerability (#500).
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
   workflow keeps a release PR (`chore(release): release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry
   from the titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It stays a
