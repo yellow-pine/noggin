@@ -50,7 +50,7 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:
           filters: |
-            site: ["model/**", "eyes/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
+            site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
                    ".github/workflows/site-checks.yml", "macros.py"]
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
@@ -122,7 +122,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Restore the trajectories
         if: ${{ steps.frames.outputs.cache-hit != 'true' }}
@@ -212,7 +212,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Restore the trajectories
         if: ${{ steps.viewer.outputs.cache-hit != 'true' }}

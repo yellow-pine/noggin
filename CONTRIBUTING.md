@@ -96,7 +96,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
-  view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split over five shards, plus a sim shard), pytest
+  view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
+  shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, the recorded sweep documents, each Stage and the rest, plus a sim shard), pytest
   on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the

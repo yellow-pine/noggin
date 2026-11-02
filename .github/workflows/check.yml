@@ -16,8 +16,8 @@ defaults:
 # Three required checks side by side, so this workflow's conclusion on main is one of the two Site Deploy waits for
 # (#295, #310): code runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the
 # Mech stand-in; model
-# passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document
-# over four, make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
+# passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document,
+# the shards read from the code: model/shards.py; make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
 # stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
 # summary, and each job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold
 # cache is cut part by part first (convex, #223), so the model shards start warm.
@@ -37,7 +37,7 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # Makefile: its MicroPython tag; pyproject: mpy-cross's pin
           filters: |
-            mech: ["eyes/**", "noggin/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
+            mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
   # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
   # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
   # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
@@ -100,7 +100,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Run make check
         run: make check | tee "$RUNNER_TEMP/pytest.txt"
@@ -135,7 +135,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
       # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
@@ -207,28 +207,38 @@ jobs:
           include-hidden-files: true   # its .key
           retention-days: 1
           overwrite: true   # as ours
+  # model-shard's matrix from the code (make model-shards-list, model/shards.py): a new document needs no edit here
+  shards:
+    name: Shards
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in code
+      - name: List the shards
+        id: list
+        run: |   # its own assignment, so a failing make fails the step
+          list=$(make -s model-shards-list)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
   model-shard:
     name: Model (${{ matrix.shard }})
-    needs: [convex, convex-part]
+    needs: [convex, convex-part, shards]
     if: ${{ !cancelled() && !failure() && !github.event.pull_request.draft }}   # convex-part is skipped when warm
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
-      # by document (pytest -k on its parameter id), each document's tests on one worker (--dist loadgroup): stage 2 and
-      # stage 3 the longest, then the hero's sweep; a new model test lands in mujoco
+      # by document (pytest -k on its parameter id), each document's tests on one worker (--dist loadgroup): the hero's
+      # sweep alone, the recorded sweep documents, each Stage, the rest, and make sim (model/shards.py)
       matrix:
-        include:
-          - shard: hero
-            tests: model/render/test_hero.py
-          - shard: mujoco
-            tests: --ignore=model/render/test_hero.py -k "not stage2 and not stage3 and not mouth and not pan-tilt"
-          - shard: mouth pan-tilt
-            tests: --ignore=model/render/test_hero.py -k "mouth or pan-tilt"
-          - shard: stage2
-            tests: --ignore=model/render/test_hero.py -k stage2
-          - shard: stage3
-            tests: --ignore=model/render/test_hero.py -k stage3
-          - shard: sim   # make sim, not make test (below)
+        include: ${{ fromJSON(needs.shards.outputs.list) }}   # {shard, tests} (model/test_shards.py)
     steps:
       # make sim's SPICE circuit (model/electrical.py; model/test_electrical.py runs it as mujoco collects it) and
       # Mesa's EGL, which renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job

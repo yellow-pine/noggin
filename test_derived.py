@@ -5,10 +5,13 @@ hyphen ("pan-tilt") is not the name."""
 
 import re
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+import yaml
 
 from model.stages import DOCS
 from noggin.core import CORES, GESTURES
+from scripts.inputs import inputs
 
 ROOT = Path(__file__).resolve().parent
 LISTS = {"gesture": GESTURES, "servo": [s for ports in CORES.values() for s in ports.values()], "document": list(DOCS)}
@@ -43,3 +46,61 @@ def test_nothing_spells_out_a_list_the_code_holds():
     found = spelled_lists()
     assert [w for key, where in found.items() if key not in ALLOWED for w in where] == []
     assert [key for key in ALLOWED if key not in found] == [], "spelled out no more: drop it from ALLOWED"
+
+
+# What a cache key or paths filter in the workflows stands for: the entry files whose repo imports, followed through,
+# it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
+# filter that misses one skips the checks of a PR that changes it.
+MADE_FROM = {
+    "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
+    "convex": (
+        [],
+        ["model/mjcf.py", "model/stages.py", "uv.lock"],
+    ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
+    "sim": (["model/report.py"], ["uv.lock"]),
+    "trajectories": (["model/trajectories.py"], ["uv.lock"]),
+    "images": (["model/render/pictures.py"], ["uv.lock"]),
+    "viewer": (["web/build.py"], ["uv.lock"]),
+    "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
+    "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json"]),
+}
+
+
+KEY = re.compile(r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}")  # prefix-[matrix-]hash
+
+
+def patterns():
+    """{name: [patterns]} for each cache key (by its prefix) and paths filter of the workflows, every copy of it."""
+    found = {}
+    for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for job in yaml.safe_load(f.read_text())["jobs"].values():
+            for step in job.get("steps", []):
+                with_ = step.get("with", {})
+                if m := KEY.fullmatch(with_.get("key", "")):
+                    found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]))
+                if "paths-filter" in step.get("uses", ""):
+                    for name, globs in yaml.safe_load(with_["filters"]).items():
+                        found.setdefault(name, []).append(globs)
+    return found
+
+
+def covered(file, globs):
+    return any(PurePosixPath(file).full_match(g) for g in globs if not g.startswith("!"))
+
+
+def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
+    found = patterns()
+    assert set(found) == set(MADE_FROM), "a key or filter new to the workflows: say what it is made from"
+    missed = {
+        (name, i, file)
+        for name, (entries, others) in MADE_FROM.items()
+        for i, globs in enumerate(found[name])
+        for file in sorted(inputs(*entries) | {*others})
+        if not covered(file, globs)
+    }
+    assert missed == set()
+
+
+def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
+    assert covered("model/printed/lid.py", ["model/printed/**", "!model/build/**"])
+    assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])
