@@ -275,8 +275,8 @@ def test_the_site_publishes_the_next_mech_alone():
 
 
 def test_the_home_and_the_readme_show_the_next_mech():
-    """#661: the site's home shows the next Mech assembled, the latest the site serves, and its eyes sweeping, linking to
-    Pictures and the viewer; the README's top shows it assembled too, linking to Pictures."""
+    """#661: the site's home shows the next Mech assembled, the latest the site serves, and its eyes sweeping, linking
+    to Pictures and the viewer; the README's top shows it assembled too, linking to Pictures."""
     site = "https://yellowpine.com/noggin/"
     picture = f"{site}images/next-mech-isometric.webp"
     home, readme = (ROOT / "docs" / "index.md").read_text(), (ROOT / "README.md").read_text()
