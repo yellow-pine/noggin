@@ -435,6 +435,7 @@ jobs:
   blender:
     name: Blender
     needs: [changes, render]
+    if: ${{ needs.changes.outputs.next != 'true' }}   # as render's, so the gate allows its skip (test_site.py)
     runs-on: ubuntu-26.04
     steps:
       - name: Restore shard 0's pictures
