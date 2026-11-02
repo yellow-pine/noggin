@@ -69,7 +69,7 @@ test('the issues Default Branch Failure files have valid titles (#767, #791)', (
   const [title, ...more] = [...flow.matchAll(/title="(fix[^"]+)"/g)].map((m) => m[1]);
   assert.equal(more.length, 0);
   for (const scope of ['model', 'site', 'ci'])
-    for (const workflow of ['Checks', 'Site Deploy', 'CI Images'])
+    for (const workflow of ['Checks', 'CI Images'])
       for (const job of ['', ' (Model)']) {
         const filed = title.replace('$scope', scope).replace('$WORKFLOW', workflow).replaceAll('\\`', '`')
           .replace('${SHA:0:7}', '0a1b2c3') + job; // a sha may start with a digit

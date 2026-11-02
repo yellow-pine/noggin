@@ -38,6 +38,7 @@
 > order and marks, so a later variant comes back beside it.
 > Amended 2026-11-02 (#704, ADR 0020): Back twice, its Skeleton as Bones ("Back") and plain ("Back plain",
 > `next-mech-back-plain.glb`), a button each.
+> Amended 2026-11-03 (#795): Checks' `Deploy` job deploys the site, in place of Site Deploy.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -71,8 +72,8 @@ watch the hero loop.
   PRs and on main: a `Blender` job bakes the trajectories and runs `just web` in our Blender image, which holds the
   pinned Blender Linux tarball (sha256-checked; re-pinned weekly by `blender-updates.yml`), when what the viewer is made from
   changed (`scripts/inputs.py`), else the gate restores the last viewer built from the same inputs. The `Checks` gate
-  puts it in the site and plays it in Chrome, and a red build fails that required gate (#245, #496). Site Deploy
-  (`site-deploy.yml`) deploys main's site artifact once main's Checks passed, with no rebuild; a red build on main leaves
+  puts it in the site and plays it in Chrome, and a red build fails that required gate (#245, #496). Checks' last
+  job, `Deploy`, deploys main's site artifact once the gate passed, with no rebuild; a red build on main leaves
   the last site up. Pages' source is GitHub Actions, so nothing built is committed.
 - **Eyes gestures only for now.** Head and jaw gestures come with the second Core; Stages 2 and 3 show the eyes
   gestures and the hero loop.

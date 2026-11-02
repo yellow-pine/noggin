@@ -304,7 +304,7 @@ def stage_switch():
 
 
 def build():
-    """The one version (the git tag, docs/adr/0017) and the commit built, the one Site Deploy deploys (#292)."""
+    """The one version (the git tag, docs/adr/0017) and the commit built, the one Checks' Deploy deploys (#292)."""
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True)
     return {"version": VERSION, "commit": head.stdout.strip()}
 

@@ -1,6 +1,6 @@
 name: Default Branch Failure
-# Opens one `default branch failure` issue while the default branch's Checks or Site Deploy fail, and closes it once it
-# deploys again; a failed CI Images run (the default branch alone builds the images, #729) opens one `default branch
+# Opens one `default branch failure` issue while the default branch's Checks fail, and closes it once Checks' Deploy
+# puts it up again; a failed CI Images run (the default branch alone builds the images, #729) opens one `default branch
 # images failure` issue, closed by its next push. PRs run a slim gate, so the default branch's post-merge run catches
 # what they no longer run (#697). A failed run opens the issue (that label, bug, ready for agent) linking the commit and
 # the run, titled a Conventional Commit scoped by the failed job, which it names (#767, #791: 'fix(model): `Checks` fail
@@ -11,7 +11,7 @@ name: Default Branch Failure
 run-name: "${{ startsWith(github.event.workflow_run.display_title, format('{0}: ', github.event.workflow_run.name)) && format('Default Branch Failure: {0}', github.event.workflow_run.display_title) || format('Default Branch Failure: {0}: {1}', github.event.workflow_run.name, github.event.workflow_run.display_title) }}"
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
-    workflows: ["Checks", "Site Deploy", "CI Images"]   # by their names (test_workflows.py)
+    workflows: ["Checks", "CI Images"]   # by their names (test_workflows.py)
     types: [completed]
     branches: [main]
 concurrency:   # one at a time, so two red runs never open two issues
@@ -40,7 +40,7 @@ jobs:
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           # found by its label, never its title, which anyone may edit (#767)
-          label="default branch failure" done="Site Deploy deployed it"
+          label="default branch failure" done="Checks deployed it"
           if [ "$WORKFLOW" = "CI Images" ]; then
             label="default branch images failure" done="CI Images pushed the images"
           fi
@@ -61,10 +61,10 @@ jobs:
               body="$WORKFLOW failed on the default branch at $SHA${job:+ in $job}: $RUN_URL"
               if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
               else gh issue create --title "$title" --label "$label,bug,ready for agent" --body "$body"; fi ;;
-            success)   # green once CI Images pushed, or Site Deploy's Deploy put a commit up (red Checks skip it)
+            success)   # green once CI Images pushed, or Checks' Deploy put a commit up (the weekly run skips it)
               case "$WORKFLOW" in
                 "CI Images") green=1 ;;
-                "Site Deploy") green=$(gh run view "$RUN_ID" --json jobs \
+                Checks) green=$(gh run view "$RUN_ID" --json jobs \
                   --jq '[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length') ;;
                 *) green=0 ;;
               esac

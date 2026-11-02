@@ -227,7 +227,7 @@ site: venv && site-reports
     ! ls model/build/images/next-* >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/next-* site/dist/images/; }
     ! ls web/build/next-*.glb >/dev/null 2>&1 || cp web/build/next-*.glb site/dist/viewer/
 
-# the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Checks saved
+# the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Checks' Deploy reruns it on main's site with the reports Checks saved
 site-reports:
     scripts/site_reports.sh
 

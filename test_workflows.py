@@ -37,7 +37,7 @@ def test_every_job_id_is_kebab_case():
 
 
 def test_every_workflow_is_title_case_in_its_kebab_case_file():
-    """#773, GitHub's starter workflows: the name Title Case ("Site Deploy"), the file its kebab-case form."""
+    """#773, GitHub's starter workflows: the name Title Case ("Claude Review"), the file its kebab-case form."""
     flows = {f.name: yaml.safe_load(f.read_text())["name"] for f in WORKFLOWS}
     wrong = {
         f: n for f, n in flows.items() if not (TITLE.fullmatch(n) and f == re.sub(r"\W+", "-", n).lower() + ".yml")
@@ -94,9 +94,9 @@ def test_no_workflow_runs_on_ubuntu_latest():
 
 def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
     """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
-    Site Deploy, Release and Release Assets never cancel a run mid-way. #689: what Site Deploy and Release wait on
-    (Checks, main's alone since #722) runs every push to main to completion, queued, or merges minutes apart never
-    deploy."""
+    Checks' Deploy, Release and Release Assets never cancel a run mid-way. #689: Checks, which deploys (#795) and
+    Release waits on (main's alone since #722), runs every push to main to completion, queued, or merges minutes apart
+    never deploy."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     wrong = []
     for name, flow in flows.items():
@@ -108,12 +108,13 @@ def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release(
         ):
             wrong.append(name)
     assert wrong == []
-    awaited = {w for f in ("site-deploy.yml", "release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
+    awaited = set(flows["release.yml"][True]["workflow_run"]["workflows"])
     by_name = {flow["name"]: flow for flow in flows.values()}
     assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
         awaited, False
     )
-    for name in ("site-deploy.yml", "release.yml", "release-assets.yml"):
+    assert flows["checks.yml"]["jobs"]["deploy"]["concurrency"]["cancel-in-progress"] is False
+    for name in ("checks.yml", "release.yml", "release-assets.yml"):
         assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
 
 
@@ -321,10 +322,11 @@ def test_a_job_names_an_environment_only_to_deploy():
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
     Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), but may cancel its own run
-    (`actions: write`, cancel-on-failure, #769)."""
+    (`actions: write`, cancel-on-failure, #769), and main's Deploy writes Pages (#795)."""
     for f in ("checks.yml", "pr-gate.yml"):
         flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
-        perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+        jobs = [j for i, j in flow["jobs"].items() if i != "deploy"]
+        perms = [flow["permissions"], *(j.get("permissions", {}) for j in jobs)]
         assert not [p for p in perms if "write" in [v for k, v in p.items() if k != "actions"]], f
 
 
@@ -486,33 +488,38 @@ def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, exit, 
     assert step["env"]["SHA"] == "${{ github.event.workflow_run.head_sha }}"
 
 
-def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
-    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Default
-    Branch Failure the failures): it takes the artifact of the Checks run that completed it, once that passed on this
-    repo's push to main. #778, docs/adr/0021: the latest docs alone, so no release's docs beside them, and nothing
-    dispatches it."""
+def test_checks_deploys_the_site_it_built_as_its_last_job_on_mains_push():
+    """#795, GitHub's Pages starter workflow: Checks' Deploy job deploys its own run's site after the gate passed, on
+    main's push alone, so each github-pages Deployment records the commit built (GITHUB_SHA) and links its run; a
+    workflow_run deploy stamped main's tip instead. Pages' permissions on that job alone; one deploy at a time, never
+    cancelled. #731: no `deploy` commit status. #778, docs/adr/0021: the latest docs alone, nothing dispatches it."""
     wf = WORKFLOWS[0].parent
-    flow = yaml.safe_load((wf / "site-deploy.yml").read_text())
-    assert list(flow[True]) == ["workflow_run"]  # yaml reads `on:` as True
-    (job,) = flow["jobs"].values()
-    for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
-        assert f"github.event.workflow_run.{cond}" in job["if"], cond
-    assert "statuses" not in job["permissions"]
+    flow = yaml.safe_load((wf / "checks.yml").read_text())
+    job = flow["jobs"]["deploy"]
+    assert list(flow["jobs"])[-1] == "deploy" and job["needs"] == "checks"
+    assert job["if"] == "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}"
+    assert job["environment"]["name"] == "github-pages"
+    assert job["concurrency"]["cancel-in-progress"] is False
+    pages = {"pages": "write", "id-token": "write"}
+    assert pages.items() <= job["permissions"].items() and "statuses" not in job["permissions"]
+    assert [i for i, j in flow["jobs"].items() if pages.keys() & j.get("permissions", {}).keys()] == ["deploy"]
     download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
-    assert download["with"]["run-id"] == "${{ github.event.workflow_run.id }}"
+    assert "run-id" not in download["with"]  # this run's
+    assert job["steps"][-1]["uses"].startswith("actions/deploy-pages@")
+    assert not (wf / "site-deploy.yml").exists()
     release = yaml.safe_load((wf / "release-assets.yml").read_text())
-    assert "docs" not in str(release["jobs"]) and "docs" not in str(flow["jobs"])
+    assert "docs" not in str(release["jobs"]) and "docs" not in str(job)
     assert not (wf.parent.parent / "scripts" / "docs_versions.py").exists()
     assert not (wf / "deploy-pending.yml").exists()
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
 
 
-def test_default_branch_failure_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
+def test_default_branch_failure_watches_checks_and_ci_images_and_files_its_issue_by_label():
     """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
     found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     watched = flows["default-branch-failure.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
-    assert watched == [flows[f]["name"] for f in ("checks.yml", "site-deploy.yml", "ci-images.yml")]
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "ci-images.yml")]
     (job,) = flows["default-branch-failure.yml"]["jobs"].values()
     run = "\n".join(s.get("run", "") for s in job["steps"])
     assert '--label "$label" --json' in run and '--label "$label,' in run  # finds by it, files with it
@@ -556,7 +563,7 @@ def test_a_failed_job_cancels_the_rest_of_its_run():
     assert [s["run"] for s in action["runs"]["steps"]] == ['gh run cancel "$GITHUB_RUN_ID"']
     for f in ("checks.yml", "pr-gate.yml"):
         for id_, job in yaml.safe_load((WORKFLOWS[0].parent / f).read_text())["jobs"].items():
-            cancels = id_ != "checks"  # the gate: every other job is its need, so none is left to cancel
+            cancels = id_ not in ("checks", "deploy")  # the gate, every job before it its need, and the deploy after
             assert (job["steps"][-1] == CANCEL) == cancels, (f, id_)
             assert (job.get("permissions", {}).get("actions") == "write") == cancels, (f, id_)
             assert job.get("strategy", {}).get("fail-fast", True) is True, (f, id_)

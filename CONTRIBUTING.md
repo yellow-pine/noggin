@@ -98,7 +98,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`) under a kebab-case id,
   every step a short sentence-case imperative like its `Set up job`, every workflow a Title Case name in its kebab-case
-  file (Site Deploy in `site-deploy.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
+  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
   weekly <what>`, `<Workflow>: manual by <actor>`, `<Workflow>: <triggering run's title>` (#773, `test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: its `Check the required checks`
   step, yq and comm) and run `gh pr update-branch` on every open PR so it reports the new name. A required check names
@@ -134,13 +134,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
-  `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
-  Site Deploy and Release wait on (Checks) never cancels: main's runs queue and each finishes, so merges minutes apart
+  `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). Checks,
+  which deploys and Release waits on, never cancels: main's runs queue and each finishes, so merges minutes apart
   still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
   neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
   (`.github/actions/`), which cancels the rest of the run at once, and Default Branch Failure files it all the same
   (#769).
-  Site Deploy, Release and Release Assets never cancel a run mid-way.
+  Checks' `Deploy`, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
@@ -164,9 +164,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
   `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `default branch images failure`.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
-- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
-  (#731). The github-pages environment lists every deploy; Default Branch Failure reports a red Checks or Site Deploy
-  run.
+- Checks' last job, `Deploy`, deploys the very artifact its `Site` built to GitHub Pages, once the gate passed on
+  main's push (#295, #310, #795), as GitHub's Pages starter workflow does: each github-pages Deployment records the
+  commit built and links its run. Default Branch Failure reports a red Checks run.
 
 ## Licence
 
