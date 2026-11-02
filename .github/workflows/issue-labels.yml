@@ -1,6 +1,6 @@
 name: Issue Labels
 # Keeps issues' state labels in step: a PR sets the issues it links in-progress, and closing an issue clears its labels.
-# `In Progress`: each issue the PR's body links (Closes/Fixes/Resolves #N or Refs #N, main's scripts/pr_issue.py)
+# `In Progress`: each open issue the PR's body links (Closes/Fixes/Resolves #N or Refs #N, main's scripts/pr_issue.py)
 # gets `in-progress` in place of `ready-for-agent` and `blocked`; `on-hold` stays (#446). `Clear Labels`: a closed
 # issue loses every state label (CONTRIBUTING.md). `blocked` and `on-hold` are otherwise set and lifted by hand.
 on:
@@ -33,6 +33,8 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
         run: |
           for n in $(python3 scripts/pr_issue.py --list <<<"$BODY"); do
+            # a fix-forward PR may Refs a closed issue (or a merged PR): only an open one is in progress
+            [ "$(gh issue view "$n" --repo "$GITHUB_REPOSITORY" --json state -q .state)" = OPEN ] || continue
             gh issue edit "$n" --repo "$GITHUB_REPOSITORY" --add-label in-progress --remove-label ready-for-agent,blocked
           done
   clear:
