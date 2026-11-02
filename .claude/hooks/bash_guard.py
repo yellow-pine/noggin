@@ -28,12 +28,16 @@ INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a 
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse as bash (an open quote or heredoc, zsh-only syntax); fix it, or write a file."
 NOPARSER = "no tree-sitter-bash to read its $(…), `…` or <(…); run uv sync (just venv) in the checkout, then retry."
-# zsh, the Bash tool's shell, runs code where bash's grammar sees none: a glob qualifier, which is any ( right after
-# a word's character, whatever stands inside it; =(…) opening a word; and ${(…)…} flags such as (e). Left: $( <( >(
-# a=( (( and a subshell's (; ${=var} too (UNSPLIT asks for it).
-ZSH = r"[^\s$<>=(|&;{]\(|(?:^|[\s;&|(){}])=\("
+# zsh, the Bash tool's shell, runs code where bash's grammar sees none: a glob qualifier's (…), whatever stands inside
+# it; =(…) opening a word; ${(…)…} flags such as (e); and a <1-5> range glob, whose >(… bash's grammar reads as a
+# process substitution. With the grammar, an unquoted ( passes only as the opening of an OPENS node; without it, any
+# ( right after a word's character blocks (WORDPAREN). ${=var} stays (UNSPLIT asks for it).
+ZSH = r"(?:^|[\s;&|(){}])=\(|<\d*-\d*>"
+WORDPAREN = r"[^\s$<>=(|&;{]\("
+OPENS = ("process_substitution", "command_substitution", "array", "subshell", "function_definition")
+OPENS += ("arithmetic_expansion", "parenthesized_expression", "compound_statement", "c_style_for_statement")  # $(( ((
 QUOTED = ("string", "raw_string", "ansi_c_string", "translated_string", "heredoc_body")  # where zsh never globs
-ZSHONLY = "zsh runs code at a word( glob qualifier, =(…) or ${(…)…}; quote it, or put text holding one in a file."
+ZSHONLY = "zsh runs code at a glob qualifier (…), =(…), <1-5> or ${(…)…}; quote it, or put text holding one in a file."
 UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
 
@@ -105,7 +109,7 @@ def split(command):
     if "${(" in command:
         raise ValueError(ZSHONLY)
     if not BASH:
-        if re.search(ZSH, command):
+        if re.search(ZSH, command) or re.search(WORDPAREN, command):
             raise ValueError(ZSHONLY)
         if re.search(r"\$\(|`|[<>]\(", command):
             raise ValueError(NOPARSER)
@@ -118,14 +122,18 @@ def split(command):
         for child in node.children:
             yield from nodes(child)
 
-    # each quoted span and heredoc body filled with _: a ( in one is text to zsh, and one just before a ( still counts
-    unquoted, functions = bytearray(source), set()
+    # each quoted span and heredoc body filled with _ (a ( in one is text to zsh); opens: where an OPENS node's own
+    # ( $( <( >( $(( (( token puts a (
+    unquoted, opens, functions = bytearray(source), set(), set()
     for node in nodes(tree.root_node):
         if node.type in QUOTED:
             unquoted[node.start_byte : node.end_byte] = b"_" * (node.end_byte - node.start_byte)
-        if node.type == "function_definition":  # f() { …; }: the one word( bash's grammar reads as code
-            functions |= {child.start_byte for child in node.children if child.type == "("}
-    if any(found.end() - 1 not in functions for found in re.finditer(ZSH.encode(), unquoted)):
+        if not node.is_named and node.parent.type in OPENS:
+            opens |= {node.start_byte + k for k, c in enumerate(node.type) if c == "("}
+            functions |= {node.start_byte} if node.parent.type == "function_definition" else set()
+    parens = {found.start() for found in re.finditer(rb"\(", unquoted)}
+    words = {found.end() - 1 for found in re.finditer(WORDPAREN.encode(), unquoted)}  # f() { is the one word( to pass
+    if parens - opens or words - functions or re.search(ZSH.encode(), unquoted):
         raise ValueError(ZSHONLY)
     if tree.root_node.has_error:
         raise ValueError(UNPARSED)

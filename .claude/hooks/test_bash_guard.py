@@ -94,6 +94,10 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("ls *(e:git\\ stash:)", "runs code"),
         ("ls x(N)", "runs code"),
         ("[[ $x =~ ^a(b|c)$ ]]", "runs code"),  # an unquoted regex group: quote it
+        ("ls <1-5>(e:'git stash':)", "runs code"),  # bash's grammar reads >( there as a process substitution
+        ("ls <->(+cmd)", "runs code"),
+        ("ls <1-5>", "runs code"),  # zsh's numeric range glob
+        ("case x in (a) git status;; esac", "runs code"),  # only the ( of the forms below passes
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -146,6 +150,7 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         'git commit -m "fix(ci): x"',
         "a=(1 2) && a+=(3) && (cd /tmp && ls) && echo $((1 + (2))) && diff <(true) >(true)",
         "f() { :; }; g () { :; }",
+        "cat <(ls) && tee >(cat) && (cd x && ls) && ((n++)) && for ((i = 0; i < 2; i++)); do :; done",
         'git commit -m "$(cat msg) and don\'t git stash"',
     ],
 )
@@ -223,6 +228,8 @@ def test_without_the_venv_a_substitution_is_blocked(tmp_path):
     for command in ("ls *(e'git stash')", 'ls *(e"git stash")', "ls *(e:git\\ stash:)", "ls (a|b)(e:'x':)"):
         assert "runs code" in guard(command, tmp_path, bare).stderr
     assert "runs code" in guard("jq 'map(.a)' f", tmp_path, bare).stderr  # the raw text, quotes and all
+    assert "runs code" in guard("ls <1-5>(e:'git stash':)", tmp_path, bare).stderr
+    assert "runs code" in guard("ls <->(+cmd)", tmp_path, bare).stderr
     assert guard("uv sync", tmp_path, bare).returncode == 0
     assert "commit" in guard("git stash", tmp_path, bare).stderr
 
