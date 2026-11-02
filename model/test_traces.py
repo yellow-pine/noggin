@@ -164,3 +164,14 @@ def test_the_next_mech_rests_with_a_blink_its_lids_following_its_level_gaze():
         shut = [t for t, d in lid if d == pytest.approx(-65)]
         assert shut and 3000 <= shut[0] <= 6000 + 200 and lid[-1][1] == 0
     assert set(traces.NEXT_MOTIONS) == {*traces.GESTURES, "rest"}
+
+
+@pytest.mark.parametrize("doc", sorted(g.NEXT))
+def test_every_motion_of_the_next_mech_has_its_commands(doc):
+    """Each motion a next Mech document plays (trajectories.motions) gives writes before ms 0 and its frame times: its
+    gestures and Rest through the eye gimbal, the next hero (#642) as the hero's own writes."""
+    from model import trajectories
+
+    for motion in trajectories.motions(doc):
+        writes, times = trajectories.commands(doc, motion)
+        assert any(t < 0 for t, _, _ in writes) and len(times) > 1, motion

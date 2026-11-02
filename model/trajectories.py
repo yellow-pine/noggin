@@ -77,8 +77,8 @@ MOTIONS = {
 
 
 def commands(doc, motion):
-    """(writes, frame times) of the motion on the document: the next Mech's through its gimbal (#663)."""
-    return traces.next_commands(motion) if doc in geometry.NEXT else MOTIONS[motion]()
+    """(writes, frame times) of the motion on the document: the next Mech's gestures and Rest through its gimbal (#663)."""
+    return traces.next_commands(motion) if doc in geometry.NEXT and motion in traces.NEXT_MOTIONS else MOTIONS[motion]()
 
 
 def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.copy())):
