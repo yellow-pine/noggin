@@ -366,8 +366,8 @@ jobs:
       # the built site's HTML: pages, links, numbers, CSP; and the diagrams drawn by mermaid-cli in the image's Chrome
       - name: Test the built site
         run: npm --prefix site test
-      # the viewer plays a gesture, search finds a page, diagrams draw, in Chrome (the image's), with no CSP violation
-      # and no request to another host but api.github.com
+      # the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches, in Chrome (the
+      # image's), with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
         run: npm --prefix site run smoke
       # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
