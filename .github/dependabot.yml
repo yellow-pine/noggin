@@ -54,6 +54,11 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       ci-tools-security:  # as above
         applies-to: security-updates
         patterns: ["*"]
+    ignore:
+      # 9.x until @semantic-release/release-notes-generator bundles conventional-changelog-writer 9+, which 10.x needs
+      # (docs/adr/0017-semantic-release-from-main.md, ci/release.test.mjs); re-check: #536
+      - dependency-name: conventional-changelog-conventionalcommits
+        versions: [">= 10"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
