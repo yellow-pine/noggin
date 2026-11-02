@@ -1,22 +1,23 @@
-"""The next Mech's base and its Base candidates' board carriers (#642) as CadQuery parts, every size from model/base.py,
-each drawn where it sits at rest in the head's frame (model/neck.py)."""
+"""The next Mech's Torso (#685) and its Base candidates' board carriers (#642) as CadQuery parts, every size from
+model/base.py, each drawn where it sits at rest in the head's frame (model/neck.py)."""
 
 from model import base as nb
 from model import neck as nk
 from model.envelopes import box
 from model.printed.gimbal import cyl
 
-WALL, RIM = 2.0, 6.0  # the pack cradle's walls and their height
-PACK = (28.4, 51.2)  # the pack's footprint (model/envelopes.py battery), 0.5 mm clear each side in its cradle
+WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's height, 0.5 mm clear round the pack
 
 
-def plate():
-    """The base plate (printed flat): the shirt's floor under the neck mount's foot, and the pack's cradle behind it."""
-    (x0, x1), (y0, y1), (z0, z1) = nb.PLATE
-    out = box((x0, x1), (y0, y1), (z0, z1))
-    w, d = PACK[0] / 2 + 0.5, PACK[1] + 1
-    ring = box((-w - WALL, w + WALL), (nb.PACK_Y - 0.5 - WALL, nb.PACK_Y + d + WALL), (z1, z1 + RIM))
-    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - 0.5, nb.PACK_Y + d), (z1, z1 + RIM))))
+def torso():
+    """The Torso (printed upright): its floor (the foot; the neck mount stands on it), its walls round it, and the pack's
+    cradle on the floor behind the neck mount."""
+    (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
+    floor = nk.MOUNT_Z[0]
+    out = box((x0, x1), (y0, y1), (z0, z1)).cut(box((x0 + WALL, x1 - WALL), (y0 + WALL, y1 - WALL), (floor, z1)))
+    w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
+    ring = box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
+    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
 
 
 def tray():

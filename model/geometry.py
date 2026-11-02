@@ -471,7 +471,7 @@ PRINTED |= {
             "next pan bar",
             "next tilt bar",
             "next jaw bar",
-            "next base plate",
+            "next torso",
             "next board tray",
             "next board tower",
         )
@@ -548,8 +548,8 @@ STAGES = {
 }
 # The next Mech (#51, #629): its own documents beside the Stages, never one of them, clean-room (#618's licence check):
 # none of today's printed parts or their dimensions, only our Envelopes of the hardware we own and our own parts: the eye
-# gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the base, one document per Base candidate
-# (#642, model/base.py), all in the head's frame, the base plate on z 0 (base.PLATE, model/test_neck.py).
+# gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per Base candidate
+# (#642, model/base.py), all in the head's frame, the Torso's foot on z 0 (base.TORSO, model/test_neck.py).
 _HEAD = ((0, -150, 153), X, Z)
 NEXT = {
     f"next-mech-{c}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD, carrier: _HEAD}

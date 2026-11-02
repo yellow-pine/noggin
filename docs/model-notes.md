@@ -147,7 +147,9 @@ until the model stabilises.
   motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); since #663 the gimbal
   moves in MuJoCo too and plays the gestures.
 - The Base candidates (#642, model/base.py, the parts in model/printed/base.py, GLOSSARY): one document each,
-  next-mech-a and next-mech-b, both on one base plate with the pack lying behind the neck mount. (a) the boards on a
+  next-mech-a and next-mech-b, both on one Torso (#685: the shirt is the base, a compact open box whose floor is the
+  foot, the neck mount with the pan servo on it and the pack lying across behind; its footprint in the sim report's
+  tip_over, footprint_mm). (a) the boards on a
   tray screwed under the gimbal frame's plate behind the head mount, riding pan and tilt; (b) the boards on a shelf
   over the lids, on a PETG rod standing on the pan axis, the only line a static post can rise along in a head that
   pans, so it meets the neck's and the gimbal's middle (listed in model/test_report.py KNOWN_PAIRS for that reason).

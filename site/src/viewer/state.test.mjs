@@ -31,7 +31,7 @@ test("the picker keeps the address the deep link to what plays, so it can be sha
 test("Explode moves both Base candidates' parts apart, each by a 3D offset; today's Stages have none (#664)", () => {
   for (const [stage, carrier] of [["next-mech-a", "next board tray:1"], ["next-mech-b", "next board tower:1"]]) {
     const apart = offsets(stage);
-    expect(Object.keys(apart)).toEqual(expect.arrayContaining(["next base plate:1", carrier]));
+    expect(Object.keys(apart)).toEqual(expect.arrayContaining(["next torso:1", carrier]));
     for (const d of Object.values(apart)) expect(d).toHaveLength(3);
     expect(Object.values(apart).some((d) => d.some((x) => x !== 0))).toBe(true);
   }
