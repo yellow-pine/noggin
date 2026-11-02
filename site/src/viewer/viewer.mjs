@@ -18,7 +18,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { address, caption as captionFor, offsets as offsetsFor, opened, title } from "./link.mjs";
+import { address, caption as captionFor, offsets as offsetsFor, opened, title } from "./state.mjs";
 
 // the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;

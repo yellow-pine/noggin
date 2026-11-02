@@ -42,7 +42,7 @@ watch the hero loop.
   4:3 frame `line_at` (640) px wide, through every zoom and resize, never under 1 px nor over twice `line_px`.
   Orbit and zoom are `OrbitControls`, gestures and the hero play through `AnimationMixer`, the Stage switch loads the
   other GLB. The viewer is one module, `site/src/viewer/viewer.mjs`, its framing module (`frame.mjs`) and its deep
-  link, caption and explode offsets (`link.mjs`), both tested with Vitest, bundled by the site's build. It draws
+  link, caption and explode offsets (`state.mjs`), both tested with Vitest, bundled by the site's build. It draws
   every `<div class="noggin-viewer" data-stage="stage1">` on a page, with a button per clip under it: the viewer's
   page (`site/src/pages/viewer.astro`, in Starlight's theme with no table of contents) adds the Stage buttons, and
   any page can drop in a small one. A browser test (Playwright in Chrome, `site/smoke.pw.mjs`) loads Stage 1 on the

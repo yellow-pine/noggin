@@ -1,6 +1,6 @@
-// The viewer's deep link, picker address, caption and explode offsets, from the site's macros.json (npm test)
+// The viewer's state: its deep link, picker address, caption and explode offsets, from the site's macros.json (npm test)
 import { expect, test } from "vitest";
-import { address, caption, offsets, opened } from "./link.mjs";
+import { address, caption, offsets, opened } from "./state.mjs";
 
 const stages = ["stage1", "stage2", "stage3"];  // the viewer page's Stage buttons, 1 2 3
 

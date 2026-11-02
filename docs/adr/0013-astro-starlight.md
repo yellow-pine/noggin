@@ -49,10 +49,10 @@ service anywhere.
 - **Tests at the built site's seam.** Vitest over `site/dist` (`site/site.test.mjs`): every doc a page titled by its
   H1, every link lands, each number the JSON's, every inline script hashed in the CSP, no photo; and every diagram
   drawn by mermaid-cli (a devDependency, so the lockfile pins the Mermaid it uses, the site's). One Playwright smoke
-  test in the installed Chrome (`site/smoke.pw.mjs`): the viewer loads Stage 1, search finds a page, the Docs version
-  switcher opens another version, with no CSP violation or console error and no request to another host but
-  api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos out of git,
-  the workflows).
+  test in the installed Chrome (`site/smoke.pw.mjs`): the viewer loads Stage 1, the diagrams draw, search finds a page,
+  the Docs version switcher opens another version, with no CSP violation or console error and no request to another
+  host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
+  out of git, the workflows).
 - **CI keeps its shape** (#310): Site Checks' `site` job sets up Node by `.nvmrc` with npm's cache, runs `make site`,
   then Vitest and Playwright, and uploads `site/dist`; Site Deploy deploys it. Dependabot covers npm, grouped like
   uv and Actions, each release waiting 14 days.

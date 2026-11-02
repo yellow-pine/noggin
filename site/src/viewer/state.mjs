@@ -1,5 +1,5 @@
 // The viewer's state as plain data (viewer.mjs): the deep link, the caption and the explode offsets; no three.js, so
-// Vitest tests them (link.test.mjs) and the browser smoke only loads a Stage (#513)
+// Vitest tests them (state.test.mjs) and the browser smoke only loads a Stage (#513)
 import { explode, moments } from "../macros.json";
 
 export const title = (s) => s[0].toUpperCase() + s.slice(1);
