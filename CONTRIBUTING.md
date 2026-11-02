@@ -18,7 +18,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
-  conflict, a required check was renamed or the PR needs a fix that just landed on main. When main's
+  conflict, a required check was renamed or the PR needs a fix that just landed on main, and then with
+  `scripts/rebase_pr.sh <n>` (`--help`): it rebases in your session's worktree, runs `make check-light` and pushes
+  with a lease. A session labels each PR it opens or takes `session:<name>` (`gh label create session:<name> --force`,
+  `gh pr edit <n> --add-label session:<name>`); the script refuses another session's PR unless `--take`. When main's
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
   review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
