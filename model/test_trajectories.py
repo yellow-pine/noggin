@@ -177,8 +177,8 @@ def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco()
     """#688: eureka's 22 deg dart on the next Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
     the 11 deg it carries (model/test_traces.py) within the servo's deadband, while the eyes counter-rotate back from
     the dart; the head comes back to rest."""
-    model = built("next-mech-a")
-    writes, times = tj.commands("next-mech-a", "eureka")
+    model = built("next-mech-back")
+    writes, times = tj.commands("next-mech-back", "eureka")
     names = ("next L yaw pivot", "pan pivot")
     yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
     side = np.sign(yaw[np.abs(yaw).argmax()])

@@ -94,12 +94,16 @@ def test_the_leads_that_cross_pan_and_tilt_go_from_each_servo_and_the_pack_to_th
     assert base.leads(stages.STAGES[doc]) == crossing
 
 
-def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, sway=None, head=None):
+def _report(
+    pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, sway=None, head=None, tilt=0.03
+):
     servo = {"hold_kgf_cm": hold, "peak_kgf_cm": peak, "rest_kgf_cm": rest, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}
     return {
         "mujoco": {
             "clearance_mm": 0.1,
+            "loop_mm": 0.05,
             "pairs": [{"pair": list(p), "min_mm": mm} for p, mm in pairs],
+            "residuals": {"tilt pivot": {"max_mm": tilt}, "pan pivot": {"max_mm": 0.01}},
             "actuators": {"tilt horn": {"hold_kgf_cm": hold, "rated_kgf_cm": 0.4}},
             "motions": {"servos": {"tilt horn": servo}},
             "vibration": {"tilt horn": {"servo_loop_hz": hz}, "pan horn": {"servo_loop_hz": hz + 5}},
@@ -133,6 +137,22 @@ def test_a_head_past_140_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_t
     assert ranked["variants"]["next-mech-back"]["gates"]["head"] == ["depth"]
     assert ranked["variants"]["next-mech-back"]["fails"] == ["head size"]
     assert ranked["variants"]["next-mech-crown"]["fails"] == []
+
+
+def test_a_variant_whose_tilt_loop_opens_past_the_gate_ranks_last_and_names_it():
+    """#705: Crown's tilt pivot opened 0.0557 mm at the tilt's back end (the gate 0.05): it stays in the ranking, last
+    though its servo holds least, its gates listing the loop and its `fails` saying "tilt loop"; 0.0483 passes."""
+    ranked = base.rank(
+        {
+            "next-mech-back": _report(hold=0.3, tilt=0.0411),
+            "next-mech-crown": _report(hold=0.01, tilt=0.0557),
+            "next-mech-split": _report(hold=0.2, tilt=0.0483),
+        }
+    )
+    assert ranked["order"] == ["next-mech-split", "next-mech-back", "next-mech-crown"]
+    assert ranked["variants"]["next-mech-crown"]["gates"]["loops"] == ["tilt pivot"]
+    assert ranked["variants"]["next-mech-crown"]["fails"] == ["tilt loop"]
+    assert ranked["variants"]["next-mech-split"]["fails"] == []
 
 
 def test_the_first_criterion_in_51s_order_that_differs_decides():

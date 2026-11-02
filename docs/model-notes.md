@@ -162,9 +162,11 @@ until the model stabilises.
   Back's row height, and the crowns' shelf height (the lowest clear of the gimbal's whole range) and the row's place
   front to back, for the tilt servo's least worst hold. The sim report gives each one's head box (`variant.head_mm`,
   width x depth x height of what rides the tilt) against #51's 140 x 120 x 150 and how far up it the eyes sit
-  (`eyes_up`), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance and
-  head-size gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and marks the
-  Viewer's buttons. Today none fits that head: Back's boards behind the gimbal make it 141.5 deep, the crowns 159 tall,
+  (`eyes_up`), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
+  head-size and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
+  marks the Viewer's buttons ("Crown: tilt loop"). A variant whose four-bar opens stays in the model, ranked last; the
+  report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
+  (#705). Today none fits that head: Back's boards behind the gimbal make it 141.5 deep, the crowns 159 tall,
   since the head mount and the jaw already hang 101 mm under the eyes (eyes_up 0.77 and 0.64, not the lower-middle).
   Every size is inferred; Cansin picks.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the

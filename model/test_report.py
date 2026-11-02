@@ -225,7 +225,16 @@ def test_reports_are_build_outputs_git_ignores():
 
 @pytest.mark.parametrize("doc", sorted(stages.DOCS))
 def test_built_report_is_clean(doc):
-    assert problems(built(doc)) == []
+    """Today's Stages and the leading head variant (Cansin's pick to be, #51) pass every gate. Another head variant may
+    open a four-bar the ranking carries (#705: ranked last, its Viewer button saying so), and only that: whatever else
+    it fails, or a loop the ranking misses, fails here."""
+    r = built(doc)
+    if doc in g.NEXT:
+        ranked = base.rank({d: built(d) for d in g.NEXT})
+        if doc != ranked["order"][0]:
+            for loop in ranked["variants"][doc]["gates"]["loops"]:
+                del r["mujoco"]["residuals"][loop]
+    assert problems(r) == []
 
 
 @pytest.mark.parametrize("doc", sorted(g.NEXT))

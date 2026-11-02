@@ -237,6 +237,7 @@ def measure(doc, model):
         "mujoco": version("mujoco"),
         "step_deg": STEP_DEG,
         "clearance_mm": CLEARANCE_MM,
+        "loop_mm": LOOP_MM,  # the four-bars' gate, which base.rank reads (#705)
         "poses": len(todo),
         "pairs": sorted(pairs.values(), key=lambda p: p["pair"]),
         "residuals": residuals,

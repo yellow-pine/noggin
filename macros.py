@@ -266,7 +266,7 @@ def variants():
         fails = ranking["variants"][doc]["fails"] if ranked else []
         carriers = [s for s in g.NEXT[doc] if s not in ("next-neck", "next-eyes", "next-base")]
         about = [" ".join(stages.SUBS[s].__doc__.split()).split(": ", 1)[1].split(";")[0] for s in carriers]
-        label = doc.removeprefix("next-mech-").capitalize() + (f" (fails {', '.join(fails)})" if fails else "")
+        label = doc.removeprefix("next-mech-").capitalize() + (f": {', '.join(fails)}" if fails else "")
         buttons.append({"glb": viewer.PUBLIC[doc].removesuffix(".glb"), "label": label, "about": " and ".join(about)})
     return {"ranked": ranked, "buttons": buttons}
 
