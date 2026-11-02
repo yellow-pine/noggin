@@ -1,5 +1,5 @@
-"""ci_budget.py: a warm PR run over its budget fails, a warm main run over its budget warns; a cold one is only
-reported. The budget measures the critical path: the longest chain of jobs along the workflow's needs, each counted
+"""ci_budget.py: a warm run over its event's budget warns, on a PR as on main, and never fails (#442); a cold one is
+only reported. The budget measures the critical path: the longest chain of jobs along the workflow's needs, each counted
 from when a runner picked it up to when it finished, so time spent waiting for a runner, or an earlier attempt, is
 not counted."""
 
@@ -50,14 +50,13 @@ def test_a_busy_queue_does_not_count_only_the_jobs_own_run_times_along_their_nee
     assert over("pull_request", took, warm=True) is None
 
 
-def test_a_genuinely_slow_job_still_fails_the_run():
+def test_a_genuinely_slow_job_still_warns():
     slow = [
         j | {"completed_at": "2026-11-01T21:04:34Z"} if j["name"] == "Model (mujoco)" else j for j in QUEUED_BUT_FAST
     ]
     took = critical_path(slow, CHECK, ATTEMPT, NOW)
     assert took == 4 + 4 + 200 + 4
-    level, why = over("pull_request", took, warm=True) or ("", "")
-    assert level == "error" and "212 s > 180 s" in why
+    assert "212 s > 180 s" in (over("pull_request", took, warm=True) or "")
 
 
 def test_a_job_still_running_counts_up_to_now_and_one_without_a_runner_not_at_all():
@@ -92,15 +91,14 @@ def test_a_warm_pr_run_within_three_minutes_passes():
     assert over("pull_request", 179, warm=True) is None
 
 
-def test_a_warm_pr_run_past_three_minutes_fails(capsys):
-    level, why = over("pull_request", 181, warm=True) or ("", "")
-    assert level == "error" and "181 s > 180 s" in why
+def test_a_warm_pr_run_past_three_minutes_warns(capsys):
+    assert "181 s > 180 s" in (over("pull_request", 181, warm=True) or "")
     assert "181 s along the critical path" in capsys.readouterr().out
 
 
-def test_main_past_nine_minutes_warns_and_never_fails():
+def test_main_past_nine_minutes_warns():
     assert over("push", 539, warm=True) is None
-    assert (over("push", 541, warm=True) or ("",))[0] == "warning"
+    assert "541 s > 540 s" in (over("push", 541, warm=True) or "")
 
 
 def test_a_cold_run_is_never_over():

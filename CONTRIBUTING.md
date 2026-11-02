@@ -123,9 +123,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
   from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part
   by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
-  With a warm cache a run's critical path must stay within 3 min on a PR, or it fails; on main, past 9 min it warns in
-  the run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
-  picked it up, so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's
+  With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
+  its summary and never fails (#442; `scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed
+  from when a runner picked it up, so a busy queue never trips it; a "re-run failed jobs" is timed on its own attempt). Each job's
   slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` and
   Code Checks' `Code` in `ci/base.Dockerfile`, `Render` and `Viewer` in `ci/blender.Dockerfile` (base plus Blender),
