@@ -17,7 +17,7 @@ on:
     branches: [main]
     paths: ["ci/*.Dockerfile", ".github/workflows/images.yml"]
   workflow_dispatch:
-concurrency:   # as in checks.yml
+concurrency:   # as in pr-gate.yml, and a push's run on main too
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 permissions: {}

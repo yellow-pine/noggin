@@ -1,7 +1,7 @@
 name: Site Deploy
 # Deploys the site artifact Checks built once main's checks pass, with every release's docs beside it.
 # Main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009) is built once: Checks (checks.yml) builds and
-# tests it on PRs and on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
+# tests it on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
 # no rebuild. It runs when Checks complete for a push to main; `checks` (scripts/deploy_status.py) hands `deploy` the
 # Checks run to download from when it passed, else sets the commit's `deploy` status: failure linking the red run
 # ("not deployed: checks failed", #295) or error when a newer commit superseded it (a cancelled run). `deploy` swaps in

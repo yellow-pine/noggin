@@ -1,8 +1,8 @@
 name: Checks
-# Runs the slim PR gate; on main `just check`, the model tests with the Mech stand-in, sim and STL/STEP export.
-# One workflow, one required check (#496): `Checks`, the gate every other job here leads into. A PR runs the slim gate
-# alone (#696, #714): `Code` (just check-light: ruff, pyright and the fast tests); everything else runs on main
-# (docs/adr/0009, #310), weekly and on any branch on demand (#562), and main fixes forward what it catches (#283).
+# Runs main's `just check`, the model tests with the Mech stand-in, sim and STL/STEP export, and builds its site.
+# `Checks` is the gate every other job here leads into (#496), which Site Deploy and Release wait on. It runs on main
+# (docs/adr/0009, #310), weekly and on any branch on demand (#562), never on a PR: a PR runs PR Gate (pr-gate.yml)
+# alone (#696, #714, #722), and main fixes forward what it catches (#283).
 # `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
 # work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
@@ -13,7 +13,7 @@ name: Checks
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
 # the Actions cache alone. `Blender` renders the next Mech alone (#649): its panels, its eye gimbal in motion and a
 # picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
-# `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML, off PRs;
+# `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML;
 # `Checks` adds the next Mech's pictures and GLB, tests and plays the site in Chrome (Playwright) and uploads it (on
 # main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). On main, Deploy
 # Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
@@ -21,18 +21,16 @@ name: Checks
 on:
   push:
     branches: [main]
-  pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
-    types: [opened, synchronize, reopened, ready_for_review]
   schedule:   # main's weekly full run (#471): no filters or output lookups, so every check runs, the filters' safety net
     - cron: "0 7 * * 1"
   # the same full run on any branch, on demand (#562): every check runs, so the Checks it posts on the branch's head
   # are a real one
   workflow_dispatch:
-concurrency:   # one run per PR (or main): a PR's new push cancels the one in progress; main's runs queue, each running
-  # to completion, since Site Deploy and Release wait for a finished one (#689; a newer push replaces one still waiting);
-  # the weekly run has its own group, so it neither waits behind a push's run nor holds one up
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+concurrency:   # main's runs queue, each running to completion, since Site Deploy and Release wait for a finished one
+  # (#689; a newer push replaces one still waiting); the weekly run has its own group, so it neither waits behind a
+  # push's run nor holds one up
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
 permissions:
   contents: read
   actions: read   # scripts/ci_budget.py reads when the run's jobs started
@@ -42,7 +40,6 @@ defaults:
 jobs:
   changes:
     name: Changes
-    if: ${{ github.event_name != 'pull_request' }}   # a PR runs the slim gate alone: Code (#696, #714)
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -125,7 +122,6 @@ jobs:
           MECH: ${{ steps.filter.outputs.mech }}
   code:
     name: Code
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
     container:
@@ -138,12 +134,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      # just check's parts, off PRs (a PR's just check-light builds none). Restore only: this job never decomposes, so a
-      # save here would store the key without model/build/convex first and the model job's full save would be refused
-      # (a key is written once). restore-keys: a change to a part starts from main's latest entry and rebuilds only what
-      # its .key files miss
+      # just check's parts. Restore only: this job never decomposes, so a save here would store the key without
+      # model/build/convex first and the model job's full save would be refused (a key is written once). restore-keys:
+      # a change to a part starts from main's latest entry and rebuilds only what its .key files miss
       - name: Restore the parts cache
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -151,9 +145,8 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
-      # a PR's slim gate runs just check-light (#714); main and the full runs just check (#696)
       - name: Run just check
-        run: uv run just ${{ github.event_name == 'pull_request' && 'check-light' || 'check' }} | tee "$RUNNER_TEMP/pytest.txt"
+        run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
@@ -163,23 +156,19 @@ jobs:
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017)
       - name: Test the release rules
-        if: ${{ github.event_name != 'pull_request' }}   # this and what follows run on main alone (#714)
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
-        if: ${{ github.event_name != 'pull_request' }}
         run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
       # just check runs it offline; with a token it adds the audits that ask GitHub's API (known-vulnerable-actions,
-      # impostor-commit among them): on main's push and weekly only, since they hang on the API's rate limits and
-      # rarely turn on a PR's change (#561)
+      # impostor-commit among them), here alone, never on a PR, since they hang on the API's rate limits and rarely turn
+      # on a PR's change (#561)
       - name: Run zizmor online
-        if: ${{ github.event_name != 'pull_request' }}
         run: .venv/bin/zizmor -q .
         env:
           GH_TOKEN: ${{ github.token }}
       # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
       - name: Check the required checks
-        if: ${{ github.event_name != 'pull_request' }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
             --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
@@ -417,10 +406,9 @@ jobs:
             model/build/images
             web/build
           key: next-${{ needs.changes.outputs.next-hash }}
-  # the docs (Astro Starlight, just site), off PRs (#714): main's deploy
+  # the docs (Astro Starlight, just site): main's deploy
   site:
     name: Site
-    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
@@ -473,33 +461,30 @@ jobs:
         run: npm --prefix site run build && npm --prefix site test
         env:
           SITE_BASE: /noggin/v0.0
-  # the required check (#496): every job above passed, or was skipped as its inputs were unchanged or, on a PR, as
-  # main's alone (#696, #714; a skipped required check passes, so this one never skips; a failed need fails it).
-  # Then, off PRs, the built site with the next Mech's pictures, played in the runner's Chrome
+  # the gate (#496): every job above passed, or was skipped as its inputs were unchanged (it never skips itself; a
+  # failed need fails it). Then the built site with the next Mech's pictures, played in the runner's Chrome
   checks:
     name: Checks
     needs: [changes, code, convex, model, blender, site]
-    if: ${{ !cancelled() && !github.event.pull_request.draft }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
     steps:
       - name: Check every job passed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: changes, convex, model, blender, site
+          allowed-skips: convex, model, blender
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - name: Download the built site
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: built-site
           path: site
       # the next Mech's, made from this run's inputs: Blender's of this run, or an earlier run's
       - name: Restore the next Mech's pictures
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
@@ -508,34 +493,28 @@ jobs:
           key: next-${{ needs.changes.outputs.next-hash }}
           fail-on-cache-miss: true
       - name: Add the pictures and viewer
-        if: ${{ github.event_name != 'pull_request' }}
         run: |   # as just site does: the next-* ones alone (docs/adr/0019)
           mkdir -p site/dist/images site/dist/viewer
           cp model/build/images/next-* site/dist/images/
           cp web/build/next-*.glb site/dist/viewer/
       - name: Set up Node
-        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
         with:
           node-version-file: site/.nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
       - name: Install the site's packages
-        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
       # the links Site checked, now with the pictures they point at, and that every picture and GLB is one the code
       # publishes (site.test.mjs)
       - name: Check the links and the pictures
-        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site test -- site.test.mjs -t "link|picture"
       # the viewer loads the next Mech, the diagrams draw, search finds a page, the version switcher switches, in the
       # runner's Chrome, with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
-        if: ${{ github.event_name != 'pull_request' }}
         run: npm --prefix site run smoke
       # on main what Site Deploy deploys (actions/download-artifact by this run's id); a dispatched run's preview
       - name: Upload the site
-        if: ${{ github.event_name != 'pull_request' }}
         id: preview
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
@@ -554,8 +533,8 @@ jobs:
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
           } >> "$GITHUB_STEP_SUMMARY"
       # once for the run: its critical path, every job along its needs up to here. Warm: the parts and the next Mech's
-      # pictures cached from the same inputs, or a PR, which needs neither
+      # pictures cached from the same inputs
       - name: Check the CI budget
-        run: python3 scripts/ci_budget.py ${{ github.event_name == 'pull_request' || needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
+        run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}

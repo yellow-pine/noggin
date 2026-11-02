@@ -52,13 +52,11 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
-PR_ONLY = "${{ github.event_name == 'pull_request' }}"  # cancels a PR's superseded run, never main's
-
-
 def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
     """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
     Site Deploy, Release and Release Assets never cancel a run mid-way. #689: what Site Deploy and Release wait on
-    (Checks) runs every push to main to completion, queued, or merges minutes apart never deploy."""
+    (Checks, main's alone since #722) runs every push to main to completion, queued, or merges minutes apart never
+    deploy."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     wrong = []
     for name, flow in flows.items():
@@ -66,14 +64,14 @@ def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release(
         if "pull_request" in flow[True] and not (
             "github.workflow" in group
             and "github.event.pull_request.number" in group
-            and flow["concurrency"].get("cancel-in-progress") in (True, PR_ONLY)
+            and flow["concurrency"].get("cancel-in-progress") is True
         ):
             wrong.append(name)
     assert wrong == []
     awaited = {w for f in ("pages.yml", "semantic-release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
     by_name = {flow["name"]: flow for flow in flows.values()}
     assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
-        awaited, PR_ONLY
+        awaited, False
     )
     for name in ("pages.yml", "semantic-release.yml", "release.yml"):
         assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
@@ -155,40 +153,39 @@ def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
 
 
-OFF_PRS = "github.event_name != 'pull_request'"
-
-
 def test_a_pr_runs_the_slim_gate_alone():
-    """#696, #714: a PR runs `just check-light` (Code: ruff, pyright and the fast tests), then the gate; the site's
-    build, the workflow and Dockerfile linters, the model, sim, Blender, Convex and the site's Chrome smoke run on main
-    only, which fixes forward what they catch (#283)."""
-    jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-
-    def on_prs(id_: str) -> bool:
-        """Whether a PR runs the job: nothing keeps it off PRs, and its needs run, or it runs past a skipped one."""
-        cond, needs = str(jobs[id_].get("if", "")), jobs[id_].get("needs", [])
-        past_skips = "cancelled()" in cond and "== 'success'" not in cond
-        needed = all(map(on_prs, [needs] if isinstance(needs, str) else needs))
-        return OFF_PRS not in cond and (past_skips or needed)
-
-    assert {id_ for id_ in jobs if on_prs(id_)} == {"code", "checks"}
-    [check] = [s["run"] for s in jobs["code"]["steps"] if s["name"] == "Run just check"]
-    assert "${{ github.event_name == 'pull_request' && 'check-light' || 'check' }}" in check
-    assert [s["name"] for s in jobs["code"]["steps"] if OFF_PRS not in str(s.get("if", ""))] == [
+    """#696, #714, #722: a PR runs PR Gate alone, `just check-light` (Code: ruff, pyright and the fast tests), then its
+    `Checks` gate; Checks (checks.yml: the site's build, the workflow and Dockerfile linters, the model, sim, Blender,
+    Convex and the site's Chrome smoke) runs on main only, which fixes forward what it catches (#283)."""
+    gate = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())
+    assert set(gate[True]) == {"pull_request"}
+    assert "pull_request" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]
+    jobs = gate["jobs"]
+    assert {id_: job["name"] for id_, job in jobs.items()} == {"code": "Code", "checks": "Checks"}
+    assert [s["name"] for s in jobs["code"]["steps"]] == [
         "Check out the repo",
-        "Run just check",
+        "Run just check-light",
         "List the slowest tests",
     ]
+    assert "uv run just check-light " in jobs["code"]["steps"][1]["run"]
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
-    gate = jobs["checks"]["steps"]
-    off = (OFF_PRS, "github.event_name == 'workflow_dispatch'")
-    assert [s["name"] for s in gate if not any(o in str(s.get("if", "")) for o in off)] == [
+    assert [s["name"] for s in jobs["checks"]["steps"]] == [
         "Check every job passed",
         "Check out the repo",
         "Check the CI budget",
     ]
+
+
+def test_a_pr_lists_no_job_every_pr_skips():
+    """#722: a job conditioned off pull_request shows as skipped on every PR, so a workflow on pull_request alone
+    tests no event at all. Dependabot Auto-merge runs on Dependabot's PRs and Clear Labels on a closed issue: both
+    stay."""
+    for f in WORKFLOWS:
+        on = yaml.safe_load(f.read_text())[True]
+        if on == "pull_request" or set(on) == {"pull_request"}:  # a bare trigger, or its types
+            assert "github.event_name" not in f.read_text(), f.name
 
 
 # what carries the geometry of a document: the built parts and their cut (STL), the renders' meshes and frames, the
@@ -234,25 +231,26 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
 
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone."""
-    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
-    perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
-    assert not [p for p in perms if "write" in p.values()]
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722)."""
+    for f in ("checks.yml", "pr-gate.yml"):
+        flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
+        perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+        assert not [p for p in perms if "write" in p.values()], f
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():
     """#561: the online audits (GitHub's API: rate limits, rarely a PR's change) run on main's push and weekly; a PR
-    keeps just check's offline zizmor."""
-    steps = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
-    [online] = [s for s in steps if "zizmor" in s.get("run", "")]
-    assert online["if"] == "${{ github.event_name != 'pull_request' }}"
+    runs no zizmor at all since #714, and main's Checks never runs on a PR (#722)."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    assert [s for s in flow["jobs"]["code"]["steps"] if ".venv/bin/zizmor" in s.get("run", "")]
+    assert "pull_request" not in flow[True]
+    assert "zizmor" not in (WORKFLOWS[0].parent / "pr-gate.yml").read_text()
 
 
-def test_checks_never_run_on_edited():
-    """#496: a title or body edit would cancel the running Checks (one run per group), or green a red one."""
-    assert (
-        "edited" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]["pull_request"]["types"]
-    )
+def test_the_pr_gate_never_runs_on_edited():
+    """#496: a title or body edit would cancel the running gate (one run per group), or green a red one."""
+    on = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())[True]
+    assert "edited" not in on["pull_request"]["types"]
 
 
 def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():

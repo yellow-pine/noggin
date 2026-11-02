@@ -1,0 +1,62 @@
+name: PR Gate
+# Runs a PR's slim gate: `just check-light` (ruff, pyright and the fast tests), then the required `Checks`.
+# Everything heavier is main's Checks (checks.yml), which fixes forward what it catches (#283, #696, #714). Its own
+# workflow (#722), so a PR lists no job that every PR skips (test_workflows.py). `Checks` is the required check: it
+# fails unless Code passed (a skipped required check passes, so this one never skips) and checks the CI budget once
+# (scripts/ci_budget.py). Code runs in our base image (ci/base.Dockerfile).
+on:
+  pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:   # one run per PR; a new push cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  actions: read   # scripts/ci_budget.py reads when the run's jobs started
+defaults:
+  run:
+    shell: bash   # -eo pipefail: just's exit code survives the tee
+jobs:
+  code:
+    name: Code
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-base:main   # as checks.yml's Code
+      env:   # as checks.yml's Code: uv sync hard-links the venv
+        UV_CACHE_DIR: /__w/uv-cache
+        UV_LINK_MODE: hardlink
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Run just check-light
+        run: uv run just check-light | tee "$RUNNER_TEMP/pytest.txt"
+        env:
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
+          OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
+      - name: List the slowest tests
+        if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+  # the required check (#496): Code passed. A skipped required check passes, so this one never skips; a failed need
+  # fails it
+  checks:
+    name: Checks
+    needs: [code]
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check every job passed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Check the CI budget
+        run: python3 scripts/ci_budget.py true   # a PR builds nothing it could cache: always warm
+        env:
+          GH_TOKEN: ${{ github.token }}

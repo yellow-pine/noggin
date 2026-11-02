@@ -358,18 +358,23 @@ def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
     ]
 
 
-def test_the_required_checks_gate_needs_every_job_and_never_skips():
-    """`Checks`, the one required check of the workflow (#496): it needs every other job, runs past a failed or skipped
-    one (a skipped required check passes) and fails unless each passed or was skipped as unchanged or, on a PR, as
-    main's alone (#696, #714); Code never skips. A draft runs none of it (#414)."""
-    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]
+@pytest.mark.parametrize(
+    ("workflow", "runs"),
+    [("checks.yml", "${{ !cancelled() }}"), ("pr-gate.yml", "${{ !cancelled() && !github.event.pull_request.draft }}")],
+)
+def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
+    """`Checks`, the one required check of a PR's gate and the one main's Site Deploy and Release wait on (#496, #722):
+    it needs every other job of its workflow, runs past a failed or skipped one (a skipped required check passes) and
+    fails unless each passed or, conditioned on its inputs, was skipped as unchanged. A draft runs none of it (#414)."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / workflow).read_text())["jobs"]
     gate = jobs["checks"]
     assert sorted(gate["needs"]) == sorted(j for j in jobs if j != "checks")
-    assert gate["if"] == "${{ !cancelled() && !github.event.pull_request.draft }}"
+    assert gate["if"] == runs
     green = gate["steps"][0]
     assert "re-actors/alls-green@" in green["uses"]
     assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
-    assert {j.strip() for j in green["with"]["allowed-skips"].split(",")} == set(gate["needs"]) - {"code"}
+    skips = {j.strip() for j in green["with"].get("allowed-skips", "").split(",") if j.strip()}
+    assert skips == {j for j in gate["needs"] if "if" in jobs[j]} - {"code"}
 
 
 def test_no_real_photos_are_tracked():
