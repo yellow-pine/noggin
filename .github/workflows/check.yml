@@ -122,6 +122,14 @@ jobs:
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
         run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
+      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
+      - name: Check the required checks
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
+            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
+            | .venv/bin/python scripts/required_checks.py
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Check the CI budget
         run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:

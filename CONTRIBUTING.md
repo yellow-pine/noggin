@@ -95,7 +95,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   each with a one-line reason naming the allowed alternative.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
-  main's ruleset too and run `gh pr update-branch --rebase` on every open PR so it reports the new name.
+  main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
+  run `gh pr update-branch --rebase` on every open PR so it reports the new name.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the README's
   CI/CD table is generated from the workflows (`make readme`, #397) and `make check` fails while it is stale. Two PRs
   that conflict on a README table row: take either side, then run `make readme`.
