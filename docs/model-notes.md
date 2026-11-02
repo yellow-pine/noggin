@@ -159,20 +159,19 @@ until the model stabilises.
   candidates: one document each (geometry.NEXT), all on one Torso (#685: the
   shirt is the base, a compact open box whose floor is the foot, the neck mount with the pan servo on it and the pack
   lying across behind; its footprint in the sim report's tip_over, footprint_mm). Back: the boards upright on a rack
-  screwed under the gimbal frame plate's back edge, behind the eye gimbal; Crown: the boards lying flat on a shelf over
-  the eye gimbal, on a wall up from the plate's back edge; Split: the Cores and Shields so on a shelf for two, the switch
-  board lying under a bracket at the back of the pan yoke, low, riding the pan alone. Each one's parameters are
-  optimised in MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds the drawn numbers to it):
-  Back's row height, and the crowns' shelf height (the lowest clear of the gimbal's whole range) and the row's place
-  front to back, for the tilt servo's least worst hold. The sim report gives each one's head box (`variant.head_mm`,
+  screwed under the gimbal frame plate's back edge, behind the eye gimbal, the one variant since Cansin picked it
+  (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
+  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Each one's parameters are optimised in
+  MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds the drawn numbers to it): Back's row
+  height, for the tilt servo's least worst hold. The sim report gives each one's head box (`variant.head_mm`,
   width x depth x height of what rides the tilt) against #51's 140 x 120 x 150 and how far up it the eyes sit
   (`eyes_up`), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
   head-size and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
-  marks the Viewer's buttons ("Crown: tilt loop"). A variant whose four-bar opens stays in the model, ranked last; the
+  marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). Today none fits that head: Back's boards behind the gimbal make it 141.5 deep, the crowns 159 tall,
-  since the head mount and the jaw already hang 101 mm under the eyes (eyes_up 0.77 and 0.64, not the lower-middle).
-  Every size is inferred; Cansin picks.
+  (#705). Today Back does not fit that head: its boards behind the gimbal make it 141.5 deep, since the head mount
+  and the jaw already hang 101 mm under the eyes (eyes_up 0.77, not the lower-middle); the head size stays reported,
+  not a hard gate, until #708. Every size is inferred.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the

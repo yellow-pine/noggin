@@ -473,9 +473,6 @@ PRINTED |= {
             "next jaw bar",
             "next torso",
             "next board rack",
-            "next crown shelf",
-            "next split shelf",
-            "next switch bracket",
         )
     },
     "next L eyeball cap": ("Pure White", "PLA Pure"),
@@ -556,7 +553,7 @@ STAGES = {
 _HEAD = ((0, -150, 153), X, Z)
 NEXT = {
     f"next-mech-{v}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD} | dict.fromkeys(carriers, _HEAD)
-    for v, carriers in (("back", ["next-back"]), ("crown", ["next-crown"]), ("split", ["next-split", "next-switch"]))
+    for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
 }
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top

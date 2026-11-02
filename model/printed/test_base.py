@@ -13,7 +13,7 @@ from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next crown", "next split", "next switch", "next Core", "next Shield")
+BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield")
 
 
 def _hits(doc):

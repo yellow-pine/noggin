@@ -58,7 +58,7 @@ def report(doc):
 
 def head(doc, model):
     """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
-    and the carrier with the boards riding the head mount in Back, Crown and Split), as the MJCF weighs and places them."""
+    and the carrier with the boards riding the head mount), as the MJCF weighs and places them."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
     ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]

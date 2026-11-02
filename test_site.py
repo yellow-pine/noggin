@@ -227,7 +227,7 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    following = [f"next-mech-{d}-{v}.webp" for d in ("back", "crown", "split") for v in ("side", "isometric")]  # #686
+    following = [f"next-mech-back-{v}.webp" for v in ("side", "isometric")]  # #686, Back alone since #712
     assert sorted(pictures.SITE["views"]) == sorted(
         [*panels, *following, "favicon.png"]
     )  # the site's icon: an eye (#603)
@@ -251,14 +251,8 @@ def test_the_next_mech_has_its_own_panels():
     import macros
 
     grid = macros.next_panels()
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == [
-        "Next Mech (back)",
-        "Next Mech (crown)",
-        "Next Mech (split)",
-    ]
-    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == [
-        f"next-mech-{d}-{v}.webp" for d in ("back", "crown", "split") for v in ("side", "isometric")
-    ]
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech (back)"]  # Back alone since #712
+    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == [f"next-mech-back-{v}.webp" for v in ("side", "isometric")]
 
 
 def test_the_site_publishes_the_next_mech_alone():
@@ -274,8 +268,8 @@ def test_the_site_publishes_the_next_mech_alone():
     # side and isometric per document (a head variant each, #686), the sweep (#656), the 7 it plays (#663) and a
     # picture per part
     assert len(published) == 2 * len(g.NEXT) + 1 + 7 + len(stems) == len(set(published))
-    assert {"next-mech-back-isometric.webp", "next-eyes-rest.webp", "next-crown-shelf.webp"} <= {*published}
-    assert build.PUBLIC == {d: f"{d}.glb" for d in ("next-mech-back", "next-mech-crown", "next-mech-split")}
+    assert {"next-mech-back-isometric.webp", "next-eyes-rest.webp", "next-board-rack.webp"} <= {*published}
+    assert build.PUBLIC == {"next-mech-back": "next-mech-back.glb"}  # Back alone since #712
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
     assert [doc for doc in g.NEXT if stages.todays(doc)] == []
@@ -299,7 +293,8 @@ def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_ranking
     """#686 (Cansin): every next-Mech document has its GLB and its button, even one that fails a gate; with just sim's
     ranking of today's variants the buttons follow its order, each marked with what it fails, else geometry.NEXT's
     unmarked (a ranking of other documents: main's reports before the variants' first sim). Each button's line says
-    where its boards go, from what carries them (model/stages.py)."""
+    where its boards go, from what carries them (model/stages.py). Back alone since #712; the machinery stays for the
+    next variant."""
     import json
 
     import macros
@@ -310,21 +305,15 @@ def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_ranking
     monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
     unranked = macros.variants()
     assert [v["glb"] for v in unranked["buttons"]] == list(g.NEXT) and not unranked["ranked"]
-    assert [v["label"] for v in unranked["buttons"]] == ["Back", "Crown", "Split"]
-    order = ["next-mech-split", "next-mech-back", "next-mech-crown"]
-    fails = {"next-mech-split": [], "next-mech-back": ["head size", "torque"], "next-mech-crown": ["tilt loop"]}
-    ranking = {"order": order, "variants": {d: {"fails": fails[d]} for d in order}}
+    assert [v["label"] for v in unranked["buttons"]] == ["Back"]
+    ranking = {"order": ["next-mech-back"], "variants": {"next-mech-back": {"fails": ["head size", "tilt loop"]}}}
     macros.RANKING.write_text(json.dumps(ranking))
     ranked = macros.variants()
-    assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == order
-    assert [v["label"] for v in ranked["buttons"]] == [
-        "Split",
-        "Back: head size, torque",
-        "Crown: tilt loop",  # #705: a variant that fails a gate keeps its button, saying what it fails
-    ]
+    assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == ["next-mech-back"]
+    # #705: a variant that fails a gate keeps its button, saying what it fails
+    assert [v["label"] for v in ranked["buttons"]] == ["Back: head size, tilt loop"]
     about = {v["glb"]: v["about"] for v in ranked["buttons"]}
     assert about["next-mech-back"] == "the boards upright on the board rack's back face, behind the eye gimbal"
-    assert about["next-mech-split"].endswith("and the switch board under its bracket, low at the back of the neck")
     macros.RANKING.write_text(json.dumps({"order": ["next-mech-a"], "variants": {"next-mech-a": {"fails": []}}}))
     assert macros.variants() == unranked
 
@@ -351,8 +340,6 @@ def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
         assert set(apart) == set(stages.STAGES[doc].parts)
     assert explode["next-mech-back"]["next torso:1"] == [0, 0, 0]
     assert explode["next-mech-back"]["next board rack:1"] == pytest.approx([0, 0.095, -0.06])  # up with the head, back
-    assert explode["next-mech-crown"]["next crown shelf:1"] == pytest.approx([0, 0.155, 0])  # up over the head
-    assert explode["next-mech-split"]["next switch bracket:1"] == pytest.approx([0, 0.045, -0.06])  # with the neck
     assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
 
 
@@ -365,7 +352,7 @@ def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
     assert pictures.motions() == [
         {
             "motion": "views",
-            "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-back next-mech-crown next-mech-split",
+            "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-back",
         },
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
