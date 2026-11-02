@@ -10,6 +10,7 @@ import trimesh
 
 # In-plane coordinates (u, v) per axis so that a positive angle is a right-handed rotation about the axis.
 _PLANE = {(1, 0, 0): (1, 2), (0, 1, 0): (2, 0), (0, 0, 1): (0, 1)}
+_PLANE |= {tuple(-c for c in axis): (v, u) for axis, (u, v) in _PLANE.items()}  # about -axis: the plane's other way
 
 
 class Unreachable(ValueError):

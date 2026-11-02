@@ -9,14 +9,14 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   they are made.
 - The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Blender` job renders its two panels
   and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
-  `just pictures next`) and bakes its viewer GLB, still, without clips (`just web` with its document), when what they
-  are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/, from main. No PR preview
-  (#673). Every published name starts `next-`.
+  `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
+  document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,
+  from main. No PR preview (#673). Every published name starts `next-`.
 - The next Mech in motion (Cansin, 2026-11-02, #656): its eye gimbal alone sweeping its yaw and pitch with the lids
-  following, a blink and a wink (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps), each a looping
-  WebP through one camera from the hero's direction, rendered with the rest by `just pictures next`. The gimbal's own
-  kinematics move it (model/gimbal.py moved) until its MuJoCo document drives it; the gestures join once the next Mech
-  plays them, the neck and the jaw as their tickets land.
+  following (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps, moved by model/gimbal.py moved),
+  then each motion it plays, its gestures and Rest as MuJoCo baked them (#663, its rest's blink and its wink in place
+  of the keyed ones), each a looping WebP through one camera from the hero's direction, rendered with the rest by
+  `just pictures next`; the neck and the jaw join as their tickets move them.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
   the Stage panels (each Stage at rest, a trajectory's first frame), `just hero` for the hero;
@@ -126,6 +126,13 @@ until the model stabilises.
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
+  In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
+  horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
+  lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
+  gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
+  (closed shut past the cap's rim, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  so its sim report reads each servo's torque along them and the clearance is certified along them
+  (model/test_trajectories.py). The neck joining gaze shifts past ~15 deg (#51) waits on the neck moving (#642).
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
@@ -134,8 +141,8 @@ until the model stabilises.
   weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. Since #642 it moves in
   MuJoCo (its horns named as today's Stages', so the sim report's neck figures, tip-over and the Core's servo names
   apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
-  motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); the gimbal stays
-  posed by its own kinematics.
+  motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); since #663 the gimbal
+  moves in MuJoCo too and plays the gestures.
 - The Base candidates (#642, model/base.py, the parts in model/printed/base.py, GLOSSARY): one document each,
   next-mech-a and next-mech-b, both on one base plate with the pack lying behind the neck mount. (a) the boards on a
   tray screwed under the gimbal frame's plate behind the head mount, riding pan and tilt; (b) the boards on a shelf

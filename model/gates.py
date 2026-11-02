@@ -39,6 +39,8 @@ def loops(model, data):
             jac.append(np.zeros((3, model.nv)))
             mujoco.mj_jacSite(model, data, jac[-1], None, s)
         free = sorted((_dofs(model, model.site_bodyid[sites[0]]) ^ _dofs(model, model.site_bodyid[sites[1]])) - driven)
+        if len(free) != 2:  # a push-rod's spatial loop (stages.Rod), no four-bar: model/gimbal.py report() gates it
+            continue
         J = (jac[0] - jac[1])[:, free] * 1000  # mm per rad
         coupler, rocker = J.T  # a four-bar: two free pivots
         cos = abs(coupler @ rocker) / (np.linalg.norm(coupler) * np.linalg.norm(rocker))

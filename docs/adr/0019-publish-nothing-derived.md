@@ -16,6 +16,9 @@
 > Amended 2026-11-02 (#673, Cansin): no PR preview any more, it arrived too late to be useful: no before/after, no
 > `preview` artifact or `just preview`, no sticky comment and no `pr-previews` pre-release (deleted). A PR still
 > renders and bakes the next Mech when its inputs changed, for Checks to test the site with; main publishes them.
+> Amended 2026-11-02 (#663, Cansin): the motions the Next Mech plays in MuJoCo, its gestures and Rest, join the sweep
+> as `next-eyes-<motion>.webp` (Rest's blink and the wink gesture in place of the keyed blink and wink) and as clips of
+> its GLB.
 > Amended 2026-11-02 (#642): the Next Mech's documents are its two Base candidates, `next-mech-a` and `next-mech-b`
 > (`just web next`), each published as `next-mech` was.
 

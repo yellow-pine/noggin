@@ -152,14 +152,16 @@ def _quat(m):
 
 def _joints(stage):
     """The document's hinges, in its frame (mm): ({joint: (point, axis)}: each horn (named as the horn) on its servo
-    shaft, each coupler (named as its part) on its horn pin, each rocker (named as its stages.Loop joint) on its pivot;
-    {part: the joints that move it}; [(loop joint, coupler, rocker, the rocker pin)] where the four-bars close)."""
+    shaft, each coupler (named as its part) on its horn pin, each rocker (named as its stages.Loop joint) on its pivot,
+    each push-rod (stages.Rod) on its arm's ball, axes (two: a universal joint) and the parts it drives on their hinge;
+    {part: the joints that move it}; [(loop joint, coupler, rocker, the rocker pin)] where the four-bars and the
+    push-rods close)."""
     hinges, moves, closures = {}, {n: set() for n in stage.parts}, []
     for h, horn in stage.horns.items():
         f = horn.frame  # the chain's points are in its sub-assembly's frame
 
         def at(p, axis):
-            return (f @ [*p, 1])[:3], f[:3, :3] @ axis
+            return (f @ [*p, 1])[:3], np.asarray(axis, float) @ f[:3, :3].T
 
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
         moves[horn.crank].add(h)
@@ -171,6 +173,13 @@ def _joints(stage):
             for r in loop.rockers:
                 moves[r].add(loop.joint)
             closures.append((loop.joint, loop.coupler, loop.rockers[0], at(b0, axis)[0]))
+        for rod in horn.rods:
+            joint, point, axis = rod.hinge
+            hinges[rod.joint], hinges[joint] = at(rod.arm, rod.axes), at(point, axis)
+            moves[rod.part] |= {rod.carrier, rod.joint}
+            for p in rod.driven:
+                moves[p].add(joint)
+            closures.append((rod.joint, rod.part, rod.driven[0], at(rod.lever, axis)[0]))
     return hinges, moves, closures
 
 
@@ -255,9 +264,12 @@ def spec(doc, collide=True):
             if len(js) == len(moved) + 1 and moved < js:
                 (j,) = js - moved
                 body = add(parent, parent_m, names[0])
-                point, axis = hinges[j]
-                hinge = body.add_joint(name=j, type=mujoco.mjtJoint.mjJNT_HINGE, pos=local(names[0], point) * MM)
-                hinge.axis = stage.parts[names[0]].matrix[:3, :3].T @ axis  # a rotation's inverse is its transpose
+                point, axes = hinges[j]
+                axes = np.reshape(axes, (-1, 3))  # two: a universal joint, its hinges named "<joint> <n>"
+                for n, axis in enumerate(axes):
+                    name = j if len(axes) == 1 else f"{j} {n}"
+                    hinge = body.add_joint(name=name, type=mujoco.mjtJoint.mjJNT_HINGE, pos=local(names[0], point) * MM)
+                    hinge.axis = stage.parts[names[0]].matrix[:3, :3].T @ axis  # a rotation's inverse is its transpose
                 for n in names[1:]:
                     add(body, stage.parts[names[0]].matrix, n)
                 hang(js, body, stage.parts[names[0]].matrix)

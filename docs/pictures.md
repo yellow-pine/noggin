@@ -22,12 +22,13 @@ servos), laid out apart until the neck and the base place them. Turn it in
 <!--{{ next_motions }}-->
 
 <!--{# GitHub shows the line below; the site drops it for the grid, which it builds from the code -->
-Its eye gimbal sweeping its yaw and pitch with the lids following, a blink and a wink, are in
+Its eye gimbal sweeping its yaw and pitch with the lids following, then playing each gesture and Rest, are in
 [the grid on the site](https://yellowpine.com/noggin/docs/pictures/#in-motion).
 <!-- #}-->
 
-The gimbal's own kinematics move it (model/gimbal.py) until the next Mech plays the gestures; the neck and the jaw join
-as they land.
+The sweep is keyed through the gimbal's own kinematics (model/gimbal.py); the gestures and Rest are the eye program's,
+played in MuJoCo through the gimbal's command map, as the next Mech's eyes Core will play them. The neck and the jaw
+join as they move.
 
 ## Its parts
 

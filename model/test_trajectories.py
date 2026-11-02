@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pytest
 
-from model import electrical, gates, geometry, mjcf, mujoco_report, traces
+from model import electrical, gates, geometry, gimbal, mjcf, mujoco_report, traces
 from model import trajectories as tj
 from model.render import hero
 from model.test_report import known
@@ -23,6 +23,13 @@ _OPEN = (
     " past the model's free travel (geometry.LIMITS, #210): the ears' back corners cross from +16.5 and the upper lid"
     " reaches the eye bracket's arm from +28. Conflict, recorded, not settled"
 )
+# Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
+NESTED = {
+    frozenset((f"next {s} eyeball cap:1", f"next {s} lid:1")): "the lid's shell turns about the cap's own centre, its"
+    " inside 1.5 mm out from the cap (gimbal.LID_R, CAP_R): its convex pieces fill that inside, so they read the cap"
+    " 0.06 mm deeper than at rest as it yaws under a half-shut lid (attention); gimbal.report() holds the exact gap (#663)"
+    for s in "LR"
+}
 KNOWN_CALIBRATED = {
     **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _OPEN for s in "LR"},
     **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _OPEN for s in "LR"},
@@ -37,23 +44,23 @@ def built(doc):
 def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     """{(part, part): (ms, mm)} a reading of each pair whose pieces go PENETRATION_MM deeper than at rest anywhere in
     the motion as played, certified between the sim's steps (gates.certify, #627), the known pairs aside
-    (test_report.known) and the calibrated pairs while their lid horn is past its free travel."""
+    (test_report.known, NESTED) and the calibrated pairs while their lid horn is past its free travel."""
     model = built(doc)
     rest = mjcf.pose(model, {})
     floors = {
         p: min(gates.separation(model, rest, p), 0) - mujoco_report.PENETRATION_MM
         for p in gates.pairs(model)
-        if not known(p)
+        if not known(p) and frozenset(p) not in NESTED
     }
 
     def excused(pair, data):
-        if frozenset(pair) not in calibrated:  # only today's lids are (the next Mech has no lid horn in MuJoCo)
+        if frozenset(pair) not in calibrated:  # only today's lids are
             return False
         s = pair[0][0]  # pairs come sorted: a calibrated pair's lid first
         return math.degrees(data.joint(f"{s} lid horn").qpos[0]) > geometry.HORN_LIMITS[f"{s.lower()}_lid"][1] - 90
 
     step_ms = model.opt.timestep * 1000
-    writes, times = tj.MOTIONS[motion]()
+    writes, times = tj.commands(doc, motion)
     qpos = tj.play(model, writes, np.arange(0, times[-1] + step_ms / 2, step_ms), read=lambda d: d.qpos.copy())
     found = gates.certify(model, np.array(qpos), floors, excused)
     return {pair: (row * step_ms, mm) for pair, (row, mm) in found.items()}
@@ -64,9 +71,9 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     "doc,motion", [(d, m) for d in geometry.STAGES | geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
-    """#255: every gesture and the hero as played on each Stage and on the next Mech (its neck and jaw, #642): no pair
-    of parts more than PENETRATION_MM deeper than at rest at any step of the sim, not only in the 100 ms frames the GIFs
-    and the web viewer draw (#627)."""
+    """#255, #663: every gesture and the hero as played on each Stage and on the next Mech (its neck and jaw, #642; its
+    gestures and Rest on its eye gimbal, #663): no pair of parts more than PENETRATION_MM deeper than at rest at any step
+    of the sim, not only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
     assert overlaps(doc, motion) == {}
 
 
@@ -151,3 +158,29 @@ def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():
     for k, deg in enumerate(head):
         keyed = abs(hero._eased(hero.HEAD["rotate"], k / tj.FPS - mjcf.SERVO["delay_s"]))
         assert abs(deg - keyed) < 2, (k, deg, keyed)
+
+
+def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
+    """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
+    (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking lid shuts past the
+    cap's rim (-65, model/test_gimbal.py) and the other squints; all come back to rest."""
+    model = built("next-mech-a")
+    names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
+    writes, times = tj.commands("next-mech-a", "wink")
+    frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
+    left, right, pitch, lid, other = frames.T
+    assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
+    assert abs(left.max() - 8 / 30 * 25) < 1.5  # its saccade lands, overshooting a little on the way
+    assert abs(lid.min() + 65) < SETTLED_DEG and -65 + 5 < other.min() < -5
+    assert np.abs(frames[-1]).max() < SETTLED_DEG
+
+
+def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
+    """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
+    (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""
+    model = built("next-mech-a")
+    yaw, pitch = gimbal.servos(gimbal.YAW, gimbal.PITCH)
+    data = mjcf.pose(model, {"next yaw horn": yaw, "next pitch horn": pitch})
+    for s in "LR":
+        assert math.degrees(data.joint(f"next {s} yaw pivot").qpos[0]) == pytest.approx(gimbal.YAW, abs=SETTLED_DEG)
+        assert math.degrees(data.joint(f"next {s} eyeball pitch").qpos[0]) == pytest.approx(15, abs=SETTLED_DEG)

@@ -20,6 +20,12 @@ KNOWN_PAIRS = {
         " nothing 0.1 mm inside (model/test_mjcf.py holds the pieces to that)"
         for s in "LR"
     },
+    **{
+        frozenset((f"next {s} push-rod:1", "next bail:1")): "the push-rod's cup round the bail arm's ball: its convex"
+        " pieces fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the"
+        " exact solids share no volume at pitch -15, 0 and 15 (#663)"
+        for s in "LR"
+    },
 }
 # Base candidate (b)'s tower rises on the pan axis through the head's middle (model/base.py): every pair with it is the
 # clearance gate the ranking drops (b) for (base.rank), a finding about (b), not a fault in the model (#642)
@@ -48,6 +54,12 @@ KNOWN_TRANSMISSION = {
     "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
     " give 39 deg end to end, under the mouth GIF's 46 (docs/research/2026-10-31-neck.md)",
     "jaw hinge": "29 deg at horn 0, the jaws closed (geometry.LIMITS mouth): the stock jaw bar's, recorded, not settled",
+    **{
+        f"next {s} lid pivot": "25 deg at lid -65, shut: the lid's parallelogram (model/gimbal.py) meets its crank at 90"
+        " less the lid's turn; its singularity margin (5.2 mm/rad) still holds the play under PLAY_DEG, and a shut lid"
+        " is the lightest load it carries (#663)"
+        for s in "LR"
+    },
 }
 
 

@@ -1,5 +1,6 @@
-"""Seam: model/render/pictures.py next_motions(), the next Mech in motion (#656): the eye gimbal's poses per frame of
-each motion, from its rest pose and model/gimbal.py's kinematics."""
+"""Seam: model/render/pictures.py next_motions() and next_played(), the next Mech in motion (#656, #663): the eye
+gimbal's poses per frame of the keyed sweep, from its rest pose and model/gimbal.py's kinematics, and of each motion it
+plays, from its baked trajectory."""
 
 import math
 
@@ -38,18 +39,26 @@ def test_the_sweep_turns_the_eyes_through_their_whole_range_and_the_lids_follow(
     assert lid == pytest.approx(angles(motions["sweep"], "next R eyeball core:1", (0, -1, 0))[:, 1], abs=0.5)
 
 
-def test_a_blink_shuts_both_lids_and_a_wink_one(motions):
-    shut = gimbal.LID_EDGES[0] - gimbal.LID_REST
-    lid = lambda m, s: angles(motions[m], f"next {s} lid:1", (0, -1, 0))[:, 1].min()  # noqa: E731
-    lowest = {m: [lid(m, s) for s in "LR"] for m in ("blink", "wink")}
-    assert lowest["blink"] == pytest.approx([shut, shut])
-    assert lowest["wink"] == pytest.approx([shut, 0])
-
-
 def test_each_motion_loops_from_rest_and_moves_the_eyes_alone(motions):
     for frames in motions.values():
         first = frames[0]
         assert set(first) == set(stages.next_eyes().parts)
         assert len(frames) > pictures.HERO_FPS  # longer than a second
         for n, m in first.items():
-            assert m == pytest.approx(motions["blink"][0][n])  # every motion starts and loops at the same rest
+            assert m == pytest.approx(motions["sweep"][0][n])  # every motion starts and loops at the same rest
+
+
+def test_the_next_mech_plays_each_gesture_and_rest_in_the_pictures_as_mujoco_baked_it(monkeypatch):
+    """#663: beside the keyed sweep, a picture of each motion the next Mech plays (its gestures and Rest), its eye gimbal
+    alone, from its baked trajectory (here 3 s at the trajectory's 10 fps) at the hero's 8 fps."""
+    parts = stages.STAGES["next-mech-a"].parts
+    baked = [{n: np.eye(4) * (1 + k) for n in parts} for k in range(30)]
+    monkeypatch.setattr(pictures.trajectories, "poses", lambda doc, m: baked if doc == "next-mech-a" else None)
+    assert [m for m, keys in pictures.NEXT_MOTIONS.items() if keys is None] == [
+        "eureka", "attention", "bored", "wince", "wink", "thinking", "rest"
+    ]  # fmt: skip
+    played = pictures.next_played()
+    assert set(played) == {"eureka", "attention", "bored", "wince", "wink", "thinking", "rest"}
+    for frames in played.values():
+        assert len(frames) == 24 and set(frames[0]) == set(stages.next_eyes().parts)
+        assert frames[-1]["next L lid:1"][0, 0] == pytest.approx(30)  # it ends on the last baked frame

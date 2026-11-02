@@ -2,8 +2,8 @@
 #649, #642), written into one folder that the site serves at viewer/ beside the viewer's page and its module
 (site/src/pages/viewer.astro, `just site`, docs/adr/0009). Each GLB is Blender's (web/glb.py): the Stage's parts in the
 pictures' look, one glTF clip per motion of its baked trajectories (model/trajectories.py, `just trajectories`); the
-hero's Stage's also the hero picture's camera (model/render/pictures.py hero_camera). The next Mech's are still
-(model/gimbal.py moves its eyes, #630): no clips.
+hero's Stage's also the hero picture's camera (model/render/pictures.py hero_camera). The next Mech's play their
+gestures, Rest (#663) and the next hero (#642).
 Usage: python -m web.build [out [doc ... | next]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
 
 import json
@@ -34,8 +34,6 @@ def glb(doc, path):
             for m in trajectories.motions(doc)
         }
         rest = next(iter(motions.values()))[0]
-        if doc not in g.STAGES:  # still: no clips
-            motions = {}
         spec = {"parts": parts, "motions": motions, "rest": rest, "fps": trajectories.FPS, "out": path}
         if doc == pictures.HERO_STAGE:  # the hero picture's camera, for the page whose poster it is (#597)
             cam = pictures.hero_camera(pictures.hulls(parts))
