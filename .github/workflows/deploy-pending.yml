@@ -1,0 +1,21 @@
+name: Deploy Pending
+# Sets a main commit's `deploy` status pending while Site Checks build its site (#292); Site Deploy (pages.yml) sets its
+# outcome. Its own workflow, on main pushes only, so PRs show no skipped row for it (#404).
+on:
+  push:
+    branches: [main]
+permissions: {}
+jobs:
+  deploy-pending:
+    name: Deploy Pending
+    runs-on: ubuntu-26.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Set the deploy status pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=deploy
+          -f "description=building the site" -f "target_url=$RUN_URL" > /dev/null

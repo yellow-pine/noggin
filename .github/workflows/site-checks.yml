@@ -7,8 +7,8 @@ name: Site Checks
 # site/dist/reports, tests the built site (Vitest) and plays the viewer and search in Chrome (Playwright), and uploads
 # it as an artifact: a PR's preview, and on main what Site Deploy (pages.yml) deploys once
 # this run and Code Checks passed. `Site` and `Pictures` are required checks on PRs that touch what the site is made
-# from (the changes job, as for check.yml's mech). On main, `Deploy Pending` sets the commit's `deploy` status
-# pending while this builds (#292); Site Deploy sets its outcome.
+# from (the changes job, as for check.yml's mech). On main, Deploy Pending (deploy-pending.yml) sets the
+# commit's `deploy` status pending while this builds (#292); Site Deploy sets its outcome.
 # render and viewer run in our Blender image, site in the base one (Chrome for the viewer's test; ci/, docs/adr/0009);
 # the other jobs need no tool uv can't install.
 on:
@@ -21,20 +21,6 @@ concurrency:   # as check.yml's: one run per PR (or main), a new push cancels th
   cancel-in-progress: true
 permissions: {}
 jobs:
-  deploy-pending:
-    name: Deploy Pending
-    if: ${{ github.event_name == 'push' }}   # main only (on.push)
-    runs-on: ubuntu-26.04
-    permissions:
-      statuses: write
-    steps:
-      - name: Set the deploy status pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: >-
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=deploy
-          -f "description=building the site" -f "target_url=$RUN_URL" > /dev/null
   changes:   # as check.yml's; main builds everything
     name: Changes
     if: ${{ github.event_name == 'pull_request' }}
