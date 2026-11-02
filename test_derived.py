@@ -59,6 +59,7 @@ MODEL_TESTS = subprocess.run(
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
 DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfile"))  # the CI images' sources (#481)
+BLENDER = ["model/ours.py", "eyes/calibration.json", "ci/blender.Dockerfile", "uv.lock"]
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "convex": (
@@ -67,12 +68,14 @@ MADE_FROM = {
     ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
-    # the Blender jobs' outputs and the site's checks: the images they run in too
-    "images": (["model/render/pictures.py"], ["uv.lock", *DOCKERFILES]),
-    "pictures": (["model/render/pictures.py"], ["uv.lock", *DOCKERFILES]),  # every motion together, for changes (#386)
-    "viewer": (["web/build.py"], ["uv.lock", *DOCKERFILES]),
+    # the Blender jobs' outputs: the parts' make, the scripts Blender runs, the Core's calibration the trajectories play
+    # and Blender's pin
+    "images": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),
+    "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
+    "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
     "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
+    # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
     # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
@@ -97,17 +100,32 @@ MADE_FROM = {
 KEY = re.compile(
     r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}(-\$\{\{ steps\.lock\.outputs\.hash \}\})?"
 )
+# prefix-[matrix-]hash, the hash one the code derives (#469): NAME=$(python3 scripts/inputs.py --hash FILE...), the lock
+# hash appended as NAME=$NAME-$lock, in the step `inputs` and the outputs NAME-hash of the job `changes`
+DERIVED = re.compile(
+    r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ (?:steps\.inputs|needs\.changes)\.outputs\.(\w+?)(?:-hash)? \}\}"
+)
+HASHED = re.compile(r"(\w+)=\$\(python3 scripts/inputs\.py --hash ([^)]+)\)")
 
 
 def patterns():
     """{name: [patterns]} for each cache key (by its prefix) and paths filter of the workflows, every copy of it."""
     found = {}
     for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
-        for job in yaml.safe_load(f.read_text())["jobs"].values():
+        jobs = yaml.safe_load(f.read_text())["jobs"]
+        hashed = {
+            name: sorted(inputs(*files.split(), *["uv.lock"] * (f"{name}=${name}-$lock" in step["run"])))
+            for step in jobs.get("changes", {}).get("steps", [])
+            if step.get("id") == "inputs"
+            for name, files in HASHED.findall(step["run"])
+        }
+        for job in jobs.values():
             for step in job.get("steps", []):
                 with_ = step.get("with", {})
                 if m := KEY.fullmatch(with_.get("key", "")):
                     found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]) + ["uv.lock"] * bool(m[3]))
+                elif m := DERIVED.fullmatch(with_.get("key", "")):
+                    found.setdefault(m[1], []).append(hashed[m[2]])
                 if "paths-filter" in step.get("uses", ""):
                     for name, globs in yaml.safe_load(with_["filters"]).items():
                         found.setdefault(name, []).append(globs)
@@ -130,6 +148,21 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
         if not covered(file, globs)
     }
     assert missed == set()
+
+
+def test_the_blender_jobs_keys_hash_no_makefile_workflow_or_test():
+    """A Makefile, workflow or test edit renders no picture and bakes no GLB (#469): their keys hash only what the
+    render code reads."""
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    tooling = [
+        f
+        for f in tracked
+        if f == "Makefile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
+    ]
+    found = patterns()
+    assert {
+        (n, f) for n in ("images", "pictures", "viewer") for globs in found[n] for f in tooling if covered(f, globs)
+    } == set()
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():
