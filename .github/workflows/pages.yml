@@ -14,7 +14,7 @@ name: Site Deploy
 # named main), on that push's commit (head_sha), the one the status goes on; or for Release Docs' dispatch on main, on
 # main's head (#414).
 on:
-  workflow_run:
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the Checks job acts only on this repo's push to main
     workflows: ["Code Checks", "Site Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
     types: [completed]
     branches: [main]

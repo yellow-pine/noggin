@@ -54,6 +54,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
@@ -93,6 +95,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       - name: Hash the lockfile
         id: lock
         run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
@@ -138,6 +142,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       - name: Hash the lockfile
         id: lock
         run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
@@ -197,6 +203,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       - name: Hash the lockfile
         id: lock
         run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
@@ -273,6 +281,8 @@ jobs:
         run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
       - name: Hash the lockfile
         id: lock
         run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step

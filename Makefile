@@ -29,10 +29,12 @@ fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
 worktrees-clean: venv  ## remove the worktrees of merged or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
 	$(PY) scripts/worktrees_clean.py
-check: venv ours lint  ## CI's Code job: the tests not marked model, lint, formatting, types, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
+check: venv ours lint  ## CI's Code job: the tests not marked model, lint, formatting, types, the workflows (actionlint; zizmor, offline), wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
 	$(PY) -m pytest -q -m "not model"
 	$(PY) -m ruff format --check
 	$(PY) -m pyright
+	$(REPO)/.venv/bin/actionlint -shellcheck= -pyflakes=
+	$(REPO)/.venv/bin/zizmor -q --offline .
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
