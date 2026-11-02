@@ -230,6 +230,19 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert viewer and sorted(fetched) == sorted(viewer)
 
 
+def test_a_job_names_an_environment_only_to_deploy():
+    """#754: a job naming an environment makes a Deployment record, so an environment with nothing in it (Release
+    Assets' `release`, #358) showed every release twice. A job names one only as a real deploy target, or with
+    `deployment: false` for its secrets or rules alone."""
+    named = {
+        (f.name, id_): env if isinstance(env, dict) else {"name": env}
+        for f in WORKFLOWS
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items()
+        if (env := job.get("environment"))
+    }
+    assert named and all(e["name"] == "github-pages" or e.get("deployment") is False for e in named.values()), named
+
+
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
     Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722)."""
