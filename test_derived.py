@@ -66,7 +66,8 @@ MADE_FROM = {
 }
 
 
-KEY = re.compile(r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}")  # prefix-[matrix-]hash
+# prefix-[matrix-]hash[-lock]: the lock step's hash is uv.lock minus the release's version bump (scripts/lock_hash.py)
+KEY = re.compile(r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}(-\$\{\{ steps\.lock\.outputs\.hash \}\})?")
 
 
 def patterns():
@@ -77,7 +78,7 @@ def patterns():
             for step in job.get("steps", []):
                 with_ = step.get("with", {})
                 if m := KEY.fullmatch(with_.get("key", "")):
-                    found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]))
+                    found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]) + ["uv.lock"] * bool(m[3]))
                 if "paths-filter" in step.get("uses", ""):
                     for name, globs in yaml.safe_load(with_["filters"]).items():
                         found.setdefault(name, []).append(globs)

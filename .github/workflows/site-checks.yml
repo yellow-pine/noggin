@@ -106,13 +106,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # this motion's pictures (model/build/images)
       - name: Restore this motion's pictures
         id: frames
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
       # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
       # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
       - name: Restore the parts cache
@@ -122,7 +127,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
           restore-keys: ours-convex-
       - name: Restore the trajectories
         if: ${{ steps.frames.outputs.cache-hit != 'true' }}
@@ -130,7 +135,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       # its own step first, so the run's timings show the bake apart from the renders
       - name: Run make trajectories
@@ -195,12 +200,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Restore the viewer
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed. The latest trajectories: make web
@@ -212,7 +222,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
           restore-keys: ours-convex-
       - name: Restore the trajectories
         if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
@@ -220,7 +230,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       - name: Run make web
         if: ${{ steps.viewer.outputs.cache-hit != 'true' }}

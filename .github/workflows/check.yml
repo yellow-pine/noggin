@@ -90,6 +90,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
       # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
       # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
@@ -100,7 +105,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
           restore-keys: ours-convex-
       - name: Run make check
         run: make check | tee "$RUNNER_TEMP/pytest.txt"
@@ -128,6 +133,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Look up the parts cache
         id: parts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -135,7 +145,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
       # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
       # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
@@ -181,6 +191,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
@@ -194,7 +209,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/convex/${{ matrix.part }}
-          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
       - name: Cut the part
         run: make venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
         env:
@@ -247,6 +262,11 @@ jobs:
         run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
@@ -319,7 +339,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
-          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'uv.lock', 'Makefile', '.github/workflows/check.yml') }}
+          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'Makefile', '.github/workflows/check.yml') }}-${{ steps.lock.outputs.hash }}
           restore-keys: sim-
       - name: Run make sim
         if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
