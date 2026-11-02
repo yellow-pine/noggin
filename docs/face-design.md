@@ -1,49 +1,31 @@
-# Morty face: design spec (grilled 2026-10-31)
+# Skeleton and character shells (grilled 2026-11-02, #51)
 
 > [!NOTE]
-> **Planned.** Not built yet: this page is the design spec.
+> **Planned.** Not built yet, and on hold with the next Mech (#51, which holds the whole spec).
 
-Three screw-on 3D-printed modules, one per hardware stage, each leaving a complete-looking
-Mech. Parametric OpenSCAD source in `face/`, STL exports, Blender preview renders, slicer
-3MFs with AMS colour assignments. Nothing glued to the hardware.
+The next Mech is one shared skeleton that wears a character: a set of cosmetic shells held on by magnets, swapped by
+pulling one set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our
+own design; nothing comes from other people's designs.
 
-## Character and look
-- Morty. Clean 2.5D cartoon read: smooth shell, small bump nose, black line details printed with the AMS.
-- On-model scale around the 41 mm eyeballs (59 mm centre to centre, lid span 107 mm): head about
-  125 wide, 165 tall, 130 deep. Eye sockets 46 mm so the lids swing freely. Prints on the P1S in halves.
-- Colours, all owned, all PLA (hex from the slicer, density 1.24 g/cm3, docs/research/2026-10-31-filament.md):
-  Milky Pink #F7CED7, Pure White #FFFFFF, Absolute Black #000000, Apricot #FFB673. Face: Apricot skin, Absolute
-  Black hair, lines and collar, Pure White / Absolute Black eyes; the four eyelid parts are reprinted in Apricot.
-- Printed parts as they are (docs/references/build-photos/printed-parts.jpg; data in model/geometry.py): eyes mech brackets,
-  lids, bars, crank, wire keeper = Milky Pink; eyeballs = Pure White; pupils, base plate, tilt cradle, bearing ring
-  and the small black bits = Absolute Black; upright and tilt lever = Apricot; jaws, pan-tilt bars and servo
-  mounts = Pure White. Material tracked per part (PETG Black possible for reprints).
+## Skeleton and cosmetic parts
+- Skeleton, black PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the base,
+  the electronics mount. It is the same under every character; the eye centres stay fixed (model/geometry.py `EYE_R`).
+- Cosmetic, PLA Pure (Milky Pink, Apricot, Pure White, Absolute Black): the head shell with hair, the ears, the nose,
+  the eyeball caps, separate pupils, the lid covers, the mouth covers, the collar or shirt. A character's eyeball caps
+  may grow up to touching.
 
-## Stages
-1. **Face mask** on the eyes mech: forehead, cheeks, nose, eye sockets. Bolts to the eye bracket's
-   corner holes and side wings with M2x12 + M2 nuts (bracket holes are 2.2 mm). Chin stays open.
-2. **Skull back + hair cap + collar** with the pan-tilt: skull and hair bolt to the same wings and tilt
-   with the head, open at the bottom for the bracket stem; a black collar skirt sits on the 120 x 160
-   pan-tilt base and hides boards and batteries.
-3. **Jaw skin** on the mouth mechanism: screws to the bottom jaw, closes the chin.
+## Magnets
+- Every cosmetic part sits on magnets, moving ones included: one small disc size everywhere (start 4x2 mm N52), more of
+  them on heavier parts.
+- The model checks that each part holds against its weight and its peak gesture acceleration.
 
-## Freedom to change the base
-The pan-tilt base and how the stages attach to it may be redesigned (our own base plate,
-standoffs, battery pocket) when that serves the face, collar or wiring. The eyes mech brackets
-and the jaw stay as designed.
+## Characters
+| | Skin, lids | Hair | Collar or shirt | Eyes | Pupils |
+|---|---|---|---|---|---|
+| Morty | Milky Pink | Absolute Black | Pure White collar | Pure White | Absolute Black, jagged (a separate magnetic part) |
+| Bart | Apricot | part of the head | Absolute Black and Milky Pink pattern (one AMS print) | Pure White | Absolute Black dots |
 
-## Measured hardware (history: read off the designer's STLs before our parts replaced them)
-- Eye bracket 115 x 54 x 22; stem drops into the tilt arm slot. Side wings at x = -28 and +87 are flat faces.
-- Pan-tilt stack 35.9 mm above the base plate; eye centre about 66-72 mm above the plate.
-- Jaw 82 mm wide, 48 deep, front face 14 mm ahead of the pupils, bottom 61 mm below eye centre.
+The filaments are owned; their hex and density are in docs/research/2026-10-31-filament.md.
 
 ## Hardware
-Inventory and the buy list: [Parts](build/parts.md#parts-to-buy).
-
-## Assembly decisions
-- Printed halves join with M2 screws into printed bosses and nuts (removable). Nothing glued.
-- The collar screws to the base with two M3x10 and comes off for a pack swap. No magnets.
-- Inside stays as hollow as possible: skin plus mounting bosses only.
-
-## Toolchain
-OpenSCAD 2026.10 (brew cask `openscad@snapshot`; the plain cask is disabled) for source and STL export; Blender 5.2 for preview renders; the printer's slicer for 3MFs.
+Inventory and the buy list: [Parts](build/parts.md#parts-to-buy). The one new purchase is the magnets.

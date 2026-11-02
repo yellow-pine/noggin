@@ -14,9 +14,11 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Feature-first layout, never function-first; tests beside the code.
 - Keep it minimal (ponytail is active): the smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
-- No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). One pack and switch board per shield is a planned edit (docs/model-notes.md), not in the model yet.
+- No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). The Mech keeps one pack and the Y lead (the pack per shield was dropped, #51).
 - The digital model of the Mech is "the model" (folder model/), never "twin".
-- Don't spend effort on dataset/reference license checks; Cansin takes that on.
+- We check the licence of anything the Mech adopts (designs, code) before adopting it; dataset and reference licences stay Cansin's.
+- The next Mech (#51) adapts our own design on the electronics and servos we own; nothing comes from other people's designs.
+- Cosmetic parts (face plates, shells, anything facing out) are PLA Pure in Milky Pink, Apricot, Pure White or Absolute Black, held to the skeleton by magnets, so a character is a swappable shell set on one shared skeleton; every other part is black PETG.
 - Ground truth for the model, in order: Cansin's build (photos in docs/references/build-photos, local only; measurements), then our model (parts, MuJoCo, reports, tests). The designer's and vendor's files are credits (`docs/credits.md`) and history (docs/research) only. Planned edits go in notes only, never into the model, until they stabilise. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - I can't measure (no calliper): a size my build doesn't settle is a best guess from its behaviour or photos, then the model's nominals, marked inferred.
 - Hardware never gates a merge: Core and Link PRs merge on green, and I try them on the physical Mech after.
@@ -35,7 +37,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: the site's home (`docs/index.md`) and `docs/use/gestures.md`, built by `macros.py` from the code (numbers in docs: ADR 0009).
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
-- Morty face modules (3 stages, parts to buy): `docs/face-design.md`; source will live in `face/`.
+- The next Mech's skeleton and character shells (planned, #51): `docs/face-design.md`.
 - Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `just render`, `just hero`; CI builds the README's (`just pictures`) for the site's /images.
 - Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.

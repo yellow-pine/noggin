@@ -54,9 +54,9 @@ In the model pan swings 46° end to end and tilt about ±17° (docs/research/202
 
 ## Wiring
 
-Core 2 sits on its own Shield and joins the Wi-Fi like Core 1 ([Wiring](wiring.md)). The model still carries the stock
-power: one pack and one switch board for both Shields. The plan is a pack and a switch board per Shield (one pack cannot
-feed both at stall), a planned edit not yet in the model ([Model notes](../model-notes.md)).
+Core 2 sits on its own Shield and joins the Wi-Fi like Core 1 ([Wiring](wiring.md)). The Mech keeps the stock power:
+one pack and one switch board, a Y lead to both Shields; the gestures are to stay inside the pack's 3 A (a pack per Shield
+was dropped, #51).
 
 ## Pictures
 

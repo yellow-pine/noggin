@@ -88,11 +88,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 ## Planned edits (notes only, never in the model; #81)
 The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
 the model stabilises.
-- One pack and one switch board per shield (CLAUDE.md, ADR 0005), instead of stock's one pack and a Y lead to both: the
-  one pack's worst case (every servo at stall, both shields, a Wi-Fi burst each) is 5.34 A against its 3 A continuous
-  (model/electrical.py `pack_a`); each shield alone stays under 3 A. At the pack's 5.8 V cutoff the servos sag to
-  3.6 V at stall (`servo_v`, below their 4.8 V minimum); the Cores hold 3.3 V. Needs a second battery box and switch holder.
-- The cranium layout (#51): flat base, a static board tower, or boards riding in the head; batteries stay low.
+- The next Mech (#51, on hold; the spec lives there): linked eyes (one servo for left/right, one for up/down, each lid
+  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton
+  with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
   - the horns' spline tooth at servo 90 (geometry.HORN_AT_90): lids by the calibrated closed end (lo 39), its edges just touching (#134, #189, #255), eyes +2 from the
