@@ -22,9 +22,9 @@ concurrency:   # as check.yml's: one run per PR (or main), a new push cancels th
   cancel-in-progress: true
 permissions: {}
 jobs:
-  changes:   # as check.yml's; main builds everything
+  changes:   # as check.yml's on a PR; on main it only hashes the inputs, and main builds everything
     name: Changes
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -33,46 +33,55 @@ jobs:
       site: ${{ steps.filter.outputs.site }}
       pictures: ${{ steps.pictures.outputs.cache-hit }}   # warm: the motions and render skip, site restores them
       viewer: ${{ steps.viewer.outputs.cache-hit }}   # warm: viewer skips, site restores it
+      pictures-hash: ${{ steps.inputs.outputs.pictures }}
+      viewer-hash: ${{ steps.inputs.outputs.viewer }}
     steps:
       - name: Filter the changed paths
+        if: ${{ github.event_name == 'pull_request' }}
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:
           filters: |
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/site-checks.yml", "ci/*.Dockerfile", "macros.py"]
+                   ".github/workflows/site-checks.yml", "ci/*.Dockerfile", "macros.py", "conftest.py"]
       # whether the pictures and the viewer built from the same inputs are cached: then neither Blender job runs, nor
-      # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys are written here alone (YAML
-      # anchors); render's per-motion key hashes the same inputs as pictures- (test_site.py)
+      # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys hash only what they are made
+      # from (#469): the render code and what it imports or names (the parts, the trajectories' sources, the script
+      # Blender runs; scripts/inputs.py), Blender's pin and uv.lock, so a Makefile, workflow or test edit renders
+      # nothing. Hashed here alone, on the runner's Python (the repo's syntax; the images' is older), for every job
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      - name: Hash the lockfile
-        id: lock
+      - name: Hash the inputs
+        id: inputs
         run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          lock=$(python3 scripts/lock_hash.py)
+          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py ci/blender.Dockerfile)
+          viewer=$(python3 scripts/inputs.py --hash web/build.py ci/blender.Dockerfile)
+          { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
       - name: Look up the cached pictures
+        if: ${{ github.event_name == 'pull_request' }}
         id: pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'ci/*.Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: pictures-${{ steps.inputs.outputs.pictures }}
           lookup-only: true
       - name: Look up the cached viewer
+        if: ${{ github.event_name == 'pull_request' }}
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'ci/*.Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: viewer-${{ steps.inputs.outputs.viewer }}
           lookup-only: true
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
     name: Motions
     needs: changes
     if: >-   # as site, unless every picture is cached (render then skips too)
-      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
+      ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.site != 'false'
       && needs.changes.outputs.pictures != 'true' }}
     runs-on: ubuntu-26.04
     permissions:
@@ -99,7 +108,7 @@ jobs:
   # Cansin, #297), and the site job gathers them
   render:
     name: Render (${{ matrix.motion }})
-    needs: motions
+    needs: [changes, motions]
     if: ${{ !cancelled() && needs.motions.result == 'success' }}
     runs-on: ubuntu-26.04
     container:
@@ -131,7 +140,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'ci/*.Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: images-${{ matrix.motion }}-${{ needs.changes.outputs.pictures-hash }}
       # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
       # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
       - name: Restore the parts cache
@@ -149,7 +158,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'conftest.py') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       # its own step first, so the run's timings show the bake apart from the renders
       - name: Run make trajectories
@@ -198,7 +207,7 @@ jobs:
     name: Viewer
     needs: changes
     if: >-   # as site, unless the viewer is cached
-      ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
+      ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.site != 'false'
       && needs.changes.outputs.viewer != 'true' }}
     runs-on: ubuntu-26.04
     container:
@@ -223,7 +232,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: *viewer-key
+          key: viewer-${{ needs.changes.outputs.viewer-hash }}
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed. The latest trajectories: make web
@@ -243,7 +252,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'conftest.py') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       - name: Run make web
         if: ${{ steps.viewer.outputs.cache-hit != 'true' }}
@@ -298,11 +307,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # every motion's pictures (model/build/images, which make site puts at site/dist/images): the last ones rendered
       # from the same inputs, else render's, saved here all together for changes to find
       - name: Restore the pictures
@@ -310,7 +314,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: *pictures-key
+          key: pictures-${{ needs.changes.outputs.pictures-hash }}
           fail-on-cache-miss: ${{ needs.changes.outputs.pictures == 'true' }}
       - name: Download the pictures
         if: ${{ steps.images.outputs.cache-hit != 'true' }}
@@ -332,7 +336,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: *viewer-key
+          key: viewer-${{ needs.changes.outputs.viewer-hash }}
           fail-on-cache-miss: true
       # Node by site/.nvmrc, npm's cache keyed on the lockfile (make site runs npm ci)
       - name: Set up Node
