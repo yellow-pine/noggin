@@ -15,7 +15,7 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean
+.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean model-durations
 
 venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (pre-push: make check-light)
 	uv sync -q
@@ -115,8 +115,10 @@ hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loo
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
 pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views or hero)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
-model-shards-list: venv   ## the model tests' shards by document, as JSON (Code Checks' model matrix, #305; make -s for the JSON alone)
+model-shards-list: venv   ## the model tests' three shards, balanced on model/durations.json, as JSON (Code Checks' model matrix, #305, #474; make -s for the JSON alone)
 	@$(PY) -m model.shards
+model-durations:   ## model/durations.json from a Code Checks run's measured seconds (its durations-* artifacts): make model-durations RUN=<run id>
+	@d=$$(mktemp -d) && gh run download $(RUN) -p 'durations-*' -D $$d && jq -S -s '(.[0] | with_entries(select(.key == "make sim"))) + (.[1:] | add)' model/durations.json $$d/*/*.json > $$d/all.json && mv $$d/all.json model/durations.json; rm -rf $$d
 pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
 	@$(PY) -m model.render.pictures list
 web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site
