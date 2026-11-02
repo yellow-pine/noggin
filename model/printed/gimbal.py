@@ -195,8 +195,8 @@ def lid_plain(points, x):
 def lid_bone(points, x):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
-    lid drives' bars, links and spokes. Every other span's heads are 5% smaller, inside its neighbours' where they
-    meet: two identical heads fused made an invalid solid."""
+    lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
+    where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way."""
     assert LID_BONE[0][1] < x[1] - x[0]
 
     def span(a, b, k):
@@ -206,9 +206,9 @@ def lid_bone(points, x):
         except ValueError:  # OCCT can fail to fuse a head to a short span one way; a Bone is the same either way
             return bone.bone((*b, 0), (*a, 0), *size)
 
-    out = span(*points[:2], 1.0)
+    out = span(*points[:2], 0.95)
     for i, (a, b) in enumerate(zip(points[1:], points[2:])):
-        out = out.union(span(a, b, 0.95 if i % 2 == 0 else 1.0))
+        out = out.union(span(a, b, 1.0 if i % 2 == 0 else 0.95))
     # the bed's z onto x, its x and y onto the gimbal's y and z: a turn about (1, 1, 1), then into the slab
     return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
