@@ -7,7 +7,7 @@ import math
 import cadquery as cq
 import numpy as np
 
-from model import envelopes
+from model import envelopes, neck
 from model import gimbal as gm
 from model.envelopes import box
 
@@ -149,7 +149,8 @@ def lid(side):
 
 def frame():
     """The gimbal frame (Skeleton): a plate under everything, the yaw bearings under the yokes' stems, the bail's and
-    the lids' uprights with the shanks' bores, and a collar on posts round each servo at its tab plate."""
+    the lids' uprights with the shanks' bores, a collar on posts round each servo at its tab plate, and the holes the
+    head mount (model/printed/neck.py) is screwed up through."""
     c, top = gm.EYE["L"][0], gm.PLATE_Z[1]
     by, bz = gm.BAIL
     out = box((-c - 58, c + 58), (-25, 70), gm.PLATE_Z)
@@ -163,6 +164,8 @@ def frame():
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         out = out.union(box(ux, (-4, by), (-4, 4))).union(box(ux, (by - 4, by + 4), (top, 4)))
         out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, ux))
+    for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
+        out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     for face, shaft, tab, _ in gm.drives().values():
         out = out.union(collar(gm.servo_matrix(face, shaft, tab), top))
     return out
@@ -170,7 +173,7 @@ def frame():
 
 def collar(m, floor):
     """A plate round the servo's case under its tab plate, with its two screw holes, on a post under each hole down
-    to `floor`."""
+    (or up) to `floor`."""
     s = envelopes.SERVO
     (x0, x1), (y0, y1), _ = s["case"]
     (tx0, tx1), (ty0, ty1), _ = s["tabs"]
@@ -184,7 +187,7 @@ def collar(m, floor):
         corners = [(hx + a, hy + b, z) for a in (-2.4, 2.4) for b in (-2.4, 2.4) for z in (0, 3)]
         w = (m @ np.c_[corners, np.ones(8)].T)[:3].T
         lo, hi = w.min(axis=0), w.max(axis=0)
-        out = out.union(box((lo[0], hi[0]), (lo[1], hi[1]), (floor, hi[2])))
+        out = out.union(box((lo[0], hi[0]), (lo[1], hi[1]), (floor, hi[2]) if floor < lo[2] else (lo[2], floor)))
     return out
 
 

@@ -17,5 +17,11 @@
             "tip_over": {"margin_mm": -2.0, "at": {"pan horn": 70, "tilt horn": 60}, "com": [1.0, 2.0, 3.0], "moving": {"margin_mm": -1.5, "at": {"motion": "hero", "ms": 410}, "shift_mm": 9.0}}},
  "gimbal": {"gaze_deg": 2.1, "play_deg": 1.4, "crosstalk_deg": 1.8, "hooke_deg": 1.6, "vergence_deg": 0.2,
             "toe_in_deg": 1.83, "cap_gap_mm": 0.8,
-            "lid": {"edge_deg": [-48.0, 32.0], "servo_deg": [-95.0, 15.0], "clearance_mm": 0.3, "apart_mm": 0.4}}
+            "lid": {"edge_deg": [-48.0, 32.0], "servo_deg": [-95.0, 15.0], "clearance_mm": 0.3, "apart_mm": 0.4}},
+ "neck": {"pan": {"range_deg": [-45.0, 45.0], "servo_deg": [-60.0, 95.0], "transmission_deg": 35.0, "gain": 0.85},
+          "tilt": {"range_deg": [-20.0, 20.0], "servo_deg": [-47.7, 50.1], "transmission_deg": 61.7, "gain": 0.455,
+                   "rest_kgf_cm": 0.1, "hold_kgf_cm": 0.45},
+          "jaw": {"range_deg": [0.0, 25.0], "servo_deg": [0.0, 41.9], "transmission_deg": 59.3, "gain": 0.637},
+          "head": {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 5.0},
+          "spans": {"pan": {"bend_mm": 19.78}, "tilt": {"bend_mm": 12.0}, "floor_mm": 14.0}}
 }

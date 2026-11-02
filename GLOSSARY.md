@@ -248,6 +248,11 @@ A lead's route in the Model: a polyline from one Port to the other through waypo
 lead, so it rides pan and tilt (model/cables.py). MuJoCo carries it as a tendon no longer than the lead.
 _Avoid_: harness, cable path, routing
 
+**Flexing span**:
+The stretch of the next Mech's leads that crosses a moving Pivot (pan or tilt), clamped at its two ends only and bent
+no tighter than ten times the thickest lead's diameter.
+_Avoid_: service loop, cable loop, slack
+
 **Trajectory**:
 One Gesture (or the README hero) on one Stage as MuJoCo plays its servo commands through the servos' own dynamics:
 every part's place in the world per 100 ms frame (model/trajectories.py, baked to model/build/trajectories). The one

@@ -11,7 +11,7 @@ from collections import namedtuple
 import numpy as np
 
 from model import geometry as g
-from model import gimbal, linkage
+from model import gimbal, linkage, neck
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(
@@ -294,31 +294,24 @@ def mouth():
     return Sub(parts, horns, placements, servo_port("jaw"))
 
 
-NEXT_PITCH_MM, NEXT_ROW_MM = 60, 80  # apart along x and y: wider than any Envelope's footprint (inferred layout)
+NEXT_PITCH_MM = 60  # apart along x: wider than any Envelope's footprint (inferred layout)
 
 
 def next_hardware():
     """next-hardware: the hardware the next Mech keeps (#51), our Envelopes alone, never a printed part of today's or its
-    dimensions (#618, #629): the Cores, the Shields, the switch board and the pack in a row, the servos in a row behind,
-    laid out apart until the clean-room tickets place them (inferred); the eyes Core's four servos are the gimbal's
-    (next_eyes). Its names carry "next" (cables reads every sub-assembly's parts by name)."""
+    dimensions (#618, #629): the Cores, the Shields, the switch board and the pack in a row, laid out apart until the
+    base ticket (#642) places them (inferred); the servos are the gimbal's (next_eyes) and the neck's (next_neck). Its
+    names carry "next" (cables reads every sub-assembly's parts by name)."""
     board = (STEP_G_CM3, "step volume x 1.9 g/cm3")
     cores = range(1, len(g.CHANNELS) + 1)
-    rows = [
-        [
-            *((f"next Core {n}", "core", board, None) for n in cores),
-            *((f"next Shield {n}", "receiver", board, None) for n in cores),
-            ("next switch board", "switch", board, None),
-            ("next pack", "battery", board, ("y", g.BATTERY_STEP["lead_y"])),
-        ],
-        [
-            (f"next servo {n}", "servo", (SERVO_G, "documented"), ("x", g.SERVO_STEP["lead"][0]))
-            for n in range(1, len(g.CHANNELS["core2"]) + 1)  # the eyes Core's four are next_eyes'
-        ],
+    row = [
+        *((f"next Core {n}", "core", board, None) for n in cores),
+        *((f"next Shield {n}", "receiver", board, None) for n in cores),
+        ("next switch board", "switch", board, None),
+        ("next pack", "battery", board, ("y", g.BATTERY_STEP["lead_y"])),
     ]
     parts = {
-        f"{name}:1": part(stl(mesh), translate((NEXT_PITCH_MM * i, NEXT_ROW_MM * r, 0)), mass, clip)
-        for r, row in enumerate(rows)
+        f"{name}:1": part(stl(mesh), translate((NEXT_PITCH_MM * i, 0, 0)), mass, clip)
         for i, (name, mesh, mass, clip) in enumerate(row)
     }
     return Sub(parts, {}, [], {})
@@ -348,6 +341,27 @@ def next_eyes():
     return Sub(parts, {}, [], {})
 
 
+def next_neck():
+    """next-neck: the next Mech's neck and jaw (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the
+    neck mount, the pan yoke, the head mount, the jaw and their bars, the neck Core's servos with their horns on the
+    drives. Static: model/neck.py moves it (its report rides the sim's)."""
+    parts = {
+        f"{stem}:1": part(stl(stem), None, printed(stem))
+        for stem in (
+            "next neck mount",
+            "next pan yoke",
+            "next head mount",
+            "next jaw",
+            "next pan bar",
+            "next tilt bar",
+            "next jaw bar",
+        )
+    }
+    for label, (face, shaft, tab, arm) in neck.drives().items():
+        parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
+    return Sub(parts, {}, [], {})
+
+
 SUBS = {
     "noggin-base": base,
     "noggin-stack": stack,
@@ -355,6 +369,7 @@ SUBS = {
     "noggin-mouth": mouth,
     "next-hardware": next_hardware,
     "next-eyes": next_eyes,
+    "next-neck": next_neck,
 }
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = (

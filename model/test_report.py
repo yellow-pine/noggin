@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from model import gimbal, mujoco_report, report, stages
+from model import gimbal, mujoco_report, neck, report, sim, stages
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
@@ -52,7 +52,7 @@ def problems(report):
                     out.append(
                         f"electrical {core}: {v} V on a {e[case]['pack_v']} V pack < the {e['brownout_v']} V brownout"
                     )
-    return out + mujoco_problems(report) + gimbal_problems(report)
+    return out + mujoco_problems(report) + gimbal_problems(report) + neck_problems(report)
 
 
 def gimbal_problems(report):
@@ -73,6 +73,32 @@ def gimbal_problems(report):
         )
     out += [
         f"gimbal lid servo: {d} deg past its {gimbal.SERVO_DEG}" for d in lid["servo_deg"] if abs(d) > gimbal.SERVO_DEG
+    ]
+    return out
+
+
+def neck_problems(report):
+    """The next Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
+    travel, the tilt servo's hold against the rated torque, the flexing spans' bends against their floor."""
+    m, out = report.get("neck"), []
+    if not m:
+        return out
+    for drive in neck.RANGES:
+        d = m[drive]
+        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+            out.append(
+                f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
+            )
+        out += [
+            f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
+        ]
+    if m["tilt"]["hold_kgf_cm"] > sim.RATED_KGF_CM:
+        out.append(f"neck tilt: holds the head with {m['tilt']['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+    floor = m["spans"]["floor_mm"]
+    out += [
+        f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
+        for span in ("pan", "tilt")
+        if m["spans"][span]["bend_mm"] < floor
     ]
     return out
 
@@ -169,6 +195,10 @@ FIXTURE_PROBLEMS = {
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
+        "neck pan: the bar meets its lever at 35.0 deg < 40.0",
+        "neck pan servo: 95.0 deg past its 90.0",
+        "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.4",
+        "neck tilt span: bends to 12.0 mm < 14.0",
     ],
 }
 
