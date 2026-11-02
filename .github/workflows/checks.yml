@@ -155,9 +155,10 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017)
-      - name: Test the release rules
-        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs
+      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017), and a PR title's
+      # through commitlint's CLI (docs/adr/0010)
+      - name: Test the release and title rules
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs ci/commitlint.test.mjs
       # SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
         run: shellcheck -e SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
