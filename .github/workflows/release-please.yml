@@ -2,8 +2,9 @@ name: Release Please
 # Keeps the release PR (docs/adr/0010): the next version in pyproject.toml, uv.lock and .release-please-manifest.json,
 # and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token
 # minted per run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR
-# would get no checks, its auto-merge no push to main and its tag no Release Assets. Merged, the PR's next run tags
-# vX.Y.Z and releases it. Until the App's RELEASE_APP_CLIENT_ID variable exists, the run only leaves a notice.
+# would get no checks, its auto-merge no push to main and its tag no Release Assets. The PR auto-merges only when a
+# feature or a break is pending, or Release Now asked (#407). Merged, the PR's next run tags vX.Y.Z and releases it.
+# Until the App's RELEASE_APP_CLIENT_ID variable exists, the run only leaves a notice.
 on:
   push:
     branches: [main]
@@ -34,9 +35,25 @@ jobs:
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7   # v5.0.0
         with:
           token: ${{ steps.app.outputs.token }}
-      - name: Merge the release PR on green
+      - name: Check out the release gate
         if: ${{ steps.release.outputs.pr }}
-        env:
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/release_gate.py
+          sparse-checkout-cone-mode: false
+      - name: Gate the release PR's auto-merge
+        if: ${{ steps.release.outputs.pr }}
+        env:   # on for a feature, a break or Release Now's label, off otherwise (scripts/release_gate.py, #407)
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REPO: ${{ github.repository }}
           PR: ${{ steps.release.outputs.pr }}   # JSON; the step's env is read even when its `if` skips it
-        run: gh pr merge "$(jq -r .number <<<"$PR")" --auto --squash -R "$GITHUB_REPOSITORY"
+        run: |
+          n=$(jq -r .number <<<"$PR")
+          view=$(gh pr view "$n" --json body,labels,autoMergeRequest)
+          if [ "$(python3 scripts/release_gate.py <<<"$view")" = on ]; then
+            gh pr merge "$n" --auto --squash
+          elif [ "$(jq .autoMergeRequest <<<"$view")" != null ]; then
+            gh pr merge "$n" --disable-auto
+            echo "::notice::Release PR #$n waits for a feature, a break or Release Now"
+          fi

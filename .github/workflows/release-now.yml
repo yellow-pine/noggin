@@ -1,0 +1,35 @@
+name: Release Now
+# Releases whatever is pending (docs/adr/0010, #407): turns on the open release PR's auto-merge and labels it
+# `release now`, so Release Please's gate keeps it on through later updates. It runs as the release App, like Release
+# Please, so the merge pushes to main as the App and the tag starts Release Assets. The /release skill runs it.
+on:
+  workflow_dispatch:
+concurrency:   # Release Please's group: its gate never reads the PR between this run's label and its auto-merge
+  group: Release Please
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  release-now:
+    name: Release Now
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Mint the release App's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - name: Merge the release PR on green
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          n=$(gh pr list --state open --label "autorelease: pending" --json number -q '.[0].number')
+          if [ -z "$n" ]; then
+            echo "::error::No open release PR: nothing has been merged to release since the last one"
+            exit 1
+          fi
+          gh label create "release now" --color 0e8a16 --description "Release Now: auto-merge on green" --force
+          gh pr edit "$n" --add-label "release now"
+          gh pr merge "$n" --auto --squash
+          echo "::notice::Release PR #$n merges on green"
