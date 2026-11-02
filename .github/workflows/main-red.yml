@@ -1,8 +1,9 @@
 name: Main Red
-# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again; a failed
-# CI Images run (main alone builds the images, #729) opens 'main red (CI Images)', closed by its next push.
+# Opens one `main-red` issue while main's Checks or Site Deploy fail, and closes it once main deploys again; a failed
+# CI Images run (main alone builds the images, #729) opens one `main-red-images` issue, closed by its next push.
 # PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). A failed run opens the issue
-# (labels main-red, bug, ready-for-agent) linking the commit and the run, or comments on the open one; anything else
+# (that label, bug, ready-for-agent; titled 'fix(ci): main red on <sha7>', #767) linking the commit and the run, or
+# comments on the open one, found by its label; anything else
 # (a pass, a cancelled run superseded) says nothing (#745). It acts only for this repository's runs on main
 # (branches: [main] alone also matches a fork's PR from a branch named main).
 on:
@@ -35,16 +36,19 @@ jobs:
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          title="main red" done="Site Deploy deployed it"
-          if [ "$WORKFLOW" = "CI Images" ]; then title="main red (CI Images)" done="CI Images pushed the images"; fi
+          # found by its label, never its title, which anyone may edit (#767); the title is a Conventional Commit
+          label=main-red title="fix(ci): main red on ${SHA:0:7}" done="Site Deploy deployed it"
+          if [ "$WORKFLOW" = "CI Images" ]; then
+            label=main-red-images title="fix(ci): main red in CI Images on ${SHA:0:7}"
+            done="CI Images pushed the images"
+          fi
           # the open one, by the issues API: search lags a just-opened issue
-          issue=$(gh issue list --label main-red --json number,title \
-            --jq "map(select(.title == \"$title\"))[0].number // empty")
+          issue=$(gh issue list --label "$label" --json number --jq '.[0].number // empty')
           case "$CONCLUSION" in
             failure|timed_out|startup_failure)
               body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
               if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
-              else gh issue create --title "$title" --label main-red,bug,ready-for-agent --body "$body"; fi ;;
+              else gh issue create --title "$title" --label "$label",bug,ready-for-agent --body "$body"; fi ;;
             success)   # green once CI Images pushed, or Site Deploy's Deploy put a commit up (red Checks skip it)
               case "$WORKFLOW" in
                 "CI Images") green=1 ;;

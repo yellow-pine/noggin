@@ -76,8 +76,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Checks' `Site` builds beside the
   `Model` shards, before the sim may be saved). The stamp check (model/stale.py) is gone; the recorded sweeps
   (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
-- **The pictures are built in CI** (#226): Checks' `Blender` jobs render the README's pictures beside `Site`, and the
-  `Checks` gate adds them to the site, which serves them at /images, and the README points at those absolute URLs. A
+- **The pictures are built in CI** (#226): Checks' `Blender` jobs render the README's pictures, and `Site`, after
+  them, adds them to the site (#732), which serves them at /images, and the README points at those absolute URLs. A
   PR touching their inputs gets them as artifacts. The motions and the viewer are packed into Blender runners longest
   first, a matrix read from the code (`just blender-bins`, #297, #496), and the gate gathers them.
 - **CI images are build outputs in the registry** (#288). The jobs that need a system tool uv can't install run in our

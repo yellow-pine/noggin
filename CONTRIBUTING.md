@@ -46,6 +46,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   title re-runs it. Check a title before you open the PR, at the repo's root after `npm ci --prefix ci`:
   `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
   is wrong.
+- An issue's title is a Conventional Commit too, by the same rules, so it can become its PR's title (#767), whoever or
+  whatever opens it: an automation writes a valid one from the start (Main Red's is `fix(ci): main red on <sha7>`) and
+  finds its issues by label, never by a title anyone may edit. The `Issue Title` workflow
+  (`.github/workflows/issue-title.yml`) runs main's commitlint on each issue opened or edited; an issue can't be
+  blocked, so a failing title gets a comment with the rule and the `needs-title` label, and passing removes both.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
@@ -111,15 +116,17 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   A change to model/ (parts, geometry, MuJoCo) also passes `just linux-test <its tests>` before its push: `just ours`
   and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
-  Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint),
+  Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
+  zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue,
-  labelled `main-red` (#697, #745). Only the main session runs the full run on a branch (`gh workflow run checks.yml
-  --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own `fix(ci): main red on
+  <sha7>` issue, labelled `main-red` and found by it (#697, #745, #767). Only the main session runs the full run on a
+  branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
+  slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
@@ -130,7 +137,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
-  inputs. `Site` always runs: it builds the deploy.
+  inputs. `Site` runs after Blender unless a job before it failed: it builds the deploy with the next Mech's pictures,
+  tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
+  (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
 - `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
@@ -139,14 +148,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- With a warm cache a run's critical path should stay within 2 min on a PR and 9 min on main; past it the run warns in
-  its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
+- Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
   (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
-  `CI Images` run, which leaves `:main` as it was and files 'main red (CI Images)'.
+  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `main-red-images`.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
   (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.

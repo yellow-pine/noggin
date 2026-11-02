@@ -42,6 +42,7 @@ parts your ticket touches and follow them.
 
 ## Practices
 
+- An issue you open (a follow-up, a fix forward) has a Conventional Commit title, by CONTRIBUTING.md's PR title rules.
 - Edit files with the Edit tool, which fails loudly on a miss; a scripted replace asserts its match first
   (`assert old in text`).
 

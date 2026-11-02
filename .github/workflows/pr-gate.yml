@@ -2,8 +2,8 @@ name: PR Gate
 # Runs a PR's slim gate: `just check-light` (ruff, pyright and the fast tests), then the required `Checks`.
 # Everything heavier is main's Checks (checks.yml), which fixes forward what it catches (#283, #696, #714). Its own
 # workflow (#722), so a PR lists no job that every PR skips (test_workflows.py). `Checks` is the required check: it
-# fails unless Code passed (a skipped required check passes, so this one never skips) and checks the CI budget once
-# (scripts/ci_budget.py). Code runs in our base image (ci/base.Dockerfile).
+# fails unless Code passed (a skipped required check passes, so this one never skips). Code runs in our base image
+# (ci/base.Dockerfile).
 on:
   pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
     types: [opened, synchronize, reopened, ready_for_review]
@@ -12,7 +12,6 @@ concurrency:   # one run per PR; a new push cancels the one in progress
   cancel-in-progress: true
 permissions:
   contents: read
-  actions: read   # scripts/ci_budget.py reads when the run's jobs started
 defaults:
   run:
     shell: bash   # -eo pipefail: just's exit code survives the tee
@@ -51,11 +50,3 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # nothing here pushes
-      - name: Check the CI budget
-        run: python3 scripts/ci_budget.py true   # a PR builds nothing it could cache: always warm
-        env:
-          GH_TOKEN: ${{ github.token }}

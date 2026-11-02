@@ -61,15 +61,15 @@ check-light: venv lint
 linux-test +args:
     docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-base:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
 
-# main's Code job: just check-light, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint), the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
+# main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), the tests marked build, wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
 check: check-light ours
     {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
-    {{BIN}}/zizmor -q --offline .
+    [ -n "${CI:-}" ] || {{BIN}}/zizmor -q --offline .   # CI's Code job runs it online, and shellcheck, which parses the scripts below (#732)
     {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum and printf into sort; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "build and not model"
-    bash -n scripts/setup.sh
-    for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done
+    [ -n "${CI:-}" ] || bash -n scripts/setup.sh
+    [ -n "${CI:-}" ] || for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done
     {{PY}} -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
 
 # every test: just check, then the model tests under the heavy lock
@@ -201,7 +201,7 @@ trajectories *docs=env("TRAJ_DOCS", ""): venv ours
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Blender job runs `just pictures next`, #649)
+# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, #649, #770)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}

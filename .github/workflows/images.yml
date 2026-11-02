@@ -9,7 +9,7 @@ name: CI Images
 # the layer cache; the next job to start pulls them. The weekly run and a dispatch build without the cache, so the apt
 # layers take the security fixes and the newest gh, on Mondays before image-scan.yml's scan (#534). No PR builds them
 # (#729): a broken Dockerfile fails main's run without moving :main, main's Code job lints it (hadolint), and
-# main-red.yml files 'main red (CI Images)'.
+# main-red.yml files a `main-red-images` issue.
 on:
   schedule:
     - cron: "0 4 * * 1"
