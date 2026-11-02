@@ -29,8 +29,9 @@ macOS or Linux, with:
 
 ```sh
 just venv                      # .venv from uv.lock
-just check-light               # lint, formatting, types, workflows, fast tests
-just check                     # CI's Code job: adds the CadQuery build tests
+just lint                      # ruff (lint, formatting) and pyright: the pre-push hook
+just check-light               # the PR gate: just lint and the fast tests
+just check                     # main's Code job: adds the workflow linters and the CadQuery build tests
 just site                      # the site, built into site/dist
 npm --prefix site run preview  # serve it
 npm --prefix site test         # its tests; run smoke for the browser ones

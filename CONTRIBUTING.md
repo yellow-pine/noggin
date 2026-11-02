@@ -16,9 +16,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   branch on GitHub has a PR, except on-hold work.
 - Whoever works the ticket keeps its PR green and answers each review thread (a fix, or a reply saying why not) before
   resolving it.
-- Main is protected: a green PR with Claude's approval is the only way in. A PR merges on the slim gate (#696: its
-  title, `just check-light`, the site's build) and main runs the rest, so what main catches (the model, the sim,
-  Blender, the site in Chrome) is fixed forward on main by a new PR (#283), as is the rare break two green PRs make
+- Main is protected: a green PR with Claude's approval is the only way in. A PR merges on the slim gate (#696, #714:
+  its title, `just check-light`) and main runs the rest, so what main catches (the site, the workflow linters, the
+  model, the sim, Blender) is fixed forward on main by a new PR (#283), as is the rare break two green PRs make
   together: a PR need not be up to date with main. Bring main into a PR as a merge (`gh pr
   update-branch <n>`, or `git fetch && git merge origin/main`) only when GitHub reports a conflict, a required check was
   renamed or the PR needs a fix that just landed on main, and push plain commits, never a force-push: each push
@@ -103,14 +103,16 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - The code follows CLAUDE.md's directives.
 - The recipes live in the `justfile` (docs/adr/0016; `just --list`). Add a new recipe beside related ones, never at
   the end of the file, where two PRs appending at once clash (#492).
-- `just check-light` is the local check (the pre-push hook `just venv` turns on runs it): lint, types and the tests
-  marked neither `model` nor `build`, in seconds; a PR's `Code` job runs it too. Everything heavier is CI's on main:
-  `just check` is its `Code` job, `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
+- `just lint` (ruff and pyright) is the one local check, which the pre-push hook `just venv` turns on runs (#714).
+  `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
+  Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint),
+  `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
-- CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing;
-  `gh workflow run checks.yml --ref <branch>` runs that full run on any branch (#562). A ready PR runs the slim gate
-  alone, within about 5 min (#696): `PR`, `Review`, and of Checks `Code` (`just check-light`) and `Site` (`just site`
-  and its HTML tests, not the Chrome smoke); Convex, Model, the sim, Blender, the smoke and CodeQL run on main.
+- CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
+  A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and of Checks `Code` (`just
+  check-light`); Site, Convex, Model, the sim, Blender, the smoke and CodeQL run on main after the merge, and a red
+  main files its own 'main red' issue (#697). Only the main session runs the full run on a branch (`gh workflow run
+  checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`). What Site Deploy and Release wait on (Checks) cancels on PRs only: main's runs queue and each
@@ -128,7 +130,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- With a warm cache a run's critical path should stay within 5 min on a PR and 9 min on main; past it the run warns in
+- With a warm cache a run's critical path should stay within 2 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
