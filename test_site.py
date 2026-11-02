@@ -105,6 +105,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
         "| hero | 800x400 | 8 fps, at most 3 MB |",
+        "| favicon | 64x64 | PNG |",
         "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
         "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
         "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
@@ -184,8 +185,8 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 def test_every_picture_ci_builds_is_shown_from_the_site():
     """The README's and the docs' pictures (the badges aside; Markdown images or the figures' <img>s, and the Stage
-    panels' grid, macros.py) are the site's absolute /images URLs of files in the pictures manifest, and each of those
-    is shown somewhere."""
+    panels' grid, macros.py; the site's icon, site/astro.config.mjs) are the site's absolute /images URLs of files in
+    the pictures manifest, and each of those is shown somewhere."""
     import macros  # here, not at the top: it imports the model, as pictures does
     from model.render import pictures
 
@@ -193,11 +194,14 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
         (ROOT / "README.md").read_text(),
         *(p.read_text() for p in (ROOT / "docs").rglob("*.md") if not {"references", "research"} & set(p.parts)),
         macros.panels(),
+        (ROOT / "site" / "astro.config.mjs").read_text().replace("${SITE}${HOME}", "https://yellowpine.com/noggin"),
     ]
     urls = {
         u.split("#")[0]
         for t in texts
-        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", t) + re.findall(r'<img src="([^"]+)"', t)
+        for u in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", t)
+        + re.findall(r'<img src="([^"]+)"', t)
+        + re.findall(r"favicon: `([^`]+)`", t)  # the site's icon (site/astro.config.mjs)
         if u.startswith("http") and not u.startswith("https://img.shields.io/")
     }
     site = "https://yellowpine.com/noggin/images/"
@@ -212,7 +216,7 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    assert sorted(pictures.SITE["views"]) == sorted(panels)
+    assert sorted(pictures.SITE["views"]) == sorted([*panels, "favicon.png"])  # the site's icon: an eye (#603)
     assert pictures.SITE["hero"] == ["hero.webp"]
 
 
@@ -326,3 +330,21 @@ def test_a_version_is_released_only_on_its_tag():
     import macros  # here, not at the top: it imports the model
 
     assert [macros.released(v) for v in ("0.2.6", "0.2.6-3-gabc1234", "0.0.0-untagged")] == [True, False, False]
+
+
+def test_the_reports_page_lists_each_sim_report_the_build_adds(tmp_path):
+    """/reports/ is the site's own page (site/src/pages/reports.astro, #603); scripts/site_reports.sh copies the sim's
+    reports beside it and lists each there, in place of the line saying there are none."""
+    (tmp_path / "site" / "dist" / "reports").mkdir(parents=True)
+    page = '<main><ul><li data-reports="">No reports in this build.</li></ul></main>'
+    (tmp_path / "site" / "dist" / "reports" / "index.html").write_text(page)
+    (tmp_path / "model" / "build" / "reports").mkdir(parents=True)
+    for f in ("noggin-eyes-report.json", "noggin-eyes-junit.xml"):
+        (tmp_path / "model" / "build" / "reports" / f).write_text("{}")
+    subprocess.run([ROOT / "scripts" / "site_reports.sh"], cwd=tmp_path, check=True)
+    built = tmp_path / "site" / "dist" / "reports"
+    assert (built / "index.html").read_text() == (
+        '<main><ul><li><a href="noggin-eyes-junit.xml">noggin-eyes-junit.xml</a></li>'
+        '<li><a href="noggin-eyes-report.json">noggin-eyes-report.json</a></li></ul></main>'
+    )
+    assert (built / "noggin-eyes-report.json").read_text() == "{}"

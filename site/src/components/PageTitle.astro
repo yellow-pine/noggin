@@ -1,0 +1,43 @@
+---
+// Each page's H1 (#603), with Starlight's id: on the landing page the big wordmark (src/components/Wordmark.astro),
+// elsewhere the page's title. A Stage's guide follows it with the Stages in order, as their guides' titles name them
+// ("Stage 1: eyes"), each an eye: its own open, the others half shut.
+import { getCollection } from 'astro:content';
+import { BASE } from '../pages.mjs';
+
+import Wordmark from './Wordmark.astro';
+
+const { entry, id } = Astro.locals.starlightRoute; // the landing page's route id is ''
+const STAGE = /^docs\/build\/stage-\d+$/;
+const stages = STAGE.test(entry.id)
+  ? (await getCollection('docs', (e) => STAGE.test(e.id))).sort((a, b) => a.id.localeCompare(b.id))
+  : [];
+---
+
+{
+  id === '' ? (
+    <h1 id="_top" class="noggin-hero-title">
+      <Wordmark />
+    </h1>
+  ) : (
+    <h1 id="_top">{entry.data.title}</h1>
+  )
+}
+{
+  stages.length > 0 && (
+    <nav class="noggin-stages not-content" aria-label="Stages">
+      {stages.map((s) => {
+        const [stage, name] = s.data.title.split(': ');
+        return (
+          <a href={`${BASE}/${s.id}/`} aria-current={s.id === entry.id ? 'page' : undefined}>
+            <span class="noggin-eye" aria-hidden="true">
+              <span class="noggin-pupil" />
+              <span class="noggin-lid" />
+            </span>
+            <strong>{stage}</strong> <span>{name}</span>
+          </a>
+        );
+      })}
+    </nav>
+  )
+}

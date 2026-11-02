@@ -700,8 +700,8 @@ jobs:
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       # main's: the ones made from the same inputs, else its bins', saved for changes to find. A PR's site carries
-      # main's latest, as its bins render only the preview (#562), and saves none. The weekly and dispatched runs: the
-      # ones they rendered
+      # main's latest with its own preview over them, as its bins render only the preview (#562), and saves none. The
+      # weekly and dispatched runs: the ones they rendered
       - name: Restore the pictures
         if: ${{ needs.site.result == 'success' && github.event_name == 'push' }}
         id: images
@@ -718,6 +718,16 @@ jobs:
           key: pictures-${{ needs.changes.outputs.pictures-hash }}
           restore-keys: pictures-   # main's newest when this PR's inputs are new
           fail-on-cache-miss: true
+      # over main's, the ones this PR's bin rendered (its preview: a panel and the site's icon, #603), so a picture the
+      # PR adds is there for the link checks
+      - name: Add this PR's preview pictures
+        if: >-
+          ${{ needs.site.result == 'success' && github.event_name == 'pull_request'
+          && needs.changes.outputs.pictures != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: preview
+          path: model/build/images
       - name: Download the pictures
         if: >-
           ${{ needs.site.result == 'success' && github.event_name != 'pull_request'

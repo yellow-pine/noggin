@@ -1,5 +1,6 @@
-// The site (docs/adr/0009, 0013): Starlight's default look over the repo's Markdown, read in place
-// (src/content.config.ts), and the web viewer's page (src/pages/viewer.astro). `just site` builds it into dist/.
+// The site (docs/adr/0009, 0013): Starlight over the repo's Markdown, read in place (src/content.config.ts), in the
+// site's own look (src/styles/custom.css, #603), the web viewer's page (src/pages/viewer.astro) and the sim reports'
+// (src/pages/reports.astro). `just site` builds it into dist/.
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { satteri } from '@astrojs/markdown-satteri';
@@ -36,15 +37,40 @@ export default defineConfig({
     },
   },
   integrations: [
-    mermaid(),
+    // the diagrams in the site's colours (#603), on a paper card in either theme (src/styles/custom.css)
+    mermaid({
+      theme: 'base',
+      autoTheme: false,
+      mermaidConfig: {
+        themeVariables: {
+          fontFamily: 'system-ui, sans-serif',
+          primaryColor: '#F7CED7', // Milky Pink
+          primaryTextColor: '#202020',
+          primaryBorderColor: '#2B2B2E',
+          secondaryColor: '#FFB673', // Apricot
+          tertiaryColor: '#FDF0F3',
+          lineColor: '#5F5F5F', // the pictures' Line Art
+          noteBkgColor: '#FFB673',
+          noteTextColor: '#202020',
+          noteBorderColor: '#2B2B2E',
+          edgeLabelBackground: '#FCFCFC',
+        },
+      },
+    }),
     starlight({
       title: 'noggin',
+      favicon: `${SITE}${HOME}/images/favicon.png`, // the Mech's eye, which Blender renders (model/render/pictures.py FAVICON)
       social: [{ icon: 'github', label: 'GitHub', href: REPO }],
       editLink: { baseUrl: `${REPO}/edit/main/site/` }, // a page's file path is relative to site/
       markdown: { processedDirs: ['..'] }, // asides and heading anchors on the repo's Markdown
-      components: { SocialIcons: './src/components/SocialIcons.astro', Footer: './src/components/Footer.astro' },
+      components: {
+        SiteTitle: './src/components/SiteTitle.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        SocialIcons: './src/components/SocialIcons.astro',
+        Footer: './src/components/Footer.astro',
+      },
       plugins: [starlightGitHubAlerts()],
-      customCss: ['./src/styles/custom.css'],
+      customCss: ['@fontsource/rubik/700.css', './src/styles/custom.css'], // #603: the headings' Rubik, the site's own
       sidebar: [
         { label: 'Home', link: '/' },
         {

@@ -1,33 +1,204 @@
-/* the web viewer (src/viewer/viewer.mjs), on its page or dropped into another: one bar of controls under it, all of a
-   height, in Starlight's colours: the Stage a segmented control, the gestures chips, Explode a toggle at the right
-   (on the Stage's row where there is one, the chips then on a row of their own) */
+/* The site's look (#603, Cansin's pick from the prototype's three: "Googly"): Yellow Pine's brand v2.2 as the base (ink,
+   paper, surfaces, links, an azure focus; yellow-pine/.github brand/), the Mech's filament colours as the accents
+   (Milky Pink and Apricot as big flat fields, model/geometry.py SPOOLS), Rubik 700 headings from @fontsource/rubik and
+   the system font for the body. The Mech's face is the identity: the wordmark's o is one of its eyes
+   (src/components/Wordmark.astro). Type scale: 18 body, 24 / 36 / 60 headings, the landing page's wordmark 144. */
+
+/* ---------- tokens: Starlight's colours, the dark theme first, as Starlight's own ---------- */
+:root {
+  --noggin-pink: #f7ced7; /* Milky Pink */
+  --noggin-apricot: #ffb673; /* Apricot */
+  --noggin-black: #2b2b2e; /* Absolute Black as Blender draws it */
+  --noggin-azure: #3c91e6; /* the brand's interactive fill and focus */
+  --noggin-rubik: 'Rubik', 'Trebuchet MS', system-ui, sans-serif;
+  --noggin-wash: #241d1f; /* a pink wash for panels: the sidebar, the Stage cards */
+  --noggin-band: #2e2427; /* the landing page's desk */
+  --noggin-ink: var(--sl-color-white); /* outlines and the strong pill */
+  --noggin-rule: #3a3a3a;
+
+  --sl-color-white: #f2f2f0;
+  --sl-color-gray-1: #f2f2f0;
+  --sl-color-gray-2: #b7b7b4;
+  --sl-color-gray-3: #8f8f8c;
+  --sl-color-gray-4: #6b6b69;
+  --sl-color-gray-5: #3a3a3a;
+  --sl-color-gray-6: #2a2a2a;
+  --sl-color-black: #161616;
+  --sl-color-accent-low: #1b3550;
+  --sl-color-accent: #3c91e6;
+  --sl-color-accent-high: #9fccf6;
+  --sl-color-text: #dcdcd9;
+  --sl-color-text-accent: #82bcf2;
+  --sl-color-bg-nav: #161616;
+  --sl-color-bg-sidebar: var(--noggin-wash);
+  --sl-color-bg-inline-code: #2a2a2a;
+  --sl-color-hairline: #2a2a2a;
+  --sl-color-hairline-light: #3a3a3a;
+  --sl-color-hairline-shade: #161616;
+  /* the asides by the brand's status colours: note azure, tip green, caution amber, danger red */
+  --sl-color-blue-low: #1b3550; --sl-color-blue: #3c91e6; --sl-color-blue-high: #82bcf2;
+  --sl-color-purple-low: #12382a; --sl-color-purple: #3dbe7e; --sl-color-purple-high: #8fe0b6;
+  --sl-color-green-low: #12382a; --sl-color-green: #3dbe7e; --sl-color-green-high: #8fe0b6;
+  --sl-color-orange-low: #3d2a12; --sl-color-orange: #e08a2e; --sl-color-orange-high: #f2bf86;
+  --sl-color-red-low: #43191a; --sl-color-red: #f2555a; --sl-color-red-high: #f9a3a6;
+
+  --sl-text-body: 1.125rem;
+  --sl-text-h1: clamp(2.25rem, 1.5rem + 2.5vw, 3.75rem);
+  --sl-text-h2: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+  --sl-text-h3: 1.5rem;
+  --sl-text-h4: 1.25rem;
+}
+:root[data-theme='light'] {
+  --noggin-wash: #fdf0f3;
+  --noggin-band: var(--noggin-pink);
+  --noggin-ink: #202020;
+  --noggin-rule: #e7e7e5;
+
+  --sl-color-white: #202020;
+  --sl-color-gray-1: #202020;
+  --sl-color-gray-2: #5a5a58;
+  --sl-color-gray-3: #6e6e6c;
+  --sl-color-gray-4: #9a9a97;
+  --sl-color-gray-5: #e7e7e5;
+  --sl-color-gray-6: #f4f4f2;
+  --sl-color-gray-7: #f4f4f2;
+  --sl-color-black: #fcfcfc;
+  --sl-color-accent-low: #dcebfa;
+  --sl-color-accent: #1a75c8;
+  --sl-color-accent-high: #155f9f;
+  --sl-color-text: #202020;
+  --sl-color-text-accent: #1a75c8;
+  --sl-color-bg-nav: #fcfcfc;
+  --sl-color-bg-inline-code: #f4f4f2;
+  --sl-color-hairline: #e7e7e5;
+  --sl-color-hairline-light: #e7e7e5;
+  --sl-color-hairline-shade: #e7e7e5;
+  --sl-color-blue-low: #dcebfa; --sl-color-blue: #1a75c8; --sl-color-blue-high: #155f9f;
+  --sl-color-purple-low: #dff3e8; --sl-color-purple: #1a7f4b; --sl-color-purple-high: #1a7f4b;
+  --sl-color-green-low: #dff3e8; --sl-color-green: #1a7f4b; --sl-color-green-high: #1a7f4b;
+  --sl-color-orange-low: #fbeedd; --sl-color-orange: #b45309; --sl-color-orange-high: #b45309;
+  --sl-color-red-low: #fbe3e1; --sl-color-red: #c7392f; --sl-color-red-high: #c7392f;
+}
+
+/* ---------- type and the page's chrome ---------- */
+body { background: var(--sl-color-black); }
+.sl-markdown-content { font-size: var(--sl-text-body); }
+.sl-markdown-content table { font-size: 1rem; } /* the dense ones (CI/CD, wiring) stay readable on a phone */
+h1, h2, h3, h4, h5, .noggin-wordmark, .sidebar-content .group-label { font-family: var(--noggin-rubik); font-weight: 700; }
+h1#_top { margin-top: 1rem; font-size: var(--sl-text-h1); color: var(--sl-color-white); letter-spacing: -0.02em; line-height: 1.05; }
+.sl-markdown-content :is(h2, h3) { letter-spacing: -0.01em; }
+.sl-markdown-content a:hover { color: var(--sl-color-accent-high); }
+:focus-visible { outline: 2px solid var(--noggin-azure); outline-offset: 2px; }
+header.header { border-bottom: 0; }
+.site-title { display: flex; align-items: center; color: var(--sl-color-white); font-size: 1.75rem; text-decoration: none; }
+site-search > button { border-radius: 999rem; }
+/* the sidebar on a pink wash, the page you are on an Apricot pill */
+.sidebar-pane { border-inline-end: 0; }
+.sidebar-content a[aria-current='page'] { background: var(--noggin-apricot); color: #202020; border-radius: 999rem; font-weight: 600; }
+.sidebar-content a[aria-current='page']:hover { color: #202020; }
+.pagination-links a { border: 2px solid var(--sl-color-gray-5); border-radius: 1rem; box-shadow: none; }
+.pagination-links a:hover { border-color: var(--noggin-apricot); }
+
+/* tables: rounded, their header row Apricot, every other row the pink wash; a wide one scrolls on its own */
+.sl-markdown-content table {
+  width: fit-content; max-width: 100%; border-collapse: separate; border-spacing: 0;
+  border: 2px solid var(--noggin-ink); border-radius: 1rem; overflow-x: auto;
+}
+:root:not([data-theme='light']) .sl-markdown-content table { border-color: var(--noggin-rule); }
+.sl-markdown-content :is(th, td) { border: 0; padding: 0.55rem 1rem; }
+.sl-markdown-content td { border-top: 1px solid var(--noggin-rule); }
+.sl-markdown-content th { background: var(--noggin-apricot); color: #202020; }
+.sl-markdown-content tr:nth-child(even) td { background: var(--noggin-wash); }
+.sl-markdown-content :not(pre) > code { border-radius: 0.35rem; }
+.starlight-aside { border-radius: 1rem; border-inline-start-width: 0.35rem; }
+/* the diagrams (Mermaid's base theme in the site's colours, site/astro.config.mjs): on a paper card in either theme */
+html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px solid var(--noggin-ink); border-radius: 1rem; padding: 1rem; }
+
+/* ---------- the wordmark's eye: a white eyeball, a black pupil that looks at --look-x/y, a pink lid that blinks ---------- */
+.noggin-wordmark { letter-spacing: -0.01em; white-space: nowrap; }
+.noggin-eye {
+  --look-x: 0%; --look-y: 0%;
+  position: relative; display: inline-block; overflow: hidden; vertical-align: baseline;
+  width: 0.58em; height: 0.58em; margin-inline: 0.03em; border-radius: 50%;
+  background: #fff; box-shadow: inset 0 0 0 0.1em var(--noggin-black);
+}
+.noggin-pupil {
+  position: absolute; inset: 31%; border-radius: 50%; background: var(--noggin-black);
+  translate: var(--look-x) var(--look-y); transition: translate 0.12s ease-out;
+}
+.noggin-lid {
+  position: absolute; inset: 0 0 auto; height: 38%; background: var(--noggin-pink);
+  border-bottom: 0.045em solid var(--noggin-black); box-shadow: inset 0 0.1em 0 var(--noggin-black);
+  animation: noggin-blink 7s infinite 2s;
+}
+@keyframes noggin-blink { 0%, 94%, 100% { height: 38%; } 97% { height: 100%; } }
+@media (prefers-reduced-motion: reduce) { .noggin-lid { animation: none; } .noggin-pupil { transition: none; } }
+
+/* ---------- the landing page: centred under the big wordmark, the Mech on a pink desk ---------- */
+.noggin-hero-title { text-align: center; font-size: clamp(5rem, 16vw, 9rem); line-height: 1; letter-spacing: -0.03em; margin-block: 1rem 2.5rem; }
+.noggin-hero-title + * { margin-top: 0; }
+:root:has(.noggin-hero-title) .content-panel + .content-panel { border-top: 0; }
+.sl-markdown-content > p:has(+ .noggin-viewer.hero) {
+  text-align: center; font-size: 1.3125rem; line-height: 1.5; max-width: 36rem; margin-inline: auto;
+}
+.noggin-viewer.hero { position: relative; isolation: isolate; padding-block: 1.5rem 1rem; margin-top: 2rem; }
+.noggin-viewer.hero::before {
+  content: ''; position: absolute; z-index: -1; inset: 55% calc(50% - 50vw) 0; background: var(--noggin-band);
+}
+.noggin-viewer.hero figcaption { color: var(--sl-color-gray-2); }
+:root[data-theme='light'] .noggin-viewer.hero figcaption { color: #5a5a58; }
+/* the links under the hero (docs/index.md's one line of them, dots between): pills, the first filled */
+.noggin-viewer.hero + p { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 2rem; font-size: 0; }
+.noggin-viewer.hero + p a {
+  font-size: 1.0625rem; font-weight: 600; text-decoration: none; padding: 0.7rem 1.4rem; border-radius: 999rem;
+  border: 2px solid var(--noggin-ink); color: var(--noggin-ink);
+}
+.noggin-viewer.hero + p a:first-child { background: var(--noggin-ink); color: var(--sl-color-black); }
+.noggin-viewer.hero + p a:hover { border-color: var(--noggin-apricot); }
+/* the three Stages after their panels: pink cards */
+.noggin-panels + p + ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
+.noggin-panels + p + ul > li { margin: 0; padding: 1.25rem; border-radius: 1.5rem; background: var(--noggin-wash); }
+.noggin-panels + p + ul > li > strong:first-child { display: block; font-family: var(--noggin-rubik); font-size: 1.5rem; }
+
+/* ---------- a Stage's guide: the Stages as eyes, its own open with an Apricot iris, the others half shut ---------- */
+.noggin-stages {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr)); gap: 0.5rem; margin-top: 1.5rem;
+  padding: 1rem; border-radius: 1.5rem; background: var(--noggin-wash);
+}
+.noggin-stages a { display: grid; justify-items: center; text-align: center; gap: 0.15rem; color: var(--sl-color-white); text-decoration: none; }
+.noggin-stages a > span:last-child { color: var(--sl-color-gray-2); font-size: 0.9375rem; }
+.noggin-stages .noggin-eye { font-size: 5rem; margin-bottom: 0.4rem; box-shadow: inset 0 0 0 0.05em var(--noggin-black); }
+.noggin-stages .noggin-lid { height: 48%; animation: none; border-bottom-width: 0.035em; }
+.noggin-stages a[aria-current] .noggin-lid { display: none; }
+.noggin-stages a[aria-current] .noggin-eye { box-shadow: inset 0 0 0 0.05em var(--noggin-black), inset 0 0 0 0.12em var(--noggin-apricot); }
+.noggin-stages a:hover strong { text-decoration: underline; }
+
+/* ---------- the web viewer's chrome (src/viewer/viewer.mjs): one bar under it, chunky pills, pressed Apricot; the
+   Stage a row of round keys; Explode a toggle at the right (on the Stage's row where there is one, the chips then on
+   a row of their own); the line on what plays under it ---------- */
 .noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
-.noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.75rem; }
-.noggin-controls nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
-.noggin-controls nav span { color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); margin-inline-end: 0.5rem; }
+.noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 1rem; }
+.noggin-controls nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.noggin-controls nav span { color: var(--sl-color-gray-2); font-family: var(--noggin-rubik); font-weight: 700; margin-inline-end: 0.25rem; }
 .noggin-viewer button {
-  font: inherit; font-size: var(--sl-text-sm); line-height: 1; height: 2rem; padding: 0 0.9rem; margin: 0;
-  color: var(--sl-color-text); background: none; cursor: pointer;
-  border: 1px solid var(--sl-color-gray-5); border-radius: 999rem;
+  font: inherit; font-size: var(--sl-text-sm); font-weight: 600; line-height: 1; height: 2.5rem; padding: 0 1.1rem; margin: 0;
+  color: var(--noggin-ink); background: var(--sl-color-black); cursor: pointer;
+  border: 2px solid var(--noggin-ink); border-radius: 999rem;
 }
-.noggin-viewer button:hover { border-color: var(--sl-color-text-accent); color: var(--sl-color-white); }
-.noggin-viewer button[aria-pressed='true'] {
-  color: var(--sl-color-black); background: var(--sl-color-text-accent); border-color: var(--sl-color-text-accent);
-}
-.noggin-viewer button:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 2px; }
+.noggin-viewer button:hover { border-color: var(--noggin-apricot); }
+.noggin-viewer button[aria-pressed='true'] { color: #202020; background: var(--noggin-apricot); border-color: var(--noggin-apricot); }
+.noggin-viewer button:focus-visible { outline: 2px solid var(--noggin-azure); outline-offset: 2px; }
 .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
 .noggin-viewer button[hidden] { display: none; }
-.noggin-controls nav[aria-label='Stage'] { gap: 0; }
-.noggin-controls nav[aria-label='Stage'] button { border-radius: 0; min-width: 2.5rem; padding: 0; }
-.noggin-controls nav[aria-label='Stage'] button + button { margin-inline-start: -1px; }
-.noggin-controls nav[aria-label='Stage'] button:first-of-type { border-start-start-radius: 999rem; border-end-start-radius: 999rem; }
-.noggin-controls nav[aria-label='Stage'] button:last-of-type { border-start-end-radius: 999rem; border-end-end-radius: 999rem; }
+.noggin-controls nav[aria-label='Stage'] button { width: 2.5rem; padding: 0; font-family: var(--noggin-rubik); font-weight: 700; font-size: 1rem; }
 .noggin-controls > button { margin-inline-start: auto; order: 1; }
 .noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
-.noggin-caption { margin-top: 0.5rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
-/* the landing page's: its Play in 3D under the poster on a phone (src/components/Footer.astro); its canvas takes the
-   poster's box (src/viewer/viewer.mjs) */
-.noggin-viewer.hero > button { display: block; margin: 0.6rem auto; }
+.noggin-caption { margin-top: 0.6rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
+/* the viewer's own page (src/pages/viewer.astro): the Mech on a pink-washed desk, the bar on it */
+.noggin-viewer[data-zoom] { background: var(--noggin-wash); border-radius: 1.5rem; padding: 1rem 1rem 0.75rem; }
+/* the landing page's, the hero's shape, its Play in 3D under the poster on a phone (src/components/Footer.astro) */
+.noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
+.noggin-viewer.hero > button { display: block; margin: 0.6rem auto; background: var(--noggin-ink); color: var(--sl-color-black); }
 
 /* a figure centred, as on GitHub's README */
 figure { text-align: center; }
@@ -39,6 +210,7 @@ figure img { margin-inline: auto; }
   display: grid; grid-template: auto repeat(var(--views), auto) / auto; grid-auto-flow: column; grid-auto-columns: 1fr;
   gap: 0.5rem 1rem; align-items: center; text-align: center; margin-block: 1.5rem;
 }
+.noggin-panels strong { font-family: var(--noggin-rubik); }
 .noggin-panels img { display: block; width: 100%; height: auto; }
 @media (max-width: 50rem) {
   .noggin-panels { grid-template: none / 1fr 1fr; grid-auto-flow: row; }

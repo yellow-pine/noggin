@@ -1,13 +1,14 @@
 """Every picture the site serves (SITE), rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
 baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a WebP with a
-transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
+transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470), but the
+site's icon, a PNG.
 `views` (`just render`): the Stage panels (each Stage at rest, a trajectory's first frame, from the side and isometric:
-PANELS). `hero` (`just hero`): the README hero, stage 3 talking (model/render/hero.py), its
-trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's pictures, motion by motion
-(SITE; the gestures play in the web viewer, #468) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `just blender-bins`)
-on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders the `preview`
-motion alone, one panel (PREVIEW, #562).
+PANELS) and the icon, an eye (FAVICON, #603). `hero` (`just hero`): the README hero, stage 3 talking
+(model/render/hero.py), its trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's
+pictures, motion by motion (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site
+serves at yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py,
+`just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders
+the `preview` motion alone, one panel and the icon (PREVIEW, #562).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
 
 import json
@@ -50,17 +51,29 @@ EXPLODE = {
     "noggin-eyes": (0, 0, 95),
     "noggin-mouth": (0, -45, 95),
 }
+# the site's icon (#603): Stage 1's right eye at rest from straight ahead, its eyeball, pupil and lids alone, square;
+# rendered with the panels, served as PNG
+FAVICON = ("stage1", "eye")
+FAVICON_PARTS = ("R eyeball:1", "R pupil:1", "R upper lid:1", "R lower lid:1")
+FAVICON_SIZE = (64, 64)
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # each motion's seconds, which main's Blender bins upload for the next packing (model/shards.py, #569)
 SECONDS = os.path.join(stages.REPO, "model", "build", "seconds")
+
+
+def picture(name, view):
+    return "favicon.png" if (name, view) == FAVICON else f"{name}-{view}.webp"
+
+
 # what the site serves, by the motion that renders it (Checks' Blender bins render them, #297, #496)
 SITE = {
-    "views": [f"{name}-{view}.webp" for name, view in PANELS],
+    "views": [picture(*p) for p in [*PANELS, FAVICON]],
     "hero": ["hero.webp"],
 }
-# a PR's picture in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it
-PREVIEW = [("stage3", "isometric")]
-MOTIONS = SITE | {"preview": [f"{name}-{view}.webp" for name, view in PREVIEW]}
+# a PR's pictures in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it, and
+# the icon, which every page shows
+PREVIEW = [("stage3", "isometric"), FAVICON]
+MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 
 
 def motions(preview=False):
@@ -122,9 +135,9 @@ def blender(name, manifest, shots):
     return [float(line.split()[2]) for line in frames]  # each frame's seconds
 
 
-def views(panels=PANELS):
+def views(panels=(*PANELS, FAVICON)):
     """The Stage panels (PANELS, or those named: each Stage at rest as MuJoCo settles it, where every gesture starts),
-    each framed as among all of them."""
+    each framed as among all of them, and the site's icon (FAVICON)."""
     plans = {}
     for doc, frames in g.STAGES.items():
         name = doc.removeprefix("noggin-")
@@ -137,16 +150,25 @@ def views(panels=PANELS):
     pad = PAD * max(w, h)
     w, h = w + 2 * pad, h + 2 * pad
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
-    for name, (manifest, _, mats, pts) in plans.items():
+    for name, (manifest, hulls, mats, pts) in plans.items():
         shots = [
             shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats])
             for v in VIEWS
             if (name, v) in panels
         ]
+        if (name, FAVICON[1]) in panels:
+            eye = {n: m for n, m in mats.items() if n in FAVICON_PARTS}
+            cam = camera.fit(points(hulls, eye), -np.array(g.Y), g.Z, 1, None, MARGIN)
+            shots.append(shot(f"{name}-{FAVICON[1]}", FAVICON_SIZE, cam, [eye]))
         if shots:
             blender(name, manifest, shots)
     for name, v in panels:
-        encode(f"{name}-{v}")
+        if (name, v) == FAVICON:
+            shutil.copy(
+                os.path.join(OUT, "frames", f"{name}-{v}", "frame0000.png"), os.path.join(OUT, picture(name, v))
+            )
+        else:
+            encode(f"{name}-{v}")
 
 
 def at_fps(frames, fps):
@@ -236,7 +258,7 @@ def render(motion):
     if motion.startswith("hero"):
         return hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
     else:
-        views(PREVIEW if motion == "preview" else PANELS)
+        views(PREVIEW) if motion == "preview" else views()
 
 
 def main(what, names):

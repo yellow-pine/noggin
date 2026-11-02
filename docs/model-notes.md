@@ -34,6 +34,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
   VIEWS, PANELS). The landing page and Pictures show them in one grid (macros.py panels): a column per Stage, a row
   per view, each linking to its file; on a phone stacked by Stage.
+- The site's icon (#603): Stage 1's right eye at rest from straight ahead (its eyeball, pupil and lids alone,
+  orthographic, square), rendered with the panels in the same look and served as a PNG (pictures.py FAVICON). A PR
+  renders it with its preview panel.
 - README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
   `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
   model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;

@@ -1,16 +1,24 @@
 ---
-// Starlight's footer, then the site's version (the git tag) linking its release, or the releases before it, and
+// Starlight's footer, then "by Yellow Pine" with the brand's logo (yellow-pine/.github brand/, v2.2: the light theme's
+// and the dark's, #603), the site's version (the git tag) linking its release, or the releases before it, and
 // the commit it was built from (macros.py build, #372); and the web viewer (docs/adr/0008) on any page that has a
 // <div class="noggin-viewer">: its module and three.js load only there, and under a poster (the landing page's hero,
 // #468) only once it is in view, or on a phone on a tap of Play in 3D.
 import Default from '@astrojs/starlight/components/Footer.astro';
 import { build, released } from '../macros.json';
 import { REPO } from '../pages.mjs';
+import logo from '../assets/yellow-pine.svg';
+import logoDark from '../assets/yellow-pine-dark.svg';
 
 const release = released ? `${REPO}/releases/tag/v${build.version}` : `${REPO}/releases`;
 ---
 
 <Default />
+<a class="noggin-credit" href="https://yellowpine.com/">
+  by
+  <img class="noggin-light" src={logo.src} alt="Yellow Pine" width="110" height="20" />
+  <img class="noggin-dark" src={logoDark.src} alt="Yellow Pine" width="110" height="20" />
+</a>
 <p class="noggin-version">
   noggin <a href={release}>v{build.version}</a> · <a href={`${REPO}/commit/${build.commit}`}>{build.commit.slice(0, 7)}</a>
 </p>
@@ -29,6 +37,12 @@ const release = released ? `${REPO}/releases/tag/v${build.version}` : `${REPO}/r
 </script>
 
 <style>
+  .noggin-credit {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2.5rem;
+    color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); text-decoration: none;
+  }
+  .noggin-credit img { height: 1.1rem; width: auto; }
+  :global([data-theme='light']) .noggin-dark, :global([data-theme='dark']) .noggin-light { display: none; }
   .noggin-version { color: var(--sl-color-gray-3); font-size: var(--sl-text-xs); text-align: center; }
   .noggin-version a { color: inherit; }
 </style>

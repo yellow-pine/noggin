@@ -1,0 +1,15 @@
+---
+// The sim reports' page (#603), in the site's look: main's reports are never committed (docs/adr/0009), so the build
+// adds them beside it after Astro runs, and scripts/site_reports.sh lists each here in place of the data-reports line.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage frontmatter={{ title: 'Reports', tableOfContents: false }}>
+  <p>
+    What the sim measured on main's parts and envelopes (<code>just sim</code>): one report per assembly, as JSON, and the
+    tests' results.
+  </p>
+  <ul>
+    <li data-reports>None in this build: CI adds main's.</li>
+  </ul>
+</StarlightPage>
