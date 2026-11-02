@@ -122,7 +122,7 @@ jobs:
     if: ${{ !cancelled() && needs.motions.result == 'success' }}
     runs-on: ubuntu-26.04
     container:
-      image: ${{ needs.images.outputs.blender }}   # ci/blender.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.blender || 'no-image' }}   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
     strategy:
@@ -223,7 +223,7 @@ jobs:
       && needs.changes.outputs.viewer != 'true' }}
     runs-on: ubuntu-26.04
     container:
-      image: ${{ needs.images.outputs.blender }}   # ci/blender.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.blender || 'no-image' }}   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
     permissions:
@@ -301,7 +301,7 @@ jobs:
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
     runs-on: ubuntu-26.04
     container:
-      image: ${{ needs.images.outputs.base }}   # ci/base.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.base || 'no-image' }}   # ci/base.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
         UV_CACHE_DIR: /__w/uv-cache   # as check.yml's code: uv sync hard-links make site's venv, copying it took ~25 s (#386)

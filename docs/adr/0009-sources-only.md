@@ -58,8 +58,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   from a pinned source) for the site's build and viewer test (`site`) and the tests not marked model (`code`), and
   ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for `render` and `viewer`. The
   Dockerfiles are sources; the `CI Images` workflow builds the images into GHCR (`ghcr.io/yellow-pine/noggin-ci-base`,
-  `-blender`), never committed, and those jobs pin them by digest (`container:`). Every other job stays on the bare
-  runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain of them (convex, then a model
+  `-blender`), never committed, and those jobs pin them by digest (`container:`, read from ci/pins/Dockerfile, where
+  Dependabot can bump them, #444). Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain of them (convex, then a model
   shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages stay out of the images: `uv
   sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build provenance when a
   Dockerfile changes and weekly without cache, and Dependabot proposes the new digests as a PR, whose checks run in

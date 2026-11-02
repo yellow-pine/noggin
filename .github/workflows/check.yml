@@ -102,12 +102,13 @@ jobs:
   code:
     name: Code
     needs: images
-    # !cancelled(): a failed images leaves no image and fails code, never skips it (a skipped required check passes)
+    # !cancelled(): a failed images fails code rather than skipping it, which a required check counts as passing; an
+    # empty image would run it on the bare runner, so 'no-image' (a pull that fails) stands in
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
     container:
-      image: ${{ needs.images.outputs.base }}   # ci/base.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.base || 'no-image' }}   # ci/base.Dockerfile (images.yml)
       env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
         UV_CACHE_DIR: /__w/uv-cache
         UV_LINK_MODE: hardlink

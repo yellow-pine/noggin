@@ -133,7 +133,8 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
 
 def test_the_jobs_read_their_image_from_the_pins():
     """Dependabot reads no workflow's `container:` (docs/research/2026-11-02-dependabot-container-images.md): a digest
-    spelled in a workflow would never move, so every job's image is an Images job's output, one per pin."""
+    spelled in a workflow would never move, so every job's image is an Images job's output, one per pin, or a
+    name no pull finds (an empty image would run the job on the bare runner)."""
     names = re.findall(r"^FROM \S+ AS (\S+)$", (ROOT / PINS).read_text(), re.M)
     images = [
         job["container"]["image"]
@@ -142,7 +143,7 @@ def test_the_jobs_read_their_image_from_the_pins():
         if "container" in job
     ]
     assert images
-    assert [i for i in images if i not in {f"${{{{ needs.images.outputs.{n} }}}}" for n in names}] == []
+    assert [i for i in images if i not in {f"${{{{ needs.images.outputs.{n} || 'no-image' }}}}" for n in names}] == []
 
 
 def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
