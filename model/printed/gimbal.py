@@ -25,7 +25,7 @@ TIE_BONE, ROD_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0))
 CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
     ((4.5, 4.2), (3.0, 2.9)),
     ((4.0, 7.0), (3.0, 6.0)),
-    ((2.4, 4.0), (2.2, 3.4)),
+    ((2.4, 3.3), (2.2, 3.2)),
     ((3.5, 6.5), (3.0, 5.0)),
 )
 MM = 0.001  # MuJoCo's metres per mm
@@ -132,16 +132,17 @@ def bail(plain=False):
     end, top, tip = gm.EYE["L"][0] + 8.0, gm.LEVER - gm.BALL_R - 1.2, by + gm.BAIL_IN
     if not plain:
         bed = bz - 3
-        out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD).intersect(box((-end, end), (0, 99), (bed, 99)))
+        out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
         out = out.union(bone.bone((0, by, bed), (0, tip, bed), *BAIL_INPUT).intersect(box((-2, 2), (0, 99), (bed, 99))))
     else:
         out = cyl("x", (0, by, bz), 3.0, (-end, end))
         out = out.union(box((-2, 2), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (-2, 2)))
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
-        if not plain:  # standing on the bed, its foot's head cut off under it
-            arm = bone.bone((x, by, bed), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
-            arm = arm.intersect(box((x - 9, x + 9), (0, 99), (bed, 99)))
+        if (
+            not plain
+        ):  # its foot's head inside the rod, clear of its bed and its bore's end (#704: flush, Linux's fuse fails)
+            arm = bone.bone((x, by, bz + 0.5), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
             out = out.union(arm).union(ball_on(top - BAIL_ARM[0][0], (x, by, gm.LEVER)))
         else:
             out = out.union(box((x - 1.5, x + 1.5), (by - ARM / 2, by + ARM / 2), (bz, top)))

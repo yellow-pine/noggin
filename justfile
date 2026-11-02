@@ -196,7 +196,7 @@ trajectories *docs=env("TRAJ_DOCS", ""): venv ours
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Blender job runs `just pictures next`, #649)
+# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, #649, #770)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}

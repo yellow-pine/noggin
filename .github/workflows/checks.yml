@@ -11,11 +11,12 @@ name: Checks
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
-# the Actions cache alone. `Blender` renders the next Mech alone (#649): its panels, its eye gimbal in motion and a
-# picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
+# the Actions cache alone. `Render` renders the next Mech alone (#649), in four shards (#770): its panels, its eye
+# gimbal in motion and a picture per part (just pictures next) and its viewer GLBs (just web next), when what they are
+# made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it (on main what Site Deploy,
-# pages.yml, deploys). Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
+# pages.yml, deploys). Code and Site run in our base image, Render in our Blender image; the others on the bare runner.
 on:
   push:
     branches: [main]
@@ -411,10 +412,10 @@ jobs:
         if: ${{ failure() }}
         uses: ./.github/actions/cancel-on-failure
   # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
-  # changed: rendered and baked from its trajectories on CI's software GL and saved for checks (and later runs) to
-  # restore
-  blender:
-    name: Blender
+  # changed: rendered and baked from its trajectories on CI's software GL in four shards (#770), each its share of the
+  # pictures by frames (model/render/pictures.py share) and the first the GLB too, each saved for Blender to join
+  render:
+    name: Render (${{ matrix.shard }})
     needs: changes
     if: ${{ needs.changes.outputs.next != 'true' }}
     runs-on: ubuntu-26.04
@@ -423,8 +424,13 @@ jobs:
       actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]   # Blender restores each
     env:
       TRAJ_DOCS: next   # the trajectories just pictures and just web draw from: the next Mech's alone
+      PICTURES_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -444,7 +450,53 @@ jobs:
       - name: Run just pictures next
         run: uv run just BLENDER=blender pictures next
       - name: Run just web next
+        if: ${{ matrix.shard == 0 }}
         run: uv run just BLENDER=blender web next
+      - name: Save the shard's pictures
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}
+  # the shards' pictures and GLB joined into the one entry Site (and later runs) restore
+  blender:
+    name: Blender
+    needs: [changes, render]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Restore shard 0's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-0-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 1's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-1-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 2's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-2-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 3's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-3-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
       - name: Save the next Mech's pictures
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -542,7 +594,7 @@ jobs:
   # failed need fails it)
   checks:
     name: Checks
-    needs: [changes, code, convex, model, blender, site]
+    needs: [changes, code, convex, model, render, blender, site]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
     steps:
@@ -550,4 +602,4 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, blender
+          allowed-skips: convex, model, render, blender
