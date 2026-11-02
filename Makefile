@@ -15,7 +15,7 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -27,6 +27,8 @@ lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
 	$(PY) -m ruff format
+worktrees-clean: venv  ## remove the worktrees of merged or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
+	$(PY) scripts/worktrees_clean.py
 check: venv ours lint  ## CI's Code job: the tests not marked model, lint, formatting, types, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
 	$(PY) -m pytest -q -m "not model"
 	$(PY) -m ruff format --check

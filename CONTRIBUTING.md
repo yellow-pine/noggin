@@ -7,23 +7,25 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Work starts from a GitHub issue (a ticket). Open one before a big change so the shape can be agreed first.
 - The cycle, in order: grilling (interview only, nothing is built) → research and domain modelling as needed → plan/spec → TDD → code review → PR → retro.
 - One PR per concern. Keep it small.
-- Every ticket is built in its own worktree on its own branch, with a normal PR straight against main opened on the
-  first push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is
-  green and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight
-  onto main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers
-  each review thread (a fix, or a reply saying why not) before resolving it. No integration or feature branches: a
-  spec's tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It
-  need not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
+- Every ticket is built in its own worktree on its own branch, the worktree at `../noggin-wt/<session>/<branch>` (the
+  session's name as ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `make worktrees-clean`
+  removes the worktrees of merged or deleted branches), with a normal PR straight against main opened on the first
+  push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is green
+  and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight onto
+  main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers each
+  review thread (a fix, or a reply saying why not) before resolving it. No integration or feature branches: a spec's
+  tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It need
+  not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
   conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
-  `.github/workflows/review.yml` changed since the branch's base (claude-code-action reviews only a PR whose review.yml
-  matches main's, so `Review` fails with no verdict until then). The repo setting "Always suggest updating pull request
-  branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on pushes to main and on
-  ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run in progress (main's site
-  deploy included; a release tag's run and Release Please's are never cancelled), so a cancelled run means a newer
-  one superseded it. A pushed branch is never merged locally: it lands through its own PR. Every branch on GitHub has
-  a PR, except on-hold work.
+  `.github/workflows/review.yml` changed since the branch's base (claude-code-action reviews only a PR whose
+  review.yml matches main's, so `Review` fails with no verdict until then). The repo setting "Always suggest updating
+  pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on pushes to
+  main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run
+  in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
+  cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
+  Every branch on GitHub has a PR, except on-hold work.
 - A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
   `type(scope): subject`, `type(scope)!: subject` for a breaking change (docs/adr/0010), as
   @commitlint/config-conventional has it: types build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
