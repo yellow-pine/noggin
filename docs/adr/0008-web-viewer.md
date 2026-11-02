@@ -24,6 +24,8 @@
 > Title Case chips with the Tour (every clip in turn) in place of hero, and Explode a toggle; under it one line says
 > what the gesture is and which Claude Code event plays it, from the behaviour table's code (macros.json). Deep links
 > are unchanged.
+> Amended 2026-11-02 (#538, #496): the viewer is built in the Checks workflow's `Blender` jobs, and a red build fails
+> its required `Checks` gate, not a `site` check.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -55,7 +57,7 @@ watch the hero loop.
   them and holds no look numbers of its own. The canvas is see-through: the background is the page's own, in either theme.
 - **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
   `model/`, `eyes/` or `web/`, and on demand. A red build on main leaves the last site up; on a PR
-  touching what the site is made from it fails the required `site` check (#245). Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs
+  touching what the site is made from it fails the required `Checks` gate (#245, #496). Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs
   the pinned Blender Linux tarball (sha256-checked, cached; re-pinned weekly by `blender.yml`).
 - **Eyes gestures only for now.** Head and jaw gestures come with the second Core; Stages 2 and 3 show the eyes
   gestures and the hero loop.

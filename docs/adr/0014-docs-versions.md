@@ -1,6 +1,9 @@
 # Each Release's docs are built from its tag, kept as a release asset, and served beside main's
 
 > Decided with Cansin on 2026-11-01, #307 item 3; ticket #373. Research: #331's comments ("2. Versioned docs").
+>
+> Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds the docs
+> version.
 
 A reader with a Mech built at noggin v0.2 needs v0.2's docs, not main's. Neither Astro nor Starlight versions docs,
 and starlight-versions archives each version's pages into the repo, which ADR 0009 forbids. So each Release builds
@@ -14,7 +17,7 @@ its own docs once and keeps them as a release asset, and every deploy serves the
   `noggin-docs-vX.Y.Z.tar.gz` and attached to the release, whose notes then link /noggin/vX.Y/. A prerelease builds
   none: it is never served. Each version carries its own Pagefind index.
 - **Assembled at deploy** (Site Deploy, `pages.yml`): `scripts/docs_versions.py` unpacks every release's docs asset
-  (no drafts, no prereleases) into the site Site Checks built, at vX.Y/, and writes `versions.json` in Material for
+  (no drafts, no prereleases) into the site Checks built, at vX.Y/, and writes `versions.json` in Material for
   MkDocs' format (`version`, `title`, `aliases`), latest first. A deploy without releases ships the build's own
   `versions.json`, latest alone. No branch holds the site and nothing built is committed (ADR 0009). Main's docs are
   `latest` (#373), not mike's `dev` (#307): here latest is what the reader gets at /noggin/, not an alias of the
@@ -24,9 +27,9 @@ its own docs once and keeps them as a release asset, and every deploy serves the
   same page in the chosen version, or to its home when that page isn't there.
 - **The pictures and the sim reports are the live site's** in every version: the Markdown links the pictures by
   absolute URL, and the sidebar's Reports link goes to /noggin/reports/ outside latest.
-- **Tested at the seam**: Site Checks builds the site again under `/noggin/v0.0` and runs the link tests on it (every
-  link lands inside the version, or on the live site's pictures, viewer and reports); scripts/test_docs_versions.py
-  checks which releases are served; the smoke test checks the switcher on latest.
+- **Tested at the seam**: Checks' `Site` job builds the site again under `/noggin/v0.0` and runs the link tests on it
+  (every link lands inside the version, or on the live site's pictures, viewer and reports);
+  scripts/test_docs_versions.py checks which releases are served; the smoke test checks the switcher on latest.
 
 ## Considered options
 
