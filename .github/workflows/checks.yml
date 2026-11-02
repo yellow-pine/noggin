@@ -169,12 +169,18 @@ jobs:
         run: .venv/bin/zizmor -q .
         env:
           GH_TOKEN: ${{ github.token }}
-      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
+      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450); a matrix job's
+      # checks come and go with its matrix, so a required check names a gate job, one without a matrix (#570). A job
+      # without a name reports its id
       - name: Check the required checks
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
-            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
-            | .venv/bin/python scripts/required_checks.py
+        run: |   # its own assignment, so a failing gh fails the step
+          required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
+            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context')
+          stale=$(comm -23 <(sort -u <<< "$required") \
+            <(yq -N '.jobs[] | select(.strategy.matrix == null) | .name // key' .github/workflows/*.yml | sort -u))
+          [ -z "$stale" ] && exit 0
+          sed "s|.*|::error::Required check '&' names no gate job (one without a matrix) in .github/workflows: rename it in main's ruleset too, or require the gate that needs the matrix job.|" <<< "$stale"
+          exit 1
         env:
           GH_TOKEN: ${{ github.token }}
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),

@@ -1,7 +1,9 @@
 """CI's names follow GitHub's own UI (#298): every job has a Title Case name ("Fetch Skills", "Model (hero)"), every
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run just check")."""
 
+import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -134,6 +136,36 @@ def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_tok
 def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code, says, gh):
     got_code, out, got_gh = run_check_the_verdict(tmp_path, changed, conclusion, app_token)
     assert (got_code, says in out, got_gh) == (code, True, gh)
+
+
+@pytest.mark.skipif(shutil.which("yq") is None, reason="yq is CI's image's (ci/base.Dockerfile)")
+def test_a_required_check_names_a_gate_job(tmp_path):
+    """#450, #570, #746: checks.yml's `Check the required checks` fails, naming each, on a check main's ruleset requires
+    that no job without a matrix in .github/workflows names (a job without a name reports its id), with `gh` faked."""
+    flows = tmp_path / ".github" / "workflows"
+    flows.mkdir(parents=True)
+    (flows / "check.yml").write_text(
+        "jobs:\n  code:\n    name: Code\n"
+        "  model:\n    name: Model (${{ matrix.shard }})\n    strategy:\n      matrix:\n        shard: [hero]\n"
+        "  site:\n    name: Fetch Site\n    strategy:\n      matrix:\n        os: [linux]\n"
+    )
+    (flows / "review.yml").write_text("jobs:\n  review:\n    name: Review\n  unnamed: {}\n")
+    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "checks.yml").read_text())
+    run = next(s["run"] for s in flow["jobs"]["code"]["steps"] if s.get("name") == "Check the required checks")
+
+    def step(*required: str) -> subprocess.CompletedProcess[str]:
+        (tmp_path / "gh").write_text("#!/bin/sh\nprintf '%s\\n' " + " ".join(f"'{r}'" for r in required) + "\n")
+        (tmp_path / "gh").chmod(0o755)
+        env = {"PATH": f"{tmp_path}:{os.environ['PATH']}", "GITHUB_REPOSITORY": "o/r"}
+        return subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", run], cwd=tmp_path, env=env, capture_output=True, text=True
+        )
+
+    assert step("Code", "Review", "unnamed").returncode == 0
+    stale = ["Lint", "Model (hero)", "Model (${{ matrix.shard }})", "Fetch Site", "model"]
+    failed = step("Code", *stale)
+    assert failed.returncode == 1
+    assert [line.split("'")[1] for line in failed.stdout.splitlines()] == sorted(stale)
 
 
 FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}"  # neither runs everything
