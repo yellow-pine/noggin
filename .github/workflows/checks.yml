@@ -16,7 +16,7 @@ name: Checks
 # made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it; `Deploy`, after the gate on
-# main's push, puts it on GitHub Pages (#795). Code and Site run in our base image, Render in our Blender image; the
+# main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render in our Blender image; the
 # others on the bare runner.
 run-name: "${{ github.event_name == 'schedule' && 'Checks: weekly full run' || github.event_name == 'workflow_dispatch' && format('Checks: manual by {0}', github.actor) || '' }}"
 on:
@@ -27,6 +27,12 @@ on:
   # the same full run on any branch, on demand (#562): every check runs, so the Checks it posts on the branch's head
   # are a real one
   workflow_dispatch:
+  # Release's manual run (#802): the same full run on main's tip (github.event_name is the caller's), which deploys
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
 concurrency:   # main's runs queue, each running to completion, since each deploys and Release waits for a finished one
   # (#689; a newer push replaces one still waiting); the weekly run has its own group, so it neither waits behind a
   # push's run nor holds one up
@@ -78,7 +84,7 @@ jobs:
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
-            release: [".releaserc.json", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
+            release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
       # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB
       # from the render code, the parts' make (model/ours.py) and Blender's pin; the sim reports from the sim, its
@@ -170,7 +176,7 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017), and a PR title's
+      # release.config.mjs's rules through semantic-release's own commit-analyzer (docs/adr/0017), and a PR title's
       # through commitlint's CLI (docs/adr/0010), when they, their tests or the packages changed ("false" alone skips:
       # the weekly run's filter is empty)
       - name: Test the release and title rules
@@ -618,7 +624,8 @@ jobs:
         with:
           jobs: ${{ toJSON(needs) }}
           allowed-skips: convex, model, render, blender
-  # main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009), from main's push once the gate passed (#795):
+  # main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009), from main's push, or Release's manual run
+  # (#802), once the gate passed (#795):
   # Site's artifact, no rebuild, with main's newest sim reports swapped in (the sim shard has saved them by now), the
   # latest docs alone (docs/adr/0021). In this run, as GitHub's Pages starter workflow, so each github-pages Deployment
   # records the commit built and links its run. A red run deploys nothing and leaves the last site up; Default Branch
@@ -626,7 +633,7 @@ jobs:
   deploy:
     name: Deploy
     needs: checks
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main' }}
     # one deploy at a time, never cancelled mid-way (a newer one waiting replaces an older waiting one)
     concurrency:
       group: site-deploy
