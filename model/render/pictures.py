@@ -304,10 +304,7 @@ def compare(live=LIVE):
         f = next_motion(motion)
         new = open(os.path.join(IMAGES, f), "rb").read()
         if (old := fetch(live + f)) not in (None, new):
-            top, bottom = (
-                [frame.convert("RGBA") for frame in ImageSequence.Iterator(Image.open(io.BytesIO(b)))]
-                for b in (old, new)
-            )
+            top, bottom = (ticks(b) for b in (old, new))
             frames = []
             for i in range(max(len(top), len(bottom))):  # the shorter holds its last frame
                 a, b = top[min(i, len(top) - 1)], bottom[min(i, len(bottom) - 1)]
@@ -316,6 +313,12 @@ def compare(live=LIVE):
                 frames[-1].paste(b, (0, a.height))
             frames[0].save(os.path.join(PREVIEW_OUT, f"before-after-{motion}.webp"), save_all=True,
                            append_images=frames[1:], duration=1000 // HERO_FPS, loop=0, quality=WEBP_QUALITY)  # fmt: skip
+
+
+def ticks(webp):
+    """An animated WebP's frames, one per HERO_FPS tick: the encoder merges a held frame into one that lasts longer."""
+    frames = [(f.convert("RGBA"), f.info["duration"]) for f in ImageSequence.Iterator(Image.open(io.BytesIO(webp)))]
+    return [f for f, ms in frames for _ in range(max(1, round(ms * HERO_FPS / 1000)))]  # a frame's duration once loaded
 
 
 def fetch(url):
