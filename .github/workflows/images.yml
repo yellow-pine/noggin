@@ -1,10 +1,10 @@
 name: CI Images
 # Our CI images (ci/, docs/adr/0009, #288): ghcr.io/yellow-pine/noggin-ci-base and -blender (base plus Blender), which
-# the jobs needing Chrome or Blender run in by digest (`container:`). Only main writes to the registry: on a push that changes a
-# Dockerfile, every Monday with no cache (the distro's security fixes) and on a dispatch from main, it pushes both as
-# :main with their build provenance (GitHub's attestations) and refreshes the layer cache; Dependabot (docker,
-# .github/workflows) then proposes the new digests as a PR, whose checks run in them before any job on main does. A PR
-# that changes a Dockerfile builds both from main's cache, read only, and pushes nothing.
+# the jobs needing a tool uv can't install run in by digest (`container:`). Only main writes to the registry: on a push
+# that changes a Dockerfile, every Monday with no cache (the distro's security fixes) and on a dispatch from main, it
+# pushes both as :main with their build provenance (GitHub's attestations) and refreshes the layer cache; Dependabot
+# (docker, .github/workflows) then proposes the new digests as a PR, whose checks run in them before any job on main
+# does. A PR that changes a Dockerfile builds both from main's cache, read only, and pushes nothing.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]

@@ -84,6 +84,9 @@ jobs:
     # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:f068d6e443985ce56ec81a404e5dff6f8bdab869aa519c1bf0ccf06046573d24   # ci/base.Dockerfile (images.yml)
+      env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
+        UV_CACHE_DIR: /__w/uv-cache
+        UV_LINK_MODE: hardlink
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
