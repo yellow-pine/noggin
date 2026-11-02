@@ -324,7 +324,7 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
 
 def test_the_ci_images_build_on_main_alone():
     """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
-    Dockerfiles in main's Code job, so a broken Dockerfile files 'main red' (main-red.yml)."""
+    Dockerfiles in main's Code job, so a broken Dockerfile files a `main-red-images` issue (main-red.yml)."""
     images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
     assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
@@ -428,8 +428,7 @@ def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_b
     assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
     (job,) = flows["main-red.yml"]["jobs"].values()
     run = "\n".join(s.get("run", "") for s in job["steps"])
-    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
-    assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
+    assert '--label "$label" --json' in run and '--label "$label",' in run  # finds by it, files with it
     assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
 
 
@@ -496,3 +495,47 @@ def test_main_red_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, 
     env |= {"WORKFLOW": "Checks", "CONCLUSION": "cancelled", "RUN_URL": "u", "SHA": "s"}
     subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
     assert gh_calls(tmp_path) == calls
+
+
+def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked():
+    """#767: an issue's title can become its PR's, so commitlint checks it on open and edit with main's config; a
+    failing title gets a comment and `needs-title` (an issue can't be blocked), a passing one loses both."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "issue-title.yml").read_text())
+    assert flow[True] == {"issues": {"types": ["opened", "edited"]}}
+    assert flow["permissions"] == {}
+    (job,) = flow["jobs"].values()
+    assert job["permissions"] == {"issues": "write"}
+    checkout = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/checkout@"))
+    assert "ci/commitlint.config.mjs" in checkout["with"]["sparse-checkout"]
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "commitlint --config ci/commitlint.config.mjs" in run
+    assert "--add-label needs-title" in run and "--remove-label needs-title" in run
+    assert "github.event.issue.title" not in run  # via env, never inlined into the script
+
+
+@pytest.mark.parametrize(
+    ("workflow", "gh"),
+    [  # the open `main-red` issue was retitled: still found, by its label (#767)
+        ("Checks", "issue comment 771 --body Main's Checks failed on abc1234def: run"),
+        # its own issue: a deploy says nothing about the images; titled a Conventional Commit from the start
+        (
+            "CI Images",
+            "issue create --title fix(ci): main red in CI Images on abc1234 --label main-red-images,bug,ready-for-agent"
+            " --body Main's CI Images failed on abc1234def: run",
+        ),
+    ],
+)
+def test_main_red_finds_its_open_issue_by_label_never_title(tmp_path, workflow, gh):
+    """#767: Main Red found its issue by title, so retitling one opened a duplicate (#775). `gh` is faked: one open
+    issue, #771, labelled `main-red` under any title, listed to a query that asks for no title."""
+    (tmp_path / "gh").write_text(
+        f'#!/bin/sh\ncase "$*" in "issue list --label main-red --json number --jq .[0].number // empty") echo 771 ;;\n'
+        f'  "issue list"*) ;;\n  *) echo "$*" >> {tmp_path}/gh.log ;; esac\n'
+    )
+    (tmp_path / "gh").chmod(0o755)
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())
+    (job,) = flow["jobs"].values()
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "WORKFLOW": workflow, "CONCLUSION": "failure", "RUN_ID": "1"}
+    env |= {"RUN_URL": "run", "SHA": "abc1234def"}
+    subprocess.run(["bash", "-e", "-c", job["steps"][0]["run"]], env=env, check=True)
+    assert (tmp_path / "gh.log").read_text() == gh + "\n"
