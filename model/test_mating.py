@@ -22,6 +22,7 @@ def test_every_joint_names_features_our_parts_declare_and_no_declared_feature_go
     assert named == {(stem, f) for stem, feats in declared.items() for f in feats}
 
 
+@pytest.mark.build
 @pytest.mark.parametrize("stem", sorted(mating.FEATURES))
 def test_our_mesh_carries_every_feature_its_part_declares(stem):
     for name, (centre, axis, r, half, *band) in mating.FEATURES[stem].items():

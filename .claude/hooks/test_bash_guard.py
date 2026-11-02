@@ -102,11 +102,12 @@ def test_anything_else_runs(command):
 
 
 def test_full_make_check_is_blocked_once_make_check_light_exists(tmp_path):
-    (tmp_path / "Makefile").write_text("check: lint\n\tpytest\n")
+    (tmp_path / "Makefile").write_text("check: lint\n\tpytest\nsim:\n\t$(HEAVY) sim\n")
     assert guard("make check", tmp_path).returncode == 0
-    assert "make lint" in guard("make check-all").stderr
+    assert "make lint" in guard("make sim", tmp_path).stderr
     (tmp_path / "Makefile").write_text("check: lint\n\tpytest\ncheck-light: lint\n\tpytest -x\n")
     assert "make check-light" in guard("make check", tmp_path).stderr
+    assert "make check-light" in guard("make check").stderr  # this repo's Makefile has check-light
 
 
 def test_a_hook_that_cannot_read_its_input_blocks():

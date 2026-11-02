@@ -40,4 +40,4 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `make web` builds the GLBs, `make site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
-- Checks: `make check`; CI's jobs and time budget: CONTRIBUTING.md. Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
+- Checks: `make check-light` locally (the pre-push hook), `make check` in CI; CI's jobs and time budget: CONTRIBUTING.md. Board: `make flash`, `make start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.
