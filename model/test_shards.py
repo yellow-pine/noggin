@@ -172,3 +172,26 @@ def test_the_model_and_blender_matrices_are_the_changes_job_s_lists():
     assert "just model-shards-list" in lists["run"] and "just blender-bins" in lists["run"]
     assert jobs["model"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.shards) }}"}
     assert jobs["blender"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.bins) }}"}
+
+
+def test_the_bins_weigh_main_s_measured_seconds_over_the_typed_ones(tmp_path, monkeypatch):
+    """#569: Changes downloads the seconds main's last rendering run measured (MEASURED, a file a bin); a key two bins
+    measured (the hero's shards) weighs the slower, and a unit none measured keeps model/durations.json's typed one."""
+    (tmp_path / "blender-seconds-0").mkdir()
+    (tmp_path / "blender-seconds-0" / "seconds.json").write_text(
+        '{"blender hero frame": 2.5, "blender hero setup": 30}'
+    )
+    (tmp_path / "blender-seconds-1").mkdir()
+    (tmp_path / "blender-seconds-1" / "seconds.json").write_text('{"blender hero frame": 3.0, "blender viewer": 400}')
+    monkeypatch.setattr(shards, "MEASURED", str(tmp_path))
+
+    def heroes():
+        return sorted(
+            (m for b in shards.blender() for m in b["motions"].split() if m.startswith("hero:")),
+            key=lambda m: int(m[5:].split("-")[0]),
+        )
+
+    assert heroes() == ["hero:0-21", "hero:21-42", "hero:42-64"]  # 64 frames at 3.0 s: three of ~64 s
+    assert shards.blender()[0]["bin"] == "viewer"  # 400 s, the longest: a runner of its own
+    monkeypatch.setattr(shards, "MEASURED", str(tmp_path / "none"))
+    assert heroes() == ["hero:0-32", "hero:32-64"]  # the typed 1.96 s a frame

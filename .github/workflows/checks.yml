@@ -12,8 +12,8 @@ name: Checks
 # parts changed; a cold parts cache is cut part by part first (`Convex`, #223), so the shards start warm. `Blender`
 # renders the README's pictures (just pictures, #226; a PR one panel, its preview, #562) and bakes the viewer's GLBs
 # (just web, docs/adr/0008) when what
-# they are made from changed, packed into bins longest first (#496), main's hero in frame shards that `Hero` joins
-# (#537). `Site` builds the docs beside them (just site,
+# they are made from changed, packed into bins longest first (#496) on the seconds main's last rendering run
+# measured (#569), main's hero in frame shards that `Hero` joins (#537). `Site` builds the docs beside them (just site,
 # docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the pictures and the viewer,
 # runs the link checks again with them, plays the site in Chrome (Playwright), uploads the site (a PR's preview, and on
 # main what Site Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -138,6 +138,18 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
           enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
+      # the seconds each Blender bin measured in main's last run that rendered (blender-seconds-*), which the bins
+      # are packed on (model/shards.py MEASURED, #569); none (expired, or no run rendered): the typed ones
+      - name: Download main's measured Blender seconds
+        if: ${{ steps.pictures.outputs.cache-hit != 'true' || steps.viewer.outputs.cache-hit != 'true' }}
+        run: |   # its own assignment, so a failing gh fails the step; a run without them is skipped
+          ids=$(gh run list -R "$GITHUB_REPOSITORY" -w checks.yml -b main -s success -L 20 --json databaseId,event \
+            --jq '.[] | select(.event != "pull_request") | .databaseId')
+          while read -r id; do
+            if gh run download "$id" -R "$GITHUB_REPOSITORY" -p 'blender-seconds-*' -D model/build/main-seconds; then break; fi
+          done <<< "$ids"
+        env:
+          GH_TOKEN: ${{ github.token }}
       # the model and Blender matrices from the code (model/shards.py): a new document or motion needs no edit here.
       # "false" leaves a group out: the filters' (empty in the weekly run, so everything), and a site left alone or a
       # cached output for the Blender units
@@ -551,7 +563,11 @@ jobs:
           MOTIONS: ${{ matrix.motions }}
       - name: Run just web
         if: ${{ matrix.viewer }}
-        run: uv run just BLENDER=blender web
+        run: |   # and its seconds, beside the motions' (model/render/pictures.py SECONDS)
+          start=$SECONDS
+          uv run just BLENDER=blender web
+          mkdir -p model/build/seconds
+          echo "{\"blender viewer\": $(( SECONDS - start ))}" > model/build/seconds/viewer.json
       # saved by the viewer's bin, whose just web bakes every Stage; even when a web test fails: the bake stays good
       - name: Save the trajectories
         if: ${{ always() && matrix.viewer && steps.trajectories.outputs.cache-hit != 'true' }}
@@ -586,6 +602,14 @@ jobs:
           path: model/build/pictures/frames
           if-no-files-found: error
           retention-days: 1
+      # each unit's seconds, which main's next runs pack their bins on (Changes, #569); kept the repo's default
+      # retention, so a run long after the last one that rendered still finds them
+      - name: Upload the measured seconds
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: blender-seconds-${{ strategy.job-index }}
+          path: model/build/seconds
+          if-no-files-found: error
       - name: Upload the viewer
         if: ${{ matrix.viewer }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2

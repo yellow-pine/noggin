@@ -1,5 +1,6 @@
 """Seam: model/render/pictures.py encode(), a picture's frames as WebP with their alpha (#470)."""
 
+import json
 import subprocess
 
 import imageio_ffmpeg
@@ -53,3 +54,18 @@ def test_the_hero_never_joins_with_a_frame_missing(tmp_path, monkeypatch):
 def test_the_hero_renders_eight_seconds_at_eight_fps():
     """Its frame count, which the shards split, without MuJoCo: model/render/hero.py's 8 s at HERO_FPS."""
     assert pictures.hero_frames() == 64
+
+
+def test_the_site_s_motions_record_their_seconds_as_the_bins_weigh_them(tmp_path, monkeypatch):
+    """#569: each motion's seconds in SECONDS/pictures.json, which main's Blender bins upload and the next packing reads
+    (model/shards.py); a hero frame shard's as its seconds a frame (those after the first, which compiles Eevee's
+    shaders) and the setup every shard pays."""
+    monkeypatch.setattr(pictures, "OUT", str(tmp_path))
+    monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
+    monkeypatch.setattr(pictures, "SECONDS", str(tmp_path / "seconds"))
+    monkeypatch.setattr(pictures, "MOTIONS", {})
+    monkeypatch.setattr(pictures, "render", lambda motion: [20.0, 2.0, 3.0] if motion.startswith("hero") else None)
+    pictures.main("site", ["hero:0-3", "views"])
+    took = json.loads((tmp_path / "seconds" / "pictures.json").read_text())
+    assert sorted(took) == ["blender hero frame", "blender hero setup", "blender views"]
+    assert took["blender hero frame"] == 2.5

@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 import imageio_ffmpeg
 import numpy as np
@@ -49,6 +50,8 @@ EXPLODE = {
     "noggin-mouth": (0, -45, 95),
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
+# each motion's seconds, which main's Blender bins upload for the next packing (model/shards.py, #569)
+SECONDS = os.path.join(stages.REPO, "model", "build", "seconds")
 # what the site serves, by the motion that renders it (Checks' Blender bins render them, #297, #496)
 SITE = {
     "views": [f"{name}-{view}.webp" for name, view in PANELS],
@@ -109,7 +112,9 @@ def blender(name, manifest, shots):
     missing = [f for f in files if not os.path.isfile(f)]
     if r.returncode or missing:
         sys.exit(f"Blender failed on {name}, missing {missing[:3]}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
-    print("".join(line for line in r.stdout.splitlines(True) if line.startswith("frame ")), end="")  # each frame's s
+    frames = [line for line in r.stdout.splitlines(True) if line.startswith("frame ")]
+    print("".join(frames), end="")
+    return [float(line.split()[2]) for line in frames]  # each frame's seconds
 
 
 def views(panels=PANELS):
@@ -181,9 +186,10 @@ def hero(frames=None):
     first, end = frames or (0, len(poses))
     if not frames:
         shutil.rmtree(os.path.join(OUT, "frames", "hero"), ignore_errors=True)
-    blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses[first:end], first)])
+    took = blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses[first:end], first)])
     if not frames:
         join()
+    return took
 
 
 def join():
@@ -211,9 +217,10 @@ def ffmpeg(*args):
 
 
 def render(motion):
-    """A motion of the site's pictures (SITE), the preview, or a hero frame shard `hero:<first>-<end>` (#537)."""
+    """A motion of the site's pictures (SITE), the preview, or a hero frame shard `hero:<first>-<end>` (#537); the
+    hero's frames' seconds."""
     if motion.startswith("hero"):
-        hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
+        return hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
     else:
         views(PREVIEW if motion == "preview" else PANELS)
 
@@ -226,10 +233,19 @@ def main(what, names):
         hero()
     elif what == "site":
         os.makedirs(IMAGES, exist_ok=True)
+        took = {}
         for motion in names or SITE:
-            render(motion)
+            start = time.monotonic()
+            frames = render(motion)
+            took[f"blender {motion}"] = time.monotonic() - start
+            if frames:  # the hero's, as model/shards.py sizes its frame shards: the first frame compiles the shaders
+                per = sum(frames[1:] or frames) / len(frames[1:] or frames)
+                setup = took.pop(f"blender {motion}") - len(frames) * per
+                took |= {"blender hero frame": per, "blender hero setup": setup}
             for f in MOTIONS.get(motion, []):  # a hero frame shard's frames stay in OUT/frames/hero, for join
                 shutil.copy(os.path.join(OUT, f), IMAGES)
+        os.makedirs(SECONDS, exist_ok=True)
+        json.dump(took, open(os.path.join(SECONDS, "pictures.json"), "w"))
     elif what == "join":
         join()
         os.makedirs(IMAGES, exist_ok=True)
