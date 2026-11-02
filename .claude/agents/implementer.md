@@ -29,6 +29,8 @@ parts your ticket touches and follow them.
    4. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in what
       `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
+   - The PR merges on the slim gate (`PR`, `Checks`: `just check-light` and the site's build, `Review`); main runs the
+     model, sim, Blender and Chrome smoke after, and a break there is fixed forward by a new PR (#283, #696).
    - Bring main in only when CONTRIBUTING.md says to. Commits are the only place work waits.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: answer it as CONTRIBUTING.md says, and
