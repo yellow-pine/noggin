@@ -24,6 +24,7 @@
 > Amended 2026-11-02 (#472, spec #467): the CI images rebuild only when a Dockerfile changes, no weekly no-cache
 > rebuild; the distro's security fixes arrive with Dependabot's base-image bumps (ADR 0012).
 > Amended 2026-11-02 (#481, spec #467): the jobs run the CI images by the `:main` tag, not by digest; ci/pins goes.
+> Amended 2026-11-02 (#529): gh in the base image from GitHub CLI's signed apt repo, unpinned (ADR 0012).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -62,7 +63,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **CI images are build outputs in the registry** (#288). The jobs that need a system tool uv can't install run in our
   own images, so they download no tool (a 403 from download.blender.org had taken the pictures down):
   ci/base.Dockerfile (Ubuntu with Python and uv, Node with mermaid-cli, Chrome for Testing, ngspice, each
-  from a pinned source) for the site's build and viewer test (`site`) and the tests not marked model (`code`), and
+  from a pinned source but gh, from GitHub CLI's signed apt repo at its newest, ADR 0012) for the site's build and
+  viewer test (`site`) and the tests not marked model (`code`), and
   ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for `render` and `viewer`. The
   Dockerfiles are sources; the `CI Images` workflow builds the images into GHCR (`ghcr.io/yellow-pine/noggin-ci-base`,
   `-blender`), never committed, and those jobs run them by the `:main` tag (`container:`, #481): mutable, but only
