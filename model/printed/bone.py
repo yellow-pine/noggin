@@ -11,36 +11,38 @@ import trimesh
 SECTIONS = 9  # the loft's sections along the span
 
 
-def bone(a, b, head, waist, up=(0, 0, 1), round=False):
+def bone(a, b, head, waist, up=(0, 0, 1), round=False, heads=True):
     """A Bone from joint a to joint b (x, y, z; one z, the bed): half-ellipse sections (semi-width, height) lofted from
     `head` at each joint to `waist` mid-span, easing in as cos^2, with a half-ellipsoid head on each joint of the same
-    size, so the shaft leaves it tangent. The caller cuts the joint's bore, socket or flat. `round`: whole ellipses and
-    ellipsoids, their height along `up` (square to the span; a strut off the bed, a and b anywhere)."""
+    size, so the shaft leaves it tangent. The caller cuts the joint's bore, socket or flat. `round`: whole ellipses,
+    their height along `up` (square to the span; a strut off the bed, a and b anywhere), the heads in the same loft.
+    `heads` False: flat at both joints (a span the caller ends there)."""
     a, b = np.asarray(a, float), np.asarray(b, float)
-    along = (b - a) / np.linalg.norm(b - a)
+    span = np.linalg.norm(b - a)
+    along = (b - a) / span
     side = np.cross(along, up)
     side /= np.linalg.norm(side)
     top = np.cross(side, along)
+    # round: the heads are the loft's own sections past each joint, an ellipsoid's out to near its tip, so the Bone is
+    # one loft: an ellipsoid fused on fails on Linux (#737)
+    caps = np.radians([75, 55, 30]) if round and heads else []
+    stations = [(-head[0] * math.sin(q) / span, math.cos(q)) for q in caps]
+    stations += [(t, 1.0) for t in np.linspace(0, 1, SECTIONS)]
+    stations += [(1 + head[0] * math.sin(q) / span, math.cos(q)) for q in reversed(caps)]
     wires = []
-    for t in np.linspace(0, 1, SECTIONS):
-        k = math.cos(math.pi * t) ** 2  # 1 at the joints, 0 mid-span, flat at both
-        w, h = (wa + (ha - wa) * k for ha, wa in zip(head, waist))
+    for t, f in stations:
+        k = math.cos(math.pi * min(max(t, 0), 1)) ** 2  # 1 at the joints, 0 mid-span, flat at both
+        w, h = ((wa + (ha - wa) * k) * f for ha, wa in zip(head, waist))
         c, s = cq.Vector(*(a + (b - a) * t)), cq.Vector(*side)
         # its normal -along, so the arc runs from +side up over the top to -side
         arc = cq.Edge.makeEllipse(w, h, c, cq.Vector(*-along), s, 0, 360 if round else 180)
         wires.append(cq.Wire.assembleEdges([arc] if round else [arc, cq.Edge.makeLine(c - s * w, c + s * w)]))
     out = cq.Workplane().add(cq.Solid.makeLoft(wires))
-    for p in (a, b):
-        if round:  # an ellipsoid turned about `top`: a ball scaled unevenly fused to nothing on Linux (#737)
-            c, s, u = cq.Vector(*p), cq.Vector(*side), cq.Vector(*top)
-            arc = cq.Edge.makeEllipse(head[0], head[1], c, cq.Vector(*-along), s, -90, 90)
-            wire = cq.Wire.assembleEdges([arc, cq.Edge.makeLine(c + u * head[1], c - u * head[1])])
-            dome = cq.Solid.revolve(wire, [], 360, c, c + u)
-        else:  # a unit half-ball scaled
+    if heads and not round:
+        for p in (a, b):  # a unit half-ball scaled
             m = np.c_[side * head[0], along * head[0], top * head[1], p]
             dome = cq.Solid.makeSphere(1, angleDegrees1=0, angleDegrees2=90)
-            dome = dome.transformGeometry(cq.Matrix([list(map(float, r)) for r in m]))
-        out = out.union(cq.Workplane().add(dome))
+            out = out.union(cq.Workplane().add(dome.transformGeometry(cq.Matrix([list(map(float, r)) for r in m]))))
     return out
 
 
