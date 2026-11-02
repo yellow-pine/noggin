@@ -110,9 +110,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and of Checks `Code` (`just
-  check-light`); Site, Convex, Model, the sim, Blender, the smoke and CodeQL run on main after the merge, and a red
-  main files its own 'main red' issue (#697). Only the main session runs the full run on a branch (`gh workflow run
-  checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
+  check-light`); Site, Convex, Model, the sim, Blender and the smoke run on main after the merge, CodeQL weekly (#728),
+  and a red main files its own 'main red' issue (#697). Only the main session runs the full run on a branch (`gh
+  workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate
+  alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`). What Site Deploy and Release wait on (Checks) cancels on PRs only: main's runs queue and each

@@ -283,10 +283,11 @@ def test_the_jobs_in_our_images_use_its_synced_venv():
                 assert all("uv " not in r for r in runs[:link]), (f.name, id_)
 
 
-def test_codeql_scans_main_and_weekly_never_a_pr():
-    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+def test_codeql_scans_weekly_never_a_push_or_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges. #728: a run per push to main cost ~40 runs a day for two
+    won't-fix alerts ever, so CodeQL scans Mondays (and on demand) into the Security tab."""
     on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
-    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]
+    assert set(on) == {"schedule", "workflow_dispatch"}
 
 
 def test_main_releases_itself_once_its_checks_pass():
