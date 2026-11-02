@@ -78,7 +78,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `gh pr merge --admin` and a push to main (a PR lands through auto-merge), and each heavy recipe as `just X` or `uv
   run just X` (`test_derived.py` holds it to the justfile's heavy group). It matches the command as written, so it
   catches a slip, not a workaround (#611); every other rule here holds because you follow it.
-- The deny list is advisory, for agents that follow these rules; main's ruleset is the enforcement.
+- Main's ruleset refuses a direct push, but an admin can still merge a PR with `gh pr merge --admin`; the deny list
+  stops agents doing that, and its push-to-main entries are only a backup.
 - Keep the session's own checkout clean and detached: `.claude/hooks/sync_checkout.py` fast-forwards it to origin/main
   at session start and before each subagent dispatch, so subagents load main's `.claude/agents/`, and blocks a dispatch
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
