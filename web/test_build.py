@@ -3,6 +3,7 @@ reports are by model/test_report.py) carries every part, the look the page reads
 frame its trajectory. The page itself is the site's (site/src/pages/viewer.astro, its tests in site/)."""
 
 import json
+import math
 import os
 import re
 import struct
@@ -11,6 +12,8 @@ import numpy as np
 import pytest
 
 from model import stages, traces, trajectories
+from model.render import camera as render_camera
+from model.render import pictures
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
@@ -50,6 +53,25 @@ def test_one_clip_per_gesture_and_the_hero_on_stages_with_a_neck(glb):
     doc, g = glb
     expected = [*traces.GESTURES] + ([] if doc == "noggin-stage1" else ["hero"])
     assert sorted(a["name"] for a in g["animations"]) == sorted(expected)
+
+
+def test_the_hero_stage_carries_the_hero_pictures_camera(glb):
+    """The landing page swaps its poster (the hero picture) for the viewer, which starts from the picture's camera, so
+    the Mech neither jumps nor moves (#597): pictures.hero_camera's lens and frame, looking along HERO, glTF's Y-up."""
+    doc, g = glb
+    if doc != pictures.HERO_STAGE:
+        assert "cameras" not in g
+        return
+    (camera,) = g["cameras"]
+    aspect = pictures.HERO_SIZE[0] / pictures.HERO_SIZE[1]
+    assert camera["perspective"]["aspectRatio"] == pytest.approx(aspect)
+    half = render_camera.SENSOR_MM / 2 / pictures.LENS / aspect  # sensor fitted to the width (model/render/camera.py)
+    assert camera["perspective"]["yfov"] == pytest.approx(2 * math.atan(half))
+    (node,) = [n for n in g["nodes"] if "camera" in n]
+    x, y, z, w = node["rotation"]  # glTF's quaternion; the camera looks down its -Z
+    forward = -np.array([2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)])
+    hx, hy, hz = pictures.HERO
+    assert forward == pytest.approx(-np.array([hx, hz, -hy]), abs=1e-5)  # Blender's Z-up to glTF's Y-up
 
 
 def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves(glb):

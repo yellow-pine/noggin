@@ -38,6 +38,7 @@ LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 400)  # 2:1, the whole motion fitted wide (Cansin, #278)
+HERO_STAGE = "noggin-stage3"  # whose GLB carries the hero's camera too (hero_camera, web/build.py, #597)
 HERO_FPS, HERO_MAX_BYTES = 8, 3_000_000
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded stage 3 (macros.py explode, #482), mm: the neck lifted off the base, the eyes off the neck,
@@ -62,7 +63,7 @@ MOTIONS = SITE | {"preview": [f"{name}-{view}.webp" for name, view in PREVIEW]}
 def motions(preview=False):
     """Each motion of SITE (or the preview alone) with the Stages it draws, whose trajectories its runner bakes (just
     trajectories TRAJ_DOCS): the preview every Stage, for the panels' one scale."""
-    stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3", "preview": " ".join(g.STAGES)}
+    stages_of = {"views": " ".join(g.STAGES), "hero": HERO_STAGE, "preview": " ".join(g.STAGES)}
     return [{"motion": m, "stages": stages_of[m]} for m in (["preview"] if preview else SITE)]
 
 
@@ -81,8 +82,12 @@ def prepare(name, frames):
     manifest = scene.export(stage, folder)
     for p in manifest.values():
         p["ply"] = os.path.join(folder, p["ply"])
-    hulls = {n: trimesh.load(p["ply"]).convex_hull.vertices for n, p in manifest.items()}
-    return stage, manifest, hulls
+    return stage, manifest, hulls(manifest)
+
+
+def hulls(manifest):
+    """Each part's convex hull vertices, in its own frame: what a camera fits (camera.fit) as it would every vertex."""
+    return {n: trimesh.load(p["ply"]).convex_hull.vertices for n, p in manifest.items()}
 
 
 def points(hulls, mats):
@@ -173,17 +178,26 @@ def hero(frames=None):
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
     camera fitted to every pose, rendered as one animation and joined into hero.webp. frames: (first, end) renders those
     alone, a CI frame shard (#537), whose frames the Hero job joins."""
-    _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
-    poses = at_fps(trajectories.poses("noggin-stage3", "hero"), HERO_FPS)
-    cam = camera.fit(
-        np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
-    )
+    _, manifest, hull = prepare(HERO_STAGE.removeprefix("noggin-"), g.STAGES[HERO_STAGE])
+    poses = hero_poses()
+    cam = hero_camera(hull)
     first, end = frames or (0, len(poses))
     if not frames:
         shutil.rmtree(os.path.join(OUT, "frames", "hero"), ignore_errors=True)
     blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses[first:end], first)])
     if not frames:
         join()
+
+
+def hero_poses():
+    return at_fps(trajectories.poses(HERO_STAGE, "hero"), HERO_FPS)
+
+
+def hero_camera(hull):
+    """The hero's one three-quarter camera (HERO), fitted to every pose of its trajectory; the web viewer starts from it
+    (web/build.py), so its first frame holds the Mech where the hero picture, its poster, did (#597)."""
+    pts = np.concatenate([points(hull, m) for m in hero_poses()])
+    return camera.fit(pts, HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN)
 
 
 def join():
