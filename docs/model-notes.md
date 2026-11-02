@@ -136,7 +136,7 @@ until the model stabilises.
   the face is as wide as the lids' frame (119 mm, 138 before) and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
   Its tie-bar and push-rods are Bones (#703, GLOSSARY; model/printed/bone.py), the pilot of the Skeleton's organic
-  look: each prints as drawn with no overhang past 45 deg and holds its servo's stall at SF 2 and against buckling
+  look, and so are the lid bars, links and the lids' spokes (#698, #704, each lying in its 3 mm slab): each prints as drawn with no overhang past 45 deg and holds its servo's stall at SF 2 and against buckling
   (model/printed/test_gimbal.py), its CoACD pieces capped (mjcf.MAX_PIECES); the rest of the Skeleton follows Cansin's
   pick of the look.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the

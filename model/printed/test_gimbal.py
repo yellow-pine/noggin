@@ -141,3 +141,55 @@ def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
     """gimbal.report reads the lids' clearance to a push-rod as a capsule CUP_R round the line between its balls."""
     v, _ = gimbal.push_rod().val().tessellate(0.01, 0.1)
     assert max(math.hypot(p.x, p.z - gm.LEVER) for p in v) <= gimbal.CUP_R + 1e-6
+
+
+# The lid drives' Bones (#698, #704): each lies on its slab's face, its pins along x; (part, its joints in turn)
+LID_HORN_PIN = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
+LID_BONES = {
+    "lid bar": (gimbal.lid_bar, [gm.LID_PIN, gm.LINK_PIN, gm.LID_BEND, LID_HORN_PIN]),
+    "lid link": (gimbal.lid_link, [gm.LINK_PIN, gm.LOWER_PIN]),
+}
+
+
+def _bed_down(solid):
+    """`solid` turned so its slab's lower face (along x) lies on the bed (z), as it prints."""
+    return solid.moved(gimbal._at([[0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0]]))
+
+
+@pytest.mark.parametrize("part", LID_BONES)
+def test_the_lid_bones_print_as_drawn_with_no_overhang_past_45_deg(part):
+    assert bone.overhang_deg(_bed_down(LID_BONES[part][0]().val())) <= 45
+
+
+def _slice(solid, a, b, t, eps=0.01):
+    """(mm2, the least mm4, the in-plane mm4, mm) of `solid`'s section square to the span a-b ((y, z), in its slab
+    about x 0) at t: its area, its least second moment, the one that bends it in its plane, and its half-width there."""
+    a, b = (np.array([0.0, *p]) for p in (a, b))
+    along = (b - a) / np.linalg.norm(b - a)
+    plane = cq.Plane(origin=tuple(a + (b - a) * t), xDir=(1, 0, 0), normal=tuple(along))
+    cut = solid.intersect(cq.Workplane(plane).rect(60, 60).extrude(eps / 2, both=True).val())
+    inertia = np.array(cq.Shape.matrixOfInertia(cut)) / eps
+    basis = np.array([np.cross(along, (1, 0, 0)), (1.0, 0.0, 0.0)])
+    mid = float(np.dot(cut.Center().toTuple(), basis[0]))
+    half = max(abs(float(np.dot(v.toTuple(), basis[0])) - mid) for v in cut.Vertices())
+    return cut.Volume() / eps, float(np.linalg.eigvalsh(basis @ inertia @ basis.T).min()), float(inertia[0, 0]), half
+
+
+@pytest.mark.parametrize("part", LID_BONES)
+def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
+    """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
+    between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
+    half-width), and the straight link against Euler buckling."""
+    make, joints = LID_BONES[part]
+    solid, mat = make().val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
+    for a, b in zip(joints, joints[1:]):
+        for t in (0.3, 0.5, 0.7):
+            area, _, bend, half = _slice(solid, a, b, t)
+            y, z = np.add(a, np.multiply(t, np.subtract(b, a)))
+            off = abs((y - y0) * (z1 - z0) - (z - z0) * (y1 - y0)) / math.dist(joints[0], joints[-1])
+            stress = force / area + force * off * half / bend
+            assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (a, b, t)
+    if len(joints) == 2:
+        least = min(_slice(solid, *joints, t)[1] for t in (0.3, 0.5, 0.7))
+        assert math.pi**2 * mat["E_mpa"]["z"] * least / math.dist(*joints) ** 2 / force >= beams.MIN_SF

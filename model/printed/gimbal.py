@@ -18,8 +18,9 @@ from model.printed import bone
 
 LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every printed arm's width
 # the Bones' (head, waist) as (semi-width, height): the tie-bar's heads flattened to its 3 mm slab, each push-rod's
-# inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so)
-TIE_BONE, ROD_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0))
+# inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so); the
+# lid drives' (#698) flattened to their 3 mm slabs
+TIE_BONE, ROD_BONE, LID_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0)), ((4.0, 3.5), (3.0, 2.6))
 MM = 0.001  # MuJoCo's metres per mm
 CAP_BACK = gm.CAP_R * math.cos(math.radians(gm.CAP_HALF))  # the cap's flat back, on the core's seat
 
@@ -123,24 +124,42 @@ def push_rod():
     return out
 
 
-def arm(a, b, x):
-    """A flat arm in the slab `x` from the (y, z) point a to b, round at both ends."""
-    a, b, w = np.asarray(a, float), np.asarray(b, float), ARM / 2
+def link(a, b, x):
+    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
+    w = ARM / 2
     side = np.array([a[1] - b[1], b[0] - a[0]]) * w / math.dist(a, b)
     outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
     out = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(outline).close().extrude(x[1] - x[0])
-    return out.union(cyl("x", (0, *a), w, x)).union(cyl("x", (0, *b), w, x))
-
-
-def link(a, b, x):
-    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    return holes(arm(a, b, x), (a, b), x)
+    for y, z in (a, b):
+        out = out.union(cyl("x", (0, y, z), w, x))
+    return holes(out, (a, b), x)
 
 
 def holes(out, pins, x):
+    """`out` with the M3 shank's bore along x through the slab `x` at each (y, z) of `pins`."""
     for y, z in pins:
         out = out.cut(cyl("x", (0, y, z), gm.PIN_R, x))
     return out
+
+
+def lid_bone(points, x):
+    """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
+    face, its joints' pins along x, flattened to the slab as the tie-bar is: the lid drives' bars, links and spokes."""
+
+    slab = box((-99, 99), (-99, 99), (-1, x[1] - x[0]))  # past the bed: no shared face
+
+    def span(a, b):  # each clipped before they fuse, as the tie-bar's: fused unclipped, the clip comes out empty
+        try:
+            out = bone.bone((*a, 0), (*b, 0), *LID_BONE)
+        except ValueError:  # OCCT can fail to fuse a head to a short span one way; a Bone is the same either way
+            out = bone.bone((*b, 0), (*a, 0), *LID_BONE)
+        return out.intersect(slab)
+
+    out = span(*points[:2])
+    for a, b in zip(points[1:], points[2:]):
+        out = out.union(span(a, b))
+    # the bed's z onto x, its x and y onto the gimbal's y and z: a turn about (1, 1, 1), then into the slab
+    return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
 
 def pitch_bar():
@@ -158,21 +177,22 @@ def lid_bar():
     its horn's; the link's pin between the first two (#698)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
     horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
-    out = arm(gm.LID_PIN, gm.LID_BEND, (-w, w)).union(arm(gm.LID_BEND, horn, (-w, w)))
+    out = lid_bone([gm.LID_PIN, gm.LINK_PIN, gm.LID_BEND, horn], (-w, w))
     return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
 
 
 def lid_link():
     """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698)."""
     w = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2
-    return link(gm.LINK_PIN, gm.LOWER_PIN, (-w, w))
+    return holes(lid_bone([gm.LINK_PIN, gm.LOWER_PIN], (-w, w)), (gm.LINK_PIN, gm.LOWER_PIN), (-w, w))
 
 
-def _lid(radii, span, spoke, boss, pin):
+def _lid(radii, span, spokes, boss, pin):
     """An L lid: its shell wedge about x from `span` (deg from forward toward up) between the caps' sides, and in two
-    slabs a spoke at `spoke` deg out to the shell, which reaches round to it there: outboard from the `boss` on the
-    frame's shank, inboard from its crank `pin` (#698). The spokes stay behind (or under) the caps through the whole
-    yaw and the lid's range; everything within the outer radius."""
+    slabs a spoke out to the shell at `spokes` deg (outboard, inboard), the shell reaching round to one outside its
+    span: outboard from the `boss` on the frame's shank, inboard from its crank `pin` (#698). The outboard spoke stays
+    behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is past the cap's reach.
+    Everything within the outer radius."""
     ri, ro = radii
 
     def wedge(a, b, x):
@@ -182,11 +202,11 @@ def _lid(radii, span, spoke, boss, pin):
 
     shell, outer, inner = ball(ro).cut(ball(ri)), _slab(boss), _slab("ear", -1)
     out = shell.intersect(wedge(*span, (inner[0], outer[1])))
-    reach = sorted((spoke + math.copysign(8, spoke), span[spoke > 0]))  # the shell round to the spoke
-    for x in (outer, inner):
+    for x, spoke in zip((outer, inner), spokes):
+        reach = sorted((spoke + math.copysign(8, spoke), span[spoke > 0]))  # the shell round to the spoke
         r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
         end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
-        out = out.union(shell.intersect(wedge(*reach, x))).union(arm(pin if x == inner else (0, 0), end, x))
+        out = out.union(shell.intersect(wedge(*reach, x))).union(lid_bone([pin if x == inner else (0, 0), end], x))
     out = out.union(cyl("x", (0, 0, 0), 4.0, outer)).intersect(ball(ro))
     return holes(out, [pin], inner).cut(cyl("x", (0, 0, 0), gm.PIN_R, outer))
 
@@ -194,7 +214,7 @@ def _lid(radii, span, spoke, boss, pin):
 def upper_lid(side):
     """The `side` upper lid (drawn for L, the R its mirror): its edge at LID_REST, LID_SPAN up; its boss on the shank
     nearer the eye, its crank pin LID_PIN on the lid bar."""
-    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), 92.0, "upper boss", gm.LID_PIN)
+    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), (92.0, 60.0), "upper boss", gm.LID_PIN)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -202,7 +222,7 @@ def lower_lid(side):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    out = _lid(gm.LOWER_R, span, -92.0, "lower boss", gm.LOWER_PIN)
+    out = _lid(gm.LOWER_R, span, (-112.0, -55.0), "lower boss", gm.LOWER_PIN)
     return out if side == "L" else out.mirror("YZ")
 
 

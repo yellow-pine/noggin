@@ -39,7 +39,7 @@ FINE_MM = {
     **dict.fromkeys(("base plate", "eye bracket", "desk eye bracket", "pan turntable", "top jaw", "bottom jaw"), 0.3),
 }
 # The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
-MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod"), 12)
+MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod", "next lid bar", "next lid link"), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
