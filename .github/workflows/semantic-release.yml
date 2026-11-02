@@ -1,0 +1,50 @@
+name: Release
+# Releases main once its Checks pass: semantic-release tags vX.Y.Z and writes the GitHub release and its notes.
+# docs/adr/0017: a title that releases (feat, fix, perf, revert or a `!` break; .releaserc.json) makes the next version
+# from main's last tag, anything else none. It acts only for this repository's push to main whose Checks passed
+# (branches: [main] alone also matches a fork's PR from a branch named main), on that push's commit: a red main never
+# releases, and when main moved on since, semantic-release releases nothing and the newer commit's run releases both.
+# It acts as the bot App (CONTRIBUTING.md), since a tag GITHUB_TOKEN pushes starts no workflow: its tag starts
+# Release Assets (release.yml).
+on:
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's green push to main
+    workflows: ["Checks"]
+    types: [completed]
+    branches: [main]
+concurrency:   # one release at a time, never cancelled mid-release
+  group: Release
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  release:
+    name: Release
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Mint the bot App's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write   # the tag and the release, nothing else: no comments or labels (.releaserc.json)
+      - name: Check out the commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0   # every tag, and the commits since the last
+          persist-credentials: false   # semantic-release pushes the tag with the App's token itself
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          package-manager-cache: false   # a release installs without a cache (zizmor cache-poisoning)
+      - name: Install semantic-release
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      - name: Run semantic-release
+        run: ci/node_modules/.bin/semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}

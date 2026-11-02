@@ -57,8 +57,9 @@ just restore-stock   # put the stock remote-control program back on the Core
   a Core still on .py files refuses .mpy over Wi-Fi, so the first .mpy install goes over USB.
 - `just mpy` stamps the program with the repo's version and commit (eyes/build/stamp.py, never in git), which its
   beacon reports; `noggin status` shows them beside the noggin service's own (read when it started: `just start` after
-  a pull) and warns when the Core runs an older version (`just flash`). Between releases the version stays, so a
-  Core flashed from an older commit shows its commit but no warning; on USB alone there is no beacon, so no version. A program from before the stamp (#357) beacons without them and the noggin service ignores
+  a pull) and warns when the Core runs an older release (`just flash`). The version is git's for the checkout
+  (`v0.2.6`, or `v0.2.6-3-gabc1234` three commits past it), and the warning compares the releases alone, so a Core
+  flashed from an older commit since the same release shows it but no warning; on USB alone there is no beacon, so no version. A program from before the stamp (#357) beacons without them and the noggin service ignores
   it, so that Core is flashed over USB once (`just flash-usb`, the plug the right way round).
 - The stock program's `boot.py` runs the remote-control app forever, so a
   custom program must provide its own `boot.py`.

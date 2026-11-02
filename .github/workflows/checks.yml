@@ -197,6 +197,9 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017)
+      - name: Test the release rules
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
         run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
@@ -601,6 +604,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+          fetch-depth: 0   # the tags and the commits since the last: the footer's version is git describe's (docs/adr/0017)
+          filter: blob:none   # the history without its old files
       # Node by site/.nvmrc, npm's cache keyed on the lockfile (just site runs npm ci)
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0

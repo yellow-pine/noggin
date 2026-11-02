@@ -129,7 +129,7 @@ _Avoid_: generated docs
 
 **Release**:
 One version of the whole repo, noggin vX.Y.Z: the Core program, the noggin service, the Model and the Site together,
-tagged on main with its CHANGELOG.md entry (docs/adr/0010).
+tagged vX.Y.Z on main, its notes on its GitHub release (docs/adr/0010, 0017).
 _Avoid_: build, drop, version of one part
 
 **Docs version**:
@@ -139,8 +139,8 @@ The pictures and the sim reports are the live Site's in every version (docs/adr/
 _Avoid_: docs snapshot, archived docs
 
 **Bot App**:
-The repo's own GitHub App, which the workflows act as when they open, ready or merge a PR, so its
-checks and review run like a person's PR would (docs/adr/0010).
+The repo's own GitHub App, which the workflows act as when they open a PR or tag a Release, so its
+checks, review or Release Assets run as they would for a person's (docs/adr/0010, 0017).
 _Avoid_: release App, bot token
 
 **Hero**:

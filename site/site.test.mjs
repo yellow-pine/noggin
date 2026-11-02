@@ -9,7 +9,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'node-html-parser';
-import { parse as parseToml } from 'smol-toml';
 import { expect, test } from 'vitest';
 import { BASE, HOME, PAGES, REPO, ROOT, SITE, route } from './src/pages.mjs';
 
@@ -164,9 +163,9 @@ test("every page's CSP lets only the site's scripts run: each inline one by its 
 });
 
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
-const { version } = parseToml(read('pyproject.toml')).project; // no venv needed: Checks' gate runs these tests too
+const { version } = numbers.build; // git describe's, as macros.py read it where the site was built (docs/adr/0017)
 
-test('/version.json is the version (pyproject.toml), the commit built and when', () => {
+test('/version.json is the version (the git tag), the commit built and when', () => {
   const built = JSON.parse(readFileSync(path.join(DIST, 'version.json'), 'utf8'));
   expect(Object.keys(built)).toEqual(['version', 'commit', 'built_at']);
   expect([built.version, built.commit]).toEqual([version, commit]);

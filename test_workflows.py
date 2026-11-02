@@ -188,3 +188,25 @@ def test_codeql_scans_main_and_weekly_never_a_pr():
     """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
     on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
     assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]
+
+
+def test_main_releases_itself_once_its_checks_pass():
+    """#582, docs/adr/0017: semantic-release runs after this repo's push to main passed Checks, on that commit, one run
+    at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "semantic-release.yml").read_text())
+    assert flow[True]["workflow_run"] == {"workflows": ["Checks"], "types": ["completed"], "branches": ["main"]}
+    assert flow["concurrency"]["cancel-in-progress"] is False and "${{" not in flow["concurrency"]["group"]
+    (job,) = flow["jobs"].values()
+    for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
+        assert f"github.event.workflow_run.{cond}" in job["if"], cond
+    steps = {s["name"]: s for s in job["steps"]}
+    app = next(s for s in steps.values() if s.get("uses", "").startswith("actions/create-github-app-token@"))
+    checkout = next(s for s in steps.values() if s.get("uses", "").startswith("actions/checkout@"))
+    assert checkout["with"]["ref"] == "${{ github.event.workflow_run.head_sha }}"
+    assert checkout["with"]["fetch-depth"] == 0  # every tag, and the commits since the last
+    release = next(s for s in steps.values() if "semantic-release" in s.get("run", ""))
+    assert release["env"]["GITHUB_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+    root = WORKFLOWS[0].parent.parent.parent
+    left = ["release-please.yml", "release-now.yml"]
+    assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
+    assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]

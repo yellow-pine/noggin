@@ -32,15 +32,14 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   for Actions and for Dependabot (whose PRs only see Dependabot secrets): run `claude setup-token`, then `gh secret set
   CLAUDE_CODE_OAUTH_TOKEN` and `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
 - A PR's title is its squash commit, with no body (the repo's squash message setting is blank, Cansin, 2026-11-02:
-  #388's body forced v0.2.0), so release-please reads the title alone, a body footer never reaches main, and a forced version goes in
-  `release-as` in release-please-config.json, taken out once that release lands. The title is a
+  #388's body forced v0.2.0), so semantic-release reads the title alone and a body footer never reaches main. The title is a
   [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): subject`,
   `type(scope)!: subject` for a breaking change (docs/adr/0010), as @commitlint/config-conventional has it: types
   build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
   a subject that doesn't start with a capital (a leading acronym goes in backticks) or end with a period; at most 100
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
-  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
-  `release` for the release PR; `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
+  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them;
+  `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
   lands). The required `PR` check
   (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title
   re-runs it.
@@ -52,19 +51,19 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand. The implementer sets `in-progress`
   on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR opened by hand),
   and clears every state label when the issue closes.
-- Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). Release Please keeps a
-  release PR that bumps it and adds the CHANGELOG.md entry from the titles merged since the last release. It stays a
-  draft until its newest version has a Features or a BREAKING CHANGES section (`scripts/release_gate.py`); fixes alone
-  wait for the next feature, or for `gh workflow run release-now.yml` (or `/release`). Merged, it tags `vX.Y.Z`, and
-  `Release Assets` attaches the Core program zip and the release's docs (docs/adr/0014). Never edit the version, the
-  manifest or CHANGELOG.md by hand.
-- The workflows that open PRs or push (Release Please, Release Now, the weekly `skills` and `blender` ones, `Review`'s
+- Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
+  holds a placeholder). Main releases itself: once a push to main passes Checks, `Release` (semantic-release,
+  `.releaserc.json`) tags `vX.Y.Z` and writes the GitHub release's notes when a title merged since the last tag is a
+  feat, fix, perf, revert or a `!` break (before 1.0 a break bumps the minor, the rest the patch); docs, ci, chore,
+  build, test, style and refactor release nothing. The tag starts `Release Assets`, which attaches the Core program
+  zip and the release's docs (docs/adr/0014). No release PR, nothing committed back; tag nothing by hand.
+- The workflows that open PRs or push (Release, the weekly `skills` and `blender` ones, `Review`'s
   rebase) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on
   yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and write and no
   webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the `RELEASE_APP_PRIVATE_KEY`
   secret. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
-  (gitignored but for the project's own `release` skill; the committed `.claude/skills` links there) with `npm ci
+  (gitignored; the committed `.claude/skills` links there) with `npm ci
   --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
   against its `computedHash`.
 - Bumps arrive as PRs and merge through checks and review like any other: the weekly `skills` workflow re-pins the
@@ -103,7 +102,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `gh workflow run checks.yml --ref <branch>` runs that full run on any branch, for the hero and every panel when a
   look needs approval (a PR renders one panel as its preview, #562).
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
-  release tag's run and Release Please's are never cancelled).
+  release tag's run and Release's are never cancelled).
 - The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
   was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
   `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks
