@@ -28,6 +28,7 @@ dev = [
     "imageio-ffmpeg>=0.7.0",
     "zizmor>=1.31.1",
     "actionlint-py>=1.7.12.25",
+    "hadolint-bin>=2.15.1",
 ]
 
 [tool.uv]
