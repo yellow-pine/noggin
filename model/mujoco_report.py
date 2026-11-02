@@ -106,12 +106,12 @@ def measure(doc, model):
             slow[tuple(ctrl.items())[0]] = data.qpos.copy()
         for loop, mm in mjcf.residuals(model, data).items():
             residuals[loop] = _worst(residuals.get(loop), mm, ctrl, "max_mm")
-        for loop, (margin, transmission) in gates.loops(model, data).items():
+        for loop, (mm_rad, deg) in gates.loops(model, data).items():  # margin() is the footprint's
             least = loops.setdefault(loop, {"margin_mm_rad": math.inf, "transmission_deg": math.inf})
-            if margin < least["margin_mm_rad"]:
-                least["margin_mm_rad"], least["margin_at"] = round(margin, 2), ctrl
-            if transmission < least["transmission_deg"]:
-                least["transmission_deg"], least["transmission_at"] = round(transmission, 1), ctrl
+            if mm_rad < least["margin_mm_rad"]:
+                least["margin_mm_rad"], least["margin_at"] = round(mm_rad, 2), ctrl
+            if deg < least["transmission_deg"]:
+                least["transmission_deg"], least["transmission_at"] = round(deg, 1), ctrl
         for h in stage.horns:
             actuators[h] = _worst(actuators.get(h), abs(data.actuator(h).force[0]) / KGF_CM, ctrl, "hold_kgf_cm")
         if tip is not None:
