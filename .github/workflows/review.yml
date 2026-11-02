@@ -100,18 +100,19 @@ jobs:
             --model claude-sonnet-5-5
             --allowedTools "Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:*),Bash(gh issue view:*),mcp__github_inline_comment__create_inline_comment"
             --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["approve","request_changes"]},"reasons":{"type":"string"}},"required":["verdict","reasons"]}'
-      # the action's validation skip returns before Claude runs, so no conclusion (claude-code-action's run.ts). A
-      # GITHUB_TOKEN push starts no workflow, so the App's token updates the branch: only branch contents and the PR.
-      # Dependabot's PRs see no App key (`@dependabot rebase` them)
+      # no conclusion: Claude never ran, so the action skipped on validation (its run.ts; the skip's own output isn't
+      # exported). The App's push starts the re-review, a GITHUB_TOKEN one wouldn't; `workflows`: the rebase brings in
+      # main's review.yml. Dependabot's runs see no App key
       - name: Mint the release App's token
         id: app
-        if: ${{ !steps.claude.outputs.conclusion && github.event.pull_request.user.login != 'dependabot[bot]' }}
+        if: ${{ !steps.claude.outputs.conclusion && github.actor != 'dependabot[bot]' }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          permission-workflows: write
       - name: Check the verdict
         env:
           RESULT: ${{ steps.claude.outputs.structured_output }}
@@ -127,9 +128,10 @@ jobs:
               echo "::warning::review.yml changed in this PR, so the action ran no review"; exit 0
             fi
             if [ -z "$CONCLUSION" ]; then   # so main's review.yml moved on since this branch's base (#433)
+              msg="main's review.yml changed since this branch"
+              [ -n "$APP_TOKEN" ] || { echo "::error::$msg: rebase it (\`@dependabot rebase\`)"; exit 1; }
               GH_TOKEN="$APP_TOKEN" gh pr update-branch "$PR" --rebase
-              echo "::error::main's review.yml changed since this branch: branch updated, the review re-runs on the new head"
-              exit 1
+              echo "::error::$msg: branch updated, the review re-runs on the new head"; exit 1
             fi
             echo "::error::the review produced no verdict"; exit 1
           fi

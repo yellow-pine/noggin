@@ -21,8 +21,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   conflict, a required check was renamed or the PR needs a fix that just landed on main. When main's
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
-  review re-runs on the new head (#433); a Dependabot PR gets `@dependabot rebase`. The repo setting "Always suggest
-  updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on
+  review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
+  repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on
   pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
   the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
   cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
@@ -55,12 +55,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built under
   /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel), linked
   from the release's notes, and then deploys the site so those docs are live at once. Never edit the version, the
-  manifest or CHANGELOG.md by hand. Both workflows, and the weekly `skills` and `blender` ones, run as the repo's bot
-  App, because what `GITHUB_TOKEN` creates starts no workflow, so its PRs would get no checks: a private App on
-  yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and write and no webhook. Each
-  run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID` variable) and private key (the
-  `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists Release Please only leaves a notice. The App's
-  `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
+  manifest or CHANGELOG.md by hand. Both workflows, the weekly `skills` and `blender` ones and `Review`'s rebase (above)
+  run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow, so its PRs would get no checks: a
+  private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
+  write and no webhook. Each run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID`
+  variable) and private key (the `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists Release Please only leaves
+  a notice. The App's `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
