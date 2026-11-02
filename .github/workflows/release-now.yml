@@ -1,8 +1,8 @@
 name: Release Now
-# Releases whatever is pending (docs/adr/0010, #407): marks the open release PR ready (#414), turns on its auto-merge
-# and labels it `release now`, so Release Please's gate keeps it on through later updates. It runs as the release App,
-# like Release Please, so the ready PR gets its checks, the merge pushes to main as the App and the tag starts Release
-# Assets. The /release skill runs it.
+# Releases whatever is pending: marks the open release PR ready, turns on its auto-merge and labels it `release now`.
+# The label keeps Release Please's gate from turning auto-merge off through later updates (docs/adr/0010, #407, #414).
+# It runs as the release App, like Release Please, so the ready PR gets its checks, the merge pushes to main as the App
+# and the tag starts Release Assets. The /release skill runs it.
 on:
   workflow_dispatch:
 concurrency:   # Release Please's group: its gate never reads the PR between this run's label and its auto-merge

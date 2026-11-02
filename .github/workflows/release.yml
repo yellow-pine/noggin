@@ -1,8 +1,8 @@
 name: Release Assets
-# Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs
-# A release tag's run (docs/adr/0010): attaches the zip to the release release-please made, as the release's deployment
-# in the `release` environment (the Deployments panel links the release; the release's notes link this run), then the
-# release's docs (docs/adr/0014), and dispatches Site Deploy so they are live at once (#414).
+# Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs.
+# A release tag's run (docs/adr/0010): the zip goes onto the release release-please made as the release's deployment in
+# the `release` environment (the Deployments panel links the release; the release's notes link this run), then the
+# release's docs (docs/adr/0014), and it dispatches Site Deploy so they are live at once (#414).
 on:
   push:
     tags: ["v*"]

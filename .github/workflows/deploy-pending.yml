@@ -1,6 +1,7 @@
 name: Deploy Pending
-# Sets a main commit's `deploy` status pending while Site Checks build its site (#292); Site Deploy (pages.yml) sets its
-# outcome. Its own workflow, on main pushes only, so PRs show no skipped row for it (#404).
+# Sets a main commit's `deploy` status pending while Site Checks build its site.
+# Site Deploy (pages.yml) sets its outcome (#292). Its own workflow, on main pushes only, so PRs show no skipped row for
+# it (#404).
 on:
   push:
     branches: [main]
