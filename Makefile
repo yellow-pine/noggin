@@ -15,7 +15,7 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean
+.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech worktrees-clean
 
 venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (pre-push: make check-light)
 	uv sync -q
