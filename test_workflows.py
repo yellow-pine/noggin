@@ -51,8 +51,9 @@ def test_every_workflow_is_title_case_in_its_kebab_case_file():
 def test_every_run_has_a_descriptive_title():
     """#773: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
     dispatched or workflow_run run by the workflow's name alone. Those set `run-name`: '<Workflow>: weekly <what>',
-    '<Workflow>: manual by <actor>', '<Workflow>: <triggering run's title>' (a push's: its commit's first line; Main Red
-    names the workflow it reports unless that title does); an empty result keeps GitHub's title for the other events."""
+    '<Workflow>: manual by <actor>', '<Workflow>: <triggering run's title>' (a push's: its commit's first line;
+    Default Branch Failure names the workflow it reports unless that title does); an empty result keeps GitHub's title
+    for the other events."""
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
@@ -373,7 +374,8 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
 
 def test_the_ci_images_build_on_main_alone():
     """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
-    Dockerfiles in main's Code job, so a broken Dockerfile files a `main-red-images` issue (main-red.yml)."""
+    Dockerfiles in main's Code job, so a broken Dockerfile files a `default branch images failure` issue
+    (default-branch-failure.yml)."""
     images = yaml.safe_load((WORKFLOWS[0].parent / "ci-images.yml").read_text())
     assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
@@ -487,9 +489,10 @@ def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, exit, 
 
 
 def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
-    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
-    failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
-    main. #778, docs/adr/0021: the latest docs alone, so no release's docs beside them, and nothing dispatches it."""
+    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Default
+    Branch Failure the failures): it takes the artifact of the Checks run that completed it, once that passed on this
+    repo's push to main. #778, docs/adr/0021: the latest docs alone, so no release's docs beside them, and nothing
+    dispatches it."""
     wf = WORKFLOWS[0].parent
     flow = yaml.safe_load((wf / "site-deploy.yml").read_text())
     assert list(flow[True]) == ["workflow_run"]  # yaml reads `on:` as True
@@ -506,15 +509,15 @@ def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
 
 
-def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
+def test_default_branch_failure_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
     """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
     found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
-    watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
+    watched = flows["default-branch-failure.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
     assert watched == [flows[f]["name"] for f in ("checks.yml", "site-deploy.yml", "ci-images.yml")]
-    (job,) = flows["main-red.yml"]["jobs"].values()
+    (job,) = flows["default-branch-failure.yml"]["jobs"].values()
     run = "\n".join(s.get("run", "") for s in job["steps"])
-    assert '--label "$label" --json' in run and '--label "$label",' in run  # finds by it, files with it
+    assert '--label "$label" --json' in run and '--label "$label,' in run  # finds by it, files with it
     assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
 
 
@@ -582,10 +585,10 @@ def test_a_failed_job_cancels_the_rest_of_its_run():
         ([], ["issue list --label"]),  # superseded while it waited: no job ran
     ],
 )
-def test_main_red_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
+def test_default_branch_failure_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
     """#769: a failed step cancels its run (cancel-on-failure), its own job too, so run and job may read cancelled; a
     failed step still makes it red."""
-    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())["jobs"].values()
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "default-branch-failure.yml").read_text())["jobs"].values()
     (step,) = job["steps"]
     jobs = [
         {"name": f"Job {i}", "conclusion": "cancelled", "steps": [{"conclusion": c}]} for i, c in enumerate(conclusions)
@@ -598,7 +601,7 @@ def test_main_red_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, 
 
 def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked():
     """#767: an issue's title can become its PR's, so commitlint checks it on open and edit with main's config; a
-    failing title gets a comment and `needs-title` (an issue can't be blocked), a passing one loses both."""
+    failing title gets a comment and `needs title` (an issue can't be blocked), a passing one loses both."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "issue-title.yml").read_text())
     assert flow[True] == {"issues": {"types": ["opened", "edited"]}}
     assert flow["permissions"] == {}
@@ -608,33 +611,48 @@ def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked
     assert "ci/commitlint.config.mjs" in checkout["with"]["sparse-checkout"]
     run = "\n".join(s.get("run", "") for s in job["steps"])
     assert "commitlint --config ci/commitlint.config.mjs" in run
-    assert "--add-label needs-title" in run and "--remove-label needs-title" in run
+    assert '--add-label "needs title"' in run and '--remove-label "needs title"' in run
     assert "github.event.issue.title" not in run  # via env, never inlined into the script
 
 
+FILED = "issue create --title fix({}): `{}` fail on the default branch at abc1234{} --label {},bug,ready for agent"
+FILED += " --body "
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
 @pytest.mark.parametrize(
-    ("workflow", "gh"),
-    [  # the open `main-red` issue was retitled: still found, by its label (#767)
-        ("Checks", "issue comment 771 --body Main's Checks failed on abc1234def: run"),
-        # its own issue: a deploy says nothing about the images; titled a Conventional Commit from the start
-        (
-            "CI Images",
-            "issue create --title fix(ci): main red in CI Images on abc1234 --label main-red-images,bug,ready-for-agent"
-            " --body Main's CI Images failed on abc1234def: run",
-        ),
+    ("workflow", "failed", "open_issue", "gh"),
+    [  # a Conventional Commit from the start, scoped by the failed job, named at the end (#791)
+        ("Checks", "Model (2)", "", FILED.format("model", "Checks", " (Model)", "default branch failure")),
+        ("Checks", "Site", "", FILED.format("site", "Checks", " (Site)", "default branch failure")),
+        ("Checks", "Code", "", FILED.format("ci", "Checks", " (Code)", "default branch failure")),
+        # its own issue: a deploy says nothing about the images
+        ("CI Images", "Push", "", FILED.format("ci", "CI Images", "", "default branch images failure")),
+        # the open issue was retitled: still found, by its label (#767), and a later failure only comments on it
+        ("Checks", "Site", "default branch failure", "issue comment 771 --body "),
     ],
 )
-def test_main_red_finds_its_open_issue_by_label_never_title(tmp_path, workflow, gh):
-    """#767: Main Red found its issue by title, so retitling one opened a duplicate (#775). `gh` is faked: one open
-    issue, #771, labelled `main-red` under any title, listed to a query that asks for no title."""
+def test_default_branch_failure_files_one_issue_by_label_titled_by_the_failed_job(
+    tmp_path, workflow, failed, open_issue, gh
+):
+    """#767: Default Branch Failure found its issue by title, so retitling one opened a duplicate (#775). #791: its
+    title names the workflow and the failed job, its scope that job's. `gh` is faked: the run's jobs, answered with the
+    step's own jq filter, and at most one open issue, #771, under any title, listed to a query that asks for no title.
+    """
+    jobs = [{"name": "Changes", "conclusion": "success"}, {"name": failed, "conclusion": "failure"}]
+    (tmp_path / "jobs.json").write_text(json.dumps({"jobs": jobs}))
     (tmp_path / "gh").write_text(
-        f'#!/bin/sh\ncase "$*" in "issue list --label main-red --json number --jq .[0].number // empty") echo 771 ;;\n'
-        f'  "issue list"*) ;;\n  *) echo "$*" >> {tmp_path}/gh.log ;; esac\n'
+        '#!/bin/sh\ncase "$*" in\n'
+        f'  "issue list --label {open_issue} --json number --jq .[0].number // empty") echo 771 ;;\n'
+        '  "issue list"*) ;;\n'
+        '  "run view"*) shift 2; while [ "$1" != --jq ]; do shift; done;'
+        f' exec jq -r "$2" {tmp_path}/jobs.json ;;\n'
+        f'  *) echo "$*" >> {tmp_path}/gh.log ;; esac\n'
     )
     (tmp_path / "gh").chmod(0o755)
-    flow = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())
-    (job,) = flow["jobs"].values()
-    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "WORKFLOW": workflow, "CONCLUSION": "failure", "RUN_ID": "1"}
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "default-branch-failure.yml").read_text())["jobs"].values()
+    env = {"PATH": f"{tmp_path}:{os.environ['PATH']}", "WORKFLOW": workflow, "CONCLUSION": "failure", "RUN_ID": "1"}
     env |= {"RUN_URL": "run", "SHA": "abc1234def"}
-    subprocess.run(["bash", "-e", "-c", job["steps"][0]["run"]], env=env, check=True)
-    assert (tmp_path / "gh.log").read_text() == gh + "\n"
+    subprocess.run(["bash", "-e", "-c", job["steps"][0]["run"]], env=env, check=True, timeout=10)
+    body = f"{workflow} failed on the default branch at abc1234def in {failed}: run"
+    assert (tmp_path / "gh.log").read_text() == gh + body + "\n"

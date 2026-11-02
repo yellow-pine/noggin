@@ -1,8 +1,8 @@
 name: Issue Title
 # Checks an issue's title is a Conventional Commit, as a PR's is, so the title can become its PR's (#767).
 # commitlint runs on the title with main's ci/commitlint.config.mjs, the PR check's rules and repo-derived scopes. An
-# issue can't be blocked: a failing title gets a comment with the rule and an example, and the `needs-title` label; a
-# passing one loses both. Each run replaces the last one's comment. An issue the workflows open (Main Red) starts no
+# issue can't be blocked: a failing title gets a comment with the rule and an example, and the `needs title` label; a
+# passing one loses both. Each run replaces the last one's comment. An issue the workflows open (Default Branch Failure) starts no
 # workflow (GITHUB_TOKEN), so its title is valid from the start (ci/commitlint.test.mjs).
 on:
   issues:
@@ -49,10 +49,10 @@ jobs:
             gh api -X DELETE "repos/$GH_REPO/issues/comments/$id"
           done
           if out=$(ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"$TITLE"); then
-            gh issue edit "$ISSUE" --remove-label needs-title
+            gh issue edit "$ISSUE" --remove-label "needs title"
             exit 0
           fi
-          gh issue edit "$ISSUE" --add-label needs-title
+          gh issue edit "$ISSUE" --add-label "needs title"
           # commitlint's findings alone: its input echo would quote the title into the comment
           gh issue comment "$ISSUE" --body-file - <<EOF
           $marker
