@@ -2,7 +2,7 @@
 
 <p align="center">An animatronic Mech on the desk that reacts to Claude Code.</p>
 
-<p align="center"><a href="https://yellowpine.com/noggin/docs/pictures/"><img src="https://yellowpine.com/noggin/images/next-mech-back-isometric.webp" width="800" alt="The next Mech in progress, isometric"></a><br><sub>The next Mech, in progress</sub></p>
+<p align="center"><a href="https://yellowpine.com/noggin/docs/pictures/"><img src="https://yellowpine.com/noggin/images/next-mech-back-isometric.webp" width="360" alt="The next Mech in progress, isometric"></a><br><sub>The next Mech, in progress</sub></p>
 
 <p align="center"><a href="https://yellowpine.com/noggin/"><b>Docs</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/docs/build/parts/"><b>Build guide</b></a></p>
 
