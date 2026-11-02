@@ -2,8 +2,10 @@
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run make check")."""
 
 import re
+import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 WORKFLOWS = sorted((Path(__file__).resolve().parent / ".github" / "workflows").glob("*.yml"))
@@ -70,3 +72,31 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
             if starts and "pull_request.draft" not in cond and "event_name != 'pull_request'" not in cond:
                 wrong.append((f.name, id_))
     assert wrong == []
+
+
+def verdict(tmp_path: Path, changed: str, conclusion: str):
+    """review.yml's `Check the verdict` with no structured output, `git` and `gh` faked: `git diff` lists `changed`,
+    `gh` logs its arguments."""
+    for tool, body in [("git", f"printf '%s\\n' {changed}"), ("gh", f'echo "$@" >> {tmp_path}/gh.log')]:
+        (tmp_path / tool).write_text(f"#!/bin/sh\n{body}\n")
+        (tmp_path / tool).chmod(0o755)
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "review.yml").read_text())
+    [run] = [s["run"] for s in flow["jobs"]["review"]["steps"] if s.get("name") == "Check the verdict"]
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "RESULT": "", "CONCLUSION": conclusion, "BASE": "main", "PR": "7"}
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", run], env=env, capture_output=True, text=True)
+    log = tmp_path / "gh.log"
+    return done.returncode, done.stdout, log.read_text() if log.exists() else ""
+
+
+@pytest.mark.parametrize(
+    ("changed", "conclusion", "code", "says", "gh"),
+    [
+        # the action skipped on validation (no conclusion: Claude never ran) and main's review.yml moved on (#433)
+        ("noggin/x.py", "", 1, "main's review.yml changed since this branch", "pr update-branch 7 --rebase\n"),
+        (".github/workflows/review.yml", "", 0, "review.yml changed in this PR", ""),  # needs Cansin's bypass
+        ("noggin/x.py", "success", 1, "the review produced no verdict", ""),  # Claude ran and gave none
+    ],
+)
+def test_a_review_with_no_verdict(tmp_path, changed, conclusion, code, says, gh):
+    got_code, out, got_gh = verdict(tmp_path, changed, conclusion)
+    assert (got_code, says in out, got_gh) == (code, True, gh)

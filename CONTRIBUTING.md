@@ -18,12 +18,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
-  conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
-  `.github/workflows/review.yml` changed since the branch's base (claude-code-action reviews only a PR whose
-  review.yml matches main's, so `Review` fails with no verdict until then). The repo setting "Always suggest updating
-  pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on pushes to
-  main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling the run
-  in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
+  conflict, a required check was renamed or the PR needs a fix that just landed on main. When main's
+  `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
+  a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
+  review re-runs on the new head (#433); a Dependabot PR gets `@dependabot rebase`. The repo setting "Always suggest
+  updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no update-branch banner. CI runs on
+  pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
+  the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
   cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
   Every branch on GitHub has a PR, except on-hold work.
 - A PR's title is its squash commit, with no body (the repo's squash message setting is blank, Cansin, 2026-11-02:
