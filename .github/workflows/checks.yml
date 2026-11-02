@@ -282,8 +282,9 @@ jobs:
         if: ${{ matrix.tests != '' }}
         run: mkdir -p "$RUNNER_TEMP/durations" && uv run just test | tee -a "$RUNNER_TEMP/pytest.txt"
         env:
+          # a PR leaves the between-frames collision checks (-m certify) to main until #667 makes them fast (#679)
           PYTEST_ADDOPTS: >-
-            -m model -n auto --dist loadgroup --durations=20 --store-durations
+            -m "${{ github.event_name == 'pull_request' && 'model and not certify' || 'model' }}" -n auto --dist loadgroup --durations=20 --store-durations
             --durations-path ${{ runner.temp }}/durations/tests.json ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
           MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)
