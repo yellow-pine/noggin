@@ -166,6 +166,38 @@ def test_the_next_mech_rests_with_a_blink_its_lids_following_its_level_gaze():
     assert set(traces.NEXT_MOTIONS) == {*traces.GESTURES, "rest"}
 
 
+def held(writes, ms):
+    """The last of [(ms, deg)] at or before each ms of `ms`."""
+    out, i, last = [], 0, writes[0][1]
+    for t in ms:
+        while i < len(writes) and writes[i][0] <= t:
+            last, i = writes[i][1], i + 1
+        out.append(last)
+    return out
+
+
+def test_the_next_mechs_head_joins_a_wide_gaze_shift_within_its_gaze_error_the_neck_core_late():
+    """#688, #51 Gestures: eureka's 22 deg dart (of the eye program's 30, the gimbal's 25 deg yaw: 18.3 deg) on the next
+    Mech: its pan horn turns the head the eyes' way to 0.6 of it (11 deg), the neck Core's writes 40 ms after the eyes
+    Core's (traces.DELAY_MS); once the gaze, yaw plus the head's pan, reaches the dart, it stays within #51's 2 deg gaze
+    error while the head arrives and the eyes counter-rotate, and the head comes back."""
+    from model import neck
+
+    writes, times = traces.next_commands("eureka")
+    assert traces.DELAY_MS == {"core1": 0, "core2": 40}
+    pan = [(t, neck.LINKAGES["pan"](d)[0]) for t, d in horn(writes, "pan horn")]
+    yaw = horn(writes, "next yaw horn")
+    ms = range(0, times[-1])
+    gaze = [y + p for y, p in zip(held(yaw, ms), held(pan, ms), strict=True)]
+    head = held(pan, ms)
+    side = 1 if max(gaze) > -min(gaze) else -1
+    assert max(side * h for h in head) == pytest.approx(0.6 * 22 * 25 / 30, abs=0.05)
+    there = next(t for t in ms if side * gaze[t] >= 22 * 25 / 30 - 2)
+    arrived = next(t for t in ms if side * head[t] >= 0.6 * 22 * 25 / 30 - 0.05)
+    assert there < arrived and all(abs(side * gaze[t] - 22 * 25 / 30) <= 2 for t in range(there, arrived))
+    assert head[-1] == pytest.approx(0, abs=0.01)
+
+
 @pytest.mark.parametrize("doc", sorted(g.NEXT))
 def test_every_motion_of_the_next_mech_has_its_commands(doc):
     """Each motion a next Mech document plays (trajectories.motions) gives writes before ms 0 and its frame times: its

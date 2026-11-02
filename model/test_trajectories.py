@@ -173,6 +173,21 @@ def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
     assert np.abs(frames[-1]).max() < SETTLED_DEG
 
 
+def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco():
+    """#688: eureka's 22 deg dart on the next Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
+    the 11 deg it carries (model/test_traces.py) within the servo's deadband, while the eyes counter-rotate back from
+    the dart; the head comes back to rest."""
+    model = built("next-mech-a")
+    writes, times = tj.commands("next-mech-a", "eureka")
+    names = ("next L yaw pivot", "pan pivot")
+    yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
+    side = np.sign(yaw[np.abs(yaw).argmax()])
+    assert (side * pan).max() == pytest.approx(0.6 * 22 * 25 / 30, abs=1)
+    turned = int(np.abs(pan).argmax())
+    assert abs(yaw[turned] + pan[turned] - side * 22 * 25 / 30) < 2  # the gaze held on the dart
+    assert abs(pan[-1]) < SETTLED_DEG
+
+
 def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
     """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
     (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""

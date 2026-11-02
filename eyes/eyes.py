@@ -57,7 +57,8 @@ def _s8(v):
 # shield port 1..4 -> GPIO 3,2,1,0; core.json "ports" (port -> servo name) picks the GPIO per name, defaults below
 PORT_GPIO = {"1": 3, "2": 2, "3": 1, "4": 0}
 L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
-NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye"}
+PAN = 4  # the neck Core's pan servo: on no default GPIO, so only a core.json naming "pan" drives it
+NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye", PAN: "pan"}
 LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
@@ -75,6 +76,11 @@ OVER = 0.05  # toon overshoot past a lid level, then settle (docs/research/2026-
 # (docs/research/2026-11-02-literature-perception.md); the site's behaviour table reads these (macros.py)
 REST_BLINK = (3000, 3000)
 THINK_BLINK = (5000, 3000)
+# eye-head coordination (#688, docs/research/2026-11-02-literature-synthesis.md Gestures), with cal head_share > 0: a
+# gaze shift past HEAD_FROM deg recruits the head ([RU14]: 10-15), which starts HEAD_LAG ms after the eyes ([RU14]:
+# 20-50 on a reaction), peaks at HEAD_SLEW deg/s ([AND]) and takes HEAD_MS at least (two periods of the neck's ~8 Hz
+# lowest mode, #51)
+HEAD_FROM, HEAD_LAG, HEAD_SLEW, HEAD_MS = 15, 40, 50, 250
 
 
 def jerkless(f):
@@ -89,7 +95,7 @@ def servo_map():
         with open("core.json") as f:
             return {name: PORT_GPIO[port] for port, name in json.load(f)["ports"].items()}
     except (OSError, KeyError, ValueError):
-        return {name: pin for pin, name in NAME.items()}
+        return {name: pin for pin, name in NAME.items() if pin != PAN}
 
 
 # Fallback values (#213's, 2026-11-01); eyes/calibration.json is the source of truth (retuned since, #255).
@@ -124,6 +130,10 @@ DEFAULT_CAL = {
     "lid_closed": 0.10,
     "lid_open": 0.95,
     "think_trace": 0,  # 1: replay the GazeBase recording while thinking instead of synthetic drift
+    # the pan servo's degrees that turn the head as far as the L eye turns at its lo and hi ends (lo > hi: reversed)
+    "pan_lo": 60,
+    "pan_hi": 120,
+    "head_share": 0.0,  # how much of a gaze shift past HEAD_FROM the head carries ([AND]); 0: the eyes alone, no pan
 }
 
 
@@ -145,7 +155,9 @@ class Eyes:
         self.trace_i = -1
         self.until = 0
         self.rand = 12345
+        self.sides = 12345  # _side's own stream, which only lines advance: both Cores pick the same side (#688)
         self.jumps = {}  # pin -> clock ms its jump arrives
+        self.head = 0.0  # where the head is turned, deg from centre in the eyes' degrees (#688)
 
     # --- calibration ------------------------------------------------------
     def range(self, pin):
@@ -170,19 +182,30 @@ class Eyes:
         lo, hi = self.range(pin)
         return (lo + hi) / 2 + (angle - EYE_CENTER)
 
+    def _pan_angle(self, head):
+        """The pan servo's degrees for the head at `head` deg from centre, scaled as the L eye's range to pan_lo..hi."""
+        lo, hi = self.cal["pan_lo"], self.cal["pan_hi"]
+        elo, ehi = self.range(L_EYE)
+        return (lo + hi) / 2 + head * (hi - lo) / (ehi - elo)
+
+    def _gaze(self):
+        """Where the eyes look, the head's turn included: the L eye's angle (EYE_CENTER straight) plus the head's."""
+        return self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0) + self.head
+
     # --- servo primitives -------------------------------------------------
     def set(self, targets):
-        """targets are keyed by the default pin; the servo map says which GPIO (if any) carries that name here."""
+        """targets are keyed by the default pin; the servo map says which GPIO (if any) carries that name here. Every
+        target is kept in pos, carried or not, so both Cores play one timeline (#688)."""
         for pin, angle in targets.items():
-            gpio = self.gpio.get(NAME[pin])
-            if gpio is None:  # a servo this Core does not carry (neck Core): skipped
-                continue
             lo, hi = self.range(pin)
             angle = min(hi, max(lo, angle))
+            self.pos[pin] = angle
+            gpio = self.gpio.get(NAME[pin])
+            if gpio is None:  # a servo this Core does not carry (the other Core's): skipped
+                continue
             if gpio not in self.pwm:
                 self.pwm[gpio] = PWM(Pin(gpio), freq=50)
             self.pwm[gpio].duty_ns(_pulse_ns(angle))
-            self.pos[pin] = angle
 
     def step(self, targets):
         """Jump each servo to its target at full slew, drawing stall current until it arrives. Past the start budget
@@ -226,12 +249,33 @@ class Eyes:
         self.glide(ms, t) if ms else self.step(t)
 
     def eyes(self, angle, ms=0):
-        t = {p: self._eye_angle(p, angle) for p in EYES}
+        """The gaze to `angle`, the head where it is."""
+        t = {p: self._eye_angle(p, angle - self.head) for p in EYES}
         self.glide(ms, t) if ms else self.step(t)
 
+    def turn(self, gaze, ms=0):
+        """The gaze to `gaze` with the head (#688): the eyes lead, the head follows HEAD_LAG later to head_share of the
+        gaze, both minimum jerk, and the eyes counter-rotate (gaze - head) as it arrives; the eyes the slower the more
+        of the shift the head carries, down to a third ([PE13]). A write a FRAME of the pan and both eyes.
+        shortcut: each Core times this from its own eye state, which thinking's tick-driven drift can part, shifting
+        the neck Core's head by up to a fixation's timing; sync the Cores per line once the next Mech is built."""
+        g0, h0 = self._gaze(), self.head
+        d, dh = gaze - g0, self.cal["head_share"] * (gaze - EYE_CENTER) - h0
+        share = min(1.0, abs(dh / d)) if d else 1.0
+        te = max(ms, FRAME, 1.875 * abs(d) * 1000 / (SLEW * (1 - 2 * share / 3)))
+        th = max(HEAD_MS, 1.875 * abs(dh) * 1000 / HEAD_SLEW)
+        for i in range(1, math.ceil(max(te, HEAD_LAG + th) / FRAME) + 1):
+            now = i * FRAME
+            self.head = h0 + dh * jerkless(min(1.0, max(0.0, (now - HEAD_LAG) / th)))
+            g = g0 + d * jerkless(min(1.0, now / te))
+            t = {p: self._eye_angle(p, g - self.head) for p in EYES}
+            t[PAN] = self._pan_angle(self.head)
+            self.set(t)
+            wait(FRAME)
+
     def _side(self):
-        self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
-        return 1 if self.rand & 1 else -1
+        self.sides = (self.sides * 1103515245 + 12345) & 0x7FFFFFFF
+        return 1 if self.sides & 1 else -1
 
     # Toon timing (#258, docs/research/2026-11-01-toon-eyes.md): anticipation, slow in and slow out, holds, overshoot
     # and settle. Saccades keep real human shapes (docs/research/2026-10-31-natural-eye-motion.md).
@@ -246,9 +290,12 @@ class Eyes:
 
     def saccade(self, angle):
         """Move the eyes along a real saccade's velocity profile (GazeBase, nearest amplitude), undershoot
-        and correction included. Without a trace: ~93% step, pause, corrective step."""
-        cur = self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0)
+        and correction included. Without a trace: ~93% step, pause, corrective step. Past HEAD_FROM the head joins
+        (turn), with head_share."""
+        cur = self._gaze()
         d = angle - cur
+        if self.cal["head_share"] and abs(d) > HEAD_FROM:
+            return self.turn(angle)
         if gaze_trace is None or abs(d) < 2:
             self.eyes(cur + d * 0.93)
             wait(120)
@@ -268,7 +315,7 @@ class Eyes:
         """Play a 25 Hz gaze clip around centre, each sample's move capped at what the servo slews in a sample."""
         lim = SLEW / gaze_trace.HZ  # pyright: ignore[reportOptionalMemberAccess]
         for i in range(len(samples)):
-            cur = self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0)
+            cur = self._gaze()
             self.eyes(cur + max(-lim, min(lim, EYE_CENTER + _s8(samples[i]) - cur)))
             if i in blinks:
                 self.blink(level=self.cal["lid_think"])
@@ -276,7 +323,7 @@ class Eyes:
 
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200)
-        self.eyes(EYE_CENTER, 200)
+        self.turn(EYE_CENTER, 200) if self.cal["head_share"] else self.eyes(EYE_CENTER, 200)
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):

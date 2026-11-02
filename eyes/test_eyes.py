@@ -223,3 +223,95 @@ def test_take_writes_each_move_on_time_by_the_core_clock_however_slow_the_link_p
     ]
     assert 0 <= min(late) and max(late) <= 3, late
     assert eyes.mode == "pose"
+
+
+def gaze_log(e, move):
+    """[(ms, head, eye)] at each write while move() plays: the program's head and the L eye in it, deg from centre."""
+    log, put = [], e.set
+
+    def logged(targets):
+        put(targets)
+        log.append((mod.clock, e.head, e.pos[mod.L_EYE] - e._eye_angle(mod.L_EYE, mod.EYE_CENTER)))
+
+    e.set = logged
+    move()
+    e.set = put
+    return log
+
+
+def test_todays_calibration_leaves_the_neck_alone(eyes):
+    """#688: head_share 0, as today's Mech is calibrated: the eyes carry every gaze shift and the pan is never written,
+    so today's neck Core stays as it was."""
+    assert mod.DEFAULT_CAL["head_share"] == 0
+    for line in ("rest", "eureka 3", "thinking", "attention 2", "rest"):
+        eyes.handle_line(line)
+    assert mod.PAN not in eyes.pos
+
+
+def test_the_neck_joins_a_gaze_shift_past_15_deg_and_the_eyes_counter_rotate_as_it_arrives(eyes):
+    """#688, #51 Gestures: with the head carrying 0.6 of the gaze, a 22 deg dart: the eyes lead the head by 20-50 ms
+    ([RU14]), the head turns to 0.6 x 22 = 13.2, and once the gaze is there it holds while the head arrives, the eyes
+    counter-rotating back to 8.8 in the head; the gaze at most 0.6 of the eyes' full speed ([PE13]), the head at
+    most 50 deg/s ([AND])."""
+    eyes.handle_line("set head_share 0.6")
+    eyes.handle_line("rest")
+    log = gaze_log(eyes, lambda: eyes.saccade(112))
+    eye_at = next(t for t, _, e in log if e)
+    head_at = next(t for t, h, _ in log if h)
+    assert 20 <= head_at - eye_at <= 50
+    assert log[-1][1:] == pytest.approx((13.2, 8.8))
+    there = next(i for i, (_, h, e) in enumerate(log) if h + e == pytest.approx(22))
+    assert log[there][1] < 13.2 - 1  # the head still on its way
+    assert all(h + e == pytest.approx(22) for _, h, e in log[there:])
+    assert max(e for _, _, e in log) > 8.8 + 1  # the eyes counter-rotated back
+    speed = [(abs(h1 + e1 - h0 - e0), abs(h1 - h0)) for (_, h0, e0), (_, h1, e1) in zip(log, log[1:], strict=False)]
+    assert max(g for g, _ in speed) * 1000 / mod.FRAME <= 257  # 428 deg/s x (1 - 2/3 x 0.6)
+    assert max(h for _, h in speed) * 1000 / mod.FRAME <= 50  # the head's peak ([AND])
+
+
+def test_a_small_shift_leaves_the_head_where_it_is(eyes):
+    eyes.handle_line("set head_share 0.6")
+    eyes.handle_line("rest")
+    log = gaze_log(eyes, lambda: eyes.saccade(98))
+    assert {h for _, h, _ in log} == {0} and log[-1][2] == pytest.approx(8)
+
+
+def test_rest_brings_the_head_back(eyes):
+    eyes.handle_line("set head_share 0.6")
+    eyes.handle_line("thinking")  # its 18 deg averted look turns the head
+    assert eyes.head
+    eyes.handle_line("rest")
+    assert eyes.head == 0 and eyes.pos[mod.L_EYE] == eyes._eye_angle(mod.L_EYE, mod.EYE_CENTER)
+
+
+def test_the_neck_core_turns_the_head_on_the_eyes_cores_timeline(tmp_path, monkeypatch, pwm_log):
+    """#688: both Cores play the same line and each writes only its own servos, so the neck Core's pan follows the
+    head the eyes Core counter-rotates against, write for write (the Wi-Fi delay between them aside)."""
+    monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    runs = []
+    for core in ("eyes", "neck"):
+        (tmp_path / core).mkdir()
+        monkeypatch.chdir(tmp_path / core)  # the eyes Core: the default map; the neck Core: its core.json
+        if core == "neck":
+            ports = '{"1": "tilt", "2": "mouth", "3": "pan"}'
+            (tmp_path / core / "core.json").write_text('{"name": "neck", "ports": ' + ports + "}")
+        e = mod.Eyes()
+        e.handle_line("set head_share 0.6")
+        e.handle_line("rest")
+        pwm_log.clear()
+        start = mod.clock
+        runs.append([(t - start, h) for t, h, _ in gaze_log(e, lambda e=e: e.handle_line("eureka 2"))])
+    assert runs[0] == runs[1] and max(abs(h) for _, h in runs[1]) == pytest.approx(13.2)
+    assert {pin for pin, _ in pwm_log} == {mod.PORT_GPIO["3"]}  # the neck Core's last run: the pan alone
+
+
+def test_both_cores_pick_a_gestures_side_from_the_lines_alone(monkeypatch):
+    """#688: the Cores tick on their own clocks, so one may blink or drift once more than the other; the side a gesture
+    looks to still matches, or the neck would turn the head away from the eyes."""
+    monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
+    a, b = mod.Eyes(), mod.Eyes()
+    for e, ticks in ((a, 60_000), (b, 64_000)):
+        e.handle_line("rest")
+        for t in range(0, ticks, 100):
+            e.tick(t)
+    assert [a._side() for _ in range(20)] == [b._side() for _ in range(20)]

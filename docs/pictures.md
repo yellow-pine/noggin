@@ -27,8 +27,8 @@ Its eye gimbal sweeping its yaw and pitch with the lids following, then playing 
 <!-- #}-->
 
 The sweep is keyed through the gimbal's own kinematics (model/gimbal.py); the gestures and Rest are the eye program's,
-played in MuJoCo through the gimbal's command map, as the next Mech's eyes Core will play them. The neck and the jaw
-join as they move.
+played in MuJoCo through the gimbal's command map, as the next Mech's eyes Core will play them; the neck's pan turns
+the gimbal with it on the wide gaze shifts (eureka, thinking). The jaw joins as it moves.
 
 ## Its parts
 
