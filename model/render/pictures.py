@@ -1,7 +1,7 @@
 """Every picture of the model, rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
 baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150).
 `views` (`make render`): top/side/front of each sub-assembly (at its placement: nothing moves it) and Stage (at rest:
-a trajectory's first frame), the Stage strip and stage 3 exploded. `hero` (`make hero`): the README hero, stage 3
+a trajectory's first frame) and the Stage strip. `hero` (`make hero`): the README hero, stage 3
 talking (model/render/hero.py), its trajectory at 8 fps (at_fps), with a contact sheet. `site` (`make pictures`):
 renders the README's pictures, motion by motion (SITE: the Stage views and the hero; the gestures play in the web
 viewer, #468) into model/build/images, which the site serves at
@@ -40,13 +40,15 @@ DOCS = {  # picture name: (sub-assembly frames, views); the mouth is shown on th
 VIEW_SIZE, STRIP_PANEL = (1600, 1200), (800, 600)
 STRIP = [("stage1", "front"), ("stage2", "side"), ("stage3", "side"), ("stage3", "front")]  # the README's Stage strip
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
-# the hero and the exploded view: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
+# the hero: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 400)  # 2:1, the whole motion fitted wide (Cansin, #278)
 # the hero GIF (#276): 64 colours, as 1.56 MB at 48 left the room (#377)
 HERO_WIDTH, HERO_FPS, HERO_COLOURS, HERO_MAX_BYTES = 800, 8, 64, 3_000_000
-EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
+# the web viewer's exploded stage 3 (macros.py explode, #482), mm: the neck lifted off the base, the eyes off the neck,
+# the mouth forward off the eyes
+EXPLODE = {
     "noggin-base": (0, 0, 0),
     "noggin-stack": (0, 0, 45),
     "noggin-eyes": (0, 0, 95),
@@ -54,7 +56,7 @@ EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off 
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
-SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"]}
+SITE = {"views": ["stages.jpg"], "hero": ["hero.gif"]}
 
 
 def motions():
@@ -117,7 +119,7 @@ def blender(name, manifest, shots):
 
 
 def views(names=None):
-    """Top/side/front of every picture document, stage 3 exploded and (all Stages present) the strip."""
+    """Top/side/front of every picture document and (all Stages present) the strip."""
     plans = {}
     for name, (frames, dirs) in DOCS.items():
         if not names or name in names:
@@ -148,32 +150,15 @@ def views(names=None):
                 shots.append(
                     shot(f"strip-{i}.png", STRIP_PANEL, camera.stand(panels[key], pts, scale, panel_aspect), mats)
                 )
-        if name == "stage3":
-            apart = exploded(mats)
-            cam = camera.fit(points(hulls, apart), HERO, g.Z, aspect, LENS, MARGIN)
-            shots.append(shot("exploded.png", VIEW_SIZE, cam, apart))
         blender(name, manifest, shots)
-    jpgs(len(panels) == len(STRIP), "stage3" in plans)
+    if len(panels) == len(STRIP):
+        strip()
 
 
-def jpgs(strip=True, apart=True):
-    """stages.jpg (the strip's panels side by side) and exploded.jpg from the views' PNGs."""
-    if strip:
-        ins = [a for i in range(len(STRIP)) for a in ("-i", os.path.join(OUT, f"strip-{i}.png"))]
-        ffmpeg(*ins, "-filter_complex", f"hstack=inputs={len(STRIP)}", "-q:v", "3", os.path.join(OUT, "stages.jpg"))
-    if apart:
-        ffmpeg("-i", os.path.join(OUT, "exploded.png"), "-q:v", "3", os.path.join(OUT, "exploded.jpg"))
-
-
-def exploded(mats):
-    """Stage 3's world matrices (metres) with each sub-assembly moved by its EXPLODE offset."""
-    out = {}
-    for sub, (dx, dy, dz) in EXPLODE.items():
-        for n in stages.SUBS[sub]().parts:
-            m = np.array(mats[n])
-            m[:3, 3] += np.multiply((dx, dy, dz), 0.001)
-            out[n] = m.tolist()
-    return out
+def strip():
+    """stages.jpg: the strip's panels side by side, from the views' PNGs."""
+    ins = [a for i in range(len(STRIP)) for a in ("-i", os.path.join(OUT, f"strip-{i}.png"))]
+    ffmpeg(*ins, "-filter_complex", f"hstack=inputs={len(STRIP)}", "-q:v", "3", os.path.join(OUT, "stages.jpg"))
 
 
 def at_fps(frames, fps):

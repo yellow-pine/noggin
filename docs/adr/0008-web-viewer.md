@@ -17,6 +17,9 @@
 > Amended 2026-11-02 (#468, spec #467): the landing page opens with a viewer of Stage 3, the hero GIF its poster until it
 > loads (on scroll into view; on a phone on a "Play in 3D" tap), and the gesture GIFs are gone: the viewer's buttons
 > are the one gesture picker, and each click keeps the address the deep link, `/viewer/?stage=<n>&gesture=<g>`.
+> Amended 2026-11-02 (#482, spec #467): an Explode button moves Stage 3's sub-assemblies apart and back by the
+> offsets the exploded render used (model/render/pictures.py EXPLODE, through macros.json), and `&explode=1` opens it so;
+> the exploded render is gone.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

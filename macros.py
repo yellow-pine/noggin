@@ -10,6 +10,7 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
 stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
+explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (model/render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -81,7 +82,7 @@ def picture_numbers():
         [
             "| Pictures | Rendered | GIF |",
             "|---|---|---|",
-            f"| views and the exploded stage 3 | {size(*p.VIEW_SIZE)} | |",
+            f"| views | {size(*p.VIEW_SIZE)} | |",
             f"| the Stage strip, per panel | {size(*p.STRIP_PANEL)} | |",
             f"| hero | {size(*p.HERO_SIZE)} | {hero} |",
             "",
@@ -147,6 +148,15 @@ def wiring():
     return "\n".join(rows)
 
 
+def explode():
+    """Each part of Stage 3 by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its GLB node's name."""
+    return {
+        "stage3": {
+            n: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in pictures.EXPLODE.items() for n in stages.SUBS[sub]().parts
+        }
+    }
+
+
 def build():
     """The one version (pyproject.toml, docs/adr/0010) and the commit built, the one Site Deploy deploys (#292)."""
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
@@ -169,6 +179,7 @@ def numbers():
         "stage_servos": servos,
         "wiring": wiring(),
         "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
+        "explode": explode(),
         "build": (b := build()),
         "released": released(b["version"]),
     }

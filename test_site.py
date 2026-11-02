@@ -204,6 +204,23 @@ def test_the_hero_is_800x400_and_leads_the_readme():
     assert readme.index(hero) < readme.index("## ")
 
 
+def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
+    """Cansin (#482): the viewer's Explode moves each of Stage 3's parts by its sub-assembly's offset in
+    model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up (x, z, -y); Pictures
+    and the Stage 3 build guide link to it, and no picture of it is rendered."""
+    import macros  # here, not at the top: it imports the model
+    from model import stages
+    from model.render import pictures
+
+    explode = macros.explode()
+    assert list(explode) == ["stage3"] and set(explode["stage3"]) == set(stages.STAGES["noggin-stage3"].parts)
+    assert explode["stage3"]["top jaw:1"] == pytest.approx([0, 0.095, 0.045])  # the mouth: up and forward
+    assert explode["stage3"]["base plate:1"] == [0, 0, 0]
+    link = "https://yellowpine.com/noggin/viewer/?stage=3&explode=1"
+    assert all(link in (ROOT / "docs" / d).read_text() for d in ("pictures.md", "build/stage-3.md"))
+    assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
+
+
 def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
     """`make pictures-list` (Site Checks' motions job, #297): the Stage views on every Stage and the hero on stage 3,
     each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""

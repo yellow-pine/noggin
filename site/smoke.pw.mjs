@@ -69,6 +69,22 @@ test('a deep link opens the viewer on its Stage, playing its gesture, and the pi
   await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
 });
 
+test('a deep link opens Stage 3 exploded, and Explode puts it back together', async ({ page }) => {
+  const glbs = existsSync(new URL('dist/viewer/stage3.glb', import.meta.url));
+  test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
+  await page.goto('viewer/?stage=3&explode=1');
+  const button = (name) => page.getByRole('button', { name, exact: true });
+  await expect(button('Explode')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
+  await button('Explode').click();
+  await expect(button('Explode')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
+  await button('Explode').click();
+  await expect(page).toHaveURL(/\/viewer\/\?stage=3&explode=1$/);
+  await button('Stage 1').click();
+  await expect(button('wink')).toBeEnabled({ timeout: 30_000 });
+  await expect(button('Explode')).toHaveCount(0); // only Stage 3 has an exploded view
+});
+
 test('search finds the servo pages', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'Search' }).first().click();

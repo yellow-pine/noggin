@@ -34,8 +34,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   trajectory), the head's pan and nod in
   head degrees through the four-bar kinematics (model/stages.py pose), every pose within geometry.LIMITS and free of
   penetrations as MuJoCo's report judges a sweep), the Stage strip
-  (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), stage 3 exploded (same
-  camera direction as the hero), no photos. The gestures play in the web viewer on the landing page and at /viewer (#468).
+  (stage 1 front, stage 2 side, stage 3 side and front at one scale on one ground line), no photos. The gestures play
+  in the web viewer on the landing page and at /viewer (#468), and Stage 3 explodes there (#482).
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code

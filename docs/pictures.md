@@ -11,10 +11,8 @@ and served by the site, never kept in git (ADR 0009). How they are made, their s
 <figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
 </figure>
 
-<figure>
-<img src="https://yellowpine.com/noggin/images/exploded.jpg" alt="Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them" width="800">
-<figcaption>Stage 3 exploded: the base, the neck, the eyes and the mouth</figcaption>
-</figure>
+See Stage 3 [exploded in the web viewer](https://yellowpine.com/noggin/viewer/?stage=3&explode=1): the base, the
+neck lifted off it, the eyes above and the mouth forward of them.
 
 The Mech grows in three Stages: the eyes on the base, then on the pan-and-tilt neck, then with the mouth. `model/` is
 the Mech as code: our own parametric CadQuery parts, a simulation (MuJoCo, ADR 0007) that sweeps every linkage,

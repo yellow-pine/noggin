@@ -5,7 +5,8 @@
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero GIF, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
-// button rewrites the address to the deep link of what it plays.
+// button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
+// macros.json has for it (Stage 3's, model/render/pictures.py EXPLODE, #482) and back, &explode=1 opens it so.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -15,6 +16,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
+import { explode } from "../macros.json";
 
 // the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -24,6 +26,7 @@ const FOV = 20;
 // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
 // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
+const APART_S = 1;  // the seconds Explode takes to move the parts apart, or back
 const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
@@ -48,7 +51,13 @@ function mount(root) {
   const ambient = new THREE.AmbientLight(0xffffff);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  let scene, sphere, refPx, mixer, clips, creases, look, current, loading = 0;
+  const toggle = document.createElement("button");
+  toggle.textContent = "Explode";
+  toggle.addEventListener("click", () => (goal = 1 - goal, press(toggle, goal === 1), share(linked)));
+  let scene, sphere, reach, refPx, mixer, clips, creases, look, current, loading = 0;
+  // how far apart the parts are (0 together, 1 apart), where they are headed, each part's group with its offset, the
+  // camera's framing together and apart, and the gesture in the address
+  let apart = 0, goal = 0, parts = [], framings, linked = new URLSearchParams(location.search).get("gesture");
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
@@ -113,51 +122,82 @@ function mount(root) {
       a.setLoop(name === "hero" ? THREE.LoopRepeat : THREE.LoopOnce, Infinity).clampWhenFinished = true;
       a.play();
     }
-    for (const b of bar.children) press(b, b.textContent === name);
+    for (const b of bar.children) if (b !== toggle) press(b, b.textContent === name);
+  }
+
+  // the parts `apart` of the way out, eased, and the camera framing them as the hero GIF does: on load from its view,
+  // later moved with the framing from `before`, the last eased step, so the reader's turn and zoom stay
+  function spread(before) {
+    const ease = (x) => THREE.MathUtils.smootherstep(x, 0, 1), e = ease(apart), [a, b] = framings;
+    const aim = (x) => new THREE.Vector3(...a.target).lerp(new THREE.Vector3(...b.target), x).add(sphere.center);
+    const distance = (x) => a.distance + (b.distance - a.distance) * x;
+    for (const [group, offset] of parts) group.position.copy(offset).multiplyScalar(e);
+    if (before === undefined) {
+      controls.target.copy(aim(e));
+      camera.position.copy(controls.target).addScaledVector(VIEW, distance(e));
+      return;
+    }
+    const back = camera.position.clone().sub(controls.target).multiplyScalar(distance(e) / distance(ease(before)));
+    camera.position.copy(controls.target.add(aim(e).sub(aim(ease(before))))).add(back);
   }
 
   // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing
   function share(gesture) {
     const n = [...stages].findIndex((b) => b.dataset.stage === current) + 1, link = new URLSearchParams();
+    linked = gesture;
     if (n) link.set("stage", n);
     if (gesture) link.set("gesture", gesture);
+    if (goal) link.set("explode", 1);
     history.replaceState(null, "", `${location.pathname}${link.size ? `?${link}` : ""}${location.hash}`);
   }
 
-  async function load(stage, gesture) {
-    const mine = ++loading;
+  async function load(stage, gesture, exploded) {
+    const mine = ++loading, offsets = explode[stage] ?? {};
     current = stage;
+    goal = exploded && stage in explode ? 1 : 0;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of bar.children) b.disabled = true;
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
     if (mine !== loading) return;  // a later Stage click won
     poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
     stylise(gltf.scene);
+    const named = [];
+    gltf.scene.traverse((o) => o.userData.name in offsets && named.push(o));
+    parts = named.map((o) => {  // each part in a group that moves it apart, so the clips still pose it
+      const group = new THREE.Group();
+      o.parent.add(group);
+      group.add(o);
+      return [group, new THREE.Vector3(...offsets[o.userData.name])];
+    });
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
     scene.add(gltf.scene, camera, key, key.target, ambient);
     sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
+    reach = sphere.radius + Math.max(0, ...parts.map(([, d]) => d.length()));  // the Stage's radius, apart too
     const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out
-    [box.left, box.right, box.bottom, box.top, box.near, box.far] = [-1, 1, -1, 1, 1, 3].map((x) => x * sphere.radius);
+    [box.left, box.right, box.bottom, box.top, box.near, box.far] = [-1, 1, -1, 1, 1, 3].map((x) => x * reach);
     box.updateProjectionMatrix();
     key.shadow.normalBias = sphere.radius / 1000;
     key.target.position.copy(sphere.center);
     // shortcut: fits the Stage at rest, not every pose of its hero loop as the GIF does; fit the clips' frames if a
     // pose leaves the view
-    const v = new THREE.Vector3(), points = [];  // every vertex of the Stage at rest, from its centre
+    const v = new THREE.Vector3(), points = [], away = [];  // every vertex of the Stage at rest, from its centre; apart
     gltf.scene.traverse((o) => {
       if (!o.material?.isMeshToonMaterial) return;  // the parts, not their hulls and lines
-      const p = o.geometry.attributes.position;
-      for (let i = 0; i < p.count; i++)
+      const p = o.geometry.attributes.position, d = new THREE.Vector3(...(offsets[o.userData.name] ?? [0, 0, 0]));
+      for (let i = 0; i < p.count; i++) {
         points.push(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).sub(sphere.center).toArray());
+        away.push(v.add(d).toArray());
+      }
     });
-    const frame = (aspect) => fit(points, VIEW.toArray(), [0, 1, 0], FOV, aspect, MARGIN);
-    const fitted = frame(canvas.clientWidth / canvas.clientHeight), gif = frame(GIF_ASPECT);
-    controls.target.copy(sphere.center).add(v.fromArray(fitted.target));
-    camera.position.copy(controls.target).addScaledVector(VIEW, fitted.distance);
+    const frame = (aspect, at = points) => fit(at, VIEW.toArray(), [0, 1, 0], FOV, aspect, MARGIN);
+    const aspect = canvas.clientWidth / canvas.clientHeight, gif = frame(GIF_ASPECT);
+    framings = [frame(aspect), frame(aspect, away)];
+    apart = goal;
+    spread();
     refPx = radiusPx(sphere.radius, Math.hypot(...gif.target, gif.distance), FOV, look.line_at / GIF_ASPECT);
     camera.near = sphere.radius / 100;
-    camera.far = sphere.radius * 100;
+    camera.far = reach * 100;
     resize();
     clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
     mixer = new THREE.AnimationMixer(gltf.scene);
@@ -167,7 +207,9 @@ function mount(root) {
       b.textContent = name;
       b.addEventListener("click", () => (play(name), share(name)));
       return b;
-    }));
+    }), ...(parts.length ? [toggle] : []));
+    toggle.disabled = false;
+    press(toggle, goal === 1);
     play(Object.hasOwn(clips, gesture) ? gesture : clips.hero && "hero");  // the link's, if the Stage has it
   }
 
@@ -177,15 +219,21 @@ function mount(root) {
   renderer.setAnimationLoop((t) => {
     timer.update(t);
     if (!scene) return;
-    mixer.update(timer.getDelta());
+    const dt = timer.getDelta();
+    mixer.update(dt);
+    if (apart !== goal) {
+      const before = apart;
+      apart = goal ? Math.min(apart + dt / APART_S, 1) : Math.max(apart - dt / APART_S, 0);
+      spread(before);
+    }
     controls.update();
     lineWidths();
     key.position.fromArray(look.key).normalize().applyQuaternion(camera.quaternion);
-    key.position.multiplyScalar(2 * sphere.radius).add(sphere.center);
+    key.position.multiplyScalar(2 * reach).add(sphere.center);
     renderer.render(scene, camera);
   });
   const link = new URLSearchParams(location.search);
-  load(stages[link.get("stage") - 1]?.dataset.stage ?? root.dataset.stage, link.get("gesture"));
+  load(stages[link.get("stage") - 1]?.dataset.stage ?? root.dataset.stage, link.get("gesture"), link.get("explode") === "1");
 }
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);
