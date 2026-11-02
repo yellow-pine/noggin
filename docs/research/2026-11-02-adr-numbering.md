@@ -1,4 +1,4 @@
-# How ADR tools number a new ADR, and what that means for two PRs drafting one at once
+# ADR numbers: how ADR tools number a new ADR when two PRs draft one at once (2026-11-02, #398)
 
 For #398: two PRs claimed the same ADR number (0012 against the Starlight PR's, renumbered by hand). What do the
 community's ADR formats and tools do, and which fits our squash-merge, auto-merge flow (CONTRIBUTING.md)?
@@ -25,9 +25,9 @@ community's ADR formats and tools do, and which fits our squash-merge, auto-merg
   the one tool that faced the race (log4brains) dropped numbers rather than coordinate them.
 - Picking at merge here would need a commit on main after the merge (a bot renumbering) or a merge queue; main's
   ruleset rejects a bot's push and we run no merge queue (CONTRIBUTING.md).
-- Dropping numbers (log4brains' way) renames all 14 ADRs and rewrites about 200 references ("ADR 0005",
-  "docs/adr/0013", "docs/adr/0011, 0013") across the docs, code comments, workflows and CLAUDE.md: `git grep` counts
-  ~89 `ADR NNNN` and ~55 `docs/adr/NNNN` alone.
+- Dropping numbers (log4brains' way) renames all 14 ADRs and rewrites about 190 references ("ADR 0005",
+  "docs/adr/0013", "docs/adr/0011, 0013") across the docs, code comments, workflows and CLAUDE.md: `git grep` on main counts
+  116 `ADR NNNN` and 75 `docs/adr/NNNN`.
 - What a PR's checks see: a `pull_request` run checks out the PR merged into main
   (`refs/pull/N/merge`, actions/checkout's default for that event), so a test over `docs/adr/` on that tree sees main's
   ADRs beside the PR's. It does not re-run when main moves later, and our PRs need not be up to date (#283): two PRs

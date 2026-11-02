@@ -14,7 +14,9 @@ def test_no_two_adrs_share_a_number():
     # Code runs this on the PR merged into main: a number main took since the draft fails here
     numbers = [p.name[:4] for p in (ROOT / "docs" / "adr").glob("[0-9][0-9][0-9][0-9]-*.md")]
     taken = sorted({n for n in numbers if numbers.count(n) > 1})
-    assert not taken, f"ADR {', '.join(taken)} taken twice: python3 scripts/adr_number.py docs/adr/<your draft>.md"
+    assert not taken, (
+        f"ADR {', '.join(taken)} taken twice: .venv/bin/python scripts/adr_number.py docs/adr/<your draft>.md"
+    )
 
 
 def git(repo: Path, *args: str) -> None:
@@ -31,21 +33,21 @@ def write(repo: Path, path: str, text: str) -> None:
 def test_a_draft_moves_past_mains_numbers_with_the_references_it_added(tmp_path):
     git(tmp_path, "init", "-q", "-b", "main")
     write(tmp_path, "docs/adr/0001-first.md", "# First\n")
-    write(tmp_path, "README.md", "Intro: ADR 0002 will follow.\n")  # main's own, before the draft
+    write(tmp_path, "READ ME.md", "Intro: ADR 0002 will follow.\n")  # main's own, before the draft
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "base")
     git(tmp_path, "checkout", "-qb", "draft")
     write(tmp_path, "docs/adr/0002-mine.md", "# Mine\n\nAfter ADR 0001.\n")
     write(
         tmp_path,
-        "README.md",
+        "READ ME.md",
         "Intro: ADR 0002 will follow.\nMine: ADR 0002 (docs/adr/0002-mine.md), docs/adr/0001, 0002.\n",
     )
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "mine")
     git(tmp_path, "checkout", "-q", "main")  # main takes 0002 meanwhile
     write(tmp_path, "docs/adr/0002-theirs.md", "# Theirs\n")
-    write(tmp_path, "README.md", "Intro\nTheirs: ADR 0002.\n")
+    write(tmp_path, "READ ME.md", "Intro\nTheirs: ADR 0002.\n")
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "theirs")
     git(tmp_path, "checkout", "-q", "draft")
@@ -58,7 +60,7 @@ def test_a_draft_moves_past_mains_numbers_with_the_references_it_added(tmp_path)
     assert run.returncode == 0, run.stderr
     assert not (tmp_path / "docs/adr/0002-mine.md").exists()
     assert (tmp_path / "docs/adr/0003-mine.md").read_text() == "# Mine\n\nAfter ADR 0001.\n"
-    assert (tmp_path / "README.md").read_text() == (
+    assert (tmp_path / "READ ME.md").read_text() == (
         "Intro: ADR 0002 will follow.\nMine: ADR 0003 (docs/adr/0003-mine.md), docs/adr/0001, 0003.\n"
     )
     assert (tmp_path / "notes.md").read_text() == "Untracked, about ADR 0003 too.\n"
