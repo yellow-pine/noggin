@@ -22,7 +22,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   required check was renamed or the PR needs a fix that just landed on main; never force-push. When main's
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
-  review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
+  review re-runs on the new head (#433); `git pull --rebase` before your next push. A Dependabot PR gets `@dependabot rebase`. The
   repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no
   update-branch banner. CI runs on pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
   the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
@@ -98,7 +98,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
-  run `gh pr update-branch --rebase` on every open PR so it reports the new name.
+  run `gh pr update-branch` on every open PR so it reports the new name.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
