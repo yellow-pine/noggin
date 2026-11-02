@@ -40,10 +40,7 @@ def test_every_workflow_is_title_case_in_its_kebab_case_file():
     """#773, GitHub's starter workflows: the name Title Case ("Site Deploy"), the file its kebab-case form."""
     flows = {f.name: yaml.safe_load(f.read_text())["name"] for f in WORKFLOWS}
     wrong = {
-        f: n
-        for f, n in flows.items()
-        if not (TITLE.fullmatch(n) and f == re.sub(r"\W+", "-", n).lower() + ".yml")
-        and f != "review.yml"  # #787 renames it, under Cansin's bypass: a PR editing review.yml gets no review
+        f: n for f, n in flows.items() if not (TITLE.fullmatch(n) and f == re.sub(r"\W+", "-", n).lower() + ".yml")
     }
     assert wrong == {}
 
@@ -143,12 +140,12 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
 
 
 def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_token: str):
-    """review.yml's `Check if the PR edits review.yml`, then `Check the verdict`, with no structured output and `git`
-    and `gh` faked: `git diff` lists `changed`, `gh` logs its arguments."""
+    """claude-review.yml's `Check if the PR edits claude-review.yml`, then `Check the verdict`, with no structured
+    output and `git` and `gh` faked: `git diff` lists `changed`, `gh` logs its arguments."""
     for tool, body in [("git", f"printf '%s\\n' {changed}"), ("gh", f'echo "$@" >> {tmp_path}/gh.log')]:
         (tmp_path / tool).write_text(f"#!/bin/sh\n{body}\n")
         (tmp_path / tool).chmod(0o755)
-    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "review.yml").read_text())
+    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "claude-review.yml").read_text())
     run = {s.get("name"): s.get("run") for s in flow["jobs"]["review"]["steps"]}
     env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "BASE": "main", "PR": "7", "GITHUB_OUTPUT": f"{tmp_path}/out"}
 
@@ -157,7 +154,7 @@ def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_tok
             ["bash", "-eo", "pipefail", "-c", run[name]], env=env | more, capture_output=True, text=True
         )
 
-    step("Check if the PR edits review.yml").check_returncode()
+    step("Check if the PR edits claude-review.yml").check_returncode()
     edits = (tmp_path / "out").read_text().removeprefix("review=").strip() if (tmp_path / "out").exists() else ""
     done = step("Check the verdict", RESULT="", CONCLUSION=conclusion, APP_TOKEN=app_token, EDITS_REVIEW=edits)
     log = tmp_path / "gh.log"
@@ -167,10 +164,11 @@ def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_tok
 @pytest.mark.parametrize(
     ("changed", "conclusion", "app_token", "code", "says", "gh"),
     [
-        # the action skipped on validation (no conclusion: Claude never ran) and main's review.yml moved on (#433)
+        # the action skipped on validation (no conclusion: Claude never ran), main's claude-review.yml moved on (#433)
         ("noggin/x.py", "", "t", 1, "branch updated, the review re-runs", "pr update-branch 7 --rebase\n"),
         ("noggin/x.py", "", "", 1, "changed since this branch: rebase it", ""),  # Dependabot's: no App token
-        (".github/workflows/review.yml", "", "", 0, "review.yml changed in this PR", ""),  # needs Cansin's bypass
+        # needs Cansin's bypass
+        (".github/workflows/claude-review.yml", "", "", 0, "claude-review.yml changed in this PR", ""),
         ("noggin/x.py", "success", "", 1, "the review produced no verdict", ""),  # Claude ran and gave none
     ],
 )

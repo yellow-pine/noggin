@@ -1,5 +1,5 @@
-"""review.yml's gate on claude[bot]'s last verdict on the PR's head commit. Claude can give its verdict without its
-review landing (#247, #389), so:
+"""claude-review.yml's gate on claude[bot]'s last verdict on the PR's head commit. Claude can give its verdict without
+its review landing (#247, #389), so:
 - `Check the verdict` (no flag): `Review` passes only when that last verdict is an approval;
 - Claude's PreToolUse hook on StructuredOutput (--hook, the hook's JSON on stdin): the verdict is refused (exit 2, the
   reason fed back to Claude) until the last review on the head matches it, so the review lands while the session lives.

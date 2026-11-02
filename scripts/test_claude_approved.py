@@ -1,4 +1,4 @@
-"""claude_approved.py: review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
+"""claude_approved.py: claude-review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
 approval, and Claude's verdict is refused until that last verdict matches it (#389)."""
 
 from scripts.claude_approved import last_verdict, outdated_threads, refusal, wanted
