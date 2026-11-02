@@ -267,15 +267,19 @@ test('Pictures shows the next Mech, it in motion and each of its parts, each lin
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
 
-test("the viewer's page draws the next Mech, a button per head variant, and serves three's Draco decoder", () => {
-  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664)
+test("the viewer's page draws the next Mech, a Stage switch and a look switch, and serves three's Draco decoder", () => {
+  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
-  const buttons = viewers[0].querySelectorAll('nav button[data-stage]'); // in the ranking's order where there is one (#686)
-  const stages = buttons.map((b) => `${b.getAttribute('data-stage')}.glb`);
-  expect([...stages].sort()).toEqual([...numbers.published.viewer].sort());
-  // each button's whole label, a failing variant's with its mark ('Back: head size', #705), then its name before it
-  expect(buttons.map((b) => b.text.trim())).toEqual(numbers.published.variants.buttons.map((v) => v.label));
-  expect(buttons.map((b) => b.text.split(':')[0].trim()).sort()).toEqual(['Back']);  // Back alone since #712
+  const { buttons, looks } = numbers.published.stages;
+  const stages = viewers[0].querySelectorAll('nav[aria-label="Stage"] button[data-stage]');
+  expect(stages.map((b) => b.getAttribute('data-stage'))).toEqual(buttons.map((b) => b.glb));
+  expect(stages.map((b) => b.text.trim())).toEqual(buttons.map((b) => b.label)); // a failing Stage's with its mark (#705)
+  expect(stages.map((b) => b.text.split(':')[0].trim())).toEqual(['1', '2', '3']);
+  const switches = viewers[0].querySelectorAll('nav[aria-label="Look"] button[data-look]');
+  expect(switches.map((b) => [b.text.trim(), b.getAttribute('data-look')])).toEqual([['Bony', ''], ['Plain', '-plain']]);
+  // every Stage in every look is a GLB the site serves
+  const glbs = buttons.flatMap((b) => looks.map((l) => `${b.glb}${l.suffix}.glb`));
+  expect(glbs.sort()).toEqual([...numbers.published.viewer].sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
     expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);

@@ -1,10 +1,12 @@
-"""The next Mech's Torso (#685) and its head variant's board carrier (#686, Back alone since #712) as CadQuery parts,
-every size from model/base.py, each drawn where it sits at rest in the head's frame (model/neck.py)."""
+"""The next Mech's Torso (#685), its head variant's board carrier (#686, Back alone since #712) and Stage 1's test stand
+(#720) as CadQuery parts, every size from model/base.py, each drawn where it sits at rest in the head's frame
+(model/neck.py)."""
 
 from model import base as nb
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box
+from model.printed.gimbal import cyl
 
 WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's height, 0.5 mm clear round the pack
 ROUND = 12.0  # as Bones (#704): the Torso's corners round in plan, the cradle's and the rack's by a third of it
@@ -41,3 +43,18 @@ def rack(plain=False):
     face; as Bones (#704) its corners round."""
     # the row no lower than the plate (BACK_Z)
     return _flange(nb.width() / 2 + 3, nb.BACK_Z + nb.BOARD_H / 2, 0.0 if plain else ROUND / 3)
+
+
+def stand(plain=False):
+    """Stage 1's test stand (printed upside down, on its top): an open box under the gimbal frame's plate, from the desk
+    to the plate's underside, its top's holes under the head mount's (nk.HEAD_SCREWS), the eyes Core against its back
+    face; as Bones (#704) its upright edges round."""
+    x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if plain else ROUND / 3
+    y = gm.PLATE_Y
+    out = _box((-x, x), y, (nb.STAND_Z, top), r)
+    out = out.cut(
+        _box((-x + WALL, x - WALL), (y[0] + WALL, y[1] - WALL), (nb.STAND_Z, top - nb.TRAY_T), r and r - WALL)
+    )
+    for sx, sy in nk.HEAD_SCREWS:
+        out = out.cut(cyl("z", (sx, sy, 0), 1.7, (top - nb.TRAY_T, top)))
+    return out

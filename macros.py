@@ -5,10 +5,11 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-next_panels: the next Mech's panels' grid (model/render/pictures.py PANELS, geometry.py NEXT, #629), next_motions: its
-eye gimbal in motion (#656) and next_parts: a picture of each of its parts, on docs/pictures.md (#649).
-published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro),
-and variants: the viewer's button per head variant, in the ranking's order (#686).
+next_panels: the next Mech's panels' grid, each of its Stages in both looks (model/render/pictures.py PANELS,
+geometry.py STAGES, #629, #720), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of each of its
+parts, on docs/pictures.md (#649).
+published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
+src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage, and its looks (#720).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py next_neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
@@ -140,10 +141,18 @@ def panels(labels):
     return f'<div class="noggin-panels not-content" style="--views: {len(views)}">{"".join(cells)}</div>'
 
 
+PLAIN = "-plain"  # a document's name with its Skeleton plain (geometry.STAGES, #704)
+BONY = [doc for doc in g.STAGES if not doc.endswith(PLAIN)]  # the Stages in order, as Bones; each also plain
+
+
+def stage(doc):
+    """A Stage document's name on a page: "Stage 2", "Stage 2 plain"."""
+    return f"Stage {BONY.index(doc.removesuffix(PLAIN)) + 1}" + (" plain" if doc.endswith(PLAIN) else "")
+
+
 def next_panels():
-    """The next Mech's panels (#629), framed among themselves: Pictures' alone."""
-    # a head variant each, in both its Skeleton's styles (#704)
-    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-').replace('-', ' ')})" for doc in g.NEXT})
+    """The next Mech's panels (#629), each Stage in both looks (#720), framed among themselves: Pictures' alone."""
+    return panels({doc: stage(doc) for doc in g.STAGES})
 
 
 def figures(labels, kind="parts"):
@@ -183,7 +192,7 @@ def wiring():
     shared lid frame, the eyes resting centred between their ends), the neck's the next Mech's neck's limits (its horns
     from neutral, 90) and that neutral."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
-    neck = stages.next_neck().horns
+    neck = stages.next_neck().horns | stages.next_jaw().horns
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
     for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
         for port, servo in ports.items():
@@ -217,28 +226,28 @@ def explode():
     GLB node's name, under the document's GLB name (web/build.py PUBLIC)."""
     glb = {doc: f.removesuffix(".glb") for doc, f in viewer.PUBLIC.items()}
     xyz = {sub: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in pictures.EXPLODE.items()}
-    return {glb[doc]: {n: xyz[sub] for sub in subs for n in stages.SUBS[sub]().parts} for doc, subs in g.NEXT.items()}
+    return {glb[doc]: {n: xyz[sub] for sub in subs for n in stages.SUBS[sub]().parts} for doc, subs in g.STAGES.items()}
 
 
 RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # just sim's (model/report.py, base.rank)
 
 
-def variants():
-    """The viewer page's button per head variant (#664, #686), by its GLB: in RANKING's order when it ranks today's
-    variants, each marked with the gates and marks it fails, else in geometry.NEXT's unmarked; its name from its
-    document (next-mech-back, "Back") and a line on where its boards go, from what carries them (each carrier's
-    sub-assembly's docstring in model/stages.py, "next-back: <the line>; ...")."""
+def stage_switch():
+    """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the look switch adds
+    PLAIN), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just sim ranked
+    today's variants; and the looks, each its GLB's suffix and its name."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == set(g.NEXT)
     buttons = []
-    for doc in ranking["order"] if ranked else g.NEXT:
-        fails = ranking["variants"][doc]["fails"] if ranked else []
-        carriers = [s for s in g.NEXT[doc] if s not in ("next-neck", "next-eyes", "next-base")]
-        about = [" ".join(stages.SUBS[s].__doc__.split()).split(": ", 1)[1].split(";")[0] for s in carriers]
-        name = doc.removeprefix("next-mech-").replace("-", " ").capitalize()  # next-mech-back-plain: "Back plain"
-        label = name + (f": {', '.join(fails)}" if fails else "")
-        buttons.append({"glb": viewer.PUBLIC[doc].removesuffix(".glb"), "label": label, "about": " and ".join(about)})
-    return {"ranked": ranked, "buttons": buttons}
+    for n, doc in enumerate(BONY, 1):
+        fails = ranking["variants"][doc]["fails"] if ranked and doc in g.NEXT else []
+        buttons.append(
+            {
+                "glb": viewer.PUBLIC[doc].removesuffix(".glb"),
+                "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
+            }
+        )
+    return {"buttons": buttons, "looks": [{"suffix": "", "label": "Bony"}, {"suffix": PLAIN, "label": "Plain"}]}
 
 
 def build():
@@ -259,7 +268,7 @@ def numbers():
         "next_panels": next_panels(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
-        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "variants": variants()},
+        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},
         "wiring": wiring(),
         "coupon": coupon(),
         "workflows": workflows(),

@@ -29,7 +29,7 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the panels (Cansin, #470): each document from its left side and isometric from its front left, by eye direction and
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
-PANELS = [(doc, view) for doc in g.NEXT for view in VIEWS]
+PANELS = [(doc, view) for doc in g.STAGES for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # the motions' view (the old README hero's): from 15 deg to the Mech's right (right eye nearest), 15 deg up
@@ -38,10 +38,12 @@ HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.
 HERO_FPS = 8
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
-# the neck, the boards off what carries them: the rack back with the head it rides
+# the neck (or Stage 1's stand), the boards off what carries them: the rack back with the head it rides, the jaw forward
 EXPLODE = {
     "next-base": (0, 0, 0),
+    "next-stand": (0, 0, 0),
     "next-neck": (0, 0, 45),
+    "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
     "next-back": (0, 60, 95),
 }
@@ -71,7 +73,7 @@ def picture(name, view):
 def next_parts():
     """{picture: (document, part)}: one per part of the next Mech's documents by its mesh, its first instance."""
     out = {}
-    for doc in g.NEXT:
+    for doc in g.STAGES:
         for name, p in stages.STAGES[doc].parts.items():
             stem = stages.stem(p.file).removeprefix("next ")
             out.setdefault(f"next-{stem.lower().replace(' ', '-')}.webp", (doc, name))
@@ -162,7 +164,7 @@ def views():
     """The panels (PANELS: each document at rest as MuJoCo settles it, where every gesture starts), at one scale and one
     frame: the largest silhouette among them."""
     plans = {}
-    for doc in g.NEXT:
+    for doc in g.STAGES:
         _, manifest, hulls = prepare(doc)
         mats = trajectories.poses(doc, "wink")[0]
         plans[doc] = (manifest, hulls, mats, points(hulls, mats))
@@ -182,7 +184,7 @@ def views():
 def part_pictures():
     """Each part of the next Mech (next_parts) alone, at rest as MuJoCo settles it, from VIEWS' isometric, framed tight
     on its own."""
-    for doc in g.NEXT:
+    for doc in dict.fromkeys(d for d, _ in next_parts().values()):  # the documents a part is first drawn in
         _, manifest, hull = prepare(doc)
         mats = trajectories.poses(doc, "wink")[0]
         shots = [

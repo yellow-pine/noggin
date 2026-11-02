@@ -6,7 +6,7 @@ Each command goes straight to its servo, a DC motor behind its own P loop that r
 (mjcf.drive, #625): the load, the stall torque and the no-load speed set how fast it follows; contacts are off, as in
 mjcf.pose.
 `python -m model.trajectories [doc ...]` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for
-every document (geometry.NEXT), skipping one whose files still carry its stamp: {"doc", "motion", "fps", "stamp",
+every document (geometry.STAGES), skipping one whose files still carry its stamp: {"doc", "motion", "fps", "stamp",
 "parts": {part: {"pos": [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its
 mesh's, as model/build/ours draws it) in MuJoCo's Z-up world."""
 
@@ -111,8 +111,9 @@ def stamp(doc):
 
 
 def motions(doc):
-    """The document's motions: every gesture and Rest through its eye gimbal (#663) and the next hero (#642)."""
-    return [*traces.NEXT_MOTIONS, "next hero"]
+    """The document's motions: every gesture and Rest through its eye gimbal (#663), and the next hero (#642) on a Stage
+    with the neck."""
+    return [*traces.NEXT_MOTIONS, *(["next hero"] if "pan horn" in stages.STAGES[doc].horns else [])]
 
 
 def bake(doc, names=None):
@@ -155,5 +156,5 @@ def poses(doc, motion):
 
 
 if __name__ == "__main__":
-    for doc in [d for a in sys.argv[1:] for d in (geometry.NEXT if a == "next" else [a])] or geometry.NEXT:
+    for doc in [d for a in sys.argv[1:] for d in (geometry.STAGES if a == "next" else [a])] or geometry.STAGES:
         print(f"{doc}: {len(bake(doc))} trajectories" if stale(doc) else f"{doc}: fresh")

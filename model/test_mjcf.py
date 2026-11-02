@@ -73,6 +73,8 @@ TOUCH = {
             ),
             ("next board rack:1", "next switch board:1"),
             ("next board rack:1", "next gimbal frame:1"),
+            # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
+            *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
         ]
     },
     **{

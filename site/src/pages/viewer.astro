@@ -1,23 +1,27 @@
 ---
 // The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro), which
-// draws the next Mech's GLB beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) and moves these
-// head variant buttons (macros.py variants, from model/geometry.py NEXT and just sim's ranking) into its bar (#664, #686).
+// draws the next Mech's GLBs beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) and moves these
+// switches into its bar: a button per Stage and per look (macros.py stage_switch, from model/geometry.py STAGES, #720).
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { published } from '../macros.json';
 
-const { ranked, buttons } = published.variants;
+const { buttons, looks } = published.stages;
 ---
 
 <StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
   <p>
-    {`The next Mech as its model has it so far, per head variant${ranked ? ', best first in the ranking of their sim reports' : ''}: `}
-    {buttons.map((b) => `${b.label}, ${b.about}`).join('; ')}. Drag to turn it, scroll or pinch to zoom, play each gesture
-    and take it apart.
+    The next Mech as its model has it so far, Stage by Stage, its Skeleton as Bones or plain: Stage 1 the eye block on
+    its test stand, Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw. Drag to turn it, scroll or pinch
+    to zoom, play each gesture and take it apart.
   </p>
-  <div class="noggin-viewer" data-stage={buttons[0].glb} data-zoom>
-    <nav aria-label="Head">
-      <span>Head</span>
+  <div class="noggin-viewer" data-stage={buttons.at(-1).glb} data-zoom>
+    <nav aria-label="Stage">
+      <span>Stage</span>
       {buttons.map((b) => <button data-stage={b.glb}>{b.label}</button>)}
+    </nav>
+    <nav aria-label="Look">
+      <span>Look</span>
+      {looks.map((l) => <button data-look={l.suffix}>{l.label}</button>)}
     </nav>
   </div>
 </StarlightPage>

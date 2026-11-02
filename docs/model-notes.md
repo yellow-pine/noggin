@@ -162,5 +162,13 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   (#705). Today Back does not fit that head: its boards behind the gimbal make it 141.5 deep, since the head mount
   and the jaw already hang 101 mm under the eyes (eyes_up 0.77, not the lower-middle); the head size stays reported,
   not a hard gate, until #708. Every size is inferred.
+- The Stages (#720, geometry.STAGES), for ease of build, each a document in both looks: Stage 1 the eye block (the
+  gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
+  stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
+  `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, the
+  boards' rack with both Cores and the switch board; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
+  the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
+  the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
+  what it fails) and a look switch (Bony, Plain); Pictures shows each Stage's panels in both looks.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.

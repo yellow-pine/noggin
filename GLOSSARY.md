@@ -25,6 +25,11 @@ A Skeleton link between two joints drawn organic: thick at the joints, waisted m
 joints kept exact. Each Skeleton part is drawn both as Bones and plain, the same interfaces in both (docs/adr/0020).
 _Avoid_: strut, organic bar
 
+**Test stand**:
+The box the Next Mech's eye block stands on in Stage 1, screwed under the gimbal frame where the head mount goes later,
+the eyes Core against its back; not part of the whole Mech.
+_Avoid_: base, desk stand, jig
+
 **Torso**:
 The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low and
 the neck mount with the pan servo; its bottom is the foot the Mech stands on.
@@ -161,8 +166,10 @@ Blender renders the pictures from MuJoCo's Trajectories. Today's Mech left it (#
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
-A cumulative build state of the Mech, each a complete Mech on the desk: Stage 1 the eyes on the base plate, Stage 2 the
-eyes on a pan-and-tilt neck, Stage 3 Stage 2 with the mouth (the full Mech). The build guides go Stage by Stage.
+A cumulative build state of a Mech, each a complete Mech on the desk. Today's: Stage 1 the eyes on the base plate,
+Stage 2 the eyes on a pan-and-tilt neck, Stage 3 Stage 2 with the mouth; the build guides go Stage by Stage. The Next
+Mech's: Stage 1 the eye block on its Test stand with the eyes Core, Stage 2 the eye block on the Torso's neck under the
+head mount with the boards and the neck Core, Stage 3 Stage 2 with the jaw (the whole Mech); each in both looks.
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
@@ -208,8 +215,8 @@ a gesture picked plays once, then the Tour goes on.
 _Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:
-An ownership unit that owns its parts exactly once (the Next Mech's eyes, neck, base and boards' carrier) and is placed
-into a document at a frame (model/stages.py).
+An ownership unit that owns its parts exactly once (the Next Mech's eyes, neck, jaw, base, boards' carrier and Test
+stand) and is placed into a document at a frame (model/stages.py).
 
 **Envelope**:
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).

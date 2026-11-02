@@ -65,7 +65,7 @@ if __name__ == "__main__":
         write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
     elif what == "step":
         write(os.path.join(BUILD, "step"), list(SHAPES), ".step")
-        for doc in geometry.NEXT:
+        for doc in geometry.STAGES:
             print(stage_step(doc, os.path.join(BUILD, "step", doc + ".step")))
     else:
         sys.exit("usage: python -m model.ours [ours|stl|step]")

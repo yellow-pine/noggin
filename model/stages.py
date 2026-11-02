@@ -1,6 +1,6 @@
 """The next Mech as data: its sub-assemblies (every part with its mesh file, neutral placement and material, the horns
 and their four-bar chains) built from model/gimbal.py, model/neck.py and model/base.py, and assemble() putting
-sub-assemblies at frames into one document (geometry.NEXT). pose() gives every part's world transform at a horn angle by
+sub-assemblies at frames into one document (geometry.STAGES, geometry.NEXT). pose() gives every part's world transform at a horn angle by
 the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry a ":1" suffix, as MuJoCo's
 bodies and the GLBs' nodes."""
 
@@ -222,26 +222,15 @@ def next_eyes():
     return Sub(parts, horns)
 
 
-def next_neck():
-    """next-neck: the next Mech's neck and jaw (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the
-    neck mount, the pan yoke, the head mount, the jaw and their bars, the neck Core's servos with their horns on the
-    drives. Each drive turns its horn as today's Stages do, so the MuJoCo report and the Core's servo names apply (#642):
-    the pan carries the yoke and the head, the tilt the head (neck.HEAD, and what rides the head mount: RIDES), the
-    mouth the jaw."""
-    parts = {
-        f"{stem}:1": part(stl(stem), None, printed(stem))
-        for stem in (
-            "next neck mount",
-            "next pan yoke",
-            "next head mount",
-            "next jaw",
-            "next pan bar",
-            "next tilt bar",
-            "next jaw bar",
-        )
-    }
+def _neck_drives(labels, drives, stems):
+    """(parts, horns): the neck Core's drives of `drives` (pan, tilt, jaw) with their servos (`labels`) and the printed
+    `stems`, at rest in the head's frame (model/neck.py). Each drive turns its horn so the MuJoCo report and the Core's
+    servo names apply (#642): the pan carries the yoke and the head, the tilt the head (neck.HEAD, those of its parts
+    the document has, and what rides the head mount: RIDES), the mouth the jaw."""
+    parts = {f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in stems}
     for label, (face, shaft, tab, arm) in neck.drives().items():
-        parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
+        if label in labels:
+            parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
     pins, head = neck.pins(), list(neck.HEAD)
     carried = {
         "pan": ["next pan yoke:1", "next tilt servo:1", "next tilt horn:1", "next tilt bar:1", *head],
@@ -254,26 +243,50 @@ def next_neck():
         ("tilt", "next tilt horn:1", "tilt horn", "next tilt bar:1"),
         ("jaw", "next mouth horn:1", "jaw horn", "next jaw bar:1"),
     ):
-        o4, _, o2, axis = pins[drive]
-        loop = Loop(f"{drive} pivot", neck.LINKAGES[drive], bar, carried[drive], (tuple(o4), tuple(axis)))
-        ends = sorted(neck.servo_for(drive, d) if d else 0.0 for d in neck.RANGES[drive])
-        still = [f"{d} pivot" for d in neck.RANGES if d != drive]
-        horns[horn] = Horn({"point": o2, "axis": axis}, tuple(ends), crank, [loop], still, None)
+        if drive in drives:
+            o4, _, o2, axis = pins[drive]
+            loop = Loop(f"{drive} pivot", neck.LINKAGES[drive], bar, carried[drive], (tuple(o4), tuple(axis)))
+            ends = sorted(neck.servo_for(drive, d) if d else 0.0 for d in neck.RANGES[drive])
+            still = [f"{d} pivot" for d in ("pan", "tilt") if d != drive]  # the jaw rides them both
+            horns[horn] = Horn({"point": o2, "axis": axis}, tuple(ends), crank, [loop], still, None)
     return Sub(parts, horns)
+
+
+def next_neck():
+    """next-neck: the next Mech's neck (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the neck mount,
+    the pan yoke, the head mount and the pan and tilt bars, the neck Core's pan and tilt servos with their horns on the
+    drives."""
+    stems = ("next neck mount", "next pan yoke", "next head mount", "next pan bar", "next tilt bar")
+    return _neck_drives(("pan", "tilt"), ("pan", "tilt"), stems)
+
+
+def next_jaw():
+    """next-jaw: the next Mech's jaw (#641, model/neck.py) at rest, in the head's frame: the jaw and its bar, the mouth
+    servo with its horn on the drive; it rides the head (RIDES)."""
+    return _neck_drives(("mouth",), ("jaw",), ("next jaw", "next jaw bar"))
+
+
+def next_stand():
+    """next-stand: Stage 1's test stand (#720, model/base.py) under the gimbal frame's plate, the eyes Core upright on
+    its back face."""
+    return _boards("next test stand", candidates.stand_boards())
 
 
 SUBS = {
     "next-eyes": next_eyes,
     "next-neck": next_neck,
+    "next-jaw": next_jaw,
     "next-base": next_base,
     "next-back": next_back,
+    "next-stand": next_stand,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
-# geometry.align_rows
-DOCS = g.NEXT
+# geometry.align_rows: the next Mech's Stages in both looks, the last of them the head variant's (geometry.NEXT)
+DOCS = g.STAGES | g.NEXT
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
     "next-back": "next head mount:1",  # the rack under the plate
+    "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
 }  # clamped to that part
 
 
@@ -307,7 +320,7 @@ def assemble(doc, frames):
                     if n not in rockers:
                         rockers.append(n)
                         todo.append(n)
-            loops.append(loop._replace(rockers=rockers))
+            loops.append(loop._replace(rockers=[n for n in rockers if n in parts]))  # the Stage's own
         horns[h] = horn._replace(loops=loops)
     return Doc(doc, parts, horns)
 

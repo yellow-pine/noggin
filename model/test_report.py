@@ -39,7 +39,7 @@ KNOWN_PEAKS = {
     " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
     for doc in stages.DOCS
-    if doc.startswith("next-")
+    if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
     for horn in ("pan horn", "tilt horn")
 }
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.

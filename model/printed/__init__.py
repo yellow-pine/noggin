@@ -30,6 +30,8 @@ PARTS = {
     # the next Mech's Torso (#685) and its head variant's board carrier (#686, Back alone since #712)
     "next torso": base.torso,
     "next board rack": base.rack,
+    # the next Mech's Stage 1 (#720)
+    "next test stand": base.stand,
 }
 # The Skeleton drawn as Bones (#704): each builder's switch `plain` draws its plain style, the same interfaces; PARTS
 # holds it under the stem's plain name (geometry.PLAIN)
@@ -40,6 +42,7 @@ STYLED = {
     "next push-rod": gimbal.push_rod,
     "next torso": base.torso,
     "next board rack": base.rack,
+    "next test stand": base.stand,
 }
 # the Skeleton's parts drawn plain alone: their Bones wait on the ticket reshaping them, which draws both styles
 UNSTYLED = {

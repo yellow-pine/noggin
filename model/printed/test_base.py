@@ -16,7 +16,7 @@ from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield")
+BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield", "next test stand")
 
 
 def _hits(doc):
@@ -47,7 +47,7 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
 
 
 @pytest.mark.build
-@pytest.mark.parametrize("doc", sorted(g.NEXT))
+@pytest.mark.parametrize("doc", [*sorted(g.NEXT), "next-stage1"])  # and Stage 1's test stand (#720)
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(doc):
     assert _hits(doc) == set()
 
