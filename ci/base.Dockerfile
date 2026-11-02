@@ -3,7 +3,7 @@
 # Python packages.
 # .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
 # FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
-FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS node
+FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS node
 FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 FROM mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e AS yq
 
@@ -40,6 +40,11 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+# a newer npm than the one Node bundles, for the security fixes in npm's own modules (#532); pinned like Chrome below.
+# The check fails the build once Node bundles this npm or a newer one: then drop the step
+ARG NPM=11.21.1
+RUN printf '%s\n' "$(npm -v)" "$NPM" | sort -CuV \
+ && npm install -g --no-audit --no-fund "npm@$NPM" && rm -rf /root/.npm
 # the venv sits on another mount than uv's cache (no hard links)
 ENV UV_LINK_MODE=copy
 
