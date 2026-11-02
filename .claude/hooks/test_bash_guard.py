@@ -64,6 +64,7 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("gh api graphql -F query=@merge.graphql", "inline"),
         ("echo 'unbalanced", "parse"),
         ("bash <<EOF\necho don't\nEOF", "parse"),
+        ("bash <<EOF\ngit stash", "parse"),  # bash -n lets a heredoc stay open, and bash would run its body
         ("for n in ${nums//,/ }; do gh api -X PATCH alerts/$n; done", "${=var}"),
         ("for f in $files\ndo\n  echo $f\ndone", "${=var}"),
         ('for f in "$a"$b; do :; done', "${=var}"),
@@ -106,6 +107,8 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "echo for n in $nums",
         "bash <<'EOF'\nfor n in $nums; do echo $n; done\nEOF",
         "cat > loop.sh <<'EOF'\nfor n in $nums; do echo $n; done\nEOF",
+        """echo "x: $(gh api repos/a/b --jq '"\\(.a)"')" """,  # shlex misreads it, bash can (#579)
+        """echo "$(printf '"')" """,  # shlex raises on it, bash reads it
     ],
 )
 def test_anything_else_runs(command):
