@@ -453,33 +453,35 @@ def test_main_releases_itself_once_its_checks_pass():
 
 
 @pytest.mark.parametrize(
-    ("says", "summary"),
+    ("says", "exit", "summary"),
     [
         (
             "The local branch main is behind the remote one, therefore a new version won't be published.",
+            0,
             "Not released: main moved past abc1234; the newer commit's run releases both.\n",
         ),
-        ("Published release 1.2.3 on default channel", ""),
+        ("Published release 1.2.3 on default channel", 0, ""),
+        ("EGITNOPERMISSION Cannot push to the Git repository.", 1, ""),  # a failed release still fails the run
     ],
 )
-def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, summary):
+def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, exit, summary):
     """#773: semantic-release exits green and tags nothing when main moved past the commit, so the run's summary says
-    why. Its step runs with semantic-release faked."""
+    why. Its step runs as GitHub runs a step with no `shell:` (`bash -e`, no pipefail), with semantic-release faked."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
     step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Run semantic-release")
     bin_ = tmp_path / "ci" / "node_modules" / ".bin"
     bin_.mkdir(parents=True)
-    (bin_ / "semantic-release").write_text(f'#!/bin/sh\necho "[semantic-release] › ℹ  {says}"\n')
+    (bin_ / "semantic-release").write_text(f'#!/bin/sh\necho "[semantic-release] › ℹ  {says}"\nexit {exit}\n')
     (bin_ / "semantic-release").chmod(0o755)
     env = {"PATH": "/usr/bin:/bin", "RUNNER_TEMP": str(tmp_path), "GITHUB_STEP_SUMMARY": f"{tmp_path}/summary"}
     done = subprocess.run(
-        ["bash", "-eo", "pipefail", "-c", step["run"]],
+        ["bash", "-e", "-c", step["run"]],
         cwd=tmp_path,
         env=env | {"SHA": "abc1234def5678"},
         capture_output=True,
         text=True,
     )
-    assert (done.returncode, says in done.stdout) == (0, True)
+    assert (done.returncode, says in done.stdout) == (exit, True)
     assert (Path(env["GITHUB_STEP_SUMMARY"]).read_text() if summary else "") == summary
     assert step["env"]["SHA"] == "${{ github.event.workflow_run.head_sha }}"
 
