@@ -92,20 +92,12 @@ jobs:
       # make (model/ours.py) with what they import or name (the trajectories' sources, the script Blender runs;
       # scripts/inputs.py), Blender's pin and uv.lock, so a justfile, workflow or test edit renders nothing. Hashed here
       # alone, on the runner's Python (the repo's syntax; the images' is older), for every job
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Hash the inputs
         id: inputs
-        run: |   # each the inputs' sha256 and the lockfile's
-          lock=$LOCK
-          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile)
-          viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile)
-          { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
-        env:
-          LOCK: ${{ steps.lock.outputs.hash }}
+        run: |   # each the inputs' sha256
+          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile uv.lock)
+          viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile uv.lock)
+          { echo "pictures=$pictures"; echo "viewer=$viewer"; } >> "$GITHUB_OUTPUT"
       # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
       - name: Look up the parts cache
         id: parts
@@ -114,7 +106,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       # whether the pictures and the viewer built from the same inputs are cached: then no Blender bin runs for them,
       # nor pulls its image (#386). The weekly and dispatched runs render and bake again
@@ -185,11 +177,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
       # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
       # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
@@ -199,7 +186,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
@@ -286,11 +273,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
@@ -304,7 +286,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/convex/${{ matrix.part }}
-          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
       - name: Cut the part
         run: uv run just venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
         env:
@@ -344,11 +326,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
         with:
@@ -448,7 +425,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
-          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'justfile', '.github/workflows/checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'justfile', '.github/workflows/checks.yml', 'uv.lock') }}
           restore-keys: sim-
       - name: Run just sim
         if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
@@ -522,11 +499,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
-      - name: Hash the lockfile
-        id: lock
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       # restore only, as in code; the trajectories need no convex pieces (mjcf.model collide=False: no CoACD, #276)
       - name: Restore the parts cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -542,7 +514,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'uv.lock') }}
           restore-keys: trajectories-
       # llvmpipe's compiled shaders, so Blender's first frame does not compile Eevee's again (~10-20 s, #470); Mesa checks
       # each entry against its own build, so an older cache only misses
