@@ -1,6 +1,6 @@
-"""Derived, not listed (docs/adr/0011): a workflow, the Makefile or a doc never spells out a list the code holds (the
+"""Derived, not listed (docs/adr/0011): a workflow, the justfile or a doc never spells out a list the code holds (the
 gestures, the servos, the documents the model simulates). A list is two or more of one list's names in a workflow or
-the Makefile, or three on one line of Markdown, where two is prose ("pan and tilt"). A name joined to another word by a
+the justfile, or three on one line of Markdown, where two is prose ("pan and tilt"). A name joined to another word by a
 hyphen ("pan-tilt") is not the name."""
 
 import re
@@ -25,9 +25,9 @@ ALLOWED = {  # (file, list): why it spells them
 
 
 def spelled_lists():
-    """{(file, list): [where]} for every list a workflow, the Makefile or a doc spells out."""
+    """{(file, list): [where]} for every list a workflow, the justfile or a doc spells out."""
     files = subprocess.run(
-        ["git", "ls-files", "*.md", ".github/*.yml", "Makefile"], cwd=ROOT, capture_output=True, text=True
+        ["git", "ls-files", "*.md", ".github/*.yml", "justfile"], cwd=ROOT, capture_output=True, text=True
     )
     found = {}
     for f in files.stdout.split():
@@ -65,7 +65,7 @@ MADE_FROM = {
     "convex": (
         [],
         ["model/mjcf.py", "model/stages.py", "uv.lock"],
-    ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
+    ),  # a part's pieces: its mesh, settings and clip  # just ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
     # the Blender jobs' outputs: the parts' make, the scripts Blender runs, the Core's calibration the trajectories play
@@ -73,10 +73,10 @@ MADE_FROM = {
     "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
     "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
     "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
-    "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
+    "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
     # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
-    # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and
+    # Convex, Shards and the Model shards: the tests marked model, just sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
     # and the scripts, config and workflow that run them
     "model": (
@@ -88,7 +88,7 @@ MADE_FROM = {
             "pyproject.toml",
             "uv.lock",
             ".python-version",
-            "Makefile",
+            "justfile",
             ".github/workflows/checks.yml",
         ],
     ),
@@ -150,13 +150,13 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
 
 
 def test_the_blender_jobs_keys_hash_no_makefile_workflow_or_test():
-    """A Makefile, workflow or test edit renders no picture and bakes no GLB (#469): their keys hash only what the
+    """A justfile, workflow or test edit renders no picture and bakes no GLB (#469): their keys hash only what the
     render code reads."""
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
     tooling = [
         f
         for f in tracked
-        if f == "Makefile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
+        if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
     found = patterns()
     assert {(n, f) for n in ("pictures", "viewer") for globs in found[n] for f in tooling if covered(f, globs)} == set()

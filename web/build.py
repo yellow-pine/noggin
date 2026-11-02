@@ -1,8 +1,8 @@
 """The web viewer's GLBs (docs/adr/0008): one per Stage, written into one folder that the site serves at viewer/ beside
-the viewer's page and its module (site/src/pages/viewer.astro, `make site`, docs/adr/0009). Each GLB is Blender's
+the viewer's page and its module (site/src/pages/viewer.astro, `just site`, docs/adr/0009). Each GLB is Blender's
 (web/glb.py): the Stage's parts in the pictures' look, one glTF clip per motion of its baked trajectories
-(model/trajectories.py, `make trajectories`).
-Usage: python -m web.build [out]   (default web/build; `make web`, Blender at $BLENDER)"""
+(model/trajectories.py, `just trajectories`).
+Usage: python -m web.build [out]   (default web/build; `just web`, Blender at $BLENDER)"""
 
 import json
 import os

@@ -1,11 +1,11 @@
 """Every picture the site serves (SITE), rendered in Blender (#47; rules in docs/model-notes.md), each Stage posed from its
-baked trajectories (model/trajectories.py, `make trajectories`): MuJoCo's poses (#150). Each picture is a WebP with a
+baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a WebP with a
 transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
-`views` (`make render`): the Stage panels (each Stage at rest, a trajectory's first frame, from the side and isometric:
-PANELS). `hero` (`make hero`): the README hero, stage 3 talking (model/render/hero.py), its
-trajectory at 8 fps (at_fps) as one animation. `site` (`make pictures`): renders the site's pictures, motion by motion
+`views` (`just render`): the Stage panels (each Stage at rest, a trajectory's first frame, from the side and isometric:
+PANELS). `hero` (`just hero`): the README hero, stage 3 talking (model/render/hero.py), its
+trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's pictures, motion by motion
 (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `make blender-bins`).
+yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `just blender-bins`).
 Usage: python -m model.render.pictures views | hero | site [motion ...] (Blender at $BLENDER)"""
 
 import json
@@ -55,7 +55,7 @@ SITE = {
 
 
 def motions():
-    """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (make trajectories TRAJ_DOCS)."""
+    """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (just trajectories TRAJ_DOCS)."""
     stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3"}
     return [{"motion": m, "stages": stages_of[m]} for m in SITE]
 
@@ -68,7 +68,7 @@ def assembled(name, frames):
 
 def prepare(name, frames):
     """(stage, manifest with absolute PLY paths, hull points per part) for one picture's parts, exported once. Always
-    our geometry (model/build/ours, `make ours`), never the designer's meshes."""
+    our geometry (model/build/ours, `just ours`), never the designer's meshes."""
     stage = assembled(name, frames)
     folder = os.path.join(OUT, "meshes", name)
     os.makedirs(folder, exist_ok=True)

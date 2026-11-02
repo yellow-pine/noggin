@@ -33,7 +33,7 @@ def mirror_x(p):
     return (2 * CENTRE_X - x, y, z)
 
 
-# Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (make sim), each with its
+# Absolute servo angle limits in degrees, neutral 90: the range the model sweeps each horn over (just sim), each with its
 # reason.
 _LID = (
     "one range for the mirrored lid pair, the model's free travel measured on the exact solids (#210; meshes.judge tests"

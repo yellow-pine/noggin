@@ -1,6 +1,6 @@
 """The repo files a Python file is made from: it, every module of the repo it imports and every repo file it names as
 a path (a script Blender runs, a data file it opens), followed through (ast, nothing runs). `python
-scripts/inputs.py FILE...` prints them, one per line, for make ours's stamp; `--hash FILE...` prints one sha256 of
+scripts/inputs.py FILE...` prints them, one per line, for just ours's stamp; `--hash FILE...` prints one sha256 of
 them, Checks' key for the pictures and the viewer (#469); test_derived.py holds the workflows' cache keys and
 paths filters to them (docs/adr/0011, #305). A FILE that is not Python (a Dockerfile) is an input as it is."""
 

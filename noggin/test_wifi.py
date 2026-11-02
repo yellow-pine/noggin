@@ -4,6 +4,7 @@ import json
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -170,7 +171,7 @@ def test_status_warns_when_the_core_runs_an_older_program_than_the_service(tmp_p
     assert wait_for(lambda: "eyes wifi" in ask(sock, "status\n"))
     assert ask(sock, "status\n").endswith(
         "noggin service 0.10.0 def5678\n"
-        "warning: eyes runs program 0.9.0, older than the noggin service's 0.10.0: make flash\nmode follow\n"
+        "warning: eyes runs program 0.9.0, older than the noggin service's 0.10.0: just flash\nmode follow\n"
     )
     s.stop()
     core.running = False
@@ -407,7 +408,7 @@ def test_seq_is_milliseconds_since_the_epoch_and_strictly_increases(tmp_path):
     core.running = False
 
 
-PROGRAM = {  # what make mpy builds: the program, and its stamp.mpy (version and commit)
+PROGRAM = {  # what just mpy builds: the program, and its stamp.mpy (version and commit)
     "eyes.mpy": b"M\x06 eye program " * 40,
     "gaze_trace.mpy": bytes(range(256)) * 3,
     "wifi.mpy": b"M\x06 link",
@@ -416,7 +417,7 @@ PROGRAM = {  # what make mpy builds: the program, and its stamp.mpy (version and
 
 
 def flashing(tmp_path, monkeypatch, core):
-    """The compiled program in build/ beside calibration.json on the Mac (make flash), an older one on the fake Core."""
+    """The compiled program in build/ beside calibration.json on the Mac (just flash), an older one on the fake Core."""
     (tmp_path / "core").mkdir()
     (tmp_path / "build").mkdir()
     monkeypatch.chdir(tmp_path / "core")
@@ -478,32 +479,25 @@ def test_flash_needs_the_core_on_wifi(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "status, usb, ports, path",
+    "status, port, path",
     [
-        ("eyes wifi 192.168.1.42 uptime 9s", "", "/dev/cu.usbmodem1", "wifi"),
-        ("eyes usb /dev/cu.usbmodem1 uptime n/a", "", "/dev/cu.usbmodem1", "usb"),
-        ("eyes offline", "", "/dev/cu.usbmodem1", "usb"),
-        ("eyes offline", "", "", "wifi"),  # #196: no Core on USB, so the service is not stopped; it waits for a beacon
-        ("eyes wifi 192.168.1.42 uptime 9s", "1", "/dev/cu.usbmodem1", "usb"),  # USB=1 forces the cable
+        ("eyes wifi 192.168.1.42 uptime 9s", True, "wifi"),
+        ("eyes usb /dev/cu.usbmodem1 uptime n/a", True, "usb"),
+        ("eyes offline", True, "usb"),
+        ("eyes offline", False, "wifi"),  # #196: no Core on USB, so the service is not stopped; it waits for a beacon
     ],
 )
-def test_make_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, status, usb, ports, path):
+def test_just_flash_takes_wifi_while_the_beacon_is_fresh_else_usb(tmp_path, status, port, path):
+    """just flash's FLASH_VIA (just flash-usb forces the cable; its commands: noggin/test_core.py)."""
     cli = tmp_path / "noggin"
-    cli.write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "{status}"\n[ "$1" = flash ] && echo FLASHED-OVER-WIFI\n')
+    cli.write_text(f'#!/bin/sh\n[ "$1" = status ] && echo "{status}"\n')
     cli.chmod(0o755)
-    out = subprocess.run(  # -n: the USB path is only printed, never run (no mpremote, no launchctl)
-        ["make", "-n", "flash", f"NOGGIN={cli}", f"USB={usb}", f"USB_PORTS={ports}", "MICROPYTHON=vTAG"],
-        cwd=Path(__file__).resolve().parent.parent,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    assert ("FLASHED-OVER-WIFI" in out) == (path == "wifi")
-    assert ("cp eyes/boot.py :boot.py" in out) == (path == "usb")  # boot.py stays .py: the Core runs boot.py only
-    assert ("cp eyes/build/eyes.mpy :eyes.mpy" in out) == (path == "usb")
-    assert "mpy-cross -o eyes/build/eyes.mpy eyes/eyes.py" in out  # both paths send what make compiled just now
-    mip = "mip install github:micropython/micropython-lib/python-stdlib/hmac/hmac.py@vTAG"  # the stand-in's tag
-    assert (mip in out) == (path == "usb")  # the Core's hmac: micropython-lib at the Core's MicroPython, over USB
+    (tmp_path / "cu.usbmodem1").touch()
+    ports = str(tmp_path / ("cu.usbmodem*" if port else "cu.none*"))
+    just = [Path(sys.executable).with_name("just"), "--set", "NOGGIN", cli, "--set", "PORTS", ports]
+    root = Path(__file__).resolve().parent.parent
+    out = subprocess.run([*just, "--evaluate", "FLASH_VIA"], cwd=root, capture_output=True, text=True, check=True)
+    assert out.stdout == path
 
 
 def test_add_network_keeps_the_others_and_the_token(tmp_path):

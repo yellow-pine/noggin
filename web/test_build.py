@@ -1,4 +1,4 @@
-"""The viewer's GLBs as Checks builds them (web/build.py): each Stage's GLB (`make web`, read here as `make sim`'s
+"""The viewer's GLBs as Checks builds them (web/build.py): each Stage's GLB (`just web`, read here as `just sim`'s
 reports are by model/test_report.py) carries every part, the look the page reads and one glTF clip per motion, frame for
 frame its trajectory. The page itself is the site's (site/src/pages/viewer.astro, its tests in site/)."""
 
@@ -25,7 +25,7 @@ def test_one_glb_per_stage():
 def glb(request):
     path = os.path.join(build.HERE, "build", STAGES[request.param])
     if not os.path.isfile(path):
-        pytest.skip(f"{path} not built (make web)")
+        pytest.skip(f"{path} not built (just web)")
     with open(path, "rb") as f:  # a GLB opens with its glTF JSON chunk (glTF 2.0 spec, GLB File Format)
         magic, _, _, size, kind = struct.unpack("<4sIIII", f.read(20))
         assert magic == b"glTF" and kind == 0x4E4F534A, path  # "JSON"

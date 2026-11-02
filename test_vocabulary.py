@@ -3,6 +3,7 @@ Not the whole avoid list: API words like serial, board, hook are unavoidable in 
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -16,7 +17,7 @@ FILES = [
     and not {"stock-backup", "build"} & set(p.parts)  # the stock program, mech/build
     and p.name != "gaze_trace.py"
 ]
-FILES.append(ROOT / "Makefile")
+FILES.append(ROOT / "justfile")
 ALLOWED = {"daemon": ["daemon=True"]}  # threading API, not our vocabulary
 
 
@@ -31,7 +32,7 @@ def test_no_avoid_words_in_code():
 
 
 def test_the_model_is_never_called_twin():
-    files = [p for p in (ROOT / "model").rglob("*.py")] + [ROOT / "Makefile"]
+    files = [p for p in (ROOT / "model").rglob("*.py")] + [ROOT / "justfile"]
     hits = [
         f"{f.relative_to(ROOT)}:{n}"
         for f in files
@@ -130,3 +131,20 @@ def test_vendor_and_designer_names_only_in_credits():
         if pattern.search(line)
     ]
     assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)
+
+
+def test_our_recipes_run_with_just_never_make():
+    """The justfile replaced the Makefile (docs/adr/0016): no tracked file says make <recipe>; the ADRs and research
+    notes keep the words of their day, and the justfile's make -C is MicroPython's own Makefile."""
+    just = Path(sys.executable).with_name("just")
+    recipes = subprocess.run([just, "--summary"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    stale = re.compile(rf"\bmake (?:-\w+ )*(?:{'|'.join(map(re.escape, recipes))})(?![\w/-])")
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    hits = [
+        f"{f}:{n}"
+        for f in tracked
+        if not f.startswith(("docs/adr/", "docs/research/", "CHANGELOG.md")) and (ROOT / f).is_file()
+        for n, line in enumerate((ROOT / f).read_text(errors="replace").splitlines(), 1)
+        if stale.search(line)
+    ]
+    assert recipes and not hits, "\n".join(hits)

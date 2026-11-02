@@ -20,7 +20,7 @@ import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
 import { address, caption as captionFor, offsets as offsetsFor, opened, title } from "./state.mjs";
 
-// the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
+// the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
 const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(here("draco/")));
 const FOV = 20;

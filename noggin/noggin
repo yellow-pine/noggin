@@ -15,12 +15,12 @@ usage: noggin on|off                     mute / unmute
        noggin follow                     back to reacting to Claude Code from demo or pose (the mode after any restart)
        noggin status                     per Core: wifi <ip> uptime program <version> <commit> / usb <port> / offline;
                                          the service's version and commit, a warning for an older Core program; the mode
-       noggin flash                      the eye program to the eyes Core over Wi-Fi, then reboot it (make flash)
+       noggin flash                      the eye program to the eyes Core over Wi-Fi, then reboot it (just flash)
 USAGE
 exit 2; }
 if [ "$1" = flash ]; then  # up to 90 s (a beacon, upload, reboot, maybe the fallback to .bak): the reply is the outcome
-  out=$(printf 'flash\n' | nc -U -w 90 "$HOME/.noggin.sock") || { echo "noggin not running (make start)" >&2; exit 1; }
+  out=$(printf 'flash\n' | nc -U -w 90 "$HOME/.noggin.sock") || { echo "noggin not running (just start)" >&2; exit 1; }
   echo "$out"
   case $out in flashed*) exit 0 ;; *) exit 1 ;; esac
 fi
-printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "noggin not running (make start)" >&2; exit 1; }
+printf '%s\n' "$*" | nc -U -w 1 "$HOME/.noggin.sock" || { echo "noggin not running (just start)" >&2; exit 1; }

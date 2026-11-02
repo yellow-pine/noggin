@@ -1,7 +1,7 @@
 """Remove the worktrees whose branch is gone from origin (its PR squash-merged) or sits where a merged or closed PR
 ended, never one on an open PR's branch, never pushed, with uncommitted changes (git worktree remove refuses those)
 or unpushed commits, or the one this runs in; prints each removed path. Never by ancestry alone: a branch pushed
-before its first commit sits on main. Usage: make worktrees-clean"""
+before its first commit sits on main. Usage: just worktrees-clean"""
 
 import contextlib
 import json

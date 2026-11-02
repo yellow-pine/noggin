@@ -5,7 +5,7 @@ The Mech grows in three Stages, each a complete Mech on the desk: the eyes on th
 ([Stage 3](stage-3.md)). Each Stage's page lists, from the model, the parts it adds. This page is the shopping list.
 
 The mechanism and its assembly instructions are the designer's ([Credits](../credits.md)); those files are not
-redistributed here. Our own parametric parts print from `make stl` (model/build/stl, mm, in the designer's frames).
+redistributed here. Our own parametric parts print from `just stl` (model/build/stl, mm, in the designer's frames).
 
 ## Parts to buy
 

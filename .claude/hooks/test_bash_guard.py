@@ -23,34 +23,34 @@ def guard(command: str, cwd: Path = REPO) -> subprocess.CompletedProcess[str]:
         ("git stash", "commit"),
         ("cd ../wt && git stash push -m wip", "commit"),
         ("git -C ../wt stash pop", "commit"),
-        ("until ! pgrep -f 'make sim'; do sleep 5; done", "Waiting on CI"),
+        ("until ! pgrep -f 'just sim'; do sleep 5; done", "Waiting on CI"),
         ("while pgrep -f blender >/dev/null; do sleep 5; done", "Waiting on CI"),
         ("gh pr merge 12 --admin --squash", "--auto --squash"),
-        ("make sim", "CI"),
-        ("make -s render", "CI"),
-        ("cd ../wt && make hero", "CI"),
-        ("make lint test", "CI"),
-        ("make check-all", "CI"),
+        ("just sim", "CI"),
+        ("uv run just render", "CI"),
+        ("cd ../wt && just hero", "CI"),
+        ("just lint test", "CI"),
+        ("just check", "CI"),
         ("until grep -q done out.txt; do :; done", "Waiting on CI"),
         ("until [ -f out ]\ndo\n  true\ndone", "sleep"),
-        ("# rebuild the pictures\nmake render", "CI"),
-        ("make lint  # quick\nmake sim", "CI"),
-        ("BLENDER=/opt/blender MOTIONS=hero make pictures", "CI"),
-        ("nohup make sim > log 2>&1 &", "CI"),
-        ("timeout 900 make hero", "CI"),
+        ("# rebuild the pictures\njust render", "CI"),
+        ("just lint  # quick\njust sim", "CI"),
+        ("just BLENDER=/opt/blender pictures hero", "CI"),
+        ("nohup just sim > log 2>&1 &", "CI"),
+        ("timeout 900 just hero", "CI"),
         ("gh -R yellow-pine/noggin pr merge 12 --admin", "--auto --squash"),
         ("for i in 1 2; do until [ -f out ]; do :; done; done", "sleep"),
         ("until [ -f out ]; do :; done; sleep 1", "sleep"),
-        ('until [ -z "$(pgrep -f make)" ]; do sleep 5; done', "Waiting on CI"),
-        ("bash <<'EOF'\nmake sim\nEOF", "CI"),
+        ('until [ -z "$(pgrep -f just)" ]; do sleep 5; done', "Waiting on CI"),
+        ("bash <<'EOF'\njust sim\nEOF", "CI"),
         ("python3 - <<EOF\nimport os\nEOF\nbash <<'EOF'\ngit stash\nEOF", "commit"),
         ("cat <<EOF\nok\nEOF\nbash <<X\ngit stash\nX", "commit"),
         ("echo '<<EOF'\ngit stash\nEOF", "commit"),
         ("bash -c 'git stash'", "commit"),
-        ('sh -c "cd .. && make render"', "CI"),
+        ('sh -c "cd .. && just render"', "CI"),
         ("eval git stash", "commit"),
         ('echo "$(git stash)"', "commit"),
-        ("echo `make sim`", "CI"),
+        ("echo `just sim`", "CI"),
         ("x=$(git stash pop)", "commit"),
         ("gh api -X PUT repos/yellow-pine/noggin/pulls/12/merge", "--auto --squash"),
         ("gh api graphql -f query='mutation { mergePullRequest(input: {}) { clientMutationId } }'", "--auto --squash"),
@@ -58,7 +58,7 @@ def guard(command: str, cwd: Path = REPO) -> subprocess.CompletedProcess[str]:
         ("git config alias.s stash", "alias"),
         ("git -c core.pager=less -c Alias.s=stash s", "alias"),
         ("GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.s GIT_CONFIG_VALUE_0=stash git s", "GIT_CONFIG"),
-        ("/bin/bash -lc 'make sim'", "CI"),
+        ("/bin/bash -lc 'just sim'", "CI"),
         ("echo 'git stash' | sh", "pipe"),
         ("gh api graphql -F query=@merge.graphql", "inline"),
         ("echo 'unbalanced", "parse"),
@@ -78,19 +78,19 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "git status && git commit -m 'no git stash here'",
         "gh pr merge 12 --auto --squash",
         "gh pr create --body 'never gh pr merge --admin'",
-        "make lint",
-        "make check-light",
-        "make mpy-list",
+        "just lint",
+        "just check-light",
+        "just mpy-list",
         "until gh pr checks 12 >/dev/null; [ $? != 8 ]; do sleep 60; done",
         "while read -r f; do echo $f; done < files",
         "pgrep -f noggin",
-        "cat > notes.md <<'EOF'\ndon't run make sim or git stash here\nEOF",
+        "cat > notes.md <<'EOF'\ndon't run just sim or git stash here\nEOF",
         "git commit -q -F - <<EOF\nit's done\nEOF",
         "tee out.txt <<< 'git stash'",
         "gh api repos/yellow-pine/noggin/pulls/12/reviews",
-        "make lint > sim.log",
+        "just lint > sim.log",
         "gh pr list --json number | jq length",
-        "gh pr create --body-file - <<'EOF'\nmake sim runs in CI\nuntil now nothing blocked git stash\nEOF",
+        "gh pr create --body-file - <<'EOF'\njust sim runs in CI\nuntil now nothing blocked git stash\nEOF",
         "git commit -F - <<EOF\nuntil now\nEOF\ngit push",
         "until [ -f out ]; do /bin/sleep 5; done",
         "cat <<< 'until x'",
@@ -101,13 +101,20 @@ def test_anything_else_runs(command):
     assert result.returncode == 0, result.stderr
 
 
-def test_full_make_check_is_blocked_once_make_check_light_exists(tmp_path):
-    (tmp_path / "Makefile").write_text("check: lint\n\tpytest\nsim:\n\t$(HEAVY) sim\n")
-    assert guard("make check", tmp_path).returncode == 0
-    assert "make lint" in guard("make sim", tmp_path).stderr
-    (tmp_path / "Makefile").write_text("check: lint\n\tpytest\ncheck-light: lint\n\tpytest -x\n")
-    assert "make check-light" in guard("make check", tmp_path).stderr
-    assert "make check-light" in guard("make check").stderr  # this repo's Makefile has check-light
+def test_the_heavy_recipes_are_the_justfiles_heavy_group(tmp_path):
+    (tmp_path / "justfile").write_text("lint:\n    true\n\n[group('heavy')]\nsim *docs: lint\n    true\n")
+    assert guard("just lint", tmp_path).returncode == 0
+    assert "just check-light" in guard("just sim noggin-eyes", tmp_path).stderr
+    assert guard("just sim", REPO / "docs").returncode == 2  # just finds the justfile above the folder, as it runs it
+
+
+def test_every_recipe_under_the_heavy_lock_is_in_the_heavy_group():
+    """The guard reads the group, so a recipe that takes the lock (HEAVY, scripts/heavy.py) must be in it."""
+    dump = subprocess.run([REPO / ".venv/bin/just", "--dump", "--dump-format", "json"], cwd=REPO, capture_output=True)
+    recipes = json.loads(dump.stdout)["recipes"].values()
+    locked = {r["name"] for r in recipes if '["variable", "HEAVY"]' in json.dumps(r["body"])}
+    heavy = {r["name"] for r in recipes if {"group": "heavy"} in r["attributes"]}
+    assert locked and locked <= heavy
 
 
 def test_a_hook_that_cannot_read_its_input_blocks():

@@ -1,7 +1,7 @@
 node_modules/
 dist/
 .astro/
-# written by the build: the Draco decoder from three's npm package (prebuild) and the numbers from the code (make site)
+# written by the build: the Draco decoder from three's npm package (prebuild) and the numbers from the code (just site)
 public/viewer/draco/
 src/macros.json
 test-results/
