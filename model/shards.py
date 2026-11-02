@@ -60,7 +60,10 @@ def packed(weight):
     cap, bins = max(weight.values(), default=0), []
     for unit in sorted(weight, key=lambda u: (-weight[u], u)):
         fits = next((b for b in bins if sum(weight[u] for u in b) + weight[unit] <= cap), None)
-        fits.append(unit) if fits else bins.append([unit])
+        if fits:
+            fits.append(unit)
+        else:
+            bins.append([unit])
     return bins
 
 
@@ -70,7 +73,9 @@ def blender(pictures=True, viewer=True):
     from model.render.pictures import motions  # Blender's side only: the model shards need none of it
 
     stages_of = {m["motion"]: m["stages"].split() for m in motions()} if pictures else {}
-    cold = [*stages_of, *["viewer"] * viewer]
+    cold = [*stages_of, "viewer"] if viewer else [*stages_of]
+    # shortcut: the "blender <unit>" seconds are run 41388039993's, typed in, since a bin times its units together;
+    # upgrade to a per-motion timing in the bins' durations-* when the bins stop matching the runs
     took = json.load(open(DURATIONS))
     measured = [took[f"blender {u}"] for u in cold if f"blender {u}" in took] or [1.0]
     weight = {u: took.get(f"blender {u}", sum(measured) / len(measured)) for u in cold}  # unmeasured: the mean

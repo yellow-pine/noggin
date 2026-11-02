@@ -98,15 +98,15 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
   release tag's run and Release Please's are never cancelled).
-- Required checks on main: `PR` (pr-checks.yml, which also runs on title and body edits), `Checks`, `Fetch Skills` and
-  `Review` (#496). `Checks` is the gate of `.github/workflows/checks.yml`: it fails unless every job there passed or was
-  skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
+- The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
+  was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not change;
   `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose Checks
   passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
 - `Model` runs on four shards, `make mech` one of their units, balanced by the seconds CI measured in
   `model/durations.json`; `make model-durations RUN=<id>` refreshes it from a run's `durations-*` artifacts. `Blender`
-  packs the pictures' motions and the viewer into runners longest first (`make blender-bins`). The sim's reports are never committed: main's are on the
-  site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports against main's in its job summary.
+  packs the pictures' motions and the viewer into runners longest first (`make blender-bins`). The sim's reports are
+  never committed: main's are on the site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports
+  against main's in its job summary.
 - With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;

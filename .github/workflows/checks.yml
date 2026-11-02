@@ -86,18 +86,20 @@ jobs:
       # make (model/ours.py) with what they import or name (the trajectories' sources, the script Blender runs;
       # scripts/inputs.py), Blender's pin and uv.lock, so a Makefile, workflow or test edit renders nothing. Hashed here
       # alone, on the runner's Python (the repo's syntax; the images' is older), for every job
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
       - name: Hash the inputs
         id: inputs
-        run: |   # each the inputs' sha256 and uv.lock's minus noggin's version, which a release bumps (#403)
-          lock=$(python3 scripts/lock_hash.py)
+        run: |   # each the inputs' sha256 and the lockfile's
+          lock=$LOCK
           pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile)
           viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile)
           { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
-      - name: Hash the lockfile
-        id: lock
-        run: |   # as above, for the parts' key
-          hash=$(python3 scripts/lock_hash.py)
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+        env:
+          LOCK: ${{ steps.lock.outputs.hash }}
       # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
       - name: Look up the parts cache
         id: parts
@@ -507,7 +509,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-
       # the latest trajectories: make trajectories rebakes only the Stages whose stamp moved (model/trajectories.py)
       - name: Restore the trajectories
@@ -526,7 +528,9 @@ jobs:
         with:
           path: /tmp/mesa-shader-cache
           key: mesa-${{ matrix.bin }}-${{ hashFiles('model/render/blender.py', 'ci/blender.Dockerfile') }}
-          restore-keys: mesa-${{ matrix.bin }}-
+          restore-keys: |   # a bin's name moves with the packing
+            mesa-${{ matrix.bin }}-
+            mesa-
       # its own step first, so the run's timings show the bake apart from the renders
       - name: Run make trajectories
         run: make trajectories
@@ -647,7 +651,7 @@ jobs:
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
       - name: Restore the pictures
-        if: ${{ needs.site.result == 'success' }}
+        if: ${{ needs.site.result == 'success' && github.event_name != 'schedule' }}   # weekly: the ones it rendered
         id: images
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:

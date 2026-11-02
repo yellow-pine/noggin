@@ -75,11 +75,12 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
         run: python3 scripts/pr_title.py "$TITLE"
       - name: Check the body links an issue
-        if: ${{ github.event.pull_request.user.type != 'Bot' }}
+        if: ${{ !cancelled() && github.event.pull_request.user.type != 'Bot' }}   # past a failed title check too
         env:
           BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
         run: python3 scripts/pr_issue.py <<<"$BODY"
       - name: Review the dependencies
+        if: ${{ !cancelled() }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294   # v5.0.0
         with:
           fail-on-severity: low   # the action's default: any known vulnerability fails
