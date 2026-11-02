@@ -204,11 +204,7 @@ def test_a_pr_runs_the_slim_gate_alone():
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
-    assert [s["name"] for s in jobs["checks"]["steps"]] == [
-        "Check every job passed",
-        "Check out the repo",
-        "Check the CI budget",
-    ]
+    assert [s["name"] for s in jobs["checks"]["steps"]] == ["Check every job passed"]  # no CI budget (#732)
 
 
 def test_a_pr_lists_no_job_every_pr_skips():
@@ -251,7 +247,8 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
         if DERIVED.search(line)
     }
     assert uploaded == {"site/dist"}  # #673: no PR preview
-    into_site = [c for r in runs for c in re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", r)]
+    site = re.search(r"(?m)^site:[^\n]*\n((?:    [^\n]*\n)+)", (WORKFLOWS[0].parents[2] / "justfile").read_text())[1]
+    into_site = re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", "\n".join([*runs, site]))
     assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
     fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
     viewer = [r for r in fetched if ".published.viewer" in r]
@@ -289,6 +286,20 @@ def test_zizmor_asks_githubs_api_only_off_prs():
     assert "zizmor" not in (WORKFLOWS[0].parent / "pr-gate.yml").read_text()
 
 
+def test_ci_runs_zizmor_and_parses_the_shell_scripts_once():
+    """#732: just check's offline zizmor and bash -n / sh -n run locally alone; in CI the Code job's online zizmor and
+    shellcheck (which parses the same scripts) cover them."""
+    code = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
+    shellcheck = next(s["run"] for s in code if s.get("run", "").startswith("shellcheck "))
+    justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
+    check = re.search(r"(?m)^check:[^\n]*\n((?:    [^\n]*\n)+)", justfile)[1].splitlines()
+    local = [line.strip() for line in check if re.search(r"zizmor|\b(ba)?sh -n", line)]
+    assert len(local) == 3
+    assert all(line.startswith('[ -n "${CI:-}" ] || ') for line in local), local
+    parsed = re.findall(r"(?:sh -n|in) ([\w/. ]+?)(?:;|$)", "\n".join(local))
+    assert {f for files in parsed for f in files.split()} <= set(shellcheck.split())
+
+
 def test_the_pr_gate_never_runs_on_edited():
     """#496: a title or body edit would cancel the running gate (one run per group), or green a red one."""
     on = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())[True]
@@ -310,7 +321,7 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
 
 def test_the_ci_images_build_on_main_alone():
     """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
-    Dockerfiles in main's Code job, so a broken Dockerfile files 'main red' (main-red.yml)."""
+    Dockerfiles in main's Code job, so a broken Dockerfile files a `main-red-images` issue (main-red.yml)."""
     images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
     assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
@@ -414,6 +425,49 @@ def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_b
     assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
     (job,) = flows["main-red.yml"]["jobs"].values()
     run = "\n".join(s.get("run", "") for s in job["steps"])
-    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
-    assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
+    assert '--label "$label" --json' in run and '--label "$label",' in run  # finds by it, files with it
     assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
+
+
+def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked():
+    """#767: an issue's title can become its PR's, so commitlint checks it on open and edit with main's config; a
+    failing title gets a comment and `needs-title` (an issue can't be blocked), a passing one loses both."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "issue-title.yml").read_text())
+    assert flow[True] == {"issues": {"types": ["opened", "edited"]}}
+    assert flow["permissions"] == {}
+    (job,) = flow["jobs"].values()
+    assert job["permissions"] == {"issues": "write"}
+    checkout = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/checkout@"))
+    assert "ci/commitlint.config.mjs" in checkout["with"]["sparse-checkout"]
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "commitlint --config ci/commitlint.config.mjs" in run
+    assert "--add-label needs-title" in run and "--remove-label needs-title" in run
+    assert "github.event.issue.title" not in run  # via env, never inlined into the script
+
+
+@pytest.mark.parametrize(
+    ("workflow", "gh"),
+    [  # the open `main-red` issue was retitled: still found, by its label (#767)
+        ("Checks", "issue comment 771 --body Main's Checks failed on abc1234def: run"),
+        # its own issue: a deploy says nothing about the images; titled a Conventional Commit from the start
+        (
+            "CI Images",
+            "issue create --title fix(ci): main red in CI Images on abc1234 --label main-red-images,bug,ready-for-agent"
+            " --body Main's CI Images failed on abc1234def: run",
+        ),
+    ],
+)
+def test_main_red_finds_its_open_issue_by_label_never_title(tmp_path, workflow, gh):
+    """#767: Main Red found its issue by title, so retitling one opened a duplicate (#775). `gh` is faked: one open
+    issue, #771, labelled `main-red` under any title, listed to a query that asks for no title."""
+    (tmp_path / "gh").write_text(
+        f'#!/bin/sh\ncase "$*" in "issue list --label main-red --json number --jq .[0].number // empty") echo 771 ;;\n'
+        f'  "issue list"*) ;;\n  *) echo "$*" >> {tmp_path}/gh.log ;; esac\n'
+    )
+    (tmp_path / "gh").chmod(0o755)
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())
+    (job,) = flow["jobs"].values()
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "WORKFLOW": workflow, "CONCLUSION": "failure", "RUN_ID": "1"}
+    env |= {"RUN_URL": "run", "SHA": "abc1234def"}
+    subprocess.run(["bash", "-e", "-c", job["steps"][0]["run"]], env=env, check=True)
+    assert (tmp_path / "gh.log").read_text() == gh + "\n"

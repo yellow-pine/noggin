@@ -327,7 +327,7 @@ def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
     assert "re-actors/alls-green@" in green["uses"]
     assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
     skips = {j.strip() for j in green["with"].get("allowed-skips", "").split(",") if j.strip()}
-    assert skips == {j for j in gate["needs"] if "if" in jobs[j]} - {"code"}
+    assert skips == {j for j in gate["needs"] if "needs.changes.outputs" in jobs[j].get("if", "")}
 
 
 def test_no_real_photos_are_tracked():
