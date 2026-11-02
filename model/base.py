@@ -29,7 +29,7 @@ from model import neck
 TORSO = ((-46.0, 46.0), (-35.0, 58.5), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 16))
 PACK_Y = 41.5  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
-TRAY = (64.6, -89.6)  # (a): (y of the tray's front face, z of the row's middle), candidates.optimise()'s
+TRAY = (64.2, -88.4)  # (a): (y of the tray's front face, z of the row's middle), candidates.optimise()'s
 TRAY_T = 3.0  # the tray's plate
 SHELF_Z = 45.0  # (b): the shelf's underside, over the lids' highest reach as the head tilts
 TOWER_R = 3.21  # (b): candidates.optimise()'s

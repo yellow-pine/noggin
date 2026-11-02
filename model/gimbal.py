@@ -44,10 +44,12 @@ LID_SPAN = 2 * (CAP_HALF + LID_COVER)  # the wedge's width about x
 LID_REST = PUPIL_DEG + 2.0  # the lid's lower edge just over the pupil (#51), at the lid servo's centre
 LID_EDGES = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)  # the lid's edge closed (past the cap's rim) and open (#51)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
-LID_HORN = (53.0, 0.0)  # (y, z) of each lid servo's horn: behind the eye, its case just behind the bail's upright
-# the lid's crank at rest, deg from forward toward up: square to the bar (along +y) mid-range, so the bar meets it at
-# 50 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
-LID_CRANK = 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
+# (y, z) of each lid servo's horn: under and behind the eye, its case under the tie-bar and in front of the bail's
+# upright, low and forward so the head's centre of mass stays near the tilt axis (the tilt bar's load, #684)
+LID_HORN = (18.0, -45.0)
+# the lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's) mid-range,
+# so the bar meets it at 50 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
+LID_CRANK = math.degrees(math.atan2(LID_HORN[1], -LID_HORN[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
 LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
@@ -57,7 +59,7 @@ SERVO_DEG = 90.0  # a servo's travel either side of its centre
 PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2, the pitch horn outboard of the bar
 LID_X = {"boss": (28.0, 31.0), "crank": (28.0, 31.0), "bar": (31.0, 34.0), "upright": (34.0, 37.0)}  # x out from L eye
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo
-PLATE_Y = (-25.0, 77.0)  # under the head mount's front screws to past the lid servos' collars
+PLATE_Y = (-25.0, 70.0)  # under the head mount's front screws to past the pitch servo's collar
 HEAD_MM = (140.0, 120.0, 150.0)  # the compact head the gimbal fits (#684): width, depth, height
 
 
@@ -65,7 +67,7 @@ def drives():
     """{label: (horn's outer face centre, shaft direction, tab direction, arm direction at rest)}: the four servos of the
     eyes Core, each horn at its drive's crank (model/stages.py mounts them, model/printed/gimbal.py seats them), each
     case behind the eyes' centres and within their width (#684): the yaw servo under the tie-bar, the pitch servo
-    beside the pitch bar, each lid servo behind its eye, its horn on the inner face of the lid's bar."""
+    beside the pitch bar, each lid servo under and behind its eye, its horn on the inner face of the lid's bar."""
     out = {
         "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (0, -1, 0), g.Y),
         "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), g.Y, g.Y),

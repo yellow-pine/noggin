@@ -126,8 +126,9 @@ until the model stabilises.
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points; and the gimbal's bounding box, servos and horns included, "block_mm", against the compact head's `HEAD_MM`),
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
-  servo under the tie-bar, the pitch servo beside the pitch bar, each lid servo behind its eye, driving its lid's crank
-  through a bar back along the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
+  servo under the tie-bar, the pitch servo beside the pitch bar, each lid servo under and behind its eye (low and
+  forward, so the head's centre of mass stays near the tilt axis), driving its lid's crank through a bar down along
+  the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
   In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
   horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
