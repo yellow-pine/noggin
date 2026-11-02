@@ -16,6 +16,9 @@
 > Amended 2026-11-02 (#778, ADR 0021): no Docs versions; the smoke test checks the header's newest release and that
 > an old version's URL (/noggin/vX.Y/…) lands on the same page, the one redirect.
 >
+> Amended 2026-11-03 (#795): Site Deploy (its own workflow) is gone; Checks' last job, `Deploy`, deploys `Site`'s
+> artifact on main's push once the gate passed, so each github-pages Deployment records the commit built.
+>
 > Amended 2026-11-02 (#603): the site keeps Starlight (search, Docs versions, dark mode) but no longer its default
 > look. Cansin picked direction A, "Googly", from a three-way prototype (branch `prototype/603-site-directions`):
 > Yellow Pine's brand v2.2 as the base (ink, paper, surfaces, links, an azure focus), the Mech's filament colours as
@@ -74,8 +77,8 @@ service anywhere.
   host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
   out of git, the workflows).
 - **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `just site`,
-  with the pictures and the viewer, then Vitest and Playwright, and uploads `site/dist` (#732); Site Deploy deploys
-  it. Dependabot covers npm, grouped like uv and Actions, each release waiting 14 days.
+  with the pictures and the viewer, then Vitest and Playwright, and uploads `site/dist` (#732); Checks' `Deploy`
+  deploys it (#795). Dependabot covers npm, grouped like uv and Actions, each release waiting 14 days.
 
 ## Considered options
 

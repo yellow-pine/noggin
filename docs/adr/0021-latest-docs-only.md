@@ -2,6 +2,9 @@
 
 > Decided by Cansin on 2026-11-02, #778; how the label and the redirect work was decided while he was away (#778's
 > "Decision (made while away)" comment). Supersedes ADR 0014.
+>
+> Amended 2026-11-03 (#795): Checks' `Deploy` job deploys every green push to main, in place of Site Deploy; the
+> header still names the newest release, and Deploy and Release stay independent (#773).
 
 Each Release's docs, kept as a release asset and served at /noggin/vX.Y/ beside main's (ADR 0014), broke as the site
 moved on: they linked outputs later changes took down (#645's), and keeping every old build working was not worth it.
@@ -13,8 +16,8 @@ So the site serves one set of docs, main's, at /noggin/.
   When GitHub doesn't answer (a rate limit), there is no label; the footer still names the version built.
 - **Old URLs land on the docs.** /noggin/vX.Y/… and /noggin/vX.Y.Z/… reach GitHub Pages' 404 page, whose script sends
   the reader on to the same page under /noggin/, or to the home when that page is gone too.
-- **Nothing versioned is built or kept.** Release Assets attaches the Core program zip alone, Site Deploy deploys
-  Checks' artifact with main's sim reports and nothing else, and nothing dispatches it. The docs assets already on old
+- **Nothing versioned is built or kept.** Release Assets attaches the Core program zip alone, Checks' `Deploy` deploys
+  its `Site` artifact with main's sim reports and nothing else, and nothing dispatches it. The docs assets already on old
   releases stay there, unserved.
 
 ## Considered options

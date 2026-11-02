@@ -10,7 +10,7 @@
 
 <p align="center">
 <a href="https://github.com/yellow-pine/noggin/actions/workflows/checks.yml"><img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=Checks&labelColor=2B2B2E"></a>
-<a href="https://github.com/yellow-pine/noggin/actions/workflows/site-deploy.yml"><img alt="Site Deploy" src="https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/site-deploy.yml?branch=main&label=Site%20Deploy&labelColor=2B2B2E"></a>
+<a href="https://github.com/yellow-pine/noggin/deployments/github-pages"><img alt="Site" src="https://img.shields.io/github/deployments/yellow-pine/noggin/github-pages?label=Site&labelColor=2B2B2E"></a>
 <a href="https://github.com/yellow-pine/noggin/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/yellow-pine/noggin?label=Release&labelColor=2B2B2E&color=FFB673"></a>
 <a href="LICENSE.md"><img alt="Licence: PolyForm Noncommercial 1.0.0" src="https://img.shields.io/badge/Licence-PolyForm%20Noncommercial-F7CED7?labelColor=2B2B2E"></a>
 </p>

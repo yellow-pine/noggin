@@ -1,5 +1,5 @@
 name: Main Red
-# Opens one `main-red` issue while main's Checks or Site Deploy fail, and closes it once main deploys again; a failed
+# Opens one `main-red` issue while main's Checks fail, and closes it once Checks' Deploy puts main up again; a failed
 # CI Images run (main alone builds the images, #729) opens one `main-red-images` issue, closed by its next push.
 # PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). A failed run opens the issue
 # (that label, bug, ready-for-agent; titled 'fix(ci): main red on <sha7>', #767) linking the commit and the run, or
@@ -9,7 +9,7 @@ name: Main Red
 run-name: "${{ startsWith(github.event.workflow_run.display_title, format('{0}: ', github.event.workflow_run.name)) && format('Main Red: {0}', github.event.workflow_run.display_title) || format('Main Red: {0}: {1}', github.event.workflow_run.name, github.event.workflow_run.display_title) }}"
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
-    workflows: ["Checks", "Site Deploy", "CI Images"]   # by their names (test_workflows.py)
+    workflows: ["Checks", "CI Images"]   # by their names (test_workflows.py)
     types: [completed]
     branches: [main]
 concurrency:   # one at a time, so two red runs never open two issues
@@ -38,7 +38,7 @@ jobs:
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           # found by its label, never its title, which anyone may edit (#767); the title is a Conventional Commit
-          label=main-red title="fix(ci): main red on ${SHA:0:7}" done="Site Deploy deployed it"
+          label=main-red title="fix(ci): main red on ${SHA:0:7}" done="Checks deployed it"
           if [ "$WORKFLOW" = "CI Images" ]; then
             label=main-red-images title="fix(ci): main red in CI Images on ${SHA:0:7}"
             done="CI Images pushed the images"
@@ -54,10 +54,10 @@ jobs:
               body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
               if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
               else gh issue create --title "$title" --label "$label",bug,ready-for-agent --body "$body"; fi ;;
-            success)   # green once CI Images pushed, or Site Deploy's Deploy put a commit up (red Checks skip it)
+            success)   # green once CI Images pushed, or Checks' Deploy put a commit up (the weekly run skips it)
               case "$WORKFLOW" in
                 "CI Images") green=1 ;;
-                "Site Deploy") green=$(gh run view "$RUN_ID" --json jobs \
+                Checks) green=$(gh run view "$RUN_ID" --json jobs \
                   --jq '[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length') ;;
                 *) green=0 ;;
               esac

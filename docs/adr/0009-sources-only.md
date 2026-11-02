@@ -44,6 +44,9 @@
 > required `Checks` gate), so a PR lists no job every PR skips; Checks (`checks.yml`) runs on main alone.
 > Amended 2026-11-02 (#729, Cansin): no PR builds the CI images either; main's `CI Images` run fails without moving
 > `:main`, and its failure files 'main red (CI Images)' (main-red.yml), which its next successful run closes.
+> Amended 2026-11-03 (#795): Site Deploy is gone; Checks' last job, `Deploy`, deploys its own run's site artifact on
+> main's push once the gate passed (GitHub's Pages starter workflow), so each github-pages Deployment records the
+> commit built.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -58,8 +61,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   nowhere, and the site carries no code).
 - **Built once, deployed with GitHub's own Pages actions** (#310). Checks (`checks.yml`, #496) builds the docs
   on every PR and every push to main, with the viewer's GLBs and the pictures when their inputs changed, and its `Checks` gate uploads the site as an
-  artifact. Site Deploy (`site-deploy.yml`) runs only on main: once Checks passed for the commit, it downloads
-  that run's artifact and deploys it with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
+  artifact. Its last job, `Deploy`, runs only on main's push: once the gate passed, it downloads that run's
+  artifact and deploys it with `actions/deploy-pages` (#795); nothing built is committed, and no branch holds the site.
 - **PR previews are artifacts.** A PR's Checks run builds the docs (and the viewer's GLBs when it changed what they
   are made from, #221) and its gate uploads them as an artifact linked from its job summary; no external preview host.
   The gate is the required `Checks` (#245, #496), and the run tests the built site (ADR 0013).
@@ -72,8 +75,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **The sim reports are built, never committed** (#229). `just sim` writes them and their MJCFs into
   model/build/reports; a `Model` shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
-  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Checks is done on main
-  (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Checks' `Site` builds beside the
+  (the newest `sim-` entry, which only main saves) in its job summary; Checks' `Deploy` runs after its gate on main
+  and puts the newest entry at /reports in the site it deploys (Checks' `Site` builds beside the
   `Model` shards, before the sim may be saved). The stamp check (model/stale.py) is gone; the recorded sweeps
   (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
 - **The pictures are built in CI** (#226): Checks' `Blender` jobs render the README's pictures, and `Site`, after
