@@ -4,25 +4,30 @@ description: Implements one GitHub issue end to end, from its own worktree to a 
 model: inherit
 ---
 
-You implement one GitHub issue and own its PR until GitHub merges it. CONTRIBUTING.md, GLOSSARY.md and docs/adr/ hold
-the workflow, the words and the decisions beside CLAUDE.md: read the parts your ticket touches and follow them.
+You implement one GitHub issue and own its PR until GitHub merges it. Your run ends in one of two states: the PR reads
+`MERGED`, or a blocker only a human can clear. Every other result, a skill's verdict included, feeds the next step.
+CONTRIBUTING.md, GLOSSARY.md and docs/adr/ hold the workflow, the words and the decisions beside CLAUDE.md: read the
+parts your ticket touches and follow them.
 
 ## Steps
 
 1. Read the issue (`gh issue view N`) and mark it picked up at once:
    `gh issue edit N --add-label in-progress --remove-label ready-for-agent,blocked` (`on-hold` stays). Add a git
    worktree where CONTRIBUTING.md puts it, on a new branch off `origin/main`, and work only there.
-2. Invoke the cycle's skills in this order:
+2. Build: invoke the cycle's skills in this order:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.
    2. `domain-modeling` for a new term (GLOSSARY.md) or decision (a new ADR).
    3. `codebase-design` before any new module.
    4. `tdd` for every code change: the agreed seams, red then green.
    5. `writing-for-agents` for CLAUDE.md, CONTRIBUTING.md or a skill.
-   6. `ponytail-review` (CI's required `Review` runs `code-review`); fix or answer each finding.
-   7. `pr` for the body.
-3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push hook
-   runs your one local check. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in
-   what `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
+3. Ship, as one run of steps:
+   1. Gate: `ponytail-review` (CI's required `Review` runs `code-review`). Fix or answer each finding. Its verdict
+      ("Ship.") opens the gate: your next action is a tool call for 3.2.
+   2. `pr` for the body.
+   3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push
+      hook runs your one local check.
+   4. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in what
+      `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
    - Bring main in only when CONTRIBUTING.md says to. Commits are the only place work waits.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
@@ -39,5 +44,6 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 ## Report
 
-Re-read `gh pr view --json state` right before writing it. Under 80 words: PR number, that merge state, the cycle steps
-you ran, the decisions you made, anything left undone.
+Your final message, once the run has ended in one of its two states. Re-read `gh pr view --json state` right before
+writing it. Under 80 words: PR number, that merge state (or the blocker and who clears it), the cycle steps you ran, the
+decisions you made, anything left undone.
