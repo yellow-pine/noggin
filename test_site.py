@@ -66,13 +66,13 @@ def test_github_links_to_the_site_for_the_tables_built_from_the_code(doc):
 
 
 def test_the_readme_is_for_contributors():
-    """#279: the pitch, the hero, the call-out to the site, setup, checks, CI/CD, contributing, credits, licence;
-    building and using the Mech are the site's."""
+    """#279: the pitch, the hero, the links to the site, setup, checks, CI/CD, contributing, credits, licence;
+    building and using the Mech are the site's. #595: the site's three links by name, under the hero."""
     readme = github("README.md")
-    assert (
-        "[Docs, build guide and live 3D viewer → https://yellowpine.com/noggin](https://yellowpine.com/noggin/)"
-        in readme
-    )
+    site = "https://yellowpine.com/noggin/"
+    links = re.findall(r'<a href="([^"]+)"><b>([^<]+)</b></a>', readme)
+    assert links == [(site, "Docs"), (f"{site}docs/build/parts/", "Build guide"), (f"{site}viewer/", "3D viewer")]
+    assert readme.index("hero.webp") < readme.index("<b>Docs</b>") < readme.index("## ")
     assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
     assert "(https://yellowpine.com/noggin/docs/ci-cd/)" in readme  # #425
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
