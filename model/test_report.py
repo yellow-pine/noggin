@@ -62,7 +62,8 @@ def deeper(pair):
 
 def mujoco_problems(report):
     """The MuJoCo half (model/mujoco_report.py): a pair deeper than at rest, an open four-bar, a servo holding over its rated
-    torque, a joint a full-speed swing leaves off the slow pose, the centre of mass off the footprint. Listed exceptions
+    torque (in a pose of the sweep or along a motion), a servo's load peaking over half its stall torque along a motion, a
+    joint a full-speed swing leaves off the slow pose, the centre of mass off the footprint, at rest or moving. Listed exceptions
     (KNOWN_PAIRS, KNOWN_FULL_SPEED) carry their reasons."""
     m, doc, out = report.get("mujoco", {}), report["doc"], []
     for p in m.get("pairs", []):
@@ -85,9 +86,24 @@ def mujoco_problems(report):
                 f"mujoco {horn} at full speed ({f['deg_s']} deg/s) to {f['at']}: its joints settle {f['off_deg']} deg"
                 " off the slow pose"
             )
+    for horn, a in m.get("motions", {}).get("servos", {}).items():
+        if a["hold_kgf_cm"] > a["rated_kgf_cm"]:
+            out.append(
+                f"mujoco {horn}: holds {a['hold_kgf_cm']} kgf.cm at {a['hold_at']} > its rated {a['rated_kgf_cm']}"
+            )
+        if a["peak_kgf_cm"] > a["stall_kgf_cm"] / 2:
+            out.append(
+                f"mujoco {horn}: peaks at {a['peak_kgf_cm']} kgf.cm at {a['peak_at']} > half its stall {a['stall_kgf_cm']}"
+            )
     tip = m.get("tip_over")
     if tip and tip["margin_mm"] <= 0:
         out.append(f"mujoco tip-over: centre of mass {-tip['margin_mm']} mm outside the base footprint at {tip['at']}")
+    if tip and tip["moving"]["margin_mm"] <= 0:
+        moving = tip["moving"]
+        out.append(
+            f"mujoco tip-over: the moving centre of mass bears {-moving['margin_mm']} mm outside the base footprint at"
+            f" {moving['at']}"
+        )
     return out
 
 
@@ -122,7 +138,11 @@ FIXTURE_PROBLEMS = {
         "mujoco four-bar tilt pivot: open 0.07 mm at {'tilt horn': 60} > 0.05",
         "mujoco tilt horn: holds 0.45 kgf.cm at {'tilt horn': -60} > its rated 0.4 (stall 1.0)",
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
+        "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
+        "mujoco tilt horn: peaks at 0.55 kgf.cm at {'motion': 'hero', 'ms': 410} > half its stall 1.0",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
+        "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
+        " {'motion': 'hero', 'ms': 410}",
     ],
 }
 
