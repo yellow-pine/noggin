@@ -543,6 +543,10 @@ def assemble(doc, frames, up, context=()):
     if doc in g.STEM_AT:  # the bracket stem in STEM_IN's part
         bottom = g.DESK_STEM_BOTTOM if doc in g.DESK else g.STEM_BOTTOM
         placements.append(("eye bracket:1", [bottom], [g.STEM_AT[doc]], TOL_MM))
+    if doc.endswith("-plain"):  # the Skeleton plain (#704): each part that has a plain style drawn in it
+        from model.printed import styled  # here: model.printed imports what imports this module
+
+        parts = {n: p._replace(file=stl(styled(stem(p.file), plain=True))) for n, p in parts.items()}
     if doc in g.STEM_IN or doc in g.NEXT:
         riders = {}  # carrier part -> parts clamped to it (the mouth on the bracket, the bracket on the tilt arm)
         for sub, carrier in RIDES.items():

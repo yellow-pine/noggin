@@ -40,6 +40,8 @@
 > tests); the model, sim, Blender and Convex and the site's Chrome smoke build on main alone, which fixes forward.
 > Amended 2026-11-02 (#714, Cansin): a PR's Checks run only Code (`just check-light`: ruff, pyright, the fast tests);
 > the site's build and the workflow and Dockerfile linters moved to main too.
+> Amended 2026-11-02 (#722, Cansin): that slim gate is its own workflow, PR Gate (`pr-gate.yml`: Code, then the
+> required `Checks` gate), so a PR lists no job every PR skips; Checks (`checks.yml`) runs on main alone.
 > Amended 2026-11-02 (#729, Cansin): no PR builds the CI images either; main's `CI Images` run fails without moving
 > `:main`, and its failure files 'main red (CI Images)' (main-red.yml), which its next successful run closes.
 

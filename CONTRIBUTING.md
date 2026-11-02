@@ -59,11 +59,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   feat, fix, perf, revert or a `!` break (before 1.0 a break bumps the minor, the rest the patch); docs, ci, chore,
   build, test, style and refactor release nothing. The tag starts `Release Assets`, which attaches the Core program
   zip and the release's docs (docs/adr/0014). No release PR, nothing committed back; tag nothing by hand.
-- The workflows that open PRs or push (Release, the weekly `skills` and `blender` ones, `Review`'s
-  rebase) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on
-  yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and write and no
-  webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the `RELEASE_APP_PRIVATE_KEY`
-  secret. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
+- The workflows that open PRs, push or merge (Release, the weekly `skills` and `blender` ones, `Review`'s
+  rebase, Dependabot Auto-merge) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a
+  private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
+  write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
+  `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
+  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or
+  its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
   --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
@@ -93,8 +95,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
-  numbered the next free one. When Code fails because main took that number since, run
-  `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
+  numbered the next free one. When Code fails because main took that number since, `git mv` the
+  draft to the next free number and change the old number on the lines your branch added (docs/adr/0015).
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`just wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
 
@@ -109,18 +111,21 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
-  A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and of Checks `Code` (`just
-  check-light`); Site, Convex, Model, the sim, Blender, the smoke and CodeQL run on main after the merge, and a red
-  main files its own 'main red' issue (#697). Only the main session runs the full run on a branch (`gh workflow run
-  checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
+  A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
+  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue (#697).
+  Only the main session runs the full run on a branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a
+  main failure; an implementer's branch runs the slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
-  `test_workflows.py`). What Site Deploy and Release wait on (Checks) cancels on PRs only: main's runs queue and each
-  finishes, so merges minutes apart still deploy; a newer push replaces a run still waiting, never one running (#689).
+  `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
+  Site Deploy and Release wait on (Checks) never cancels: main's runs queue and each finishes, so merges minutes apart
+  still deploy; a newer push replaces a run still waiting, never one running (#689).
   Site Deploy, Release and Release Assets never cancel a run mid-way.
-- The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
-  was skipped. On main its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs did not
-  change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
+- The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
+  Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
+  there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
+  did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
   inputs. `Site` always runs: it builds the deploy.
 - `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts

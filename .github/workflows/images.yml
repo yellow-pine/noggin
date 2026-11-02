@@ -17,7 +17,7 @@ on:
     branches: [main]
     paths: ["ci/*.Dockerfile", ".github/workflows/images.yml", "uv.lock", "pyproject.toml", ".python-version"]
   workflow_dispatch:
-concurrency:   # as in checks.yml
+concurrency:   # a newer run on main replaces a running one
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions: {}

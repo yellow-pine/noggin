@@ -12,14 +12,20 @@ jobs:
     name: Auto-merge
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
     runs-on: ubuntu-26.04
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
-      # shortcut: a merge GITHUB_TOKEN enabled starts no push workflow on main (Checks, Site Deploy); the next
-      # merge runs them. Upgrade to the bot App's token (ADR 0010) stored as Dependabot secrets.
+      # as the bot App: a merge GITHUB_TOKEN turned on starts no push workflow on main (Checks, Site Deploy). Its key
+      # is a Dependabot secret too (CONTRIBUTING.md), since Dependabot's runs see no Actions secret
+      - name: Mint the bot App's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write   # the squash merge
+          permission-pull-requests: write
+          permission-workflows: write   # an actions bump edits workflow files
       - name: Turn on auto-merge
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}

@@ -36,6 +36,8 @@
 > button in the ranking's order, marked with what it fails.
 > Amended 2026-11-02 (#712): Back alone (`next-mech-back.glb`), Cansin's pick; its one button keeps the ranking's
 > order and marks, so a later variant comes back beside it.
+> Amended 2026-11-02 (#704, ADR 0020): Back twice, its Skeleton as Bones ("Back") and plain ("Back plain",
+> `next-mech-back-plain.glb`), a button each.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

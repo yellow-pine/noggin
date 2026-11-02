@@ -14,6 +14,9 @@
 > Amended 2026-11-02 (#534): reverses #472's "no weekly rebuild": the CI images also rebuild weekly, uncached.
 >
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
+>
+> Amended 2026-11-02 (#730): no weekly firmware watch. The vendor's release notes lag its app by a year and opened
+> one issue ever (#355); the vendor's app, which shows a Core's newer firmware, is the only signal.
 
 Every dependency, tool, toolchain and firmware is kept at its **newest stable release once that release is at least
 14 days old**; a security fix goes in at once. The delay guards against a bad or compromised fresh release.
@@ -35,8 +38,8 @@ Every dependency, tool, toolchain and firmware is kept at its **newest stable re
 - **The Core's firmware** is updated with the vendor's own app or desktop tool (Bluetooth, or its wired upgrade tool),
   never with a third-party image. The Core has the ESP32-C3's flash encryption on (community evidence, to be read
   off our Cores), so only the vendor's encrypted builds boot, and a plaintext image soft-bricks it ([Espressif: flash
-  encryption](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/security/flash-encryption.html)). A
-  weekly job opens an issue when the vendor's firmware release notes change; Cansin updates both Cores, then
+  encryption](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/security/flash-encryption.html)). When
+  the vendor's app offers newer firmware, Cansin updates both Cores, then
   `just flash-usb` reinstalls the eye program (the vendor's update replaces it) and `just backup-stock` refreshes the
   backup.
 - **The Core's MicroPython pins follow the Core**, not upstream: mpy-cross, the stubs, the stand-in's tag,

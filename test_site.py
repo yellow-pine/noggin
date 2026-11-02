@@ -227,7 +227,8 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    following = [f"next-mech-back-{v}.webp" for v in ("side", "isometric")]  # #686, Back alone since #712
+    # #686, Back alone since #712, its Skeleton as Bones and plain (#704)
+    following = [f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")]
     assert sorted(pictures.SITE["views"]) == sorted(
         [*panels, *following, "favicon.png"]
     )  # the site's icon: an eye (#603)
@@ -251,8 +252,12 @@ def test_the_next_mech_has_its_own_panels():
     import macros
 
     grid = macros.next_panels()
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech (back)"]  # Back alone since #712
-    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == [f"next-mech-back-{v}.webp" for v in ("side", "isometric")]
+    # Back alone since #712, its Skeleton as Bones and plain (#704)
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech (back)", "Next Mech (back plain)"]
+    views = re.findall(r'<img src="[^"]+/([^/"]+)"', grid)
+    assert sorted(views) == sorted(
+        f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")
+    )
 
 
 def test_the_site_publishes_the_next_mech_alone():
@@ -269,7 +274,7 @@ def test_the_site_publishes_the_next_mech_alone():
     # picture per part
     assert len(published) == 2 * len(g.NEXT) + 1 + 7 + len(stems) == len(set(published))
     assert {"next-mech-back-isometric.webp", "next-eyes-rest.webp", "next-board-rack.webp"} <= {*published}
-    assert build.PUBLIC == {"next-mech-back": "next-mech-back.glb"}  # Back alone since #712
+    assert build.PUBLIC == {d: f"{d}.glb" for d in ("next-mech-back", "next-mech-back-plain")}  # #712, #704
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
     assert [doc for doc in g.NEXT if stages.todays(doc)] == []
@@ -305,15 +310,19 @@ def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_ranking
     monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
     unranked = macros.variants()
     assert [v["glb"] for v in unranked["buttons"]] == list(g.NEXT) and not unranked["ranked"]
-    assert [v["label"] for v in unranked["buttons"]] == ["Back"]
-    ranking = {"order": ["next-mech-back"], "variants": {"next-mech-back": {"fails": ["head size", "tilt loop"]}}}
+    assert [v["label"] for v in unranked["buttons"]] == ["Back", "Back plain"]  # its Skeleton as Bones and plain (#704)
+    fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-plain": []}
+    ranking = {
+        "order": ["next-mech-back-plain", "next-mech-back"],
+        "variants": {d: {"fails": f} for d, f in fails.items()},
+    }
     macros.RANKING.write_text(json.dumps(ranking))
     ranked = macros.variants()
-    assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == ["next-mech-back"]
+    assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == ["next-mech-back-plain", "next-mech-back"]
     # #705: a variant that fails a gate keeps its button, saying what it fails
-    assert [v["label"] for v in ranked["buttons"]] == ["Back: head size, tilt loop"]
+    assert [v["label"] for v in ranked["buttons"]] == ["Back plain", "Back: head size, tilt loop"]
     about = {v["glb"]: v["about"] for v in ranked["buttons"]}
-    assert about["next-mech-back"] == "the boards upright on the board rack's back face, behind the eye gimbal"
+    assert set(about.values()) == {"the boards upright on the board rack's back face, behind the eye gimbal"}
     macros.RANKING.write_text(json.dumps({"order": ["next-mech-a"], "variants": {"next-mech-a": {"fails": []}}}))
     assert macros.variants() == unranked
 
@@ -352,24 +361,29 @@ def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
     assert pictures.motions() == [
         {
             "motion": "views",
-            "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-back",
+            "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech-back next-mech-back-plain",
         },
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
 
 
-def test_the_required_checks_gate_needs_every_job_and_never_skips():
-    """`Checks`, the one required check of the workflow (#496): it needs every other job, runs past a failed or skipped
-    one (a skipped required check passes) and fails unless each passed or was skipped as unchanged or, on a PR, as
-    main's alone (#696, #714); Code never skips. A draft runs none of it (#414)."""
-    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]
+@pytest.mark.parametrize(
+    ("workflow", "runs"),
+    [("checks.yml", "${{ !cancelled() }}"), ("pr-gate.yml", "${{ !cancelled() && !github.event.pull_request.draft }}")],
+)
+def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
+    """`Checks`, the one required check of a PR's gate and the one main's Site Deploy and Release wait on (#496, #722):
+    it needs every other job of its workflow, runs past a failed or skipped one (a skipped required check passes) and
+    fails unless each passed or, conditioned on its inputs, was skipped as unchanged. A draft runs none of it (#414)."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / workflow).read_text())["jobs"]
     gate = jobs["checks"]
     assert sorted(gate["needs"]) == sorted(j for j in jobs if j != "checks")
-    assert gate["if"] == "${{ !cancelled() && !github.event.pull_request.draft }}"
+    assert gate["if"] == runs
     green = gate["steps"][0]
     assert "re-actors/alls-green@" in green["uses"]
     assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
-    assert {j.strip() for j in green["with"]["allowed-skips"].split(",")} == set(gate["needs"]) - {"code"}
+    skips = {j.strip() for j in green["with"].get("allowed-skips", "").split(",") if j.strip()}
+    assert skips == {j for j in gate["needs"] if "if" in jobs[j]} - {"code"}
 
 
 def test_no_real_photos_are_tracked():
