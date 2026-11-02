@@ -149,14 +149,16 @@ A cumulative build state of the Mech, the Sub-assemblies placed at frames (geome
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour from
-Blender's glTF (docs/adr/0008), and Stage 3 exploded; off the Site until the clean-room Mech (docs/adr/0019).
+The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
+(docs/adr/0008): on the Site the Next Mech alone (docs/adr/0019); locally also each Stage, playing its gestures and
+the Tour, Stage 3 exploded.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
 The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
 docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs
-(docs/adr/0009); no picture of today's Mech (docs/adr/0019). The README is for contributors and stays on GitHub.
+(docs/adr/0009); pictures and the Web viewer of the Next Mech alone, never of today's (docs/adr/0019). The README is
+for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:
@@ -234,10 +236,20 @@ A test piece we print to find a fit on our printer and filament before a Printed
 clearance coupon's pins and magnet pockets; not part of the Mech.
 _Avoid_: test part, calibration print, sample
 
+**Take**:
+One filmed run of a servo through the servo test's moves at one known load, and the record made of it: when each
+command was written and where the marked Horn was at each frame. The servo's values in the Model are fitted to Takes.
+_Avoid_: clip, recording, trial, run
+
 **Pivot**:
 A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the four-bar
 kinematics that pose a horn angle without simulating (model/linkage.py).
 _Avoid_: hinge, axle
+
+**Singularity margin**:
+How far a four-bar is from its toggle over its Horn's range: the smallest singular value of the loop's constraint
+Jacobian over its free Pivots, in mm of pin per radian; zero at the toggle, where a Bar and its lever line up.
+_Avoid_: dead point margin, condition number
 
 **Port**:
 A named point on a connector where a cable plugs in.

@@ -63,6 +63,8 @@ DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfil
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "sim": (["model/report.py"], ["uv.lock"]),
+    # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
+    "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
     # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
@@ -135,6 +137,18 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
         if not covered(file, globs)
     }
     assert missed == set()
+
+
+def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
+    """A justfile, workflow or test edit renders no picture and bakes no GLB (#469, #649): its key hashes only what the
+    render code reads."""
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    tooling = [
+        f
+        for f in tracked
+        if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
+    ]
+    assert {f for globs in patterns()["next"] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():

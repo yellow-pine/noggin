@@ -8,6 +8,7 @@ dependencies = [
     "coacd>=1.0.14",
     "mujoco[sysid]>=3.17.0",  # sysid: model/servo_fit.py
     "numpy>=2.5.4",
+    "opencv-python-headless>=5.0.0.93",
     "pyserial>=3.5",
     "scipy>=1.18.1",
     "spicelib>=1.6.4",

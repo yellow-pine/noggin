@@ -29,6 +29,8 @@
 > Amended 2026-11-02 (#547): "Built in CI" describes the Checks workflow and Site Deploy, not the Pages workflow.
 > Amended 2026-11-02 (#640, ADR 0019): the viewer is off the site and CI bakes no GLB until the clean-room Mech;
 > `just web` bakes them locally.
+> Amended 2026-11-02 (#649, ADR 0019): the viewer is back on the site at /viewer/ for the Next Mech alone
+> (`next-mech.glb`, baked by Checks' `Blender` job); it is still, so its GLB has no clips and the page no gesture bar.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

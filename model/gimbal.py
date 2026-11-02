@@ -35,10 +35,12 @@ BAIL_IN = 25.0  # the bail's input arm, along +y
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
 CAP_R, CAP_HALF = 27.0, 45.0  # each Character's largest eyeball cap: a sphere segment this wide about the gaze
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
+PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
 LID_R = (CAP_R + 1.5, CAP_R + 3.5)  # the lid wedge's inner and outer radius
 LID_COVER = 3.0  # how far past the cap's rim a closed lid reaches
 LID_SPAN = 2 * (CAP_HALF + LID_COVER)  # the wedge's width about x
 LID_REST = PUPIL_DEG + 2.0  # the lid's lower edge just over the pupil (#51), at the lid servo's centre
+LID_EDGES = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)  # the lid's edge closed (past the cap's rim) and open (#51)
 LID_HORN = (0.0, -40.0)  # (y, z) of each lid servo's horn, under the lid's crank (along +y at rest)
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
@@ -121,6 +123,38 @@ def servos(yaw, pitch):
     return yaw, s
 
 
+def _carry(a0, b0, a, b):
+    """4x4 taking a part pinned at a0 and b0 (a plane across x) to its pins at a and b: a turn about x, then a shift."""
+    turn = math.atan2(b[2] - a[2], b[1] - a[1]) - math.atan2(b0[2] - a0[2], b0[1] - a0[1])
+    m = linkage.rotation(g.X, math.degrees(turn), a0)
+    m[:3, 3] += np.subtract(a, a0)
+    return m
+
+
+def moved(lid, pitch):
+    """{next-eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg and the eyes at `pitch`, yaw 0
+    (#650): each lid, its bar and its horn; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
+    out = {}
+    for s, (x, _, _) in EYE.items():
+        lid_m, horn_m = linkage.rotation(g.X, -lid, (x, 0, 0)), linkage.rotation(g.X, -lid, (x, *LID_HORN))
+        crank, pin = (x, CRANK, 0), (x, LID_HORN[0] + CRANK, LID_HORN[1])
+        out[f"next {s} lid:1"], out[f"next {s} lid horn:1"] = lid_m, horn_m
+        out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
+    servo = servos(0, pitch)[1]
+    bail, a, b = _PITCH(servo)
+    out["next pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
+    out["next bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))
+    out["next pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, BAIL[0] + BAIL_IN, BAIL[1]), a, b)
+    for s, (yaw, p) in eyes(0, servo).items():
+        x = EYE[s][0]
+        core_m = linkage.rotation(g.Z, yaw, (x, 0, 0)) @ linkage.rotation(g.X, -p, (x, 0, 0))  # as core()
+        out[f"next {s} eyeball core:1"] = out[f"next {s} eyeball cap:1"] = core_m
+        lever, arm = (x, 0, LEVER), (x, BAIL[0], BAIL[1] + LEVER)
+        rod = (core_m @ [*lever, 1])[:3], (out["next bail:1"] @ [*arm, 1])[:3]
+        out[f"next {s} push-rod:1"] = _carry(lever, arm, *rod)
+    return out
+
+
 def _angle(a, b):
     return math.degrees(math.acos(min(1.0, float(np.dot(a, b)))))
 
@@ -167,7 +201,9 @@ def report():
     """The gimbal's numbers against #630's gates (model/test_report.py), over the (yaw, pitch) grid: the worst gaze
     error through the command map with every pin's play, the yaw-pitch crosstalk (the pitch a yaw adds when the pitch
     servo ignores it) beside the Hooke form's, the vergence error a print error makes, the lids' clearance to the
-    parts moving inside them over the pitch x lid grid and their servo range, and the caps' closest approach."""
+    parts moving inside them over the pitch x lid grid and their servo range, and the caps' closest approach. The gaze
+    error adds the pupil's seating (#650): the pupil strays up to PUPIL_FIT from its seat's centre, which on the cap
+    turns the gaze the way the play may, so the two add."""
     grid = _grid()
     c = fits.CLEARANCE[0]  # every pin at the tightest agreed fit, its play counted at the arm it turns
     play = (math.degrees(2 * c / CRANK), math.degrees(c * (2 / BAIL_IN + 2 / LEVER)))
@@ -181,10 +217,11 @@ def report():
         cross = max(cross, abs(eyes(yaw, servos(0, pitch)[1])["L"][1] - pitch))
         e = eyes(*cmd, scale=PRINT_SCALE)
         verge = max(verge, _angle(gaze(*e["L"]), gaze(*e["R"])))
+    pupil = math.degrees(math.atan(PUPIL_FIT / CAP_R))  # shortcut: the largest cap's; a smaller cap's seat strays more
     hooke = max(
         abs(math.degrees(math.asin(math.sin(math.radians(p)) / math.cos(math.radians(y)))) - p) for y, p in grid
     )
-    edges = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)
+    edges = LID_EDGES
     clear = min(
         min(float(_to_segment(lid_points(edge), a, b).min()) - r for a, b, r in _moving(yaw, pitch))
         for yaw in (-YAW, 0, YAW)
@@ -194,8 +231,9 @@ def report():
     cap, offset = cap_points(), np.subtract(EYE["L"], EYE["R"])
     gap = min(float(cKDTree(cap @ core(*pose).T + offset).query(cap @ core(*pose).T)[0].min()) for pose in grid)
     return {
-        "gaze_deg": round(gaze_err, 2),
+        "gaze_deg": round(gaze_err + pupil, 2),
         "play_deg": round(math.hypot(*play), 2),
+        "pupil_deg": round(pupil, 2),
         "crosstalk_deg": round(cross, 2),
         "hooke_deg": round(hooke, 2),
         "vergence_deg": round(verge, 3),

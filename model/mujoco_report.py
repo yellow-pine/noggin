@@ -1,7 +1,8 @@
 """The sim report's MuJoCo half (#149, ADR 0007): measure(doc, model) steps the document's MJCF through each horn's sweep
 (geometry.LIMITS in STEP_DEG steps, the other horns at neutral) and, where the neck is, the pan x tilt grid, each pose
 reached quasi-statically by mjcf.pose, and reports per pose: contacts and penetration per pair (MuJoCo's signed
-distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, the force each servo holds against
+distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, singularity margins and transmission
+angles (model/gates.py), the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
 the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
 gesture, and the hero where the neck is: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
@@ -18,13 +19,18 @@ import mujoco
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from model import electrical, mjcf, sim, stages, traces, trajectories
+from model import electrical, fits, gates, mjcf, sim, stages, traces, trajectories
 
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
 KGF_CM = 0.0980665  # N.m
 PAN, TILT = "pan horn", "tilt horn"
 PENETRATION_MM, LOOP_MM, TURN_DEG = 0.05, 0.05, 1.0  # thresholds (model/test_report.py)
 RATED_DEG_S = electrical.servo.rate(electrical.SERVO_MIN_V)  # 60 deg in 0.14 s at 4.8 V
+# the four-bars' gates (#627, model/test_report.py): the tightest pin fit we print (fits.CLEARANCE) lets a loop's free
+# pivots turn up to clearance / margin rad, held to PLAY_DEG (#51's gaze error, play included), so the singularity
+# margin stays over MARGIN_MM_RAD; the bar meets its lever at TRANSMISSION_DEG or more (docs/research/2026-10-31-neck.md)
+PLAY_DEG, TRANSMISSION_DEG = 2.0, 40.0
+MARGIN_MM_RAD = fits.CLEARANCE[0] / math.radians(PLAY_DEG)
 
 
 def _degs(horn):
@@ -184,7 +190,7 @@ def measure(doc, model):
     widen(model)
     still = mjcf.pose(model, {})
     rest = _contacts(model, still)
-    pairs, residuals, actuators, slow = {}, {}, {}, {}
+    pairs, residuals, loops, actuators, slow = {}, {}, {}, {}, {}
     neck = {PAN, TILT} <= set(stage.horns)
     plate = _plate(model, still) if neck else None  # static: its outline holds for every pose
     outline = footprint(plate) if neck else None
@@ -195,6 +201,12 @@ def measure(doc, model):
             slow[tuple(ctrl.items())[0]] = data.qpos.copy()
         for loop, mm in mjcf.residuals(model, data).items():
             residuals[loop] = _worst(residuals.get(loop), mm, ctrl, "max_mm")
+        for loop, (mm_rad, deg) in gates.loops(model, data).items():  # margin() is the footprint's
+            least = loops.setdefault(loop, {"margin_mm_rad": math.inf, "transmission_deg": math.inf})
+            if mm_rad < least["margin_mm_rad"]:
+                least["margin_mm_rad"], least["margin_at"] = round(mm_rad, 2), ctrl
+            if deg < least["transmission_deg"]:
+                least["transmission_deg"], least["transmission_at"] = round(deg, 1), ctrl
         for h in stage.horns:
             actuators[h] = _worst(actuators.get(h), abs(data.actuator(h).force[0]) / KGF_CM, ctrl, "hold_kgf_cm")
         if tip is not None:
@@ -225,6 +237,7 @@ def measure(doc, model):
         "poses": len(todo),
         "pairs": sorted(pairs.values(), key=lambda p: p["pair"]),
         "residuals": residuals,
+        "loops": loops,
         "actuators": {
             h: {**a, "rated_kgf_cm": sim.RATED_KGF_CM, "stall_kgf_cm": round(mjcf.STALL_NM / KGF_CM, 3)}
             for h, a in actuators.items()

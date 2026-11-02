@@ -1,0 +1,18 @@
+---
+// The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro) draws
+// the next Mech's GLB beside this page at viewer/, the one the site serves (web/build.py PUBLIC, docs/adr/0019, #649).
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { published } from '../macros.json';
+---
+
+<StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
+  <p>
+    The next Mech as its model has it so far: the eye gimbal and the hardware it keeps, laid out apart until the neck
+    and the base place them. Drag to turn it, scroll or pinch to zoom.
+  </p>
+  {published.viewer.map((glb) => <div class="noggin-viewer" data-stage={glb.replace(/\.glb$/, '')} data-zoom />)}
+</StarlightPage>
+
+<style is:global>
+  .noggin-viewer canvas { height: 60vh; } /* in view on a laptop */
+</style>

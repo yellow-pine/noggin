@@ -17,6 +17,7 @@ from model.render import pictures
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
+STAGES["next-mech"] = "next-mech.glb"  # still: no clips (#649)
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
@@ -51,8 +52,8 @@ def test_every_part_of_the_stage_is_a_node(glb):
 
 def test_one_clip_per_gesture_and_the_hero_on_stages_with_a_neck(glb):
     doc, g = glb
-    expected = [*traces.GESTURES] + ([] if doc == "noggin-stage1" else ["hero"])
-    assert sorted(a["name"] for a in g["animations"]) == sorted(expected)
+    expected = [*traces.GESTURES] + ([] if doc == "noggin-stage1" else ["hero"]) if doc != "next-mech" else []
+    assert sorted(a["name"] for a in g.get("animations", [])) == sorted(expected)
 
 
 def test_the_hero_stage_carries_the_hero_pictures_camera(glb):
@@ -79,7 +80,7 @@ def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves
     that varies less than 1e-4 (0.1 mm, its io_scene_gltf2 fcurve_is_constant): MuJoCo jiggles the neck that much
     under the eyes' reactions, so "still" is within half a millimetre (and 5e-4 of a rotation entry, 0.03 deg)."""
     doc, g = glb
-    for a in g["animations"]:
+    for a in g.get("animations", []):
         name = a["name"]
         poses = trajectories.poses(doc, name)
         frames = len(poses)

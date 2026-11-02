@@ -5,8 +5,11 @@ moved. kp stays inferred: it acts only within the half degree of the servo's dea
 
 A take is one JSON file, filmed at the phone's slow-motion rate with a marker on the horn, the shaft upright so gravity
 does not turn it: {"load_g": the mass taped to the horn, "arm_mm": its distance from the shaft, "t_s": [each frame's
-time], "command_deg": [the command the Core held at that frame, degrees from neutral], "horn_deg": [the marker's
-angle at that frame, degrees from neutral]}, the horn at rest at its first command when the take starts. Film the bare
+time], "horn_deg": [the marker's angle at that frame, degrees from neutral], "command": [[the time the Core wrote a
+command, the command in degrees from neutral], ...], held until the next}, the first command at the first frame, the
+horn at rest at it; model/servo_take.py makes one from a clip. Nothing in the kit shows when the Core writes, so the
+take's clock is the Core's only up to one offset for all of a servo's takes, which the fitted delay takes in: it is the
+delay that plays them as filmed, not the Core's own (docs/adr/0018). Film the bare
 horn and a load a few times the gear train's inertia (docs/build/tests.md: ten 2 euro coins at 50 mm), moves both
 ways: the motor's run-up differs between them while the delay does not, which tells the armature from the delay (with
 one coin at the tip they trade off, and the stall torque comes out 40 % off).
@@ -53,14 +56,16 @@ def rig(values, take, torque=False):
 
 
 def _control(take):
-    """The take's commands (rad) held from frame to frame at the sim's step, as the Core's PWM holds them."""
-    t, rad = np.asarray(take["t_s"]), np.radians(take["command_deg"])[:, None]
-    return sysid.TimeSeries(t - t[0], rad).resample(target_dt=mjcf.TIMESTEP, method="zoh")
+    """The take's commands (rad) held from write to write, to its last frame, at the sim's step, as the PWM holds them."""
+    t, deg = np.array([*take["command"], (take["t_s"][-1], take["command"][-1][1])]).T
+    return sysid.TimeSeries(t - take["t_s"][0], np.radians(deg)[:, None]).resample(
+        target_dt=mjcf.TIMESTEP, method="zoh"
+    )
 
 
 def _start(model, take):
     """The full physics state at rest at the first command, the command's history full of it."""
-    data, rad = mujoco.MjData(model), math.radians(take["command_deg"][0])
+    data, rad = mujoco.MjData(model), math.radians(take["command"][0][1])
     data.qpos[:] = data.ctrl[:] = rad
     hist = np.full((model.actuator_history[0][0], 1), rad)
     mujoco.mj_initCtrlHistory(model, data, 0, None, hist)

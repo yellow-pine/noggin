@@ -8,6 +8,8 @@
                 "cutoff": {"pack_v": 5.8, "shield_a": {"core1": 2.995, "core2": 2.345}, "servo_v": {"l_lid": 3.645, "tilt": 3.662}, "core_v": {"core1": 3.3, "core2": 3.3}}},
  "mujoco": {"pairs": [{"pair": ["R eye horn:1", "R servo bracket:1"], "rest_mm": -0.02, "min_mm": -0.03, "at": {"R eye horn": -22}}],
             "residuals": {"tilt pivot": {"max_mm": 0.01, "at": {"tilt horn": 60}}},
+            "loops": {"tilt pivot": {"margin_mm_rad": 16.2, "margin_at": {"tilt horn": 60}, "transmission_deg": 57.7, "transmission_at": {"tilt horn": 60}},
+                      "pan pivot": {"margin_mm_rad": 5.1, "margin_at": {"pan horn": -40}, "transmission_deg": 22.8, "transmission_at": {"pan horn": -40}}},
             "actuators": {"tilt horn": {"hold_kgf_cm": 0.05, "at": {"tilt horn": -60}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}},
             "full_speed": {"tilt horn": {"deg_s": 428.6, "off_deg": 0.0, "at": 60}},
             "motions": {"names": ["eureka", "hero"], "servos": {"tilt horn": {"rest_kgf_cm": 0.01, "hold_kgf_cm": 0.05, "hold_at": {"motion": "hero", "ms": 400}, "peak_kgf_cm": 0.3, "peak_at": {"motion": "hero", "ms": 410}, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}}},

@@ -24,7 +24,7 @@ export default defineConfig({
         "default-src 'self'",
         "connect-src 'self' blob: https://api.github.com",
         "worker-src 'self' blob:",
-        "img-src 'self' data: blob:",
+        `img-src 'self' data: blob: ${SITE}${HOME}/images/`, // the pictures' absolute URLs, in previews and Docs versions too
       ],
       scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
       styleDirective: {
@@ -93,7 +93,12 @@ export default defineConfig({
         {
           label: 'Model',
           // main's sim reports, which a Docs version (docs/adr/0014) links on the live site
-          items: [{ label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` }, 'docs/model-notes'],
+          items: [
+            'docs/pictures',
+            { label: 'Viewer', link: '/viewer/' },
+            { label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` },
+            'docs/model-notes',
+          ],
         },
         {
           label: 'Reference',

@@ -34,45 +34,57 @@ Clearance is per side: a hole is its pin plus twice its clearance across.
 
 ## Filming a servo
 
-The servo reports no position, so its motion comes from slow-motion video of a marked horn. One servo, filmed once, at
-two known loads; `model/servo_fit.py` fits the model's servo to it (its docstring has the take files it reads).
+The servo reports no position, so its motion comes from slow-motion video of a marked horn. One servo, filmed at two
+known loads, a Take each; `model/servo_take.py` turns each clip into the file `model/servo_fit.py` fits the model's
+servo to.
 
 What you need: the spare servo and a horn, the eyes Core on its Shield and pack, a phone with slow motion, something to
-hold it still above the desk (a tripod, a stack of books), a black marker, a printed protractor or angle scale, a ruler,
-tape, a stiff strip about 6 cm long (a lolly stick, a cut ruler) and ten 2 euro coins (8.50 g each).
+hold it still above the desk (a tripod, a stack of books), a printer, a ruler, tape, glue, a stiff strip about 6 cm
+long (a lolly stick, a cut ruler) and ten 2 euro coins (8.50 g each).
 
-1. Set up. Unplug the right eye servo's lead from the Shield's port 4 and plug the spare servo in instead. Lay it on
-   the paper scale with its shaft pointing straight up, so the horn sweeps flat and gravity does not load it, and tape
-   it down. Draw a bold black line along the horn from the shaft to its tip, and a dot at the tip. Charge the pack.
-2. Frame it. The phone straight above the horn, the horn's plane parallel to the screen, the whole sweep, the scale
-   and the ruler in frame. Daylight or a bright lamp: slow motion needs light, and mains lighting can flicker in it.
-   Lock focus and exposure (press and hold on the screen) so they don't hunt.
-3. Run the moves. Start slow motion at the highest frame rate (240 fps), then, from the repo on the Mac, with the noggin
-   service running:
+1. Set up. Print the marker: `.venv/bin/python -m model.servo_take marker > marker.svg`, opened in a browser and
+   printed at 100 % (no "fit to page"): a 12 mm black and white square inside a white margin; check it with the ruler.
+   Cut it out with its white margin. Unplug the right eye servo's lead from the Shield's port 4 and plug the spare servo
+   in instead. Tape it to the desk with its shaft pointing straight up, so the horn sweeps flat and gravity does not
+   load it. Glue the marker flat on the horn, centred over the shaft (anywhere on the horn works, but there it stays
+   in frame). Charge the pack.
+2. Frame it. The phone straight above the horn, the horn's plane parallel to the screen, close enough that the marker
+   is at least a tenth of the picture across, the whole sweep (25 degrees each way) in frame. Daylight or a bright
+   lamp: slow motion needs light, and mains lighting can flicker in it. Lock focus and exposure (press and hold on the
+   screen) so they don't hunt.
+3. Run the take. From the repo on the Mac, with the noggin service running:
 
    ```
-   noggin/noggin pose eyes 90    # centre, then wait 2 s
-   noggin/noggin pose eyes 115   # a big step; wait 2 s after each
-   noggin/noggin pose eyes 65
-   noggin/noggin pose eyes 115
-   noggin/noggin pose eyes 95    # small steps
-   noggin/noggin pose eyes 85
-   noggin/noggin pose eyes 89    # one degree: does it move at all?
-   noggin/noggin pose eyes 90
-   just follow                   # back to reacting to Claude Code
+   noggin/noggin pose eyes 90    # centre and hold: Claude Code's hooks are ignored until follow
    ```
 
-   Each `pose eyes` ramps the eyes evenly in 20 ms steps over 150 ms (eyes/eyes.py), so a step is a known ramp; the
-   fit finds the delay between the command and the horn itself. One clip for the whole run is fine.
-4. Load A: the run above with the bare horn.
-5. Load B: tape the strip along the horn's line, the ten coins stacked and taped on it 50 mm from the shaft, and
-   read their radius from the shaft on the scale. The load has to be a few times the gear train's own inertia: one
-   coin at the horn's tip barely changes how the servo gets going, and the fit then cannot tell the gear train from
-   the delay.
-   Run the same moves again into a second clip.
-6. Put the servo back on port 4 when done.
+   Wait 2 s, start slow motion at the highest frame rate (240 fps), wait another second with the horn still, then:
+
+   ```
+   noggin/noggin take            # the moves, 7 s: a slow ramp, then steps both ways a second apart
+   ```
+
+   Stop filming a second after the horn's last move. `take` plays the same moves at the same times on the Core's own
+   clock every time (eyes/eyes.py `TAKE`), so its writes are known; the slow ramp at its start is what lines the video
+   up with them.
+4. Take A: the run above with the bare horn.
+5. Take B: tape the strip along the horn, the ten coins stacked and taped on it 50 mm from the shaft, the marker
+   still clear of them, and read the coins' radius from the shaft with the ruler. The load has to be a few times the
+   gear train's own inertia: one coin at the horn's tip barely changes how the servo gets going, and the fit then
+   cannot tell the gear train from its other values. Run step 3 again into a second clip.
+6. `just follow`, and put the servo back on port 4 when done.
 
 **Where the videos go.** Local only, never git: `docs/references/servo-video/` (docs/references is gitignored). Keep
 the original files at their slow-motion frame rate (AirDrop with Options, All Photos Data, or copy from Photos with
 "Export Unmodified Original"), named `A.mov` and `B.mov`, and a `notes.md` beside them: the date, which servo, the
 coins' radius, the pack's charge and anything that went differently from the steps above.
+
+**Turning them into the fit.** With the coins' mass and radius:
+
+```
+.venv/bin/python -m model.servo_take docs/references/servo-video/A.mov 0 0
+.venv/bin/python -m model.servo_take docs/references/servo-video/B.mov 85 50   # grams, mm
+.venv/bin/python -m model.servo_fit docs/references/servo-video/A.json docs/references/servo-video/B.json
+```
+
+The fit writes model/servo_fit.json, which goes in a PR of its own.
