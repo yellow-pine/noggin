@@ -22,31 +22,32 @@ from model import neck
 
 PLATE = ((-60.0, 60.0), (-45.0, 95.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0]))  # the base plate: x, y, z
 PACK_Y = 30.0  # the pack's front end, behind the neck mount's foot; its lead out the back
-TRAY = (64.6, -89.6)  # (a): (y of the tray's front face, z of the boards' middles), candidates.optimise()'s
+TRAY = (64.6, -89.6)  # (a): (y of the tray's front face, z of the row's middle), candidates.optimise()'s
 TRAY_T = 3.0  # the tray's plate
 SHELF_Z = 45.0  # (b): the shelf's underside, over the lids' highest reach as the head tilts
 TOWER_R = 3.21  # (b): candidates.optimise()'s
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
 GAP = 2.0  # between two boards in a row
 CLEAR = 3.0  # (a): what candidates.optimise() keeps the tray from the parts it swings past (inferred)
-# each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent and its back, the -y face:
-# model/envelopes.py, held to it by model/test_base.py)
+# each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
+# bottom: model/envelopes.py, held to it by model/test_base.py)
 _ROW = (
-    ((("next Shield 1", "receiver"), ("next Core 1", "core")), (-14.5, 14.5), -10.68),
-    ((("next Shield 2", "receiver"), ("next Core 2", "core")), (-14.5, 14.5), -10.68),
-    ((("next switch board", "switch"),), (-7.25, 13.25), -4.6),
+    ((("next Shield 1", "receiver"), ("next Core 1", "core")), (-14.5, 14.5), -10.68, -15.0),
+    ((("next Shield 2", "receiver"), ("next Core 2", "core")), (-14.5, 14.5), -10.68, -15.0),
+    ((("next switch board", "switch"),), (-7.25, 13.25), -4.6, -16.0),
 )
-ROW_W = sum(x1 - x0 for _, (x0, x1), _ in _ROW) + GAP * (len(_ROW) - 1)
+ROW_W = sum(x1 - x0 for _, (x0, x1), _, _ in _ROW) + GAP * (len(_ROW) - 1)
 BOARD_H, BOARD_D = 32.0, 21.5  # the row's height (the switch board's) and depth (a Shield with its Core)
 
 
 def boards(back, z):
     """{part name: (Envelope, translation)}: the boards upright in a row along x, centred on x 0, their backs on the
-    plane y = back, their middles at height z."""
+    plane y = back, their bottoms level BOARD_H / 2 under z (the tallest's middle at z), so each stands on a shelf
+    (#687)."""
     x, out = -ROW_W / 2, {}
-    for parts, (x0, x1), y0 in _ROW:
+    for parts, (x0, x1), y0, z0 in _ROW:
         for name, mesh in parts:
-            out[name] = (mesh, (x - x0, back - y0, z))
+            out[name] = (mesh, (x - x0, back - y0, z - BOARD_H / 2 - z0))
         x += x1 - x0 + GAP
     return out
 
