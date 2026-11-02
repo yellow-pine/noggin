@@ -1,8 +1,8 @@
 name: Cancel on failure
 # A job's last step, `if: ${{ failure() }}`: cancels the rest of its run at once (#769). A failed run can neither pass
 # a PR's gate nor deploy or release main, and main's runs queue one at a time (#689), so a red run holding a
-# 15-minute job held ~20 merges back. The job needs `actions: write`; Main Red still files the cancelled run from its
-# failed step.
+# 15-minute job held ~20 merges back. The job needs `actions: write`; Default Branch Failure still files the
+# cancelled run from its failed step.
 description: Cancel the workflow run this job belongs to.
 runs:
   using: composite

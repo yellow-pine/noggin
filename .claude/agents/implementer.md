@@ -12,7 +12,7 @@ parts your ticket touches and follow them.
 ## Steps
 
 1. Read the issue (`gh issue view N`) and mark it picked up at once:
-   `gh issue edit N --add-label in-progress --remove-label ready-for-agent,blocked` (`on-hold` stays). Add a git
+   `gh issue edit N --add-label "in progress" --remove-label "ready for agent,blocked"` (`on hold` stays). Add a git
    worktree where CONTRIBUTING.md puts it, on a new branch off `origin/main`, and work only there.
 2. Build: invoke the cycle's skills in this order:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.

@@ -9,7 +9,7 @@ name: CI Images
 # the layer cache; the next job to start pulls them. The weekly run and a dispatch build without the cache, so the apt
 # layers take the security fixes and the newest gh, on Mondays before image-scan.yml's scan (#534). No PR builds them
 # (#729): a broken Dockerfile fails main's run without moving :main, main's Code job lints it (hadolint), and
-# main-red.yml files a `main-red-images` issue.
+# default-branch-failure.yml files a `default branch images failure` issue.
 run-name: "${{ github.event_name == 'schedule' && 'CI Images: weekly uncached rebuild' || github.event_name == 'workflow_dispatch' && format('CI Images: manual by {0}', github.actor) || '' }}"
 on:
   schedule:
