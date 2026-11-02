@@ -23,7 +23,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    Stage your files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
    scripts/pr_title.py "<title>" < body` exits 0, and its one scope is in what `python3 scripts/pr_title.py` prints);
    open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
-   --auto --squash` at once.
+   --auto --squash` at once. A PR whose proof (measurements, screenshots) needs CI's run says `Refs #N` until that proof
+   is in its body, then `Closes #N`.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
    - Bring main into your PR with `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main`, only when
      the rebase rule allows (CONTRIBUTING.md); never force-push. Commits are the only place work waits; never stash.
