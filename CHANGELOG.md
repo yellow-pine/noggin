@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.4](https://github.com/yellow-pine/noggin/compare/v0.2.3...v0.2.4) (2026-11-02)
+
+
+### Features
+
+* **model:** the Stage panels and the hero in light and dark WebP, rendered faster ([#489](https://github.com/yellow-pine/noggin/issues/489)) ([3ddb414](https://github.com/yellow-pine/noggin/commit/3ddb414af187742521428e0bbd788d23be1ddf99))
+
+
+### Bug Fixes
+
+* **ci:** the guard's wait messages point to CONTRIBUTING's Waiting on CI rule ([#521](https://github.com/yellow-pine/noggin/issues/521)) ([ecd3753](https://github.com/yellow-pine/noggin/commit/ecd3753ef4a46863a5e8a6262559cbbfa7ed67e0))
+
+
+### Documentation
+
+* **docs:** one source per rule in the steering docs, and no body footer rule ([#516](https://github.com/yellow-pine/noggin/issues/516)) ([03a4d6e](https://github.com/yellow-pine/noggin/commit/03a4d6e6ab705b96c4626980a9bd3a452c1f5273))
+
 ## [0.2.3](https://github.com/yellow-pine/noggin/compare/v0.2.2...v0.2.3) (2026-11-02)
 
 
