@@ -18,7 +18,8 @@ and you resume when its process exits.
 2. **Release Now.** `gh workflow run release-now.yml` prints the run's URL; `gh run watch <id> --exit-status`.
    Cancelled (a newer Release Please run took its place in their shared queue): run it again. Failed: print
    `gh run view <id> --log-failed`'s error and stop.
-3. **Merge.** The PR merges once its required checks and Claude's review pass. `gh pr checks <n> --watch --required`,
+3. **Merge.** Release Now marked the draft PR ready, which starts its checks; it merges once its required checks and
+   Claude's review pass. `gh pr checks <n> --watch --required`,
    then `gh pr view <n> --json state,mergeCommit,autoMergeRequest`:
    - `MERGED`: go on with its `mergeCommit.oid`.
    - Open with `autoMergeRequest` null (a Release Please update raced Release Now): run step 2 again, then this step.

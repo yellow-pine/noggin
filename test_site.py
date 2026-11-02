@@ -252,9 +252,12 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
 def test_the_required_pictures_check_is_every_runner_or_none(motions, render, passes):
     """`Pictures`, the required check (#245), reports the motions job and the render runners as one: green when every
     motion passed or none ran (nothing the pictures are made from changed), red when any failed or was cancelled,
-    the motions list too (render then skips)."""
+    the motions list too (render then skips). A draft runs none of it (#414)."""
     job = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]["pictures"]
-    assert (job["needs"], job["if"]) == (["motions", "render"], "${{ !cancelled() }}")
+    assert (job["needs"], job["if"]) == (
+        ["motions", "render"],
+        "${{ !cancelled() && !github.event.pull_request.draft }}",
+    )
     (step,) = job["steps"]
     assert step["env"] == {"RESULTS": "${{ needs.motions.result }} ${{ needs.render.result }}"}
     r = subprocess.run(["bash", "-c", step["run"]], env={**os.environ, "RESULTS": f"{motions} {render}"})

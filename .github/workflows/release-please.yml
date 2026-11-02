@@ -3,7 +3,8 @@ name: Release Please
 # and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token
 # minted per run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR
 # would get no checks, its auto-merge no push to main and its tag no Release Assets. The PR auto-merges only when a
-# feature or a break is pending, or Release Now asked (#407). Merged, the PR's next run tags vX.Y.Z and releases it.
+# feature or a break is pending, or Release Now asked (#407); till then it is a draft, which no check runs on (#414).
+# Merged, the PR's next run tags vX.Y.Z and releases it.
 # Until the App's RELEASE_APP_CLIENT_ID variable exists, the run only leaves a notice.
 on:
   push:
@@ -56,6 +57,7 @@ jobs:
           gate=$(jq -n --argjson pr "$view" --argjson ev "$events" '{body: $pr.body, events: ($ev | add)}' |
             python3 scripts/release_gate.py "$APP")
           if [ "$gate" = on ]; then
+            gh pr ready "$n"   # out of draft: the checks and the review run once, now (#414)
             gh pr merge "$n" --auto --squash
           elif [ "$(jq .autoMergeRequest <<<"$view")" != null ]; then
             gh pr merge "$n" --disable-auto

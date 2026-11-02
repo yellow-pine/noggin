@@ -40,19 +40,21 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Dependabot, the weekly bumps) has no issue and passes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`
   workflow keeps a release PR (`chore(release): release noggin vX.Y.Z`) that bumps it and adds the CHANGELOG.md entry
-  from the titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It goes
-  through the required checks and review like any PR, and auto-merges on green only when its newest changelog version
-  has a Features or a BREAKING CHANGES section (`scripts/release_gate.py`); fixes alone wait for the next feature, or
-  for the `Release Now` workflow (`gh workflow run release-now.yml`), which turns auto-merge on for whatever is pending
-  and labels the PR `release now` to keep it on (only the App's own label counts). Merged, it tags `vX.Y.Z` and creates
-  the GitHub release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built
-  under /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel),
-  linked from the release's notes. Never edit the version, the manifest or CHANGELOG.md by hand. Both workflows run as
-  the release GitHub App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on yellow-pine,
-  installed on this repo only, with Contents, Pull requests and Issues read and write and no webhook. Each run mints a
-  short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID` variable) and private key (the
-  `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists Release Please only leaves a notice. The App's
-  `<slug>[bot]` must be in review.yml's `allowed_bots`, or its release PR gets no review.
+  from the titles merged since the last release; a feat, fix or perf opens it, the other types ride along. It stays a
+  draft, so no check runs on it, until it is ready: then it goes through the required checks and review like any PR, and
+  auto-merges on green. It is ready when its newest changelog version has a Features or a BREAKING CHANGES section
+  (`scripts/release_gate.py`); fixes alone wait for the next feature, or for the `Release Now` workflow (`gh workflow
+  run release-now.yml`, or `/release`), which marks it ready, turns auto-merge on for whatever is pending and labels the
+  PR `release now` to keep it on (only the App's own label counts). Merged, it tags `vX.Y.Z` and creates the GitHub
+  release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built under
+  /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel), linked
+  from the release's notes, and then deploys the site so those docs are live at once. Never edit the version, the
+  manifest or CHANGELOG.md by hand. Both workflows run as the release GitHub App, because what `GITHUB_TOKEN` creates
+  starts no workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues
+  read and write and no webhook. Each run mints a short-lived token from the App's Client ID (the
+  `RELEASE_APP_CLIENT_ID` variable) and private key (the `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists
+  Release Please only leaves a notice. The App's `<slug>[bot]` must be in review.yml's `allowed_bots`, or its release PR
+  gets no review.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),

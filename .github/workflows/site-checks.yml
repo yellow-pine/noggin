@@ -23,7 +23,7 @@ permissions: {}
 jobs:
   changes:   # as check.yml's; main builds everything
     name: Changes
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -155,7 +155,7 @@ jobs:
   # the required check (#245), motions and render's runners under one name (as check.yml's model); both skipped passes
   pictures:
     name: Pictures
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
     needs: [motions, render]
     runs-on: ubuntu-26.04
     steps:
