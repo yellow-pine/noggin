@@ -1,4 +1,4 @@
-// A PR title's rules (docs/adr/0010): config-conventional's, plus exactly one scope, derived from the repo (ADR 0011):
+// A PR or issue title's rules (docs/adr/0010, #767): config-conventional's, plus exactly one scope, derived from the repo (ADR 0011):
 // each tracked top-level folder (no dot-folders), each tracked folder in docs/, and Dependabot's deps and deps-dev.
 // The scopes come from git in the working directory, so run it at the repo's root. A bot's title is its own
 // (Dependabot, the weekly bumps): it can't shorten it, so PR_AUTHOR_TYPE=Bot lifts the length limit.

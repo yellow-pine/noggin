@@ -10,8 +10,7 @@ FROM mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279
 FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
 LABEL org.opencontainers.image.source=https://github.com/yellow-pine/noggin
 ARG DEBIAN_FRONTEND=noninteractive
-# python3: scripts/ci_budget.py's (uv downloads the venv's, .python-version); ngspice: model/electrical.py's SPICE circuit,
-# which spicelib runs in batch mode; libgl1 and the X libraries:
+# ngspice: model/electrical.py's SPICE circuit, which spicelib runs in batch mode; libgl1 and the X libraries:
 # what VTK (under CadQuery) and Blender load even in the background; the rest what the jobs' steps call (the runner
 # image's)
 RUN apt-get update && apt-get install -y --no-install-recommends \
