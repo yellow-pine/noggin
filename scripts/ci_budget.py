@@ -1,5 +1,5 @@
 """The CI budget (#219, #327), the last step of each job in .github/workflows (check, site-checks): with a warm
-cache a run's critical path must stay within its event's budget. The critical path is the longest chain of jobs along
+cache a run's critical path should stay within its event's budget. The critical path is the longest chain of jobs along
 the workflow's needs, each job counted from when a runner picked it up to when it finished (or to this step, still
 running): time spent waiting for a runner, or on a job's needs, is not counted, so a busy queue never trips it and a
 slow job still does. Only this run attempt's jobs count (a "re-run failed jobs" is measured on its own). Over it, a run
