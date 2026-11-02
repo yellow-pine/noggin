@@ -138,9 +138,9 @@ The pictures and the sim reports are the live Site's in every version (docs/adr/
 _Avoid_: docs snapshot, archived docs
 
 **Bot App**:
-The repo's own GitHub App (noggin-release), which the workflows act as when they open, ready or merge a PR, so its
+The repo's own GitHub App, which the workflows act as when they open, ready or merge a PR, so its
 checks and review run like a person's PR would (docs/adr/0010).
-_Avoid_: release App, bot token, GITHUB_TOKEN
+_Avoid_: release App, bot token
 
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
