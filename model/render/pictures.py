@@ -394,7 +394,7 @@ def main(what, names):
                 setup = took.pop(f"blender {motion}") - len(frames) * per
                 took |= {"blender hero frame": per, "blender hero setup": setup}
             # a hero frame shard's frames stay in OUT/frames/hero, for join
-            for f in published() if motion == NEXT else MOTIONS.get(motion, []):
+            for f in published() if motion == NEXT else SITE.get(motion, []):
                 shutil.copy(os.path.join(OUT, f), IMAGES)
         os.makedirs(SECONDS, exist_ok=True)
         json.dump(took, open(os.path.join(SECONDS, "pictures.json"), "w"))
