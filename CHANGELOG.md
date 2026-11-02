@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.1](https://github.com/yellow-pine/noggin/compare/v0.2.0...v0.2.1) (2026-11-02)
+
+
+### Features
+
+* **site:** the viewer is the landing page's hero, and the gesture GIFs go ([#480](https://github.com/yellow-pine/noggin/issues/480)) ([68b83c2](https://github.com/yellow-pine/noggin/commit/68b83c29fc1f0eb6363fd537c2445cd3da068768))
+
+
+### Bug Fixes
+
+* **ci:** an over-budget PR run warns instead of failing ([#460](https://github.com/yellow-pine/noggin/issues/460)) ([6f1fc9b](https://github.com/yellow-pine/noggin/commit/6f1fc9b2b022aa7ad7d9e8709f35ccc8eff6f6b7))
+* **scripts:** worktrees-clean keeps an open PR's worktree and never removes by ancestry ([#466](https://github.com/yellow-pine/noggin/issues/466)) ([ffca312](https://github.com/yellow-pine/noggin/commit/ffca3120d93f3d4aea1ac605259567cdf0426018))
+
+
+### Documentation
+
+* **docs:** a PR's title is its whole squash commit, with no body ([#461](https://github.com/yellow-pine/noggin/issues/461)) ([ad50a44](https://github.com/yellow-pine/noggin/commit/ad50a44737e88ec9827cce9b513da798ca2a2723))
+* **docs:** implementers run ponytail-review locally; CI's Review runs code-review ([#483](https://github.com/yellow-pine/noggin/issues/483)) ([0049dee](https://github.com/yellow-pine/noggin/commit/0049dee47e88683db530c2825682b478fcca7b7b))
+* **docs:** the implementer checks its title first and waits on CI to a terminal state ([#434](https://github.com/yellow-pine/noggin/issues/434)) ([57749bd](https://github.com/yellow-pine/noggin/commit/57749bd79f7fce89d0de0d58508e139bd9ee98e8))
+* **docs:** the main session only coordinates; PR fixes go to the PR's implementer ([#458](https://github.com/yellow-pine/noggin/issues/458)) ([b6b6d87](https://github.com/yellow-pine/noggin/commit/b6b6d87589779a6f01356365826579d3acb590d4))
+* **research:** retro of the 2026-11-02 session ([#485](https://github.com/yellow-pine/noggin/issues/485)) ([b4eba2d](https://github.com/yellow-pine/noggin/commit/b4eba2d25f1f5e39b664dfb6ed7f87fd26a6947e))
+
 ## [0.2.0](https://github.com/yellow-pine/noggin/compare/v0.1.1...v0.2.0) (2026-11-02)
 
 
