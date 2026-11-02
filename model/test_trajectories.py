@@ -61,6 +61,7 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     return {pair: (row * step_ms, mm) for pair, (row, mm) in found.items()}
 
 
+@pytest.mark.certify
 @pytest.mark.parametrize(
     "doc,motion", [(d, m) for d in geometry.STAGES for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
@@ -70,6 +71,7 @@ def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
     assert overlaps(doc, motion) == {}
 
 
+@pytest.mark.certify
 def test_known_calibrated_pairs_still_overlap():
     """When the model's lids can reach the calibrated open end, a KNOWN_CALIBRATED entry no longer overlaps: drop it."""
     assert set(KNOWN_CALIBRATED) <= {frozenset(p) for p in overlaps("noggin-stage1", "eureka", calibrated={})}
