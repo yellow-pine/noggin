@@ -12,7 +12,8 @@ name: Checks
 # parts changed; a cold parts cache is cut part by part first (`Convex`, #223), so the shards start warm. `Blender`
 # renders the README's pictures (just pictures, #226; a PR one panel, its preview, #562) and bakes the viewer's GLBs
 # (just web, docs/adr/0008) when what
-# they are made from changed, packed into bins longest first (#496). `Site` builds the docs beside them (just site,
+# they are made from changed, packed into bins longest first (#496), main's hero in frame shards that `Hero` joins
+# (#537). `Site` builds the docs beside them (just site,
 # docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the pictures and the viewer,
 # runs the link checks again with them, plays the site in Chrome (Playwright), uploads the site (a PR's preview, and on
 # main what Site Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
@@ -497,7 +498,7 @@ jobs:
     strategy:
       fail-fast: false   # every bin runs to its end; checks fails unless all of them succeeded
       matrix:
-        include: ${{ fromJSON(needs.changes.outputs.bins) }}   # {bin, motions, stages, viewer} (model/test_shards.py)
+        include: ${{ fromJSON(needs.changes.outputs.bins) }}   # {bin, motions, stages, viewer, images, frames} (model/test_shards.py)
     env:   # only the Stages its motions draw are baked (just trajectories), every one with the viewer
       TRAJ_DOCS: ${{ matrix.stages }}
       MESA_SHADER_CACHE_DIR: /tmp/mesa-shader-cache   # cached below
@@ -571,18 +572,55 @@ jobs:
           path: /tmp/mesa-shader-cache
           key: ${{ steps.mesa.outputs.cache-primary-key }}
       - name: Upload the pictures
-        if: ${{ matrix.motions != '' }}
+        if: ${{ matrix.images }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:   # a PR's: its preview, the one bin's, which checks links
           name: ${{ github.event_name == 'pull_request' && 'preview' || format('images-{0}', strategy.job-index) }}
           path: model/build/images
           if-no-files-found: error
+      - name: Upload the frames
+        if: ${{ matrix.frames }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:   # its frame shard's, which Hero joins
+          name: frames-${{ strategy.job-index }}
+          path: model/build/pictures/frames
+          if-no-files-found: error
+          retention-days: 1
       - name: Upload the viewer
         if: ${{ matrix.viewer }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: viewer
           path: web/build
+          if-no-files-found: error
+  # the hero's frame shards' frames joined into hero.webp (just hero-join, #537), an images-* artifact as a bin's
+  hero:
+    name: Hero
+    needs: [changes, blender]
+    if: ${{ contains(needs.changes.outputs.bins, 'hero:') }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
+      - name: Download the hero's frames
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: frames-*
+          merge-multiple: true
+          path: model/build/pictures/frames
+      - name: Run just hero-join
+        run: uv run just hero-join
+      - name: Upload the hero
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: images-hero
+          path: model/build/images
           if-no-files-found: error
   # the docs (Astro Starlight, just site) beside the Blender bins, without their pictures and viewer, which checks adds
   site:
@@ -647,7 +685,7 @@ jobs:
   # the runner's Chrome
   checks:
     name: Checks
-    needs: [changes, code, convex, convex-part, model, blender, site]
+    needs: [changes, code, convex, convex-part, model, blender, hero, site]
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     steps:
@@ -655,7 +693,7 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, convex-part, model, blender, site
+          allowed-skips: convex, convex-part, model, blender, hero, site
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:

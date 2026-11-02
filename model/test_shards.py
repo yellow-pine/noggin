@@ -102,22 +102,53 @@ def test_the_blender_units_pack_longest_first_into_bins_no_longer_than_the_longe
 
 
 def test_the_blender_bins_are_the_cold_units_with_the_stages_they_bake():
-    """PICTURES and VIEWER say whether the pictures and the viewer are cold: each motion of the pictures, the viewer,
-    each in one bin; a bin with the viewer bakes every Stage (TRAJ_DOCS empty), as just web does."""
+    """PICTURES and VIEWER say whether the pictures and the viewer are cold: each motion of the pictures (the hero in
+    its frame shards), the viewer, each in one bin; a bin with the viewer bakes every Stage (TRAJ_DOCS empty), as just
+    web does. images: the bin puts site pictures in model/build/images; frames: it holds a hero shard, whose frames
+    Hero joins."""
     from model.render import pictures
 
+    def motion(u):
+        return u.split(":")[0]
+
     every = listed("blender-bins")
-    assert sorted(u for b in every for u in b["bin"].split()) == sorted([*pictures.SITE, "viewer"])
+    units = [u for b in every for u in b["bin"].split()]
+    assert sorted({motion(u) for u in units}) == sorted([*pictures.SITE, "viewer"])
+    stages_of = {m["motion"]: m["stages"].split() for m in pictures.motions()}
     for b in every:
-        assert b["motions"] == " ".join(u for u in b["bin"].split() if u in pictures.SITE)
+        assert b["motions"] == " ".join(u for u in b["bin"].split() if motion(u) in pictures.SITE)
         assert b["viewer"] == ("viewer" in b["bin"].split())
-        stages_of = {m["motion"]: m["stages"].split() for m in pictures.motions()}
+        assert b["images"] == any(m in pictures.SITE for m in b["motions"].split())
+        assert b["frames"] == any(m not in pictures.SITE for m in b["motions"].split())
         assert b["stages"] == (
-            "" if b["viewer"] else " ".join(sorted({s for m in b["motions"].split() for s in stages_of[m]}))
+            "" if b["viewer"] else " ".join(sorted({s for m in b["motions"].split() for s in stages_of[motion(m)]}))
         )
     assert [b["bin"] for b in listed("blender-bins", PICTURES="false")] == ["viewer"]
-    assert sorted(b["motions"] for b in listed("blender-bins", VIEWER="false")) == sorted(pictures.SITE)
+    assert sorted({motion(m) for b in listed("blender-bins", VIEWER="false") for m in b["motions"].split()}) == sorted(
+        pictures.SITE
+    )
     assert listed("blender-bins", PICTURES="false", VIEWER="false") == []
+
+
+def test_the_hero_s_frames_split_into_ranges_of_about_a_minute_each():
+    """#537: as many contiguous ranges as make each about SHARD_SECONDS of render, every frame in one, at least one."""
+    assert shards.frame_ranges(64, 1.96) == [(0, 32), (32, 64)]  # 125 s: two of ~63 s
+    assert shards.frame_ranges(64, 3.0) == [(0, 21), (21, 42), (42, 64)]  # 192 s: three
+    assert shards.frame_ranges(64, 0.5) == [(0, 64)]  # 32 s: one
+    assert shards.frame_ranges(5, 60) == [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
+
+
+def test_main_renders_the_hero_in_frame_shards_that_hold_every_frame_once():
+    """Each shard a bin's motion `hero:<first>-<end>`, together every frame the hero renders, its Stage's trajectory
+    baked; each pays the hero's setup, so a shard weighs that plus its frames' seconds."""
+    from model.render import pictures
+
+    took = json.load(open(shards.DURATIONS))
+    ranges = [m for b in listed("blender-bins") for m in b["motions"].split() if m.startswith("hero:")]
+    frames = sorted(f for r in ranges for f in range(*map(int, r.removeprefix("hero:").split("-"))))
+    assert frames == list(range(pictures.hero_frames()))
+    assert ranges == [f"hero:{a}-{b}" for a, b in shards.frame_ranges(len(frames), took["blender hero frame"])]
+    assert all(b["stages"] in ("", "noggin-stage3") for b in listed("blender-bins") if b["motions"].startswith("hero:"))
 
 
 def test_a_pr_s_bins_render_the_preview_panel_in_place_of_the_site_s_pictures():

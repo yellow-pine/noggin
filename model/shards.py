@@ -6,7 +6,8 @@ core-seconds: `just model-durations`), so a new document needs no workflow edit 
 MECH=false (the Changes job's filters) leaves that group's units out.
 And Checks' Blender bins (`just blender-bins`): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
 when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds in
-model/durations.json under "blender <unit>"; PREVIEW=true (a PR's, #562) makes the pictures the preview alone."""
+model/durations.json under "blender <unit>"; PREVIEW=true (a PR's, #562) makes the pictures the preview alone. The
+hero splits into frame shards of about a minute each, from its frame count and "blender hero frame" (#537)."""
 
 import json
 import os
@@ -15,6 +16,7 @@ import shlex
 from model import stages
 
 N = 4  # runners (#496)
+SHARD_SECONDS = 60  # a hero frame shard's render, about a minute (Cansin, #537)
 HERO = "test_hero.py"  # -k on its module, model/render/test_hero.py
 JUST = {"sim": "just sim", "mech": "just mech"}  # their keys in DURATIONS
 DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
@@ -67,23 +69,47 @@ def packed(weight):
     return bins
 
 
+def frame_ranges(frames, frame_seconds):
+    """The hero's frames as contiguous [first, end) ranges, as many as make each about SHARD_SECONDS of render."""
+    k = max(1, round(frames * frame_seconds / SHARD_SECONDS))
+    return [(i * frames // k, (i + 1) * frames // k) for i in range(k)]
+
+
 def blender(pictures=True, viewer=True, preview=False):
-    """[{bin, motions, stages, viewer}]: stages are what the bin's just trajectories bakes (TRAJ_DOCS), every Stage
-    (empty) with the viewer, whose just web bakes them all. preview: the pictures are the preview alone (a PR's)."""
-    from model.render.pictures import motions  # Blender's side only: the model shards need none of it
+    """[{bin, motions, stages, viewer, images, frames}]: stages are what the bin's just trajectories bakes (TRAJ_DOCS),
+    every Stage (empty) with the viewer, whose just web bakes them all; images, whether its motions put site pictures in
+    model/build/images; frames, whether it holds a frame shard. preview: the pictures are the preview alone (a PR's).
+    The hero renders in frame shards (frame_ranges), motions `hero:<first>-<end>` whose frames the Hero job joins
+    (#537)."""
+    from model.render.pictures import hero_frames, motions  # Blender's side only: the model shards need none of it
 
     stages_of = {m["motion"]: m["stages"].split() for m in motions(preview)} if pictures else {}
-    cold = [*stages_of, "viewer"] if viewer else [*stages_of]
     # shortcut: the "blender <unit>" seconds are run 41388039993's, typed in, since a bin times its units together;
-    # upgrade to a per-motion timing in the bins' durations-* when the bins stop matching the runs
+    # upgrade to a per-motion timing in the bins' durations-* when the bins stop matching the runs (#569)
     took = json.load(open(DURATIONS))
+    if "hero" in stages_of:
+        n, per = hero_frames(), took["blender hero frame"]
+        setup = took["blender hero"] - n * per  # every shard pays it: the bake, Blender's start, the first frame
+        for a, b in frame_ranges(n, per):
+            stages_of[f"hero:{a}-{b}"], took[f"blender hero:{a}-{b}"] = stages_of["hero"], setup + (b - a) * per
+        del stages_of["hero"]
+    cold = [*stages_of, "viewer"] if viewer else [*stages_of]
     measured = [took[f"blender {u}"] for u in cold if f"blender {u}" in took] or [1.0]
     weight = {u: took.get(f"blender {u}", sum(measured) / len(measured)) for u in cold}  # unmeasured: the mean
     out = []
     for b in packed(weight):
         moving = [u for u in b if u in stages_of]
         baked = "" if "viewer" in b else " ".join(sorted({s for m in moving for s in stages_of[m]}))
-        out.append({"bin": " ".join(b), "motions": " ".join(moving), "stages": baked, "viewer": "viewer" in b})
+        out.append(
+            {
+                "bin": " ".join(b),
+                "motions": " ".join(moving),
+                "stages": baked,
+                "viewer": "viewer" in b,
+                "images": any(":" not in m for m in moving),
+                "frames": any(":" in m for m in moving),
+            }
+        )
     return out
 
 
