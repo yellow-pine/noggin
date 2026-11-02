@@ -191,6 +191,11 @@ A part we print, by our name (the designer's file names are history: docs/credit
   bracket's rail), jaw bar (the jaw Horn to the bottom jaw's lug).
 _Avoid_: the designer's file names, version suffixes, plain / cutout / regular
 
+**Coupon**:
+A test piece we print to find a fit on our printer and filament before a Printed part relies on it, such as the
+clearance coupon's pins and magnet pockets; not part of the Mech.
+_Avoid_: test part, calibration print, sample
+
 **Pivot**:
 A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the four-bar
 kinematics that pose a horn angle without simulating (model/linkage.py).

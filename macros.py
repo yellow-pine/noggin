@@ -13,6 +13,7 @@ eyes/calibration.json, LIMITS for the neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
 stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
+coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
 explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
@@ -25,6 +26,7 @@ from pathlib import Path
 
 from model import geometry as g
 from model import mjcf, stages
+from model.printed import coupon as clearance
 from model.render import pictures
 from noggin.core import VERSION
 from noggin.service import CORES
@@ -189,6 +191,20 @@ def wiring():
     return "\n".join(rows)
 
 
+def coupon():
+    """The clearance coupon's fits by place from the notch (model/printed/coupon.py): each pin's clearance and hole,
+    each magnet pocket's clearance and diameter."""
+    rows = ["| From the notch | Pin clearance | Hole | Pocket clearance | Pocket |", "|---|---|---|---|---|"]
+    for n, pin in enumerate(clearance.PINS):
+        pocket = (
+            f"{clearance.POCKETS[n]:.2f} mm | {clearance.DISC[0] + 2 * clearance.POCKETS[n]:.2f} mm"
+            if n < len(clearance.POCKETS)
+            else "|"
+        )
+        rows.append(f"| {n + 1} | {pin:.2f} mm | {clearance.PIN_D + 2 * pin:.2f} mm | {pocket} |")
+    return "\n".join(rows)
+
+
 def explode():
     """Each part of Stage 3 by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its GLB node's name."""
     subs = pictures.EXPLODE.items()
@@ -215,6 +231,7 @@ def numbers():
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),
+        "coupon": coupon(),
         "workflows": workflows(),
         "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
         "moments": moments(),
