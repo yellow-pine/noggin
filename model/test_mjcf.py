@@ -200,7 +200,7 @@ EXACT = json.load(open(os.path.join(os.path.dirname(__file__), "test_fixtures", 
 DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deeper than this inside
 
 
-@pytest.mark.parametrize("doc", grouped(MOVING))
+@pytest.mark.parametrize("doc", grouped(d for d in MOVING if d in EXACT))  # frozen for today's: the next Mech has none
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
     """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
     rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both
