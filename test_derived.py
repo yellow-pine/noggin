@@ -95,12 +95,10 @@ MADE_FROM = {
 }
 
 
-# prefix-[matrix-]hash[-lock]: the lock step's hash is uv.lock minus the release's version bump (scripts/lock_hash.py)
-KEY = re.compile(
-    r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}(-\$\{\{ steps\.lock\.outputs\.hash \}\})?"
-)
-# prefix-[matrix-]hash, the hash one the code derives (#469): NAME=$(python3 scripts/inputs.py --hash FILE...), the lock
-# hash appended as NAME=$NAME-$lock, in the step `inputs` and the outputs NAME-hash of the job `changes`
+# prefix-[matrix-]hash
+KEY = re.compile(r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ hashFiles\((.*)\) \}\}")
+# prefix-[matrix-]hash, the hash one the code derives (#469): NAME=$(python3 scripts/inputs.py --hash FILE...), in the
+# step `inputs` and the outputs NAME-hash of the job `changes`
 DERIVED = re.compile(
     r"([a-z-]+?)-(?:\$\{\{ matrix\.\w+ \}\}-)?\$\{\{ (?:steps\.inputs|needs\.changes)\.outputs\.(\w+?)(?:-hash)? \}\}"
 )
@@ -113,7 +111,7 @@ def patterns():
     for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
         jobs = yaml.safe_load(f.read_text())["jobs"]
         hashed = {
-            name: sorted(inputs(*files.split(), *["uv.lock"] * (f"{name}=${name}-$lock" in step["run"])))
+            name: sorted(inputs(*files.split()))
             for step in jobs.get("changes", {}).get("steps", [])
             if step.get("id") == "inputs"
             for name, files in HASHED.findall(step["run"])
@@ -122,7 +120,7 @@ def patterns():
             for step in job.get("steps", []):
                 with_ = step.get("with", {})
                 if m := KEY.fullmatch(with_.get("key", "")):
-                    found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]) + ["uv.lock"] * bool(m[3]))
+                    found.setdefault(m[1], []).append(re.findall(r"'([^']+)'", m[2]))
                 elif m := DERIVED.fullmatch(with_.get("key", "")):
                     found.setdefault(m[1], []).append(hashed[m[2]])
                 if "paths-filter" in step.get("uses", ""):

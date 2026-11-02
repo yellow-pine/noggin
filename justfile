@@ -79,7 +79,7 @@ sim *docs: venv ours
 
 # our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
 ours: venv
-    @src=$({{PY}} scripts/inputs.py model/ours.py) && lock=$({{PY}} scripts/lock_hash.py) && key=$({ shasum $src; echo "$lock"; } | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
+    @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
 
 # print-ready STLs of our printed parts (mm, the designer's frames, L and R each) in model/build/stl
 stl: venv
