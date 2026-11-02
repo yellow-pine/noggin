@@ -28,11 +28,12 @@ INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a 
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse as bash (an open quote or heredoc, zsh-only syntax); fix it, or write a file."
 NOPARSER = "no tree-sitter-bash to read its $(…), `…` or <(…); run uv sync (just venv) in the checkout, then retry."
-# zsh, the Bash tool's shell, runs code where bash's grammar sees none: =(…) opening a word and a glob qualifier's
-# e:…: or +cmd, both outside quotes, and ${(…)…} flags such as (e) anywhere. ${=var} stays (UNSPLIT asks for it).
-ZSH = r"(?:^|[\s;&|(){}])=\(|(?<![$<>])\([^()\s]*?(?:e[^\w\s)]|\+)[^()\s]*\)"
-QUOTED = ("string", "raw_string", "ansi_c_string", "translated_string", "heredoc_body")
-ZSHONLY = "zsh-only syntax that runs code (=(…), ${(…)…} flags, a glob qualifier's e:…: or +) hides it; use bash's."
+# zsh, the Bash tool's shell, runs code where bash's grammar sees none: a glob qualifier, which is any ( right after
+# a word's character, whatever stands inside it; =(…) opening a word; and ${(…)…} flags such as (e). Left: $( <( >(
+# a=( (( and a subshell's (; ${=var} too (UNSPLIT asks for it).
+ZSH = r"[^\s$<>=(|&;{]\(|(?:^|[\s;&|(){}])=\("
+QUOTED = ("string", "raw_string", "ansi_c_string", "translated_string", "heredoc_body")  # where zsh never globs
+ZSHONLY = "zsh runs code at a word( glob qualifier, =(…) or ${(…)…}; quote it, or put text holding one in a file."
 UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
 
@@ -117,11 +118,14 @@ def split(command):
         for child in node.children:
             yield from nodes(child)
 
-    unquoted = bytearray(source)  # each quoted span and heredoc body filled with _, where zsh neither globs nor =(…)s
+    # each quoted span and heredoc body filled with _: a ( in one is text to zsh, and one just before a ( still counts
+    unquoted, functions = bytearray(source), set()
     for node in nodes(tree.root_node):
         if node.type in QUOTED:
             unquoted[node.start_byte : node.end_byte] = b"_" * (node.end_byte - node.start_byte)
-    if re.search(ZSH, unquoted.decode()):
+        if node.type == "function_definition":  # f() { …; }: the one word( bash's grammar reads as code
+            functions |= {child.start_byte for child in node.children if child.type == "("}
+    if any(found.end() - 1 not in functions for found in re.finditer(ZSH.encode(), unquoted)):
         raise ValueError(ZSHONLY)
     if tree.root_node.has_error:
         raise ValueError(UNPARSED)

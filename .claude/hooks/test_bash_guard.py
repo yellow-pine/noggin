@@ -89,6 +89,11 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("ls (a|b)(e:'git stash':)", "runs code"),  # a qualifier right after a group
         ("ls *.(py)(+cmd)", "runs code"),
         ("""echo "it's"; ls *(e:x:); echo "don't" """, "runs code"),
+        ("ls *(e'git stash')", "runs code"),  # whatever stands inside: any ( right after a word char
+        ('ls *(e"git stash")', "runs code"),
+        ("ls *(e:git\\ stash:)", "runs code"),
+        ("ls x(N)", "runs code"),
+        ("[[ $x =~ ^a(b|c)$ ]]", "runs code"),  # an unquoted regex group: quote it
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -135,6 +140,12 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "git commit -m 'feat(eyes): x' && (echo a) && f() { :; }",
         'gh pr comment 1 --body "(re-run) (one-way) (e.g.)"',  # no glob qualifier inside quotes
         "gh pr create --body-file - <<'EOF'\n(re-run) and (one-way)\nEOF",
+        # zsh never globs inside quotes: a jq or GraphQL call, a Conventional Commits title
+        "gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: \"x\"}) { thread { id } } }'",
+        "gh pr list --json number --jq 'map(.number)'",
+        'git commit -m "fix(ci): x"',
+        "a=(1 2) && a+=(3) && (cd /tmp && ls) && echo $((1 + (2))) && diff <(true) >(true)",
+        "f() { :; }; g () { :; }",
         'git commit -m "$(cat msg) and don\'t git stash"',
     ],
 )
@@ -209,6 +220,9 @@ def test_without_the_venv_a_substitution_is_blocked(tmp_path):
     bare = (sys._base_executable, hooks / SCRIPT.name)
     assert "uv sync" in guard("echo $(date)", tmp_path, bare).stderr
     assert "uv sync" in guard("diff <(true) x", tmp_path, bare).stderr
+    for command in ("ls *(e'git stash')", 'ls *(e"git stash")', "ls *(e:git\\ stash:)", "ls (a|b)(e:'x':)"):
+        assert "runs code" in guard(command, tmp_path, bare).stderr
+    assert "runs code" in guard("jq 'map(.a)' f", tmp_path, bare).stderr  # the raw text, quotes and all
     assert guard("uv sync", tmp_path, bare).returncode == 0
     assert "commit" in guard("git stash", tmp_path, bare).stderr
 
