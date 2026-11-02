@@ -54,12 +54,6 @@ KNOWN_TRANSMISSION = {
     "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
     " give 39 deg end to end, under the mouth GIF's 46 (docs/research/2026-10-31-neck.md)",
     "jaw hinge": "29 deg at horn 0, the jaws closed (geometry.LIMITS mouth): the stock jaw bar's, recorded, not settled",
-    **{
-        f"next {s} lid pivot": "25 deg at lid -65, shut: the lid's parallelogram (model/gimbal.py) meets its crank at 90"
-        " less the lid's turn; its singularity margin (5.2 mm/rad) still holds the play under PLAY_DEG, and a shut lid"
-        " is the lightest load it carries (#663)"
-        for s in "LR"
-    },
 }
 
 
@@ -95,8 +89,8 @@ def problems(report):
 
 def gimbal_problems(report):
     """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
-    lids' clearance to what moves inside them and to each other, their servo range, and the lid drives' sweep (#650,
-    model/printed/gimbal.py sweep())."""
+    lids' clearance to what moves inside them and to each other, their servo range, its bounding box in the compact
+    head (#684), and the lid drives' sweep (#650, model/printed/gimbal.py sweep())."""
     m, out = report.get("gimbal"), []
     if not m:
         return out
@@ -116,6 +110,9 @@ def gimbal_problems(report):
     out += [
         f"gimbal lid servo: {d} deg past its {gimbal.SERVO_DEG}" for d in lid["servo_deg"] if abs(d) > gimbal.SERVO_DEG
     ]
+    if any(b > h for b, h in zip(m["block_mm"], gimbal.HEAD_MM)):
+        size, head = (" x ".join(map(str, v)) for v in (m["block_mm"], gimbal.HEAD_MM))
+        out.append(f"gimbal block: {size} mm (W x D x H) past the compact head's {head}")
     s = m.get("sweep")
     if s and s["clearance_mm"] < gimbal.LID_CLEAR_MM:
         out.append(
@@ -259,6 +256,7 @@ FIXTURE_PROBLEMS = {
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
+        "gimbal block: 150.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 140.0 x 120.0 x 150.0",
         "gimbal sweep: next L lid bar:1 / next L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
         "gimbal sweep: next L lid bar:1 / next gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",

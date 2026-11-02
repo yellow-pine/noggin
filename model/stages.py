@@ -365,7 +365,7 @@ def next_eyes():
         "lid": tuple(e - gimbal.LID_REST for e in gimbal.LID_EDGES),
     }
     crank = gimbal.CRANK
-    yaw = (0.0, 0.0, gimbal.TIE_Z[1])  # the tie-bar's plane, under the yokes' cranks
+    yaw = (0.0, gimbal.YAW_Y, gimbal.TIE_Z[1])  # the tie-bar's plane, under the yokes' cranks
     horns["next yaw horn"] = Horn(
         {"point": yaw, "axis": g.Z},
         limits["yaw"],
@@ -374,7 +374,7 @@ def next_eyes():
             rocker_loop(
                 f"next {s} yaw pivot",
                 yaw,
-                (0.0, crank, yaw[2]),
+                (0.0, gimbal.YAW_Y + crank, yaw[2]),
                 (x, 0.0, yaw[2]),
                 (x, crank, yaw[2]),
                 g.Z,
@@ -429,9 +429,9 @@ def next_eyes():
                 rocker_loop(
                     f"next {s} lid pivot",
                     horn,
-                    (x, horn[1] + crank, horn[2]),
+                    (x, *np.add(gimbal.LID_HORN, gimbal.LID_PIN)),
                     (x, 0.0, 0.0),
-                    (x, crank, 0.0),
+                    (x, *gimbal.LID_PIN),
                     (-1, 0, 0),
                     f"next {s} lid bar:1",
                     [f"next {s} lid:1"],

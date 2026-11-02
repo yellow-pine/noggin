@@ -1,11 +1,36 @@
 """Seam: model/gimbal.py, the next Mech's eye gimbal (#630): the eyes a pair of servo angles gives, the servo angles a
 gaze needs, and the report's numbers against #630's gates."""
 
+import itertools
 import math
 
+import numpy as np
 import pytest
 
-from model import gimbal
+from model import envelopes, gimbal, mujoco_report
+
+
+@pytest.mark.parametrize("drive", ["yaw", "pitch", "L lid", "R lid"])
+def test_every_servo_sits_behind_and_between_the_eyes(drive):
+    """#684: a compact head. Each servo's case and tabs lie within the eyes' overall width (the lids' outer faces) and
+    behind the eyes' centres."""
+    face, shaft, tab, _ = gimbal.drives()[drive]
+    corners = [c for span in (envelopes.SERVO["case"], envelopes.SERVO["tabs"]) for c in itertools.product(*span)]
+    world = (gimbal.servo_matrix(face, shaft, tab) @ np.c_[corners, np.ones(16)].T)[:3]  # the Envelope's STEP frame
+    assert np.abs(world[0]).max() <= gimbal.SPACING / 2 + gimbal.LID_R[1]
+    assert world[1].min() >= 0
+
+
+def test_each_lid_bar_meets_its_crank_at_the_transmission_floor_or_more():
+    """#684: a lid's parallelogram bar keeps its direction (horn to lid pivot) while the crank turns with the lid, so
+    the angle between them, folded to 0..90, stays at the MuJoCo report's floor over the lid servo's range."""
+    bar = np.array(gimbal.LID_HORN) / np.linalg.norm(gimbal.LID_HORN)
+    for lid in np.linspace(*np.subtract(gimbal.LID_EDGES, gimbal.LID_REST), 41):
+        a = math.radians(lid)
+        crank = np.array([[math.cos(a), math.sin(a)], [-math.sin(a), math.cos(a)]]) @ gimbal.LID_PIN / gimbal.CRANK
+        assert (
+            math.degrees(math.asin(abs(float(bar[0] * crank[1] - bar[1] * crank[0])))) >= mujoco_report.TRANSMISSION_DEG
+        )
 
 
 def test_both_eyes_turn_together_and_the_pitch_rod_couples_to_yaw_in_the_hooke_form():
@@ -85,8 +110,8 @@ def test_the_moved_parts_keep_their_pins_together(lid, pitch):
     pins = [(("next pitch horn:1", "next pitch bar:1"), (0, hy + c, hz))]
     pins.append((("next bail:1", "next pitch bar:1"), (0, by + gimbal.BAIL_IN, bz)))
     for s, (x, _, _) in gimbal.EYE.items():
-        pins.append(((f"next {s} lid:1", f"next {s} lid bar:1"), (x, c, 0)))
-        pins.append(((f"next {s} lid bar:1", f"next {s} lid horn:1"), (x, gimbal.LID_HORN[0] + c, gimbal.LID_HORN[1])))
+        pins.append(((f"next {s} lid:1", f"next {s} lid bar:1"), (x, *gimbal.LID_PIN)))
+        pins.append(((f"next {s} lid bar:1", f"next {s} lid horn:1"), (x, *np.add(gimbal.LID_HORN, gimbal.LID_PIN))))
         pins.append(((f"next {s} eyeball core:1", f"next {s} push-rod:1"), (x, 0, gimbal.LEVER)))
         pins.append((("next bail:1", f"next {s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
     for (a, b), p in pins:
@@ -100,7 +125,7 @@ def test_a_yaw_keeps_the_tie_bar_and_the_push_rods_on_their_pins(yaw, pitch):
     lever's ball and its bail arm's: the motion pictures pose an assembly."""
     m = gimbal.moved(0, pitch, yaw)
     c, (by, bz) = gimbal.CRANK, gimbal.BAIL
-    pins = [(("next yaw horn:1", "next tie-bar:1"), (0, c, 0))]
+    pins = [(("next yaw horn:1", "next tie-bar:1"), (0, gimbal.YAW_Y + c, 0))]
     for s, (x, _, _) in gimbal.EYE.items():
         pins.append(((f"next {s} yaw yoke:1", "next tie-bar:1"), (x, c, 0)))
         pins.append(((f"next {s} eyeball core:1", f"next {s} push-rod:1"), (x, 0, gimbal.LEVER)))
