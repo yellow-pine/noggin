@@ -7,6 +7,12 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   the clean-room Mech (#51) the pictures, the hero and the viewer's GLBs are rendered locally alone (`just render`,
   `just hero`, `just web`); CI renders none and neither the site nor the README shows them. The rules below are how
   they are made.
+- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Blender` job renders its two panels
+  and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
+  `just pictures next`) and bakes its viewer GLB, still, without clips (`just web` with its document), when what they
+  are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/. A PR that changes them gets
+  the `preview` artifact: the live site's panels above its own in one before-after.webp, and its pictures (`just
+  preview <pr>` downloads it). Every published name starts `next-`.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
   the Stage panels (each Stage at rest, a trajectory's first frame), `just hero` for the hero;

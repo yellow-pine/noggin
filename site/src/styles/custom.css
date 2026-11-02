@@ -204,6 +204,11 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 figure { text-align: center; }
 figure img { margin-inline: auto; }
 
+/* the next Mech's parts (macros.py next_parts): a picture each over its name */
+.noggin-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+.noggin-parts figure { margin: 0; text-align: center; }
+.noggin-parts img { display: block; width: 100%; height: auto; }
+
 /* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
    stacked by Stage, its views side by side */
 .noggin-panels {

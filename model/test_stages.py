@@ -165,6 +165,15 @@ def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its
     assert nxt.horns == {}
 
 
+def test_todays_names_the_parts_of_todays_print_in_a_document_and_none_of_the_next_mechs():
+    """#649 (docs/adr/0019): what nothing public may draw. The next Mech's document has none; a Stage's are its printed
+    parts, its Envelopes not among them."""
+    assert stages.todays("next-mech") == []
+    stage1 = stages.todays("noggin-stage1")
+    assert "desk eye bracket" in {stages.stem(stages.STAGES["noggin-stage1"].parts[n].file) for n in stage1}
+    assert {"L lid servo:1", "R lid horn:1", "Core 1:1"}.isdisjoint(stage1)
+
+
 def test_horn_limits_follow_geometry():
     assert stages.STAGES["noggin-eyes"].horns["L lid horn"].limits == (-30.75, 16)
     assert stages.STAGES["noggin-pan-tilt"].horns["pan horn"].limits == (-40, 70)

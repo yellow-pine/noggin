@@ -1,6 +1,6 @@
 """The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
-(macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The pictures are rendered locally
-alone until the clean-room Mech (#640, docs/adr/0019): none in git (#226), none on the site or in the README."""
+(macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The pictures are none in git
+(#226); the site shows the next Mech's alone, today's are rendered locally alone (#640, #649, docs/adr/0019)."""
 
 import os
 import re
@@ -201,9 +201,11 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 
 def test_nothing_public_shows_todays_mech():
-    """#640 (docs/adr/0019): today's printed parts derive from the designer's models, so until the clean-room Mech
-    (#51) neither the README nor a page of the site shows a picture of them or links the viewer, the site has no
-    viewer page and its icon is no render."""
+    """#640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so neither the README nor a
+    page of the site shows a picture of them: a picture it names is one the site publishes (the next Mech's), it draws
+    no viewer (the viewer's page draws the published GLBs alone: site.test.mjs); the site's icon is no render."""
+    from model.render import pictures
+
     texts = {
         "README.md": (ROOT / "README.md").read_text(),
         **{
@@ -213,9 +215,9 @@ def test_nothing_public_shows_todays_mech():
         },
         "site/astro.config.mjs": (ROOT / "site" / "astro.config.mjs").read_text(),
     }
-    shown = re.compile(r"noggin/(images|viewer)/|\$\{HOME\}/images/|'/viewer/'|\{\{ panels \}\}|noggin-viewer")
-    assert [f for f, t in texts.items() if shown.search(t)] == []
-    assert not (ROOT / "site" / "src" / "pages" / "viewer.astro").exists()
+    named = {f: re.findall(r"noggin/images/([^\s\"')]+)", t) for f, t in texts.items()}
+    assert {f: [n for n in names if n not in pictures.published()] for f, names in named.items() if names} == {}
+    assert [f for f, t in texts.items() if re.search(r"\{\{ panels \}\}|noggin-viewer|favicon\.png", t)] == []
 
 
 def test_every_stage_has_a_side_and_an_isometric_panel():
@@ -251,6 +253,24 @@ def test_the_next_mech_has_its_own_panels():
     grid = macros.next_panels()
     assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech"]
     assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == ["next-mech-side.webp", "next-mech-isometric.webp"]
+
+
+def test_the_site_publishes_the_next_mech_alone():
+    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part of it, its viewer the next
+    Mech's GLB, every name starting next-, and no document they draw has a part of today's print."""
+    from model import geometry as g
+    from model import stages
+    from model.render import pictures
+    from web import build
+
+    stems = {stages.stem(p.file) for doc in g.NEXT for p in stages.STAGES[doc].parts.values()}
+    published = pictures.published()
+    assert len(published) == 2 + len(stems) == len(set(published))  # side, isometric and a picture per part
+    assert {"next-mech-isometric.webp", "next-eyeball-core.webp", "next-l-lid.webp", "next-servo.webp"} <= {*published}
+    assert build.PUBLIC == {"next-mech": "next-mech.glb"}
+    assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
+    assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
+    assert [doc for doc in g.NEXT if stages.todays(doc)] == []
 
 
 def test_the_hero_is_800x400():

@@ -45,16 +45,16 @@ test('the landing page leads into Build and Use', () => {
     expect(links).toContain(target);
 });
 
-test('the sidebar reaches every decision', () => {
+test('the sidebar reaches every decision, the pictures and the viewer', () => {
   const links = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
   const adrs = docs.filter((d) => d.startsWith('docs/adr/'));
   expect(adrs.length).toBeGreaterThan(10);
-  for (const target of adrs.map(route)) expect(links).toContain(target);
+  for (const target of [...adrs.map(route), route('docs/pictures.md'), `${BASE}/viewer/`]) expect(links).toContain(target);
 });
 
-// what just site adds beside the build when it was built (the sim reports): a link there is checked when it is, and
-// always in a Docs version, which never has them (docs/adr/0014)
-const ADDED = ['reports'];
+// what CI adds beside the build when it was built (the pictures, the sim reports): a link there is checked when it is,
+// and always in a Docs version, which never has them (docs/adr/0014)
+const ADDED = ['images', 'reports'];
 const built = (file) =>
   BASE !== HOME || !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
 const pages = html; // every one Astro's, the reports' page too (#603)
@@ -78,7 +78,7 @@ test("every site URL the repo's Markdown links to is a page with that heading", 
     const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#[\w-]+)?)/g);
     for (const [, url] of links) {
       const file = fileOf(url), anchor = url.split('#')[1];
-      if (!file || !built(file)) continue; // a Docs version's: the live site's sim reports
+      if (!file || !built(file)) continue; // a Docs version's: the live site's pictures, viewer and sim reports
       expect(existsSync(file), `${doc}: ${url}`).toBe(true);
       if (anchor) expect(parse(readFileSync(file, 'utf8')).getElementById(anchor), `${doc}: ${url}`).not.toBeNull();
     }
@@ -86,12 +86,12 @@ test("every site URL the repo's Markdown links to is a page with that heading", 
 });
 
 // a Docs version (docs/adr/0014) is the same site under /noggin/vX.Y/: what it links outside itself is the live site's
-test("a page links outside its version only to the live site's sim reports", () => {
+test("a page links outside its version only to the live site's pictures, viewer and sim reports", () => {
   const out = [];
   for (const f of html)
     for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
       const p = (el.getAttribute('href') ?? el.getAttribute('src')).replace(SITE, '');
-      const live = p.startsWith(`${HOME}/reports/`);
+      const live = ['images', 'viewer', 'reports'].some((d) => p.startsWith(`${HOME}/${d}/`));
       if (p.startsWith(`${HOME}/`) && !p.startsWith(`${BASE}/`) && !live) out.push(`${f}: ${p}`);
     }
   expect(out).toEqual([]);
@@ -235,18 +235,38 @@ test("each Stage's guide opens with the Stages in order, by their titles, its ow
   }
 });
 
-// #640 (docs/adr/0019): today's printed parts derive from the designer's models, so until the clean-room Mech (#51)
-// the site ships and links no picture of the Mech, photo or render, and no GLB, and no page draws the viewer
-test("no picture of the Mech or GLB ships or is linked, and no page draws the viewer", () => {
-  const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i;
-  expect(globSync('**/*', { cwd: DIST }).filter((f) => mech.test(f) || f.startsWith('images/'))).toEqual([]);
+// #640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so the site ships, links and
+// draws pictures and GLBs of the next Mech alone, the ones the code publishes (macros.py published), and no photo.
+// Checks runs it again once it has added the pictures and the GLB (-t picture)
+test("every picture and GLB the site ships, links or draws is one of the next Mech's it publishes", () => {
+  const { images, viewer } = numbers.published, ours = [...images, ...viewer];
+  const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i, name = (url) => path.basename(url.split(/[?#]/)[0]);
+  const shipped = globSync('**/*', { cwd: DIST }).filter((f) => mech.test(f) || f.startsWith('images/'));
+  const expected = [...images.map((f) => `images/${f}`), ...viewer.map((f) => `viewer/${f}`)];
+  expect(shipped.filter((f) => !expected.includes(f))).toEqual([]);
+  if (existsSync(path.join(DIST, 'images'))) expect(shipped.sort()).toEqual(expected.sort()); // as Checks adds them
   for (const f of html) {
     const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
-    expect(doc.querySelectorAll('.noggin-viewer, .noggin-panels').length, f).toBe(0);
+    for (const v of doc.querySelectorAll('.noggin-viewer')) expect(viewer, f).toContain(`${v.getAttribute('data-stage')}.glb`);
     for (const el of doc.querySelectorAll('[href], [src]')) {
       const url = el.getAttribute('href') ?? el.getAttribute('src');
-      expect(mech.test(url.split(/[?#]/)[0]) || url.includes(`${HOME}/images/`) || url.includes(`${HOME}/viewer/`), `${f}: ${url}`).toBe(false);
+      if (mech.test(url.split(/[?#]/)[0]) || url.includes(`${HOME}/images/`)) expect(ours, `${f}: ${url}`).toContain(name(url));
     }
+  }
+});
+
+test('Pictures shows the next Mech and each of its parts, each linking to its full size', () => {
+  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-parts a');
+  expect(links.map((a) => a.getAttribute('href').split('/').at(-1))).toEqual(numbers.published.images);
+  for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
+});
+
+test("the viewer's page draws the next Mech and serves the Draco decoder from three's npm package", () => {
+  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer');
+  expect(viewers.map((v) => `${v.getAttribute('data-stage')}.glb`)).toEqual(numbers.published.viewer);
+  for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
+    const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
+    expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);
   }
 });
 
