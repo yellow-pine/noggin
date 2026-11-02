@@ -77,6 +77,21 @@ def test_the_readme_is_for_contributors():
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
+def test_the_landing_page_shows_the_stills_as_pictures_does_each_linking_there():
+    """Cansin (#468): the Stage strip and Stage 3 exploded sit under the landing page's viewer, each image and caption
+    as docs/pictures.md has them (Markdown has no include, so this holds the copy), each linking to that page."""
+
+    def stills(doc):
+        jpg = r'(<img src="https://yellowpine\.com/noggin/images/(?:stages|exploded)\.jpg"[^>]*>)'
+        return re.findall(jpg + r"\S*\s*<figcaption>([^<]+)</figcaption>", (ROOT / doc).read_text())
+
+    home = stills("docs/index.md")
+    assert len(home) == 2 and home == stills("docs/pictures.md")
+    index = (ROOT / "docs" / "index.md").read_text()
+    assert re.findall(r"\[(<img [^>]+>)\]\(pictures\.md\)", index) == [img for img, _ in home]
+    assert index.index("hero.gif") < index.index("stages.jpg") < index.index("exploded.jpg") < index.index("## ")
+
+
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,

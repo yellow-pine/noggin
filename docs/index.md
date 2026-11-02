@@ -11,6 +11,20 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 </figure>
 </div>
 
+<figure>
+
+[<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">](pictures.md)
+
+<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
+</figure>
+
+<figure>
+
+[<img src="https://yellowpine.com/noggin/images/exploded.jpg" alt="Stage 3 exploded: the base, the neck lifted off it, the eyes above and the mouth forward of them" width="800">](pictures.md)
+
+<figcaption>Stage 3 exploded: the base, the neck, the eyes and the mouth</figcaption>
+</figure>
+
 [Build one](build/parts.md) · [Use it](use/noggin-service.md) · [Turn it in 3D](https://yellowpine.com/noggin/viewer/)
 
 ## What it does
@@ -25,11 +39,6 @@ built from the code.
 More in [Gestures and behaviour](use/gestures.md).
 
 ## The three Stages
-
-<figure>
-<img src="https://yellowpine.com/noggin/images/stages.jpg" alt="The three Stages: stage 1 front (base and eyes), stage 2 side (eyes on the neck), stage 3 side and front (with the mouth)">
-<figcaption>Stage 1 front, Stage 2 side, Stage 3 side and front</figcaption>
-</figure>
 
 The Mech grows in three Stages, each a complete Mech on the desk.
 
