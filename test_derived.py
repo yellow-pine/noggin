@@ -71,7 +71,7 @@ MADE_FROM = {
     "release": (
         [],
         [
-            ".releaserc.json",
+            "release.config.mjs",
             "ci/release.test.mjs",
             "ci/commitlint.config.mjs",
             "ci/commitlint.test.mjs",

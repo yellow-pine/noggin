@@ -1,29 +1,60 @@
 name: Release
 # Releases main once its Checks pass: semantic-release tags vX.Y.Z and writes the GitHub release and its notes.
-# docs/adr/0017: a title that releases (feat, fix, perf, revert or a `!` break; .releaserc.json) makes the next version
+# docs/adr/0017: a title that releases (feat, fix, perf, revert or a `!` break; release.config.mjs) makes the next version
 # from main's last tag, anything else none. It acts only for this repository's push to main whose Checks passed
 # (branches: [main] alone also matches a fork's PR from a branch named main), on that push's commit: a red main never
 # releases, and when main moved on since, semantic-release releases nothing and the newer commit's run releases both.
 # It acts as the bot App (CONTRIBUTING.md), since a tag GITHUB_TOKEN pushes starts no workflow: its tag starts
 # Release Assets (release-assets.yml).
-run-name: "${{ format('Release: {0}', github.event.workflow_run.display_title) }}"
+# A manual run (#802, Actions > Release > Run workflow on main) does it all on main's tip at dispatch: the full Checks
+# (checks.yml, whose Deploy deploys), then, once they pass, tags that same commit even when main moved on meanwhile,
+# releasing from a branch of its own at that commit (deleted after), so the version and notes stay semantic-release's.
+# Its bump: auto lets the commits decide; patch, minor or major releases at least that bump (release.config.mjs).
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && format('Release: manual by {0}', github.actor)
+  || format('Release: {0}', github.event.workflow_run.display_title) }}
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's green push to main
     workflows: ["Checks"]
     types: [completed]
     branches: [main]
-concurrency:   # one release at a time, never cancelled mid-release
-  group: Release
-  cancel-in-progress: false
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "auto: the commits decide; patch, minor or major: at least that bump"
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
 permissions: {}
 jobs:
+  # the manual run's full Checks on the dispatched commit, main's alone
+  checks:
+    name: Checks
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/checks.yml
+    with:
+      deploy: true
+    permissions:   # what checks.yml's jobs ask for: cancel-on-failure's actions, Deploy's Pages
+      contents: read
+      actions: write
+      pages: write
+      id-token: write
   release:
     name: Release
+    needs: checks
+    # main's green push (Checks skipped here), or the manual run once its Checks passed: a red commit never tags
     if: >-
-      ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      ${{ !cancelled() && (needs.checks.result == 'success'
+      || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository }}
+      && github.event.workflow_run.head_repository.full_name == github.repository) }}
+    concurrency:   # one release at a time, never cancelled mid-release
+      group: Release
+      cancel-in-progress: false
     runs-on: ubuntu-26.04
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit Checks passed
+      BRANCH: ${{ github.event_name == 'workflow_dispatch' && format('release-{0}', github.run_id) || '' }}
     steps:
       - name: Mint the bot App's token
         id: app
@@ -31,11 +62,11 @@ jobs:
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          permission-contents: write   # the tag and the release, nothing else: no comments or labels (.releaserc.json)
+          permission-contents: write   # the tag and the release, nothing else: no comments or labels (release.config.mjs)
       - name: Check out the commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.SHA }}
           fetch-depth: 0   # every tag, and the commits since the last
           persist-credentials: false   # semantic-release pushes the tag with the App's token itself
       - name: Set up Node
@@ -45,14 +76,33 @@ jobs:
           package-manager-cache: false   # a release installs without a cache (zizmor cache-poisoning)
       - name: Install semantic-release
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      # the manual run's own branch at the commit it checked: semantic-release releases a branch's head alone
+      - name: Open the release branch
+        id: branch
+        if: ${{ env.BRANCH != '' }}
+        run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$SHA" --silent
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
       - name: Run semantic-release
         run: |
           set -o pipefail   # a step with no `shell:` runs `bash -e`: semantic-release's failure, not tee's success
-          ci/node_modules/.bin/semantic-release 2>&1 | tee "$RUNNER_TEMP/release.log"
-          # a run main moved past exits green with no tag, so its summary says why
+          # the manual run releases its branch, which env-ci reads from GITHUB_REF
+          if [ -n "$BRANCH" ]; then export GITHUB_REF="refs/heads/$BRANCH"; set -- --branches "$BRANCH"; fi
+          ci/node_modules/.bin/semantic-release "$@" 2>&1 | tee "$RUNNER_TEMP/release.log"
+          # a run that tags nothing exits green, so its summary says why
           if grep -q "is behind the remote one" "$RUNNER_TEMP/release.log"; then
             echo "Not released: main moved past ${SHA:0:7}; the newer commit's run releases both." >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$BRANCH" ] && grep -q "There are no relevant changes" "$RUNNER_TEMP/release.log"; then
+            case "$RELEASE_BUMP" in
+              patch|minor|major) echo "Not released: no commit since the last tag, so nothing to release at a forced $RELEASE_BUMP." ;;
+              *) echo "Not released: no commit since the last tag is a feat, fix, perf, revert or a break." ;;
+            esac >> "$GITHUB_STEP_SUMMARY"
           fi
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          RELEASE_BUMP: ${{ inputs.bump }}   # empty on main's push: the commits decide
+      - name: Delete the release branch
+        if: ${{ always() && steps.branch.outcome == 'success' }}
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" --silent
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}

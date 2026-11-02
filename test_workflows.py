@@ -437,14 +437,15 @@ def test_main_releases_itself_once_its_checks_pass():
     at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
     assert flow[True]["workflow_run"] == {"workflows": ["Checks"], "types": ["completed"], "branches": ["main"]}
-    assert flow["concurrency"]["cancel-in-progress"] is False and "${{" not in flow["concurrency"]["group"]
-    (job,) = flow["jobs"].values()
+    job = flow["jobs"]["release"]
+    assert job["concurrency"]["cancel-in-progress"] is False and "${{" not in job["concurrency"]["group"]
     for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
         assert f"github.event.workflow_run.{cond}" in job["if"], cond
     steps = {s["name"]: s for s in job["steps"]}
     app = next(s for s in steps.values() if s.get("uses", "").startswith("actions/create-github-app-token@"))
     checkout = next(s for s in steps.values() if s.get("uses", "").startswith("actions/checkout@"))
-    assert checkout["with"]["ref"] == "${{ github.event.workflow_run.head_sha }}"
+    assert checkout["with"]["ref"] == "${{ env.SHA }}"
+    assert job["env"]["SHA"] == "${{ github.event.workflow_run.head_sha || github.sha }}"
     assert checkout["with"]["fetch-depth"] == 0  # every tag, and the commits since the last
     release = next(s for s in steps.values() if "semantic-release" in s.get("run", ""))
     assert release["env"]["GITHUB_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
@@ -452,6 +453,28 @@ def test_main_releases_itself_once_its_checks_pass():
     left = ["release-please.yml", "release-now.yml"]
     assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
+
+
+def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed():
+    """#802: Release's dispatch on main runs Checks itself (checks.yml's workflow_call, its Deploy on), and tags only
+    once they passed, from a branch of its own at that commit, deleted after, so main moving on stops nothing. Its bump
+    is auto, patch, minor or major (release.config.mjs); main's push run is unchanged."""
+    wf = WORKFLOWS[0].parent
+    flow = yaml.safe_load((wf / "release.yml").read_text())
+    bump = flow[True]["workflow_dispatch"]["inputs"]["bump"]
+    assert (bump["options"], bump["default"]) == (["auto", "patch", "minor", "major"], "auto")
+    checks, release = flow["jobs"]["checks"], flow["jobs"]["release"]
+    assert checks["uses"] == "./.github/workflows/checks.yml" and checks["with"] == {"deploy": True}
+    assert "github.ref == 'refs/heads/main'" in checks["if"]
+    assert release["needs"] == "checks" and "needs.checks.result == 'success'" in release["if"]
+    called = yaml.safe_load((wf / "checks.yml").read_text())
+    assert called[True]["workflow_call"]["inputs"]["deploy"] == {"type": "boolean", "default": False}
+    asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
+    assert asked.items() <= checks["permissions"].items()
+    steps = {s["name"]: s for s in release["steps"]}
+    assert steps["Open the release branch"]["if"] == "${{ env.BRANCH != '' }}"
+    assert steps["Delete the release branch"]["if"] == "${{ always() && steps.branch.outcome == 'success' }}"
+    assert steps["Run semantic-release"]["env"]["RELEASE_BUMP"] == "${{ inputs.bump }}"
 
 
 @pytest.mark.parametrize(
@@ -464,28 +487,56 @@ def test_main_releases_itself_once_its_checks_pass():
         ),
         ("Published release 1.2.3 on default channel", 0, ""),
         ("EGITNOPERMISSION Cannot push to the Git repository.", 1, ""),  # a failed release still fails the run
+        ("There are no relevant changes, so no new version is released.", 0, ""),  # main's push: as before
     ],
 )
 def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, exit, summary):
     """#773: semantic-release exits green and tags nothing when main moved past the commit, so the run's summary says
     why. Its step runs as GitHub runs a step with no `shell:` (`bash -e`, no pipefail), with semantic-release faked."""
+    done, read = release_step(tmp_path, says, exit, {})
+    assert (done.returncode, says in done.stdout, "--branches" in done.stdout) == (exit, True, False)
+    assert read() == summary
+
+
+NO_CHANGES = "There are no relevant changes, so no new version is released."
+
+
+@pytest.mark.parametrize(
+    ("says", "bump", "summary"),
+    [
+        (NO_CHANGES, "minor", "Not released: no commit since the last tag, so nothing to release at a forced minor.\n"),
+        (NO_CHANGES, "auto", "Not released: no commit since the last tag is a feat, fix, perf, revert or a break.\n"),
+        ("Published release 1.2.3 on default channel", "patch", ""),
+    ],
+)
+def test_a_manual_release_releases_its_own_branch_and_says_why_it_tagged_nothing(tmp_path, says, bump, summary):
+    """#802: the manual run hands semantic-release its branch (`--branches`, and GITHUB_REF, which env-ci reads), and
+    a run that tags nothing says why in its summary."""
+    done, read = release_step(tmp_path, says, 0, {"BRANCH": "release-42", "RELEASE_BUMP": bump})
+    assert done.returncode == 0 and "args: --branches release-42 ref: refs/heads/release-42" in done.stdout
+    assert read() == summary
+
+
+def release_step(tmp_path, says, exit, env):
+    """Release's semantic-release step as GitHub runs a step with no `shell:` (`bash -e`, no pipefail), with
+    semantic-release faked: it says `says`, echoes its arguments and GITHUB_REF, and exits `exit`."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
     step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Run semantic-release")
     bin_ = tmp_path / "ci" / "node_modules" / ".bin"
     bin_.mkdir(parents=True)
-    (bin_ / "semantic-release").write_text(f'#!/bin/sh\necho "[semantic-release] › ℹ  {says}"\nexit {exit}\n')
+    fake = f'#!/bin/sh\necho "[semantic-release] › ℹ  {says}"\necho "args: $* ref: $GITHUB_REF"\nexit {exit}\n'
+    (bin_ / "semantic-release").write_text(fake)
     (bin_ / "semantic-release").chmod(0o755)
-    env = {"PATH": "/usr/bin:/bin", "RUNNER_TEMP": str(tmp_path), "GITHUB_STEP_SUMMARY": f"{tmp_path}/summary"}
+    summary = tmp_path / "summary"
+    base = {"PATH": "/usr/bin:/bin", "RUNNER_TEMP": str(tmp_path), "GITHUB_STEP_SUMMARY": str(summary)}
     done = subprocess.run(
         ["bash", "-e", "-c", step["run"]],
         cwd=tmp_path,
-        env=env | {"SHA": "abc1234def5678"},
+        env=base | {"SHA": "abc1234def5678", "GITHUB_REF": "refs/heads/main"} | env,
         capture_output=True,
         text=True,
     )
-    assert (done.returncode, says in done.stdout) == (exit, True)
-    assert (Path(env["GITHUB_STEP_SUMMARY"]).read_text() if summary else "") == summary
-    assert step["env"]["SHA"] == "${{ github.event.workflow_run.head_sha }}"
+    return done, lambda: summary.read_text() if summary.exists() else ""
 
 
 def test_checks_deploys_the_site_it_built_as_its_last_job_on_mains_push():
@@ -497,7 +548,8 @@ def test_checks_deploys_the_site_it_built_as_its_last_job_on_mains_push():
     flow = yaml.safe_load((wf / "checks.yml").read_text())
     job = flow["jobs"]["deploy"]
     assert list(flow["jobs"])[-1] == "deploy" and job["needs"] == "checks"
-    assert job["if"] == "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}"
+    # main's push, or Release's manual run (#802)
+    assert job["if"] == "${{ (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main' }}"
     assert job["environment"]["name"] == "github-pages"
     assert job["concurrency"]["cancel-in-progress"] is False
     pages = {"pages": "write", "id-token": "write"}
