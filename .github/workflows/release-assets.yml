@@ -1,0 +1,45 @@
+name: Release Assets
+# Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release.
+# A release tag's run (docs/adr/0010, 0017): the zip goes onto the release semantic-release made (the release's notes
+# link this run; no environment, #754, so the release is no Deployment beside itself). No docs: the site serves the
+# latest alone (docs/adr/0021).
+on:
+  push:
+    tags: ["v*"]
+concurrency:   # one run per tag, never cancelled
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  release:
+    name: Release Assets
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the zip and the notes
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      # the eye program's files that `just flash` copies (noggin.core, as just mpy-list prints them; no venv here, and it
+      # needs none; the assignment fails with it), stamped with this release's version and commit as just mpy does
+      # (stamp.py, beside them), plus the setup wizard. The version is the tag's (git describe, docs/adr/0017): the
+      # checkout of a tag fetches that tag, and the stamp must name it
+      - name: Zip the Core's program
+        run: |
+          program=$(python3 -m noggin.core) && [ -n "$program" ]   # as just mpy-list, which fails on none
+          python3 -m noggin.core stamp > eyes/stamp.py
+          grep -qx "VERSION = \"${TAG#v}\"" eyes/stamp.py
+          zip "noggin-$TAG.zip" $program eyes/stamp.py eyes/boot.py scripts/setup.sh README.md LICENSE.md
+      - name: Attach the zip to the release
+        run: gh release upload "$TAG" "noggin-$TAG.zip" --clobber
+      # the notes link this run once, a re-run or a re-pushed tag included (the label older releases already carry)
+      - name: Link the run in the notes
+        run: |
+          gh release view "$TAG" --json body --jq .body > notes.md
+          grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s)\n' "$RUN_URL" >> notes.md
+          gh release edit "$TAG" --notes-file notes.md

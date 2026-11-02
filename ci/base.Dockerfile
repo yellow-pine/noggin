@@ -1,7 +1,7 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
 # (checks.yml's Site and Code, pr-gate.yml's Code), from pinned sources (gh the one exception, below), and uv's Python
 # with the venv synced from uv.lock (#725), which a job links as its .venv.
-# .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
+# .github/workflows/ci-images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
 # FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS node
 FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
@@ -69,7 +69,7 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chrome-no-sandbox PUPPETEER_SKIP_DO
 
 # uv's Python (.python-version) and the venv synced from uv.lock (#725): a job links /opt/uv/venv as its checkout's
 # .venv, so uv run downloads nothing, or only what a newer uv.lock changed. Last, so a lock change rebuilds this alone;
-# images.yml rebuilds it on main whenever these three files change
+# ci-images.yml rebuilds it on main whenever these three files change
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 COPY --chown=runner pyproject.toml uv.lock .python-version /opt/uv/project/
 RUN UV_PROJECT_ENVIRONMENT=/opt/uv/venv uv sync --directory /opt/uv/project --frozen --no-cache

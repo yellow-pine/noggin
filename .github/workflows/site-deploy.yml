@@ -8,6 +8,7 @@ name: Site Deploy
 # Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); the github-pages environment lists each deploy with
 # its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main] alone
 # also matches a fork's PR from a branch named main), on that push's commit (head_sha).
+run-name: "${{ format('Site Deploy: {0}', github.event.workflow_run.display_title) }}"
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the Deploy job acts only on this repo's push to main
     workflows: ["Checks"]   # by its name (test_workflows.py)

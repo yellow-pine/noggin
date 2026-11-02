@@ -1,5 +1,5 @@
-"""Re-pin Blender (#334, .github/workflows/blender.yml): the newest stable release whose Linux x64 tarball is at least
-14 days old, its sha256 from the release's own .sha256 file. The listing comes from the first of
+"""Re-pin Blender (#334, .github/workflows/blender-updates.yml): the newest stable release whose Linux x64 tarball is
+at least 14 days old, its sha256 from the release's own .sha256 file. The listing comes from the first of
 ci/blender.Dockerfile's sources that answers (download.blender.org, then Blender's official mirrors: #367, #370), the
 sha256 only when two of them agree. Rewrites the version and sha256 in every file under .github/ and ci/ that holds the
 current pin, and prints the new version and the sources that agree on its hash; prints nothing when the pin is

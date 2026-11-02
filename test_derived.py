@@ -168,7 +168,7 @@ def test_the_sim_key_hashes_no_justfile_or_workflow():
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():
-    """Every job's image is one ci/*.Dockerfile builds, by the :main tag images.yml pushes on main (#481)."""
+    """Every job's image is one ci/*.Dockerfile builds, by the :main tag ci-images.yml pushes on main (#481)."""
     ours = {f"ghcr.io/yellow-pine/noggin-ci-{PurePosixPath(i).stem}:main" for i in DOCKERFILES}
     images = [
         job["container"]["image"]

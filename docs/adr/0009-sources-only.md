@@ -58,7 +58,7 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   nowhere, and the site carries no code).
 - **Built once, deployed with GitHub's own Pages actions** (#310). Checks (`checks.yml`, #496) builds the docs
   on every PR and every push to main, with the viewer's GLBs and the pictures when their inputs changed, and its `Checks` gate uploads the site as an
-  artifact. Site Deploy (`pages.yml`) runs only on main: once Checks passed for the commit, it downloads
+  artifact. Site Deploy (`site-deploy.yml`) runs only on main: once Checks passed for the commit, it downloads
   that run's artifact and deploys it with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
 - **PR previews are artifacts.** A PR's Checks run builds the docs (and the viewer's GLBs when it changed what they
   are made from, #221) and its gate uploads them as an artifact linked from its job summary; no external preview host.

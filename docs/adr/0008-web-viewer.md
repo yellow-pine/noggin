@@ -69,10 +69,10 @@ watch the hero loop.
   them and holds no look numbers of its own. The canvas is see-through: the background is the page's own, in either theme.
 - **Built in CI, deployed with GitHub's own Pages actions.** The Checks workflow (`checks.yml`) builds the viewer on
   PRs and on main: a `Blender` job bakes the trajectories and runs `just web` in our Blender image, which holds the
-  pinned Blender Linux tarball (sha256-checked; re-pinned weekly by `blender.yml`), when what the viewer is made from
+  pinned Blender Linux tarball (sha256-checked; re-pinned weekly by `blender-updates.yml`), when what the viewer is made from
   changed (`scripts/inputs.py`), else the gate restores the last viewer built from the same inputs. The `Checks` gate
   puts it in the site and plays it in Chrome, and a red build fails that required gate (#245, #496). Site Deploy
-  (`pages.yml`) deploys main's site artifact once main's Checks passed, with no rebuild; a red build on main leaves
+  (`site-deploy.yml`) deploys main's site artifact once main's Checks passed, with no rebuild; a red build on main leaves
   the last site up. Pages' source is GitHub Actions, so nothing built is committed.
 - **Eyes gestures only for now.** Head and jaw gestures come with the second Core; Stages 2 and 3 show the eyes
   gestures and the hero loop.

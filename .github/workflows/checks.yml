@@ -16,7 +16,8 @@ name: Checks
 # made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it (on main what Site Deploy,
-# pages.yml, deploys). Code and Site run in our base image, Render in our Blender image; the others on the bare runner.
+# site-deploy.yml, deploys). Code and Site run in our base image, Render in our Blender image; the others on the bare runner.
+run-name: "${{ github.event_name == 'schedule' && 'Checks: weekly full run' || github.event_name == 'workflow_dispatch' && format('Checks: manual by {0}', github.actor) || '' }}"
 on:
   push:
     branches: [main]
@@ -138,7 +139,7 @@ jobs:
     # uv and the synced venv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode),
     # shellcheck, gh and yq
     container:
-      image: ghcr.io/yellow-pine/noggin-ci-base:main   # ci/base.Dockerfile, which main's images.yml pushes (ADR 0009)
+      image: ghcr.io/yellow-pine/noggin-ci-base:main   # ci/base.Dockerfile, which main's ci-images.yml pushes (ADR 0009)
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -349,7 +350,7 @@ jobs:
       # on what they are made from (Changes hashes them, #732). An exact hit is
       # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports as the
       # baseline the new ones are diffed against in this job's summary. Saved for the site, which publishes them at
-      # /reports (Site Deploy, pages.yml)
+      # /reports (Site Deploy, site-deploy.yml)
       - name: Restore the sim reports
         if: ${{ contains(matrix.units, 'sim') }}
         id: reports

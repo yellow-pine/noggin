@@ -32,6 +32,45 @@ def test_every_job_has_a_title_case_name():
     assert wrong == []
 
 
+def test_every_job_id_is_kebab_case():
+    assert [(f, id_) for f, id_, _, _ in names() if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", id_)] == []
+
+
+def test_every_workflow_is_title_case_in_its_kebab_case_file():
+    """#773, GitHub's starter workflows: the name Title Case ("Site Deploy"), the file its kebab-case form."""
+    flows = {f.name: yaml.safe_load(f.read_text())["name"] for f in WORKFLOWS}
+    wrong = {
+        f: n
+        for f, n in flows.items()
+        if not (TITLE.fullmatch(n) and f == re.sub(r"\W+", "-", n).lower() + ".yml")
+        and f != "review.yml"  # #787 renames it, under Cansin's bypass: a PR editing review.yml gets no review
+    }
+    assert wrong == {}
+
+
+def test_every_run_has_a_descriptive_title():
+    """#773: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
+    dispatched or workflow_run run by the workflow's name alone. Those set `run-name`: '<Workflow>: weekly <what>',
+    '<Workflow>: manual by <actor>', '<Workflow>: <triggering run's title>' (a push's: its commit's first line; Main Red
+    names the workflow it reports unless that title does); an empty result keeps GitHub's title for the other events."""
+    wrong = []
+    for f in WORKFLOWS:
+        flow = yaml.safe_load(f.read_text())
+        on, name, title = flow[True], flow["name"], flow.get("run-name", "")
+        on = set(on) if isinstance(on, (dict, list)) else {on}
+        want = {
+            "schedule": f"'{name}: weekly ",
+            "workflow_dispatch": f"format('{name}: manual by {{0}}', github.actor)",
+            "workflow_run": "github.event.workflow_run.display_title",
+        }
+        parts = [w for e, w in want.items() if e in on]
+        if parts and on - set(want) and not title.endswith(" || '' }}"):
+            wrong.append((f.name, "keeps GitHub's title"))
+        if not all(p in title for p in parts) or bool(parts) != bool(title) or (title and f"'{name}: " not in title):
+            wrong.append((f.name, title))
+    assert wrong == []
+
+
 def test_every_step_has_a_short_sentence_case_name():
     wrong = [
         (f, id_, n, step)
@@ -71,12 +110,12 @@ def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release(
         ):
             wrong.append(name)
     assert wrong == []
-    awaited = {w for f in ("pages.yml", "semantic-release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
+    awaited = {w for f in ("site-deploy.yml", "release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
     by_name = {flow["name"]: flow for flow in flows.values()}
     assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
         awaited, False
     )
-    for name in ("pages.yml", "semantic-release.yml", "release.yml"):
+    for name in ("site-deploy.yml", "release.yml", "release-assets.yml"):
         assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
 
 
@@ -88,7 +127,7 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
         on = flow[True]  # yaml reads `on:` as True
-        if f.name == "dependabot.yml" or "pull_request" not in on:
+        if f.name == "dependabot-auto-merge.yml" or "pull_request" not in on:
             continue
         pr = on["pull_request"] if isinstance(on, dict) else None  # a bare trigger has the default types
         if "ready_for_review" not in (pr or {}).get("types", []):
@@ -322,11 +361,11 @@ def test_the_pr_gate_never_runs_on_edited():
 def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     """#534: a weekly run pushes both images as a push to main does, but uncached, so the apt layers take the
     distro's security fixes and the newest gh; it starts before image-scan.yml's Monday scan reads them."""
-    flows = {f: yaml.safe_load((WORKFLOWS[0].parent / f).read_text()) for f in ("images.yml", "image-scan.yml")}
+    flows = {f: yaml.safe_load((WORKFLOWS[0].parent / f).read_text()) for f in ("ci-images.yml", "image-scan.yml")}
     build, scan = (flows[f][True]["schedule"][0]["cron"].split() for f in flows)
     assert (build[2:], scan[2:]) == (["*", "*", "1"], ["*", "*", "1"])  # both on Mondays
     assert int(build[1]) < int(scan[1])
-    jobs = flows["images.yml"]["jobs"]
+    jobs = flows["ci-images.yml"]["jobs"]
     assert jobs["push"]["if"] == "${{ github.ref == 'refs/heads/main' }}"
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
@@ -335,14 +374,14 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
 def test_the_ci_images_build_on_main_alone():
     """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
     Dockerfiles in main's Code job, so a broken Dockerfile files a `main-red-images` issue (main-red.yml)."""
-    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    images = yaml.safe_load((WORKFLOWS[0].parent / "ci-images.yml").read_text())
     assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
 
 def test_the_jobs_in_our_images_use_its_synced_venv():
     """#725: the base image carries uv's Python and the venv synced from uv.lock; main rebuilds it when the venv's
     inputs change, and every job running in our images links it as .venv before uv touches the checkout."""
-    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    images = yaml.safe_load((WORKFLOWS[0].parent / "ci-images.yml").read_text())
     assert {"uv.lock", "pyproject.toml", ".python-version"} <= set(images[True]["push"]["paths"])
     for f in WORKFLOWS:
         for id_, job in yaml.safe_load(f.read_text())["jobs"].items():
@@ -363,7 +402,7 @@ def test_dependabot_turns_on_auto_merge_as_the_bot_app():
     """#733: a merge whose auto-merge GITHUB_TOKEN turned on starts no push workflow on main, so Dependabot's bumps
     landed untested. The bot App turns it on, its token holding only what a merge needs (`workflows`: actions bumps
     edit workflow files), and the job's GITHUB_TOKEN gets nothing."""
-    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "dependabot.yml").read_text())["jobs"].values()
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "dependabot-auto-merge.yml").read_text())["jobs"].values()
     assert job.get("permissions", {}) == {}
     app = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@"))
     assert {k for k in app["with"] if k.startswith("permission-")} == {
@@ -378,7 +417,7 @@ def test_dependabot_turns_on_auto_merge_as_the_bot_app():
 def test_bump_prs_open_through_create_pull_request():
     """#748: the weekly bumps open their PR with peter-evans/create-pull-request as the bot App, whose token holds only
     its own branch and the PR; no hand-rolled push or `gh pr` is left."""
-    for name in ("blender.yml", "skills.yml"):
+    for name in ("blender-updates.yml", "skills-updates.yml"):
         jobs = yaml.safe_load((WORKFLOWS[0].parent / name).read_text())["jobs"].values()
         steps = [s for job in jobs for s in job["steps"]]
         app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token@"))
@@ -394,7 +433,7 @@ def test_bump_prs_open_through_create_pull_request():
 def test_main_releases_itself_once_its_checks_pass():
     """#582, docs/adr/0017: semantic-release runs after this repo's push to main passed Checks, on that commit, one run
     at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""
-    flow = yaml.safe_load((WORKFLOWS[0].parent / "semantic-release.yml").read_text())
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
     assert flow[True]["workflow_run"] == {"workflows": ["Checks"], "types": ["completed"], "branches": ["main"]}
     assert flow["concurrency"]["cancel-in-progress"] is False and "${{" not in flow["concurrency"]["group"]
     (job,) = flow["jobs"].values()
@@ -418,7 +457,7 @@ def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
     main. #778, docs/adr/0021: the latest docs alone, so no release's docs beside them, and nothing dispatches it."""
     wf = WORKFLOWS[0].parent
-    flow = yaml.safe_load((wf / "pages.yml").read_text())
+    flow = yaml.safe_load((wf / "site-deploy.yml").read_text())
     assert list(flow[True]) == ["workflow_run"]  # yaml reads `on:` as True
     (job,) = flow["jobs"].values()
     for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
@@ -426,7 +465,7 @@ def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     assert "statuses" not in job["permissions"]
     download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
     assert download["with"]["run-id"] == "${{ github.event.workflow_run.id }}"
-    release = yaml.safe_load((wf / "release.yml").read_text())
+    release = yaml.safe_load((wf / "release-assets.yml").read_text())
     assert "docs" not in str(release["jobs"]) and "docs" not in str(flow["jobs"])
     assert not (wf.parent.parent / "scripts" / "docs_versions.py").exists()
     assert not (wf / "deploy-pending.yml").exists()
@@ -438,7 +477,7 @@ def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_b
     found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
-    assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "site-deploy.yml", "ci-images.yml")]
     (job,) = flows["main-red.yml"]["jobs"].values()
     run = "\n".join(s.get("run", "") for s in job["steps"])
     assert '--label "$label" --json' in run and '--label "$label",' in run  # finds by it, files with it
