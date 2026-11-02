@@ -2,7 +2,7 @@
 angle (loops(), docs/research/2026-11-02-literature-graphics.md 1) and the clearance of every pair of parts certified
 along a played motion (certify(), docs/research/2026-11-02-literature-simulation.md 4). The sim report gates the
 first over each horn's sweep (model/mujoco_report.py, model/test_report.py), model/test_trajectories.py the second over
-every gesture and the hero."""
+every gesture and the hero, model/printed/gimbal.py over the next Mech's lid drives."""
 
 import math
 
@@ -86,22 +86,19 @@ def separation(model, data, pair):
     return float(best)
 
 
-def certify(model, qpos, floors, excused=lambda pair, data: False):
+def certify(model, qpos, floors, excused=lambda pair, data: False, separation=separation):
     """{pair: (row, mm)} for each pair of bodies (names) in floors that reads under its floor (mm) anywhere along qpos
     (one row per sim step, every joint a hinge): one such reading. Adaptive, after Schwarzer, Saha and
     Latombe (T-RO 2005): a span is clear when the two readings at its ends together exceed how far any point of one
-    body can move against the other across it (r * |dtheta| summed over the hinges between them, r from the hinge to the
-    body's bounding sphere's far side, dtheta the hinge's turn summed step by step); otherwise it is halved, down to
-    one step, between which the sim has nothing. A reading excused(pair, data) at its row's pose is no failure; a span
-    excused at both ends is taken as excused throughout."""
+    body can move against the other across it (r * |dtheta| summed over the hinges between them, r from the hinge's
+    axis to the far side of the body's farthest piece, dtheta the hinge's turn summed step by step); otherwise it is
+    halved, down to one step, between which the sim has nothing. A reading excused(pair, data) at its row's pose is no
+    failure; a span excused at both ends is taken as excused throughout. separation(model, data, pair) is the reading
+    (mm): the pieces' by default, or another lower bound on the gap (model/printed/gimbal.py reads the exact solids)."""
     assert (model.jnt_type == mujoco.mjtJoint.mjJNT_HINGE).all(), "r * |dtheta| bounds a hinge's travel"
     data = mujoco.MjData(model)
     turned = np.vstack([np.zeros(model.njnt), np.cumsum(np.abs(np.diff(qpos[:, model.jnt_qposadr], axis=0)), axis=0)])
-    sphere = {}  # body: (centre in its frame, radius), m
-    for b in {model.body(n).id for pair in floors for n in pair}:
-        g = _pieces(model, b)
-        c = model.geom_pos[g].mean(axis=0)
-        sphere[b] = c, float((np.linalg.norm(model.geom_pos[g] - c, axis=1) + model.geom_rbound[g]).max())
+    pieces = {b: _pieces(model, b) for b in {model.body(n).id for pair in floors for n in pair}}
     hinges = {}  # pair: [(body, the hinges that turn it and not the other)] per side
     for pair in floors:
         a, b = (model.body(n).id for n in pair)
@@ -120,10 +117,9 @@ def certify(model, qpos, floors, excused=lambda pair, data: False):
             off = excused(p, data)
             radii = []
             for body, js in hinges[p]:
-                c, rho = sphere[body]
-                centre = data.xpos[body] + data.xmat[body].reshape(3, 3) @ c
-                arm = np.cross(centre - data.xanchor[js], data.xaxis[js])
-                radii.append(np.linalg.norm(arm, axis=1) + rho)
+                g = pieces[body]
+                arm = np.cross(data.geom_xpos[g][:, None] - data.xanchor[js][None], data.xaxis[js][None])
+                radii.append((np.linalg.norm(arm, axis=2) + model.geom_rbound[g][:, None]).max(axis=0, initial=0))
             read[row, p] = mm - floors[p], off, radii
             if mm < floors[p] and not off and p not in out:
                 out[p] = (row, round(mm, 3))

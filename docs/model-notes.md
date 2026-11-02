@@ -85,7 +85,7 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   at 40 deg or more, the stock pan and jaw bars excepted with their reasons (model/test_report.py KNOWN_TRANSMISSION).
 - Every pair of parts certified clear at every step of each gesture and the hero, not only at the 100 ms frames:
   `mj_geomDistance` at the ends of a span, halved where the parts could move further than that (model/gates.py certify,
-  model/test_trajectories.py).
+  model/test_trajectories.py). The next Mech's lid drives are certified the same way, reading the exact solids (#655).
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
@@ -109,8 +109,9 @@ until the model stabilises.
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
   beside the Hooke form, the vergence a print error makes, the lids' clearance and range, the caps' gap, and the lid
-  drives' sweep: each lid, bar, horn and shank against the frame and every other part over the lid x pitch grid at yaw
-  0, sampled, until #627's adaptive clearance certifies it), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
+  drives' sweep: each lid, bar, horn and shank against the frame and every other part, certified along every line of the
+  lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
+  points), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):
