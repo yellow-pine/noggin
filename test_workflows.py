@@ -2,8 +2,10 @@
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run make check")."""
 
 import re
+import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 WORKFLOWS = sorted((Path(__file__).resolve().parent / ".github" / "workflows").glob("*.yml"))
@@ -70,3 +72,40 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
             if starts and "pull_request.draft" not in cond and "event_name != 'pull_request'" not in cond:
                 wrong.append((f.name, id_))
     assert wrong == []
+
+
+def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_token: str):
+    """review.yml's `Check if the PR edits review.yml`, then `Check the verdict`, with no structured output and `git`
+    and `gh` faked: `git diff` lists `changed`, `gh` logs its arguments."""
+    for tool, body in [("git", f"printf '%s\\n' {changed}"), ("gh", f'echo "$@" >> {tmp_path}/gh.log')]:
+        (tmp_path / tool).write_text(f"#!/bin/sh\n{body}\n")
+        (tmp_path / tool).chmod(0o755)
+    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "review.yml").read_text())
+    run = {s.get("name"): s.get("run") for s in flow["jobs"]["review"]["steps"]}
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "BASE": "main", "PR": "7", "GITHUB_OUTPUT": f"{tmp_path}/out"}
+
+    def step(name: str, **more: str):
+        return subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", run[name]], env=env | more, capture_output=True, text=True
+        )
+
+    step("Check if the PR edits review.yml").check_returncode()
+    edits = (tmp_path / "out").read_text().removeprefix("review=").strip() if (tmp_path / "out").exists() else ""
+    done = step("Check the verdict", RESULT="", CONCLUSION=conclusion, APP_TOKEN=app_token, EDITS_REVIEW=edits)
+    log = tmp_path / "gh.log"
+    return done.returncode, done.stdout, log.read_text() if log.exists() else ""
+
+
+@pytest.mark.parametrize(
+    ("changed", "conclusion", "app_token", "code", "says", "gh"),
+    [
+        # the action skipped on validation (no conclusion: Claude never ran) and main's review.yml moved on (#433)
+        ("noggin/x.py", "", "t", 1, "branch updated, the review re-runs", "pr update-branch 7 --rebase\n"),
+        ("noggin/x.py", "", "", 1, "changed since this branch: rebase it", ""),  # Dependabot's: no App token
+        (".github/workflows/review.yml", "", "", 0, "review.yml changed in this PR", ""),  # needs Cansin's bypass
+        ("noggin/x.py", "success", "", 1, "the review produced no verdict", ""),  # Claude ran and gave none
+    ],
+)
+def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code, says, gh):
+    got_code, out, got_gh = run_check_the_verdict(tmp_path, changed, conclusion, app_token)
+    assert (got_code, says in out, got_gh) == (code, True, gh)
