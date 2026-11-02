@@ -25,12 +25,12 @@ parts your ticket touches and follow them.
       ("Ship.") opens the gate: your next action is a tool call for 3.2.
    2. `pr` for the body.
    3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push
-      hook runs your one local check.
-   4. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in what
-      `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
+      hook runs your one local check, `just lint` (ruff and pyright).
+   4. Check the title as CONTRIBUTING.md says (commitlint exits 0), then open the PR as it describes.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
-   - The PR merges on the slim gate (`PR`, `Checks`: `just check-light` and the site's build, `Review`); main runs the
-     model, sim, Blender and Chrome smoke after, and a break there is fixed forward by a new PR (#283, #696).
+   - The PR merges on the slim gate (`PR`, `Checks`: `just check-light`, `Review`); main runs the site, the workflow
+     linters, the model, sim and Blender after the merge, and a break there is fixed forward by a new PR (#283, #696,
+     #714). Your branch runs that slim gate alone: the full run (`gh workflow run checks.yml`) is the main session's.
    - Bring main in only when CONTRIBUTING.md says to. Commits are the only place work waits.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: answer it as CONTRIBUTING.md says, and

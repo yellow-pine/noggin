@@ -9,6 +9,9 @@
 > Amended 2026-11-01 (#358): Release Assets is the release's deployment in the `release` environment, and the
 > release's notes link back to it.
 >
+> Amended 2026-11-02 (#754): Release Assets runs in no environment, which held nothing and showed every release
+> twice (a Deployment beside the Release); the notes still link the run.
+>
 > Amended 2026-11-02 (#382): a scope is required again, exactly one, derived from the repo; the types and subject
 > rules are @commitlint/config-conventional's; a `BREAKING CHANGE:` footer needs `!` in the title.
 >
@@ -30,6 +33,9 @@
 > Superseded in part 2026-11-02 (#582): ADR 0017. semantic-release releases main once its Checks pass, with no release
 > PR, gate, Release Now or CHANGELOG.md, and the git tag is the version (`pyproject.toml` keeps a placeholder). The one
 > version, the 0.x bump rules and the PR titles below still hold; the release-please parts are history.
+>
+> Amended 2026-11-02 (#742): commitlint checks the title (@commitlint/cli with config-conventional's rules and
+> `ci/commitlint.config.mjs`'s derived scopes), replacing amannn/action-semantic-pull-request and scripts/pr_title.py.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -45,14 +51,14 @@ copy, and the tag is `v` plus it.
   is at most 100 characters). The scope is required and is one noun, derived from the repo (ADR 0011): a tracked
   top-level folder, a tracked folder in docs/, `deps` (`deps-dev`) as Dependabot writes, or `release` for
   release-please's PR. The required `PR` check (`pr-checks.yml`) enforces
-  it all (amannn/action-semantic-pull-request, scripts/pr_title.py as on main).
+  it all (commitlint with `ci/commitlint.config.mjs`, as on main).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
   release. It passes the required checks, Claude's review included; merged, it tags `vX.Y.Z`
   and creates the GitHub release, its notes the version's CHANGELOG.md section (each entry links its PR, which links
-  its issue (#356), and its commit), and the tag starts Release Assets, which attaches the Core program zip as the release's
-  deployment in the `release` environment (the Deployments panel links the release; its notes link the run).
+  its issue (#356), and its commit), and the tag starts Release Assets, which attaches the Core program zip to the release
+  (its notes link the run; no environment, #754).
 - **Features and breaks release themselves; the rest waits (#407).** Every merge to main once released a fix on its own,
   too often. After each update the workflow reads release-please's changelog in the PR body (scripts/release_gate.py): a
   `Features` or `⚠ BREAKING CHANGES` section in the newest version's block turns the PR's auto-merge on, anything else

@@ -22,7 +22,7 @@ _Avoid_: frame, chassis, core
 
 **Bone**:
 A Skeleton link between two joints drawn organic: thick at the joints, waisted mid-span, rounded in section, its
-joints kept exact.
+joints kept exact. Each Skeleton part is drawn both as Bones and plain, the same interfaces in both (docs/adr/0020).
 _Avoid_: strut, organic bar
 
 **Torso**:
@@ -31,9 +31,8 @@ the neck mount with the pan servo; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
-One way to place the next Mech's boards in its compact head, ranked against the others before Cansin picks: Back, the
-boards upright in the back of the head behind the eye gimbal; Crown, the boards lying flat in the crown above it; Split,
-the Cores and Shields in the crown and the switch board low at the back of the neck. In each the pack lies low in the
+One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the
+boards upright in the back of the head behind the eye gimbal, and it is the one variant today; the pack lies low in the
 Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
@@ -157,19 +156,19 @@ _Avoid_: program, image, OS
 ### Model
 
 **Model**:
-The Mech as code, 1:1 with the physical Mech: our CadQuery parts (model/printed) and hardware Envelopes
-(model/envelopes.py), placed by model/geometry.py and model/stages.py; MuJoCo simulates them from one MJCF per
-document (model/mjcf.py, docs/adr/0007), and Blender renders the pictures from MuJoCo's Trajectories.
+The Next Mech as code: our CadQuery parts (model/printed) and hardware Envelopes (model/envelopes.py), placed into
+documents by model/stages.py; MuJoCo simulates them from one MJCF per document (model/mjcf.py, docs/adr/0007), and
+Blender renders the pictures from MuJoCo's Trajectories. Today's Mech left it (#720); its git history keeps it.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
-A cumulative build state of the Mech, the Sub-assemblies placed at frames (geometry.STAGES): Stage 1 = base + eyes (the desk eye bracket's stem in the plate's slot), Stage 2 = base + stack + eyes on the tilt arm, Stage 3 = Stage 2 + mouth (the full Mech). Simulation, photos and reports run per Stage.
+A cumulative build state of the Mech, each a complete Mech on the desk: Stage 1 the eyes on the base plate, Stage 2 the
+eyes on a pan-and-tilt neck, Stage 3 Stage 2 with the mouth (the full Mech). The build guides go Stage by Stage.
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
 The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
-(docs/adr/0008): on the Site the Next Mech alone (docs/adr/0019); locally also each Stage, playing its gestures and
-the Tour, Stage 3 exploded.
+(docs/adr/0008): the Next Mech, playing its gestures and the Tour, whole or exploded.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
@@ -180,8 +179,7 @@ for contributors and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:
-The values a doc shows that the code owns (the behaviour table, each Stage's parts and servos, the wiring, the picture
-sizes and colours): `macros.py` derives them, and the Site puts each where the doc's hidden `<!--{{ name }}-->` marker
+The values a doc shows that the code owns (the behaviour table, the wiring, the picture sizes and colours): `macros.py` derives them, and the Site puts each where the doc's hidden `<!--{{ name }}-->` marker
 stands; GitHub shows a link to the Site's table instead (docs/adr/0009, 0013).
 _Avoid_: generated docs
 
@@ -202,16 +200,17 @@ checks, review or Release Assets run as they would for a person's (docs/adr/0010
 _Avoid_: release App, bot token
 
 **Hero**:
-The Mech's showcase loop: Stage 3 talking, the first clip of the Tour (shown nowhere until the clean-room Mech).
+The Next Mech's showcase loop: talking, glancing aside and nodding, the first clip of the Tour.
 _Avoid_: banner, idle loop
 
 **Tour**:
-The web viewer's default: every clip of the Stage in turn, the Hero first where the Stage has one, round and round;
+The web viewer's default: every clip of the document in turn, the Hero first, round and round;
 a gesture picked plays once, then the Tour goes on.
 _Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:
-An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/stages.py).
+An ownership unit that owns its parts exactly once (the Next Mech's eyes, neck, base and boards' carrier) and is placed
+into a document at a frame (model/stages.py).
 
 **Envelope**:
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
@@ -229,7 +228,7 @@ _Avoid_: rod, linkage
 The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation into upper lid rotation.
 
 **Printed part**:
-A part we print, by our name (the designer's file names are history: docs/credits.md, docs/research):
+A part we print, by our name (the designer's file names are history: docs/credits.md, docs/research); today's Mech's:
 - eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
   desk eye bracket: Stage 1's, without the jaw rail, its stem 5 mm shorter;
 - L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;
@@ -273,18 +272,13 @@ _Avoid_: dead point margin, condition number
 A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
 
-**Corridor**:
-A lead's route in the Model: a polyline from one Port to the other through waypoints clipped to the parts that hold the
-lead, so it rides pan and tilt (model/cables.py). MuJoCo carries it as a tendon no longer than the lead.
-_Avoid_: harness, cable path, routing
-
 **Flexing span**:
 The stretch of the next Mech's leads that crosses a moving Pivot (pan or tilt), clamped at its two ends only and bent
 no tighter than ten times the thickest lead's diameter.
 _Avoid_: service loop, cable loop, slack
 
 **Trajectory**:
-One Gesture (or the README hero) on one Stage as MuJoCo plays its servo commands through the servos' own dynamics:
+One Gesture, Rest or the Hero on one document as MuJoCo plays its servo commands through the servos' own dynamics:
 every part's place in the world per 100 ms frame (model/trajectories.py, baked to model/build/trajectories). The one
 source of motion every picture and the web viewer's GLBs render from (#150, #182).
 _Avoid_: animation, recording, track, trace (the trace is the commands it plays)

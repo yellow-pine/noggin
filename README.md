@@ -2,7 +2,7 @@
 
 <p align="center">An animatronic Mech on the desk that reacts to Claude Code.</p>
 
-<p align="center"><a href="https://yellowpine.com/noggin/docs/pictures/"><img src="https://yellowpine.com/noggin/images/next-mech-back-isometric.webp" width="800" alt="The next Mech in progress, isometric"></a><br><sub>The next Mech, in progress</sub></p>
+<p align="center"><a href="https://yellowpine.com/noggin/docs/pictures/"><img src="https://yellowpine.com/noggin/images/next-mech-back-isometric.webp" height="240" alt="The next Mech in progress, isometric"></a><br><sub>The next Mech, in progress</sub></p>
 
 <p align="center"><a href="https://yellowpine.com/noggin/"><b>Docs</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/docs/build/parts/"><b>Build guide</b></a></p>
 
@@ -10,7 +10,6 @@
 <a href="https://github.com/yellow-pine/noggin/actions/workflows/checks.yml"><img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/checks.yml?branch=main&label=Checks&labelColor=2B2B2E"></a>
 <a href="https://github.com/yellow-pine/noggin/actions/workflows/pages.yml"><img alt="Site Deploy" src="https://img.shields.io/github/actions/workflow/status/yellow-pine/noggin/pages.yml?branch=main&label=Site%20Deploy&labelColor=2B2B2E"></a>
 <a href="https://github.com/yellow-pine/noggin/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/yellow-pine/noggin?label=Release&labelColor=2B2B2E&color=FFB673"></a>
-<a href="https://scorecard.dev/viewer/?uri=github.com/yellow-pine/noggin"><img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/yellow-pine/noggin?label=OpenSSF%20Scorecard&labelColor=2B2B2E"></a>
 <a href="LICENSE.md"><img alt="Licence: PolyForm Noncommercial 1.0.0" src="https://img.shields.io/badge/Licence-PolyForm%20Noncommercial-F7CED7?labelColor=2B2B2E"></a>
 </p>
 
@@ -29,8 +28,9 @@ macOS or Linux, with:
 
 ```sh
 just venv                      # .venv from uv.lock
-just check-light               # lint, formatting, types, workflows, fast tests
-just check                     # CI's Code job: adds the CadQuery build tests
+just lint                      # ruff (lint, formatting) and pyright: the pre-push hook
+just check-light               # the PR gate: just lint and the fast tests
+just check                     # main's Code job: adds the workflow linters and the CadQuery build tests
 just site                      # the site, built into site/dist
 npm --prefix site run preview  # serve it
 npm --prefix site test         # its tests; run smoke for the browser ones

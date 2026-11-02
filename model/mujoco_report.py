@@ -1,11 +1,11 @@
 """The sim report's MuJoCo half (#149, ADR 0007): measure(doc, model) steps the document's MJCF through each horn's sweep
-(geometry.LIMITS in STEP_DEG steps, the other horns at neutral) and, where the neck is, the pan x tilt grid, each pose
+(its limits in STEP_DEG steps, the other horns at neutral) and, where the neck is, the pan x tilt grid, each pose
 reached quasi-statically by mjcf.pose, and reports per pose: contacts and penetration per pair (MuJoCo's signed
 distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, singularity margins and transmission
 angles (model/gates.py), the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
 the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
-gesture, and the hero where the neck is: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
+gesture, Rest and the next hero: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
 inverse dynamics reads each servo's torque along it, held against gravity and turning its load, beside its hold at
 Rest; the centre of mass, shifted by its acceleration, against the footprint (and the footprint's size); and, for
 ranking the next Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
@@ -34,7 +34,7 @@ MARGIN_MM_RAD = fits.CLEARANCE[0] / math.radians(PLAY_DEG)
 
 
 def _degs(horn):
-    lo, hi = horn.limits  # a lid's closed end is fractional (geometry.LIMITS)
+    lo, hi = horn.limits  # an end may be fractional
     return [*np.arange(lo, hi, STEP_DEG).tolist(), hi]
 
 
@@ -64,7 +64,7 @@ def widen(model):
     """Contacts on `model` from CLEARANCE_MM out (the collision pieces' margin), the parent filter off, and multiccd off
     (one contact, the true distance, per pair of pieces)."""
     model.geom_margin[model.geom_group == mjcf.COLLISION] = CLEARANCE_MM / 1000
-    # a part on a joint against the rigid group it hangs on (a lid on the eye bracket riding the tilt arm): measured too;
+    # a part on a joint against the rigid group it hangs on (a lid on the gimbal frame riding the tilt): measured too;
     # multiccd's extra points on two flat faces read up to 0.2 mm too deep (docs/research/2026-11-01-coacd-tuning.md 2)
     model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_FILTERPARENT | mujoco.mjtDisableBit.mjDSBL_MULTICCD
 
@@ -78,10 +78,9 @@ def vertices(model, data, body):
 
 
 def _plate(model, data):
-    """The base's (today's base plate or the next Mech's Torso) drawn mesh's vertices in MuJoCo's world (mm), where they
-    are: its outline is the footprint."""
-    foot = ("base plate:1", "next torso:1")
-    return vertices(model, data, next(b for b in range(model.nbody) if model.body(b).name.endswith(foot)))
+    """The base's (the Torso's) drawn mesh's vertices in MuJoCo's world (mm), where they are: its outline is the
+    footprint."""
+    return vertices(model, data, model.body("next torso:1").id)
 
 
 def footprint(points):
@@ -123,7 +122,7 @@ def shifted(com, acc, floor, g=9.81):
 def _motions(doc, model, plate):
     """Each motion played through the servos' dynamics (trajectories.play), read every ms: per servo the most it holds
     against gravity and turns its load with (torques()) and where, and its hold at Rest (every gesture starts there);
-    with the base plate's vertices (mm), the worst margin of the centre of mass shifted by its acceleration (shifted())."""
+    with the base's vertices (mm), the worst margin of the centre of mass shifted by its acceleration (shifted())."""
     names = trajectories.motions(doc)
     assert names[0] in traces.GESTURES  # the first starts from Rest
     servos, moving = {}, None

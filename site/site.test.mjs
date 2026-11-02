@@ -45,6 +45,12 @@ test('the landing page leads into Build and Use', () => {
     expect(links).toContain(target);
 });
 
+test('the landing page has the sidebar every page has, itself first (#740)', () => {
+  const sidebar = (url) => page(url).querySelectorAll('#starlight__sidebar a').map((a) => a.getAttribute('href'));
+  expect(sidebar(`${BASE}/`)).toEqual(sidebar(route('docs/build/parts.md')));
+  expect(sidebar(`${BASE}/`)[0]).toBe(`${BASE}/`);
+});
+
 test('the sidebar reaches every decision, the pictures and the viewer', () => {
   const links = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
   const adrs = docs.filter((d) => d.startsWith('docs/adr/'));
@@ -114,7 +120,7 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
     for (const [, name, key] of source.matchAll(/^<!--\{\{\s*(\w+)(?:\[(\w+)\])?\s*\}\}-->$/gm)) {
       used++;
       const value = key === undefined ? numbers[name] : numbers[name][key];
-      if (value.startsWith('<')) continue; // HTML, not a table: the Stage panels' grid, its own test below
+      if (value.startsWith('<')) continue; // HTML, not a table: the panels' grid, its own test below
       const table = rows(value);
       expect(table.length, `${doc}: ${name}`).toBeGreaterThan(1);
       for (const row of table) expect(shown, `${doc}: ${name}`).toContainEqual(row);
@@ -225,7 +231,7 @@ test("the sim reports' page is the site's own, listing each report the build has
 
 test("each Stage's guide opens with the Stages in order, by their titles, its own marked", () => {
   const guides = docs.filter((d) => d.startsWith('docs/build/stage-')).sort();
-  expect(guides.length).toBe(numbers.stages.length);
+  expect(guides.length).toBeGreaterThan(1);
   for (const guide of guides) {
     const rail = page(route(guide)).querySelectorAll('nav[aria-label="Stages"] a');
     expect(rail.map((a) => [plain(a.text).replace(/\s+/g, ' '), a.getAttribute('href')]), guide).toEqual(
@@ -267,9 +273,9 @@ test("the viewer's page draws the next Mech, a button per head variant, and serv
   const buttons = viewers[0].querySelectorAll('nav button[data-stage]'); // in the ranking's order where there is one (#686)
   const stages = buttons.map((b) => `${b.getAttribute('data-stage')}.glb`);
   expect([...stages].sort()).toEqual([...numbers.published.viewer].sort());
-  // each button's whole label, a failing variant's with its mark ('Crown: tilt loop', #705), then its name before it
+  // each button's whole label, a failing variant's with its mark ('Back: head size', #705), then its name before it
   expect(buttons.map((b) => b.text.trim())).toEqual(numbers.published.variants.buttons.map((v) => v.label));
-  expect(buttons.map((b) => b.text.split(':')[0].trim()).sort()).toEqual(['Back', 'Crown', 'Split']);
+  expect(buttons.map((b) => b.text.split(':')[0].trim()).sort()).toEqual(['Back']);  // Back alone since #712
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
     expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);

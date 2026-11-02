@@ -1,6 +1,6 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
-# (checks.yml's Site and Code), from pinned sources (gh the one exception, below); `uv sync` in the job brings our
-# Python packages.
+# (checks.yml's Site and Code, pr-gate.yml's Code), from pinned sources (gh the one exception, below), and uv's Python
+# with the venv synced from uv.lock (#725), which a job links as its .venv.
 # .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
 # FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.2-trixie-slim@sha256:54f84b4cf8432b21aaffd5d3ce8d41e12cea0d10d33c09d2f3c9879d49d6b446 AS node
@@ -40,19 +40,11 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
-# a newer npm than the one Node bundles, for the security fixes in npm's own modules (#532): the registry's tarball,
-# checked against the sha512 the registry publishes (`npm view npm@$NPM dist.integrity`, base64, here in hex) and
-# unpacked over the bundled npm, all `npm install -g` does for npm, which Scorecard counts unpinned whatever its
-# argument (#563, docs/research/2026-11-02-scorecard-npm-pinning.md). The first check fails the build once Node bundles
-# this npm or a newer one: then drop the step
+# a newer npm than the one Node bundles, for the security fixes in npm's own modules (#532), pinned by version (the
+# registry checks its integrity). The check fails the build once Node bundles this npm or a newer one: then drop the step
 ARG NPM=11.21.1
-ARG NPM_SHA512=613ccbe90044257c87713bb426251ced128ca7e9b3949b65eeb18b98445a5d441e14720c73d6ad76be86f4cf42f2f0d66efe347a9a13400ccd2f6fcfb5954385
 RUN printf '%s\n' "$(npm -v)" "$NPM" | sort -CuV \
- && curl -fsSL -o /tmp/npm.tgz "https://registry.npmjs.org/npm/-/npm-$NPM.tgz" \
- && echo "$NPM_SHA512  /tmp/npm.tgz" | sha512sum -c \
- && dir=/usr/local/lib/node_modules/npm && rm -rf "$dir" && mkdir "$dir" \
- && tar -xzf /tmp/npm.tgz -C "$dir" --strip-components=1 && rm /tmp/npm.tgz \
- && test "$(npm -v)" = "$NPM"
+ && npm install -g --no-audit --no-fund "npm@$NPM" && rm -rf /root/.npm
 # the venv sits on another mount than uv's cache (no hard links)
 ENV UV_LINK_MODE=copy
 
@@ -71,7 +63,14 @@ RUN curl -fsSL -o /tmp/chrome.zip https://storage.googleapis.com/chrome-for-test
  && chmod +x /usr/local/bin/chrome-no-sandbox
 
 # the jobs run as the runner's user (uid 1001), who owns the checkout, so git trusts it
-RUN useradd -u 1001 -m runner && install -d -o runner /opt/npm
+RUN useradd -u 1001 -m runner && install -d -o runner /opt/npm /opt/uv
 USER runner
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chrome-no-sandbox PUPPETEER_SKIP_DOWNLOAD=true \
     npm_config_cache=/opt/npm npm_config_prefer_offline=true
+
+# uv's Python (.python-version) and the venv synced from uv.lock (#725): a job links /opt/uv/venv as its checkout's
+# .venv, so uv run downloads nothing, or only what a newer uv.lock changed. Last, so a lock change rebuilds this alone;
+# images.yml rebuilds it on main whenever these three files change
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
+COPY --chown=runner pyproject.toml uv.lock .python-version /opt/uv/project/
+RUN UV_PROJECT_ENVIRONMENT=/opt/uv/venv uv sync --directory /opt/uv/project --frozen --no-cache

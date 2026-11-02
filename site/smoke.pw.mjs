@@ -34,11 +34,14 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   const viewer = page.locator('.noggin-viewer'); // one, a button per head variant (#664, #686)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
-  await viewer.getByRole('navigation', { name: 'Head' }).getByRole('button').nth(1).click(); // its labels follow the ranking
-  await expect(page).toHaveURL(/\?stage=2$/);
+  // its labels follow the ranking; the last of however many there are (Back and Back plain since #704; #741)
+  const heads = viewer.getByRole('navigation', { name: 'Head' }).getByRole('button');
+  const n = await heads.count();
+  await heads.nth(n - 1).click();
+  await expect(page).toHaveURL(new RegExp(`\\?stage=${n}$`));
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await viewer.getByRole('button', { name: 'Explode' }).click();
-  await expect(page).toHaveURL(/\?stage=2&explode=1$/);
+  await expect(page).toHaveURL(new RegExp(`\\?stage=${n}&explode=1$`));
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
@@ -62,6 +65,12 @@ test("the wordmark's eye looks at the pointer, and holds still for reduced motio
       expect(await centre()).toBe(before);
     } else await expect.poll(centre).toBeGreaterThan(before);
   }
+});
+
+// Expressive Code draws a code block in a <figure>; the centred picture figures leave it left-aligned (#719)
+test('a code block reads left-aligned', async ({ page }) => {
+  await page.goto('docs/build/flashing/');
+  await expect(page.locator('.expressive-code .ec-line').first()).toHaveCSS('text-align', 'start');
 });
 
 test('the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {

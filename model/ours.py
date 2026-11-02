@@ -1,7 +1,7 @@
 """Our geometry as files: every printed part (printed.PARTS, by our part name), every Coupon (printed.COUPONS) and
 every hardware envelope (envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `just ours`: all of
 them as STLs in model/build/ours (stages.OURS), which MuJoCo (just sim, everywhere) and the renders read. `just stl`:
-the printed parts and the Coupons as print-ready STLs in model/build/stl. `just step`: every shape and each Stage at
+the printed parts and the Coupons as print-ready STLs in model/build/stl. `just step`: every shape and each document at
 neutral (model/stages.py's placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
 own process before the model reads them: CadQuery's OCCT threads must not be running when a process pool forks."""
 
@@ -36,7 +36,7 @@ def printable(stem, path):
 
 
 def stage_step(doc, path):
-    """The Stage at neutral as one STEP assembly at `path` (returned): every part's shape at its placement (model/stages.py),
+    """The document at neutral as one STEP assembly at `path` (returned): every part's shape at its placement (model/stages.py),
     in its spool's colour (or the hardware's grey)."""
     shape = functools.cache(lambda stem: SHAPES[stem]())
     asm = cq.Assembly(name=doc)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
     elif what == "step":
         write(os.path.join(BUILD, "step"), list(SHAPES), ".step")
-        for doc in geometry.STAGES:
+        for doc in geometry.NEXT:
             print(stage_step(doc, os.path.join(BUILD, "step", doc + ".step")))
     else:
         sys.exit("usage: python -m model.ours [ours|stl|step]")

@@ -1,10 +1,9 @@
-"""Gesture replay for the model (#20, #39): the five gestures plus thinking recorded from the eye program on CPython
-(machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before its
-servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
-joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to the shared lid frame, then
-the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The web viewer plays these frames (web/build.py, docs/adr/0008);
-`commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo; `next_commands` the same
-program's writes as the next Mech's eyes Core takes them (#663): through the eye gimbal's command map (model/gimbal.py)."""
+"""Gesture replay for the model (#20, #39, #663): the five gestures plus thinking recorded from the eye program on
+CPython (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before
+its servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range): `writes` gives them at their
+own times, `next_commands` the same program's writes as the next Mech's eyes Core takes them (#663): through the eye
+gimbal's command map (model/gimbal.py), which model/trajectories.py plays in MuJoCo and the web viewer bakes
+(web/build.py, docs/adr/0008)."""
 
 import importlib.util
 import json
@@ -29,13 +28,11 @@ if "machine" not in sys.modules:  # under pytest the root conftest has done this
 if REPO not in sys.path:
     sys.path.insert(1, REPO)  # model; eyes/ stays first so `import eyes` is the Core program
 import eyes as mod  # noqa: E402  the Core's eye program
-from model import geometry, gimbal, neck, sim  # noqa: E402
+from model import geometry, gimbal, neck  # noqa: E402
 
 CAL = json.load(open(os.path.join(REPO, "eyes", "calibration.json")))
 # each gesture the Core plays, at its normal level (the wink to the Mech's left, 1, not a random side), then thinking
 GESTURES = {**{g: f"{g} {1 if g == 'wink' else 2}" for g in mod.Eyes.GESTURES}, "thinking": "thinking"}
-SERVOS = geometry.EYES_SERVOS
-PIN = {name: pin for pin, name in mod.NAME.items()}
 FRAME_MS, THINK_MS = 100, 6000  # THINK_MS: how long a background mode (thinking, Rest) plays
 NEXT_MOTIONS = {**GESTURES, "rest": "rest"}  # the next Mech's: today's gestures and Rest with its blinks (#663)
 # the next Mech's eyes Core calibration beside today's: its head carries 0.6 of a gaze shift past 15 deg (#688, [AND]'s
@@ -45,16 +42,8 @@ NEXT_CAL = {"head_share": 0.6}
 # ack, one Wi-Fi round trip (inferred: 20 ms) on top (#688, noggin/service.py send)
 DELAY_MS = {"core1": 0, "core2": 40}
 CORE = {servo: core for core, ports in geometry.CHANNELS.items() for servo in ports.values()}
-_CORE = mod.Eyes()  # the Core's lid mapping (fraction -> shared lid frame degrees) under the calibration
+_CORE = mod.Eyes()  # the Core's servo ranges under the calibration
 _CORE.cal.update(CAL)
-
-
-def joint(servo, v):
-    """Model horn degrees from neutral for a lid fraction or an eye position."""
-    if "lid" in servo:
-        return sim.joint_deg(servo, _CORE._lid_shared(PIN[servo], v))
-    lo, hi = geometry.HORN_LIMITS[servo]
-    return v * ((hi - 90) if v > 0 else (90 - lo))
 
 
 def writes(line, cal=CAL):
@@ -86,33 +75,6 @@ def writes(line, cal=CAL):
             clock[0] = t
             e.tick(t)
     return [(t - start, s, a) for t, s, a in log], clock[0] - start
-
-
-def commands(gesture):
-    """The gesture as the Core writes it, from rest: ([(ms, servo, model horn degrees)] after every write, rest's own
-    writes before ms 0; the frame times in ms, one per 100 ms from 0, a frame past the last write). The pan, once the
-    calibration's head_share turns it on (#688), as its servo's degrees from centre on the rotate horn."""
-    log, end = writes(GESTURES[gesture])
-    half = {p: (hi - lo) / 2 for p, (lo, hi) in ((p, _CORE.range(p)) for p in mod.EYES)}
-    moved = [
-        (t, "rotate", round(_CORE._pan_angle(a) - 90, 2))
-        if s == "pan"
-        else (t, s, round(joint(s, a if "lid" in s else a / half[PIN[s]]), 2))
-        for t, s, a in log
-    ]
-    return moved, range(0, end + FRAME_MS + 1, FRAME_MS)
-
-
-def record(gesture):
-    """Model joint degrees per servo at each 100 ms frame of the gesture, from rest, per the current calibration."""
-    writes, times = commands(gesture)
-    frames, pos, i = [], {}, 0
-    for t in times:  # frame 0 is rest: a write at t shows from the next frame
-        while i < len(writes) and writes[i][0] < t:
-            pos[writes[i][1]] = writes[i][2]
-            i += 1
-        frames.append({s: pos[s] for s in SERVOS})
-    return frames
 
 
 def next_commands(motion):

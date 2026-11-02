@@ -1,4 +1,4 @@
-"""The CI budget (#219, #327), the last step of Checks' gate (.github/workflows/checks.yml, #496): with a warm
+"""The CI budget (#219, #327), the last step of each Checks gate (workflows checks.yml and pr-gate.yml): with a warm
 cache a run's critical path should stay within its event's budget. The critical path is the longest chain of jobs along
 the workflow's needs, each job counted from when a runner picked it up to when it finished (or to this step, still
 running): time spent waiting for a runner, or on a job's needs, is not counted, so a busy queue never trips it and a
@@ -15,7 +15,7 @@ import sys
 from datetime import UTC, datetime
 from functools import cache
 
-BUDGET_S = {"pull_request": 300, "push": 540}  # push is main only; a PR runs the slim gate alone (#696)
+BUDGET_S = {"pull_request": 120, "push": 540}  # push is main only; a PR runs the slim gate alone (#696, #714)
 
 
 def critical_path(jobs: list[dict], workflow: dict, attempt_started: str, now: str) -> float:

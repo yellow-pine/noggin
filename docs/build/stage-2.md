@@ -1,38 +1,21 @@
 # Stage 2: neck
 
 > [!WARNING]
-> **Not yet built here.** No Stage 2 stands on the desk yet. This guide is read off the model (model/stages.py,
-> model/geometry.py), which follows the designer's pan-and-tilt guide ([Credits](../credits.md)); where the model had
-> to infer, it says so (docs/research/2026-10-31-neck.md, [Model notes](../model-notes.md)).
+> **Not yet built here.** No Stage 2 stands on the desk yet. This guide was read off the model of today's Mech, which
+> followed the designer's pan-and-tilt guide ([Credits](../credits.md)); where it had to infer, it said so
+> (docs/research/2026-10-31-neck.md). The model now holds the next Mech alone (#720).
 
 The eyes move from the desk onto a pan-and-tilt neck: the head turns left and right (pan) and nods (tilt). Two more
 servos on a second Core.
 
-## Parts it adds, from the model
-
-<!--{{ stage_parts[2] }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
-The parts list is in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-2/#parts-it-adds-from-the-model),
-built from the model.
-<!-- #}-->
+## Parts it adds
 
 The eye bracket swaps: Stage 1's desk eye bracket has no jaw rail and a stem 5 mm shorter; the neck's eye bracket has
 the rail the mouth hangs on in [Stage 3](stage-3.md).
 
-## Servos it adds
+The two servos get calibrated as Stage 1's were ([Calibration](calibration.md)).
 
-<!--{{ stage_servos[2] }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
-The servos, their ports and ranges are in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-2/#servos-it-adds),
-built from the model.
-<!-- #}-->
-
-The ranges are the model's, in servo degrees, where every part sweeps clear; the real servos get calibrated as Stage 1's
-were ([Calibration](calibration.md)).
-
-## Assembly, as the model places it
+## Assembly, as the model placed it
 
 1. **Base plate.** It carries the pan pivot, the pan servo's two mounts, both Shields' standoffs, the battery box and
    the switch board holder.
@@ -50,7 +33,7 @@ were ([Calibration](calibration.md)).
 7. **Wire holder** on the base plate's two posts, holding the leads down.
 
 The head turns less than its servos: the stock linkages give about 0.47 of the pan servo's angle and 0.32 of tilt's.
-In the model pan swings 46° end to end and tilt about ±17° (docs/research/2026-10-31-neck.md).
+In the model pan swung 46° end to end and tilt about ±17° (docs/research/2026-10-31-neck.md).
 
 ## Wiring
 

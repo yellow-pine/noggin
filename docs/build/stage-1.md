@@ -1,22 +1,13 @@
 # Stage 1: eyes
 
-The eyes on the base plate: the Stage built here. [Stage 2](stage-2.md) and [Stage 3](stage-3.md) are read off the
-model.
+The eyes on the base plate: the Stage built here. [Stage 2](stage-2.md) and [Stage 3](stage-3.md) were read off the
+model, which now holds the next Mech alone (#720).
 
 ## What we built
 
 Two eyeballs with eyelids on a base plate, four 180° 9 g servos, a Core on a Shield, a switch board and a 14500 cell
 holder. Our board is mounted rotated 90° relative to the designer's photos, which changes nothing electrically. The
-eyes stand on the desk eye bracket, its stem in the base plate's slot.
-
-## Parts, from the model
-
-<!--{{ stage_parts[1] }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
-The parts list is in [the table on the site](https://yellowpine.com/noggin/docs/build/stage-1/#parts-from-the-model),
-built from the model.
-<!-- #}-->
+eyes stand on the desk eye bracket, its stem in the base plate's slot. The parts are in [Parts](parts.md).
 
 ## Assembly
 

@@ -38,6 +38,12 @@
 > Amended 2026-11-02 (#649, ADR 0019): CI builds the Next Mech's pictures and GLB, and the site serves them.
 > Amended 2026-11-02 (#696, Cansin): a PR's Checks run only Code (`just check-light`) and Site (the build and its HTML
 > tests); the model, sim, Blender and Convex and the site's Chrome smoke build on main alone, which fixes forward.
+> Amended 2026-11-02 (#714, Cansin): a PR's Checks run only Code (`just check-light`: ruff, pyright, the fast tests);
+> the site's build and the workflow and Dockerfile linters moved to main too.
+> Amended 2026-11-02 (#722, Cansin): that slim gate is its own workflow, PR Gate (`pr-gate.yml`: Code, then the
+> required `Checks` gate), so a PR lists no job every PR skips; Checks (`checks.yml`) runs on main alone.
+> Amended 2026-11-02 (#729, Cansin): no PR builds the CI images either; main's `CI Images` run fails without moving
+> `:main`, and its failure files 'main red (CI Images)' (main-red.yml), which its next successful run closes.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -85,10 +91,12 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   `-blender`), never committed, and those jobs run them by the `:main` tag (`container:`, #481): mutable, but only
   main's `CI Images` run writes it, and Dependabot keeps the Dockerfiles' own base images digest-pinned and current.
   Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain
-  of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages
-  stay out of the images: `uv sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build
-  provenance when a Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472) and weekly without the
-  layer cache (#534), and every job that starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
+  of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. The base image
+  carries uv's Python and the venv synced from uv.lock, which its jobs link as `.venv`, so `uv sync` in the job only
+  installs what a newer uv.lock changed (#725). Only main writes to the registry: it pushes `:main` with GitHub's build
+  provenance when a Dockerfile or the venv's inputs (uv.lock, pyproject.toml, .python-version) change (Dependabot's
+  bumps among them, #472) and weekly without the layer cache (#534), and every job that starts after runs in them. No
+  PR builds them (#729): a broken Dockerfile fails main's run, which leaves `:main` as it was and files 'main red'.
 
 ## Known limits
 

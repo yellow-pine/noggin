@@ -27,7 +27,7 @@ FLASH_VIA := shell('if ls $1 >/dev/null 2>&1 && ! $2 status 2>/dev/null | grep -
 # mech/build on it (checks.yml reads this line)
 MICROPYTHON := "v1.23.0"
 
-# .venv with pyserial, pytest, mpremote and just; git runs .githooks (pre-push: just check-light)
+# .venv with pyserial, pytest, mpremote and just; git runs .githooks (pre-push: just lint)
 venv:
     uv sync -q
     git config core.hooksPath .githooks
@@ -37,30 +37,31 @@ venv:
 test: venv ours
     {{HEAVY}} {{PY}} -m pytest -q
 
-# ruff
+# ruff (lint and format) and pyright: the one local check, .githooks/pre-push runs it (#714)
 lint: venv
     {{PY}} -m ruff check
+    {{PY}} -m ruff format --check
+    {{PY}} -m pyright
 
 # ruff format, in place
 fmt: venv
     {{PY}} -m ruff format
 
-# remove the worktrees of merged, closed or deleted branches, keeping any with changes or unpushed commits; prints each (scripts/worktrees_clean.py)
-worktrees-clean: venv
-    {{PY}} scripts/worktrees_clean.py
+# delete the local branches whose PR merged or closed, and their clean worktrees (gh-poi, installed on first use)
+worktrees-clean:
+    gh extension list | grep -q seachicken/gh-poi || gh extension install seachicken/gh-poi
+    gh poi --state closed
 
-# seconds, no CadQuery build: lint, formatting, types, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint) and the tests marked neither model nor build; .githooks/pre-push runs it
+# the PR gate's Code job (#714): just lint and the tests marked neither model nor build, no CadQuery build
 check-light: venv lint
-    {{PY}} -m ruff format --check
-    {{PY}} -m pyright
-    {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
-    {{BIN}}/zizmor -q --offline .
-    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum or sha512sum and printf into sort; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "not model and not build"
 
-# CI's Code job: just check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
+# main's Code job: just check-light, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint), the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
 check: check-light ours
+    {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
+    {{BIN}}/zizmor -q --offline .
+    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum and printf into sort; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "build and not model"
     bash -n scripts/setup.sh
     for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done
@@ -71,7 +72,7 @@ check: check-light ours
 check-all: check
     {{HEAVY}} {{PY}} -m pytest -q -m model
 
-# simulate every document, or the ones named (sub-assemblies + Stage configurations), on our geometry into model/build/reports: placements, fits, beams, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
+# simulate every document, or the ones named (stages.DOCS), on our geometry into model/build/reports: the eye gimbal, the neck, the head variant, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
 [group('heavy')]
 sim *docs: venv ours
     {{HEAVY}} {{PY}} -m model.report {{docs}}
@@ -85,7 +86,7 @@ ours: venv
 stl: venv
     {{PY}} -m model.ours stl
 
-# STEP files of every part and envelope, and each Stage as assembled (every horn at 0), in model/build/step (open -a FreeCAD)
+# STEP files of every part and envelope, and each document as assembled (every horn at 0), in model/build/step (open -a FreeCAD)
 step: venv
     {{PY}} -m model.ours step
 
@@ -166,6 +167,10 @@ flash-usb: interrupt mpy
     {{MPR}} resume exec "import os; [os.remove(f) for f in '{{replace(PROGRAM, 'eyes/', '')}} stamp.py'.split() if f in os.listdir()]"  # a .py shadows its .mpy
     {{PY}} eyes/interrupt.py reset
 
+# both Cores on the Mech, each flashed over USB and Wi-Fi, then probed over Wi-Fi with the cable in, with it out and after the Mech was off: asks you to plug, unplug and switch, appends the results to docs/build/live-check.md (#29)
+live-check: venv
+    {{PY}} -m noggin.live_check
+
 # add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi step alone (scripts/setup.sh wifi); in a Terminal window (docs/build/flashing.md)
 wifi: venv
     scripts/setup.sh wifi
@@ -175,35 +180,26 @@ restore-stock: interrupt
     cd eyes/stock-backup && for f in *; do {{MPR}} resume cp -r $f : || exit 1; done
     {{PY}} eyes/interrupt.py reset
 
-# a document (default noggin-eyes; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
+# a document (default next-mech-back; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 [group('heavy')]
-view doc="noggin-eyes": venv ours
+view doc="next-mech-back": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture and the hero on each Stage and the next Mech, or on the documents named (next: the next Mech's; or in TRAJ_DOCS, the Blender bins): every part's world pose per 100 ms frame in model/build/trajectories (a Stage whose files carry its stamp is skipped)
+# MuJoCo plays each gesture, Rest and the next hero on each of the next Mech's documents, or on the documents named (next: all of them; or in TRAJ_DOCS): every part's world pose per 100 ms frame in model/build/trajectories (a document whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
 
-# Blender pictures, each Stage and the next Mech at rest from its trajectories: the panels (model/build/pictures)
+# Blender pictures, each of the next Mech's documents at rest from its trajectories: the panels (model/build/pictures)
 [group('heavy')]
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the hero: stage 3 talking, an 8 s loop keyed in model/render/hero.py, from its trajectory, as light and dark WebP
+# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Blender job runs `just pictures next`, #649)
 [group('heavy')]
-hero: venv ours trajectories
-    BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures hero
-
-# the hero's frames, rendered in shards (the Blender bins, #537), encoded into model/build/images/hero.webp
-hero-join: venv
-    {{PY}} -m model.render.pictures join
-
-# the site's pictures (model/render/pictures.py SITE), or the motions named (views, hero; or in MOTIONS, the Blender bins), in model/build/images, local only (docs/adr/0019); `next`, the next Mech's panels and a picture per part, is what the site serves (Checks' Blender job, #649)
-[group('heavy')]
-pictures *motions=env("MOTIONS", ""): venv ours trajectories
-    BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{motions}}
+pictures *what: venv ours trajectories
+    BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
 
 # the model tests' and just mech's four shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
 model-shards-list: venv
@@ -211,13 +207,9 @@ model-shards-list: venv
 
 # model/durations.json from a Checks run's measured seconds (its durations-* artifacts): just model-durations <run id>
 model-durations run:
-    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^(just|blender) ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
+    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^just ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
-# the pictures' motions and the viewer packed into Blender runners, each with the Stages it bakes, as JSON (Checks' Blender matrix until #640, #297, #496; PICTURES=false or VIEWER=false leaves those out)
-blender-bins: venv
-    @{{PY}} -m model.shards blender
-
-# the web viewer's GLBs in web/build, Blender's per Stage and the next Mech's (or the documents named; next: the next Mech's, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
+# the web viewer's GLBs in web/build, Blender's per next Mech document (or the documents named; next: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
 web *docs: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build web/build {{docs}}

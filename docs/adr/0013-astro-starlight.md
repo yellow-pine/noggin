@@ -35,8 +35,8 @@ service anywhere.
 - **The Markdown stays where it is, with no front matter.** Astro's `glob()` loader reads the repo's Markdown in place
   (`site/src/pages.mjs`: the root's `*.md` and `docs/**`, not the README, CLAUDE.md or docs/references) into
   Starlight's docs collection with `docsSchema()`. A page's id is its path, lower-cased; docs/index.md is the landing
-  page at the root, a splash. Starlight needs a `title`: the loader takes it from the page's H1, and a Markdown plugin drops the
-  H1 itself, so Starlight draws it once. Pages read the same on GitHub and on the site.
+  page at the root, with the sidebar like every page (#740). Starlight needs a `title`: the loader takes it from the
+  page's H1, and a Markdown plugin drops the H1 itself, so Starlight draws it once. Pages read the same on GitHub and on the site.
 - **Markdown plugins on Astro's default processor, Sätteri** (`site/src/markdown.mjs`): a relative `.md` link goes to
   its page (or to GitHub when the doc is not a page); `<!--{{ name }}-->` takes the Markdown `macros.py` writes as
   JSON (`site/src/macros.json`, never committed), an unknown name fails the build, and a `<!--{# ... #}-->` span

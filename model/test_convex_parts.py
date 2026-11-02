@@ -21,5 +21,5 @@ def test_a_part_is_stale_until_its_pieces_are_cut(tmp_path, monkeypatch):
 
 def test_parts_holds_every_documents_meshes():
     meshes = convex_parts.parts()
-    assert {"upper lid", "servo", "base plate"} <= set(meshes)
+    assert {"next L upper lid", "servo", "next torso"} <= set(meshes)
     assert meshes["servo"][1]  # its leads clipped, as model/mjcf.py's spec() cuts it

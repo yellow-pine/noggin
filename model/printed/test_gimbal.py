@@ -14,7 +14,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model.printed import bone, gimbal
 
-# a horn's hub on its servo's spline: the Envelopes overlap there by design, as in today's Stages
+# a horn's hub on its servo's spline: the Envelopes overlap there by design
 ON_SPLINE = {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in gm.drives()}
 
 
@@ -28,8 +28,9 @@ def _overlaps(a, b):
 
 
 @pytest.mark.build
-def test_no_two_parts_overlap_at_rest():
-    shapes = gimbal.at_rest()
+@pytest.mark.parametrize("plain", [False, True])
+def test_no_two_parts_overlap_at_rest(plain):
+    shapes = gimbal.at_rest(plain)
     hits = [
         f"{a} / {b}: {v:.2f} mm3"
         for a, b in itertools.combinations(shapes, 2)
@@ -137,6 +138,87 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
     assert math.pi**2 * mat["E_mpa"]["z"] * least / math.dist(a, b) ** 2 / force >= beams.MIN_SF
 
 
+# The full pass (#704): the yaw yoke prints as drawn, on its stem and crank (its yaw and crank pins along Z, the pitch
+# axle's bores across the layers); the bail as drawn, on its rod's flat underside (all three bores along x: standing
+# on an end would hang an arm and its ball in the air)
+Y = gm.YOKE
+BALLS = [(s * gm.EYE["L"][0], gm.BAIL[0], gm.LEVER) for s in (-1, 1)]
+TIP = (0.0, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
+
+
+def test_the_yoke_keeps_its_bores():
+    """The yaw shank's bore up the stem, the crank's pin bore, and the pitch axle's bore through each arm, each with
+    wall round it."""
+    yoke, r = gimbal.yoke().val(), gm.PIN_R
+    z, zc = Y["stem_z"] + 4, sum(gm.YAW_CRANK_Z) / 2
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        for x, y, zz in ((0, 0, z), (0, gm.CRANK, zc)):
+            assert not yoke.isInside(cq.Vector(x + dx * (r - 0.05), y + dy * (r - 0.05), zz))
+            assert yoke.isInside(cq.Vector(x + dx * (r + 0.5), y + dy * (r + 0.5), zz))
+        for s in (-1, 1):
+            x = s * (Y["inner"] + Y["wall"] / 2)
+            assert not yoke.isInside(cq.Vector(x, dx * (r - 0.05), dy * (r - 0.05)))
+            assert yoke.isInside(cq.Vector(x, dx * (r + 0.5), dy * (r + 0.5)))
+
+
+def test_the_bail_keeps_its_bores_and_balls():
+    """The shanks' bores in the rod's ends and the pitch bar's pin bore in the input arm's tip, each with wall round
+    it; a ball on its neck behind each eye."""
+    bail, r, (by, bz), end = gimbal.bail().val(), gm.PIN_R, gm.BAIL, gm.EYE["L"][0] + 8.0
+    for dy, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        for x, y, z in [(s * (end - 4), by, bz) for s in (-1, 1)] + [TIP]:
+            assert not bail.isInside(cq.Vector(x, y + dy * (r - 0.05), z + dz * (r - 0.05)))
+            assert bail.isInside(cq.Vector(x, y + dy * (r + 0.5), z + dz * (r + 0.5)))
+    for x, y, z in BALLS:
+        assert bail.isInside(cq.Vector(x, y, z + gm.BALL_R - 0.05)) and not bail.isInside(cq.Vector(x, y, z + 3.1))
+
+
+def _off_bore(c, axis_points, r=gm.PIN_R + 0.2):
+    """False on a bore's wall along x through any of the (y, z) points: its crown, an exact interface, is excused."""
+    return all(math.hypot(c[1] - y, c[2] - z) > r for y, z in axis_points)
+
+
+def test_the_yoke_and_the_bail_print_as_drawn_with_no_overhang_past_45_deg():
+    """The pitch axle's and the bail's bores across the layers, the bail's balls on their necks: exact interfaces,
+    excused."""
+    shank = lambda c: math.hypot(c[0], c[1]) > gm.PIN_R + 0.2  # noqa: E731  the yaw shank's blind bore's crown
+    assert bone.overhang_deg(gimbal.yoke().val(), keep=lambda c: _off_bore(c, [(0, 0)]) and shank(c)) <= 45
+    ball = lambda c: all(  # noqa: E731
+        math.dist(c, b) > gm.BALL_R + 0.2 and math.hypot(c[0] - b[0], c[1] - b[1]) > gimbal.NECK_R + 0.2 for b in BALLS
+    )
+    keep = lambda c: _off_bore(c, [gm.BAIL, TIP[1:]]) and ball(c)  # noqa: E731
+    assert bone.overhang_deg(gimbal.bail().val(), keep=keep) <= 45
+
+
+def _bending_sf(solid, a, b, force, d, lever, ts=(0.0, 0.25, 0.5, 0.75)):
+    """The least SF in PETG across its layers on the member a-b's sections at ts, a `force` N along the axis `d` (x, y
+    or z) `lever` mm from a: the section's second moment about its axis square to d, its extreme fibre along d."""
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    along, i = (b - a) / np.linalg.norm(b - a), "xyz".index(d)
+    n = np.cross(along, np.eye(3)[i])
+    mat, out = g.MATERIALS["PETG HF"], []
+    for t in ts:
+        plane = cq.Plane(origin=tuple(a + (b - a) * t), xDir=tuple(n), normal=tuple(along))
+        cut = solid.intersect(cq.Workplane(plane).rect(80, 80).extrude(0.005, both=True).val())
+        inertia = n @ np.array(cq.Shape.matrixOfInertia(cut)) @ n / 0.01
+        box, mid = cut.BoundingBox(), cq.Shape.centerOfMass(cut).toTuple()[i]
+        c = max(getattr(box, f"{d}max") - mid, mid - getattr(box, f"{d}min"))
+        moment = force * (lever - t * np.linalg.norm(b - a))
+        out.append(mat["tensile_mpa"]["z"] * inertia / (moment * c))
+    return min(out)
+
+
+def test_the_yokes_crank_and_the_bails_arms_hold_the_servos_at_stall():
+    """SF 2 (beams.MIN_SF) in bending: the crank under the yaw servo's stall at its pin; each bail arm under the pitch
+    servo's at its ball (one arm taking it all, the bail's ratio on); the input arm under it at the pitch bar's pin."""
+    f, (by, bz) = beams.stall_force_n(), gm.BAIL
+    assert _bending_sf(gimbal.yoke().val(), (0, 0, -25.5), (0, gm.CRANK, -25.5), f, "x", gm.CRANK) >= beams.MIN_SF
+    for x, _, z in BALLS:
+        arm = _bending_sf(gimbal.bail().val(), (x, by, bz + 4), (x, by, bz + 11), f * gm.BAIL_IN / z, "y", z - 4)
+        assert arm >= beams.MIN_SF
+    assert _bending_sf(gimbal.bail().val(), (0, by + 5, bz), TIP, f, "z", gm.BAIL_IN - 5) >= beams.MIN_SF
+
+
 def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
     """gimbal.report reads the lids' clearance to a push-rod as a capsule CUP_R round the line between its balls."""
     v, _ = gimbal.push_rod().val().tessellate(0.01, 0.1)
@@ -177,13 +259,12 @@ def _slice(solid, a, b, t, eps=0.01):
 
 @pytest.mark.parametrize("style", ["bone", "plain"])  # both looks stay (#704)
 @pytest.mark.parametrize("part", LID_BONES)
-def test_each_lid_bone_holds_its_lid_servo_at_stall(part, style, monkeypatch):
+def test_each_lid_bone_holds_its_lid_servo_at_stall(part, style):
     """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
     between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
     half-width), and the straight link against Euler buckling."""
-    monkeypatch.setattr(gimbal, "LID_STYLE", style)
     make, joints = LID_BONES[part]
-    solid, mat = make().val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    solid, mat = make(plain=style == "plain").val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):

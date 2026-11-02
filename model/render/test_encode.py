@@ -1,11 +1,9 @@
 """Seam: model/render/pictures.py encode(), a picture's frames as WebP with their alpha (#470)."""
 
-import json
 import subprocess
 
 import imageio_ffmpeg
 import numpy as np
-import pytest
 
 from model.render import pictures
 
@@ -21,51 +19,3 @@ def test_the_webp_keeps_the_transparent_background_and_the_opaque_part(tmp_path,
     img = np.frombuffer(raw, np.uint8).reshape(32, 64, 4)
     assert img[0, 0, 3] == 0 and img[-1, -1, 3] == 0  # the corners stay transparent
     assert img[16, 32, 3] == 255 and img[16, 32, 0] > 150  # the part
-
-
-def frames(folder, n):
-    folder.mkdir(parents=True)
-    for i in range(n):  # each its own colour: the encoder merges a frame equal to the one before
-        colour = f"color=c=0x{40 * i:02x}0000:s=16x8"
-        pictures.ffmpeg("-f", "lavfi", "-i", colour, "-frames:v", "1", str(folder / f"frame{i:04d}.png"))
-
-
-def test_the_hero_joins_its_shards_frames_into_one_looping_webp(tmp_path, monkeypatch):
-    """#537: CI renders the hero's frames on several runners; join encodes them all, in order, as images/hero.webp."""
-    monkeypatch.setattr(pictures, "OUT", str(tmp_path))
-    monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
-    monkeypatch.setattr(pictures, "hero_frames", lambda: 3)
-    frames(tmp_path / "frames" / "hero", 3)
-    pictures.main("join", [])
-    webp = (tmp_path / "images" / "hero.webp").read_bytes()
-    assert webp.count(b"ANMF") == 3 and b"ANIM" in webp  # three animation frames (ffmpeg decodes no animated WebP)
-
-
-def test_the_hero_never_joins_with_a_frame_missing(tmp_path, monkeypatch):
-    """ffmpeg's image sequence stops at a gap: a shard's frames lost would ship a short loop."""
-    monkeypatch.setattr(pictures, "OUT", str(tmp_path))
-    monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
-    monkeypatch.setattr(pictures, "hero_frames", lambda: 4)
-    frames(tmp_path / "frames" / "hero", 3)
-    with pytest.raises(SystemExit, match="hero"):
-        pictures.main("join", [])
-
-
-def test_the_hero_renders_eight_seconds_at_eight_fps():
-    """Its frame count, which the shards split, without MuJoCo: model/render/hero.py's 8 s at HERO_FPS."""
-    assert pictures.hero_frames() == 64
-
-
-def test_the_site_s_motions_record_their_seconds_as_the_bins_weigh_them(tmp_path, monkeypatch):
-    """#569: each motion's seconds in SECONDS/pictures.json, which main's Blender bins upload and the next packing reads
-    (model/shards.py); a hero frame shard's as its seconds a frame (those after the first, which compiles Eevee's
-    shaders) and the setup every shard pays."""
-    monkeypatch.setattr(pictures, "OUT", str(tmp_path))
-    monkeypatch.setattr(pictures, "IMAGES", str(tmp_path / "images"))
-    monkeypatch.setattr(pictures, "SECONDS", str(tmp_path / "seconds"))
-    monkeypatch.setattr(pictures, "MOTIONS", {})
-    monkeypatch.setattr(pictures, "render", lambda motion: [20.0, 2.0, 3.0] if motion.startswith("hero") else None)
-    pictures.main("site", ["hero:0-3", "views"])
-    took = json.loads((tmp_path / "seconds" / "pictures.json").read_text())
-    assert sorted(took) == ["blender hero frame", "blender hero setup", "blender views"]
-    assert took["blender hero frame"] == 2.5

@@ -1,7 +1,9 @@
 """CI's names follow GitHub's own UI (#298): every job has a Title Case name ("Fetch Skills", "Model (hero)"), every
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run just check")."""
 
+import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -52,13 +54,11 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
-PR_ONLY = "${{ github.event_name == 'pull_request' }}"  # cancels a PR's superseded run, never main's
-
-
 def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
     """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
     Site Deploy, Release and Release Assets never cancel a run mid-way. #689: what Site Deploy and Release wait on
-    (Checks) runs every push to main to completion, queued, or merges minutes apart never deploy."""
+    (Checks, main's alone since #722) runs every push to main to completion, queued, or merges minutes apart never
+    deploy."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     wrong = []
     for name, flow in flows.items():
@@ -66,14 +66,14 @@ def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release(
         if "pull_request" in flow[True] and not (
             "github.workflow" in group
             and "github.event.pull_request.number" in group
-            and flow["concurrency"].get("cancel-in-progress") in (True, PR_ONLY)
+            and flow["concurrency"].get("cancel-in-progress") is True
         ):
             wrong.append(name)
     assert wrong == []
     awaited = {w for f in ("pages.yml", "semantic-release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
     by_name = {flow["name"]: flow for flow in flows.values()}
     assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
-        awaited, PR_ONLY
+        awaited, False
     )
     for name in ("pages.yml", "semantic-release.yml", "release.yml"):
         assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
@@ -138,6 +138,36 @@ def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code
     assert (got_code, says in out, got_gh) == (code, True, gh)
 
 
+@pytest.mark.skipif(shutil.which("yq") is None, reason="yq is CI's image's (ci/base.Dockerfile)")
+def test_a_required_check_names_a_gate_job(tmp_path):
+    """#450, #570, #746: checks.yml's `Check the required checks` fails, naming each, on a check main's ruleset requires
+    that no job without a matrix in .github/workflows names (a job without a name reports its id), with `gh` faked."""
+    flows = tmp_path / ".github" / "workflows"
+    flows.mkdir(parents=True)
+    (flows / "check.yml").write_text(
+        "jobs:\n  code:\n    name: Code\n"
+        "  model:\n    name: Model (${{ matrix.shard }})\n    strategy:\n      matrix:\n        shard: [hero]\n"
+        "  site:\n    name: Fetch Site\n    strategy:\n      matrix:\n        os: [linux]\n"
+    )
+    (flows / "review.yml").write_text("jobs:\n  review:\n    name: Review\n  unnamed: {}\n")
+    flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "checks.yml").read_text())
+    run = next(s["run"] for s in flow["jobs"]["code"]["steps"] if s.get("name") == "Check the required checks")
+
+    def step(*required: str) -> subprocess.CompletedProcess[str]:
+        (tmp_path / "gh").write_text("#!/bin/sh\nprintf '%s\\n' " + " ".join(f"'{r}'" for r in required) + "\n")
+        (tmp_path / "gh").chmod(0o755)
+        env = {"PATH": f"{tmp_path}:{os.environ['PATH']}", "GITHUB_REPOSITORY": "o/r"}
+        return subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", run], cwd=tmp_path, env=env, capture_output=True, text=True
+        )
+
+    assert step("Code", "Review", "unnamed").returncode == 0
+    stale = ["Lint", "Model (hero)", "Model (${{ matrix.shard }})", "Fetch Site", "model"]
+    failed = step("Code", *stale)
+    assert failed.returncode == 1
+    assert [line.split("'")[1] for line in failed.stdout.splitlines()] == sorted(stale)
+
+
 FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}"  # neither runs everything
 
 
@@ -155,50 +185,56 @@ def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
 
 
-OFF_PRS = "github.event_name != 'pull_request'"
-
-
 def test_a_pr_runs_the_slim_gate_alone():
-    """#696: a PR runs `just check-light` (Code) and the site's build and HTML tests (Site), then the gate; the model,
-    sim, Blender, Convex and the site's Chrome smoke run on main only, which fixes forward what they catch (#283)."""
-    jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-
-    def on_prs(id_: str) -> bool:
-        """Whether a PR runs the job: nothing keeps it off PRs, and its needs run, or it runs past a skipped one."""
-        cond, needs = str(jobs[id_].get("if", "")), jobs[id_].get("needs", [])
-        past_skips = "cancelled()" in cond and "== 'success'" not in cond
-        needed = all(map(on_prs, [needs] if isinstance(needs, str) else needs))
-        return OFF_PRS not in cond and (past_skips or needed)
-
-    assert {id_ for id_ in jobs if on_prs(id_)} == {"code", "site", "checks"}
-    [check] = [s["run"] for s in jobs["code"]["steps"] if s["name"] == "Run just check"]
-    assert "${{ github.event_name == 'pull_request' && 'check-light' || 'check' }}" in check
-    gate = jobs["checks"]["steps"]
-    off = (OFF_PRS, "github.event_name == 'workflow_dispatch'")
-    assert [s["name"] for s in gate if not any(o in str(s.get("if", "")) for o in off)] == [
+    """#696, #714, #722: a PR runs PR Gate alone, `just check-light` (Code: ruff, pyright and the fast tests), then its
+    `Checks` gate; Checks (checks.yml: the site's build, the workflow and Dockerfile linters, the model, sim, Blender,
+    Convex and the site's Chrome smoke) runs on main only, which fixes forward what it catches (#283)."""
+    gate = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())
+    assert set(gate[True]) == {"pull_request"}
+    assert "pull_request" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]
+    jobs = gate["jobs"]
+    assert {id_: job["name"] for id_, job in jobs.items()} == {"code": "Code", "checks": "Checks"}
+    assert [s["name"] for s in jobs["code"]["steps"]] == [
+        "Check out the repo",
+        "Link the image's venv",
+        "Run just check-light",
+        "List the slowest tests",
+    ]
+    assert "uv run just check-light " in jobs["code"]["steps"][2]["run"]
+    justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
+    recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
+    assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
+    assert [s["name"] for s in jobs["checks"]["steps"]] == [
         "Check every job passed",
         "Check out the repo",
         "Check the CI budget",
     ]
 
 
+def test_a_pr_lists_no_job_every_pr_skips():
+    """#722: a job conditioned off pull_request shows as skipped on every PR, so a workflow on pull_request alone
+    tests no event at all. Dependabot Auto-merge runs on Dependabot's PRs and Clear Labels on a closed issue: both
+    stay."""
+    for f in WORKFLOWS:
+        on = yaml.safe_load(f.read_text())[True]
+        if on == "pull_request" or set(on) == {"pull_request"}:  # a bare trigger, or its types
+            assert "github.event_name" not in f.read_text(), f.name
+
+
 # what carries the geometry of a document: the built parts and their cut (STL), the renders' meshes and frames, the
 # pictures, the GLBs and the site that carry them
 DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/dist|\.(glb|stl|step|webp|png)\b")
 # a Blender run in a workflow: the recipe and what it draws
-BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b([^\n|&;]*)")
+BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 
 
 def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
-    workflows render and bake the next Mech alone (just pictures next, just web next: documents holding none of
-    today's printed parts), upload only the site, never a part, its cut, a mesh or a frame, put
-    only the next-* pictures and GLBs in the site, and a release's docs fetch only the GLBs the site publishes. The
-    Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
-    from model import geometry as g
-    from model import stages
+    workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
+    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and a release's docs fetch only
+    the GLBs the site publishes. The Actions cache carries the parts between jobs: nobody outside the repo's workflows
+    reads it."""
     from model.render import pictures
-    from web import build
 
     steps = [
         s for f in WORKFLOWS for job in yaml.safe_load(f.read_text())["jobs"].values() for s in job.get("steps", [])
@@ -207,7 +243,6 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
     assert drawn == {("pictures", pictures.NEXT), ("web", pictures.NEXT)}
     assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
-    assert [doc for doc in {*g.NEXT, *build.PUBLIC} if stages.todays(doc)] == []
     uploaded = {
         line.strip()
         for s in steps
@@ -223,27 +258,41 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert viewer and sorted(fetched) == sorted(viewer)
 
 
+def test_a_job_names_an_environment_only_to_deploy():
+    """#754: a job naming an environment makes a Deployment record, so an environment with nothing in it (Release
+    Assets' `release`, #358) showed every release twice. A job names one only as a real deploy target, or with
+    `deployment: false` for its secrets or rules alone."""
+    named = {
+        (f.name, id_): env if isinstance(env, dict) else {"name": env}
+        for f in WORKFLOWS
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items()
+        if (env := job.get("environment"))
+    }
+    assert named and all(e["name"] == "github-pages" or e.get("deployment") is False for e in named.values()), named
+
+
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone."""
-    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
-    perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
-    assert not [p for p in perms if "write" in p.values()]
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722)."""
+    for f in ("checks.yml", "pr-gate.yml"):
+        flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
+        perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+        assert not [p for p in perms if "write" in p.values()], f
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():
     """#561: the online audits (GitHub's API: rate limits, rarely a PR's change) run on main's push and weekly; a PR
-    keeps just check's offline zizmor."""
-    steps = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
-    [online] = [s for s in steps if "zizmor" in s.get("run", "")]
-    assert online["if"] == "${{ github.event_name != 'pull_request' }}"
+    runs no zizmor at all since #714, and main's Checks never runs on a PR (#722)."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    assert [s for s in flow["jobs"]["code"]["steps"] if ".venv/bin/zizmor" in s.get("run", "")]
+    assert "pull_request" not in flow[True]
+    assert "zizmor" not in (WORKFLOWS[0].parent / "pr-gate.yml").read_text()
 
 
-def test_checks_never_run_on_edited():
-    """#496: a title or body edit would cancel the running Checks (one run per group), or green a red one."""
-    assert (
-        "edited" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]["pull_request"]["types"]
-    )
+def test_the_pr_gate_never_runs_on_edited():
+    """#496: a title or body edit would cancel the running gate (one run per group), or green a red one."""
+    on = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())[True]
+    assert "edited" not in on["pull_request"]["types"]
 
 
 def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
@@ -254,16 +303,68 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert (build[2:], scan[2:]) == (["*", "*", "1"], ["*", "*", "1"])  # both on Mondays
     assert int(build[1]) < int(scan[1])
     jobs = flows["images.yml"]["jobs"]
-    assert jobs["push"]["if"] == "${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}"
-    assert "pull_request" in jobs["build"]["if"]
+    assert jobs["push"]["if"] == "${{ github.ref == 'refs/heads/main' }}"
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
 
 
-def test_codeql_scans_main_and_weekly_never_a_pr():
-    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+def test_the_ci_images_build_on_main_alone():
+    """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
+    Dockerfiles in main's Code job, so a broken Dockerfile files 'main red' (main-red.yml)."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
+
+
+def test_the_jobs_in_our_images_use_its_synced_venv():
+    """#725: the base image carries uv's Python and the venv synced from uv.lock; main rebuilds it when the venv's
+    inputs change, and every job running in our images links it as .venv before uv touches the checkout."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert {"uv.lock", "pyproject.toml", ".python-version"} <= set(images[True]["push"]["paths"])
+    for f in WORKFLOWS:
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items():
+            if "container" in job:
+                runs = [s.get("run", "") for s in job["steps"]]
+                link = next(i for i, r in enumerate(runs) if "ln -s /opt/uv/venv .venv" in r)
+                assert all("uv " not in r for r in runs[:link]), (f.name, id_)
+
+
+def test_codeql_scans_weekly_never_a_push_or_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges. #728: a run per push to main cost ~40 runs a day for two
+    won't-fix alerts ever, so CodeQL scans Mondays (and on demand) into the Security tab."""
     on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
-    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]
+    assert set(on) == {"schedule", "workflow_dispatch"}
+
+
+def test_dependabot_turns_on_auto_merge_as_the_bot_app():
+    """#733: a merge whose auto-merge GITHUB_TOKEN turned on starts no push workflow on main, so Dependabot's bumps
+    landed untested. The bot App turns it on, its token holding only what a merge needs (`workflows`: actions bumps
+    edit workflow files), and the job's GITHUB_TOKEN gets nothing."""
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "dependabot.yml").read_text())["jobs"].values()
+    assert job.get("permissions", {}) == {}
+    app = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@"))
+    assert {k for k in app["with"] if k.startswith("permission-")} == {
+        "permission-contents",
+        "permission-pull-requests",
+        "permission-workflows",
+    }
+    merge = next(s for s in job["steps"] if "gh pr merge --auto" in s.get("run", ""))
+    assert merge["env"]["GH_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+
+
+def test_bump_prs_open_through_create_pull_request():
+    """#748: the weekly bumps open their PR with peter-evans/create-pull-request as the bot App, whose token holds only
+    its own branch and the PR; no hand-rolled push or `gh pr` is left."""
+    for name in ("blender.yml", "skills.yml"):
+        jobs = yaml.safe_load((WORKFLOWS[0].parent / name).read_text())["jobs"].values()
+        steps = [s for job in jobs for s in job["steps"]]
+        app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token@"))
+        assert {k for k in app["with"] if k.startswith("permission-")} == {
+            "permission-contents",
+            "permission-pull-requests",
+        }
+        pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request@"))
+        assert pr["with"]["token"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+        assert not [s for s in steps if "git push" in s.get("run", "") or "gh pr" in s.get("run", "")], name
 
 
 def test_main_releases_itself_once_its_checks_pass():
@@ -286,3 +387,33 @@ def test_main_releases_itself_once_its_checks_pass():
     left = ["release-please.yml", "release-now.yml"]
     assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
+
+
+def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
+    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
+    failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
+    main, or on Release Docs' dispatch the newest such run."""
+    wf = WORKFLOWS[0].parent
+    flow = yaml.safe_load((wf / "pages.yml").read_text())
+    (job,) = flow["jobs"].values()
+    for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
+        assert f"github.event.workflow_run.{cond}" in job["if"], cond
+    assert "statuses" not in job["permissions"]
+    download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
+    assert "github.event.workflow_run.id" in str(next(s for s in job["steps"] if s.get("id") == "run"))
+    assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
+    assert not (wf / "deploy-pending.yml").exists()
+    assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
+
+
+def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_by_label():
+    """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
+    found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
+    watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml", "images.yml")]
+    (job,) = flows["main-red.yml"]["jobs"].values()
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
+    assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
+    assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()

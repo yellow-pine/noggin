@@ -4,16 +4,19 @@ each variant's carriers and boards overlap nothing."""
 
 import itertools
 
+import cadquery as cq
 import pytest
 
 from model import base, stages
 from model import geometry as g
+from model.printed import base as printed_base
+from model.printed import bone
 from model.printed.base import WALL
 from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next crown", "next split", "next switch", "next Core", "next Shield")
+BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield")
 
 
 def _hits(doc):
@@ -47,3 +50,18 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
 @pytest.mark.parametrize("doc", sorted(g.NEXT))
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(doc):
     assert _hits(doc) == set()
+
+
+def test_the_torso_and_the_rack_as_bones_round_their_corners_and_print_as_they_lie():
+    """#704: just inside each of the plain Torso's outside corners and the rack's top corners lies nothing; the Torso
+    prints upright and the rack on its back (its back face, the boards', on the bed), no overhang past 45 deg."""
+    (x0, x1), (y0, y1), (z0, z1) = base.TORSO
+    torso, rack = printed_base.torso().val(), printed_base.rack().val()
+    for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):
+        assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
+    r = rack.BoundingBox()
+    for x in (r.xmin + 0.5, r.xmax - 0.5):
+        assert not rack.isInside(cq.Vector(x, base.RACK_Y + base.TRAY_T / 2, r.zmax - 0.5))
+    assert bone.overhang_deg(torso) <= 45
+    on_back = rack.rotate(cq.Vector(), cq.Vector(1, 0, 0), -90)  # its back face (+y) turned down (-z)
+    assert bone.overhang_deg(on_back) <= 45
