@@ -17,9 +17,9 @@ defaults:
 # Three required checks side by side, so this workflow's conclusion on main is one of the two Site Deploy waits for
 # (#295, #310): code runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the
 # Mech stand-in; model, on a PR touching the model's inputs and always on main (#402),
-# passes when every model shard does, which split those tests (the hero's collision sweep alone, the rest by document,
-# the shards read from the code: model/shards.py; make view's offscreen render among them) and make sim (its own shard, when its inputs changed), with make
-# stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
+# passes when every model shard does: three, balanced on the seconds they measured (model/shards.py; the hero's
+# collision sweep, each document, the rest with make view's offscreen render, and make sim when its inputs changed),
+# with make stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
 # summary, and each job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold
 # cache is cut part by part first (convex, #223), so the model shards start warm.
 jobs:
@@ -299,10 +299,10 @@ jobs:
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
-      # by document (pytest -k on its parameter id), each document's tests on one worker (--dist loadgroup): the hero's
-      # sweep alone, the recorded sweep documents, each Stage, the rest, and make sim (model/shards.py)
+      # three, balanced on measured seconds: the hero's sweep, each document (pytest -k on its parameter id; its tests
+      # on one worker, --dist loadgroup), the rest and make sim (model/shards.py)
       matrix:
-        include: ${{ fromJSON(needs.shards.outputs.list) }}   # {shard, tests} (model/test_shards.py)
+        include: ${{ fromJSON(needs.shards.outputs.list) }}   # {shard, units, tests} (model/test_shards.py)
     steps:
       # make sim's SPICE circuit (model/electrical.py; model/test_electrical.py runs it as mujoco collects it) and
       # Mesa's EGL, which renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job
@@ -363,21 +363,24 @@ jobs:
           make venv
           timeout 300 sh -c 'until [ -f "$RUNNER_TEMP/apt.rc" ]; do sleep 1; done' || echo "apt still running" > "$RUNNER_TEMP/apt.rc"
           [ "$(cat "$RUNNER_TEMP/apt.rc")" = 0 ] || { cat "$RUNNER_TEMP/apt.txt" "$RUNNER_TEMP/apt.rc"; exit 1; }
+      # each test's seconds (pytest-split), which the next balance is made from (make model-durations)
       - name: Run make test
-        if: ${{ matrix.shard != 'sim' }}
-        run: make test | tee "$RUNNER_TEMP/pytest.txt"
+        if: ${{ matrix.tests != '' }}
+        run: mkdir -p "$RUNNER_TEMP/durations" && make test | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PYTEST_ADDOPTS: -m model -n auto --dist loadgroup --durations=20 ${{ matrix.tests }}
+          PYTEST_ADDOPTS: >-
+            -m model -n auto --dist loadgroup --durations=20 --store-durations
+            --durations-path ${{ runner.temp }}/durations/tests.json ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
           MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)
       - name: List the slowest tests
-        if: ${{ always() && matrix.shard != 'sim' }}
+        if: ${{ always() && matrix.tests != '' }}
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # the print and FreeCAD exports as a smoke test, beside the short hero shard: on main, and on a PR whose parts
+      # the print and FreeCAD exports as a smoke test, beside the hero's sweep: on main, and on a PR whose parts
       # missed their exact key (what they are made from changed)
       - name: Run make stl step
-        if: ${{ matrix.shard == 'hero' && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
+        if: ${{ contains(matrix.units, 'hero') && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
         run: make stl step
       # the sim reports (make sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
@@ -385,7 +388,7 @@ jobs:
       # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
       # PRs after it and for the site, which publishes them at /reports (Site Deploy, pages.yml)
       - name: Restore the sim reports
-        if: ${{ matrix.shard == 'sim' }}
+        if: ${{ contains(matrix.units, 'sim') }}
         id: reports
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -393,18 +396,21 @@ jobs:
           key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'Makefile', '.github/workflows/check.yml') }}-${{ steps.lock.outputs.hash }}
           restore-keys: sim-
       - name: Run make sim
-        if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
-        run: |
+        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
+        run: |   # and its core-seconds, as the tests' seconds summed over the xdist workers
           [ ! -d model/build/reports ] || mv model/build/reports model/build/main-reports
+          start=$SECONDS
           make sim
+          mkdir -p "$RUNNER_TEMP/durations"
+          echo "{\"make sim\": $(( (SECONDS - start) * $(nproc) ))}" > "$RUNNER_TEMP/durations/sim.json"
         env:
           OMP_NUM_THREADS: 1   # a document per process (model/report.py), as the xdist workers in make test
       - name: Report the sim inputs unchanged
-        if: ${{ matrix.shard == 'sim' && steps.reports.outputs.cache-hit == 'true' }}
+        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit == 'true' }}
         run: |
           echo "### Sim inputs unchanged: main's reports for them stand, no sim ran" >> "$GITHUB_STEP_SUMMARY"
       - name: Diff the reports against main's
-        if: ${{ !cancelled() && matrix.shard == 'sim' && steps.reports.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
         run: |
           {
             echo "### Sim reports against main's latest"
@@ -414,11 +420,19 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Save the sim reports
-        if: ${{ matrix.shard == 'sim' && github.event_name == 'push' && steps.reports.outputs.cache-hit != 'true' }}
+        if: ${{ contains(matrix.units, 'sim') && github.event_name == 'push' && steps.reports.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
           key: ${{ steps.reports.outputs.cache-primary-key }}
+      - name: Upload the measured seconds
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: durations-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/durations/
+          if-no-files-found: ignore   # a shard of make sim alone, its reports cached
+          retention-days: 7
       # saved even when a test or make sim fails (a red main would otherwise never fill its cache); an interrupted build
       # is safe to keep, since each .key above is written last
       - name: Save the parts cache
