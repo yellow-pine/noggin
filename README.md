@@ -42,6 +42,7 @@ Generated from `.github/workflows` (`make readme`):
 | Workflow | File | Triggers | Jobs | Does |
 |---|---|---|---|---|
 | Blender Updates | `blender.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Blender | Re-pins Blender to the newest stable release at least 14 days old and opens (or refreshes) a PR, weekly |
+| Cache Prune | `cache-prune.yml` | `schedule` (`0 5 * * 1`), `workflow_dispatch` | Prune | Deletes the Actions caches whose key prefix no workflow uses any more, weekly |
 | Code Checks | `check.yml` | `push` (`main`), `pull_request` | Changes, Mech, Images, Code, Convex, Shards, Model | Runs `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export |
 | Dependabot Auto-merge | `dependabot.yml` | `pull_request` | Auto-merge | Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass |
 | Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site |

@@ -38,7 +38,10 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 
 [tool.pytest.ini_options]
 testpaths = [".claude/hooks", "ci", "eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py", "test_workflows.py"]
-markers = ["model: MuJoCo and the slowest mesh sweeps; CI runs them in its Model job (-m model) beside the rest"]
+markers = [
+    "model: MuJoCo and the slowest mesh sweeps; CI runs them in its Model job (-m model) beside the rest",
+    "build: reads our parts' STLs (model/build/ours, make ours); make check-light leaves them out",
+]
 
 [tool.ruff]
 line-length = 120
