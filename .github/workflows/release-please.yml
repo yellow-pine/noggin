@@ -2,7 +2,7 @@ name: Release Please
 # Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it.
 # The PR (docs/adr/0010) carries the next version in pyproject.toml, uv.lock and .release-please-manifest.json, and its
 # CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token minted per
-# run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR would get
+# run from the bot App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR would get
 # no checks, its auto-merge no push to main and its tag no Release Assets. The PR auto-merges only when a feature or a
 # break is pending, or Release Now asked (#407); till then it is a draft, which no check runs on (#414).
 # Merged, the PR's next run tags vX.Y.Z and releases it.
@@ -20,11 +20,11 @@ jobs:
     name: Release Please
     runs-on: ubuntu-26.04
     steps:
-      - name: Skip until the release App is set up
+      - name: Skip until the bot App is set up
         if: ${{ !vars.RELEASE_APP_CLIENT_ID }}
         run: |
-          echo "::notice::Release Please skipped: set up the release App and its RELEASE_APP_CLIENT_ID variable (CONTRIBUTING.md)"
-      - name: Mint the release App's token
+          echo "::notice::Release Please skipped: set up the bot App and its RELEASE_APP_CLIENT_ID variable (CONTRIBUTING.md)"
+      - name: Mint the bot App's token
         id: app
         if: ${{ vars.RELEASE_APP_CLIENT_ID }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0

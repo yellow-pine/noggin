@@ -17,6 +17,9 @@
 >
 > Amended 2026-11-02 (#414): the release PR is a draft until the gate or Release Now marks it ready, so its checks run
 > once; Release Docs deploys the site so a release's docs are live at once.
+>
+> Amended 2026-11-02 (#447): the App is the repo's bot App; the weekly Skills and Blender Updates open their PRs as it
+> too, so those PRs get their checks and review.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -46,7 +49,7 @@ copy, and the tag is `v` plus it.
   turns it off, so fixes and perf ship with the next feature. The `Release Now` workflow (or `/release`) turns it on for
   whatever is pending and labels the PR `release now`, which keeps it on through later updates; only the App's own label
   counts, since anyone with triage rights can add one. Release Now picks the PR by release-please's branch, the App as
-  author and the pending label. Both act as the release App, so the merge still tags and starts Release Assets. Until
+  author and the pending label. Both act as the bot App, so the merge still tags and starts Release Assets. Until
   then release-please keeps the PR a draft (`draft-pull-request`), which no check or review runs on while it gathers
   changes; the gate and Release Now mark it ready before turning auto-merge on, so its checks and review run once
   (#414). Release Docs then dispatches Site Deploy, so the release's docs at /noggin/vX.Y/ are live at once, still

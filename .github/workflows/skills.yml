@@ -1,7 +1,7 @@
 name: Skills Updates
 # Re-pins skills-lock.json to each source's HEAD and opens (or refreshes) a PR, weekly.
-# The reviewer's skills thus change only through a reviewed PR. A PR opened with GITHUB_TOKEN starts no workflows
-# (https://docs.github.com/en/actions/concepts/security/github_token): close and reopen it to run its checks.
+# The reviewer's skills thus change only through a reviewed PR. It acts as the bot App (CONTRIBUTING.md): a PR opened
+# with GITHUB_TOKEN starts no workflows (https://docs.github.com/en/actions/concepts/security/github_token).
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -45,8 +45,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-26.04
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -68,9 +67,17 @@ jobs:
               (.ref | test("^[0-9a-f]{40}$")) and (.computedHash | test("^[0-9a-f]{64}$"))))' skills-lock.json
           cp skills-lock.json "$RUNNER_TEMP/old.json"
           cp "$RUNNER_TEMP/lock/skills-lock.json" skills-lock.json
+      - name: Mint the bot App's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write   # its own branch
+          permission-pull-requests: write
       - name: Open or refresh the PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           git diff --quiet && exit 0
           # one compare link per moved source, so the review reads the upstream change, not just new SHAs

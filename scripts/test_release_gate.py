@@ -1,5 +1,5 @@
 """release_gate.py: the release PR auto-merges when the newest version in release-please's changelog has a Features
-or a BREAKING CHANGES section, or when the release App labelled it `release now`; a fix-only PR waits. The bodies are
+or a BREAKING CHANGES section, or when the bot App labelled it `release now`; a fix-only PR waits. The bodies are
 recorded release PRs (#385 features, #395 a break, #374 a first version), trimmed to one entry a section; the
 fix-only one is in release-please's same format. The events are GitHub's issue events, as the API returns them."""
 

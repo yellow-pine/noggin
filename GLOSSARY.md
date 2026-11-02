@@ -137,6 +137,11 @@ kept as a release asset; **latest** is main's, at /noggin/. The header's switche
 The pictures and the sim reports are the live Site's in every version (docs/adr/0014).
 _Avoid_: docs snapshot, archived docs
 
+**Bot App**:
+The repo's own GitHub App, which the workflows act as when they open, ready or merge a PR, so its
+checks and review run like a person's PR would (docs/adr/0010).
+_Avoid_: release App, bot token
+
 **Hero**:
 The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
 _Avoid_: banner, idle loop
