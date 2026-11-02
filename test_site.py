@@ -235,6 +235,19 @@ def test_site_checks_render_one_job_per_motion_and_names_none():
     assert [m for m in pictures.SITE if re.search(rf"\b{m}\b", text)] == []
 
 
+def test_site_checks_pictures_key_hashes_what_render_does():
+    """A PR whose pictures are cached skips the motions and render (#386): the pictures- key `changes` looks up and
+    `site` restores (one YAML anchor) hashes what render's per-motion key does, else every PR run would go cold."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "site-checks.yml").read_text())["jobs"]
+
+    def key(job: str, id_: str) -> str:
+        (step,) = [s for s in jobs[job]["steps"] if s.get("id") == id_]
+        return step["with"]["key"]
+
+    render = key("render", "frames").removeprefix("images-${{ matrix.motion }}-")  # a key per motion, same inputs
+    assert key("changes", "pictures") == key("site", "images") == f"pictures-{render}"
+
+
 @pytest.mark.parametrize(
     "motions, render, passes",
     [

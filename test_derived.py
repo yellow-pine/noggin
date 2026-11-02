@@ -67,6 +67,7 @@ MADE_FROM = {
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
     "images": (["model/render/pictures.py"], ["uv.lock"]),
+    "pictures": (["model/render/pictures.py"], ["uv.lock"]),  # every motion's images together, for changes (#386)
     "viewer": (["web/build.py"], ["uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json"]),
