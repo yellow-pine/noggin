@@ -31,6 +31,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - GitHub tools run their advanced, config-as-code setup (a workflow or a `.github/` file), every default off, $0 tiers only.
 - Security alerts (code scanning, Dependabot): fix what code can, one PR per tool; dismiss only what waits on time, policy or an upstream release, with the reason, linked to a re-check issue.
 - When a dev-cycle step starts, the main session writes its name to `~/.claude/.cycle-step` (the status line shows it); subagents name their steps in their reports.
+- Research subagents run the mattpocock-skills:research skill.
 
 ## Where things are
 
