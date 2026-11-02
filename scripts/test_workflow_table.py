@@ -1,15 +1,9 @@
-"""workflow_table.py: the README's CI/CD table is derived from .github/workflows (#397, docs/adr/0011), and the README
-holds what it derives now (cog --check, docs/adr/0009)."""
-
-import subprocess
-import sys
-from pathlib import Path
+"""workflow_table.py: the CI/CD table is derived from .github/workflows (#397, docs/adr/0011); that the site's page
+lists every workflow, site.test.mjs checks (#425)."""
 
 import pytest
 
 from scripts.workflow_table import table
-
-ROOT = Path(__file__).resolve().parent.parent
 
 WORKFLOW = """name: Site Checks
 # Builds the site.
@@ -56,9 +50,3 @@ def test_a_workflow_without_a_header_comment_fails(tmp_path):
     (tmp_path / "a.yml").write_text("name: A\non: pull_request\njobs: {}\n")
     with pytest.raises(ValueError, match="a.yml"):
         table(tmp_path)
-
-
-def test_the_readme_holds_the_table_the_workflows_give():
-    """Stale: `make readme` (CONTRIBUTING.md)."""
-    run = subprocess.run([sys.executable, "-m", "cogapp", "--check", "README.md"], cwd=ROOT, capture_output=True)
-    assert run.returncode == 0, run.stderr.decode()

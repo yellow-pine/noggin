@@ -80,6 +80,7 @@ export default defineConfig({
               items: [...PAGES].filter((p) => p.startsWith('docs/adr/')).sort().map(id),
             },
             'contributing',
+            'docs/ci-cd',
             'docs/credits',
           ],
         },

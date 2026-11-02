@@ -1,7 +1,7 @@
-"""The README's CI/CD table, derived from .github/workflows (#397, docs/adr/0011): each workflow's name, file, triggers
-(with their branches, tags, paths, workflows or crons) and jobs, and its purpose: the first line of the header
-comment right under its `name:`, a trailing period dropped (#422). The README holds it in a cog block
-(docs/adr/0009): `make readme` rewrites it, a test checks it."""
+"""The CI/CD table, derived from .github/workflows (#397, docs/adr/0011): each workflow's name, file, triggers (with
+their branches, tags, paths, workflows or crons) and jobs, and its purpose: the first line of the header comment right
+under its `name:`, a trailing period dropped (#422). macros.py hands it to the site's CI/CD page, docs/ci-cd.md
+(#425, docs/adr/0009)."""
 
 import re
 from pathlib import Path

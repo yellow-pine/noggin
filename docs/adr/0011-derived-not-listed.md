@@ -15,9 +15,8 @@ else reads it:
 - **The eye program's files**: what eyes/boot.py imports from eyes/, followed through their imports
   (`noggin/core.py` `MODULES`); `make mpy-list` prints them for `make mpy`, `make flash-usb` and the release
   workflow, and the noggin service flashes the same files over Wi-Fi.
-- **The workflows** (#397): the README's CI/CD table, from .github/workflows (`scripts/workflow_table.py`). GitHub
-  shows only committed Markdown, so the table is generated into the README and `make check` holds it to the workflows
-  (docs/adr/0009).
+- **The workflows** (#397, #425): the CI/CD table, from .github/workflows (`scripts/workflow_table.py`), on the
+  site's CI/CD page (docs/ci-cd.md), built with the site's other tables (docs/adr/0009); the README links to it.
 
 Where a list cannot be read at its place, a test holds the copy to the source instead: the eye program stays
 self-contained on the Core, so eyes/eyes.py keeps its own GPIO-to-servo `NAME` and a test checks it against

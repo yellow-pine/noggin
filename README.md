@@ -34,30 +34,10 @@ make site     # the site in site/dist (npm --prefix site run preview); its tests
 `render`, `web`) run one at a time and are best left to CI. On the Mech itself: the
 [build guide](https://yellowpine.com/noggin/docs/build/parts/).
 
-## CI/CD at a glance
+## CI/CD
 
-Generated from `.github/workflows` (`make readme`):
-
-<!-- [[[cog import cog, scripts.workflow_table as w; cog.outl(w.table()) ]]] -->
-| Workflow | File | Triggers | Jobs | Does |
-|---|---|---|---|---|
-| Blender Updates | `blender.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Blender | Re-pins Blender to the newest stable release at least 14 days old and opens (or refreshes) a PR, weekly |
-| Cache Prune | `cache-prune.yml` | `schedule` (`0 5 * * 1`), `workflow_dispatch` | Prune | Deletes the Actions caches whose key prefix no workflow uses any more, weekly |
-| Code Checks | `check.yml` | `push` (`main`), `pull_request` | Changes, Mech, Code, Convex, Shards, Model | Runs `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export |
-| Dependabot Auto-merge | `dependabot.yml` | `pull_request` | Auto-merge | Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass |
-| Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site |
-| Firmware Watch | `firmware.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Watch | Opens an issue for each new Core firmware on the vendor's release notes, weekly |
-| CI Images | `images.yml` | `pull_request` (paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `push` (`main`; paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `workflow_dispatch` | Build, Push | Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR |
-| Issue Labels | `issue-labels.yml` | `pull_request`, `issues` | In Progress, Clear Labels | Keeps issues' state labels in step: a PR sets the issues it links in-progress, and closing an issue clears its labels |
-| Site Deploy | `pages.yml` | `workflow_run` (workflows: `Code Checks`, `Site Checks`; `main`), `workflow_dispatch` | Checks, Deploy, Deploy Status | Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it |
-| PR Checks | `pr-checks.yml` | `pull_request` | PR Title, PR Issue | Checks the PR's title is a Conventional Commit with one of the repo's scopes and its body links its issue |
-| Release Now | `release-now.yml` | `workflow_dispatch` | Release Now | Releases whatever is pending: marks the open release PR ready, turns on its auto-merge and labels it `release now` |
-| Release Please | `release-please.yml` | `push` (`main`), `workflow_dispatch` | Release Please | Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
-| Release Assets | `release.yml` | `push` (`v*`) | Release Assets, Release Docs | Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs |
-| Claude Review | `review.yml` | `pull_request` | Fetch Skills, Review | Claude reviews the PR and approves or requests changes |
-| Site Checks | `site-checks.yml` | `push` (`main`), `pull_request` | Changes, Motions, Render, Pictures, Viewer, Site | Builds and checks the site: the pictures in Blender, then the docs, viewer and reports, uploaded as an artifact |
-| Skills Updates | `skills.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Skills, Propose | Re-pins skills-lock.json to each source's HEAD and opens (or refreshes) a PR, weekly |
-<!-- [[[end]]] -->
+What each workflow in [.github/workflows](.github/workflows) does is on
+[the CI/CD page](https://yellowpine.com/noggin/docs/ci-cd/).
 
 Required checks on main: `Code`, `Model`, `Mech`, `Site`, `Pictures`, `Review`, `Fetch Skills`, `PR Title` and
 `PR Issue`. PRs go straight against main with auto-merge on; how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).

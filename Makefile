@@ -15,15 +15,13 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech readme worktrees-clean model-durations
+.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech worktrees-clean model-durations
 
 venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (pre-push: make check-light)
 	uv sync -q
 	git config core.hooksPath .githooks
 test: venv ours   ## every test, under the heavy lock (CI's model jobs select theirs with -m model)
 	$(HEAVY) $(PY) -m pytest -q
-readme: venv     ## the README's CI/CD table from .github/workflows (scripts/workflow_table.py, cog); make check-light fails while it is stale
-	$(PY) -m cogapp -r README.md
 lint: venv       ## ruff
 	$(PY) -m ruff check
 fmt: venv        ## ruff format, in place
