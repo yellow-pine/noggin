@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 
 import yaml
 
+from model import trajectories
 from model.stages import DOCS
 from noggin.core import CORES, GESTURES
 from scripts.inputs import inputs
@@ -48,6 +49,12 @@ def test_nothing_spells_out_a_list_the_code_holds():
     assert [key for key in ALLOWED if key not in found] == [], "spelled out no more: drop it from ALLOWED"
 
 
+MODEL_TESTS = subprocess.run(
+    ["git", "grep", "-lE", r"pytest\.mark\.model([^_[:alnum:]]|$)", "--", "*.py"],
+    cwd=ROOT,
+    capture_output=True,
+    text=True,
+).stdout.split()
 # What a cache key or paths filter in the workflows stands for: the entry files whose repo imports, followed through,
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
@@ -63,6 +70,22 @@ MADE_FROM = {
     "viewer": (["web/build.py"], ["uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json"]),
+    # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and
+    # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
+    # and the scripts, config and workflow that run them
+    "model": (
+        [*MODEL_TESTS, "conftest.py", "model/report.py", "model/shards.py", "model/convex_parts.py"],
+        [
+            *(s for s in trajectories.SOURCES if not s.startswith("model/")),
+            "scripts/heavy.py",
+            "scripts/inputs.py",
+            "pyproject.toml",
+            "uv.lock",
+            ".python-version",
+            "Makefile",
+            ".github/workflows/check.yml",
+        ],
+    ),
 }
 
 
@@ -93,6 +116,7 @@ def covered(file, globs):
 
 def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
     found = patterns()
+    assert MODEL_TESTS, "git grep found no test marked model"
     assert set(found) == set(MADE_FROM), "a key or filter new to the workflows: say what it is made from"
     missed = {
         (name, i, file)

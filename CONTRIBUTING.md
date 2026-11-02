@@ -100,7 +100,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Run `make check` before opening a PR: the `Code` set, everything but the tests marked `model`. `make check-all` adds
   those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
   `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
-  saying for which process: several at once took the Mac to ~30 GB. CI runs everything, split over three required jobs
+  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
   shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, the recorded sweep documents, each Stage and the rest, plus a sim shard), pytest
@@ -125,8 +125,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
   and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
-  `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing it is made from changed, which
-  GitHub counts as passing. `Pictures` sums up the `Render` job's runners (one per
+  `Model`, `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing
+  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing; main
+  runs everything. `Pictures` sums up the `Render` job's runners (one per
   motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
   under one name.
 - A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
