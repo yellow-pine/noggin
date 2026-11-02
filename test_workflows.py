@@ -150,3 +150,9 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert "pull_request" in jobs["build"]["if"]
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_codeql_scans_main_and_weekly_never_a_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+    on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
+    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]
