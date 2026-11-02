@@ -27,7 +27,7 @@ FLASH_VIA := shell('if ls $1 >/dev/null 2>&1 && ! $2 status 2>/dev/null | grep -
 # mech/build on it (checks.yml reads this line)
 MICROPYTHON := "v1.23.0"
 
-# .venv with pyserial, pytest, mpremote and just; git runs .githooks (pre-push: just check-light)
+# .venv with pyserial, pytest, mpremote and just; git runs .githooks (pre-push: just lint)
 venv:
     uv sync -q
     git config core.hooksPath .githooks
@@ -37,9 +37,11 @@ venv:
 test: venv ours
     {{HEAVY}} {{PY}} -m pytest -q
 
-# ruff
+# ruff (lint and format) and pyright: the one local check, .githooks/pre-push runs it (#714)
 lint: venv
     {{PY}} -m ruff check
+    {{PY}} -m ruff format --check
+    {{PY}} -m pyright
 
 # ruff format, in place
 fmt: venv
@@ -49,18 +51,16 @@ fmt: venv
 worktrees-clean: venv
     {{PY}} scripts/worktrees_clean.py
 
-# seconds, no CadQuery build: lint, formatting, types, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint) and the tests marked neither model nor build; .githooks/pre-push runs it
+# the PR gate's Code job (#714): just lint and the tests marked neither model nor build, no CadQuery build
 check-light: venv lint
-    {{PY}} -m ruff format --check
-    {{PY}} -m pyright
+    {{PY}} -m pytest -q -n auto -m "not model and not build"
+
+# main's Code job: just check-light, the workflows (actionlint; zizmor, offline), the CI images' Dockerfiles (hadolint), the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
+[group('heavy')]
+check: check-light ours
     {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
     {{BIN}}/zizmor -q --offline .
     {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum or sha512sum and printf into sort; USER runner is uid 1001 (useradd)
-    {{PY}} -m pytest -q -n auto -m "not model and not build"
-
-# CI's Code job: just check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
-[group('heavy')]
-check: check-light ours
     {{PY}} -m pytest -q -n auto -m "build and not model"
     bash -n scripts/setup.sh
     for f in noggin/hook.sh noggin/noggin; do sh -n $f || exit 1; done

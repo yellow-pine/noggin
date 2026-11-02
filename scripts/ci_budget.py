@@ -15,7 +15,7 @@ import sys
 from datetime import UTC, datetime
 from functools import cache
 
-BUDGET_S = {"pull_request": 300, "push": 540}  # push is main only; a PR runs the slim gate alone (#696)
+BUDGET_S = {"pull_request": 120, "push": 540}  # push is main only; a PR runs the slim gate alone (#696, #714)
 
 
 def critical_path(jobs: list[dict], workflow: dict, attempt_started: str, now: str) -> float:
