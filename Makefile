@@ -37,7 +37,7 @@ check-light: venv lint  ## seconds, no CadQuery build: lint, formatting, types, 
 	$(REPO)/.venv/bin/zizmor -q --offline .
 	$(PY) -m pytest -q -n auto -m "not model and not build"
 check: check-light ours  ## CI's Code job: make check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
-	$(PY) -m pytest -q -m "build and not model"
+	$(PY) -m pytest -q -n auto -m "build and not model"
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
 	$(PY) -c "import plistlib; plistlib.load(open('noggin/com.noggin.plist','rb'))"
