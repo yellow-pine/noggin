@@ -19,7 +19,6 @@ build, released: every page's footer and /version.json (site/src/components/Foot
 
 import ast
 import json
-import re
 import subprocess
 from collections import Counter
 from pathlib import Path
@@ -41,7 +40,8 @@ MECH = {  # what each gesture looks like, by the name the director sends
     "attention": "attention: half lids, a real left-right scan",
     "bored": "bored: drooping lids, heavy blinks, one long closure",
     "wince": "wince",
-    "rest": "back to rest (also when the last turn ends {stale} after its prompt, whatever Triggers arrive)",
+    "rest": "back to rest: still but for a blink every {rest_blink} (also when the last turn ends {stale} after its"
+    " prompt, whatever Triggers arrive)",
 }
 
 MOMENT = {  # each event the hooks take, as the reader lives it (Claude Code's hooks reference)
@@ -67,13 +67,16 @@ def duration(seconds):
     return f"{seconds // 60} min" if seconds % 60 == 0 else f"{seconds} s"
 
 
+def seconds(lo, spread):
+    """A gap of lo + up to spread ms, in seconds: (5000, 3000) -> 5-8 s."""
+    return f"{lo / 1000:g}-{(lo + spread) / 1000:g} s"
+
+
 def behaviour():
-    # shortcut: the blink gap read off its line, since eyes/eyes.py is the Core's program and imports machine (only
-    # pytest stubs it); a module constant there if the line changes shape
-    gap = r"self\.next_blink = now_ms \+ (\d+) \+ self\.rand % (\d+)"
-    lo, spread = map(int, re.search(gap, (ROOT / "eyes/eyes.py").read_text()).groups())
+    gap = {k: constant("eyes/eyes.py", k) for k in ("THINK_BLINK", "REST_BLINK")}  # it imports machine: read, not run
     numbers = {
-        "blink": f"{lo / 1000:g}-{(lo + spread) / 1000:g} s",
+        "blink": seconds(*gap["THINK_BLINK"]),
+        "rest_blink": seconds(*gap["REST_BLINK"]),
         "small": duration(TIERS[0][0]),
         "normal": duration(TIERS[1][0]),
         "stale": duration(STALE_TURN_SECONDS),

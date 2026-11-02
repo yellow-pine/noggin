@@ -41,7 +41,7 @@ def ticks(e):
 @pytest.mark.parametrize(
     "lines",
     [[f"{g} {i}"] for g in EYES.Eyes.GESTURES for i in (1, 2, 3)]
-    + [["thinking", ticks], ["set think_trace 1", "thinking", ticks]],
+    + [[ticks], ["thinking", ticks], ["set think_trace 1", "thinking", ticks]],
     ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),  # stable across xdist workers
 )
 def test_no_write_asks_more_than_the_servo_slews(lines):
@@ -70,7 +70,8 @@ def clocked_ticks(e):
 @pytest.mark.parametrize(
     "lines",
     [[f"{g} {i}"] for g in EYES.Eyes.GESTURES for i in (1, 2, 3)]
-    + [["thinking", clocked_ticks], ["set think_trace 1", "thinking", clocked_ticks], ["exercise 1", clocked_ticks]],
+    + [[clocked_ticks], ["thinking", clocked_ticks], ["set think_trace 1", "thinking", clocked_ticks]]
+    + [["exercise 1", clocked_ticks]],
     ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),
 )
 def test_a_servo_is_written_at_most_once_a_frame(lines):
@@ -217,6 +218,39 @@ def test_spontaneous_blinks_vary_in_depth_most_shut():
     lows = [b for a, b, c in zip(ev, ev[1:], ev[2:], strict=False) if b[1] < a[1] and b[1] <= c[1] and b[1] < short]
     full = [t for t, a in lows if a == pytest.approx(shut)]
     assert len(lows) >= 6 and len(full) > len(lows) / 2 and len(full) < len(lows)
+
+
+def closures(lines):
+    """When the right lid reaches lid_closed: each blink's shut moment, times from the end of the rest pose."""
+    ev, _ = after_rest(*lines)
+    shut = lid(CAL["lid_closed"])
+    return [b[0] for a, b in zip(ev, ev[1:], strict=False) if b[1] == pytest.approx(shut) != a[1]]
+
+
+def test_rest_blinks_every_3_to_6_s():
+    """#621: a face held still reads as lifeless after ~1.7 s (docs/research/2026-11-02-literature-perception.md), so at
+    Rest the lids blink once every 3-6 s, at random within that (a blink takes ~0.5 s), and nothing else moves."""
+    shut = closures([clocked_ticks])  # a minute at rest
+    gaps = [b - a for a, b in zip(shut, shut[1:], strict=False)]
+    assert 9 <= len(shut) <= 20 and min(gaps) >= 3000 and max(gaps) <= 6600, gaps
+    assert max(gaps) - min(gaps) > 1000  # random, not a metronome
+    eye, _ = after_rest(clocked_ticks, pin=L_EYE)
+    assert not eye  # the eyes stay centred
+
+
+def test_a_gesture_restarts_the_rest_blink_gap():
+    """A gesture that ends on a blink (attention) is not followed at once by a rest blink that fell due while it
+    played: the next one comes a whole gap after it."""
+    _, end = after_rest(lambda e: e.tick(0), "attention 2")
+    assert not [t for t in closures([lambda e: e.tick(0), "attention 2", lambda e: e.tick(60_000)]) if t >= end]
+
+
+@pytest.mark.parametrize("still", ["pose lids 0.5", "release"])
+def test_a_held_pose_or_a_release_never_blinks(still):
+    """The noggin service holds a pose with `rest` then `pose ...` (tuning), and `release` unpowers the servos while
+    muted: a rest blink would move the pose being tuned or re-power a slumped Mech."""
+    ev, _ = after_rest(still, clocked_ticks)
+    assert all(t < 1000 for t, _ in ev)  # only the pose's own glide, then nothing
 
 
 def test_eureka_squashes_before_the_take_and_settles_past_rest():

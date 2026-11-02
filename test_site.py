@@ -22,7 +22,8 @@ def test_no_generated_picture_is_tracked():
 
 
 def test_the_behaviour_table_is_built_from_the_code():
-    """reactions/director.py and install_hooks.py say which event plays what, eyes/eyes.py how often it blinks."""
+    """reactions/director.py and install_hooks.py say which event plays what, eyes/eyes.py how often it blinks (#621:
+    at Rest too)."""
     import macros  # here, not at the top: it imports the model
 
     table = macros.behaviour()
@@ -33,8 +34,8 @@ def test_the_behaviour_table_is_built_from_the_code():
         "| Notification permission_prompt | attention: half lids, a real left-right scan |",
         "| Notification idle_prompt | bored: drooping lids, heavy blinks, one long closure |",
         "| StopFailure | wince |",
-        "| SessionEnd | back to rest (also when the last turn ends 15 min after its prompt, whatever Triggers"
-        " arrive) |",
+        "| SessionEnd | back to rest: still but for a blink every 3-6 s (also when the last turn ends 15 min after its"
+        " prompt, whatever Triggers arrive) |",
     ]:
         assert row in table
 

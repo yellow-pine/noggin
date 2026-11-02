@@ -236,8 +236,9 @@ class Service:
         return ["rest", self.mode] if self.mode.startswith("pose") and not self.director.muted else []
 
     def catch_up(self):
-        """Calibrate the Core, then bring it to the mode: the held pose, else the Director's."""
-        self.send(self.cal_lines() + (self.held() or [self.director.mode()]))
+        """Calibrate the Core, then bring it to the mode: the held pose, else unpowered while muted (Rest blinks), else
+        the Director's."""
+        self.send(self.cal_lines() + (self.held() or ["release" if self.director.muted else self.director.mode()]))
 
     def follow(self):
         self.mode = "follow"
