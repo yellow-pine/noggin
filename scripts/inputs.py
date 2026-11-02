@@ -1,7 +1,7 @@
 """The repo files a Python file is made from: it and every module of the repo it imports, followed through their
 imports (ast, nothing runs). `python scripts/inputs.py FILE...` prints them, one per line, for make ours's
 stamp; test_derived.py holds the workflows' cache keys and paths filters to them (docs/adr/0011, #305).
-shortcut: imports only, not the data files a module opens; name those beside it where it matters."""
+shortcut: imports only, not the data files a module opens (none today), upgrade when one feeds a cache."""
 
 import ast
 import sys

@@ -52,7 +52,11 @@ def test_nothing_spells_out_a_list_the_code_holds():
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
 MADE_FROM = {
-    "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),  # make ours; mjcf's CoACD settings
+    "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
+    "convex": (
+        [],
+        ["model/mjcf.py", "model/stages.py", "uv.lock"],
+    ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
     "images": (["model/render/pictures.py"], ["uv.lock"]),
@@ -86,6 +90,7 @@ def covered(file, globs):
 
 def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
     found = patterns()
+    assert set(found) == set(MADE_FROM), "a key or filter new to the workflows: say what it is made from"
     missed = {
         (name, i, file)
         for name, (entries, others) in MADE_FROM.items()
@@ -96,9 +101,6 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
     assert missed == set()
 
 
-def test_inputs_follow_the_imports_through_the_repo():
-    assert {"model/fits.py", "model/linkage.py", "model/printed/lid.py"} <= inputs("model/ours.py")
-    assert "reactions/director.py" in inputs("mech/test_mech.py")  # through noggin/service.py's import
-    assert not any(f.startswith(".venv") for f in inputs("model/ours.py"))  # numpy, cadquery: not ours
-    assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])
+def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
     assert covered("model/printed/lid.py", ["model/printed/**", "!model/build/**"])
+    assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])

@@ -18,7 +18,7 @@ def test_else(name): pass
 """
 
 
-def shards():
+def listed():
     out = subprocess.run(
         ["make", "-s", "model-shards-list"], cwd=stages.REPO, capture_output=True, text=True, check=True
     )
@@ -37,13 +37,13 @@ def collected(tests, folder):
 
 
 def test_the_shards_are_the_hero_the_sweeps_each_stage_the_rest_and_the_sim():
-    names = [s["shard"] for s in shards()]
+    names = [s["shard"] for s in listed()]
     assert names == ["hero", "sweeps", *(d.removeprefix("noggin-") for d in g.STAGES), "rest", "sim"]
 
 
 def test_every_test_runs_on_exactly_one_shard(tmp_path):
     (tmp_path / "test_docs.py").write_text(TESTS.format(docs=sorted(stages.DOCS)))
-    by_shard = {s["shard"]: collected(s["tests"], tmp_path) for s in shards() if s["shard"] not in ("hero", "sim")}
+    by_shard = {s["shard"]: collected(s["tests"], tmp_path) for s in listed() if s["shard"] not in ("hero", "sim")}
     everything = [t for ts in by_shard.values() for t in ts]
     assert sorted(everything) == sorted({*everything}), "a test on two shards"
     assert {*everything} == {f"test_by_document[{d}]" for d in stages.DOCS} | {"test_else[mouth]", "test_else[stage1]"}
@@ -53,7 +53,7 @@ def test_every_test_runs_on_exactly_one_shard(tmp_path):
 
 
 def test_the_hero_shard_runs_the_hero_sweep_that_the_others_leave_out():
-    by_shard = {s["shard"]: s.get("tests", "") for s in shards()}
+    by_shard = {s["shard"]: s.get("tests", "") for s in listed()}
     assert by_shard.pop("hero") == "model/render/test_hero.py"
     assert by_shard.pop("sim") == ""  # make sim, not make test
     assert all("--ignore=model/render/test_hero.py" in t for t in by_shard.values())
