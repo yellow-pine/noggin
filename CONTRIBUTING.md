@@ -32,10 +32,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
   `release` for the release PR; `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
   lands). A body with a `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check
-  (`.github/workflows/pr-title.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title or body
-  re-runs it.
+  (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title or
+  body re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
-  finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-issue.yml`,
+  finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-checks.yml`,
   `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,
   Dependabot, the weekly bumps) has no issue and passes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). The `Release Please`

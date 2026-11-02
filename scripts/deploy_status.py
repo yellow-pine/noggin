@@ -1,9 +1,9 @@
-"""Site Deploy (pages.yml) on a main commit (#310): whether it deploys, and its `deploy` commit status (#292). Site
-Checks set the status pending while they build the site; Site Deploy runs on the completion of each check workflow
-for the commit and acts once both are done: it deploys Site Checks' site when both passed, else says why not. A red
-one is "not deployed: checks failed", linking it (#295); a cancelled one means a newer commit superseded it
-(CONTRIBUTING.md), which is `error`, not `failure`: nothing about this commit failed, it just never deployed. Both make
-the commit's combined status red.
+"""Site Deploy (pages.yml) on a main commit (#310): whether it deploys, and its `deploy` commit status (#292). Deploy
+Pending (deploy-pending.yml) sets the status pending while Site Checks build the site; Site Deploy runs on the
+completion of each check workflow for the commit and acts once both are done: it deploys Site Checks' site when both
+passed, else says why not. A red one is "not deployed: checks failed", linking it (#295); a cancelled one means a
+newer commit superseded it (CONTRIBUTING.md), which is `error`, not `failure`: nothing about this commit failed, it just
+never deployed. Both make the commit's combined status red.
 Usage: SHA=... RUN_URL=... GITHUB_REPOSITORY=o/r python3 scripts/deploy_status.py checks (site-run to GITHUB_OUTPUT
 when it deploys), or with DEPLOY=<the deploy job's result> PAGE_URL=... python3 scripts/deploy_status.py deploy"""
 

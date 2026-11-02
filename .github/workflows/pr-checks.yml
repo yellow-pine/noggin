@@ -1,21 +1,27 @@
-name: PR Title
-# A PR's title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
+name: PR Checks
+# A PR's title and body, each checked by main's copy of its script (a PR can't loosen its own check). Required checks
+# `PR Title` and `PR Issue` (the job names, which the ruleset matches); editing the title or body re-runs them.
+# `PR Title`: the title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
 # `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
-# (scripts/pr_title.py). Required check `PR Title`; editing the title or body re-runs it.
+# (scripts/pr_title.py).
+# `PR Issue`: the body links its issue (Closes #N, or Refs #N; scripts/pr_issue.py), so issue, PR and squash commit tie
+# together (#356). A bot's PR (release-please, Dependabot, the skills and blender bumps) has no issue: it passes.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
-concurrency:   # one run per PR; a new push or title edit cancels the one in progress
+concurrency:   # one run per PR; a new push or title/body edit cancels the one in progress
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 permissions:
   contents: read
-  pull-requests: read
 jobs:
   title:
     name: PR Title
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Check out the script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -62,3 +68,20 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
           BODY: ${{ github.event.pull_request.body }}
         run: python3 scripts/pr_title.py "$TITLE" <<<"$BODY"
+  issue:
+    name: PR Issue
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}   # main's script: a PR can't loosen its own check
+          persist-credentials: false
+          sparse-checkout: scripts/pr_issue.py
+          sparse-checkout-cone-mode: false
+      - name: Check the body links an issue
+        if: ${{ github.event.pull_request.user.type != 'Bot' }}
+        env:
+          BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
+        run: python3 scripts/pr_issue.py <<<"$BODY"
