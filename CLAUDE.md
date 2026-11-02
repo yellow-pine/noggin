@@ -13,6 +13,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Install nothing into ~/.claude or launchd without an explicit go.
 - Feature-first layout, never function-first; tests beside the code.
 - Every title, a PR's or an issue's, whoever or whatever writes it, is a Conventional Commit (CONTRIBUTING.md, #767).
+- Names say "default branch" (GitHub's term), never "main red"; our labels take GitHub's default style, lowercase with spaces (#791).
 - Keep it minimal (ponytail is active): the smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
 - No remote-control build. Both Cores are on Wi-Fi, addressed directly by the noggin service; USB-C only for flashing and as fallback (ADR 0005). The Mech keeps one pack and the Y lead (the pack per shield was dropped, #51).

@@ -4,10 +4,10 @@ name: Site Deploy
 # tests it on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
 # no rebuild, from the Checks run that completed (#731). `Deploy` swaps in main's newest sim reports (Checks builds the
 # site beside the sim) and deploys the latest docs alone (docs/adr/0021); red or cancelled Checks
-# deploy nothing and leave the last site up, and Main Red (main-red.yml) reports a red run. Pages' source is GitHub
-# Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); the github-pages environment lists each deploy with
-# its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main] alone
-# also matches a fork's PR from a branch named main), on that push's commit (head_sha).
+# deploy nothing and leave the last site up, and Default Branch Failure (default-branch-failure.yml) reports a red run.
+# Pages' source is GitHub Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); the github-pages
+# environment lists each deploy with its URL in the repo's Deployments panel. It acts only for this repository's push
+# to main (branches: [main] alone also matches a fork's PR from a branch named main), on that push's commit (head_sha).
 run-name: "${{ format('Site Deploy: {0}', github.event.workflow_run.display_title) }}"
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the Deploy job acts only on this repo's push to main

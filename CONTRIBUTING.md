@@ -13,7 +13,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   branches whose PR merged or closed, and their clean worktrees, with gh-poi). Open the PR against main on the first push and turn auto-merge on at once
   (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
   conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
-  branch on GitHub has a PR, except on-hold work.
+  branch on GitHub has a PR, except work on hold.
 - Whoever works the ticket keeps its PR green and answers each review thread (a fix, or a reply saying why not) before
   resolving it.
 - Main is protected: a green PR with Claude's approval is the only way in. A PR merges on the slim gate (#696, #714:
@@ -47,18 +47,19 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   after `npm ci --prefix ci`: `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which
   lists the scopes when one is wrong.
 - An issue's title is a Conventional Commit too, by the same rules, so it can become its PR's title (#767), whoever or
-  whatever opens it: an automation writes a valid one from the start (Main Red's is `fix(ci): main red on <sha7>`) and
-  finds its issues by label, never by a title anyone may edit. The `Issue Title` workflow
+  whatever opens it: an automation writes a valid one from the start (Default Branch Failure's is `fix(model):
+  \`Checks\` fail on the default branch at <sha7> (Model)`, #791) and finds its issues by label, never by a title
+  anyone may edit. The `Issue Title` workflow
   (`.github/workflows/issue-title.yml`) runs main's commitlint on each issue opened or edited; an issue can't be
-  blocked, so a failing title gets a comment with the rule and the `needs-title` label, and passing removes both.
+  blocked, so a failing title gets a comment with the rule and the `needs title` label, and passing removes both.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
-- Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
-  from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
-  hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand. The implementer sets `in-progress`
-  on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR opened by hand),
-  and clears every state label when the issue closes.
+- Issue state labels, one per state: `ready for agent` (can start), `in progress` (picked up and not in main yet; a
+  spec from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another
+  ticket, hardware), `on hold` (paused by Cansin). `blocked` and `on hold` are set by hand. The implementer sets
+  `in progress` on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR
+  opened by hand), and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
   holds a placeholder). Main releases itself: once a push to main passes Checks, `Release` (semantic-release,
   `.releaserc.json`) tags `vX.Y.Z` and writes the GitHub release's notes when a title merged since the last tag is a
@@ -126,8 +127,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own `fix(ci): main red on
-  <sha7>` issue, labelled `main-red` and found by it (#697, #745, #767). Only the main session runs the full run on a
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red default branch files its own issue (`fix(<the
+  failed job's scope>): \`Checks\` fail on the default branch at <sha7> (<job>)`), labelled `default branch failure`
+  and found by it (#697, #745, #767, #791). Only the main session runs the full run on a
   branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
   slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
@@ -136,7 +138,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Site Deploy and Release wait on (Checks) never cancels: main's runs queue and each finishes, so merges minutes apart
   still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
   neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
-  (`.github/actions/`), which cancels the rest of the run at once, and Main Red files it all the same (#769).
+  (`.github/actions/`), which cancels the rest of the run at once, and Default Branch Failure files it all the same
+  (#769).
   Site Deploy, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
@@ -159,10 +162,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
   (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
-  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `main-red-images`.
+  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `default branch images failure`.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
-  (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.
+  (#731). The github-pages environment lists every deploy; Default Branch Failure reports a red Checks or Site Deploy
+  run.
 
 ## Licence
 
