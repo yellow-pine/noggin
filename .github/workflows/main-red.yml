@@ -3,8 +3,8 @@ name: Main Red
 # CI Images run (main alone builds the images, #729) opens one `main-red-images` issue, closed by its next push.
 # PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). A failed run opens the issue
 # (that label, bug, ready-for-agent; titled 'fix(ci): main red on <sha7>', #767) linking the commit and the run, or
-# comments on the open one, found by its label; anything else
-# (a pass, a cancelled run superseded) says nothing (#745). It acts only for this repository's runs on main
+# comments on the open one, found by its label, as does a run a failed step cancelled (cancel-on-failure, #769);
+# anything else (a pass, a cancelled run superseded) says nothing (#745). It acts only for this repository's runs on main
 # (branches: [main] alone also matches a fork's PR from a branch named main).
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
@@ -44,6 +44,10 @@ jobs:
           fi
           # the open one, by the issues API: search lags a just-opened issue
           issue=$(gh issue list --label "$label" --json number --jq '.[0].number // empty')
+          # a failed step cancels the rest of its run (cancel-on-failure, #769), its own job too, which may then read
+          # cancelled: a cancelled run with a failed step is red
+          if [ "$CONCLUSION" = cancelled ] && [ "$(gh run view "$RUN_ID" --json jobs \
+            --jq '[.jobs[].steps[]? | select(.conclusion == "failure")] | length')" -gt 0 ]; then CONCLUSION=failure; fi
           case "$CONCLUSION" in
             failure|timed_out|startup_failure)
               body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
