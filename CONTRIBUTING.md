@@ -40,11 +40,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
   a subject that doesn't start with a capital (a leading acronym goes in backticks) or end with a period; at most 100
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
-  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them;
-  `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
-  lands). The required `PR` check
-  (`.github/workflows/pr-checks.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title
-  re-runs it.
+  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them
+  (main's: a new folder is a scope once it lands). The required `PR` check (`.github/workflows/pr-checks.yml`)
+  enforces it all with commitlint and `ci/commitlint.config.mjs` (a bot's title may pass 100 characters); editing the
+  title re-runs it. Check a title before you open the PR, at the repo's root after `npm ci --prefix ci`:
+  `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
+  is wrong.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
