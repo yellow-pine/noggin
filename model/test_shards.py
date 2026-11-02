@@ -12,6 +12,7 @@ from pathlib import Path
 
 import yaml
 
+from model import geometry as g
 from model import shards, stages
 
 TESTS = """import pytest
@@ -117,6 +118,20 @@ def test_the_blender_bins_are_the_cold_units_with_the_stages_they_bake():
     assert [b["bin"] for b in listed("blender-bins", PICTURES="false")] == ["viewer"]
     assert sorted(b["motions"] for b in listed("blender-bins", VIEWER="false")) == sorted(pictures.SITE)
     assert listed("blender-bins", PICTURES="false", VIEWER="false") == []
+
+
+def test_a_pr_s_bins_render_the_preview_panel_in_place_of_the_site_s_pictures():
+    """PREVIEW=true (a PR, #562): one panel of the site's, at its framing, so it bakes every Stage as views does; main
+    alone renders SITE."""
+    from model.render import pictures
+
+    assert set(pictures.MOTIONS["preview"]) < set(pictures.SITE["views"])
+    every = listed("blender-bins", PREVIEW="true")
+    assert sorted(u for b in every for u in b["bin"].split()) == ["preview", "viewer"]
+    (preview,) = [b for b in every if b["motions"]]
+    assert preview["motions"] == "preview"
+    assert preview["stages"] in ("", " ".join(sorted(g.STAGES)))  # empty beside the viewer: it bakes them all
+    assert listed("blender-bins", PREVIEW="true", PICTURES="false") == listed("blender-bins", PICTURES="false")
 
 
 def test_the_model_and_blender_matrices_are_the_changes_job_s_lists():

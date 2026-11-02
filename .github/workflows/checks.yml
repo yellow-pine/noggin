@@ -1,7 +1,8 @@
 name: Checks
 # Runs `just check`, the model tests with the Mech stand-in, sim and STL/STEP export, renders the pictures and builds the site.
 # One workflow, one required check (#496): `Checks`, the gate every other job here leads into. On PRs, on main
-# (docs/adr/0009, #310) and weekly. `Changes` is the one fan-out: what the PR (its files from the API) or main's push
+# (docs/adr/0009, #310), weekly and on any branch on demand (#562). `Changes` is the one fan-out: what the PR (its
+# files from the API) or main's push
 # (by git, against main's last commit whose Checks passed, #471) touches (dorny/paths-filter), the caches of the parts,
 # the pictures and the viewer looked up, and from the code the model shards (just model-shards-list) and the Blender
 # bins (just blender-bins); work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs
@@ -9,7 +10,8 @@ name: Checks
 # hero's collision sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed,
 # and just mech, the Link's live checks on the Mech stand-in, #222), with just stl and just step on main or when the
 # parts changed; a cold parts cache is cut part by part first (`Convex`, #223), so the shards start warm. `Blender`
-# renders the README's pictures (just pictures, #226) and bakes the viewer's GLBs (just web, docs/adr/0008) when what
+# renders the README's pictures (just pictures, #226; a PR one panel, its preview, #562) and bakes the viewer's GLBs
+# (just web, docs/adr/0008) when what
 # they are made from changed, packed into bins longest first (#496). `Site` builds the docs beside them (just site,
 # docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the pictures and the viewer,
 # runs the link checks again with them, plays the site in Chrome (Playwright), uploads the site (a PR's preview, and on
@@ -24,6 +26,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   schedule:   # main's weekly full run (#471): no filters or output lookups, so every check runs, the filters' safety net
     - cron: "0 7 * * 1"
+  # the same full run on any branch, on demand (#562): the hero and the panels for a look's approval, since a PR renders
+  # one panel; every check runs, so the Checks it posts on the branch's head are a real one
+  workflow_dispatch:
 concurrency:   # one run per PR (or main): a new push cancels the one in progress, main runs its latest; the weekly run
   # has its own group, so it neither cancels a push's run (which Site Deploy waits for) nor is cancelled
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
@@ -72,7 +77,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Filter the changed paths
-        if: ${{ github.event_name != 'schedule' }}
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # mech: the justfile's MicroPython tag, pyproject's mpy-cross pin; model: test_derived.py's MADE_FROM says why
@@ -111,9 +116,9 @@ jobs:
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
       # whether the pictures and the viewer built from the same inputs are cached: then no Blender bin runs for them,
-      # nor pulls its image (#386). The weekly run renders and bakes again
+      # nor pulls its image (#386). The weekly and dispatched runs render and bake again
       - name: Look up the cached pictures
-        if: ${{ github.event_name != 'schedule' }}
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
         id: pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -121,7 +126,7 @@ jobs:
           key: pictures-${{ steps.inputs.outputs.pictures }}
           lookup-only: true
       - name: Look up the cached viewer
-        if: ${{ github.event_name != 'schedule' }}
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -150,6 +155,8 @@ jobs:
           VIEWER: >-
             ${{ (github.event_name != 'pull_request' || steps.filter.outputs.site == 'true')
             && steps.viewer.outputs.cache-hit != 'true' }}
+          # a PR renders the preview panel alone (model/render/pictures.py PREVIEW, #562): main renders them all
+          PREVIEW: ${{ github.event_name == 'pull_request' }}
   code:
     name: Code
     if: ${{ !github.event.pull_request.draft }}
@@ -552,7 +559,7 @@ jobs:
           path: model/build/trajectories
           key: ${{ steps.trajectories.outputs.cache-primary-key }}
       - name: Save the viewer
-        if: ${{ matrix.viewer && github.event_name != 'schedule' }}
+        if: ${{ matrix.viewer && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
@@ -566,8 +573,8 @@ jobs:
       - name: Upload the pictures
         if: ${{ matrix.motions != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
-        with:
-          name: images-${{ strategy.job-index }}
+        with:   # a PR's: its preview, the one bin's, which checks links
+          name: ${{ github.event_name == 'pull_request' && 'preview' || format('images-{0}', strategy.job-index) }}
           path: model/build/images
           if-no-files-found: error
       - name: Upload the viewer
@@ -634,7 +641,8 @@ jobs:
           SITE_BASE: /noggin/v0.0
   # the required check (#496): every job above passed or was skipped as its inputs were unchanged (a skipped required
   # check passes, so this one never skips; a failed need fails it). Then the site whole: the pictures (the last ones
-  # rendered from the same inputs, else the bins', saved here for changes to find) and the viewer's GLBs at
+  # rendered from the same inputs, else main's bins', saved here for changes to find; a PR's, main's latest) and the
+  # viewer's GLBs at
   # site/dist/images and site/dist/viewer, as just site puts them, its links checked again with them, and played in
   # the runner's Chrome
   checks:
@@ -652,21 +660,42 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      # main's: the ones made from the same inputs, else its bins', saved for changes to find. A PR's site carries
+      # main's latest, as its bins render only the preview (#562), and saves none. The weekly and dispatched runs: the
+      # ones they rendered
       - name: Restore the pictures
-        if: ${{ needs.site.result == 'success' && github.event_name != 'schedule' }}   # weekly: the ones it rendered
+        if: ${{ needs.site.result == 'success' && github.event_name == 'push' }}
         id: images
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
           key: pictures-${{ needs.changes.outputs.pictures-hash }}
           fail-on-cache-miss: ${{ needs.changes.outputs.pictures == 'true' }}
+      - name: Restore main's latest pictures
+        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: pictures-${{ needs.changes.outputs.pictures-hash }}
+          restore-keys: pictures-   # main's newest when this PR's inputs are new
+          fail-on-cache-miss: true
       - name: Download the pictures
-        if: ${{ needs.site.result == 'success' && steps.images.outputs.cache-hit != 'true' }}
+        if: >-
+          ${{ needs.site.result == 'success' && github.event_name != 'pull_request'
+          && steps.images.outputs.cache-hit != 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           pattern: images-*
           merge-multiple: true
           path: model/build/images
+      - name: Save the pictures
+        if: >-
+          ${{ needs.site.result == 'success' && github.event_name == 'push'
+          && steps.images.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: ${{ steps.images.outputs.cache-primary-key }}
       - name: Download the viewer
         if: ${{ needs.site.result == 'success' && needs.changes.outputs.viewer != 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
@@ -720,23 +749,35 @@ jobs:
           include-hidden-files: true   # as upload-pages-artifact would take them
           if-no-files-found: error
       - name: Upload the pictures
-        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
+        if: ${{ needs.site.result == 'success' && github.event_name == 'workflow_dispatch' }}   # a PR's: its preview
         id: pictures
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: pictures
           path: model/build/images
       - name: Link the preview
-        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
+        if: ${{ needs.site.result == 'success' && github.event_name != 'push' && github.event_name != 'schedule' }}
         env:
           URL: ${{ steps.preview.outputs.artifact-url }}
           PICTURES: ${{ steps.pictures.outputs.artifact-url }}
-          BUILT: ${{ needs.changes.outputs.pictures != 'true' && 'rendered from this PR' || 'unchanged, the last build of the same inputs' }}
+          CACHED: ${{ needs.changes.outputs.pictures }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
-          echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open' >> "$GITHUB_STEP_SUMMARY"
-          echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).' >> "$GITHUB_STEP_SUMMARY"
-          echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "Site preview with the web viewer: [the site artifact]($URL),"
+            echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
+            echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
+            if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+              echo "Pictures rendered from this branch: [the pictures artifact]($PICTURES)."
+            elif [ "$CACHED" = true ]; then
+              echo "Pictures unchanged: main's, made from the same inputs."
+            else
+              echo "Pictures: main renders and deploys them once this lands; the site preview carries main's latest."
+              echo "This PR's preview panel (model/render/pictures.py PREVIEW): the preview artifact on"
+              echo "[this run's page]($RUN)."
+              echo 'The hero and every panel: `gh workflow run checks.yml --ref <branch>`.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
       # once for the run: its critical path, every job along its needs up to here. Warm: the parts, the pictures and
       # the viewer all cached from the same inputs
       - name: Check the CI budget

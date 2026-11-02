@@ -5,7 +5,8 @@ transparent background, its lines one grey for the site's light and dark themes 
 PANELS). `hero` (`just hero`): the README hero, stage 3 talking (model/render/hero.py), its
 trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's pictures, motion by motion
 (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `just blender-bins`).
+yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `just blender-bins`)
+on main; a PR renders the `preview` motion alone, one panel (PREVIEW, #562).
 Usage: python -m model.render.pictures views | hero | site [motion ...] (Blender at $BLENDER)"""
 
 import json
@@ -52,12 +53,16 @@ SITE = {
     "views": [f"{name}-{view}.webp" for name, view in PANELS],
     "hero": ["hero.webp"],
 }
+# a PR's picture in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it
+PREVIEW = [("stage3", "isometric")]
+MOTIONS = SITE | {"preview": [f"{name}-{view}.webp" for name, view in PREVIEW]}
 
 
-def motions():
-    """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (just trajectories TRAJ_DOCS)."""
-    stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3"}
-    return [{"motion": m, "stages": stages_of[m]} for m in SITE]
+def motions(preview=False):
+    """Each motion of SITE (or the preview alone) with the Stages it draws, whose trajectories its runner bakes (just
+    trajectories TRAJ_DOCS): the preview every Stage, for the panels' one scale."""
+    stages_of = {"views": " ".join(g.STAGES), "hero": "noggin-stage3", "preview": " ".join(g.STAGES)}
+    return [{"motion": m, "stages": stages_of[m]} for m in (["preview"] if preview else SITE)]
 
 
 def assembled(name, frames):
@@ -105,8 +110,9 @@ def blender(name, manifest, shots):
     print("".join(line for line in r.stdout.splitlines(True) if line.startswith("frame ")), end="")  # each frame's s
 
 
-def views():
-    """The Stage panels (PANELS: each Stage at rest as MuJoCo settles it, where every gesture starts)."""
+def views(panels=PANELS):
+    """The Stage panels (PANELS, or those named: each Stage at rest as MuJoCo settles it, where every gesture starts),
+    each framed as among all of them."""
     plans = {}
     for doc, frames in g.STAGES.items():
         name = doc.removeprefix("noggin-")
@@ -120,9 +126,14 @@ def views():
     w, h = w + 2 * pad, h + 2 * pad
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
     for name, (manifest, _, mats, pts) in plans.items():
-        shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
-        blender(name, manifest, shots)
-    for name, v in PANELS:
+        shots = [
+            shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats])
+            for v in VIEWS
+            if (name, v) in panels
+        ]
+        if shots:
+            blender(name, manifest, shots)
+    for name, v in panels:
         encode(f"{name}-{v}")
 
 
@@ -181,8 +192,8 @@ def ffmpeg(*args):
 
 
 def render(motion):
-    """A motion of the site's pictures (SITE)."""
-    views() if motion == "views" else hero()
+    """A motion of the site's pictures (SITE), or the preview."""
+    hero() if motion == "hero" else views(PREVIEW if motion == "preview" else PANELS)
 
 
 def main(what, names):
@@ -195,7 +206,7 @@ def main(what, names):
         os.makedirs(IMAGES, exist_ok=True)
         for motion in names or SITE:
             render(motion)
-            for f in SITE[motion]:
+            for f in MOTIONS[motion]:
                 shutil.copy(os.path.join(OUT, f), IMAGES)
     else:
         sys.exit(f"unknown: {what}")

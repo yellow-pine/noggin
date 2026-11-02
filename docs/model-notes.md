@@ -36,7 +36,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   per view, each linking to its file; on a phone stacked by Stage.
 - README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
   `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
-  model/render/pictures.py SITE;
+  model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;
   yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in
