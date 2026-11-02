@@ -1,6 +1,6 @@
 """worktrees_clean.py: make worktrees-clean removes a worktree whose branch is merged into origin/main or gone from
-origin, and keeps one with uncommitted changes, unpushed commits or a live branch. Real git: a bare origin, a clone
-and its worktrees."""
+origin, and keeps one never pushed, with uncommitted changes or unpushed commits, or on a live branch. Real git: a bare
+origin, a clone and its worktrees."""
 
 import subprocess
 import sys
@@ -50,16 +50,15 @@ def test_a_worktree_merged_into_main_or_gone_from_origin_is_removed_and_named(cl
     git(merged, "push", "-q", "origin", "merged:main")  # main fast-forwards onto it
     squashed = worktree(clone, "squashed")
     git(clone.parent / "origin.git", "branch", "-D", "squashed")  # its PR squash-merged and GitHub deleted it
-    fresh = worktree(clone, "fresh", commit=False, push=False)  # nothing on it that main lacks
 
     out = clean(clone)
 
-    for path in (merged, squashed, fresh):
+    for path in (merged, squashed):
         assert not path.exists()
         assert str(path) in out
 
 
-def test_a_worktree_with_changes_unpushed_commits_or_a_live_branch_is_kept(clone):
+def test_a_worktree_never_pushed_with_changes_unpushed_commits_or_a_live_branch_is_kept(clone):
     dirty = worktree(clone, "dirty")
     (dirty / "notes.txt").write_text("not committed")
     unpushed = worktree(clone, "unpushed", push=False)  # gone from origin, but never there
@@ -67,9 +66,10 @@ def test_a_worktree_with_changes_unpushed_commits_or_a_live_branch_is_kept(clone
     git(ahead, "commit", "-q", "--allow-empty", "-m", "since the push")
     git(clone.parent / "origin.git", "branch", "-D", "dirty", "ahead")
     live = worktree(clone, "live")  # an open PR's branch
+    fresh = worktree(clone, "fresh", commit=False, push=False)  # a session just started it, nothing on it yet
 
     out = clean(clone)
 
-    for path in (dirty, unpushed, ahead, live):
+    for path in (dirty, unpushed, ahead, live, fresh):
         assert path.exists()
         assert str(path) not in out
