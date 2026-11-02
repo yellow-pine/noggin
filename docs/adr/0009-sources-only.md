@@ -17,6 +17,8 @@
 > Amended 2026-11-02 (#397): the README's CI/CD table is generated from .github/workflows into a cog block in the
 > README, committed, and `cog --check` in `make check` fails while it is stale. The README is off the site (#280) yet
 > GitHub must show the table, and GitHub renders committed Markdown only; a site page and a link would lose it there.
+> Amended 2026-11-02 (#472, spec #467): the CI images rebuild only when a Dockerfile changes, no weekly no-cache
+> rebuild; the distro's security fixes arrive with Dependabot's base-image bumps (ADR 0012).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -61,10 +63,10 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   `-blender`), never committed, and those jobs pin them by digest (`container:`, read from ci/pins/Dockerfile, where
   Dependabot can bump them, #444). Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain of them (convex, then a model
   shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages stay out of the images: `uv
-  sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build provenance when a
-  Dockerfile changes and weekly without cache, and Dependabot proposes the new digests as a PR, whose checks run in
-  them before any job on main does; a PR that changes a Dockerfile only builds the images, from main's cache read
-  only.
+  sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build provenance only when a
+  Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472), and Dependabot proposes the new digests
+  as a PR, whose checks run in them before any job on main does; a PR that changes a Dockerfile only builds the
+  images, from main's cache read only.
 
 ## Considered options
 
