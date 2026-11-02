@@ -11,7 +11,7 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 1. Read the issue (`gh issue view N`). Add a git worktree at `../noggin-wt/<session>/<branch>` (your session's name as
    ListAgents shows it, e.g. noggin-87) on a new branch off `origin/main` and work only there.
-2. Invoke the cycle's skills in this order, writing each one's name to `~/.claude/.cycle-step` as it starts:
+2. Invoke the cycle's skills in this order:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.
    2. `domain-modeling` for a new term (GLOSSARY.md) or decision (a new ADR).
    3. `codebase-design` before any new module.
@@ -25,11 +25,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
    --auto --squash` at once.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
-   - GitHub reports a conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
-     `.github/workflows/review.yml` changed since your base (`Review` then fails with no verdict): `git rebase
-     origin/main`, resolve any conflicts in place, `git push --force-with-lease`. Rebase only then, since each
-     push dismisses the approval and re-runs the review. Rebase is the only way main reaches your branch and commits
-     are the only place work waits; never merge locally, never stash.
+   - Bring main into your PR with `scripts/rebase_pr.sh <n>` (or `gh pr update-branch <n>` for a merge), only when the
+     rebase rule allows (CONTRIBUTING.md). Commits are the only place work waits; never merge locally, never stash.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
      thread with GraphQL `resolveReviewThread`.
@@ -51,5 +48,5 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 ## Report
 
-Re-read `gh pr view --json state` right before writing it. Under 80 words: PR number, that merge state, the decisions
-you made, anything left undone.
+Re-read `gh pr view --json state` right before writing it. Under 80 words: PR number, that merge state, the cycle steps
+you ran, the decisions you made, anything left undone.
