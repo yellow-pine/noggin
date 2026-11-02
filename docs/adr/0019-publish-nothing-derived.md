@@ -13,8 +13,9 @@
 > Amended 2026-11-02 (#656, Cansin): the Next Mech in motion too, its eye gimbal's sweep, blink and wink as looping
 > WebPs (`next-eyes-<motion>.webp`, `just pictures next`) on Pictures, and a PR's preview stacks each motion it changed,
 > the live one above its own.
-> Amended 2026-11-02 (#657, Cansin): the PR's before/after is also inline in one sticky comment on the PR, its
-> pictures assets of the `pr-previews` pre-release (a PR keeps its newest run's; every asset goes after 30 days).
+> Amended 2026-11-02 (#673, Cansin): no PR preview any more, it arrived too late to be useful: no before/after, no
+> `preview` artifact or `just preview`, no sticky comment and no `pr-previews` pre-release (deleted). A PR still
+> renders and bakes the next Mech when its inputs changed, for Checks to test the site with; main publishes them.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry
