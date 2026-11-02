@@ -1,0 +1,37 @@
+name: Image Scan
+# Scans the two CI images for known vulnerabilities weekly, into the Security tab; never a PR check.
+# Grype (anchore/scan-action) reads ghcr.io/yellow-pine/noggin-ci-base and -blender at :main, what the jobs run
+# (images.yml), and uploads SARIF to code scanning, one category per image. Only findings with a fix are reported: the
+# remedy is a base-image bump (Dependabot, ci/*.Dockerfile) or a rebuild (`gh workflow run images.yml`).
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  scan:
+    name: Scan (${{ matrix.image }})
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      security-events: write   # the SARIF upload
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [base, blender]
+    steps:
+      - name: Scan the image
+        id: scan
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439   # v7.4.2
+        with:
+          image: ghcr.io/yellow-pine/noggin-ci-${{ matrix.image }}:main
+          fail-build: false   # the Security tab tracks them
+          only-fixed: true
+      - name: Upload the findings
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee   # v4.39.0
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: image-${{ matrix.image }}
