@@ -87,10 +87,11 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   `-blender`), never committed, and those jobs run them by the `:main` tag (`container:`, #481): mutable, but only
   main's `CI Images` run writes it, and Dependabot keeps the Dockerfiles' own base images digest-pinned and current.
   Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain
-  of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages
-  stay out of the images: `uv sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build
-  provenance when a Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472) and weekly without the
-  layer cache (#534), and every job that starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
+  of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. The base image
+  carries uv's Python and the venv synced from uv.lock, which its jobs link as `.venv`, so `uv sync` in the job only
+  installs what a newer uv.lock changed (#725). Only main writes to the registry: it pushes `:main` with GitHub's build
+  provenance when a Dockerfile or the venv's inputs (uv.lock, pyproject.toml, .python-version) change (Dependabot's
+  bumps among them, #472) and weekly without the layer cache (#534), and every job that starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
 
 ## Known limits
 
