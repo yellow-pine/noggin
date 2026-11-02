@@ -3,7 +3,7 @@
 // viewer's page (src/pages/viewer.astro) adds Stage buttons; any page, a doc's Markdown too, drops a small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
-// <figure> inside is its poster until the Stage has loaded (the home page's hero GIF, #468), and a deep link,
+// <figure> inside is its poster until the Stage has loaded (the landing page's hero GIF, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";

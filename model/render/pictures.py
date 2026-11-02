@@ -44,14 +44,14 @@ LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 _R = math.radians(15)
 HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
 HERO_SIZE = (800, 400)  # 2:1, the whole motion fitted wide (Cansin, #278)
-HERO_WIDTH, HERO_MAX_BYTES = 800, 3_000_000  # GIF_COLOURS: 1.56 MB at 48 colours left the room (#377)
+# the hero GIF (#276): 64 colours, as 1.56 MB at 48 left the room (#377)
+HERO_WIDTH, HERO_FPS, HERO_COLOURS, HERO_MAX_BYTES = 800, 8, 64, 3_000_000
 EXPLODE = {  # stage 3 exploded, mm: the neck lifted off the base, the eyes off the neck, the mouth forward off the eyes
     "noggin-base": (0, 0, 0),
     "noggin-stack": (0, 0, 45),
     "noggin-eyes": (0, 0, 95),
     "noggin-mouth": (0, -45, 95),
 }
-GIF_FPS, GIF_COLOURS = 8, 64  # the hero's (#276)
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
 SITE = {"views": ["stages.jpg", "exploded.jpg"], "hero": ["hero.gif"]}
@@ -203,9 +203,9 @@ def at_fps(frames, fps):
 
 def hero_gif():
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
-    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, GIF_FPS, at most 3 MB, GIF_COLOURS."""
+    camera fitted to every pose, encoded to hero.gif: HERO_WIDTH wide, HERO_FPS, at most 3 MB, HERO_COLOURS."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
-    poses = at_fps(trajectories.poses("noggin-stage3", "hero"), GIF_FPS)
+    poses = at_fps(trajectories.poses("noggin-stage3", "hero"), HERO_FPS)
     cam = camera.fit(
         np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
     )
@@ -223,10 +223,10 @@ def encode(frames, out):
     n = len(os.listdir(frames))
     pngs = os.path.join(frames, "%03d.png")
     palette = (
-        f"scale={HERO_WIDTH}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={GIF_COLOURS}:stats_mode=diff[p];"
+        f"scale={HERO_WIDTH}:-2:flags=lanczos,split[a][b];[a]palettegen=max_colors={HERO_COLOURS}:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     )
-    ffmpeg("-framerate", str(GIF_FPS), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
+    ffmpeg("-framerate", str(HERO_FPS), "-i", pngs, "-vf", palette, "-loop", "0", out + ".gif")
     size = os.path.getsize(out + ".gif")
     if size > HERO_MAX_BYTES:
         sys.exit(f"{out}.gif is {size // 1024} KB, over {HERO_MAX_BYTES // 1000} KB")

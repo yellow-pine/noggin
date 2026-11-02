@@ -78,7 +78,7 @@ def test_the_readme_is_for_contributors():
 
 
 def test_the_home_page_links_every_gesture_the_model_plays_into_the_viewer():
-    """The gesture GIFs are gone (#468): the home page's Gestures row is built from model/traces.py, in order, each
+    """The gesture GIFs are gone (#468): the landing page's Gestures row is built from model/traces.py, in order, each
     gesture a deep link that plays it in the viewer on Stage 1; GitHub shows the line around it instead."""
     import macros  # here, not at the top: it imports the model
     from model import traces
