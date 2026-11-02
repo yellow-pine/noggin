@@ -1,18 +1,27 @@
 ---
-// Starlight's social links, after the Docs version switcher and the repo's live stars and forks (api.github.com, asked
-// by the reader's browser).
+// Starlight's social links, after the newest release's tag, which labels the docs (docs/adr/0021), and the repo's live
+// stars and forks (api.github.com, asked by the reader's browser).
 import Default from '@astrojs/starlight/components/SocialIcons.astro';
 import { REPO } from '../pages.mjs';
-import VersionSelect from './VersionSelect.astro';
+
+const API = REPO.replace('github.com', 'api.github.com/repos');
 ---
 
-<VersionSelect />
-<a class="repo-facts" href={REPO} data-api={REPO.replace('github.com', 'api.github.com/repos')} aria-label="Stars and forks on GitHub" hidden></a>
+<a class="docs-version" data-api={`${API}/releases/latest`} hidden></a>
+<a class="repo-facts" href={REPO} data-api={API} aria-label="Stars and forks on GitHub" hidden></a>
 <Default />
 
 <script>
+  // the header's and the mobile menu's
+  const versions = document.querySelectorAll<HTMLAnchorElement>('.docs-version');
   const facts = document.querySelector<HTMLAnchorElement>('.repo-facts')!;
-  const repo = await fetch(facts.dataset.api!).then((r) => (r.ok ? r.json() : null));
+  const get = (a: HTMLAnchorElement) => fetch(a.dataset.api!).then((r) => (r.ok ? r.json() : null));
+  const [release, repo] = await Promise.all([get(versions[0]), get(facts)]);
+  for (const v of release ? versions : []) {
+    v.textContent = `${release.tag_name} (latest)`;
+    v.href = release.html_url;
+    v.hidden = false;
+  }
   if (repo) {
     facts.textContent = `★ ${repo.stargazers_count} · ⑂ ${repo.forks_count}`;
     facts.hidden = false;
@@ -20,5 +29,5 @@ import VersionSelect from './VersionSelect.astro';
 </script>
 
 <style>
-  .repo-facts { color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); text-decoration: none; white-space: nowrap; }
+  .docs-version, .repo-facts { color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); text-decoration: none; white-space: nowrap; }
 </style>

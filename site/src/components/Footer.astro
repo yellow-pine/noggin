@@ -1,9 +1,10 @@
 ---
 // Starlight's footer, then "by Yellow Pine" with the brand's logo (yellow-pine/.github brand/, v2.2: the light theme's
 // and the dark's, #603), the site's version (the git tag) linking its release, or the releases before it, and
-// the commit it was built from (macros.py build, #372); and the web viewer (docs/adr/0008) on any page that has a
-// <div class="noggin-viewer">: its module and three.js load only there, and under a poster (the landing page's hero,
-// #468) only once it is in view, or on a phone on a tap of Play in 3D.
+// the commit it was built from (macros.py build, #372); an old Docs version's URL on to the docs (docs/adr/0021); and
+// the web viewer (docs/adr/0008) on any page that has a <div class="noggin-viewer">: its module and three.js load only
+// there, and under a poster (the landing page's hero, #468) only once it is in view, or on a phone on a tap of Play
+// in 3D.
 import Default from '@astrojs/starlight/components/Footer.astro';
 import { build, released } from '../macros.json';
 import { REPO } from '../pages.mjs';
@@ -24,6 +25,15 @@ const release = released ? `${REPO}/releases/tag/v${build.version}` : `${REPO}/r
 </p>
 
 <script>
+  // an old Docs version's URL (/noggin/vX.Y/…, gone since docs/adr/0021) reaches only the 404 page: on to the same
+  // page in the docs, or to their home when it is gone too
+  const home = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const old = location.pathname.match(new RegExp(`^${home}/v\\d+\\.\\d+(?:\\.\\d+)?(/.*)?$`));
+  if (old) {
+    const now = `${home}${old[1] ?? '/'}`;
+    fetch(now, { method: 'HEAD' }).then((r) => location.replace(r.ok ? now : `${home}/`));
+  }
+
   // shortcut: the page's first viewer decides for all; a page with two viewers, one with a poster, needs one each
   const viewer = document.querySelector('.noggin-viewer');
   const load = () => import('../viewer/viewer.mjs');

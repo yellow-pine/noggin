@@ -1,8 +1,8 @@
 name: Release Assets
-# Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs.
+# Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release.
 # A release tag's run (docs/adr/0010, 0017): the zip goes onto the release semantic-release made (the release's notes
-# link this run; no environment, #754, so the release is no Deployment beside itself), then the release's docs
-# (docs/adr/0014), and it dispatches Site Deploy so they are live at once (#414).
+# link this run; no environment, #754, so the release is no Deployment beside itself). No docs: the site serves the
+# latest alone (docs/adr/0021).
 on:
   push:
     tags: ["v*"]
@@ -43,54 +43,3 @@ jobs:
           gh release view "$TAG" --json body --jq .body > notes.md
           grep -qF '**Deploy:**' notes.md || printf '\n**Deploy:** [Release Assets](%s)\n' "$RUN_URL" >> notes.md
           gh release edit "$TAG" --notes-file notes.md
-  # this release's docs, built once under /noggin/vX.Y/ and kept on the release; Site Deploy serves them (docs/adr/0014).
-  # After `release`, so the two notes edits never race; a prerelease's docs are never served, so none are built
-  docs:
-    name: Release Docs
-    needs: release
-    if: ${{ !contains(github.ref_name, '-') }}
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: write   # the docs asset and the notes
-      actions: write    # dispatch Site Deploy
-    env:
-      GH_TOKEN: ${{ github.token }}
-      TAG: ${{ github.ref_name }}
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          persist-credentials: false   # nothing here pushes
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false   # as in checks.yml
-      - name: Set up Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
-        with:
-          node-version-file: site/.nvmrc
-          package-manager-cache: false   # a release builds without a cache (zizmor cache-poisoning)
-      # the docs and the viewer's page; the pictures and sim reports stay the live site's. Nothing derived from today's
-      # printed parts: the GLB is the next Mech's alone (#649, docs/adr/0019)
-      - name: Build the docs
-        run: SITE_BASE="/noggin/${TAG%.*}" uv run just site
-      # shortcut: the viewer's GLB is the live site's, the release commit's model only once its own deploy has landed
-      # (Site Deploy and Release start together off its Checks); build it at the tag (just web) if that bites
-      - name: Attach the docs to the release
-        run: |
-          for glb in $(jq -r '.published.viewer[]' site/src/macros.json); do
-            curl -fsSo "site/dist/viewer/$glb" "https://yellowpine.com/noggin/viewer/$glb" \
-              || echo "::warning::$glb is not on the live site yet: these docs' viewer has none"
-          done
-          tar -czf "noggin-docs-$TAG.tar.gz" -C site/dist .
-          gh release upload "$TAG" "noggin-docs-$TAG.tar.gz" --clobber
-      # the notes link these docs once, where Site Deploy serves them
-      - name: Link the docs in the notes
-        run: |
-          gh release view "$TAG" --json body --jq .body > notes.md
-          grep -qF '**Docs:**' notes.md || printf '\n**Docs:** https://yellowpine.com/noggin/%s/\n' "${TAG%.*}" >> notes.md
-          gh release edit "$TAG" --notes-file notes.md
-      # main's site again, now with this release's docs at /noggin/vX.Y/ (#414); a dispatch is the one event
-      # GITHUB_TOKEN may start a workflow with
-      - name: Deploy the site with these docs
-        run: gh workflow run pages.yml --ref main

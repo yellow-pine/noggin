@@ -576,8 +576,8 @@ jobs:
       # publishes; and the diagrams drawn by mermaid-cli in the image's Chrome
       - name: Test the built site
         run: npm --prefix site test
-      # the viewer loads the next Mech, the diagrams draw, search finds a page, the version switcher switches, in the
-      # image's Chrome, with no CSP violation or console error and no request to another host but api.github.com
+      # the viewer loads the next Mech, the diagrams draw, search finds a page, the header names the newest release, an
+      # old docs version's URL lands on the docs, in the image's Chrome, with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
         run: npm --prefix site run smoke
       # on main what Site Deploy deploys (actions/download-artifact by this run's id); a dispatched run's preview

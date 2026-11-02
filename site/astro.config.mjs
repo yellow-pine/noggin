@@ -8,23 +8,24 @@ import mermaid from 'astro-mermaid';
 import starlightGitHubAlerts from 'starlight-github-alerts';
 import { inlineScriptHashes } from './src/csp.mjs';
 import { markdown } from './src/markdown.mjs';
-import { BASE, HOME, PAGES, REPO, SITE, id } from './src/pages.mjs';
+import { HOME, PAGES, REPO, SITE, id } from './src/pages.mjs';
 
 export default defineConfig({
   site: SITE,
-  base: BASE,
+  base: HOME,
   markdown: { processor: satteri({ mdastPlugins: markdown }) },
   // The site's own files alone (docs/adr/0013). Scripts: Astro hashes what it bundles, inlineScriptHashes the inline
   // rest. Styles can't be hashed: Expressive Code's style="" attributes and the <style>s Mermaid injects at run time.
   // The viewer's Draco decoder compiles WASM in a Blob worker and GLTFLoader fetches the GLB's textures as blobs; the
-  // header asks api.github.com for the repo's stars and forks. Starlight's icons are data: URLs.
+  // header asks api.github.com for the newest release and the repo's stars and forks. Starlight's icons are data:
+  // URLs.
   security: {
     csp: {
       directives: [
         "default-src 'self'",
         "connect-src 'self' blob: https://api.github.com",
         "worker-src 'self' blob:",
-        `img-src 'self' data: blob: ${SITE}${HOME}/images/`, // the pictures' absolute URLs, in previews and Docs versions too
+        `img-src 'self' data: blob: ${SITE}${HOME}/images/`, // the pictures' absolute URLs
       ],
       scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
       styleDirective: {
@@ -93,11 +94,10 @@ export default defineConfig({
         'docs/how-it-works',
         {
           label: 'Model',
-          // main's sim reports, which a Docs version (docs/adr/0014) links on the live site
           items: [
             'docs/pictures',
             { label: 'Viewer', link: '/viewer/' },
-            { label: 'Reports', link: BASE === HOME ? '/reports/' : `${SITE}${HOME}/reports/` },
+            { label: 'Reports', link: '/reports/' },
             'docs/model-notes',
           ],
         },

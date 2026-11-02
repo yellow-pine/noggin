@@ -1,5 +1,7 @@
 # Each Release's docs are built from its tag, kept as a release asset, and served beside main's
 
+> Superseded 2026-11-02 by ADR 0021 (#778): the site serves the latest docs alone; nothing below is built or served.
+>
 > Decided with Cansin on 2026-11-01, #307 item 3; ticket #373. Research: #331's comments ("2. Versioned docs").
 >
 > Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds the docs

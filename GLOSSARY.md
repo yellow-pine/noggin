@@ -196,9 +196,8 @@ tagged vX.Y.Z on main, its notes on its GitHub release (docs/adr/0010, 0017).
 _Avoid_: build, drop, version of one part
 
 **Docs version**:
-The Site's docs as one Release had them, built from its tag under /noggin/vX.Y/ (the newest patch of each minor) and
-kept as a release asset; **latest** is main's, at /noggin/. The header's switcher lists them from /noggin/versions.json.
-The sim reports are the live Site's in every version (docs/adr/0014).
+A Release's own copy of the Site's docs, once at /noggin/vX.Y/; retired (docs/adr/0021). The Site has one set of docs,
+main's, labelled with the newest Release's tag, and an old version's URL lands on the same page there.
 _Avoid_: docs snapshot, archived docs
 
 **Bot App**:
