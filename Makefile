@@ -14,9 +14,8 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 # the eye program's files (noggin/core.py), read when a recipe uses them, so after venv
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
-OURS_SRC := $(sort $(wildcard model/printed/*.py)) model/envelopes.py model/geometry.py model/ours.py uv.lock   # what model/build/ours is built from (CI caches it on the same files)
 
-.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list trajectories view web site site-reports lint fmt mech
+.PHONY: venv test check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render gifs hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech
 
 venv:            ## .venv with pyserial, pytest, mpremote
 	uv sync -q
@@ -38,8 +37,8 @@ check-all: check   ## every test: make check, then the model tests under the hea
 sim: venv ours   ## simulate every document (sub-assemblies + Stage configurations) on our geometry into model/build/reports: placements, fits, beams, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
 	$(HEAVY) $(PY) -m model.report $(SIM_DOCS)
 	$(PY) -m pytest -q model/test_report.py
-ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged
-	@key=$$(shasum $(OURS_SRC) | shasum); if [ "$$(cat model/build/ours/.key 2>/dev/null)" = "$$key" ]; then echo "model/build/ours: up to date"; else $(PY) -m model.ours && echo "$$key" > model/build/ours/.key; fi
+ours: venv   ## our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
+	@src=$$($(PY) scripts/inputs.py model/ours.py) && key=$$(shasum $$src uv.lock | shasum) && if [ "$$(cat model/build/ours/.key 2>/dev/null)" = "$$key" ]; then echo "model/build/ours: up to date"; else $(PY) -m model.ours && echo "$$key" > model/build/ours/.key; fi
 stl: venv    ## print-ready STLs of our printed parts (mm, the designer's frames, L and R each) in model/build/stl
 	$(PY) -m model.ours stl
 step: venv   ## STEP files of every part and envelope, and each Stage as assembled (every horn at 0), in model/build/step (open -a FreeCAD)
@@ -109,6 +108,8 @@ hero: venv ours trajectories     ## the README hero: stage 3 talking, an 8 s loo
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
 pictures: venv ours trajectories   ## the README's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views, hero or a gesture)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
+model-shards-list: venv   ## the model tests' shards by document, as JSON (Code Checks' model matrix, #305; make -s for the JSON alone)
+	@$(PY) -m model.shards
 pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
 	@$(PY) -m model.render.pictures list
 web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site
