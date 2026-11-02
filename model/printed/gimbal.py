@@ -123,14 +123,23 @@ def push_rod():
     return out
 
 
-def link(a, b, x):
-    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    w = ARM / 2
+def arm(a, b, x):
+    """A flat arm in the slab `x` from the (y, z) point a to b, round at both ends."""
+    a, b, w = np.asarray(a, float), np.asarray(b, float), ARM / 2
     side = np.array([a[1] - b[1], b[0] - a[0]]) * w / math.dist(a, b)
     outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
     out = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(outline).close().extrude(x[1] - x[0])
-    for y, z in (a, b):
-        out = out.union(cyl("x", (0, y, z), w, x)).cut(cyl("x", (0, y, z), gm.PIN_R, x))
+    return out.union(cyl("x", (0, *a), w, x)).union(cyl("x", (0, *b), w, x))
+
+
+def link(a, b, x):
+    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
+    return holes(arm(a, b, x), (a, b), x)
+
+
+def holes(out, pins, x):
+    for y, z in pins:
+        out = out.cut(cyl("x", (0, y, z), gm.PIN_R, x))
     return out
 
 
@@ -139,23 +148,61 @@ def pitch_bar():
     return link((hy + gm.CRANK, hz), (gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1]), gm.PITCH_BAR_X)
 
 
+def _slab(name, side=1):
+    """The LID_X slab outboard (side 1) or inboard (-1) of the L eye's centre, as an x span."""
+    return tuple(sorted(side * u for u in gm.LID_X[name]))
+
+
 def lid_bar():
-    """One lid's bar (drawn centred on x 0): the lid's crank back to its horn, behind the eye."""
+    """One lid's bar (drawn centred on x 0): the upper lid's crank pin back to the bend, behind the tie-bar, then down to
+    its horn's; the link's pin between the first two (#698)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
-    return link(gm.LID_PIN, tuple(np.add(gm.LID_HORN, gm.LID_PIN)), (-w, w))
+    horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
+    out = arm(gm.LID_PIN, gm.LID_BEND, (-w, w)).union(arm(gm.LID_BEND, horn, (-w, w)))
+    return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
 
 
-def lid(side):
-    """The `side` lid (drawn for L, the R its mirror): a shell wedge about x through the eye centre, its lower edge at LID_REST and LID_SPAN wide, the boss
-    on its outboard pole turning on the frame's shank, and the crank back to its bar."""
-    ri, ro = gm.LID_R
-    arc = np.radians(np.linspace(gm.LID_REST, gm.LID_REST + gm.LID_SPAN, 24))
-    fan = [(0.0, 0.0)] + [(-(ro + 5) * math.cos(a), (ro + 5) * math.sin(a)) for a in arc]
-    wedge = cq.Workplane("YZ", origin=(-ro - 1, 0, 0)).polyline(fan).close().extrude(2 * ro + 2)
-    out = ball(ro).cut(ball(ri)).intersect(wedge)
-    bx, cx, pin = gm.LID_X["boss"], gm.LID_X["crank"], (0, *gm.LID_PIN)
-    out = out.union(cyl("x", (0, 0, 0), 4.0, bx)).union(link((0.0, 0.0), gm.LID_PIN, cx))
-    out = out.cut(cyl("x", pin, gm.PIN_R, cx)).cut(cyl("x", (0, 0, 0), gm.PIN_R, (bx[0] + 2, bx[1])))
+def lid_link():
+    """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698)."""
+    w = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2
+    return link(gm.LINK_PIN, gm.LOWER_PIN, (-w, w))
+
+
+def _lid(radii, span, spoke, boss, pin):
+    """An L lid: its shell wedge about x from `span` (deg from forward toward up) between the caps' sides, and in two
+    slabs a spoke at `spoke` deg out to the shell, which reaches round to it there: outboard from the `boss` on the
+    frame's shank, inboard from its crank `pin` (#698). The spokes stay behind (or under) the caps through the whole
+    yaw and the lid's range; everything within the outer radius."""
+    ri, ro = radii
+
+    def wedge(a, b, x):
+        arc = np.radians(np.linspace(a, b, 24))
+        fan = [(0.0, 0.0)] + [(-(ro + 5) * math.cos(t), (ro + 5) * math.sin(t)) for t in arc]
+        return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
+
+    shell, outer, inner = ball(ro).cut(ball(ri)), _slab(boss), _slab("ear", -1)
+    out = shell.intersect(wedge(*span, (inner[0], outer[1])))
+    reach = sorted((spoke + math.copysign(8, spoke), span[spoke > 0]))  # the shell round to the spoke
+    for x in (outer, inner):
+        r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
+        end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
+        out = out.union(shell.intersect(wedge(*reach, x))).union(arm(pin if x == inner else (0, 0), end, x))
+    out = out.union(cyl("x", (0, 0, 0), 4.0, outer)).intersect(ball(ro))
+    return holes(out, [pin], inner).cut(cyl("x", (0, 0, 0), gm.PIN_R, outer))
+
+
+def upper_lid(side):
+    """The `side` upper lid (drawn for L, the R its mirror): its edge at LID_REST, LID_SPAN up; its boss on the shank
+    nearer the eye, its crank pin LID_PIN on the lid bar."""
+    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), 92.0, "upper boss", gm.LID_PIN)
+    return out if side == "L" else out.mirror("YZ")
+
+
+def lower_lid(side):
+    """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
+    lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
+    span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
+    out = _lid(gm.LOWER_R, span, -92.0, "lower boss", gm.LOWER_PIN)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -220,7 +267,7 @@ def at_rest():
         stem = stages.stem(p.file)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
     for s, sign in (("L", 1), ("R", -1)):
-        x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["boss"][0] + 2, gm.LID_X["upright"][1]))
+        x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["upper boss"][0] + 2, gm.LID_X["upright"][1]))
         out[f"next {s} lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], x).val()
     return out
 
@@ -228,6 +275,7 @@ def at_rest():
 # the parts moved() carries by a pin on another moving part: each turns on that part's pin
 COUPLED = {
     **{f"next {s} lid bar:1": f"next {s} lid horn:1" for s in "LR"},
+    **{f"next {s} lid link:1": f"next {s} lid bar:1" for s in "LR"},
     **{f"next {s} push-rod:1": "next bail:1" for s in "LR"},
     "next pitch bar:1": "next pitch horn:1",
 }
@@ -301,7 +349,8 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
     rest = at_rest()
-    drives = [f"next {s} {n}" for s in "LR" for n in ("lid:1", "lid bar:1", "lid horn:1", "lid shank")]
+    names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1", "lid shank")
+    drives = [f"next {s} {n}" for s in "LR" for n in names]
     spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
     near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < gm.LID_CLEAR_MM > rest[a].distance(rest[b])}

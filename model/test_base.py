@@ -114,24 +114,24 @@ def _report(
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
             "sway_hz": sway,
-            "head_mm": head or [138.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
+            "head_mm": head or [118.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
         },
     }
 
 
 def test_a_variant_whose_boards_meet_the_head_ranks_last_whatever_its_figures():
-    bad = _report(pairs=[(("next crown shelf:1", "next L lid:1"), -2.0)], hold=0.01)
+    bad = _report(pairs=[(("next crown shelf:1", "next L upper lid:1"), -2.0)], hold=0.01)
     ranked = base.rank({"next-mech-back": _report(hold=0.3), "next-mech-crown": bad})
     assert ranked["order"] == ["next-mech-back", "next-mech-crown"]
-    assert ranked["variants"]["next-mech-crown"]["gates"]["clearance"] == [["next L lid:1", "next crown shelf:1"]]
+    assert ranked["variants"]["next-mech-crown"]["gates"]["clearance"] == [["next L upper lid:1", "next crown shelf:1"]]
     assert ranked["variants"]["next-mech-crown"]["fails"] == ["clearance"]
 
 
-def test_a_head_past_140_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_that_fits():
-    """#51: everything that rides the head fits a head of at most 140 W x 150 H x 120 D mm; a variant 2 mm too deep
+def test_a_head_past_125_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_that_fits():
+    """#51, #698: everything that rides the head fits a head of at most 125 W x 150 H x 120 D mm; a variant 2 mm too deep
     ranks after one that fits, though its servo holds less."""
     ranked = base.rank(
-        {"next-mech-back": _report(hold=0.05, head=[130.0, 122.0, 140.0]), "next-mech-crown": _report(hold=0.3)}
+        {"next-mech-back": _report(hold=0.05, head=[120.0, 122.0, 140.0]), "next-mech-crown": _report(hold=0.3)}
     )
     assert ranked["order"] == ["next-mech-crown", "next-mech-back"]
     assert ranked["variants"]["next-mech-back"]["gates"]["head"] == ["depth"]
@@ -171,8 +171,8 @@ def test_the_head_fit_decides_after_the_mode_and_before_the_leads():
     in its tightest direction ranks first, though it has more leads."""
     ranked = base.rank(
         {
-            "next-mech-back": _report(head=[139.0, 100.0, 120.0], leads={"pan pivot": 1}),
-            "next-mech-crown": _report(head=[130.0, 110.0, 140.0], leads={"pan pivot": 6}),
+            "next-mech-back": _report(head=[124.0, 100.0, 120.0], leads={"pan pivot": 1}),
+            "next-mech-crown": _report(head=[115.0, 110.0, 140.0], leads={"pan pivot": 6}),
         }
     )
     assert ranked["order"] == ["next-mech-crown", "next-mech-back"]

@@ -40,7 +40,8 @@ def test_no_two_parts_overlap_at_rest():
 
 @pytest.mark.build
 def test_the_block_fits_the_compact_head():
-    """#684: the gimbal, servos and horns included, fits a head of at most 140 W x 120 D x 150 H."""
+    """#684, #698: the gimbal, servos and horns included, fits a head of at most 125 W x 120 D x 150 H: the face as
+    wide as the lids' frame and the shell's wall."""
     assert all(b <= h for b, h in zip(gimbal.bounds(), gm.HEAD_MM))
 
 
@@ -66,9 +67,9 @@ def test_the_skeleton_moves_every_part_as_the_gimbal_does():
         for name, m in gm.moved(lid, pitch).items():
             assert data.body(name).xmat.reshape(3, 3) == pytest.approx(m[:3, :3], abs=1e-9)
             assert data.body(name).xpos * 1000 == pytest.approx(m[:3, 3], abs=1e-6)
-    # the lids, their horns, their bars, the cores with their caps, the push-rods (each L and R alike); the pitch horn,
-    # the bail, the pitch bar
-    assert model.njnt == 8
+    # the upper lids, the lower lids, their horns, their bars, their links, the cores with their caps, the push-rods
+    # (each L and R alike); the pitch horn, the bail, the pitch bar
+    assert model.njnt == 10
 
 
 # The Bones (#703): the tie-bar's arms from each eye's pin to the yaw horn's, each push-rod from the lever's ball to

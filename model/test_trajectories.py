@@ -25,7 +25,9 @@ _OPEN = (
 )
 # Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
 NESTED = {
-    frozenset((f"next {s} eyeball cap:1", f"next {s} lid:1")): "the lid's shell turns about the cap's own centre, its"
+    frozenset(
+        (f"next {s} eyeball cap:1", f"next {s} upper lid:1")
+    ): "the upper lid's shell turns about the cap's own centre, its"
     " inside 1.5 mm out from the cap (gimbal.LID_R, CAP_R): its convex pieces fill that inside, so they read the cap"
     " 0.06 mm deeper than at rest as it yaws under a half-shut lid (attention); gimbal.report() holds the exact gap (#663)"
     for s in "LR"
@@ -160,16 +162,19 @@ def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():
 
 def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
     """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
-    (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking lid shuts past the
-    cap's rim (-65, model/test_gimbal.py) and the other squints; all come back to rest."""
+    (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking eye's upper lid
+    shuts (-21, model/test_gimbal.py) and its lower lid rises on its link to meet it, and the other squints; all come
+    back to rest."""
     model = built("next-mech-back")
     names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
+    names += ("next L lower lid pivot",)
     writes, times = tj.commands("next-mech-back", "wink")
     frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
-    left, right, pitch, lid, other = frames.T
+    left, right, pitch, lid, other, under = frames.T
     assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
     assert abs(left.max() - 8 / 30 * 25) < 1.5  # its saccade lands, overshooting a little on the way
-    assert abs(lid.min() + 65) < SETTLED_DEG and -65 + 5 < other.min() < -5
+    assert abs(lid.min() + 21) < SETTLED_DEG and -21 + 5 < other.min() < -2
+    assert abs(under.max() - gimbal.lower(-21)) < SETTLED_DEG
     assert np.abs(frames[-1]).max() < SETTLED_DEG
 
 

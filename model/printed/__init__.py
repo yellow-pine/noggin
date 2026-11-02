@@ -66,8 +66,11 @@ PARTS = {
     "next push-rod": gimbal.push_rod,
     "next pitch bar": gimbal.pitch_bar,
     "next lid bar": gimbal.lid_bar,
-    "next L lid": lambda: gimbal.lid("L"),
-    "next R lid": lambda: gimbal.lid("R"),
+    "next lid link": gimbal.lid_link,
+    "next L upper lid": lambda: gimbal.upper_lid("L"),
+    "next R upper lid": lambda: gimbal.upper_lid("R"),
+    "next L lower lid": lambda: gimbal.lower_lid("L"),
+    "next R lower lid": lambda: gimbal.lower_lid("R"),
     "next gimbal frame": gimbal.frame,
     # the next Mech's neck and jaw (#641)
     "next neck mount": neck.mount,

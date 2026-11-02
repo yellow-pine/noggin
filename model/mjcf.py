@@ -157,7 +157,7 @@ def _quat(m):
 def _joints(stage):
     """The document's hinges, in its frame (mm): ({joint: (point, axis)}: each horn (named as the horn) on its servo
     shaft, each coupler (named as its part) on its horn pin, each rocker (named as its stages.Loop joint) on its pivot,
-    each push-rod (stages.Rod) on its arm's ball, axes (two: a universal joint) and the parts it drives on their hinge;
+    each rod (stages.Rod) on its arm, axes (two: a universal joint) on its carrier, and the parts it drives on their hinge;
     {part: the joints that move it}; [(loop joint, coupler, rocker, the rocker pin)] where the four-bars and the
     push-rods close)."""
     hinges, moves, closures = {}, {n: set() for n in stage.parts}, []
@@ -180,7 +180,7 @@ def _joints(stage):
         for rod in horn.rods:
             joint, point, axis = rod.hinge
             hinges[rod.joint], hinges[joint] = at(rod.arm, rod.axes), at(point, axis)
-            moves[rod.part] |= {rod.carrier, rod.joint}
+            moves[rod.part] |= moves[rod.carrier] | {rod.joint}
             for p in rod.driven:
                 moves[p].add(joint)
             closures.append((rod.joint, rod.part, rod.driven[0], at(rod.lever, axis)[0]))

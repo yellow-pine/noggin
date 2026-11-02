@@ -39,8 +39,9 @@ _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
 The Skeleton's linked eyes: each eyeball core turns up/down inside a yoke that turns left/right, one servo turns both
-yokes through a tie-bar, one turns both cores through push-rods, and each lid turns about the up/down axis on a servo
-of its own. The eyeball caps (Shells) sit on the cores.
+yokes through a tie-bar, one turns both cores through push-rods, and each eye's upper and lower lid turn against each
+other about the up/down axis on that eye's own servo, between the eyes: the upper lid through the lid bar, the lower
+through a link off it. The eyeball caps (Shells) sit on the cores.
 _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 
 **Shell**:
@@ -221,7 +222,7 @@ The printed arm on a servo spline; the driven link of every chain.
 _Avoid_: arm, lever
 
 **Bar**:
-A straight link between two Pivots: eyeball bar, lid bar, tilt bar, pan bar, jaw bar.
+A rigid link between two Pivots: eyeball bar, lid bar, tilt bar, pan bar, jaw bar.
 _Avoid_: rod, linkage
 
 **Crank**:

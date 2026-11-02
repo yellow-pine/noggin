@@ -114,31 +114,36 @@ Today's documents follow Cansin's build, then our model (CLAUDE.md). What we pla
 until the model stabilises.
 - The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
   (geometry.NEXT, #629), clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
-  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each lid
-  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
+  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
+  lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the next Mech's documents, moved
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
-  beside the Hooke form, the vergence a print error makes, the lids' clearance and range, the caps' gap, and the lid
-  drives' sweep: each lid, bar, horn and shank against the frame and every other part, certified along every line of the
+  beside the Hooke form, the vergence a print error makes, the lids' clearance and range, where they meet shut, the
+  lower lid's link angle, the caps' gap, and the lid drives' sweep: each lid, bar, link, horn and shank against the frame and every other part, certified along every line of the
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points; and the gimbal's bounding box, servos and horns included, "block_mm", against the compact head's `HEAD_MM`),
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, the pitch servo beside the pitch bar, each lid servo under and behind its eye (low and
-  forward, so the head's centre of mass stays near the tilt axis), driving its lid's crank through a bar down along
-  the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
+  forward, so the head's centre of mass stays near the tilt axis), its horn between the eyes (#698). Each eye has an
+  upper and a lower lid on that one servo, as today's Mech: the upper lid's crank through the lid bar (a
+  parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
+  four-bar turning it against the upper about 0.8x (`gimbal.lower`); shut they meet 4 deg below the eye's middle,
+  1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
+  shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
+  the face is as wide as the lids' frame (119 mm, 138 before) and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
   Its tie-bar and push-rods are Bones (#703, GLOSSARY; model/printed/bone.py), the pilot of the Skeleton's organic
   look: each prints as drawn with no overhang past 45 deg and holds its servo's stall at SF 2 and against buckling
   (model/printed/test_gimbal.py), its CoACD pieces capped (mjcf.MAX_PIECES); the rest of the Skeleton follows Cansin's
   pick of the look.
-  In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
-  horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
+  In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
+  yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
+  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
   gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
-  (closed shut past the cap's rim, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
   the next Mech's calibration (traces.NEXT_CAL, 0.6, inferred), the pan in the eyes' degrees scaled as the yaw and
