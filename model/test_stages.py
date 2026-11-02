@@ -152,6 +152,17 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
     assert "tilt horn" not in s1.horns
 
 
+def test_the_next_mech_starts_as_today_s_full_mech_in_its_own_document():
+    """#629: the next Mech's document starts from today's parts, placed and carried as Stage 3 (the eye gimbal, #630,
+    replaces the eyes), and is no Stage: today's Stages stay three."""
+    nxt, s3 = stages.STAGES["next-mech"], stages.STAGES["noggin-stage3"]
+    assert list(g.STAGES) == ["noggin-stage1", "noggin-stage2", "noggin-stage3"]
+    assert {n: p.matrix.tolist() for n, p in nxt.parts.items()} == {n: p.matrix.tolist() for n, p in s3.parts.items()}
+    for horn, deg in (("tilt horn", 40), ("pan horn", 30), ("jaw horn", -40)):
+        moved, today = stages.pose(nxt, horn, deg), stages.pose(s3, horn, deg)
+        assert all(np.allclose(m, today.parts[n]) for n, m in moved.parts.items()), horn
+
+
 def test_horn_limits_follow_geometry():
     assert stages.STAGES["noggin-eyes"].horns["L lid horn"].limits == (-30.75, 16)
     assert stages.STAGES["noggin-pan-tilt"].horns["pan horn"].limits == (-40, 70)

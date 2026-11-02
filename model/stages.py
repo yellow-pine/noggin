@@ -298,7 +298,8 @@ BASE_IN_EYES = (
 )  # the base as the eyes/mouth sweep documents carried it (context)
 # Documents the model simulates: the recorded sweep documents (the frozen fixtures in model/reports, in their own frames,
 # with the sub-assemblies they carried as grounded context: no horns swept, as recorded: root joints only) and the
-# Stage configurations (geometry.STAGES, PT frame, every horn). Frames are (origin, x axis, z axis) as geometry.align_rows.
+# Stage configurations (geometry.STAGES, PT frame, every horn), and the next Mech's beside them (geometry.NEXT). Frames
+# are (origin, x axis, z axis) as geometry.align_rows.
 DOCS = {
     "noggin-eyes": ({"noggin-eyes": EYES_FRAME, "noggin-base": BASE_IN_EYES}, 1, {"noggin-base"}),
     "noggin-pan-tilt": ({"noggin-base": ((0, 0, 0), g.X, g.Z), "noggin-stack": ((0, 0, 0), g.X, g.Z)}, 2, set()),
@@ -307,7 +308,7 @@ DOCS = {
         1,
         {"noggin-eyes", "noggin-base"},
     ),
-    **{doc: (frames, 2, set()) for doc, frames in g.STAGES.items()},
+    **{doc: (frames, 2, set()) for doc, frames in (g.STAGES | g.NEXT).items()},
 }
 
 

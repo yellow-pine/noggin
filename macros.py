@@ -5,7 +5,8 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-panels: the Stage panels' grid (model/render/pictures.py PANELS) on the landing page and docs/pictures.md.
+panels: the Stage panels' grid (model/render/pictures.py PANELS) on the landing page and docs/pictures.md;
+next_panels: the next Mech's (geometry.py NEXT, #629), on docs/pictures.md alone.
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -121,18 +122,23 @@ def picture_numbers():
     )
 
 
-def panels():
-    """The Stage panels (model/render/pictures.py PANELS) as a grid, a column per Stage and a row per view, each
-    picture linking to its file; stacked by Stage on a phone (site/src/styles/custom.css). The landing page's and
-    Pictures' (#470)."""
+def panels(labels=None):
+    """The Stage panels (model/render/pictures.py PANELS), or the documents labelled, as a grid, a column per document
+    and a row per view, each picture linking to its file; stacked by document on a phone (site/src/styles/custom.css).
+    The landing page's and Pictures' (#470)."""
     site, views = "https://yellowpine.com/noggin/images/", list(pictures.VIEWS)
     cells = ["<span></span>", *(f"<span>{v.capitalize()}</span>" for v in views)]
-    for n, doc in enumerate(g.STAGES, 1):
-        cells.append(f"<strong>Stage {n}</strong>")
+    for doc, label in (labels or {doc: f"Stage {n}" for n, doc in enumerate(g.STAGES, 1)}).items():
+        cells.append(f"<strong>{label}</strong>")
         for v in views:
             f = f"{site}{doc.removeprefix('noggin-')}-{v}.webp"
-            cells.append(f'<a href="{f}"><img src="{f}" alt="Stage {n}, {v}" loading="lazy"></a>')
+            cells.append(f'<a href="{f}"><img src="{f}" alt="{label}, {v}" loading="lazy"></a>')
     return f'<div class="noggin-panels not-content" style="--views: {len(views)}">{"".join(cells)}</div>'
+
+
+def next_panels():
+    """The next Mech's panels (#629), framed among themselves: Pictures' alone."""
+    return panels(dict.fromkeys(g.NEXT, "Next Mech"))
 
 
 HARDWARE = {
@@ -212,6 +218,7 @@ def numbers():
         "behaviour": behaviour(),
         "pictures": picture_numbers(),
         "panels": panels(),
+        "next_panels": next_panels(),
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),

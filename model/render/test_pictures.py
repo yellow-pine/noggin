@@ -6,7 +6,6 @@ import math
 import numpy as np
 import pytest
 
-from model import geometry as g
 from model import stages
 from model.render import pictures
 
@@ -16,7 +15,7 @@ pytestmark = pytest.mark.model
 @pytest.mark.parametrize("name,bracket", [("stage1", "desk eye bracket"), ("stage3", "eye bracket")])
 def test_each_picture_draws_the_eye_bracket_of_its_stage(name, bracket):
     # the desk build (geometry.DESK: stage 1) has the desk bracket; the mouth needs the rail one
-    stage = pictures.assembled(name, g.STAGES[f"noggin-{name}"])
+    stage = stages.STAGES[f"noggin-{name}"]
     assert stages.stem(stage.parts["eye bracket:1"].file) == bracket
 
 
@@ -37,7 +36,7 @@ def test_eight_fps_keeps_a_blinks_shut_frame_that_the_nearest_frame_would_skip()
 def test_the_site_icon_is_one_whole_eye_of_its_stage():
     """The favicon (#603): Stage 1's right eyeball, pupil and both lids, each a part the Stage has."""
     name, _ = pictures.FAVICON
-    parts = pictures.assembled(name, g.STAGES[f"noggin-{name}"]).parts
+    parts = stages.STAGES[f"noggin-{name}"].parts
     assert set(pictures.FAVICON_PARTS) <= set(parts)
     assert {stages.stem(parts[p].file) for p in pictures.FAVICON_PARTS} == {
         "R eyeball",

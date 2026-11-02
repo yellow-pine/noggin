@@ -510,6 +510,10 @@ STAGES = {
         "noggin-mouth": EYES_ON_STACK,
     },
 }
+# The next Mech (#51, #629): its own documents beside the Stages, never one of them. It starts as today's full Mech, the
+# parts #51 keeps (the neck, the jaw, the electronics) and today's eyes standing in, the mouth hanging on their bracket,
+# until the eye gimbal (#630) replaces them.
+NEXT = {"next-mech": STAGES["noggin-stage3"]}
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres
@@ -519,3 +523,5 @@ STEM_AT = {
     "noggin-stage2": (0.0, -13.0, 35.9),
     "noggin-stage3": (0.0, -13.0, 35.9),
 }
+STEM_IN |= dict.fromkeys(NEXT, STEM_IN["noggin-stage3"])
+STEM_AT |= dict.fromkeys(NEXT, STEM_AT["noggin-stage3"])

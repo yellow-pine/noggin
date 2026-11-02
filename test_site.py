@@ -194,6 +194,7 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
         (ROOT / "README.md").read_text(),
         *(p.read_text() for p in (ROOT / "docs").rglob("*.md") if not {"references", "research"} & set(p.parts)),
         macros.panels(),
+        macros.next_panels(),
         (ROOT / "site" / "astro.config.mjs").read_text().replace("${SITE}${HOME}", "https://yellowpine.com/noggin"),
     ]
     urls = {
@@ -216,7 +217,10 @@ def test_every_stage_has_a_side_and_an_isometric_panel():
     from model.render import pictures
 
     panels = [f"{d.removeprefix('noggin-')}-{v}.webp" for d in g.STAGES for v in ("side", "isometric")]
-    assert sorted(pictures.SITE["views"]) == sorted([*panels, "favicon.png"])  # the site's icon: an eye (#603)
+    following = ["next-mech-side.webp", "next-mech-isometric.webp"]  # the next Mech's, beside them (#629)
+    assert sorted(pictures.SITE["views"]) == sorted(
+        [*panels, *following, "favicon.png"]
+    )  # the site's icon: an eye (#603)
     assert pictures.SITE["hero"] == ["hero.webp"]
 
 
@@ -232,6 +236,17 @@ def test_the_panels_grid_has_a_column_per_stage_and_a_row_per_view_each_linking_
     assert len(links) == 6 and all(href == src and src.endswith(".webp") for href, src in links)
     for page in ("index.md", "pictures.md"):
         assert "<!--{{ panels }}-->" in (ROOT / "docs" / page).read_text()
+
+
+def test_the_next_mech_has_its_own_panels_on_pictures_alone():
+    """#629: the next Mech's panels in a grid of their own, framed among themselves, on Pictures alone."""
+    import macros
+
+    grid = macros.next_panels()
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech"]
+    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == ["next-mech-side.webp", "next-mech-isometric.webp"]
+    assert "<!--{{ next_panels }}-->" in (ROOT / "docs" / "pictures.md").read_text()
+    assert "next_panels" not in (ROOT / "docs" / "index.md").read_text()
 
 
 def test_the_hero_is_800x400_and_leads_the_readme():
@@ -268,12 +283,13 @@ def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
 
 
 def test_the_motions_are_every_motion_of_the_pictures_from_the_code():
-    """Checks' Blender bins (just blender-bins, #297, #496): the Stage views on every Stage and the hero on stage 3,
-    each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""
+    """Checks' Blender bins (just blender-bins, #297, #496): the views on every Stage and the next Mech (#629) and the
+    hero on stage 3, each with the documents its trajectories bake on; the gestures play in the viewer, not in GIFs
+    (#468)."""
     from model.render import pictures
 
     assert pictures.motions() == [
-        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3"},
+        {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3 next-mech"},
         {"motion": "hero", "stages": "noggin-stage3"},
     ]
 

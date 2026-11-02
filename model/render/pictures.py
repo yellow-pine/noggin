@@ -2,9 +2,9 @@
 baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a WebP with a
 transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470), but the
 site's icon, a PNG.
-`views` (`just render`): the Stage panels (each Stage at rest, a trajectory's first frame, from the side and isometric:
-PANELS) and the icon, an eye (FAVICON, #603). `hero` (`just hero`): the README hero, stage 3 talking
-(model/render/hero.py), its trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's
+`views` (`just render`): the panels (each Stage and the next Mech's document at rest, a trajectory's first frame, from
+the side and isometric, each group framed on its own: PANELS) and the icon, an eye (FAVICON, #603). `hero` (`just
+hero`): the README hero, stage 3 talking (model/render/hero.py), its trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's
 pictures, motion by motion (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site
 serves at yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py,
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders
@@ -33,7 +33,9 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the Stage panels (Cansin, #470): each Stage from its left side and isometric from its front left, by eye direction
 # and up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
-PANELS = [(doc.removeprefix("noggin-"), view) for doc in g.STAGES for view in VIEWS]
+# each group framed among its own panels alone, so the next Mech's (#629) never rescales the Stages'
+GROUPS = (g.STAGES, g.NEXT)
+PANELS = [(doc.removeprefix("noggin-"), view) for group in GROUPS for doc in group for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # the hero: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
@@ -79,21 +81,16 @@ MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 def motions(preview=False):
     """Each motion of SITE (or the preview alone) with the Stages it draws, whose trajectories its runner bakes (just
     trajectories TRAJ_DOCS): the preview every Stage, for the panels' one scale."""
-    stages_of = {"views": " ".join(g.STAGES), "hero": HERO_STAGE, "preview": " ".join(g.STAGES)}
+    stages_of = {"views": " ".join(g.STAGES | g.NEXT), "hero": HERO_STAGE, "preview": " ".join(g.STAGES)}
     return [{"motion": m, "stages": stages_of[m]} for m in (["preview"] if preview else SITE)]
 
 
-def assembled(name, frames):
-    """The picture's parts as model/stages.py assembles them, under its document's name (stages.assemble): a Stage clamps the
-    eyes and mouth to the tilt arm so the neck carries the head, and the desk build (geometry.DESK) has its own bracket."""
-    return stages.assemble(f"noggin-{name}", frames, 2)
-
-
-def prepare(name, frames):
-    """(stage, manifest with absolute PLY paths, hull points per part) for one picture's parts, exported once. Always
-    our geometry (model/build/ours, `just ours`), never the designer's meshes."""
-    stage = assembled(name, frames)
-    folder = os.path.join(OUT, "meshes", name)
+def prepare(doc):
+    """(stage, manifest with absolute PLY paths, hull points per part) for one document's pictures, its parts as
+    model/stages.py assembles them, exported once. Always our geometry (model/build/ours, `just ours`), never the
+    designer's meshes."""
+    stage = stages.STAGES[doc]
+    folder = os.path.join(OUT, "meshes", doc.removeprefix("noggin-"))
     os.makedirs(folder, exist_ok=True)
     manifest = scene.export(stage, folder)
     for p in manifest.values():
@@ -136,15 +133,29 @@ def blender(name, manifest, shots):
 
 
 def views(panels=(*PANELS, FAVICON)):
-    """The Stage panels (PANELS, or those named: each Stage at rest as MuJoCo settles it, where every gesture starts),
-    each framed as among all of them, and the site's icon (FAVICON)."""
+    """The panels (PANELS, or those named: each document at rest as MuJoCo settles it, where every gesture starts),
+    each framed as among all of its group's (GROUPS), and the site's icon (FAVICON)."""
+    for group in GROUPS:
+        if {n for n, _ in panels} & {doc.removeprefix("noggin-") for doc in group}:
+            frame(group, panels)
+    for name, v in panels:
+        if (name, v) == FAVICON:
+            shutil.copy(
+                os.path.join(OUT, "frames", f"{name}-{v}", "frame0000.png"), os.path.join(OUT, picture(name, v))
+            )
+        else:
+            encode(f"{name}-{v}")
+
+
+def frame(group, panels):
+    """Renders the panels of the group's documents among panels, at one scale and one frame: the largest silhouette of
+    the group's PANELS."""
     plans = {}
-    for doc, frames in g.STAGES.items():
-        name = doc.removeprefix("noggin-")
-        _, manifest, hulls = prepare(name, frames)
+    for doc in group:
+        _, manifest, hulls = prepare(doc)
         mats = trajectories.poses(doc, "wink")[0]
-        plans[name] = (manifest, hulls, mats, points(hulls, mats))
-    fits = {(n, v): camera.fit(plans[n][3], *VIEWS[v], 1) for n, v in PANELS}
+        plans[doc.removeprefix("noggin-")] = (manifest, hulls, mats, points(hulls, mats))
+    fits = {(n, v): camera.fit(plans[n][3], *VIEWS[v], 1) for n, v in PANELS if n in plans}
     # one scale and one frame for every panel: the widest and the tallest silhouette, PAD of the larger round them
     w, h = np.max([[np.ptp(plans[n][3] @ c.matrix[:3, i]) for i in (0, 1)] for (n, _), c in fits.items()], axis=0)
     pad = PAD * max(w, h)
@@ -162,13 +173,6 @@ def views(panels=(*PANELS, FAVICON)):
             shots.append(shot(f"{name}-{FAVICON[1]}", FAVICON_SIZE, cam, [eye]))
         if shots:
             blender(name, manifest, shots)
-    for name, v in panels:
-        if (name, v) == FAVICON:
-            shutil.copy(
-                os.path.join(OUT, "frames", f"{name}-{v}", "frame0000.png"), os.path.join(OUT, picture(name, v))
-            )
-        else:
-            encode(f"{name}-{v}")
 
 
 def at_fps(frames, fps):
@@ -205,7 +209,7 @@ def hero(frames=None):
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
     camera fitted to every pose, rendered as one animation and joined into hero.webp. frames: (first, end) renders those
     alone, a CI frame shard (#537), whose frames the Hero job joins."""
-    _, manifest, hull = prepare(HERO_STAGE.removeprefix("noggin-"), g.STAGES[HERO_STAGE])
+    _, manifest, hull = prepare(HERO_STAGE)
     poses = hero_poses()
     cam = hero_camera(hull)
     first, end = frames or (0, len(poses))

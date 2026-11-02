@@ -86,9 +86,10 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/noggin-stage3.step`.
 
 ## Planned edits (notes only, never in the model; #81)
-The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
-the model stabilises.
-- The next Mech (#51, on hold; the spec lives there): linked eyes (one servo for left/right, one for up/down, each lid
+Today's documents follow Cansin's build, then our model (CLAUDE.md). What we plan to change in today's Mech stays here
+until the model stabilises.
+- The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
+  (geometry.NEXT, #629), starting from today's Stage 3: linked eyes (one servo for left/right, one for up/down, each lid
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the

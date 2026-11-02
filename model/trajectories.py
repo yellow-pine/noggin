@@ -5,7 +5,7 @@ the web viewer's GLBs bake (web/build.py).
 Each servo slews its command at the rated no-load speed (eyes/servo.py Plant, at 4.8 V as mjcf's stall torque) and its
 position actuator follows under the load, its torque limited to the stall torque; contacts are off, as in mjcf.pose.
 `python -m model.trajectories` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
-Stage, skipping a Stage whose files still carry its stamp: {"doc", "motion", "fps", "stamp", "parts": {part: {"pos":
+Stage and the next Mech's documents (geometry.NEXT, their panels), skipping a Stage whose files still carry its stamp: {"doc", "motion", "fps", "stamp", "parts": {part: {"pos":
 [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its mesh's, as model/build/ours
 draws it) in MuJoCo's Z-up world, which for a Stage is the PT frame the pictures use."""
 
@@ -150,5 +150,5 @@ def poses(doc, motion):
 
 
 if __name__ == "__main__":
-    for doc in sys.argv[1:] or geometry.STAGES:
+    for doc in sys.argv[1:] or geometry.STAGES | geometry.NEXT:
         print(f"{doc}: {len(bake(doc))} trajectories" if stale(doc) else f"{doc}: fresh")

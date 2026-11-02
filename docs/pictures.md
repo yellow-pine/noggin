@@ -20,6 +20,17 @@ the Mech as code: our own parametric CadQuery parts, a simulation (MuJoCo, ADR 0
 finds its collisions and the supply's voltage sag (SPICE) before a part is printed, and Blender pictures from
 MuJoCo's trajectories (every picture here). Main's sim reports are on the site at [/reports](https://yellowpine.com/noggin/reports/).
 
+## The next Mech
+
+<!--{{ next_panels }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the grid above, which it builds from the code -->
+The next Mech from the side and isometric is in [the grid on the site](https://yellowpine.com/noggin/docs/pictures/).
+<!-- #}-->
+
+The Mech being designed to follow today's (#51), in the model as its own document beside the Stages, framed on its
+own. It starts as Stage 3 until its parts replace today's, the eye gimbal first.
+
 ## The hero
 
 <figure>
