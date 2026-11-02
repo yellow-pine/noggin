@@ -213,7 +213,7 @@ jobs:
   shards:
     name: Shards
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       list: ${{ steps.list.outputs.list }}
     steps:
