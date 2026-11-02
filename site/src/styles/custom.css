@@ -82,6 +82,8 @@
 
 /* ---------- type and the page's chrome ---------- */
 body { background: var(--sl-color-black); }
+.sl-markdown-content { font-size: var(--sl-text-body); }
+.sl-markdown-content table { font-size: 1rem; } /* the dense ones (CI/CD, wiring) stay readable on a phone */
 h1, h2, h3, h4, h5, .noggin-wordmark, .sidebar-content .group-label { font-family: var(--noggin-rubik); font-weight: 700; }
 h1#_top { margin-top: 1rem; font-size: var(--sl-text-h1); color: var(--sl-color-white); letter-spacing: -0.02em; line-height: 1.05; }
 .sl-markdown-content :is(h2, h3) { letter-spacing: -0.01em; }
