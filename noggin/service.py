@@ -34,6 +34,7 @@ HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it 
 FLASH_FILES = tuple(f"{m}.mpy" for m in (*MODULES, STAMP))  # eyes/build (just mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
+FRAME = 0.02  # s, one 50 Hz servo frame (eyes/eyes.py FRAME)
 MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
 
 
@@ -161,11 +162,20 @@ class Service:
             pass
         self.link = None
 
-    def send(self, lines, core="eyes"):
-        """Wi-Fi while the Core's beacon is fresh; whatever Wi-Fi did not deliver goes over the USB Link
-        (USB_CORE only), else is dropped with a log line."""
+    def send(self, lines):
+        """The lines to the eyes Core, then a FRAME later to each other Core on Wi-Fi: the two Cores' gesture starts
+        never share a servo frame, so their servos' start currents never add up on the one pack (#620)."""
         if not lines:
             return
+        self.send_to(lines, USB_CORE)
+        for core in [c for c in CORES if c != USB_CORE]:
+            if self.wifi.fresh(core, time.time()):
+                time.sleep(FRAME)
+                self.send_to(lines, core)
+
+    def send_to(self, lines, core):
+        """Wi-Fi while the Core's beacon is fresh; whatever Wi-Fi did not deliver goes over the USB Link
+        (USB_CORE only), else is dropped with a log line."""
         if self.wifi.fresh(core, time.time()):
             try:
                 undelivered = self.wifi.send(core, lines)

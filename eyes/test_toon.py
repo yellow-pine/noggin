@@ -83,6 +83,65 @@ def test_a_servo_is_written_at_most_once_a_frame(lines):
         last[pin] = t
 
 
+def jumps(lines):
+    """[(start ms, end ms, pin)] of every jump (a write made by Eyes.step, at the servo's full slew): it draws stall
+    current from its write until the servo arrives at the rated slew."""
+    out, clock, inside = [], [0], [False]
+
+    def hook(e):
+        sleep, step, put = EYES.sleep_ms, e.step, e.set
+        EYES.sleep_ms = lambda ms: (clock.__setitem__(0, clock[0] + ms), sleep(ms))  # pyright: ignore[reportAttributeAccessIssue]
+
+        def stepping(targets):
+            inside[0] = True
+            step(targets)
+            inside[0] = False
+
+        def setting(targets):
+            before = dict(e.pos)
+            put(targets)
+            if inside[0]:
+                out.extend((clock[0], clock[0] + abs(e.pos[p] - before[p]) * 1000 / RATE, p) for p in targets)
+
+        e.step, e.set = stepping, setting
+
+    replay.play([hook, "rest", *lines], CAL)
+    return out
+
+
+def most_at_once(js):
+    """The most servos ever mid-jump together: at each jump's start, the pins whose latest jump has not arrived."""
+    most = 0
+    for s, _, _ in js:
+        latest = {p: end for start, end, p in js if start <= s}
+        most = max(most, sum(end > s for end in latest.values()))
+    return most
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [[f"{g} {i}"] for g in EYES.Eyes.GESTURES for i in (1, 2, 3)]
+    + [["thinking", clocked_ticks], ["set think_trace 1", "thinking", clocked_ticks]],
+    ids=lambda lines: " ".join(x if isinstance(x, str) else "ticks" for x in lines),
+)
+def test_at_most_two_servos_jump_at_once(lines):
+    """#620's start budget: a jump draws stall current (0.55-0.65 A) until the servo arrives, so a Core lets at most two
+    servos jump at once (docs/research/2026-11-02-literature-motion-control.md 4, Practice 4)."""
+    js = jumps(lines)
+    assert js and most_at_once(js) <= 2, lines
+
+
+def test_a_jump_past_the_budget_waits_a_whole_move():
+    """All four servos asked to jump at once: the first two go, the other two start once one of them arrived, on a
+    frame (stagger by whole move durations: two minimum-jerk moves together peak at 2.0x, 0.3 T apart at 1.42x)."""
+    lids_open = {R_LID: lid(CAL["lid_open"]), L_LID: lid(CAL["lid_open"], L_LID)}
+    js = jumps([lambda e: e.step({**lids_open, L_EYE: 108, EYES.R_EYE: 108})])
+    starts = {p: s for s, _, p in js}
+    first = min(end for s, end, p in js if p in lids_open)
+    assert starts[R_LID] == starts[L_LID] and most_at_once(js) == 2
+    assert starts[L_EYE] == starts[EYES.R_EYE] >= first and (starts[L_EYE] - starts[R_LID]) % 20 == 0
+
+
 def test_a_glide_is_minimum_jerk_at_rest_at_both_ends():
     """#619: a move between keyframes follows minimum jerk, x = D(10t^3 - 15t^4 + 6t^5) (Flash & Hogan 1985): it
     starts and lands at rest, where the old eases landed at full speed; a quarter of the time in it is 10.35% of the

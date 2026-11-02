@@ -338,3 +338,24 @@ def test_a_link_that_comes_back_while_holding_gets_the_pose_not_rest(tmp_path):
     plugged.append(1)
     assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\nrest\npose lids 0.3\n", timeout=3)
     s.stop()
+
+
+def test_the_neck_core_gets_each_batch_a_frame_after_the_eyes_core(tmp_path):
+    """#620: the two Cores' gesture starts never share a 20 ms servo frame, so their servos' starts never add up on the
+    one pack (docs/research/2026-11-02-literature-electrical.md, Practice 1)."""
+    s = Service(open_serial=lambda: None, mute_file=tmp_path / "m", cal_file=tmp_path / "c.json", beacon_port=0)
+    got, live = [], {"eyes", "neck"}
+    s.wifi.fresh = lambda name, now: name in live
+    s.wifi.send = lambda name, lines: got.append((name, time.monotonic(), lines)) or []
+    s.send(["eureka 2"])
+    (eyes, t0, first), (neck, t1, second) = got
+    assert (eyes, neck) == ("eyes", "neck") and first == second == ["eureka 2"] and t1 - t0 >= 0.02
+    got.clear()
+    live.discard("neck")  # offline: nothing to offset from
+    s.send(["wink 3"])
+    assert [name for name, _, _ in got] == ["eyes"]
+    s.wifi.close()
+
+
+def test_the_frame_is_the_core_programs():
+    assert service.FRAME * 1000 == service._replay()._eyes().FRAME
