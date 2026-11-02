@@ -14,6 +14,7 @@ from model import stages, trajectories
 from web import build
 
 STAGES = {"next-mech-back": "next-mech-back.glb"}  # #649, #686 (Back alone since #712); #663
+STAGES["next-mech-back-plain"] = "next-mech-back-plain.glb"  # its Skeleton plain (#704)
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 

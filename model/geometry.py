@@ -98,6 +98,9 @@ PRINTED = {
     "next L eyeball cap": ("Pure White", "PLA Pure"),
     "next R eyeball cap": ("Pure White", "PLA Pure"),
 }
+# Each Skeleton part is drawn in two styles (#704, model/printed): as Bones under its own name, plain under this suffix
+PLAIN = " plain"
+PRINTED |= {name + PLAIN: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
 
 # The next Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
@@ -108,3 +111,4 @@ NEXT = {
     f"next-mech-{v}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD} | dict.fromkeys(carriers, _HEAD)
     for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
 }
+NEXT |= {doc + "-plain": subs for doc, subs in NEXT.items()}  # each variant also with its Skeleton plain (#704, PLAIN)

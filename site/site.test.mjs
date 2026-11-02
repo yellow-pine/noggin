@@ -45,6 +45,12 @@ test('the landing page leads into Build and Use', () => {
     expect(links).toContain(target);
 });
 
+test('the landing page has the sidebar every page has, itself first (#740)', () => {
+  const sidebar = (url) => page(url).querySelectorAll('#starlight__sidebar a').map((a) => a.getAttribute('href'));
+  expect(sidebar(`${BASE}/`)).toEqual(sidebar(route('docs/build/parts.md')));
+  expect(sidebar(`${BASE}/`)[0]).toBe(`${BASE}/`);
+});
+
 test('the sidebar reaches every decision, the pictures and the viewer', () => {
   const links = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
   const adrs = docs.filter((d) => d.startsWith('docs/adr/'));

@@ -4,10 +4,13 @@ chains) and pose(): every part's rigid transform per horn angle. No meshes are r
 import numpy as np
 import pytest
 
+from model import geometry as g
 from model import gimbal, printed, stages
 
 
-@pytest.mark.parametrize("doc,carrier", [("next-mech-back", "next board rack")])
+@pytest.mark.parametrize(
+    "doc,carrier", [("next-mech-back", "next board rack"), ("next-mech-back-plain", "next board rack plain")]
+)
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
     hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
@@ -31,3 +34,15 @@ def test_what_rides_the_head_mount_turns_with_the_tilt_and_the_pan(doc):
         for name in ("next gimbal frame:1", "next board rack:1", "next L lid servo:1"):
             assert np.allclose(moved.parts[name] @ np.linalg.inv(stage.parts[name].matrix), carrier), (horn, name)
         assert np.allclose(moved.parts["next torso:1"], stage.parts["next torso:1"].matrix)
+
+
+def test_each_next_mech_variant_is_built_plain_too_from_the_same_layout():
+    """#704: next-mech-back-plain is next-mech-back part for part, the same names where the same placements put them,
+    each Skeleton part with a plain style (model/printed STYLED) drawn plain, every other the same."""
+    bones, plain = stages.STAGES["next-mech-back"], stages.STAGES["next-mech-back-plain"]
+    assert list(plain.parts) == list(bones.parts) and set(plain.horns) == set(bones.horns)
+    for name, p in bones.parts.items():
+        q, s = plain.parts[name], stages.stem(p.file)
+        assert np.array_equal(q.matrix, p.matrix) and q.material == p.material, name
+        assert stages.stem(q.file) == (s + g.PLAIN if s in printed.STYLED else s), name
+    assert "next-mech-back-plain" in g.NEXT and stages.DOCS["next-mech-back-plain"] == stages.DOCS["next-mech-back"]

@@ -34,7 +34,9 @@ COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed see
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
 FINE_MM = {"horn": 0.08}
 # The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
-MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod"), 12)
+MAX_PIECES = dict.fromkeys(("next tie-bar", "next push-rod", "next yaw yoke", "next bail", "next board rack"), 12) | {
+    "next torso": 20  # its round walls and the cradle's
+}
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)

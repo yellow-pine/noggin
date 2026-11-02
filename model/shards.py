@@ -18,8 +18,9 @@ DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
 
 def units(model=True, mech=True):
     """{unit: its pytest -k expression}, None for just sim and just mech: the model's units, mech's, or both."""
-    docs = {d: d for d in stages.DOCS}
-    rest = " and ".join(f"not {k}" for k in docs)
+    # -k matches substrings: a document's id picks the ids it is part of too (next-mech-back-plain), so it leaves them
+    docs = {d: " and ".join([d, *(f"not {o}" for o in stages.DOCS if o != d and d in o)]) for d in stages.DOCS}
+    rest = " and ".join(f"not {d}" for d in stages.DOCS)
     return ({**docs, "rest": rest, "sim": None} if model else {}) | ({"mech": None} if mech else {})
 
 
@@ -28,8 +29,9 @@ def seconds(durations):
     expr = units()
     just = {v: k for k, v in JUST.items()}
     took = dict.fromkeys(expr, 0.0)
+    docs = sorted(stages.DOCS, key=len, reverse=True)  # the longest id a test names is its document
     for test, s in durations.items():
-        took[just.get(test) or next((u for u, k in expr.items() if k and u != "rest" and k in test), "rest")] += s
+        took[just.get(test) or next((d for d in docs if d in test), "rest")] += s
     measured = [s for s in took.values() if s]
     return {u: s or (sum(measured) / len(measured) if measured else 1.0) for u, s in took.items()}
 

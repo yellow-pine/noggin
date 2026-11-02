@@ -289,6 +289,10 @@ def assemble(doc, frames):
             parts[pname] = Part(p.file, f @ p.matrix, p.material, p.clip)
             owner[pname] = name
         horns.update({h: horn._replace(frame=f) for h, horn in sub.horns.items()})
+    if doc.endswith("-plain"):  # the Skeleton plain (#704): each part that has a plain style drawn in it
+        from model.printed import styled  # here: model.printed imports what imports this module
+
+        parts = {n: p._replace(file=stl(styled(stem(p.file), plain=True))) for n, p in parts.items()}
     riders = {}  # carrier part -> parts clamped to it
     for sub, carrier in RIDES.items():
         if sub in frames:
