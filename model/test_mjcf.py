@@ -81,22 +81,22 @@ TOUCH = {
             ("next jaw:1", "next head mount:1"),
         ]
     },
-    # the Torso (#685) and the head variants' carriers (#686): the same
+    # the Torso (#685) and Back's board rack (#686, #712): the same
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
-        for carrier in ("next board rack:1", "next crown shelf:1", "next split shelf:1")
         for pair in [
-            *((carrier, f"{b}:1") for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")),
-            (carrier, "next switch board:1"),
-            (carrier, "next gimbal frame:1"),
+            *(
+                ("next board rack:1", f"{b}:1")
+                for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")
+            ),
+            ("next board rack:1", "next switch board:1"),
+            ("next board rack:1", "next gimbal frame:1"),
         ]
     },
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("next switch bracket:1", "next switch board:1"),
-            ("next switch bracket:1", "next pan yoke:1"),
             ("next torso:1", "next neck mount:1"),
             ("next torso:1", "next pack:1"),
         ]

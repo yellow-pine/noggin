@@ -34,6 +34,8 @@
 > Amended 2026-11-02 (#642): a GLB per Base candidate (`next-mech-a.glb`, `next-mech-b.glb`), one viewer each.
 > Amended 2026-11-02 (#686): a GLB per head variant (`next-mech-back.glb`, `-crown`, `-split`) in their place, its
 > button in the ranking's order, marked with what it fails.
+> Amended 2026-11-02 (#712): Back alone (`next-mech-back.glb`), Cansin's pick; its one button keeps the ranking's
+> order and marks, so a later variant comes back beside it.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
