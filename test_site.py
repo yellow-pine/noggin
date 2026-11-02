@@ -312,15 +312,15 @@ def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_ranking
     assert [v["glb"] for v in unranked["buttons"]] == list(g.NEXT) and not unranked["ranked"]
     assert [v["label"] for v in unranked["buttons"]] == ["Back", "Crown", "Split"]
     order = ["next-mech-split", "next-mech-back", "next-mech-crown"]
-    fails = {"next-mech-split": ["head size"], "next-mech-back": ["head size", "torque"], "next-mech-crown": []}
+    fails = {"next-mech-split": [], "next-mech-back": ["head size", "torque"], "next-mech-crown": ["tilt loop"]}
     ranking = {"order": order, "variants": {d: {"fails": fails[d]} for d in order}}
     macros.RANKING.write_text(json.dumps(ranking))
     ranked = macros.variants()
     assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == order
     assert [v["label"] for v in ranked["buttons"]] == [
-        "Split (fails head size)",
-        "Back (fails head size, torque)",
-        "Crown",
+        "Split",
+        "Back: head size, torque",
+        "Crown: tilt loop",  # #705: a variant that fails a gate keeps its button, saying what it fails
     ]
     about = {v["glb"]: v["about"] for v in ranked["buttons"]}
     assert about["next-mech-back"] == "the boards upright on the board rack's back face, behind the eye gimbal"

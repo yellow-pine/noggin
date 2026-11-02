@@ -143,7 +143,8 @@ def rank(reports):
     servo torque (worst hold, then peak), gravity torque at rest (the tilt servo's), the lowest mode (the neck servos'
     loops and the crown's sway), the head's fit (its least room left, mm), the leads crossing pan and tilt, the tip-over
     margin. Pack access is no criterion here: the pack lies in the same Torso in each. Each variant's `fails` names the
-    gates and marks it misses, as the viewer marks its button."""
+    gates and marks it misses, as the viewer marks its button; a four-bar its sweep opens past the report's gate is one
+    ("tilt loop", #705), which model/test_report.py then excuses for any variant but the first."""
     out = {}
     for doc, r in reports.items():
         m, v = r["mujoco"], r["variant"]
@@ -169,11 +170,16 @@ def rank(reports):
         }
         band = -m["clearance_mm"]  # past the pieces' own reading of a designed contact
         clear = sorted(sorted(p["pair"]) for p in m["pairs"] if p["min_mm"] < band and set(p["pair"]) & set(v["parts"]))
-        gates = {"clearance": clear, "head": [a for a, s, h in zip(AXES, v["head_mm"], gimbal.HEAD_MM) if s > h]}
+        gates = {
+            "clearance": clear,
+            "head": [a for a, s, h in zip(AXES, v["head_mm"], gimbal.HEAD_MM) if s > h],
+            "loops": [n for n, x in m["residuals"].items() if x["max_mm"] > m["loop_mm"]],
+        }
         costs = (c["printed"], c["hold_kgf_cm"], c["peak_kgf_cm"], c["rest_kgf_cm"], -c["mode_hz"], -c["head_room_mm"])
         out[doc] = {
             "gates": gates,
             "fails": [n for n, k in (("clearance", "clearance"), ("head size", "head")) if gates[k]]
+            + [f"{n.removesuffix(' pivot')} loop" for n in gates["loops"]]
             + [n for n, missed in marks.items() if missed],
             "criteria": c,
             "_key": (sum(map(bool, gates.values())), tuple(marks.values()), (*costs, c["leads"], -c["tip_mm"])),
