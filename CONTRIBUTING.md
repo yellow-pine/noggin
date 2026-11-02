@@ -95,8 +95,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
-  numbered the next free one. When Code fails because main took that number since, run
-  `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
+  numbered the next free one. When Code fails because main took that number since, `git mv` the
+  draft to the next free number and change the old number on the lines your branch added (docs/adr/0015).
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`just wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
 
