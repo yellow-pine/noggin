@@ -3,12 +3,15 @@
 servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range), mapped onto the model's horn
 joint degrees per 100 ms frame: lids through the Core's own calibration (eyes/calibration.json) to the shared lid frame, then
 the horn's spline tooth (model/sim.joint_deg, #134); eyes over geometry.HORN_LIMITS. The web viewer plays these frames (web/build.py, docs/adr/0008);
-`commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo."""
+`commands` gives the writes at their own times, which model/trajectories.py plays in MuJoCo; `next_commands` the same
+program's writes as the next Mech's eyes Core takes them (#663): through the eye gimbal's command map (model/gimbal.py)."""
 
 import importlib.util
 import json
 import os
 import sys
+
+import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -26,14 +29,15 @@ if "machine" not in sys.modules:  # under pytest the root conftest has done this
 if REPO not in sys.path:
     sys.path.insert(1, REPO)  # model; eyes/ stays first so `import eyes` is the Core program
 import eyes as mod  # noqa: E402  the Core's eye program
-from model import geometry, sim  # noqa: E402
+from model import geometry, gimbal, sim  # noqa: E402
 
 CAL = json.load(open(os.path.join(REPO, "eyes", "calibration.json")))
 # each gesture the Core plays, at its normal level (the wink to the Mech's left, 1, not a random side), then thinking
 GESTURES = {**{g: f"{g} {1 if g == 'wink' else 2}" for g in mod.Eyes.GESTURES}, "thinking": "thinking"}
 SERVOS = geometry.EYES_SERVOS
 PIN = {name: pin for pin, name in mod.NAME.items()}
-FRAME_MS, THINK_MS = 100, 6000
+FRAME_MS, THINK_MS = 100, 6000  # THINK_MS: how long a background mode (thinking, Rest) plays
+NEXT_MOTIONS = {**GESTURES, "rest": "rest"}  # the next Mech's: today's gestures and Rest with its blinks (#663)
 _CORE = mod.Eyes()  # the Core's lid mapping (fraction -> shared lid frame degrees) under the calibration
 _CORE.cal.update(CAL)
 
@@ -68,7 +72,7 @@ def writes(line):
     e.handle_line("rest")
     start = clock[0]  # every servo has a position from here on
     e.handle_line(line)
-    if line == "thinking":
+    if line in ("thinking", "rest"):
         for t in range(clock[0], clock[0] + THINK_MS, FRAME_MS):
             clock[0] = t
             e.tick(t)
@@ -94,3 +98,26 @@ def record(gesture):
             i += 1
         frames.append({s: pos[s] for s in SERVOS})
     return frames
+
+
+def next_commands(motion):
+    """The motion as the eye program writes it, from rest, through the next Mech's eye gimbal (#663): the L eye's
+    position over the gimbal's yaw range to the yaw and pitch servos (gimbal.servos, the Hooke error taken out), the
+    gaze level (the program turns the eyes about one axis); each lid level to its edge, closed shut past the cap's rim,
+    rest just over the pupil, open (gimbal.LID_EDGES), the lid following the pitch (#51). ([(ms, horn, servo degrees
+    from centre)], rest's writes before ms 0; the frame times), as commands()."""
+    log, end = writes(NEXT_MOTIONS[motion])
+    half = (lambda lo, hi: (hi - lo) / 2)(*_CORE.range(mod.L_EYE))
+    levels = [CAL[k] for k in ("lid_closed", "lid_rest", "lid_open")]
+    edges = [gimbal.LID_EDGES[0], gimbal.LID_REST, gimbal.LID_EDGES[1]]
+    pitch, out = 0.0, []
+    for t, s, a in log:
+        if s == "l_eye":  # one yaw servo turns both eyes: the R eye's writes match the L's
+            yaw, pitch_servo = gimbal.servos(a / half * gimbal.YAW, pitch)
+            out += [(t, "next yaw horn", round(yaw, 2)), (t, "next pitch horn", round(pitch_servo, 2))]
+        elif "lid" in s:
+            edge = float(np.interp(a, levels, edges))
+            out.append(
+                (t, f"next {s[0].upper()} lid horn", round(edge - gimbal.LID_REST + gimbal.LID_FOLLOW * pitch, 2))
+            )
+    return out, range(0, end + FRAME_MS + 1, FRAME_MS)

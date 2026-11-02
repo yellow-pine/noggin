@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pytest
 
-from model import electrical, gates, geometry, mjcf, mujoco_report, traces
+from model import electrical, gates, geometry, gimbal, mjcf, mujoco_report, traces
 from model import trajectories as tj
 from model.render import hero
 from model.test_report import KNOWN_PAIRS
@@ -47,6 +47,8 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     }
 
     def excused(pair, data):
+        if frozenset(pair) not in calibrated:  # the next Mech has no such lids
+            return False
         past = {
             s
             for s in "LR"
@@ -55,17 +57,17 @@ def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
         return frozenset(pair) in calibrated and pair[0][0] in past  # pairs come sorted: a calibrated pair's lid first
 
     step_ms = model.opt.timestep * 1000
-    writes, times = tj.MOTIONS[motion]()
+    writes, times = tj.commands(doc, motion)
     qpos = tj.play(model, writes, np.arange(0, times[-1] + step_ms / 2, step_ms), read=lambda d: d.qpos.copy())
     found = gates.certify(model, np.array(qpos), floors, excused)
     return {pair: (row * step_ms, mm) for pair, (row, mm) in found.items()}
 
 
 @pytest.mark.parametrize(
-    "doc,motion", [(d, m) for d in geometry.STAGES for m in tj.motions(d)], ids=lambda x: x
+    "doc,motion", [(d, m) for d in geometry.STAGES | geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
-    """#255: every gesture and the hero as played on each Stage: no pair of parts more than PENETRATION_MM deeper than
+    """#255, #663: every gesture and the hero as played on each Stage, and the next Mech's gestures and Rest: no pair of parts more than PENETRATION_MM deeper than
     at rest at any step of the sim, not only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
     assert overlaps(doc, motion) == {}
 
@@ -150,3 +152,29 @@ def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():
     for k, deg in enumerate(head):
         keyed = abs(hero._eased(hero.HEAD["rotate"], k / tj.FPS - mjcf.SERVO["delay_s"]))
         assert abs(deg - keyed) < 2, (k, deg, keyed)
+
+
+def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
+    """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
+    (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking lid shuts past the
+    cap's rim (-65, model/test_gimbal.py) and the other squints; all come back to rest."""
+    model = built("next-mech")
+    names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
+    writes, times = tj.commands("next-mech", "wink")
+    frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
+    left, right, pitch, lid, other = frames.T
+    assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
+    assert abs(left.max() - 8 / 30 * 25) < 1.5  # its saccade lands, overshooting a little on the way
+    assert abs(lid.min() + 65) < SETTLED_DEG and -65 + 5 < other.min() < -5
+    assert np.abs(frames[-1]).max() < SETTLED_DEG
+
+
+def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
+    """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
+    (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""
+    model = built("next-mech")
+    yaw, pitch = gimbal.servos(gimbal.YAW, gimbal.PITCH)
+    data = mjcf.pose(model, {"next yaw horn": yaw, "next pitch horn": pitch})
+    for s in "LR":
+        assert math.degrees(data.joint(f"next {s} yaw pivot").qpos[0]) == pytest.approx(gimbal.YAW, abs=SETTLED_DEG)
+        assert math.degrees(data.joint(f"next {s} eyeball pitch").qpos[0]) == pytest.approx(15, abs=SETTLED_DEG)

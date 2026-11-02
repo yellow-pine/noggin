@@ -29,6 +29,12 @@ KNOWN_TRANSMISSION = {
     "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
     " give 39 deg end to end, under the mouth GIF's 46 (docs/research/2026-10-31-neck.md)",
     "jaw hinge": "29 deg at horn 0, the jaws closed (geometry.LIMITS mouth): the stock jaw bar's, recorded, not settled",
+    **{
+        f"next {s} lid pivot": "25 deg at lid -65, shut: the lid's parallelogram (model/gimbal.py) meets its crank at 90"
+        " less the lid's turn; its singularity margin (5.2 mm/rad) still holds the play under PLAY_DEG, and a shut lid"
+        " is the lightest load it carries (#663)"
+        for s in "LR"
+    },
 }
 
 

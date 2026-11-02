@@ -125,12 +125,19 @@ until the model stabilises.
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points), gated in model/test_report.py. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
+  In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
+  horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
+  lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
+  gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
+  (closed shut past the cap's rim, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  so its sim report reads each servo's torque along them and the clearance is certified along them
+  (model/test_trajectories.py). The neck joining gaze shifts past ~15 deg (#51) waits on the neck moving (#642).
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
-  weighs, the flexing spans' bends), gated in model/test_report.py. It is static in MuJoCo like the gimbal until the
+  weighs, the flexing spans' bends), gated in model/test_report.py. It is static in MuJoCo until the
   base ticket (#642) gives it a footprint; every size is inferred.
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):

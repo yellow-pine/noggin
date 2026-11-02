@@ -224,7 +224,7 @@ def test_every_limit_poses_with_its_four_bars_closed(doc):
     """Each four-bar is closed by a connect at its coupler's rocker pin; at every geometry.LIMITS end the servo
     reaches (and the neck's pan x tilt corners), its two sites stay within 0.05 mm."""
     model = built(doc)
-    assert model.neq == sum(len(h.loops) for h in stages.STAGES[doc].horns.values())
+    assert model.neq == sum(len(h.loops) + len(h.rods) for h in stages.STAGES[doc].horns.values())
     for ctrl in ends(doc):
         worst = max(mjcf.residuals(model, mjcf.pose(model, ctrl)).values())
         assert worst < LOOP_MM, (ctrl, worst)
@@ -248,7 +248,7 @@ EXACT = json.load(open(os.path.join(os.path.dirname(__file__), "test_fixtures", 
 DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deeper than this inside
 
 
-@pytest.mark.parametrize("doc", grouped(MOVING))
+@pytest.mark.parametrize("doc", grouped([d for d in MOVING if d in EXACT]))  # the next Mech never had that check
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
     """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
     rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both

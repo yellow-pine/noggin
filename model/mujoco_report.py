@@ -132,7 +132,7 @@ def _motions(doc, model, plate):
         return torques(model, data, moving=False), torques(model, data), data.subtree_com[0] * 1000  # mm, as just posed
 
     for name in names:
-        writes, times = trajectories.MOTIONS[name]()
+        writes, times = trajectories.commands(doc, name)
         hold, turn, com = (np.array(r) for r in zip(*trajectories.play(model, writes, range(times[-1] + 1), read)))
         for k in range(model.nu):
             h = model.actuator(k).name

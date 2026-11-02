@@ -5,6 +5,8 @@ the web viewer's GLBs bake (web/build.py).
 Each command goes straight to its servo, a DC motor behind its own P loop that reads it one PWM frame late
 (mjcf.drive, #625): the load, the stall torque and the no-load speed set how fast it follows; contacts are off, as in
 mjcf.pose.
+The next Mech plays the same program's gestures and Rest through its eye gimbal's command map (traces.next_commands,
+#663) on the servos of its MuJoCo model (model/stages.py next_eyes).
 `python -m model.trajectories` (`just trajectories`) writes model/build/trajectories/<doc>/<motion>.json for every
 Stage and the next Mech's documents (geometry.NEXT, their panels), skipping a Stage whose files still carry its stamp: {"doc", "motion", "fps", "stamp", "parts": {part: {"pos":
 [[x, y, z] metres per frame], "quat": [[w, x, y, z] per frame]}}}, each part's own frame (its mesh's, as model/build/ours
@@ -33,6 +35,8 @@ PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is 
 SOURCES = [
     "model/geometry.py",
     "model/stages.py",
+    "model/gimbal.py",  # the next Mech's (#663)
+    "model/neck.py",
     "model/linkage.py",
     "model/sim.py",
     "model/fits.py",
@@ -64,11 +68,17 @@ def hero_commands():
 MOTIONS = {**{g: lambda g=g: traces.commands(g) for g in traces.GESTURES}, "hero": hero_commands}
 
 
+def commands(doc, motion):
+    """(writes, frame times) of the motion on the document: the next Mech's through its gimbal (#663)."""
+    return traces.next_commands(motion) if doc in geometry.NEXT else MOTIONS[motion]()
+
+
 def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.copy())):
     """read(data) at each of times (ms), by default (xpos, xquat) per body: the Mech settled (mjcf.pose) at the writes
-    before ms 0, then every write from ms 0 on sent to its servo at its time; writes to servos the model lacks are
-    skipped."""
-    horns = {s: h for s, h in scene.HORNS.items() if mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, h) >= 0}
+    before ms 0, then every write from ms 0 on sent to its servo (a Core's servo name, or its horn's) at its time;
+    writes to servos the model lacks are skipped."""
+    actuators = {model.actuator(k).name for k in range(model.nu)}
+    horns = {s: h for s, h in scene.HORNS.items() if h in actuators} | {h: h for h in actuators}
     writes = [(ms, horns[s], d) for ms, s, d in writes if s in horns]
     command = {h: d for ms, h, d in writes if ms < 0}
     data = mjcf.pose(model, command)
@@ -107,7 +117,10 @@ def stamp(doc):
 
 
 def motions(doc):
-    """The Stage's motions: every gesture, and the hero where it has the neck (Stages 2 and 3, #180)."""
+    """The Stage's motions: every gesture, and the hero where it has the neck (Stages 2 and 3, #180); the next Mech's:
+    every gesture and Rest (#663)."""
+    if doc in geometry.NEXT:
+        return list(traces.NEXT_MOTIONS)
     return [m for m in MOTIONS if m != "hero" or "pan horn" in stages.STAGES[doc].horns]
 
 
@@ -116,7 +129,7 @@ def bake(doc, names=None):
     model, key, paths = mjcf.model(doc, collide=False), stamp(doc), []  # contacts are off: no CoACD (#276)
     os.makedirs(os.path.join(OUT, doc), exist_ok=True)
     for name in names or motions(doc):
-        frames = play(model, *MOTIONS[name]())
+        frames = play(model, *commands(doc, name))
         parts = {
             model.body(b).name: {
                 "pos": [np.round(pos[b], 6).tolist() for pos, _ in frames],

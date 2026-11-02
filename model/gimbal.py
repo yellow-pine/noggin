@@ -42,6 +42,7 @@ LID_COVER = 3.0  # how far past the cap's rim a closed lid reaches
 LID_SPAN = 2 * (CAP_HALF + LID_COVER)  # the wedge's width about x
 LID_REST = PUPIL_DEG + 2.0  # the lid's lower edge just over the pupil (#51), at the lid servo's centre
 LID_EDGES = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)  # the lid's edge closed (past the cap's rim) and open (#51)
+LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
 LID_HORN = (0.0, -40.0)  # (y, z) of each lid servo's horn, under the lid's crank (along +y at rest)
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))

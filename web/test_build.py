@@ -17,7 +17,7 @@ from model.render import pictures
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
-STAGES["next-mech"] = "next-mech.glb"  # still: no clips (#649)
+STAGES["next-mech"] = "next-mech.glb"  # #649; its gestures and Rest (#663)
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
@@ -53,6 +53,7 @@ def test_every_part_of_the_stage_is_a_node(glb):
 def test_one_clip_per_gesture_and_the_hero_on_stages_with_a_neck(glb):
     doc, g = glb
     expected = [*traces.GESTURES] + ([] if doc == "noggin-stage1" else ["hero"]) if doc != "next-mech" else []
+    expected = [*traces.NEXT_MOTIONS] if doc == "next-mech" else expected
     assert sorted(a["name"] for a in g.get("animations", [])) == sorted(expected)
 
 

@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from model import geometry as g
-from model import printed, stages
+from model import gimbal, printed, stages
 
 REPORTS = os.path.join(os.path.dirname(__file__), "reports")
 
@@ -162,7 +162,7 @@ def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its
     hardware = sorted(m for m in meshes if not m.startswith("next "))
     assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7 + ["horn"] * 7)
     assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS)
-    assert nxt.horns == {}
+    assert set(nxt.horns) == {f"next {d} horn" for d in gimbal.drives()}  # the gimbal's (#663); the neck's static
 
 
 def test_todays_names_the_parts_of_todays_print_in_a_document_and_none_of_the_next_mechs():

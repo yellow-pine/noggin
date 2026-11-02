@@ -24,8 +24,12 @@ TOL_MM, TOL_INFERRED_MM = 0.5, 3.0  # placement tolerances: measured, inferred (
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
 Horn = namedtuple(
-    "Horn", "pivot limits crank loops still frame"
-)  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4
+    "Horn", "pivot limits crank loops still frame rods", defaults=((),)
+)  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
+# A ball-ended push-rod (the next Mech's pitch drive, #663): `part` on a universal `joint` at `arm` (about `axes`) on the
+# rocker its `carrier` joint turns, its other ball on `lever`, the lever of the parts `driven` turn on their own `hinge`
+# (joint, point, axis): a spatial loop, closed at `lever` as a four-bar is at its rocker pin.
+Rod = namedtuple("Rod", "joint part carrier arm axes hinge driven lever")
 Sub = namedtuple(
     "Sub", "parts horns placements ports"
 )  # ports: {Port name: (part, local mm)}, as the recorded sweeps name them
@@ -327,8 +331,10 @@ def next_hardware():
 def next_eyes():
     """next-eyes: the next Mech's eye gimbal (#630, model/gimbal.py) at rest, in its own frame: per eye the core, its
     cap, yoke, push-rod, lid and lid bar; the tie-bar, the bail, the pitch bar and the frame; the eyes Core's servos
-    with their horns on the drives. Static: model/gimbal.py moves it (its report rides the sim's)."""
-    parts = {}
+    with their horns on the drives, each a hinge MuJoCo drives (#663): the lids and the pitch horn's bail through
+    their four-bars, both yokes off the yaw horn's tie-bar, each core pitched on its yoke by its push-rod off the bail
+    (Rods). Kinematics and its report: model/gimbal.py."""
+    parts, horns = {}, {}
     for s, (cx, _, _) in gimbal.EYE.items():
         at = translate(gimbal.EYE[s])
         sign = 1 if s == "L" else -1
@@ -345,7 +351,89 @@ def next_eyes():
         parts[stem + ":1"] = part(stl(stem), None, printed(stem))
     for label, (face, shaft, tab, arm) in gimbal.drives().items():
         parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
-    return Sub(parts, {}, [], {})
+    lo, hi = (gimbal.servos(0, p)[1] for p in (gimbal.PITCH, -gimbal.PITCH))
+    limits = {
+        "yaw": (-gimbal.YAW, gimbal.YAW),
+        "pitch": (lo, hi),
+        "lid": tuple(e - gimbal.LID_REST for e in gimbal.LID_EDGES),
+    }
+    crank = gimbal.CRANK
+    yaw = (0.0, 0.0, gimbal.TIE_Z[1])  # the tie-bar's plane, under the yokes' cranks
+    horns["next yaw horn"] = Horn(
+        {"point": yaw, "axis": g.Z},
+        limits["yaw"],
+        "next yaw horn:1",
+        [
+            rocker_loop(
+                f"next {s} yaw pivot",
+                yaw,
+                (0.0, crank, yaw[2]),
+                (x, 0.0, yaw[2]),
+                (x, crank, yaw[2]),
+                g.Z,
+                "next tie-bar:1",
+                [f"next {s} {p}:1" for p in ("yaw yoke", "eyeball core", "eyeball cap")],
+            )
+            for s, (x, _, _) in gimbal.EYE.items()
+        ],
+        [],
+        None,
+    )
+    horn, bail = (0.0, *gimbal.PITCH_HORN), (0.0, *gimbal.BAIL)
+    horns["next pitch horn"] = Horn(
+        {"point": horn, "axis": g.X},
+        limits["pitch"],
+        "next pitch horn:1",
+        [
+            rocker_loop(
+                "next bail pivot",
+                horn,
+                (0.0, horn[1] + crank, horn[2]),
+                bail,
+                (0.0, bail[1] + gimbal.BAIL_IN, bail[2]),
+                g.X,
+                "next pitch bar:1",
+                ["next bail:1"],
+            )
+        ],
+        [],
+        None,
+        [
+            Rod(
+                f"next {s} push-rod",
+                f"next {s} push-rod:1",
+                "next bail pivot",
+                (x, bail[1], bail[2] + gimbal.LEVER),
+                (g.X, g.Z),
+                (f"next {s} eyeball pitch", (x, 0.0, 0.0), (-1, 0, 0)),  # pitch up positive, as gimbal.core
+                [f"next {s} eyeball core:1", f"next {s} eyeball cap:1"],
+                (x, 0.0, gimbal.LEVER),
+            )
+            for s, (x, _, _) in gimbal.EYE.items()
+        ],
+    )
+    for s, (x, _, _) in gimbal.EYE.items():  # lid servo positive opens: about -x, as gimbal.moved
+        horn = (x, *gimbal.LID_HORN)
+        horns[f"next {s} lid horn"] = Horn(
+            {"point": horn, "axis": (-1, 0, 0)},
+            limits["lid"],
+            f"next {s} lid horn:1",
+            [
+                rocker_loop(
+                    f"next {s} lid pivot",
+                    horn,
+                    (x, horn[1] + crank, horn[2]),
+                    (x, 0.0, 0.0),
+                    (x, crank, 0.0),
+                    (-1, 0, 0),
+                    f"next {s} lid bar:1",
+                    [f"next {s} lid:1"],
+                )
+            ],
+            [],
+            None,
+        )
+    return Sub(parts, horns, [], {})
 
 
 def next_neck():
@@ -499,13 +587,15 @@ def pose(stage, horn_name, deg):
         mats[name] = f @ delta @ f_inv @ mats[name]
 
     move(horn.crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
-    joints = {j: 0.0 for j in horn.still}
+    joints, coupled = {j: 0.0 for j in horn.still}, set()
     for loop in horn.loops:
         rocker, a, b = loop.solve(deg)
         _, a0, b0 = loop.solve(0)
         axis = loop.rocker_pivot[1]
         twist = _angle(axis, np.subtract(b, a)) - _angle(axis, np.subtract(b0, a0))
-        move(loop.coupler, linkage.rotation(axis, math.degrees(twist), a) @ translate(np.subtract(a, a0)))
+        if loop.coupler not in coupled:  # a coupler driving two rockers (the next Mech's tie-bar) moves once
+            coupled.add(loop.coupler)
+            move(loop.coupler, linkage.rotation(axis, math.degrees(twist), a) @ translate(np.subtract(a, a0)))
         turn = linkage.rotation(axis, rocker, loop.rocker_pivot[0])
         for name in loop.rockers:
             move(name, turn)
