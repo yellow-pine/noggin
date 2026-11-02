@@ -452,6 +452,38 @@ def test_main_releases_itself_once_its_checks_pass():
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
 
 
+@pytest.mark.parametrize(
+    ("says", "summary"),
+    [
+        (
+            "The local branch main is behind the remote one, therefore a new version won't be published.",
+            "Not released: main moved past abc1234; the newer commit's run releases both.\n",
+        ),
+        ("Published release 1.2.3 on default channel", ""),
+    ],
+)
+def test_a_release_main_moved_past_says_so_in_its_summary(tmp_path, says, summary):
+    """#773: semantic-release exits green and tags nothing when main moved past the commit, so the run's summary says
+    why. Its step runs with semantic-release faked."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
+    step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Run semantic-release")
+    bin_ = tmp_path / "ci" / "node_modules" / ".bin"
+    bin_.mkdir(parents=True)
+    (bin_ / "semantic-release").write_text(f'#!/bin/sh\necho "[semantic-release] › ℹ  {says}"\n')
+    (bin_ / "semantic-release").chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin", "RUNNER_TEMP": str(tmp_path), "GITHUB_STEP_SUMMARY": f"{tmp_path}/summary"}
+    done = subprocess.run(
+        ["bash", "-eo", "pipefail", "-c", step["run"]],
+        cwd=tmp_path,
+        env=env | {"SHA": "abc1234def5678"},
+        capture_output=True,
+        text=True,
+    )
+    assert (done.returncode, says in done.stdout) == (0, True)
+    assert (Path(env["GITHUB_STEP_SUMMARY"]).read_text() if summary else "") == summary
+    assert step["env"]["SHA"] == "${{ github.event.workflow_run.head_sha }}"
+
+
 def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
     """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
     failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to

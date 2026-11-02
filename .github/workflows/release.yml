@@ -46,6 +46,12 @@ jobs:
       - name: Install semantic-release
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
       - name: Run semantic-release
-        run: ci/node_modules/.bin/semantic-release
+        run: |
+          ci/node_modules/.bin/semantic-release 2>&1 | tee "$RUNNER_TEMP/release.log"
+          # a run main moved past exits green with no tag, so its summary says why
+          if grep -q "is behind the remote one" "$RUNNER_TEMP/release.log"; then
+            echo "Not released: main moved past ${SHA:0:7}; the newer commit's run releases both." >> "$GITHUB_STEP_SUMMARY"
+          fi
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
