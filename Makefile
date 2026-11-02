@@ -22,7 +22,7 @@ venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (p
 	git config core.hooksPath .githooks
 test: venv ours   ## every test, under the heavy lock (CI's model jobs select theirs with -m model)
 	$(HEAVY) $(PY) -m pytest -q
-readme: venv     ## the README's CI/CD table from .github/workflows (scripts/workflow_table.py, cog); make check fails while it is stale
+readme: venv     ## the README's CI/CD table from .github/workflows (scripts/workflow_table.py, cog); make check-light fails while it is stale
 	$(PY) -m cogapp -r README.md
 lint: venv       ## ruff
 	$(PY) -m ruff check

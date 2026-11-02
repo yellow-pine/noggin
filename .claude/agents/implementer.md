@@ -19,8 +19,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    5. `writing-for-agents` for CLAUDE.md, CONTRIBUTING.md or a skill.
    6. `code-review` (the repo's skill), then `ponytail-review`; fix or answer each finding.
    7. `pr` for the body.
-3. Run light local checks (`make check-light`, which the pre-push hook also runs); CI runs the heavy builds. Stage your
-   files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
+3. Your one local check is `make check-light` (the pre-push hook runs it); `make check` and every heavy target are CI's.
+   Stage your files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
    scripts/pr_title.py "<title>" < body` exits 0, and its one scope is in what `python3 scripts/pr_title.py` prints);
    open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
    --auto --squash` at once.
