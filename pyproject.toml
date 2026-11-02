@@ -1,6 +1,6 @@
 [project]
 name = "noggin"
-version = "0.2.0"
+version = "0.2.1"
 description = "Animatronic Mech that reacts to Claude Code"
 requires-python = ">=3.14"
 dependencies = [
@@ -24,6 +24,7 @@ dev = [
     "micropython-stdlib-stubs==1.23.*",
     "mpy-cross==1.23.*",  # .mpy for the Core: mpy v6.3, what its 1.23 loads
     "pytest-xdist==3.8.0",
+    "pytest-split>=0.11.0",  # --store-durations: the model shards' measured seconds (model/shards.py)
     "imageio-ffmpeg>=0.7.0",
     "zizmor>=1.31.1",
     "actionlint-py>=1.7.12.25",

@@ -123,8 +123,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
-  shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, the recorded sweep documents, each Stage and the rest, plus a sim shard), pytest
-  on every core (pytest-xdist). The sim shard runs `make sim` only when what the reports are made from changed:
+  three shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, each document, the
+  rest and `make sim`, longest first onto the lightest, by the seconds CI measured, in `model/durations.json`; `make
+  model-durations RUN=<id>` refreshes it from a run's `durations-*` artifacts), pytest on every core (pytest-xdist). The
+  sim's shard runs `make sim` only when what the reports are made from changed:
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
   site at /reports (ADR 0009). Site Checks' `Site` job caches npm's downloads by `site/package-lock.json`
@@ -139,13 +141,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` and
   Code Checks' `Code` in `ci/base.Dockerfile`, `Render` and `Viewer` in `ci/blender.Dockerfile` (base plus Blender),
-  pinned by digest in `ci/pins/Dockerfile`, which each workflow's `Images` job hands to their `container:` (Dependabot
-  can't bump a pin in a workflow, #444); every other job stays on the bare runner with setup-uv and apt, since an
-  image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to GHCR: it
-  pushes `:main`, with its build provenance, only when a Dockerfile changes (Dependabot's base-image bumps in ci/
-  bring the security fixes, #472), and Dependabot proposes the new digests within a day (the run's summary has the
-  same pin as one command); that PR's checks are the first to run in them. A PR that changes a Dockerfile only builds
-  the images (main's layer cache, read only).
+  by the `:main` tag in their `container:` (#481); every other job stays on the bare runner with setup-uv and apt,
+  since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to
+  GHCR: it pushes `:main`, with its build provenance, only when a Dockerfile changes (Dependabot keeps the
+  Dockerfiles' base images digest-pinned and bumps them, bringing the security fixes, #472), and every job that starts
+  after runs in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
   and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,

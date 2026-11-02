@@ -23,6 +23,7 @@
 > links it.
 > Amended 2026-11-02 (#472, spec #467): the CI images rebuild only when a Dockerfile changes, no weekly no-cache
 > rebuild; the distro's security fixes arrive with Dependabot's base-image bumps (ADR 0012).
+> Amended 2026-11-02 (#481, spec #467): the jobs run the CI images by the `:main` tag, not by digest; ci/pins goes.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -64,13 +65,23 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   from a pinned source) for the site's build and viewer test (`site`) and the tests not marked model (`code`), and
   ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for `render` and `viewer`. The
   Dockerfiles are sources; the `CI Images` workflow builds the images into GHCR (`ghcr.io/yellow-pine/noggin-ci-base`,
-  `-blender`), never committed, and those jobs pin them by digest (`container:`, read from ci/pins/Dockerfile, where
-  Dependabot can bump them, #444). Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain of them (convex, then a model
-  shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages stay out of the images: `uv
-  sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build provenance only when a
-  Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472), and Dependabot proposes the new digests
-  as a PR, whose checks run in them before any job on main does; a PR that changes a Dockerfile only builds the
-  images, from main's cache read only.
+  `-blender`), never committed, and those jobs run them by the `:main` tag (`container:`, #481): mutable, but only
+  main's `CI Images` run writes it, and Dependabot keeps the Dockerfiles' own base images digest-pinned and current.
+  Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain
+  of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages
+  stay out of the images: `uv sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build
+  provenance only when a Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472), and every job that
+  starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
+
+## Known limits
+
+Accepted as-is: the jobs' `:main` is mutable. Only main's `CI Images` run writes it (its push job, which runs on main
+alone, is the only one granted GHCR's `packages: write`); Cansin chose it over a custom digest-pin bump on 2026-11-02
+(#481). Both packages are public, owned by the yellow-pine org and linked to yellow-pine/noggin, whose only
+collaborator (and the org's only member) is Cansin, admin (`gh api`, 2026-11-02); whether they inherit the repo's
+access and grant no other repo Actions access is a package setting the API does not show, unchecked. A main push
+that changes a Dockerfile may run Site Checks in the previous `:main` and cache those pictures under the new
+Dockerfile hash until another input changes.
 
 ## Considered options
 
@@ -79,3 +90,5 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - Netlify or Vercel previews per PR: rejected, a second host and account for what an artifact covers.
 - Zensical, Material's successor from the same team (it reads `mkdocs.yml`): not yet, it is alpha; the move went
   to Astro Starlight instead (ADR 0013).
+- The jobs' images pinned by digest in ci/pins/Dockerfile, which Dependabot bumped and an `Images` job per workflow
+  read (#444): rejected 2026-11-02 (#481), custom glue for what the `:main` tag gives.
