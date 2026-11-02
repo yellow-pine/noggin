@@ -11,15 +11,6 @@
 .noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
 .noggin-viewer.hero > button { display: block; margin: 0.6rem auto; }
 
-/* the landing page's stills (docs/index.md): stacked on a phone, each capped in height; one row on a wider screen,
-   the Stage strip's column twice the exploded view's, both at the strip's height there (16:3, 3200 x 600) */
-.stills { display: grid; gap: 1rem; }
-.stills figure, .stills p { margin: 0; }
-.stills img { width: 100%; max-height: 40vh; object-fit: contain; }
-@media (min-width: 50rem) {
-  .stills { grid-template-columns: 2fr 1fr; container-type: inline-size; }
-  .stills img { height: calc((100cqw - 1rem) * 2 / 3 * 3 / 16); max-height: none; }
-}
 /* a figure centred, as on GitHub's README */
 figure { text-align: center; }
 figure img { margin-inline: auto; }
