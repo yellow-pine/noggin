@@ -107,15 +107,14 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   the run summary (`scripts/ci_budget.py`: the longest chain of jobs along their `needs`, each timed from when a runner
   picked it up, so a busy queue never fails a run; a "re-run failed jobs" is timed on its own attempt). Each job's
   slowest tests are in its run summary.
-- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` in
-  `ci/base.Dockerfile` (`Code` follows once main has pushed a base with the ngspice program), `Render` and `Viewer` in
-  `ci/blender.Dockerfile` (base plus Blender), pinned by digest (`container: image:
-  ghcr.io/yellow-pine/noggin-ci-…:main@sha256:…`); every other job stays on the bare runner with setup-uv and apt,
-  since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to
-  GHCR: it pushes `:main`, with its build provenance, when a Dockerfile changes and every Monday without cache, and
-  Dependabot proposes the new digests within a day (the run's summary has the same pin as one command); that PR's
-  checks are the first to run in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read
-  only).
+- The jobs that need a system tool uv can't install run in our CI images (ADR 0009, #288; ci/): Site Checks' `Site` and
+  Code Checks' `Code` in `ci/base.Dockerfile`, `Render` and `Viewer` in `ci/blender.Dockerfile` (base plus Blender),
+  pinned by digest (`container: image: ghcr.io/yellow-pine/noggin-ci-…:main@sha256:…`); every other job stays on the
+  bare runner with setup-uv and apt, since an image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`)
+  builds them; only main writes to GHCR: it pushes `:main`, with its build provenance, when a Dockerfile changes and
+  every Monday without cache, and Dependabot proposes the new digests within a day (the run's summary has the same pin
+  as one command); that PR's checks are the first to run in them. A PR that changes a Dockerfile only builds the images
+  (main's layer cache, read only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
   and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,

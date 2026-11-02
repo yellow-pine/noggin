@@ -1,5 +1,5 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
-# (site-checks.yml's site; check.yml's code once main has pushed an image with ngspice), from pinned sources; `uv sync` in the job brings our Python packages.
+# (site-checks.yml's Site, check.yml's Code), from pinned sources; `uv sync` in the job brings our Python packages.
 # .github/workflows/images.yml builds it and -blender on top; the jobs pin them by digest. Dependabot bumps the FROM
 # digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS node
