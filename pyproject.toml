@@ -53,7 +53,8 @@ extend-exclude = ["eyes/gaze_trace.py", "eyes/stock-backup"]  # generated trace 
 # no 3.14 syntax (ruff format drops except parens) where our venv doesn't run them: the Core's MicroPython
 # (eyes/test_micropython.py), the stand-in's, and the runner's python3 in .github/workflows
 [tool.ruff.per-file-target-version]
-".claude/hooks/bash_guard.py" = "py39"  # the Mac's python3 runs Claude Code's hook
+".claude/hooks/bash_guard.py" = "py39"  # the Mac's python3 runs Claude Code's hooks
+".claude/hooks/sync_checkout.py" = "py39"
 "eyes/boot.py" = "py312"
 "eyes/eyes.py" = "py312"
 "eyes/wifi.py" = "py312"
