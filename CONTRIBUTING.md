@@ -99,7 +99,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
   run `gh pr update-branch --rebase` on every open PR so it reports the new name.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the README's
-  CI/CD table is generated from the workflows (`make readme`, #397) and `make check` fails while it is stale. Two PRs
+  CI/CD table is generated from the workflows (`make readme`, #397) and `make check-light` fails while it is stale. Two PRs
   that conflict on a README table row: take either side, then run `make readme`.
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
   numbered the next free one. When Code fails because main took that number since, run
@@ -114,9 +114,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   images), `site/` (the site's npm package: its pages, the viewer's page and module, ADR 0013). Tests sit beside the
   code they test (`test_*.py`, `*.test.mjs` in the same folder).
 - Smallest thing that works; no options or abstractions nobody asked for.
-- Run `make check` before opening a PR: the `Code` set, everything but the tests marked `model`. `make check-all` adds
-  those. The heavy targets (`make check-all`'s model tests, `test`, `sim`, `trajectories`, `render`, `gifs`, `hero`,
-  `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
+- Run `make check-light` before pushing (the pre-push hook `make venv` turns on runs it): lint, types and the tests
+  marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
+  but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
+  `sim`, `trajectories`, `render`, `gifs`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into

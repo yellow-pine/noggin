@@ -1,5 +1,6 @@
 """Seam: model/render/scene.py, a Stage's parts exported for Blender in their colours."""
 
+import pytest
 import trimesh
 
 from model import geometry, stages
@@ -8,6 +9,7 @@ from model.render import scene
 STAGE1 = stages.STAGES["noggin-stage1"]
 
 
+@pytest.mark.build
 def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(STAGE1, tmp_path)
     assert set(manifest) == set(STAGE1.parts)

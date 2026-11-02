@@ -54,6 +54,7 @@ def test_every_gesture_stays_inside_the_calibrated_lid_ends_and_eye_limits(gestu
             assert lo - 0.01 <= f[f"{s.lower()}_eye"] <= hi + 0.01, (gesture, f)
 
 
+@pytest.mark.build
 @pytest.mark.parametrize("side", "LR")
 def test_the_calibrated_closed_end_shuts_the_lids_edges_just_touching(side):
     """The real Mech's lids close at their calibrated closed end (lo 39, #255): the edges just touch, quiet, no overlap
@@ -64,6 +65,7 @@ def test_the_calibrated_closed_end_shuts_the_lids_edges_just_touching(side):
     assert traces.joint(f"{side.lower()}_lid", traces.CAL["lid_closed"]) == closed
 
 
+@pytest.mark.build
 def test_rest_shows_the_pupils_between_closed_and_the_free_travel():
     rest = traces.record("wink")[0]  # every recording starts at rest
     # Conflict, recorded (geometry.HORN_AT_90): the rest-top photo (L -15.2, R -16.3) predates #213 and #255; at #255's
@@ -75,6 +77,7 @@ def test_rest_shows_the_pupils_between_closed_and_the_free_travel():
     assert rest["l_eye"] == pytest.approx(rest["r_eye"])
 
 
+@pytest.mark.build
 def test_eureka_peaks_wider_than_rest_and_blinks_shut_twice():
     frames = looks("eureka")
     rest = frames[0]["L"][0]
@@ -83,6 +86,7 @@ def test_eureka_peaks_wider_than_rest_and_blinks_shut_twice():
         assert len(runs([f[s][0] <= 0 for f in frames])) == 2  # eureka 2: the double blink, shut at lid_closed
 
 
+@pytest.mark.build
 def test_attention_holds_half_lids_while_the_eyes_scan_both_ways():
     frames = looks("attention")
     scan = [f for f in frames if abs(f["L"][2]) > 2]
@@ -94,6 +98,7 @@ def test_attention_holds_half_lids_while_the_eyes_scan_both_ways():
         assert min(f[s][2] for f in scan) < -5 and max(f[s][2] for f in scan) > 5
 
 
+@pytest.mark.build
 def test_thinking_keeps_the_pupils_showing_under_low_lids():
     frames = looks("thinking")
     rest = frames[0]
@@ -104,6 +109,7 @@ def test_thinking_keeps_the_pupils_showing_under_low_lids():
         assert all(f[s][0] < rest[s][0] for f in settled)
 
 
+@pytest.mark.build
 def test_wink_closes_one_eye_and_the_other_squints():
     frames = looks("wink")  # wink 1: the mech's left lid; the right squints 20% (#258)
     squint = lids.gap("R", traces.joint("r_lid", 0.8 * traces.CAL["lid_rest"]))
@@ -111,6 +117,7 @@ def test_wink_closes_one_eye_and_the_other_squints():
     assert 0 < min(f["R"][0] for f in frames) == pytest.approx(squint, abs=0.5)
 
 
+@pytest.mark.build
 def test_bored_has_one_long_closure_under_two_seconds():
     frames = looks("bored")
     closures = runs([f["L"][0] <= 0 and f["R"][0] <= 0 for f in frames])
@@ -118,6 +125,7 @@ def test_bored_has_one_long_closure_under_two_seconds():
     assert len(closures) == 3 and len(long) == 1 and long[0] * FRAME_S < 2.0
 
 
+@pytest.mark.build
 def test_wince_squeezes_then_reopens():
     frames = looks("wince")
     for s in "LR":

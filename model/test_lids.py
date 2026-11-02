@@ -5,6 +5,8 @@ import pytest
 from model import geometry as g
 from model import lids
 
+pytestmark = pytest.mark.build
+
 
 @pytest.mark.parametrize("side", "LR")
 def test_closed_and_open_match_the_recorded_renders_and_open_lies_past_the_free_travel(side):
