@@ -166,6 +166,10 @@ flash-usb: interrupt mpy
     {{MPR}} resume exec "import os; [os.remove(f) for f in '{{replace(PROGRAM, 'eyes/', '')}} stamp.py'.split() if f in os.listdir()]"  # a .py shadows its .mpy
     {{PY}} eyes/interrupt.py reset
 
+# both Cores on the Mech, each flashed over USB and Wi-Fi, then probed over Wi-Fi with the cable in, with it out and after the Mech was off: asks you to plug, unplug and switch, appends the results to docs/build/live-check.md (#29)
+live-check: venv
+    {{PY}} -m noggin.live_check
+
 # add a Wi-Fi network to the Core on USB: the wizard's Join the Wi-Fi step alone (scripts/setup.sh wifi); in a Terminal window (docs/build/flashing.md)
 wifi: venv
     scripts/setup.sh wifi

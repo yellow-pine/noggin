@@ -29,6 +29,8 @@ and sets `pm=PM_NONE`, and a line that Wi-Fi does not deliver goes over USB when
 Mech 2026-10-31 (eyes Core at 192.168.68.55, cable out, noggin service restarted): the calibration batch is acked
 over Wi-Fi, `wink 3` is acked and the left eye winks, and the six gestures played over Wi-Fi alone (`demo once`).
 
+Both Cores together: `just live-check` ([Live check](../build/live-check.md)).
+
 ## Live check on the eyes Core alone (2026-11-01, #177)
 
 Eyes Core on a new network (192.168.178.141; the Core only knew last night's Wi-Fi, so the Link was silent until the
