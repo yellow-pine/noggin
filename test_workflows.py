@@ -37,7 +37,7 @@ def test_every_job_id_is_kebab_case():
 
 
 def test_every_workflow_is_title_case_in_its_kebab_case_file():
-    """#773, GitHub's starter workflows: the name Title Case ("Default Branch Failure"), the file its kebab-case form."""
+    """#773, GitHub's starter workflows: the name Title Case ("Claude Review"), the file its kebab-case form."""
     flows = {f.name: yaml.safe_load(f.read_text())["name"] for f in WORKFLOWS}
     wrong = {
         f: n for f, n in flows.items() if not (TITLE.fullmatch(n) and f == re.sub(r"\W+", "-", n).lower() + ".yml")
