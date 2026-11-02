@@ -72,7 +72,7 @@ def test_every_part_sits_where_stages_places_it(doc):
     mesh's bounding-box corners within 0.1 mm of model/stages.py's pose at 0 degrees (carried into MuJoCo's Z-up world)."""
     stage = stages.STAGES[doc]
     model, data = forward(doc)
-    placed = stages.pose(stage, next(iter(stage.horns)), 0).parts
+    placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg, also where no horn is (next-mech)
     assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
     for name, matrix in placed.items():
         expected = mjcf.root(doc) @ matrix
@@ -200,7 +200,7 @@ EXACT = json.load(open(os.path.join(os.path.dirname(__file__), "test_fixtures", 
 DEPTH_MM = 0.1  # the exact check's resolution: a 0 mm contact had nothing deeper than this inside
 
 
-@pytest.mark.parametrize("doc", grouped(d for d in MOVING if d in EXACT))  # frozen for today's: the next Mech has none
+@pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_pieces_read_the_clearance_the_exact_meshes_do(doc):
     """The convex pieces measure clearance as the exact meshes did (#190, docs/research/2026-11-01-coacd-tuning.md): at
     rest and at every LIMITS end, each pair reads within PENETRATION_MM of the exact check's frozen reading (EXACT, both

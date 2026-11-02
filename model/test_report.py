@@ -8,7 +8,6 @@ import subprocess
 
 import pytest
 
-from model import geometry as g
 from model import mujoco_report, report, stages
 
 HERE = os.path.dirname(__file__)
@@ -23,10 +22,9 @@ KNOWN_PAIRS = {
 }
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does.
 KNOWN_FULL_SPEED = {
-    (doc, "pan horn", -40): "the stage 3 head's inertia carries the pan four-bar through its toggle"
+    ("noggin-stage3", "pan horn", -40): "the stage 3 head's inertia carries the pan four-bar through its toggle"
     " (-43.4, geometry.LIMITS) and it settles on the other branch, 29 deg off. Reported, not a fix: Core 2 has no"
-    " choreography yet, and it must not swing the pan to -40 at full speed with the head on"
-    for doc in ("noggin-stage3", *g.NEXT)  # the next Mech starts as Stage 3 (#629)
+    " choreography yet, and it must not swing the pan to -40 at full speed with the head on",
 }
 
 

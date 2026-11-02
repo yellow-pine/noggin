@@ -29,7 +29,8 @@ The next Mech from the side and isometric is in [the grid on the site](https://y
 <!-- #}-->
 
 The Mech being designed to follow today's (#51), in the model as its own document beside the Stages, framed on its
-own. It starts as Stage 3 until its parts replace today's, the eye gimbal first.
+own. It is clean-room: for now the hardware we own laid out apart (the Cores, the Shields, the switch board, the pack,
+the servos), until its own parts place them, the eye gimbal first.
 
 ## The hero
 

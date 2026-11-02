@@ -90,7 +90,8 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 Today's documents follow Cansin's build, then our model (CLAUDE.md). What we plan to change in today's Mech stays here
 until the model stabilises.
 - The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
-  (geometry.NEXT, #629), starting from today's Stage 3: linked eyes (one servo for left/right, one for up/down, each lid
+  (geometry.NEXT, #629), clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
+  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each lid
   its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).

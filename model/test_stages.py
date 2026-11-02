@@ -152,15 +152,14 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
     assert "tilt horn" not in s1.horns
 
 
-def test_the_next_mech_starts_as_today_s_full_mech_in_its_own_document():
-    """#629: the next Mech's document starts from today's parts, placed and carried as Stage 3 (the eye gimbal, #630,
-    replaces the eyes), and is no Stage: today's Stages stay three."""
-    nxt, s3 = stages.STAGES["next-mech"], stages.STAGES["noggin-stage3"]
+def test_the_next_mech_is_clean_room_its_owned_hardware_alone_in_its_own_document():
+    """#629, #618: the next Mech's document holds our Envelopes of the hardware we own (two Cores and Shields, the switch
+    board, the pack, seven servos), no printed part of today's, and is no Stage: today's Stages stay three."""
+    nxt = stages.STAGES["next-mech"]
     assert list(g.STAGES) == ["noggin-stage1", "noggin-stage2", "noggin-stage3"]
-    assert {n: p.matrix.tolist() for n, p in nxt.parts.items()} == {n: p.matrix.tolist() for n, p in s3.parts.items()}
-    for horn, deg in (("tilt horn", 40), ("pan horn", 30), ("jaw horn", -40)):
-        moved, today = stages.pose(nxt, horn, deg), stages.pose(s3, horn, deg)
-        assert all(np.allclose(m, today.parts[n]) for n, m in moved.parts.items()), horn
+    meshes = sorted(stages.stem(p.file) for p in nxt.parts.values())
+    assert meshes == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7)
+    assert nxt.horns == {}
 
 
 def test_horn_limits_follow_geometry():
