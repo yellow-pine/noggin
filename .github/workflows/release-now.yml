@@ -23,13 +23,20 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           GH_REPO: ${{ github.repository }}
+          AUTHOR: app/${{ steps.app.outputs.app-slug }}
+        # the release PR: release-please's branch, opened by the App, labelled pending (a label alone is anyone's).
+        # The label is removed and added again, so its newest event is the App's (scripts/release_gate.py)
         run: |
-          n=$(gh pr list --state open --label "autorelease: pending" --json number -q '.[0].number')
+          n=$(gh pr list --state open --head release-please--branches--main --label "autorelease: pending" \
+            --json number,author --jq "map(select(.author.login == \"$AUTHOR\")) | .[0].number // empty")
           if [ -z "$n" ]; then
             echo "::error::No open release PR: nothing has been merged to release since the last one"
             exit 1
           fi
           gh label create "release now" --color 0e8a16 --description "Release Now: auto-merge on green" --force
+          if gh pr view "$n" --json labels --jq '.labels[].name' | grep -qx "release now"; then
+            gh pr edit "$n" --remove-label "release now"
+          fi
           gh pr edit "$n" --add-label "release now"
           gh pr merge "$n" --auto --squash
           echo "::notice::Release PR #$n merges on green"

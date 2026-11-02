@@ -44,14 +44,18 @@ jobs:
           sparse-checkout-cone-mode: false
       - name: Gate the release PR's auto-merge
         if: ${{ steps.release.outputs.pr }}
-        env:   # on for a feature, a break or Release Now's label, off otherwise (scripts/release_gate.py, #407)
+        env:   # on for a feature, a break or the App's `release now` label, off otherwise (scripts/release_gate.py)
           GH_TOKEN: ${{ steps.app.outputs.token }}
           GH_REPO: ${{ github.repository }}
+          APP: ${{ steps.app.outputs.app-slug }}[bot]
           PR: ${{ steps.release.outputs.pr }}   # JSON; the step's env is read even when its `if` skips it
         run: |
           n=$(jq -r .number <<<"$PR")
-          view=$(gh pr view "$n" --json body,labels,autoMergeRequest)
-          if [ "$(python3 scripts/release_gate.py <<<"$view")" = on ]; then
+          view=$(gh pr view "$n" --json body,autoMergeRequest)
+          events=$(gh api --paginate --slurp "repos/{owner}/{repo}/issues/$n/events")
+          gate=$(jq -n --argjson pr "$view" --argjson ev "$events" '{body: $pr.body, events: ($ev | add)}' |
+            python3 scripts/release_gate.py "$APP")
+          if [ "$gate" = on ]; then
             gh pr merge "$n" --auto --squash
           elif [ "$(jq .autoMergeRequest <<<"$view")" != null ]; then
             gh pr merge "$n" --disable-auto
