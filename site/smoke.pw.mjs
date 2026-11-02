@@ -27,26 +27,33 @@ test.afterEach(async ({ baseURL }) => {
   expect(elsewhere).toEqual([]);
 });
 
-test('the viewer plays a gesture, back to the hero, and switches Stage', async ({ page }) => {
+test('the viewer plays a gesture, says which event plays it, goes back to the Tour, and switches Stage', async ({ page }) => {
   const glbs = existsSync(new URL('dist/viewer/stage3.glb', import.meta.url));
   test.skip(!glbs && !process.env.CI, 'no GLBs in dist/viewer (make web, then make site)'); // CI always has them
   await page.goto('viewer/');
   const button = (name) => page.getByRole('button', { name, exact: true });
   await expect(button('Stage 3')).toHaveAttribute('aria-pressed', 'true');
-  await expect(button('hero')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 }); // Stage 3 loaded
+  await expect(button('Tour')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 }); // Stage 3 loaded
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
-  // every button pressed from here on, in order: a slow software-drawn frame can play the whole wink at once
+  const caption = page.locator('.noggin-viewer .noggin-caption');
+  await expect(caption).toHaveText('Tour: every gesture in turn');
+  // every button pressed and every line said from here on, in order: a slow software-drawn frame can play the whole
+  // wink at once
   await page.evaluate(() => {
-    window.pressed = [];
+    [window.pressed, window.said] = [[], []];
     new MutationObserver((ms) => ms.forEach((m) => m.target.ariaPressed === 'true' && window.pressed.push(m.target.textContent)))
       .observe(document.querySelector('.noggin-viewer'), { subtree: true, attributeFilter: ['aria-pressed'] });
+    const line = document.querySelector('.noggin-caption');
+    new MutationObserver(() => window.said.push(line.textContent)).observe(line, { childList: true, characterData: true, subtree: true });
   });
-  await button('wink').click();
-  await page.waitForFunction(() => window.pressed.join() === 'wink,hero', null, { timeout: 30_000 });
+  await button('Wink').click();
+  await page.waitForFunction(() => window.pressed.join() === 'Wink,Tour', null, { timeout: 30_000 });
+  expect(await page.evaluate(() => window.said)).toEqual(['Wink: a session starts (SessionStart)', 'Tour: every gesture in turn']);
   await button('Stage 1').click();
-  await expect(button('wink')).toBeEnabled({ timeout: 30_000 });
-  await expect(button('hero')).toHaveCount(0); // Stage 1 has no neck
+  await expect(button('Wink')).toBeEnabled({ timeout: 30_000 });
+  await expect(button('Tour')).toHaveAttribute('aria-pressed', 'true'); // Stage 1 tours its gestures, with no hero
+  await expect(button('Explode')).toHaveCount(0); // only Stage 3 has an exploded view
 });
 
 test('a deep link opens the viewer on its Stage, playing its gesture, and the picker keeps it current', async ({ page }) => {
@@ -61,9 +68,9 @@ test('a deep link opens the viewer on its Stage, playing its gesture, and the pi
   await page.goto('viewer/?gesture=wink&stage=1');
   const button = (name) => page.getByRole('button', { name, exact: true });
   await expect(button('Stage 1')).toHaveAttribute('aria-pressed', 'true');
-  await page.waitForFunction(() => window.pressed.includes('wink'), null, { timeout: 30_000 });
+  await page.waitForFunction(() => window.pressed.includes('Wink'), null, { timeout: 30_000 });
   // the picker keeps the address the deep link to what plays, so it can be shared
-  await button('eureka').click();
+  await button('Eureka').click();
   await expect(page).toHaveURL(/\/viewer\/\?stage=1&gesture=eureka$/);
   await button('Stage 3').click();
   await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
@@ -80,9 +87,8 @@ test('a deep link opens Stage 3 exploded, and Explode puts it back together', as
   await expect(page).toHaveURL(/\/viewer\/\?stage=3$/);
   await button('Explode').click();
   await expect(page).toHaveURL(/\/viewer\/\?stage=3&explode=1$/);
-  await button('Stage 1').click();
-  await expect(button('wink')).toBeEnabled({ timeout: 30_000 });
-  await expect(button('Explode')).toHaveCount(0); // only Stage 3 has an exploded view
+  await button('Tour').click();
+  await expect(page).toHaveURL(/\/viewer\/\?stage=3&explode=1$/); // the Tour is the default: no gesture
 });
 
 test('search finds the servo pages', async ({ page }) => {

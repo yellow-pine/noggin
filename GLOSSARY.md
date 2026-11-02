@@ -110,7 +110,7 @@ A cumulative build state of the Mech, the Sub-assemblies placed at frames (geome
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The Site's page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the hero loop
+The Site's page that shows each Stage in 3D, turned and zoomed by the reader, playing its gestures and the Tour
 from Blender's glTF (docs/adr/0008), and Stage 3 exploded; the landing page opens with one, and docs pages can
 embed a small one per Stage.
 _Avoid_: twin viewer, web app, demo
@@ -144,8 +144,13 @@ checks and review run like a person's PR would (docs/adr/0010).
 _Avoid_: release App, bot token
 
 **Hero**:
-The Mech's showcase loop: Stage 3 talking, the README's lead picture and the web viewer's default between gestures.
+The Mech's showcase loop: Stage 3 talking, the README's lead picture and the first clip of the Tour.
 _Avoid_: banner, idle loop
+
+**Tour**:
+The web viewer's default: every clip of the Stage in turn, the Hero first where the Stage has one, round and round;
+a gesture picked plays once, then the Tour goes on.
+_Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:
 An ownership unit that owns its parts exactly once (base, stack, eyes, mouth) and is placed into Stages at a frame (model/stages.py).

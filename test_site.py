@@ -140,6 +140,18 @@ def test_the_behaviour_table_words_every_gesture_and_nothing_else():
     assert set(macros.MECH) == {*GESTURES, "thinking", "rest"}
 
 
+def test_the_viewer_says_which_claude_code_event_plays_each_gesture():
+    """Cansin (#482): under the viewer's bar, one line per gesture clip names the Claude Code event that plays it, from
+    the behaviour table's code (the director), never typed in a page."""
+    import macros  # here, not at the top: it imports the model
+    from model.traces import GESTURES
+
+    moments = macros.moments()
+    assert set(moments) == set(GESTURES)
+    assert moments["wink"] == "a session starts (SessionStart)"
+    assert moments["attention"] == "Claude asks for your permission (Notification permission_prompt)"
+
+
 def test_the_stale_turn_sentence_follows_the_director():
     """The table says the last turn ends a fixed time after its prompt, not after a quiet spell: the Director holds
     a turn with a Trigger every minute exactly that long, then rests."""

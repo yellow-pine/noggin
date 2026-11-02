@@ -1,6 +1,8 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
-// Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, a button per clip under it. The
-// viewer's page (src/pages/viewer.astro) adds Stage buttons; any page, a doc's Markdown too, drops a small one in with
+// Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
+// it: the page's Stage buttons (src/pages/viewer.astro, a segmented 1 2 3), the Tour and a chip per gesture, Explode;
+// under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
+// small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero GIF, #468), and a deep link,
@@ -16,7 +18,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { explode } from "../macros.json";
+import { explode, moments } from "../macros.json";
 
 // the GLBs (make site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -28,6 +30,7 @@ const FOV = 20;
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
 const APART_S = 1;  // the seconds Explode takes to move the parts apart, or back
 const press = (b, on) => b.setAttribute("aria-pressed", on);
+const TOUR = "Tour: every gesture in turn";
 
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]"), poster = root.querySelector("figure");
@@ -35,8 +38,14 @@ function mount(root) {
   if (!poster) root.appendChild(canvas);
   canvas.setAttribute("role", "img");
   canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
-  const bar = root.appendChild(document.createElement("nav"));
+  // the bar (not-content: no Starlight Markdown spacing in it): the page's Stage buttons, the gestures, Explode
+  const tools = root.appendChild(document.createElement("div"));
+  tools.className = "noggin-controls not-content";
+  const bar = document.createElement("nav"), toggle = document.createElement("button");
   bar.setAttribute("aria-label", "Gesture");
+  tools.append(...root.querySelectorAll(":scope > nav"), toggle, bar);
+  const caption = root.appendChild(document.createElement("p"));
+  caption.className = "noggin-caption";
   // see-through: the page's own background behind the Mech, in either theme
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(devicePixelRatio);
@@ -51,10 +60,10 @@ function mount(root) {
   const ambient = new THREE.AmbientLight(0xffffff);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  const toggle = document.createElement("button");
   toggle.textContent = "Explode";
+  toggle.hidden = true;  // until a Stage with offsets loads
   toggle.addEventListener("click", () => (goal = 1 - goal, press(toggle, goal === 1), share(linked)));
-  let scene, sphere, reach, refPx, mixer, clips, creases, look, current, loading = 0;
+  let scene, sphere, reach, refPx, mixer, clips, tour, step, creases, look, current, loading = 0;
   // how far apart the parts are (0 together, 1 apart), where they are headed, each part's group with its offset, the
   // camera's framing together and apart, and the gesture in the address
   let apart = 0, goal = 0, parts = [], framings, linked = new URLSearchParams(location.search).get("gesture");
@@ -114,15 +123,24 @@ function mount(root) {
     outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
   }
 
-  // a gesture plays once, then the hero loops again; Stage 1 has no neck, so no hero: it rests until a gesture
+  // a gesture (a clip's name) plays once, then the Tour (none) goes on: every clip in turn, round and round
   function play(name) {
+    step = name ? -1 : 0;
+    run(name ?? tour[0]);
+    for (const b of bar.children) press(b, b.dataset.clip === (name ?? ""));
+    caption.textContent = name ? `${title(name)}: ${moments[name]}` : TOUR;
+  }
+
+  function run(clip) {
     mixer.stopAllAction();
-    if (name) {
-      const a = mixer.clipAction(clips[name]).reset();
-      a.setLoop(name === "hero" ? THREE.LoopRepeat : THREE.LoopOnce, Infinity).clampWhenFinished = true;
-      a.play();
-    }
-    for (const b of bar.children) if (b !== toggle) press(b, b.textContent === name);
+    const a = mixer.clipAction(clips[clip]).reset();
+    a.setLoop(THREE.LoopOnce, 1).clampWhenFinished = true;
+    a.play();
+  }
+
+  function next() {
+    if (step < 0) play();
+    else run(tour[step = (step + 1) % tour.length]);
   }
 
   // the parts `apart` of the way out, eased, and the camera framing them as the hero GIF does: on load from its view,
@@ -156,7 +174,7 @@ function mount(root) {
     current = stage;
     goal = exploded && stage in explode ? 1 : 0;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
-    for (const b of bar.children) b.disabled = true;
+    for (const b of [...bar.children, toggle]) b.disabled = true;
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
     if (mine !== loading) return;  // a later Stage click won
     poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
@@ -201,16 +219,20 @@ function mount(root) {
     resize();
     clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
     mixer = new THREE.AnimationMixer(gltf.scene);
-    mixer.addEventListener("finished", () => play(clips.hero && "hero"));
-    bar.replaceChildren(...Object.keys(clips).map((name) => {  // a button per clip: each gesture, and the hero
+    mixer.addEventListener("finished", next);
+    tour = Object.keys(clips).sort((a, b) => (b === "hero") - (a === "hero"));  // the hero first, where there is one
+    const gestures = tour.filter((c) => c !== "hero");
+    bar.replaceChildren(...["", ...gestures].map((clip) => {  // the Tour, then a chip per gesture
       const b = document.createElement("button");
-      b.textContent = name;
-      b.addEventListener("click", () => (play(name), share(name)));
+      b.textContent = clip ? title(clip) : "Tour";
+      b.dataset.clip = clip;
+      b.addEventListener("click", () => (play(clip || undefined), share(clip || undefined)));
       return b;
-    }), ...(parts.length ? [toggle] : []));
+    }));
+    toggle.hidden = !parts.length;
     toggle.disabled = false;
     press(toggle, goal === 1);
-    play(Object.hasOwn(clips, gesture) ? gesture : clips.hero && "hero");  // the link's, if the Stage has it
+    play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
   }
 
   for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
@@ -235,5 +257,7 @@ function mount(root) {
   const link = new URLSearchParams(location.search);
   load(stages[link.get("stage") - 1]?.dataset.stage ?? root.dataset.stage, link.get("gesture"), link.get("explode") === "1");
 }
+
+const title = (s) => s[0].toUpperCase() + s.slice(1);
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);

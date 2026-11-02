@@ -1,12 +1,30 @@
-/* the web viewer (src/viewer/viewer.mjs), on its page or dropped into another */
+/* the web viewer (src/viewer/viewer.mjs), on its page or dropped into another: one bar of controls under it, all of a
+   height, in Starlight's colours: the Stage a segmented control, the gestures chips, Explode a toggle at the right
+   (on the Stage's row where there is one, the chips then on a row of their own) */
 .noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
-.noggin-viewer nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+.noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.75rem; }
+.noggin-controls nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.noggin-controls nav span { color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); margin-inline-end: 0.5rem; }
 .noggin-viewer button {
-  font: inherit; color: var(--sl-color-text-accent); background: none; cursor: pointer; margin: 0;
-  border: 1px solid var(--sl-color-text-accent); border-radius: 999rem; padding: 0.2em 1em;
+  font: inherit; font-size: var(--sl-text-sm); line-height: 1; height: 2rem; padding: 0 0.9rem; margin: 0;
+  color: var(--sl-color-text); background: none; cursor: pointer;
+  border: 1px solid var(--sl-color-gray-5); border-radius: 999rem;
 }
-.noggin-viewer button[aria-pressed='true'] { color: var(--sl-color-black); background: var(--sl-color-text-accent); }
+.noggin-viewer button:hover { border-color: var(--sl-color-text-accent); color: var(--sl-color-white); }
+.noggin-viewer button[aria-pressed='true'] {
+  color: var(--sl-color-black); background: var(--sl-color-text-accent); border-color: var(--sl-color-text-accent);
+}
+.noggin-viewer button:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 2px; }
 .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
+.noggin-viewer button[hidden] { display: none; }
+.noggin-controls nav[aria-label='Stage'] { gap: 0; }
+.noggin-controls nav[aria-label='Stage'] button { border-radius: 0; min-width: 2.5rem; padding: 0; }
+.noggin-controls nav[aria-label='Stage'] button + button { margin-inline-start: -1px; }
+.noggin-controls nav[aria-label='Stage'] button:first-of-type { border-start-start-radius: 999rem; border-end-start-radius: 999rem; }
+.noggin-controls nav[aria-label='Stage'] button:last-of-type { border-start-end-radius: 999rem; border-end-end-radius: 999rem; }
+.noggin-controls > button { margin-inline-start: auto; order: 1; }
+.noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
+.noggin-caption { margin-top: 0.5rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
 /* the landing page's, the hero GIF's shape, its Play in 3D under the poster on a phone (src/components/Footer.astro) */
 .noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
 .noggin-viewer.hero > button { display: block; margin: 0.6rem auto; }
