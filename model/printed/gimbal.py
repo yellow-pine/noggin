@@ -6,8 +6,9 @@ import math
 
 import cadquery as cq
 import numpy as np
+from OCP.gp import gp_Trsf
 
-from model import envelopes
+from model import envelopes, fits
 from model import gimbal as gm
 from model.envelopes import box
 
@@ -191,3 +192,75 @@ def collar(m, floor):
 def _moved(shape, m):
     t = cq.Matrix([list(map(float, row)) for row in m[:3]])
     return cq.Workplane().add(shape.val().transformGeometry(t))
+
+
+def at_rest():
+    """{next-eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
+    shank from the frame's upright through the lid's boss)."""
+    from model import stages
+    from model.printed import PARTS  # here: model.printed imports this module
+
+    out = {}
+    for name, p in stages.next_eyes().parts.items():
+        stem = stages.stem(p.file)
+        out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
+    for s, sign in (("L", 1), ("R", -1)):
+        x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["boss"][0] + 2, gm.LID_X["upright"][1]))
+        out[f"next {s} lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], x).val()
+    return out
+
+
+def sweep(n_lid=9, n_pitch=7, within=5.0):
+    """The lid drives' sweep (#650): each lid, its bar, its horn and its shank against every other part over the lid x
+    pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()). The closest a pair at least LID_CLEAR_MM
+    apart at rest comes (measured `within` mm, the bounding boxes skip the rest), and every pair closer at rest (a pin,
+    a face sliding on a face, the boss on its shank) that overlaps: every move here turns about x, so one of two lifts
+    0.01 mm along x parts a pair that only touches.
+    shortcut: fixed sampling of the grid, not certified between the samples; #627's adaptive clearance replaces it."""
+    rest = at_rest()
+    drives = [f"next {s} {n}" for s in "LR" for n in ("lid:1", "lid bar:1", "lid horn:1", "lid shank")]
+    spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
+    pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
+    near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < gm.LID_CLEAR_MM > rest[a].distance(rest[b])}
+    lift = [cq.Location(cq.Vector(e, 0, 0)) for e in (-0.01, 0.01)]
+    closest, overlaps, seen = (within, None, None), [], set()
+    for lid in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), n_lid):  # the lid servo's range
+        for pitch in np.linspace(-gm.PITCH, gm.PITCH, n_pitch):
+            m, posed = gm.moved(lid, pitch), {}
+            turned = {k for k in m if " lid" in k}
+            at = {"lid_deg": round(float(lid), 1), "pitch_deg": round(float(pitch), 1)}
+
+            def shape(k):
+                if k not in posed:
+                    posed[k] = rest[k].moved(_at(m[k])) if k in m else rest[k]
+                return posed[k]
+
+            for a, b in pairs:
+                # each pair once per angle that moves it
+                pose = (a, b, lid if {a, b} & turned else None, pitch if {a, b} & set(m) - turned else None)
+                if pose in seen:
+                    continue
+                seen.add(pose)
+                gap = _gap(shape(a), shape(b))
+                if (a, b) in near:
+                    if gap < 0 and max(shape(a).moved(t).distance(shape(b)) for t in lift) < 0.005:
+                        overlaps.append({"pair": [a, b], "at": at})
+                elif gap < closest[0] and (mm := shape(a).distance(shape(b))) < closest[0]:
+                    closest = (mm, [a, b], at)
+    return {"clearance_mm": round(closest[0], 2), "pair": closest[1], "at": closest[2], "overlaps": overlaps}
+
+
+def _gap(a, b):
+    """mm between the two solids' bounding boxes along the axis they are furthest apart on (negative: they overlap)."""
+    ba, bb = a.BoundingBox(), b.BoundingBox()
+    return max(
+        max(getattr(ba, f"{k}min") - getattr(bb, f"{k}max"), getattr(bb, f"{k}min") - getattr(ba, f"{k}max"))
+        for k in "xyz"
+    )
+
+
+def _at(m):
+    """A rigid 4x4 as a CadQuery Location: the solid moves, its geometry stays exact."""
+    t = gp_Trsf()
+    t.SetValues(*map(float, np.asarray(m)[:3].ravel()))
+    return cq.Location(t)
