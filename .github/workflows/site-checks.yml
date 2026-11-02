@@ -43,11 +43,11 @@ jobs:
         with:
           filters: |
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/site-checks.yml", "ci/*.Dockerfile", "macros.py", "conftest.py"]
+                   ".github/workflows/site-checks.yml", "ci/*.Dockerfile", "macros.py"]
       # whether the pictures and the viewer built from the same inputs are cached: then neither Blender job runs, nor
       # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys hash only what they are made
-      # from (#469): the render code and what it imports or names (the parts, the trajectories' sources, the script
-      # Blender runs; scripts/inputs.py), Blender's pin and uv.lock, so a Makefile, workflow or test edit renders
+      # from (#469): the render code and the parts' make (model/ours.py) with what they import or name (the
+      # trajectories' sources, the script Blender runs; scripts/inputs.py), Blender's pin and uv.lock, so a Makefile, workflow or test edit renders
       # nothing. Hashed here alone, on the runner's Python (the repo's syntax; the images' is older), for every job
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -55,10 +55,10 @@ jobs:
           persist-credentials: false   # nothing here pushes
       - name: Hash the inputs
         id: inputs
-        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+        run: |   # each the inputs' sha256 and uv.lock's minus noggin's version, which a release bumps (#403)
           lock=$(python3 scripts/lock_hash.py)
-          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py ci/blender.Dockerfile)
-          viewer=$(python3 scripts/inputs.py --hash web/build.py ci/blender.Dockerfile)
+          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile)
+          viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile)
           { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
       - name: Look up the cached pictures
         if: ${{ github.event_name == 'pull_request' }}
@@ -158,7 +158,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'conftest.py') }}-${{ steps.lock.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       # its own step first, so the run's timings show the bake apart from the renders
       - name: Run make trajectories
@@ -252,7 +252,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/trajectories
-          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'conftest.py') }}-${{ steps.lock.outputs.hash }}
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
           restore-keys: trajectories-
       - name: Run make web
         if: ${{ steps.viewer.outputs.cache-hit != 'true' }}

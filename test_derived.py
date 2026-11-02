@@ -59,7 +59,7 @@ MODEL_TESTS = subprocess.run(
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
 DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfile"))  # the CI images' sources (#481)
-BLENDER = ["eyes/calibration.json", "ci/blender.Dockerfile", "uv.lock"]
+BLENDER = ["model/ours.py", "eyes/calibration.json", "ci/blender.Dockerfile", "uv.lock"]
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "convex": (
@@ -68,12 +68,13 @@ MADE_FROM = {
     ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
-    # the Blender jobs' outputs and the site's checks: the images they run in too
-    # the Blender jobs' outputs: the scripts Blender runs, the Core's calibration the trajectories play, Blender's pin
+    # the Blender jobs' outputs: the parts' make, the scripts Blender runs, the Core's calibration the trajectories play
+    # and Blender's pin
     "images": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),
     "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
     "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
+    # the site's checks: the images they run in too
     "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
     # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
@@ -153,7 +154,9 @@ def test_the_blender_jobs_keys_hash_no_makefile_workflow_or_test():
     render code reads."""
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
     tooling = [
-        f for f in tracked if f == "Makefile" or f.startswith(".github/") or PurePosixPath(f).name.startswith("test_")
+        f
+        for f in tracked
+        if f == "Makefile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
     found = patterns()
     assert {

@@ -32,14 +32,18 @@ def _imported(path):
 
 def _named(path):
     """The repo files a file names in a string that is all path, from the repo root (a glob too, as
-    trajectories.SOURCES) or beside it (pictures.SCRIPT); a test file is no input, nor a build output."""
+    trajectories.SOURCES) or beside it (pictures.SCRIPT); a test file or conftest.py (pytest's, which also stubs
+    `machine` for traces.py) is no input, nor a build output."""
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and PATH.fullmatch(node.value):
             for base in (ROOT, path.parent):
                 yield from (
                     p
                     for p in base.glob(node.value)
-                    if p.is_file() and not p.name.startswith("test_") and "build" not in p.relative_to(ROOT).parts
+                    if p.is_file()
+                    and not p.name.startswith("test_")
+                    and p.name != "conftest.py"
+                    and "build" not in p.relative_to(ROOT).parts
                 )
 
 
