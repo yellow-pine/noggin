@@ -139,8 +139,8 @@ def bail(plain=False):
         out = out.union(box((-2, 2), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (-2, 2)))
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
-        if not plain:  # on the bed (its foot's head centred just over it: on it, cutting the bore fails)
-            arm = bone.bone((x, by, bed + 0.5), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
+        if not plain:  # standing on the bed, its foot's head cut off under it
+            arm = bone.bone((x, by, bed), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
             arm = arm.intersect(box((x - 9, x + 9), (0, 99), (bed, 99)))
             out = out.union(arm).union(ball_on(top - BAIL_ARM[0][0], (x, by, gm.LEVER)))
         else:

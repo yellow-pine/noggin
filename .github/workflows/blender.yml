@@ -28,8 +28,9 @@ jobs:
         # arguments it would pass as "no change")
         run: |
           out=$(python3 scripts/blender_pin.py)
-          echo "version=${out%% *}" >> "$GITHUB_OUTPUT"
-          echo "sources=${out#* }" >> "$GITHUB_OUTPUT"
+          v=${out%% *}
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Blender $v, the newest stable release at least 14 days old; sha256 from its .sha256, the same on each of: ${out#* } (Blender signs no checksums; compare https://download.blender.org/release/Blender${v%.*}/blender-$v.sha256). Release notes: https://www.blender.org/download/releases/$(echo "${v%.*}" | tr . -)/" > "$RUNNER_TEMP/body.md"
       # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
       - name: Mint the bot App's token
         id: app
@@ -40,18 +41,14 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write   # its own branch
           permission-pull-requests: write
+      # create-pull-request rebuilds blender-bump from main each run and force-pushes it, its one ref
       - name: Open or refresh the PR
         if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          VERSION: ${{ steps.pin.outputs.version }}
-          SOURCES: ${{ steps.pin.outputs.sources }}
-        run: |
-          title="ci(deps): re-pin Blender to $VERSION"
-          body="Blender $VERSION, the newest stable release at least 14 days old; sha256 from its .sha256, the same on each of: $SOURCES (Blender signs no checksums; compare https://download.blender.org/release/Blender${VERSION%.*}/blender-$VERSION.sha256). Release notes: https://www.blender.org/download/releases/$(echo "${VERSION%.*}" | tr . -)/"
-          git switch -C blender-bump
-          git -c core.hooksPath=/dev/null -c user.name="github-actions[bot]" \
-            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qam "$title"
-          # force: blender-bump is this workflow's own branch, rebuilt from main each run, and the only ref it writes
-          git -c core.hooksPath=/dev/null push -qf "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" blender-bump
-          gh pr create --head blender-bump --title "$title" --body "$body" || gh pr edit blender-bump --title "$title" --body "$body"
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1   # v8.1.1
+        with:
+          token: ${{ steps.app.outputs.token }}
+          branch: blender-bump
+          commit-message: "ci(deps): re-pin Blender to ${{ steps.pin.outputs.version }}"
+          title: "ci(deps): re-pin Blender to ${{ steps.pin.outputs.version }}"
+          body-path: ${{ runner.temp }}/body.md
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>

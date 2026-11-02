@@ -1,12 +1,13 @@
 name: Main Red
-# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again.
+# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again; a failed
+# CI Images run (main alone builds the images, #729) opens 'main red (CI Images)', closed by its next push.
 # PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). A failed run opens the issue
-# (labels main-red, bug, ready-for-agent) linking the commit and the run, or comments on the open one; Site Deploy
-# deploying a commit closes it; anything else (a pass, a cancelled run superseded) says nothing (#745). It acts only
-# for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named main).
+# (labels main-red, bug, ready-for-agent) linking the commit and the run, or comments on the open one; anything else
+# (a pass, a cancelled run superseded) says nothing (#745). It acts only for this repository's runs on main
+# (branches: [main] alone also matches a fork's PR from a branch named main).
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
-    workflows: ["Checks", "Site Deploy"]   # by their names (test_workflows.py)
+    workflows: ["Checks", "Site Deploy", "CI Images"]   # by their names (test_workflows.py)
     types: [completed]
     branches: [main]
 concurrency:   # one at a time, so two red runs never open two issues
@@ -34,18 +35,25 @@ jobs:
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          title="main red" done="Site Deploy deployed it"
+          if [ "$WORKFLOW" = "CI Images" ]; then title="main red (CI Images)" done="CI Images pushed the images"; fi
           # the open one, by the issues API: search lags a just-opened issue
-          issue=$(gh issue list --label main-red --json number --jq '.[0].number')
-          body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
+          issue=$(gh issue list --label main-red --json number,title \
+            --jq "map(select(.title == \"$title\"))[0].number // empty")
           case "$CONCLUSION" in
             failure|timed_out|startup_failure)
+              body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
               if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
-              else gh issue create --title "main red" --label main-red,bug,ready-for-agent --body "$body"; fi ;;
-            success)   # green once Site Deploy's Deploy job put a commit up (red Checks skip it)
-              deploy='[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length'
-              if [ "$WORKFLOW" = "Site Deploy" ] && [ -n "$issue" ] \
-                && [ "$(gh run view "$RUN_ID" --json jobs --jq "$deploy")" -gt 0 ]; then   # a failed call fails closed
+              else gh issue create --title "$title" --label main-red,bug,ready-for-agent --body "$body"; fi ;;
+            success)   # green once CI Images pushed, or Site Deploy's Deploy put a commit up (red Checks skip it)
+              case "$WORKFLOW" in
+                "CI Images") green=1 ;;
+                "Site Deploy") green=$(gh run view "$RUN_ID" --json jobs \
+                  --jq '[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length') ;;
+                *) green=0 ;;
+              esac
+              if [ -n "$issue" ] && [ "$green" -gt 0 ]; then
                 gh issue edit "$issue" --remove-label ready-for-agent,in-progress,blocked,on-hold
-                gh issue close "$issue" --comment "Main is green again: Site Deploy deployed it ($RUN_URL)."
+                gh issue close "$issue" --comment "Main is green again: $done ($RUN_URL)."
               fi ;;
           esac
