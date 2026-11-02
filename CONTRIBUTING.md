@@ -108,7 +108,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   the end of the file, where two PRs appending at once clash (#492).
 - `just lint` (ruff and pyright) is the one local check, which the pre-push hook `just venv` turns on runs (#714).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
-  Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint),
+  Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
+  zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
@@ -127,7 +128,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
-  inputs. `Site` always runs: it builds the deploy.
+  inputs. `Site` runs after Blender unless a job before it failed: it builds the deploy with the next Mech's pictures,
+  tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
+  (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
 - `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
@@ -136,8 +139,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- With a warm cache a run's critical path should stay within 2 min on a PR and 9 min on main; past it the run warns in
-  its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
+- Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the

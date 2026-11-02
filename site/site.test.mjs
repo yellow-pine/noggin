@@ -243,14 +243,14 @@ test("each Stage's guide opens with the Stages in order, by their titles, its ow
 
 // #640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so the site ships, links and
 // draws pictures and GLBs of the next Mech alone, the ones the code publishes (macros.py published), and no photo.
-// Checks runs it again once it has added the pictures and the GLB (-t picture)
+// CI's Site job runs it with the pictures and the GLB in (#732)
 test("every picture and GLB the site ships, links or draws is one of the next Mech's it publishes", () => {
   const { images, viewer } = numbers.published, ours = [...images, ...viewer];
   const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i, name = (url) => path.basename(url.split(/[?#]/)[0]);
   const shipped = globSync('**/*', { cwd: DIST }).filter((f) => mech.test(f) || f.startsWith('images/'));
   const expected = [...images.map((f) => `images/${f}`), ...viewer.map((f) => `viewer/${f}`)];
   expect(shipped.filter((f) => !expected.includes(f))).toEqual([]);
-  if (existsSync(path.join(DIST, 'images'))) expect(shipped.sort()).toEqual(expected.sort()); // as Checks adds them
+  if (existsSync(path.join(DIST, 'images'))) expect(shipped.sort()).toEqual(expected.sort()); // as CI's just site adds them
   for (const f of html) {
     const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
     for (const v of doc.querySelectorAll('.noggin-viewer')) expect(viewer, f).toContain(`${v.getAttribute('data-stage')}.glb`);

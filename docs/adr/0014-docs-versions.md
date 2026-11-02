@@ -28,9 +28,10 @@ its own docs once and keeps them as a release asset, and every deploy serves the
   same page in the chosen version, or to its home when that page isn't there.
 - **The pictures and the sim reports are the live site's** in every version: the Markdown links the pictures by
   absolute URL, and the sidebar's Reports link goes to /noggin/reports/ outside latest.
-- **Tested at the seam**: Checks' `Site` job builds the site again under `/noggin/v0.0` and runs the link tests on it
-  (every link lands inside the version, or on the live site's pictures, viewer and reports);
-  scripts/test_docs_versions.py checks which releases are served; the smoke test checks the switcher on latest.
+- **Tested at the seam**: site.test.mjs checks that every link lands inside the version, or on the live site's
+  pictures, viewer and reports; scripts/test_docs_versions.py checks which releases are served; the smoke test checks
+  the switcher on latest. Checks no longer builds a trial version under /noggin/v0.0: each release builds its real
+  one (Release Docs, #732).
 
 ## Considered options
 

@@ -9,6 +9,8 @@
 >
 > Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds and tests
 > the site, and its `Checks` gate adds the pictures and the viewer, runs the Playwright smoke test and uploads it.
+> Amended 2026-11-02 (#732): `Site` runs after Blender and does it all once: adds the pictures and the viewer, runs
+> Vitest and the Playwright smoke test in its container, and uploads the site; the gate only gates.
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 >
 > Amended 2026-11-02 (#603): the site keeps Starlight (search, Docs versions, dark mode) but no longer its default
@@ -69,9 +71,8 @@ service anywhere.
   host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
   out of git, the workflows).
 - **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `just site`,
-  then Vitest; the `Checks` gate adds the pictures and the viewer, runs the link tests on them and Playwright, and
-  uploads `site/dist`; Site Deploy deploys it. Dependabot covers npm, grouped like
-  uv and Actions, each release waiting 14 days.
+  with the pictures and the viewer, then Vitest and Playwright, and uploads `site/dist` (#732); Site Deploy deploys
+  it. Dependabot covers npm, grouped like uv and Actions, each release waiting 14 days.
 
 ## Considered options
 
