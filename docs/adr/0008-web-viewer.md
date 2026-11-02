@@ -26,6 +26,7 @@
 > are unchanged.
 > Amended 2026-11-02 (#538, #496): the viewer is built in the Checks workflow's `Blender` jobs, and a red build fails
 > its required `Checks` gate, not a `site` check.
+> Amended 2026-11-02 (#547): "Built in CI" describes the Checks workflow and Site Deploy, not the Pages workflow.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
@@ -55,10 +56,13 @@ watch the hero loop.
 - **One source for the look.** Blender's export writes the look numbers (line width, crease angle, the light ramp,
   highlight, key light) into the GLB scene's glTF extras and each part's colour into its glTF material; the page reads
   them and holds no look numbers of its own. The canvas is see-through: the background is the page's own, in either theme.
-- **Built in CI, deployed with GitHub's own Pages actions.** A Pages workflow runs on a push to main that touches
-  `model/`, `eyes/` or `web/`, and on demand. A red build on main leaves the last site up; on a PR
-  touching what the site is made from it fails the required `Checks` gate (#245, #496). Pages' source is GitHub Actions, so nothing built is committed. It bakes the trajectories and runs
-  the pinned Blender Linux tarball (sha256-checked, cached; re-pinned weekly by `blender.yml`).
+- **Built in CI, deployed with GitHub's own Pages actions.** The Checks workflow (`checks.yml`) builds the viewer on
+  PRs and on main: a `Blender` job bakes the trajectories and runs `just web` in our Blender image, which holds the
+  pinned Blender Linux tarball (sha256-checked; re-pinned weekly by `blender.yml`), when what the viewer is made from
+  changed (`scripts/inputs.py`), else the gate restores the last viewer built from the same inputs. The `Checks` gate
+  puts it in the site and plays it in Chrome, and a red build fails that required gate (#245, #496). Site Deploy
+  (`pages.yml`) deploys main's site artifact once main's Checks passed, with no rebuild; a red build on main leaves
+  the last site up. Pages' source is GitHub Actions, so nothing built is committed.
 - **Eyes gestures only for now.** Head and jaw gestures come with the second Core; Stages 2 and 3 show the eyes
   gestures and the hero loop.
 

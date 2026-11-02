@@ -9,6 +9,7 @@
 >
 > Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds and tests
 > the site, and its `Checks` gate adds the pictures and the viewer, runs the Playwright smoke test and uploads it.
+> Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that
@@ -17,7 +18,7 @@ service anywhere.
 
 - **One npm package in `site/`.** package.json, its lockfile, astro.config.mjs, the content loader, the Markdown
   plugins, the viewer's page and module, and their tests. Node 24 LTS (`site/.nvmrc`, `engines`), npm, no monorepo
-  tool until a second JS package exists. `make site` still builds everything: `python -m macros`, `npm ci`, `astro
+  tool until a second JS package exists. `just site` still builds everything: `python -m macros`, `npm ci`, `astro
   build` into `site/dist`, then the GLBs, pictures and reports beside it. Install scripts are denied
   (`allowScripts`): mermaid-cli's Puppeteer drives the installed Chrome, as Playwright does.
 - **The Markdown stays where it is, with no front matter.** Astro's `glob()` loader reads the repo's Markdown in place
@@ -56,7 +57,7 @@ service anywhere.
   the Docs version switcher opens another version, with no CSP violation or console error and no request to another
   host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
   out of git, the workflows).
-- **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `make site`,
+- **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `just site`,
   then Vitest; the `Checks` gate adds the pictures and the viewer, runs the link tests on them and Playwright, and
   uploads `site/dist`; Site Deploy deploys it. Dependabot covers npm, grouped like
   uv and Actions, each release waiting 14 days.

@@ -3,6 +3,7 @@
 > Supersedes ADR 0006's own engine (its planar four-bar solver, KD-tree contacts and mesh masses). Decided in the
 > grilling of 2026-10-31, spec #146; tickets #147 to #151. MuJoCo simulates; Blender draws every picture.
 > The committed reports and MJCFs, and CI's skip-if-fresh, are superseded by ADR 0009 (#229): CI builds them.
+> Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 
 ADR 0006 moved the simulation out of CAD into Python, and the engine grew in model/engine: our own four-bar solver,
 contact screen, masses, cables and mating. That is a robotics simulator written by hand. MuJoCo is the best-known
@@ -10,7 +11,7 @@ open-source one (Apache-2.0), on PyPI as `mujoco` with wheels for macOS arm64 an
 https://pypi.org/project/mujoco/), so the model moves onto it: libraries before custom code.
 
 - **The model is MJCF.** `model/mjcf.py` builds one MJCF per document (stages.DOCS: the sub-assemblies and the Stage
-  configurations) from our parts (model/printed, model/envelopes.py, written by `make ours`) and our pivots and
+  configurations) from our parts (model/printed, model/envelopes.py, written by `just ours`) and our pivots and
   frames (model/geometry.py), in metres (each mesh `scale` 0.001; MuJoCo has no fixed units, its default gravity is
   SI). Every part is a body at its placement. MuJoCo centres and aligns each mesh on its inertia and composes that
   offset into the geom, so a mesh drawn from its designed frame lands where that frame is put
@@ -40,7 +41,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   (docs/research/2026-11-01-mujoco-loops.md).
 - **The sim report is MuJoCo-native** (#149): contacts and penetration per pair, constraint residuals (a linkage
   that cannot close), actuator force against the torque limit, tip-over, all sampled per pose; the tests, the stamp
-  and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact. `make sim` measures each horn's
+  and CI's skip-if-fresh are rebuilt on it, and the committed MJCF is the artifact. `just sim` measures each horn's
   sweep and the pan x tilt grid (model/mujoco_report.py) into each report's "mujoco" section (model/report.py), beside
   the placements, fits, beams and the electrical budget, and commits the MJCF it measured as model/reports/<doc>.xml;
   the stamp covers model/mjcf.py, model/mujoco_report.py and the mujoco and coacd versions. model/test_report.py fails a pair whose pieces go 0.05 mm deeper
@@ -51,7 +52,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
 - **Blender draws every picture** (#150): everything public-facing (README, docs, PR pictures: views, the Stage strip,
   GIFs) stays Blender's style B, posed from MuJoCo's baked trajectories instead of the old engine's poses (each Stage's
   views at rest, a trajectory's first frame; the sub-assemblies, which nothing moves, at their placement). MuJoCo's viewer is for local
-  checks only, with its built-in toggles: `make view` opens `python -m mujoco.viewer` on a document
+  checks only, with its built-in toggles: `just view` opens `python -m mujoco.viewer` on a document
   (https://mujoco.readthedocs.io/en/stable/python.html#interactive-viewer). Its visual settings are one rgba per
   part, its spool's colour with black and white pulled in to #5A5A60 and #E8E8E8 (model/mjcf.py VIEW; the viewer has
   no outlines), and a flat skybox in the
@@ -63,7 +64,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
 - **Trajectories are the one source of motion** (#179, GLOSSARY): MuJoCo plays each gesture's writes (model/traces.py
   `commands`, at their own times) and the README hero's keys (model/render/hero.py, every 20 ms, a servo's PWM period)
   on each Stage. Each servo slews its command at its rated no-load speed (eyes/servo.py `Plant`, 4.8 V) and its
-  position actuator follows under the load within the stall torque, contacts off. `make trajectories` writes every
+  position actuator follows under the load within the stall torque, contacts off. `just trajectories` writes every
   part's frame per 100 ms to model/build/trajectories/<doc>/<motion>.json (position in metres, quaternion w x y z,
   MuJoCo's world), stamped with the engine's inputs, the meshes and its own sources; a Stage whose files carry its stamp
   is skipped; the hero only on the Stages with the neck (2 and 3, #180). Blender's pictures render from them
