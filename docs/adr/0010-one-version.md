@@ -33,6 +33,9 @@
 > Superseded in part 2026-11-02 (#582): ADR 0017. semantic-release releases main once its Checks pass, with no release
 > PR, gate, Release Now or CHANGELOG.md, and the git tag is the version (`pyproject.toml` keeps a placeholder). The one
 > version, the 0.x bump rules and the PR titles below still hold; the release-please parts are history.
+>
+> Amended 2026-11-02 (#742): commitlint checks the title (@commitlint/cli with config-conventional's rules and
+> `ci/commitlint.config.mjs`'s derived scopes), replacing amannn/action-semantic-pull-request and scripts/pr_title.py.
 
 The Core program, the noggin service, the Model and the Site change together and ship from one repo, so they carry one
 version: **noggin vX.Y.Z** ([SemVer 2.0.0](https://semver.org/spec/v2.0.0.html)), starting at 0.1.0. It lives in
@@ -48,7 +51,7 @@ copy, and the tag is `v` plus it.
   is at most 100 characters). The scope is required and is one noun, derived from the repo (ADR 0011): a tracked
   top-level folder, a tracked folder in docs/, `deps` (`deps-dev`) as Dependabot writes, or `release` for
   release-please's PR. The required `PR` check (`pr-checks.yml`) enforces
-  it all (amannn/action-semantic-pull-request, scripts/pr_title.py as on main).
+  it all (commitlint with `ci/commitlint.config.mjs`, as on main).
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
