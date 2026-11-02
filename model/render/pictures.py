@@ -9,8 +9,8 @@ pictures, motion by motion (SITE; the gestures play in the web viewer, #468) int
 served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/0019). Checks packed the motions into its Blender bins (model/shards.py,
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
-`site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS,
-#656) and a picture per part (NEXT, #649); `compare`: a PR's preview of them, the live site's above its own
+`site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS:
+its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649); `compare`: a PR's preview of them, the live site's above its own
 (PREVIEW_OUT).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join | compare (Blender at $BLENDER)"""
 
@@ -88,18 +88,15 @@ MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 NEXT = "next"
 NEXT_PANELS = [picture(n, v) for n, v in PANELS if n in g.NEXT]
 PART_SIZE = (400, 400)
-# the next Mech in motion (#656): its eye gimbal moved by its own kinematics (model/gimbal.py moved; its MuJoCo document
-# has no horns yet), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in degrees, eased from key to key and looping
-# from rest, at HERO_FPS; the lids follow the pitch (#51), shut past the cap's rim; next-eyes alone through one camera
-SHUT = gimbal.LID_EDGES[0] - gimbal.LID_REST
+# the next Mech in motion, next-eyes alone through one camera at HERO_FPS: its eye gimbal's sweep through its whole range
+# (#656), moved by its own kinematics (model/gimbal.py moved), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in
+# degrees, eased from key to key and looping from rest, the lids following the pitch (#51); then each motion it plays,
+# its gestures and Rest (None: as MuJoCo baked it, next_played, #663)
 _Y, _P = gimbal.YAW, gimbal.PITCH
 NEXT_MOTIONS = {
     "sweep": [(0, 0, 0, 0, 0), (1, -_Y, 0, 0, 0), (2.5, _Y, 0, 0, 0), (3.5, 0, 0, 0, 0), (4.25, 0, _P, _P, _P),
               (5.5, 0, -_P, -_P, -_P), (6.25, 0, 0, 0, 0)],
-    "blink": [(0, 0, 0, 0, 0), (0.5, 0, 0, 0, 0), (0.75, 0, 0, SHUT, SHUT), (0.875, 0, 0, SHUT, SHUT),
-              (1.25, 0, 0, 0, 0), (2, 0, 0, 0, 0)],
-    "wink": [(0, 0, 0, 0, 0), (0.5, 0, 0, 0, 0), (0.75, 0, 0, SHUT, 0), (1, 0, 0, SHUT, 0), (1.375, 0, 0, 0, 0),
-             (2, 0, 0, 0, 0)],
+    **dict.fromkeys(trajectories.motions(next(iter(g.NEXT)))),
 }  # fmt: skip
 MOTION_SIZE = (480, 320)
 LIVE = "https://yellowpine.com/noggin/images/"  # where the site serves them: main's
@@ -127,11 +124,14 @@ def published():
 
 
 def next_motions(rest):
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each of NEXT_MOTIONS, from `rest`, those parts at
-    rest as MuJoCo settles the next Mech: each moved in its own frame as model/gimbal.py moves it in next-eyes'."""
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each keyed motion of NEXT_MOTIONS, from `rest`,
+    those parts at rest as MuJoCo settles the next Mech: each moved in its own frame as model/gimbal.py moves it in
+    next-eyes'."""
     local = {n: p.matrix for n, p in stages.next_eyes().parts.items()}
     out = {}
     for motion, keys in NEXT_MOTIONS.items():
+        if keys is None:  # played: next_played
+            continue
         keys = np.array(keys, float)
         t = np.arange(round(keys[-1, 0] * HERO_FPS)) / HERO_FPS
         i = np.searchsorted(keys[:, 0], t, "right") - 1
@@ -267,12 +267,23 @@ def part_pictures():
         encode(f.removesuffix(".webp"))
 
 
+def next_played():
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each motion the next Mech plays (NEXT_MOTIONS'
+    None, #663): its baked trajectory (just trajectories) at HERO_FPS (at_fps), its eye gimbal alone."""
+    doc, eyes = next(iter(g.NEXT)), stages.next_eyes().parts
+    return {
+        m: [{n: f[n] for n in eyes} for f in at_fps(trajectories.poses(doc, m), HERO_FPS)]
+        for m, keys in NEXT_MOTIONS.items()
+        if keys is None
+    }
+
+
 def motion_pictures():
-    """The next Mech's motions (next_motions), its eye gimbal alone, each a looping WebP at HERO_FPS through one camera
+    """The next Mech's motions (next_motions, next_played), its eye gimbal alone, each a looping WebP at HERO_FPS through one camera
     from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
     doc = next(iter(g.NEXT))
     _, manifest, hull = prepare(doc)
-    motions = next_motions(trajectories.poses(doc, "wink")[0])
+    motions = next_motions(trajectories.poses(doc, "wink")[0]) | next_played()
     pts = np.concatenate([points(hull, f) for frames in motions.values() for f in frames])
     cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
     names = {m: next_motion(m).removesuffix(".webp") for m in motions}

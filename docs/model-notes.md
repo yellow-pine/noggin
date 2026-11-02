@@ -9,15 +9,15 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   they are made.
 - The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Blender` job renders its two panels
   and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
-  `just pictures next`) and bakes its viewer GLB, still, without clips (`just web` with its document), when what they
+  `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its document), when what they
   are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/. A PR that changes them gets
   the `preview` artifact: the live site's panels above its own in one before-after.webp, and its pictures (`just
   preview <pr>` downloads it). Every published name starts `next-`.
 - The next Mech in motion (Cansin, 2026-11-02, #656): its eye gimbal alone sweeping its yaw and pitch with the lids
-  following, a blink and a wink (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps), each a looping
-  WebP through one camera from the hero's direction, rendered with the rest by `just pictures next`. The gimbal's own
-  kinematics move it (model/gimbal.py moved) until its MuJoCo document drives it; the gestures join once the next Mech
-  plays them, the neck and the jaw as their tickets land. A motion the PR changed gets before-after-<motion>.webp in the
+  following (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps, moved by model/gimbal.py moved),
+  then each motion it plays, its gestures and Rest as MuJoCo baked them (#663, its rest's blink and its wink in place
+  of the keyed ones), each a looping WebP through one camera from the hero's direction, rendered with the rest by
+  `just pictures next`; the neck and the jaw join as their tickets move them. A motion the PR changed gets before-after-<motion>.webp in the
   preview, the live one above the PR's, frame by frame.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for

@@ -13,6 +13,9 @@
 > Amended 2026-11-02 (#656, Cansin): the Next Mech in motion too, its eye gimbal's sweep, blink and wink as looping
 > WebPs (`next-eyes-<motion>.webp`, `just pictures next`) on Pictures, and a PR's preview stacks each motion it changed,
 > the live one above its own.
+> Amended 2026-11-02 (#663, Cansin): the motions the Next Mech plays in MuJoCo, its gestures and Rest, join the sweep
+> as `next-eyes-<motion>.webp` (Rest's blink and the wink gesture in place of the keyed blink and wink) and as clips of
+> its GLB.
 > Amended 2026-11-02 (#657, Cansin): the PR's before/after is also inline in one sticky comment on the PR, its
 > pictures assets of the `pr-previews` pre-release (a PR keeps its newest run's; every asset goes after 30 days).
 
