@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 import trimesh
 
-from model import electrical, mating, mjcf, mujoco_report, stages
+from model import electrical, gimbal, mating, mjcf, mujoco_report, stages
 from model import geometry as g
 
 pytestmark = pytest.mark.model
@@ -32,6 +32,31 @@ TOUCH = {
     **{
         frozenset((f"{s} upper lid:1", f"{s} lower lid:1")): "nested lid shells, 0.0 mm (a designed contact)"
         for s in "LR"
+    },
+    # the next Mech's eye gimbal (#630): its exact solids overlap nowhere but the horns' splines
+    # (model/printed/test_gimbal.py); the convex pieces fill its cups, bores and windows where parts meet
+    **{
+        frozenset((f"next {s} push-rod:1", p)): "the push-rod's cup round the ball"
+        for s in "LR"
+        for p in (f"next {s} eyeball core:1", "next bail:1")
+    },
+    **{
+        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on the frame's collar"
+        for d in gimbal.drives()
+        for p in (f"next {d} horn:1", "next gimbal frame:1")
+    },
+    **{
+        frozenset(pair): "a horn on its bar, pin-joined faces, the cap on its seat (0.0 mm, designed contacts)"
+        for pair in [
+            ("next yaw horn:1", "next tie-bar:1"),
+            ("next pitch horn:1", "next pitch bar:1"),
+            ("next pitch bar:1", "next bail:1"),
+            ("next bail:1", "next gimbal frame:1"),
+            *[(f"next {s} lid horn:1", f"next {s} lid bar:1") for s in "LR"],
+            *[(f"next {s} lid:1", f"next {s} lid bar:1") for s in "LR"],
+            *[(f"next {s} yaw yoke:1", p) for s in "LR" for p in ("next tie-bar:1", "next gimbal frame:1")],
+            *[(f"next {s} eyeball cap:1", f"next {s} eyeball core:1") for s in "LR"],
+        ]
     },
 }
 # The desk documents only (geometry.DESK): the eyes stand on the plate top, touching.
