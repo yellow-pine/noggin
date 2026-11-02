@@ -2,7 +2,10 @@
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, a button per clip under it. The
 // viewer's page (src/pages/viewer.astro) adds Stage buttons; any page, a doc's Markdown too, drops a small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
-// and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm.
+// and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
+// <figure> inside is its poster until the Stage has loaded (the landing page's hero GIF, #468), and a deep link,
+// ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
+// button rewrites the address to the deep link of what it plays.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -24,8 +27,9 @@ const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT =
 const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
-  const stages = root.querySelectorAll("[data-stage]");
-  const canvas = root.appendChild(document.createElement("canvas"));
+  const stages = root.querySelectorAll("[data-stage]"), poster = root.querySelector("figure");
+  const canvas = document.createElement("canvas");
+  if (!poster) root.appendChild(canvas);
   canvas.setAttribute("role", "img");
   canvas.setAttribute("aria-label", "The noggin Mech, rendered from its model; drag to turn it, scroll or pinch to zoom");
   const bar = root.appendChild(document.createElement("nav"));
@@ -44,7 +48,7 @@ function mount(root) {
   const ambient = new THREE.AmbientLight(0xffffff);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  let scene, sphere, refPx, mixer, clips, creases, look, loading = 0;
+  let scene, sphere, refPx, mixer, clips, creases, look, current, loading = 0;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
@@ -112,12 +116,22 @@ function mount(root) {
     for (const b of bar.children) press(b, b.textContent === name);
   }
 
-  async function load(stage) {
+  // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing
+  function share(gesture) {
+    const n = [...stages].findIndex((b) => b.dataset.stage === current) + 1, link = new URLSearchParams();
+    if (n) link.set("stage", n);
+    if (gesture) link.set("gesture", gesture);
+    history.replaceState(null, "", `${location.pathname}${link.size ? `?${link}` : ""}${location.hash}`);
+  }
+
+  async function load(stage, gesture) {
     const mine = ++loading;
+    current = stage;
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of bar.children) b.disabled = true;
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
     if (mine !== loading) return;  // a later Stage click won
+    poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
     stylise(gltf.scene);
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
@@ -151,13 +165,13 @@ function mount(root) {
     bar.replaceChildren(...Object.keys(clips).map((name) => {  // a button per clip: each gesture, and the hero
       const b = document.createElement("button");
       b.textContent = name;
-      b.addEventListener("click", () => play(name));
+      b.addEventListener("click", () => (play(name), share(name)));
       return b;
     }));
-    play(clips.hero && "hero");
+    play(Object.hasOwn(clips, gesture) ? gesture : clips.hero && "hero");  // the link's, if the Stage has it
   }
 
-  for (const b of stages) b.addEventListener("click", () => load(b.dataset.stage));
+  for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
   addEventListener("resize", () => scene && resize());
   const timer = new THREE.Timer();
   renderer.setAnimationLoop((t) => {
@@ -170,7 +184,8 @@ function mount(root) {
     key.position.multiplyScalar(2 * sphere.radius).add(sphere.center);
     renderer.render(scene, camera);
   });
-  load(root.dataset.stage);
+  const link = new URLSearchParams(location.search);
+  load(stages[link.get("stage") - 1]?.dataset.stage ?? root.dataset.stage, link.get("gesture"));
 }
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);

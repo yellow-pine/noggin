@@ -79,15 +79,6 @@ def test_the_readme_is_for_contributors():
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
-@pytest.mark.parametrize("doc", ["docs/index.md", "docs/pictures.md"])
-def test_the_gesture_grid_shows_every_gesture_the_model_plays(doc):
-    """The grid stays plain HTML, so GitHub shows the GIFs too (#293); it lists model/traces.py's gestures, in order."""
-    from model import traces
-
-    grid = re.search(r'<div class="grid gestures">(.*?)</div>', (ROOT / doc).read_text(), re.S)
-    assert grid and re.findall(r'images/(\w+)\.gif" alt="\1"', grid[1]) == list(traces.GESTURES)
-
-
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
@@ -112,8 +103,8 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     import macros  # here, not at the top: it imports the model
 
     notes = macros.picture_numbers()
+    assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
-        "| gestures | 400x300 | 400 wide, 8 fps, 64 colours, at most 1 MB |",
         "| hero | 800x400 | 800 wide, 8 fps, 64 colours, at most 3 MB |",
         "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
         "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
@@ -201,27 +192,27 @@ def test_every_picture_ci_builds_is_shown_from_the_site():
 
 def test_the_hero_is_800x400_and_leads_the_readme():
     """Cansin (#278, #293): the one 800x400 hero, at its size and centred, leads the README (GitHub drops CSS, so a
-    centred HTML paragraph, its width alone: GitHub's CSS would squash a fixed height on a phone); on the site it shows
-    in a figure at its size (site.test.mjs)."""
+    centred HTML paragraph, its width alone: GitHub's CSS would squash a fixed height on a phone), linking to the
+    viewer (#468); on the site it shows in a figure at its size (site.test.mjs)."""
     from model.render import pictures
 
     hero = "https://yellowpine.com/noggin/images/hero.gif"
     assert pictures.HERO_SIZE == (800, 400)
     readme = (ROOT / "README.md").read_text()
-    assert re.search(rf'^<p align="center"><img src="{hero}" width="800" alt="[^"]+"></p>$', readme, re.M)
+    viewer = "https://yellowpine.com/noggin/viewer/"
+    assert re.search(
+        rf'^<p align="center"><a href="{viewer}"><img src="{hero}" width="800" alt="[^"]+"></a></p>$', readme, re.M
+    )
     assert readme.index(hero) < readme.index("## ")
 
 
 def test_the_motions_list_is_every_motion_of_the_pictures_from_the_code():
-    """`make pictures-list` (Site Checks' motions job, #297): the Stage views on every Stage, the hero on
-    stage 3 and each gesture of model/traces.py on stage 1, each with the Stages its trajectories bake on."""
-    from model import traces
-
+    """`make pictures-list` (Site Checks' motions job, #297): the Stage views on every Stage and the hero on stage 3,
+    each with the Stages its trajectories bake on; the gestures play in the viewer, not in GIFs (#468)."""
     out = subprocess.run(["make", "-s", "pictures-list"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
     assert json.loads(out) == [
         {"motion": "views", "stages": "noggin-stage1 noggin-stage2 noggin-stage3"},
         {"motion": "hero", "stages": "noggin-stage3"},
-        *({"motion": g, "stages": "noggin-stage1"} for g in traces.GESTURES),
     ]
 
 

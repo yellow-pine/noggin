@@ -98,7 +98,7 @@ flowchart TB
     M -- "make sim" --> R["Sim reports<br/>the site's /reports"]
     M -- "make trajectories" --> T["Trajectories<br/>every part, every frame"]
     T --> B["Blender"]
-    B -- "make render, make gifs" --> I["Pictures<br/>README and docs"]
+    B -- "make render, make hero" --> I["Pictures<br/>README and docs"]
     B -- "make web: glTF, a GLB per Stage" --> W["Web viewer<br/>the site's /viewer"]
 ```
 

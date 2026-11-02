@@ -13,7 +13,7 @@ noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual 
 make demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (ARGS=once, ARGS="bored 2")
 make follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
 make stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and Stage
-make render / gifs / hero   # the model's pictures (docs/model-notes.md)
+make render / hero   # the model's pictures (docs/model-notes.md)
 ```
 
 Posing, live calibration and the run-in are under [Tuning](tuning.md); flashing and the Wi-Fi under

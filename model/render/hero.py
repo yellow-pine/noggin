@@ -15,7 +15,7 @@ import numpy as np
 from model import geometry as g
 from model import stages
 
-FPS, SECONDS = 10, 8.0  # 100 ms frames, as the gesture GIFs (12.5 fps went over 3 MB)
+FPS, SECONDS = 10, 8.0  # 100 ms frames, as the trajectories (12.5 fps went over 3 MB)
 STAGE = stages.STAGES["noggin-stage3"]
 LID_OPEN, LID_DOWN = 8.0, -4.0  # lid horn: talking, in the nod
 LID_SHUT = g.HORN_LIMITS["l_lid"][0] - 90  # shut in a blink: the lips meet at the lid limit

@@ -178,6 +178,12 @@ test('the hero shows at its size in a figure on the landing page and Pictures', 
   }
 });
 
+test("the landing page opens with Stage 3's viewer, the hero its poster", () => {
+  const viewer = page(`${BASE}/`).querySelector('.noggin-viewer');
+  expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
+  expect(viewer.querySelector(`figure img[src="${SITE}${HOME}/images/hero.gif"]`)).not.toBeNull();
+});
+
 test("the viewer's page has a button per Stage and serves the Draco decoder from three's npm package", () => {
   const viewer = page(`${BASE}/viewer/`).querySelector('.noggin-viewer');
   expect(viewer.querySelectorAll('nav button').map((b) => b.getAttribute('data-stage'))).toEqual(numbers.stages);
