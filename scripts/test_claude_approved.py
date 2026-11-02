@@ -1,7 +1,7 @@
 """claude_approved.py: review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
 approval, and Claude's verdict is refused until that last verdict matches it (#389)."""
 
-from scripts.claude_approved import last_verdict, refusal, wanted
+from scripts.claude_approved import last_verdict, outdated_threads, refusal, wanted
 
 HEAD = "a" * 40
 
@@ -52,3 +52,23 @@ def test_the_hook_refuses_a_verdict_until_its_review_is_on_the_head():
     assert "gh pr review 378 --request-changes --body-file -" in (refusal("request_changes", None, 378, HEAD) or "")
     assert refusal("approve", "APPROVED", 378, HEAD) is None
     assert refusal(None, None, 378, HEAD) is None  # `Check the verdict` never refuses: it exits 1
+
+
+def thread(tid, outdated=True, resolved=False, login="claude"):  # GraphQL names a bot without its [bot]
+    return {
+        "id": tid,
+        "isOutdated": outdated,
+        "isResolved": resolved,
+        "comments": {"nodes": [{"author": {"login": login}}]},
+    }
+
+
+def test_an_approval_resolves_only_claudes_open_outdated_threads():
+    threads = [
+        thread("mine"),
+        thread("current", outdated=False),
+        thread("done", resolved=True),
+        thread("cansin", login="cansin"),
+        {"id": "ghost", "isOutdated": True, "isResolved": False, "comments": {"nodes": [{"author": None}]}},
+    ]
+    assert outdated_threads(threads) == ["mine"]
