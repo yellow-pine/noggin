@@ -124,7 +124,7 @@ web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's p
 	$(PY) -m pytest -q web
 site: venv       ## the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the viewer's GLBs go to site/dist/viewer once make web built them, the pictures to site/dist/images once make pictures did, the sim reports to site/dist/reports once make sim did; look with npm --prefix site run preview, check with npm --prefix site test
 	$(PY) -m macros
-	cd site && npm ci --no-audit --no-fund && npm run build
+	cd site && npm ci --ignore-scripts --no-audit --no-fund && npm run build
 	[ ! -d web/build ] || cp -R web/build/. site/dist/viewer
 	[ ! -d model/build/images ] || cp -R model/build/images site/dist/images
 	@$(MAKE) --no-print-directory site-reports
