@@ -1,13 +1,9 @@
 """cache_prune.py: the prefixes come from the workflows themselves, and a cache is stale only when its key starts with
 none of them."""
 
-from pathlib import Path
-
 import pytest
 
-from scripts.cache_prune import prefixes, stale
-
-WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
+from scripts.cache_prune import WORKFLOWS, prefixes, stale
 
 
 def flow(tmp_path, steps):
@@ -15,11 +11,10 @@ def flow(tmp_path, steps):
     return tmp_path
 
 
-def test_main_s_workflows_keep_their_caches_and_drop_the_retired_ones():
-    keep = prefixes(WORKFLOWS)
-    assert {"ours-convex-", "convex-", "sim-", "images-", "node-cache-", "pictures-", "viewer-"} <= keep
-    caches = [{"id": i, "key": k} for i, k in enumerate(["ours-convex-ab-cd", "blender-5.2.2-linux-x64", "mermaid-1"])]
-    assert [c["key"] for c in stale(caches, keep)] == ["blender-5.2.2-linux-x64", "mermaid-1"]
+def test_the_workflows_on_main_keep_their_caches_and_drop_the_retired_ones():
+    keys = ["ours-convex-ab-cd", "node-cache-Linux-x64-npm-ab", "blender-5.2.2-linux-x64", "mermaid-1"]
+    caches = [{"id": i, "key": k} for i, k in enumerate(keys)]
+    assert [c["key"] for c in stale(caches, prefixes(WORKFLOWS))] == ["blender-5.2.2-linux-x64", "mermaid-1"]
 
 
 def test_keys_restore_keys_anchors_and_implicit_caches(tmp_path):

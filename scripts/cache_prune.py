@@ -1,7 +1,8 @@
 """Prune the Actions caches no workflow uses any more (#473, .github/workflows/cache-prune.yml). The prefixes are
 derived from the workflows (docs/adr/0011): each actions/cache key's and restore-key's text before its first `${{`, plus
 the caches setup-node (`cache:`) and setup-uv (unless `enable-cache: false`) save under their own names. Reads
-`gh cache list --json id,key,sizeInBytes` on stdin, prints the stale caches' ids and logs each one to stderr."""
+`gh cache list --json id,key,sizeInBytes` on stdin, prints the stale caches' ids and logs each one's
+key and size to stderr."""
 
 import json
 import re
@@ -11,7 +12,7 @@ from pathlib import Path
 import yaml
 
 WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
-REFERENCE = re.compile(r"\$\{\{ *(steps|needs)\.[\w-]+\.outputs\.[\w-]+ *\}\}")  # another step's key, derived there
+DERIVED_KEY = re.compile(r"\$\{\{ *(steps|needs)\.[\w-]+\.outputs\.[\w-]+ *\}\}")  # another step's key, derived there
 
 
 def prefixes(workflows: Path) -> set[str]:
@@ -23,8 +24,9 @@ def prefixes(workflows: Path) -> set[str]:
                 if uses.startswith("actions/cache"):
                     for key in [with_["key"], *str(with_.get("restore-keys", "")).splitlines()]:
                         head = key.split("${{")[0]
-                        assert head or REFERENCE.fullmatch(key), f"{f.name}: {key} has no prefix to keep its caches by"
-                        found |= {head} - {""}
+                        assert head or DERIVED_KEY.fullmatch(key), f"{f.name}: {key} has no prefix"
+                        if head:
+                            found.add(head)
                 elif uses.startswith("actions/setup-node") and with_.get("cache"):
                     found.add("node-cache-")
                 elif uses.startswith("astral-sh/setup-uv") and with_.get("enable-cache") is not False:
@@ -39,6 +41,6 @@ def stale(caches: list[dict], keep: set[str]) -> list[dict]:
 if __name__ == "__main__":
     gone = stale(json.load(sys.stdin), prefixes(WORKFLOWS))
     for c in gone:
-        print(f"deleting {c['key']} ({c['sizeInBytes'] / 1e6:.1f} MB)", file=sys.stderr)
+        print(f"stale: {c['key']} ({c['sizeInBytes'] / 1e6:.1f} MB)", file=sys.stderr)
         print(c["id"])
     print(f"{len(gone)} caches, {sum(c['sizeInBytes'] for c in gone) / 1e9:.2f} GB", file=sys.stderr)

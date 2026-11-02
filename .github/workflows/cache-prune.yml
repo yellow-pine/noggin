@@ -29,9 +29,10 @@ jobs:
       - name: Delete the stale caches
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash   # pipefail: a failed list fails the step
         # from main only: another branch's workflows could miss a prefix main still uses (a dispatch elsewhere is a dry run)
         run: |
           gh cache list --limit 100000 --json id,key,sizeInBytes \
-            | uv run --no-project --with pyyaml==6.0.3 python scripts/cache_prune.py > "$RUNNER_TEMP/stale"
+            | uv run --no-project --with "$(uv export --frozen --no-hashes | grep '^pyyaml==')" python scripts/cache_prune.py > "$RUNNER_TEMP/stale"
           [ "$GITHUB_REF" = refs/heads/main ] || exit 0
           xargs -r -n1 gh cache delete < "$RUNNER_TEMP/stale"
