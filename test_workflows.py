@@ -75,17 +75,23 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
 
 
 def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_token: str):
-    """review.yml's `Check the verdict` with no structured output, `git` and `gh` faked: `git diff` lists `changed`,
-    `gh` logs its arguments."""
+    """review.yml's `Check if the PR edits review.yml`, then `Check the verdict`, with no structured output and `git`
+    and `gh` faked: `git diff` lists `changed`, `gh` logs its arguments."""
     for tool, body in [("git", f"printf '%s\\n' {changed}"), ("gh", f'echo "$@" >> {tmp_path}/gh.log')]:
         (tmp_path / tool).write_text(f"#!/bin/sh\n{body}\n")
         (tmp_path / tool).chmod(0o755)
     flow = yaml.safe_load((Path(__file__).resolve().parent / ".github" / "workflows" / "review.yml").read_text())
-    [run] = [s["run"] for s in flow["jobs"]["review"]["steps"] if s.get("name") == "Check the verdict"]
-    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "RESULT": "", "CONCLUSION": conclusion, "APP_TOKEN": app_token}
-    done = subprocess.run(
-        ["bash", "-eo", "pipefail", "-c", run], env=env | {"BASE": "main", "PR": "7"}, capture_output=True, text=True
-    )
+    run = {s.get("name"): s.get("run") for s in flow["jobs"]["review"]["steps"]}
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "BASE": "main", "PR": "7", "GITHUB_OUTPUT": f"{tmp_path}/out"}
+
+    def step(name: str, **more: str):
+        return subprocess.run(
+            ["bash", "-eo", "pipefail", "-c", run[name]], env=env | more, capture_output=True, text=True
+        )
+
+    step("Check if the PR edits review.yml").check_returncode()
+    edits = (tmp_path / "out").read_text().removeprefix("review=").strip() if (tmp_path / "out").exists() else ""
+    done = step("Check the verdict", RESULT="", CONCLUSION=conclusion, APP_TOKEN=app_token, EDITS_REVIEW=edits)
     log = tmp_path / "gh.log"
     return done.returncode, done.stdout, log.read_text() if log.exists() else ""
 
