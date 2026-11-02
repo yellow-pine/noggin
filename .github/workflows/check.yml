@@ -5,8 +5,11 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-concurrency:   # one run per workflow and PR (or main): a new push cancels the one in progress, main runs its latest
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  schedule:   # main's weekly full run (#471): no changes job, so every check runs, the safety net for the filters
+    - cron: "0 7 * * 1"
+concurrency:   # one run per workflow and PR (or main): a new push cancels the one in progress, main runs its latest; the
+  # weekly run has its own group, so it neither cancels a push's run (which Site Deploy waits for) nor is cancelled
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -16,39 +19,59 @@ defaults:
     shell: bash   # -eo pipefail: make's exit code survives the tee
 # Three required checks side by side, so this workflow's conclusion on main is one of the two Site Deploy waits for
 # (#295, #310): code runs everything but the tests marked model (pyproject.toml); mech the Link's live checks on the
-# Mech stand-in; model, on a PR touching the model's inputs and always on main (#402),
+# Mech stand-in; model, on a PR or main push touching the model's inputs (#402, #471) and in the weekly run,
 # passes when every model shard does: three, balanced on the seconds they measured (model/shards.py; the hero's
 # collision sweep, each document, the rest with make view's offscreen render, and make sim when its inputs changed),
 # with make stl and make step on main or when the parts changed. pytest runs on every core (xdist), its slowest tests go to the job
 # summary, and each job ends on the budget (scripts/ci_budget.py): warm means the parts cache hit its exact key. A cold
 # cache is cut part by part first (convex, #223), so the model shards start warm.
 jobs:
-  changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout): mech's and model's inputs
+  # what the PR (its files from the API) or main's push (by git) touches: mech's and model's inputs
+  # (dorny/paths-filter). Skipped in the weekly run, so everything runs
+  changes:
     name: Changes
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    if: ${{ github.event_name != 'schedule' && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
+      actions: read   # main's last checked commit
     outputs:
       mech: ${{ steps.filter.outputs.mech }}
       model: ${{ steps.filter.outputs.model }}
     steps:
+      - name: Check out the repo
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      # a push diffs against main's last commit whose push run here passed, not the one before it: a newer push
+      # cancels the run in progress, and that commit's changes are then checked in the next run (#471). None: the
+      # commit before the push (an empty base)
+      - name: Find main's last checked commit
+        if: ${{ github.event_name == 'push' }}
+        id: checked
+        run: |   # its own assignment, so a failing gh fails the step
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/check.yml/runs?branch=main&event=push&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Filter the changed paths
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
         with:   # mech: the Makefile's MicroPython tag, pyproject's mpy-cross pin; model: test_derived.py's MADE_FROM says why
+          base: ${{ steps.checked.outputs.sha }}   # a PR's: its base branch, from the API
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/check.yml"]
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "Makefile", ".github/workflows/check.yml"]
   # The Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin service,
   # the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. On PRs touching the Core's program, the
-  # noggin service or the stand-in, and always on main. A required check: a job its condition skips reports success
-  # (#245). Warm: the build's cache hit.
+  # noggin service or the stand-in, on main when a push does (#471), and weekly. A required check: a job its condition
+  # skips reports success (#245). Warm: the build's cache hit.
   mech:
     name: Mech
     needs: changes
-    # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
+    # in the weekly run (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.mech != 'false' }}
     runs-on: ubuntu-26.04
     steps:
@@ -138,7 +161,7 @@ jobs:
         run: python3 scripts/ci_budget.py ${{ steps.parts.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-  # Convex, Shards and the model shards: on main (changes skipped) and on a PR touching the model's inputs, as mech
+  # Convex, Shards and the model shards: on a PR or main push touching the model's inputs, and weekly, as mech
   convex:   # warm: only looks the parts cache up. Cold: from main's latest entry, lists the parts whose pieces are stale
     name: Convex
     needs: changes
@@ -201,7 +224,7 @@ jobs:
   convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
     name: Convex (${{ matrix.part }})
     needs: convex
-    # !cancelled(): the implicit success() would skip it on main, where changes (convex's need) is skipped
+    # !cancelled(): the implicit success() would skip it weekly, where changes (convex's need) is skipped
     if: ${{ !cancelled() && needs.convex.result == 'success' && needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
     runs-on: ubuntu-26.04
     strategy:
@@ -269,7 +292,7 @@ jobs:
   model-shard:
     name: Model (${{ matrix.shard }})
     needs: [convex, convex-part, shards]
-    # convex-part is skipped when warm; shards succeeded: not a draft, and the model's inputs changed or this is main.
+    # convex-part is skipped when warm; shards succeeded: not a draft, and the model's inputs changed or it is weekly.
     # Its needs by name, not !failure(), which a failed changes (an ancestor) would trip, as mech runs on then
     if: >-
       ${{ !cancelled() && needs.shards.result == 'success' && needs.convex.result == 'success'
@@ -358,7 +381,7 @@ jobs:
       # the print and FreeCAD exports as a smoke test, beside the hero's sweep: on main, and on a PR whose parts
       # missed their exact key (what they are made from changed)
       - name: Run make stl step
-        if: ${{ contains(matrix.units, 'hero') && (github.event_name == 'push' || steps.parts.outputs.cache-hit != 'true') }}
+        if: ${{ contains(matrix.units, 'hero') && (github.event_name != 'pull_request' || steps.parts.outputs.cache-hit != 'true') }}
         run: make stl step
       # the sim reports (make sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
       # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
@@ -398,7 +421,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Save the sim reports
-        if: ${{ contains(matrix.units, 'sim') && github.event_name == 'push' && steps.reports.outputs.cache-hit != 'true' }}
+        if: ${{ contains(matrix.units, 'sim') && github.event_name != 'pull_request' && steps.reports.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/reports
@@ -427,7 +450,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
   # the required check: a skipped shard would count as passing, so the shards' result is checked (not on cancel); they
-  # may skip only when the PR leaves the model's inputs alone
+  # may skip only when the PR or push leaves the model's inputs alone
   model:
     name: Model
     if: ${{ !cancelled() && !github.event.pull_request.draft }}

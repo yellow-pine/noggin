@@ -23,13 +23,11 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    Stage your files by name (a symlink you made for the worktree stays out of the commit). Push; check the title (`python3
    scripts/pr_title.py "<title>" < body` exits 0, and its one scope is in what `python3 scripts/pr_title.py` prints);
    open one PR against main as CONTRIBUTING.md describes (Conventional Commits title, `Closes #N`), then `gh pr merge
-   --auto --squash` at once.
+   --auto --squash` at once. A PR whose proof (measurements, screenshots) needs CI's run says `Refs #N` until that proof
+   is in its body, then `Closes #N`.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
-   - GitHub reports a conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
-     `.github/workflows/review.yml` changed since your base (`Review` then fails with no verdict): `git rebase
-     origin/main`, resolve any conflicts in place, `git push --force-with-lease`. Rebase only then, since each
-     push dismisses the approval and re-runs the review. Rebase is the only way main reaches your branch and commits
-     are the only place work waits; never merge locally, never stash.
+   - Bring main into your PR with `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main`, only when
+     the rebase rule allows (CONTRIBUTING.md); never force-push. Commits are the only place work waits; never stash.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
      thread with GraphQL `resolveReviewThread`.

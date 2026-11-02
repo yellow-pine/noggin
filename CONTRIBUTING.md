@@ -17,18 +17,16 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It need
   not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
-  that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
-  conflict, a required check was renamed or the PR needs a fix that just landed on main, and then with
-  `scripts/rebase_pr.sh <n>` (`--help`): it rebases in your session's worktree, runs `make check-light` and pushes
-  with a lease. A session labels each PR it opens or takes `session:<name>` (`gh label create session:<name> --force`,
-  `gh pr edit <n> --add-label session:<name>`); the script refuses another session's PR unless `--take`. When main's
+  that edits review.yml gets no review and needs Cansin's bypass. So the rebase rule: bring main into your PR with
+  `gh pr update-branch <n>` (a merge) or `git fetch && git merge origin/main` only when GitHub reports a conflict, a
+  required check was renamed or the PR needs a fix that just landed on main; never force-push. When main's
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
-  review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
+  review re-runs on the new head (#433); `git pull --rebase` before your next push. A Dependabot PR gets `@dependabot rebase`. The
   repo setting "Always suggest updating pull request branches" is off (Cansin, 2026-11-02), so GitHub shows no
-  update-branch banner. CI runs on pushes to main and on ready (non-draft) PRs; every workflow runs only the latest commit of a PR or of main, cancelling
+  update-branch banner. CI runs on pushes to main, on ready (non-draft) PRs and weekly on main; every workflow runs only the latest commit of a PR or of main, cancelling
   the run in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
-  cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
+  cancelled run means a newer one superseded it. A pushed branch reaches main only through its own PR, never a local merge into main.
   Every branch on GitHub has a PR, except on-hold work.
 - A PR's title is its squash commit, with no body (the repo's squash message setting is blank, Cansin, 2026-11-02:
   #388's body forced v0.2.0), so release-please reads the title alone, a body footer never reaches main, and a forced version goes in
@@ -100,7 +98,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
-  run `gh pr update-branch --rebase` on every open PR so it reports the new name.
+  run `gh pr update-branch` on every open PR so it reports the new name.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
@@ -120,7 +118,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
   but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
   `sim`, `trajectories`, `render`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
-  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
+  saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR or main push what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
   three shards the `Shards` job reads from the code with `make model-shards-list`: the hero's sweep, each document, the
@@ -130,8 +128,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
   site at /reports (ADR 0009). Site Checks' `Site` job caches npm's downloads by `site/package-lock.json`
-  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
-  from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part
+  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR or main push whose pictures and viewer
+  are cached from the same inputs, neither Blender job runs and `site` restores them (#386, #471). A cold parts cache is first cut part
   by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
   Every Monday `Cache Prune` deletes the caches whose key prefix no workflow on main uses any more (`scripts/cache_prune.py`,
   #473), so retired caches never crowd live ones out of the 10 GB cap.
@@ -147,11 +145,14 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Dockerfiles' base images digest-pinned and bumps them, bringing the security fixes, #472), and every job that starts
   after runs in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
-  and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
+  and `Model`, so main's Code Checks cover all three, #295), on PRs and main pushes touching eyes/, noggin/ or mech/. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
   `Model`, `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing
-  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing; main
-  runs everything. `Pictures` sums up the `Render` job's runners (one per
+  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing. A
+  push to main filters the same way, against main's last commit whose Code Checks passed on a push (#471), so a run a
+  newer push cancelled is made up for, but main's `Site` always runs, since it
+  builds the deploy; every Monday a scheduled run on main runs everything, the filters' safety net, and deploys
+  nothing. `Pictures` sums up the `Render` job's runners (one per
   motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
   under one name.
 - A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
