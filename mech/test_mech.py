@@ -17,7 +17,7 @@ from mech.standin import MICROPYTHON, Mech, mpy, program
 from noggin import service
 from noggin.core import COMMIT, VERSION
 
-TOKEN = "00112233445566778899aabbccddeeff"  # synthetic: never eyes/wifi.json
+TOKEN = "00112233445566778899aabbccddeeff"  # noqa: S105 synthetic: never eyes/wifi.json
 
 
 def free_port():

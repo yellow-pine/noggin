@@ -17,7 +17,7 @@ from noggin.service import CAL_FILE, DEMO_LINES, HOLD, Service, gesture_seconds
 from noggin.test_service import FakeSerial, wait_for
 from noggin.wifi import STALE, add_network, tag
 
-TOKEN = "s3cret"
+TOKEN = "s3cret"  # noqa: S105 synthetic
 FAST = (0.05, 0.1, 0.2, 0.4)  # the real windows, quartered: an unacked line costs 0.75 s, not 3 s
 
 

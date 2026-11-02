@@ -42,7 +42,7 @@ def test_the_stamp_is_the_repos_version_and_commit_without_the_venv():
     """make mpy and the release workflow write eyes/build/stamp.py from `python -m noggin.core stamp`."""
     out = subprocess.run([sys.executable, "-S", "-m", "noggin.core", "stamp"], cwd=ROOT, capture_output=True, text=True)
     stamp = {}
-    exec(out.stdout, stamp)
+    exec(out.stdout, stamp)  # noqa: S102 stamp.py's source, which noggin.core just printed
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout
     assert re.fullmatch(r"\d+\.\d+\.\d+", stamp["VERSION"]), out
     assert f'version = "{stamp["VERSION"]}"' in (ROOT / "pyproject.toml").read_text()  # the one source (ADR 0010)

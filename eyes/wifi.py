@@ -185,7 +185,7 @@ class Wifi:
                     net = loudest_known(self.wlan.scan(), networks(self.cfg))
                     if net:
                         self.wlan.connect(net["ssid"], net["password"])
-                except Exception:  # a radio error or a full heap must never stop boot.py's loop: next window
+                except Exception:  # noqa: S110 a radio error or a full heap must never stop boot.py's loop: next window
                     pass
             return
         self.join_at = now_ms  # a drop gets the driver's own reconnect for JOIN_MS before a scan
@@ -195,7 +195,7 @@ class Wifi:
             self.cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             # a soft reboot keeps the old socket bound on the ESP32: without this the program dies with EADDRINUSE
             self.cmd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.cmd.bind(("0.0.0.0", COMMAND_PORT))
+            self.cmd.bind(("0.0.0.0", COMMAND_PORT))  # noqa: S104 the noggin service sends from the LAN (ADR 0005)
             self.cmd.setblocking(False)
         if ticks_diff(now_ms, self.next_beacon) >= 0:
             msg = f"noggin {self.name} {self.wlan.ifconfig()[0]} {self.uptime_ms // 1000} {VERSION} {COMMIT}"

@@ -50,7 +50,7 @@ def repin(text: str, old: str, new: str, old_sha: str, new_sha: str) -> str:
 
 
 def get(url: str) -> str:  # the network fetch; tests pass recorded pages
-    with urllib.request.urlopen(url, timeout=60) as r:
+    with urllib.request.urlopen(url, timeout=60) as r:  # noqa: S310 our own https URLs to blender.org
         return r.read().decode()
 
 

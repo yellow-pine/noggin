@@ -7,7 +7,7 @@ import fcntl
 import os
 import sys
 
-path = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")
+path = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
 fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o666)
 try:
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -22,4 +22,4 @@ except BlockingIOError:
 os.ftruncate(fd, 0)
 os.pwrite(fd, str(os.getpid()).encode(), 0)  # exec keeps the pid: the waiter's message names the command
 os.set_inheritable(fd, True)
-os.execvp(sys.argv[1], sys.argv[1:])
+os.execvp(sys.argv[1], sys.argv[1:])  # noqa: S606 the command it was given, by design
