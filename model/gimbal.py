@@ -55,12 +55,13 @@ LID_HORN = (18.0, -45.0)
 # mid-range, so the bar meets it at 64 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
 LID_CRANK = math.degrees(math.atan2(LID_HORN[1], -LID_HORN[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
 LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
-LID_BEND = (33.0, -30.0)  # (y, z) the lid bar bends at, at rest: under the pitch servo, behind the yawing tie-bar
+LID_BEND = (33.0, -36.0)  # (y, z) the lid bar bends at, at rest: under the pitch servo, behind the yawing tie-bar
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
-# upper, 0.8x (docs/research: 38 deg upper, 30 lower). Inferred, searched for its link meeting the crank at 60 deg or more.
-LINK_PIN = (28.2, -18.3)  # (y, z) of the link's pin on the bar at rest, on a boss beside its first leg
-LOWER_PIN = (-9.25 * math.cos(math.radians(274.0)), 9.25 * math.sin(math.radians(274.0)))  # the lower crank's pin
+# upper, 0.8x (docs/research: 38 deg upper, 30 lower). Inferred, searched for its link meeting the crank at 57 deg or
+# more, its crank pin out of the reach of a cap yawed in and pitched down.
+LINK_PIN = (26.0, -8.0)  # (y, z) of the link's pin on the bar at rest, a joint between its upper pin and the bend
+LOWER_PIN = (-6.0 * math.cos(math.radians(258.0)), 6.0 * math.sin(math.radians(258.0)))  # the lower crank's pin
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
@@ -83,7 +84,7 @@ PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2,
 # its servo under the eye then clears the pitch servo's collar), the link, and the lids' ears with their crank pins past
 # where a cap reaches yawed in (25.4)
 LID_X = {
-    **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (24.5, 27.5)},
+    **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (25.0, 28.0)},
     **{"bar": (16.5, 19.5), "link": (22.9, 25.9), "ear": (25.9, 28.9)},
 }
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo

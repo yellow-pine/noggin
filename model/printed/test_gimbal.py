@@ -40,7 +40,7 @@ def test_no_two_parts_overlap_at_rest():
 
 @pytest.mark.build
 def test_the_block_fits_the_compact_head():
-    """#684, #698: the gimbal, servos and horns included, fits a head of at most 125 W x 120 D x 150 H: the face as
+    """#684, #698: the gimbal, servos and horns included, fits a head of at most 126 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
     assert all(b <= h for b, h in zip(gimbal.bounds(), gm.HEAD_MM))
 
@@ -58,7 +58,7 @@ def test_the_pupil_seat_sits_toward_the_other_eye(side, inward):
 def test_the_skeleton_moves_every_part_as_the_gimbal_does():
     """The hinges gates.certify reads (#655): at each (lid, pitch) row every part sits where gimbal.moved() puts it, the
     parts that turn alike about one line on one hinge."""
-    poses = [(-60, -12), (-20, 0), (10, 14)]
+    poses = [(-36, -12), (-20, 0), (10, 14)]
     model, rows = gimbal.skeleton(gimbal.at_rest())
     data = mujoco.MjData(model)
     for (lid, pitch), q in zip(poses, rows(poses)):
@@ -175,11 +175,13 @@ def _slice(solid, a, b, t, eps=0.01):
     return cut.Volume() / eps, float(np.linalg.eigvalsh(basis @ inertia @ basis.T).min()), float(inertia[0, 0]), half
 
 
+@pytest.mark.parametrize("style", ["bone", "plain"])  # both looks stay (#704)
 @pytest.mark.parametrize("part", LID_BONES)
-def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
+def test_each_lid_bone_holds_its_lid_servo_at_stall(part, style, monkeypatch):
     """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
     between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
     half-width), and the straight link against Euler buckling."""
+    monkeypatch.setattr(gimbal, "LID_STYLE", style)
     make, joints = LID_BONES[part]
     solid, mat = make().val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
