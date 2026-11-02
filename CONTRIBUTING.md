@@ -24,12 +24,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   renamed or the PR needs a fix that just landed on main, and push plain commits, never a force-push: each push
   dismisses the approval and re-runs the review. GitHub shows no update-branch banner (the repo's "Always suggest
   updating pull request branches" is off, Cansin, 2026-11-02). A Dependabot PR gets `@dependabot rebase`.
-- Every ready PR gets Claude's review (`.github/workflows/review.yml`: mattpocock code-review plus ponytail):
+- Every ready PR gets Claude's review (`.github/workflows/claude-review.yml`: mattpocock code-review plus ponytail):
   claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
   ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
   approval lands on the head (re-run the job, #389). Its approval resolves its own threads a later push outdated
-  (`scripts/claude_approved.py`). A PR that edits review.yml gets no review and needs Cansin's bypass. When main's
-  review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
+  (`scripts/claude_approved.py`). A PR that edits claude-review.yml gets no review and needs Cansin's bypass. When main's
+  claude-review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
   the new head (#433): `git pull --rebase` before your next push. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice,
   for Actions and for Dependabot (whose PRs only see Dependabot secrets): run `claude setup-token`, then `gh secret set
   CLAUDE_CODE_OAUTH_TOKEN` and `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
@@ -71,7 +71,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
   write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
   `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
-  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or
+  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in claude-review.yml's `allowed_bots`, or
   its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
