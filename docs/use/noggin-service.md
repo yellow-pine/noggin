@@ -8,7 +8,7 @@ over the Link: Wi-Fi first, USB-C as fallback (ADR 0003, ADR 0005). Drawn in [Ho
 ```
 just install         # host side only: hooks + the noggin service
 just start / stop    # (re)start or stop the noggin service; stop frees the Link for mpremote
-noggin/noggin status # Link (Wi-Fi or USB) and program version per Core, the service's version, the mode (follow, demo or pose)
+noggin/noggin status # Link (Wi-Fi or USB) and program version per Core, the service's version, the last pack cut (charge the pack), the mode (follow, demo or pose)
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 just demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (just demo once, just demo bored 2)
 just follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)

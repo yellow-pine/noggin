@@ -18,6 +18,12 @@ _Avoid_: board, receiver, controller, ESP
 The expansion board the Core sits on; carries the servo ports and the power input; one per Core.
 _Avoid_: receiver, receiver shield, product codes
 
+**Pack cut**:
+The battery pack's protection switching the pack off under a load it can no longer carry (near empty), so every Core
+and servo goes dark at once. The noggin service knows one by both Cores restarting together without a reboot it sent;
+the cure is to charge the pack.
+_Avoid_: brownout (the Core's own reset, which a pack cut comes before), power loss, crash
+
 **Servo**:
 One of the seven actuators, named by what it moves: left lid, left eye, right lid, right eye (eyes Core); tilt, mouth, pan (neck Core).
 _Avoid_: channel, PWM, actuator, motor
@@ -194,6 +200,11 @@ A part we print, by our name (the designer's file names are history: docs/credit
 - top jaw (screwed under the eye bracket, the jaw hinge pins), bottom jaw (turns on them), jaw servo mount (on the eye
   bracket's rail), jaw bar (the jaw Horn to the bottom jaw's lug).
 _Avoid_: the designer's file names, version suffixes, plain / cutout / regular
+
+**Coupon**:
+A test piece we print to find a fit on our printer and filament before a Printed part relies on it, such as the
+clearance coupon's pins and magnet pockets; not part of the Mech.
+_Avoid_: test part, calibration print, sample
 
 **Pivot**:
 A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) and a joint of the four-bar

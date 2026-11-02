@@ -9,7 +9,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
-  drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
+  drawn a touch lighter so its shading and lines read) and its material (geometry.MATERIALS, from the spool's TDS:
+  density, and the across-layer values model/beams.py checks, #626). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `just view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
   renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in
@@ -89,7 +90,8 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 The model follows Cansin's build, then our model (CLAUDE.md). What we plan to change stays here until
 the model stabilises.
 - The next Mech (#51, on hold; the spec lives there): linked eyes (one servo for left/right, one for up/down, each lid
-  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton
+  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
+  as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):

@@ -1,8 +1,8 @@
-"""Our geometry as files: every printed part (printed.PARTS, by our part name) and every hardware envelope
-(envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `just ours`: all of them
-as STLs in model/build/ours (stages.OURS), which MuJoCo (just sim, everywhere) and the renders read. `just stl`: the
-printed parts as print-ready STLs in model/build/stl. `just step`: every shape and each Stage at neutral (model/stages.py's
-placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
+"""Our geometry as files: every printed part (printed.PARTS, by our part name), every Coupon (printed.COUPONS) and
+every hardware envelope (envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `just ours`: all of
+them as STLs in model/build/ours (stages.OURS), which MuJoCo (just sim, everywhere) and the renders read. `just stl`:
+the printed parts and the Coupons as print-ready STLs in model/build/stl. `just step`: every shape and each Stage at
+neutral (model/stages.py's placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
 own process before the model reads them: CadQuery's OCCT threads must not be running when a process pool forks."""
 
 import functools
@@ -16,7 +16,8 @@ from OCP.gp import gp_Trsf
 from model import envelopes, geometry, printed, stages
 from model.render import scene
 
-SHAPES = {**printed.PARTS, **envelopes.ENVELOPES}
+SHAPES = {**printed.PARTS, **printed.COUPONS, **envelopes.ENVELOPES}
+PRINTS = [*printed.PARTS, *printed.COUPONS]  # what `just stl` writes
 BUILD = os.path.join(stages.REPO, "model", "build")
 
 
@@ -61,7 +62,7 @@ if __name__ == "__main__":
     if what == "ours":
         write(stages.OURS, list(SHAPES), ".stl")
     elif what == "stl":
-        write(os.path.join(BUILD, "stl"), list(printed.PARTS), ".stl", printable)
+        write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
     elif what == "step":
         write(os.path.join(BUILD, "step"), list(SHAPES), ".step")
         for doc in geometry.STAGES:

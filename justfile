@@ -81,7 +81,7 @@ sim *docs: venv ours
 ours: venv
     @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
 
-# print-ready STLs of our printed parts (mm, the designer's frames, L and R each) in model/build/stl
+# print-ready STLs of our printed parts (mm, the designer's frames, L and R each) and the clearance coupon in model/build/stl
 stl: venv
     {{PY}} -m model.ours stl
 
