@@ -1,4 +1,5 @@
 name: Release Please
+# Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it
 # Keeps the release PR (docs/adr/0010): the next version in pyproject.toml, uv.lock and .release-please-manifest.json,
 # and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token
 # minted per run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR

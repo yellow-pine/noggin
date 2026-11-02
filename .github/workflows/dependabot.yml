@@ -1,4 +1,5 @@
 name: Dependabot Auto-merge
+# Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass
 # Every Dependabot PR, majors too, merges on green: auto-merge waits for main's ruleset (the required checks, Claude's
 # review among them). GitHub's recipe: docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions
 on: pull_request
