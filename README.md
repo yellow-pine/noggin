@@ -25,11 +25,13 @@ macOS or Linux, with:
 | [just](https://just.systems/) | the recipes: `uv run just` (a dev dependency), or `uv tool install rust-just` |
 | Node 24 | the site (`site/.nvmrc`) |
 | Chrome | the site's browser tests |
+| [Docker](https://docs.docker.com/get-started/get-docker/) | `just linux-test`, a model/ change's tests in the CI image |
 
 ```sh
 just venv                      # .venv from uv.lock
 just lint                      # ruff (lint, formatting) and pyright: the pre-push hook
 just check-light               # the PR gate: just lint and the fast tests
+just linux-test <tests>        # just ours and those tests in the CI image (Docker): a model/ change, before its push
 just check                     # main's Code job: adds the workflow linters and the CadQuery build tests
 just site                      # the site, built into site/dist
 npm --prefix site run preview  # serve it
