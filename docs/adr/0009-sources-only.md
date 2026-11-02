@@ -35,6 +35,7 @@
 > land without waiting for a base-image bump (ADR 0012).
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 > Amended 2026-11-02 (#640, ADR 0019): CI builds no picture or GLB and the site serves none until the clean-room Mech.
+> Amended 2026-11-02 (#649, ADR 0019): CI builds the Next Mech's pictures and GLB, and the site serves them.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -54,6 +55,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **PR previews are artifacts.** A PR's Checks run builds the docs (and the viewer's GLBs when it changed what they
   are made from, #221) and its gate uploads them as an artifact linked from its job summary; no external preview host.
   The gate is the required `Checks` (#245, #496), and the run tests the built site (ADR 0013).
+  A PR whose run made the next Mech's before/after also shows it in one sticky comment (#657), its pictures assets
+  of the one `pr-previews` pre-release: GitHub's own, never latest and no v* tag, so nothing in git and no release.
 - **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
   and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
   #306, the CI/CD table from the workflows, #425) are filled at build time: `macros.py` writes them as JSON and the

@@ -23,6 +23,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - I can't measure (no calliper): a size my build doesn't settle is a best guess from its behaviour or photos, then the model's nominals, marked inferred.
 - Hardware never gates a merge: Core and Link PRs merge on green, and I try them on the physical Mech after.
 - Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- After a merge that changes the next Mech's look, the main session opens its new pictures and motion for me: the PR's preview, then the live Pictures page once deployed.
 - No real photos in git, the README or the site until staged photos exist; Blender pictures and the viewer stand in, once ADR 0019 lets them.
 - Today's Mech is shown nowhere public (site, README, releases, CI artifacts) until the clean-room Mech exists (ADR 0019, #640).
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
@@ -40,8 +41,8 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - The next Mech's skeleton and character shells (planned, #51): `docs/face-design.md`.
-- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `just render`, `just hero`, local only (ADR 0019).
-- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs locally, off the site (ADR 0019); `just site` the whole site.
+- Model pictures (Blender, from MuJoCo's trajectories; look, the Stage panels, the hero): `docs/model-notes.md`; `just render`, `just hero`, local only; the next Mech's alone are published, a PR's before/after by `just preview <pr>` (ADR 0019).
+- Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, the site serves the next Mech's alone (ADR 0019); `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
 - Checks and CI: CONTRIBUTING.md. Board: `just flash`, `just start`/`stop`. Tuning: `noggin/noggin set|pose|exercise`.

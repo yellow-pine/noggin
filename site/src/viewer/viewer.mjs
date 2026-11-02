@@ -179,6 +179,7 @@ function mount(root) {
     goal = exploded ? 1 : 0;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of [...bar.children, toggle]) b.disabled = true;
+    root.setAttribute("aria-busy", true);
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
     if (mine !== loading) return;  // a later Stage click won
     poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
@@ -244,7 +245,9 @@ function mount(root) {
     toggle.hidden = !parts.length;
     toggle.disabled = false;
     press(toggle, goal === 1);
-    play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
+    bar.hidden = caption.hidden = !tour.length;  // a still Stage (the next Mech's, #649) plays nothing
+    if (tour.length) play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
+    root.setAttribute("aria-busy", false);
   }
 
   for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));

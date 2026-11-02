@@ -200,7 +200,7 @@ hero: venv ours trajectories
 hero-join: venv
     {{PY}} -m model.render.pictures join
 
-# the site's pictures (model/render/pictures.py SITE), or the motions named (views or hero; or in MOTIONS, the Blender bins), in model/build/images, local only (docs/adr/0019)
+# the site's pictures (model/render/pictures.py SITE), or the motions named (views, hero; or in MOTIONS, the Blender bins), in model/build/images, local only (docs/adr/0019); `next`, the next Mech's panels and a picture per part, is what the site serves (Checks' Blender job, #649)
 [group('heavy')]
 pictures *motions=env("MOTIONS", ""): venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{motions}}
@@ -217,16 +217,29 @@ model-durations run:
 blender-bins: venv
     @{{PY}} -m model.shards blender
 
-# the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with just site
+# the web viewer's GLBs in web/build, Blender's per Stage and the next Mech's (or the documents named; the next Mech's is the one the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
-web: venv ours trajectories
-    BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build
+web *docs: venv ours trajectories
+    BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build web/build {{docs}}
     {{PY}} -m pytest -q web
 
-# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs; no picture or GLB (docs/adr/0019); the sim reports go to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
+# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the next Mech's pictures and GLB (the next-* ones, never today's: docs/adr/0019) go to site/dist/images and viewer once just pictures next and just web made them, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
 site: venv && site-reports
     {{PY}} -m macros
     cd site && npm ci --ignore-scripts --no-audit --no-fund && npm run build
+    ! ls model/build/images/next-* >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/next-* site/dist/images/; }
+    ! ls web/build/next-*.glb >/dev/null 2>&1 || cp web/build/next-*.glb site/dist/viewer/
+
+# a PR's preview of the next Mech (Checks' `preview` artifact, #649): its before/after panel (the live site's above the PR's) and the pictures it publishes, from its newest run that made one, in model/build/preview/<pr>
+preview pr:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir=model/build/preview/{{pr}} branch=$(gh pr view {{pr}} --json headRefName -q .headRefName)
+    for id in $(gh run list -w checks.yml -b "$branch" -e pull_request -L 20 --json databaseId -q '.[].databaseId'); do
+        rm -rf "$dir"
+        if gh run download "$id" -n preview -D "$dir" 2>/dev/null; then echo "$dir"; exit 0; fi
+    done
+    echo "no preview in PR {{pr}}'s last 20 runs: it changed nothing the next Mech is drawn from" >&2; exit 1
 
 # the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Checks saved
 site-reports:

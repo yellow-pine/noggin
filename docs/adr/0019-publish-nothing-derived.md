@@ -3,6 +3,15 @@
 > Decided with Cansin on 2026-11-02, #640, on #618's licence research (its 2026-11-02 note in docs/research).
 > Amends ADR 0008 (the viewer is off the site) and ADR 0009 (CI
 > builds the pictures and GLBs no more).
+> Amended 2026-11-02 (#649, Cansin): the Next Mech, clean-room, is published as soon as its pieces exist. CI's
+> `Blender` job renders its panels and a picture per part (`just pictures next`) and bakes its GLB (`just web
+> next-mech`) when what they are made from changed; the site serves them at /images and /viewer (Model > Pictures,
+> Viewer), updated on every merge to main; a PR that changes them gets a before/after panel, the live site's above its
+> own, as the `preview` artifact (`just preview <pr>`). Every name published starts `next-`, and tests hold what is
+> rendered, baked, uploaded and served to the Next Mech's documents, which carry none of today's printed parts
+> (test_workflows.py, test_site.py, site.test.mjs). Today's Mech stays unpublished.
+> Amended 2026-11-02 (#657, Cansin): the PR's before/after is also inline in one sticky comment on the PR, its
+> pictures assets of the `pr-previews` pre-release (a PR keeps its newest run's; every asset goes after 30 days).
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

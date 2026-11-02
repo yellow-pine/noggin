@@ -9,14 +9,17 @@ name: Checks
 # just check; `Model` the tests marked model in four shards balanced on the seconds they measured (model/shards.py: the
 # hero's collision sweep, each document, the rest with just view's offscreen render, just sim when its inputs changed,
 # and just mech, the Link's live checks on the Mech stand-in, #222), with just stl and just step on main or when the
-# parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. No
-# picture, hero or viewer GLB is rendered: nothing derived from today's printed parts is published, and every artifact
-# of a public repo is (#640, docs/adr/0019), so the parts pass between jobs in the Actions cache alone. `Site` builds
-# the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` plays the site
-# in Chrome (Playwright), uploads it (a PR's preview, and on main what Site Deploy, pages.yml, deploys) and checks the
-# CI budget once (scripts/ci_budget.py). On main, Deploy
+# parts changed; a cold parts cache is built and cut first (`Convex`, #223) and saved, so the shards start warm. Every
+# artifact of a public repo is anyone's, so nothing derived from today's printed parts is rendered or uploaded (#640,
+# docs/adr/0019) and the parts pass between jobs in the Actions cache alone. `Blender` renders the next Mech alone (#649):
+# its panels and a picture per part (just pictures next) and its viewer GLB (just web next-mech), when what they are
+# made from changed, with a PR's before/after panel (the `preview` artifact, just preview <pr>), which `Preview
+# Comment` shows in the PR's one sticky comment (#657). `Site` builds the docs
+# (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the next Mech's
+# pictures and GLB, tests and plays the site in Chrome (Playwright), uploads it (a PR's preview, and on main what Site
+# Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
 # Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
-# outcome. Code and Site run in our base image; the others on the bare runner.
+# outcome. Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
 on:
   push:
     branches: [main]
@@ -52,6 +55,8 @@ jobs:
       site: ${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}
       parts: ${{ steps.parts.outputs.cache-hit }}   # warm: convex skips
       parts-key: ${{ steps.parts.outputs.cache-primary-key }}
+      next: ${{ steps.next.outputs.cache-hit }}   # warm: Blender skips, checks restores them
+      next-hash: ${{ steps.inputs.outputs.next }}
       shards: ${{ steps.lists.outputs.shards }}
     steps:
       - name: Check out the repo
@@ -80,6 +85,26 @@ jobs:
             model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "justfile", "pyproject.toml", "uv.lock",
                    ".github/workflows/*.yml", "ci/*.Dockerfile", "macros.py", "scripts/workflow_table.py"]
+      # the next Mech's pictures' and GLB's key hashes only what they are made from (#469): the render code and the
+      # parts' make (model/ours.py) with what they import or name (scripts/inputs.py), Blender's pin and uv.lock, so a
+      # justfile, workflow or test edit renders nothing. Hashed here alone, on the runner's Python, for every job
+      - name: Hash the next Mech's inputs
+        id: inputs
+        run: |   # the inputs' sha256
+          next=$(python3 scripts/inputs.py --hash model/render/pictures.py web/build.py model/ours.py ci/blender.Dockerfile uv.lock)
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+      # whether the next Mech's pictures and GLB made from the same inputs are cached: then Blender skips, nor pulls
+      # its image (#386). The weekly and dispatched runs render again
+      - name: Look up the next Mech's pictures
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+        id: next
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-${{ steps.inputs.outputs.next }}
+          lookup-only: true
       # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
       - name: Look up the parts cache
         id: parts
@@ -88,7 +113,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
@@ -128,7 +153,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
@@ -356,6 +381,54 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
+  # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
+  # changed: rendered and baked from its trajectories on CI's software GL and saved for checks (and later runs) to
+  # restore. A PR's preview artifact beside them: the live site's panels above this run's, and its pictures
+  blender:
+    name: Blender
+    needs: changes
+    if: ${{ needs.changes.outputs.next != 'true' }}
+    runs-on: ubuntu-26.04
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
+    env:
+      TRAJ_DOCS: next-mech   # the trajectories just pictures and just web draw from: the next Mech's alone
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      # restore only, as in code; the trajectories need no convex pieces (mjcf.model collide=False: no CoACD, #276)
+      - name: Restore the parts cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
+          restore-keys: ours-convex-
+      - name: Run just pictures next
+        run: uv run just BLENDER=blender pictures next
+      - name: Run just web next-mech
+        run: uv run just BLENDER=blender web next-mech
+      - name: Save the next Mech's pictures
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-${{ needs.changes.outputs.next-hash }}
+      - name: Make the preview
+        if: ${{ github.event_name == 'pull_request' }}
+        run: uv run python -m model.render.pictures compare
+      # by a stable name, so just preview <pr> finds it (#649)
+      - name: Upload the preview
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: preview
+          path: model/build/preview
+          if-no-files-found: error
   # the docs (Astro Starlight, just site)
   site:
     name: Site
@@ -417,7 +490,7 @@ jobs:
   # check passes, so this one never skips; a failed need fails it). Then the built site, played in the runner's Chrome
   checks:
     name: Checks
-    needs: [changes, code, convex, model, site]
+    needs: [changes, code, convex, model, blender, site, preview-comment]
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     steps:
@@ -425,7 +498,7 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, site
+          allowed-skips: convex, model, blender, site, preview-comment
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -436,6 +509,22 @@ jobs:
         with:
           name: built-site
           path: site
+      # the next Mech's, made from this run's inputs: Blender's of this run, or an earlier run's (main's, or this PR's)
+      - name: Restore the next Mech's pictures
+        if: ${{ needs.site.result == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Add the pictures and viewer
+        if: ${{ needs.site.result == 'success' }}
+        run: |   # as just site does: the next-* ones alone (docs/adr/0019)
+          mkdir -p site/dist/images site/dist/viewer
+          cp model/build/images/next-* site/dist/images/
+          cp web/build/next-*.glb site/dist/viewer/
       - name: Set up Node
         if: ${{ needs.site.result == 'success' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
@@ -446,8 +535,13 @@ jobs:
       - name: Install the site's packages
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
-      # the diagrams draw, search finds a page, the version switcher switches, in the runner's Chrome, with no CSP
-      # violation or console error and no request to another host but api.github.com
+      # the links Site checked, now with the pictures they point at, and that every picture and GLB is one the code
+      # publishes (site.test.mjs)
+      - name: Check the links and the pictures
+        if: ${{ needs.site.result == 'success' }}
+        run: npm --prefix site test -- site.test.mjs -t "link|picture"
+      # the viewer loads the next Mech, the diagrams draw, search finds a page, the version switcher switches, in the
+      # runner's Chrome, with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
         if: ${{ needs.site.result == 'success' }}
         run: npm --prefix site run smoke
@@ -465,15 +559,75 @@ jobs:
         if: ${{ needs.site.result == 'success' && github.event_name != 'push' && github.event_name != 'schedule' }}
         env:
           URL: ${{ steps.preview.outputs.artifact-url }}
+          CACHED: ${{ needs.changes.outputs.next }}
         run: |
           {
-            echo "Site preview: [the site artifact]($URL),"
+            echo "Site preview with the next Mech's pictures and viewer: [the site artifact]($URL),"
             echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
+            if [ "$CACHED" != true ]; then
+              echo 'The next Mech before and after: the `preview` artifact, `just preview <pr>`.'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # once for the run: its critical path, every job along its needs up to here. Warm: the parts cached from the
-      # same inputs
+      # once for the run: its critical path, every job along its needs up to here. Warm: the parts and the next Mech's
+      # pictures cached from the same inputs
       - name: Check the CI budget
-        run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' }}
+        run: python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true' && needs.changes.outputs.next == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+  # a PR's sticky comment (#657): the next Mech's before/after inline, wherever Blender made a preview, edited in place
+  # on each push that makes one. Its pictures are assets of the one `pr-previews` pre-release, never latest and no v*
+  # tag, so no release, release note or docs version reads it; each PR keeps its newest run's, and every asset goes
+  # after 30 days (a release holds at most 1000). The only job that writes, and only on this repo's PRs: a fork's and
+  # Dependabot's tokens are read-only
+  preview-comment:
+    name: Preview Comment
+    needs: blender
+    if: >-
+      ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the pr-previews release's assets
+      pull-requests: write   # the comment
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Download the preview
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: preview
+          path: preview
+      # pr<N>-<run id>-<name>, a name per PR and run, so a comment never shows another push's picture
+      - name: Upload the before and after
+        env:
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh release view pr-previews >/dev/null 2>&1 \
+            || gh release create pr-previews --prerelease --latest=false --title "PR previews" \
+              --notes "The next Mech's before and after for each PR's preview comment (#657); not a release." \
+            || gh release view pr-previews >/dev/null   # another PR's run made it first
+          prefix="pr$PR-$GITHUB_RUN_ID-"
+          for f in preview/before-after*.webp; do cp "$f" "$prefix${f#preview/}"; done
+          gh release upload pr-previews --clobber "$prefix"*.webp
+          base="$GITHUB_SERVER_URL/$GH_REPO/releases/download/pr-previews"
+          {
+            echo "**The next Mech, before and after:** the live site's above, ${SHA:0:7}'s below ([its run]($RUN_URL);"
+            echo "every picture it publishes: \`just preview $PR\`)."
+            for f in "$prefix"*.webp; do echo; echo "![${f#"$prefix"}]($base/$f)"; done
+          } > comment.md
+          echo "prefix=$prefix" >> "$GITHUB_ENV"
+      - name: Post the comment
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88   # v3.0.5
+        with:
+          header: next-mech-preview
+          path: comment.md
+      - name: Prune the old pictures
+        run: |
+          cut=$(date -ud '30 days ago' +%FT%TZ)
+          gh release view pr-previews --json assets | jq -r --arg pr "pr$PR-" --arg keep "$prefix" --arg cut "$cut" \
+            '.assets[] | select((.name | startswith($pr) and (startswith($keep) | not)) or .createdAt < $cut) | .name' \
+            | xargs -r -n1 gh release delete-asset pr-previews --yes

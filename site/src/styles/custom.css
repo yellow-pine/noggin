@@ -189,7 +189,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-viewer button[aria-pressed='true'] { color: #202020; background: var(--noggin-apricot); border-color: var(--noggin-apricot); }
 .noggin-viewer button:focus-visible { outline: 2px solid var(--noggin-azure); outline-offset: 2px; }
 .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
-.noggin-viewer button[hidden] { display: none; }
+.noggin-viewer [hidden] { display: none; } /* Explode, and the gestures of a still Stage */
 .noggin-controls nav[aria-label='Stage'] button { width: 2.5rem; padding: 0; font-family: var(--noggin-rubik); font-weight: 700; font-size: 1rem; }
 .noggin-controls > button { margin-inline-start: auto; order: 1; }
 .noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
@@ -203,6 +203,11 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 /* a figure centred, as on GitHub's README */
 figure { text-align: center; }
 figure img { margin-inline: auto; }
+
+/* the next Mech's parts (macros.py next_parts): a picture each over its name */
+.noggin-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+.noggin-parts figure { margin: 0; text-align: center; }
+.noggin-parts img { display: block; width: 100%; height: auto; }
 
 /* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
    stacked by Stage, its views side by side */
