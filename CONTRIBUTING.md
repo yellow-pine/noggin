@@ -80,7 +80,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too and run `gh pr update-branch --rebase` on every open PR so it reports the new name.
-- Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR.
+- Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
+  numbered the next free one. When Code fails because main took that number since, run
+  `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`make wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
 - Hardware facts and calibration lessons are in the build guide, `docs/build/`. The Core's firmware is updated with the vendor's own tools only; esptool only for read-only queries (ADR 0012).
