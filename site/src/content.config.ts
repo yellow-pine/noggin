@@ -13,8 +13,7 @@ export const collections = {
     schema: docsSchema(),
     loader: {
       name: 'repo-markdown',
-      // Starlight wants a title in front matter: ours is the page's H1, which each page opens with (site.test.mjs);
-      // the landing page is a splash, no sidebar
+      // Starlight wants a title in front matter: ours is the page's H1, which each page opens with (site.test.mjs)
       load: (context) =>
         pages.load({
           ...context,
@@ -23,7 +22,6 @@ export const collections = {
               ...entry,
               data: {
                 title: readFileSync(entry.filePath!, 'utf8').match(/^# (.+)$/m)?.[1],
-                ...(entry.id === 'index' && { template: 'splash' }),
                 ...data,
               },
             }),
