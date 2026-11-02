@@ -31,9 +31,16 @@ def bone(a, b, head, waist, up=(0, 0, 1), round=False):
         wires.append(cq.Wire.assembleEdges([arc] if round else [arc, cq.Edge.makeLine(c - s * w, c + s * w)]))
     out = cq.Workplane().add(cq.Solid.makeLoft(wires))
     for p in (a, b):
-        dome = cq.Solid.makeSphere(1, angleDegrees1=-90 if round else 0, angleDegrees2=90)  # a unit (half-)ball
-        m = np.c_[side * head[0], along * head[0], top * head[1], p]
-        out = out.union(cq.Workplane().add(dome.transformGeometry(cq.Matrix([list(map(float, r)) for r in m]))))
+        if round:  # an ellipsoid turned about `top`: a ball scaled unevenly fused to nothing on Linux (#737)
+            c, s, u = cq.Vector(*p), cq.Vector(*side), cq.Vector(*top)
+            arc = cq.Edge.makeEllipse(head[0], head[1], c, cq.Vector(*-along), s, -90, 90)
+            wire = cq.Wire.assembleEdges([arc, cq.Edge.makeLine(c + u * head[1], c - u * head[1])])
+            dome = cq.Solid.revolve(wire, [], 360, c, c + u)
+        else:  # a unit half-ball scaled
+            m = np.c_[side * head[0], along * head[0], top * head[1], p]
+            dome = cq.Solid.makeSphere(1, angleDegrees1=0, angleDegrees2=90)
+            dome = dome.transformGeometry(cq.Matrix([list(map(float, r)) for r in m]))
+        out = out.union(cq.Workplane().add(dome))
     return out
 
 
