@@ -55,8 +55,6 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **PR previews are artifacts.** A PR's Checks run builds the docs (and the viewer's GLBs when it changed what they
   are made from, #221) and its gate uploads them as an artifact linked from its job summary; no external preview host.
   The gate is the required `Checks` (#245, #496), and the run tests the built site (ADR 0013).
-  A PR whose run made the next Mech's before/after also shows it in one sticky comment (#657), its pictures assets
-  of the one `pr-previews` pre-release: GitHub's own, never latest and no v* tag, so nothing in git and no release.
 - **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
   and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
   #306, the CI/CD table from the workflows, #425) are filled at build time: `macros.py` writes them as JSON and the

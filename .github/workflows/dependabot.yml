@@ -3,6 +3,9 @@ name: Dependabot Auto-merge
 # Majors too: auto-merge waits for main's ruleset (the required checks, Claude's review among them).
 # GitHub's recipe: docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions
 on: pull_request
+concurrency:   # one run per PR; a new push cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions: {}
 jobs:
   auto-merge:

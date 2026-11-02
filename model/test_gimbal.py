@@ -68,6 +68,13 @@ def test_the_lid_covers_the_cap_closed_and_tracks_the_pitch_open(report):
     assert closed < -gimbal.CAP_HALF and opened == pytest.approx(gimbal.PUPIL_DEG + 2 + gimbal.PITCH)
 
 
+@pytest.mark.parametrize("pitch", [-12, 14])
+def test_at_yaw_0_every_part_turns_about_x(pitch):
+    """#670: at yaw 0 every drive is planar across x, so each part turns about x alone, as the lid sweep's hinges do."""
+    for name, m in gimbal.moved(-60, pitch).items():
+        assert m[0, :3] == pytest.approx((1, 0, 0), abs=1e-9) and m[:3, 0] == pytest.approx((1, 0, 0), abs=1e-9), name
+
+
 @pytest.mark.parametrize("lid", [-65, -20, 15])
 @pytest.mark.parametrize("pitch", [-15, 0, 15])
 def test_the_moved_parts_keep_their_pins_together(lid, pitch):

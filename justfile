@@ -230,17 +230,6 @@ site: venv && site-reports
     ! ls model/build/images/next-* >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/next-* site/dist/images/; }
     ! ls web/build/next-*.glb >/dev/null 2>&1 || cp web/build/next-*.glb site/dist/viewer/
 
-# a PR's preview of the next Mech (Checks' `preview` artifact, #649): its before/after panel (the live site's above the PR's) and the pictures it publishes, from its newest run that made one, in model/build/preview/<pr>
-preview pr:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    dir=model/build/preview/{{pr}} branch=$(gh pr view {{pr}} --json headRefName -q .headRefName)
-    for id in $(gh run list -w checks.yml -b "$branch" -e pull_request -L 20 --json databaseId -q '.[].databaseId'); do
-        rm -rf "$dir"
-        if gh run download "$id" -n preview -D "$dir" 2>/dev/null; then echo "$dir"; exit 0; fi
-    done
-    echo "no preview in PR {{pr}}'s last 20 runs: it changed nothing the next Mech is drawn from" >&2; exit 1
-
 # the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Checks saved
 site-reports:
     scripts/site_reports.sh
