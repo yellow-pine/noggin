@@ -25,6 +25,9 @@
 > rebuild; the distro's security fixes arrive with Dependabot's base-image bumps (ADR 0012).
 > Amended 2026-11-02 (#481, spec #467): the jobs run the CI images by the `:main` tag, not by digest; ci/pins goes.
 > Amended 2026-11-02 (#529): gh in the base image from GitHub CLI's signed apt repo, unpinned (ADR 0012).
+> Amended 2026-11-02 (#538, #496): Code Checks and Site Checks are one workflow, Checks (`checks.yml`), whose `Checks`
+> gate fails unless every job before it passed or was skipped; Site Deploy deploys the site that gate uploads once
+> main's Checks passed. Main's ruleset requires four checks: PR, Checks, Fetch Skills and Review.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -37,12 +40,13 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   (ADR 0008) sits at /viewer. The docs are the repo's Markdown as GitHub shows it, with no rewrite for the site, so
   a link to anything but a doc or a picture is an absolute GitHub URL (the site's tests fail on a link that lands
   nowhere, and the site carries no code).
-- **Built once, deployed with GitHub's own Pages actions** (#310). Site Checks (`site-checks.yml`) builds the docs,
-  the viewer's GLBs and the pictures on every PR and every push to main, and uploads the site as an artifact. Site
-  Deploy (`pages.yml`) runs only on main: once both Code Checks and Site Checks passed for the commit, it downloads
+- **Built once, deployed with GitHub's own Pages actions** (#310). Checks (`checks.yml`, #496) builds the docs,
+  the viewer's GLBs and the pictures on every PR and every push to main, and its `Checks` gate uploads the site as an
+  artifact. Site Deploy (`pages.yml`) runs only on main: once Checks passed for the commit, it downloads
   that run's artifact and deploys it with `actions/deploy-pages`; nothing built is committed, and no branch holds the site.
-- **PR previews are artifacts.** A PR's `site` job builds the docs (and the viewer's GLBs when it changed what they are
-  made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), and runs the built site's tests (ADR 0013).
+- **PR previews are artifacts.** A PR's Checks run builds the docs (and the viewer's GLBs when it changed what they
+  are made from, #221) and its gate uploads them as an artifact linked from its job summary; no external preview host.
+  The gate is the required `Checks` (#245, #496), and the run tests the built site (ADR 0013).
 - **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
   and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
   #306, the CI/CD table from the workflows, #425) are filled at build time: `macros.py` writes them as JSON and the
@@ -50,22 +54,23 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a Core's servo count) is not
   the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
-  model/build/reports; check.yml's sim shard caches them under a key of what they are made from (`sim-`), so it
+  model/build/reports; a `Model` shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
-  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Code Checks and Site
-  Checks are done on main (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Site Checks
-  builds beside Code Checks, before the sim may be saved). The stamp check (model/stale.py) is gone; the recorded sweeps
+  (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Checks is done on main
+  (`workflow_run`) and puts the newest entry at /reports in the site it deploys (Checks' `Site` builds beside the
+  `Model` shards, before the sim may be saved). The stamp check (model/stale.py) is gone; the recorded sweeps
   (model/reports/*-report.json) and the exact-clearance fixture stay, as measured data.
-- **The pictures are built in CI** (#226): Site Checks' `render` job renders the README's pictures in
-  Blender before `site`, which serves them at /images, and the README points at those absolute URLs. A PR touching
-  their inputs gets them as artifacts. Each motion renders on its own runner, a matrix read from the code (`make
-  pictures-list`, #297), and `site` gathers them.
+- **The pictures are built in CI** (#226): Checks' `Blender` jobs render the README's pictures beside `Site`, and the
+  `Checks` gate adds them to the site, which serves them at /images, and the README points at those absolute URLs. A
+  PR touching their inputs gets them as artifacts. The motions and the viewer are packed into Blender runners longest
+  first, a matrix read from the code (`make blender-bins`, #297, #496), and the gate gathers them.
 - **CI images are build outputs in the registry** (#288). The jobs that need a system tool uv can't install run in our
   own images, so they download no tool (a 403 from download.blender.org had taken the pictures down):
   ci/base.Dockerfile (Ubuntu with Python and uv, Node with mermaid-cli, Chrome for Testing, ngspice, each
-  from a pinned source but gh, from GitHub CLI's signed apt repo at its newest, ADR 0012) for the site's build and
-  viewer test (`site`) and the tests not marked model (`code`), and
-  ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for `render` and `viewer`. The
+  from a pinned source but gh, from GitHub CLI's signed apt repo at its newest, ADR 0012) for the site's build
+  (`Site`) and the tests not marked model (`Code`), and
+  ci/blender.Dockerfile (base plus Blender, sha256-checked, and Mesa's software EGL) for the pictures and the viewer
+  (`Blender`). The
   Dockerfiles are sources; the `CI Images` workflow builds the images into GHCR (`ghcr.io/yellow-pine/noggin-ci-base`,
   `-blender`), never committed, and those jobs run them by the `:main` tag (`container:`, #481): mutable, but only
   main's `CI Images` run writes it, and Dependabot keeps the Dockerfiles' own base images digest-pinned and current.
@@ -82,7 +87,7 @@ alone, is the only one granted GHCR's `packages: write`); Cansin chose it over a
 (#481). Both packages are public, owned by the yellow-pine org and linked to yellow-pine/noggin, whose only
 collaborator (and the org's only member) is Cansin, admin (`gh api`, 2026-11-02); whether they inherit the repo's
 access and grant no other repo Actions access is a package setting the API does not show, unchecked. A main push
-that changes a Dockerfile may run Site Checks in the previous `:main` and cache those pictures under the new
+that changes a Dockerfile may run Checks' `Blender` jobs in the previous `:main` and cache those pictures under the new
 Dockerfile hash until another input changes.
 
 ## Considered options

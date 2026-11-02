@@ -6,6 +6,9 @@
 >
 > Amended 2026-11-02 (#372): the `Footer` override also shows the version and the commit built, linking their GitHub
 > pages, and `/version.json` gives them with the build time (`macros.py` `build`).
+>
+> Amended 2026-11-02 (#538, #496): Site Checks is now the `Site` job of the Checks workflow, and its `Checks` gate
+> runs the Playwright smoke test and uploads the site once the pictures and the viewer are in.
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that
@@ -53,8 +56,9 @@ service anywhere.
   the Docs version switcher opens another version, with no CSP violation or console error and no request to another
   host but api.github.com. pytest keeps the Python-only checks (the numbers macros.py derives, the README, photos
   out of git, the workflows).
-- **CI keeps its shape** (#310): Site Checks' `site` job sets up Node by `.nvmrc` with npm's cache, runs `make site`,
-  then Vitest and Playwright, and uploads `site/dist`; Site Deploy deploys it. Dependabot covers npm, grouped like
+- **CI keeps its shape** (#310, #496): Checks' `Site` job sets up Node by `.nvmrc` with npm's cache, runs `make site`,
+  then Vitest; the `Checks` gate adds the pictures and the viewer, runs the link tests on them and Playwright, and
+  uploads `site/dist`; Site Deploy deploys it. Dependabot covers npm, grouped like
   uv and Actions, each release waiting 14 days.
 
 ## Considered options
