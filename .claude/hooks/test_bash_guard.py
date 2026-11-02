@@ -2,6 +2,7 @@
 allowed alternative (Claude Code shows it to the agent and skips the call); anything else exits 0."""
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -11,10 +12,10 @@ SCRIPT = Path(__file__).with_name("bash_guard.py")
 REPO = Path(__file__).parents[2]
 
 
-def guard(command: str, cwd: Path = REPO) -> subprocess.CompletedProcess[str]:
+def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) -> subprocess.CompletedProcess[str]:
     event = {"cwd": str(cwd), "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}}
     # python3, as .claude/settings.json runs it (the Mac's is 3.9; ruff's py39 target holds its syntax there)
-    return subprocess.run(["python3", SCRIPT], input=json.dumps(event), capture_output=True, text=True)
+    return subprocess.run(list(hook), input=json.dumps(event), capture_output=True, text=True, env=env)
 
 
 @pytest.mark.parametrize(
@@ -108,6 +109,33 @@ def test_the_heavy_recipes_are_the_justfiles_heavy_group(tmp_path):
     assert guard("just sim", REPO / "docs").returncode == 2  # just finds the justfile above the folder, as it runs it
 
 
+@pytest.fixture
+def without_just(tmp_path):
+    """A copy of the hook in a checkout with no .venv, run with no just on the PATH."""
+    hooks = tmp_path / "checkout/.claude/hooks"
+    hooks.mkdir(parents=True)
+    shutil.copy(SCRIPT, hooks)
+    python3 = shutil.which("python3")
+    return lambda command, cwd: guard(command, cwd, [python3, hooks / SCRIPT.name], {"PATH": str(tmp_path)})
+
+
+def test_without_just_the_heavy_recipes_come_from_the_justfile(tmp_path, without_just):
+    (tmp_path / "justfile").write_text(
+        "lint:\n    true\n\n# simulate\n[group('heavy')]\n[private]\nsim *docs: lint\n    true\n\n"
+        '[no-cd, group: "heavy"]\n@hero:\n    true\n'
+    )
+    (tmp_path / "docs").mkdir()
+    assert without_just("just lint", tmp_path).returncode == 0
+    assert "just check-light" in without_just("just sim noggin-eyes", tmp_path).stderr
+    assert without_just("just hero", tmp_path / "docs").returncode == 2  # the justfile above, as just finds it
+
+
+def test_without_just_or_a_justfile_just_is_blocked(tmp_path, without_just):
+    result = without_just("just lint", tmp_path)
+    assert result.returncode == 2
+    assert "heavy recipes" in result.stderr
+
+
 def test_every_recipe_under_the_heavy_lock_is_in_the_heavy_group():
     """The guard reads the group, so a recipe that takes the lock (HEAVY, scripts/heavy.py) must be in it."""
     dump = subprocess.run([REPO / ".venv/bin/just", "--dump", "--dump-format", "json"], cwd=REPO, capture_output=True)
@@ -115,6 +143,15 @@ def test_every_recipe_under_the_heavy_lock_is_in_the_heavy_group():
     locked = {r["name"] for r in recipes if '["variable", "HEAVY"]' in json.dumps(r["body"])}
     heavy = {r["name"] for r in recipes if {"group": "heavy"} in r["attributes"]}
     assert locked and locked <= heavy
+
+
+def test_without_just_the_guard_reads_our_justfile_as_just_does(without_just):
+    dump = subprocess.run([REPO / ".venv/bin/just", "--dump", "--dump-format", "json"], cwd=REPO, capture_output=True)
+    recipes = json.loads(dump.stdout)["recipes"].values()
+    heavy = [r["name"] for r in recipes if {"group": "heavy"} in r["attributes"]]
+    light = [r["name"] for r in recipes if r["name"] not in heavy]
+    assert without_just("just " + " ".join(light), REPO).returncode == 0
+    assert all(without_just(f"just {name}", REPO).returncode == 2 for name in heavy)
 
 
 def test_a_hook_that_cannot_read_its_input_blocks():

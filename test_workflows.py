@@ -155,6 +155,14 @@ def test_main_alone_renders_the_pictures_a_pr_its_preview():
     assert "github.event_name == 'workflow_dispatch'" in steps["Upload the pictures"]["if"]
 
 
+def test_zizmor_asks_githubs_api_only_off_prs():
+    """#561: the online audits (GitHub's API: rate limits, rarely a PR's change) run on main's push and weekly; a PR
+    keeps just check's offline zizmor."""
+    steps = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["code"]["steps"]
+    [online] = [s for s in steps if "zizmor" in s.get("run", "")]
+    assert online["if"] == "${{ github.event_name != 'pull_request' }}"
+
+
 def test_checks_never_run_on_edited():
     """#496: a title or body edit would cancel the running Checks (one run per group), or green a red one."""
     assert (
@@ -174,3 +182,9 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert "pull_request" in jobs["build"]["if"]
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_codeql_scans_main_and_weekly_never_a_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+    on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
+    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]

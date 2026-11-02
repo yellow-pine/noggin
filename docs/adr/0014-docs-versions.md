@@ -4,6 +4,7 @@
 >
 > Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds the docs
 > version.
+> Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 
 A reader with a Mech built at noggin v0.2 needs v0.2's docs, not main's. Neither Astro nor Starlight versions docs,
 and starlight-versions archives each version's pages into the repo, which ADR 0009 forbids. So each Release builds
@@ -12,7 +13,7 @@ its own docs once and keeps them as a release asset, and every deploy serves the
 - **Latest at /noggin/, each Release's docs at /noggin/vX.Y/.** The site's base comes from `SITE_BASE` (default
   `/noggin`, `site/src/pages.mjs`), so links between docs and every Starlight asset stay inside the version. Only the
   newest patch of a minor is served: vX.Y.Z's docs are vX.Y's.
-- **Built once, at the tag** (Release Assets, `release.yml`): `SITE_BASE=/noggin/vX.Y make site`, the viewer's GLBs
+- **Built once, at the tag** (Release Assets, `release.yml`): `SITE_BASE=/noggin/vX.Y just site`, the viewer's GLBs
   fetched from the live site (the release commit's model: its PR only bumps the version), packed as
   `noggin-docs-vX.Y.Z.tar.gz` and attached to the release, whose notes then link /noggin/vX.Y/. A prerelease builds
   none: it is never served. Each version carries its own Pagefind index.
