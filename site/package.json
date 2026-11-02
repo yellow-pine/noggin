@@ -31,7 +31,7 @@
     "fsevents": false,
     "puppeteer": false
   },
-  "//": "overrides: mermaid-cli 12.0.0 still asks for katex ^0.16, which GHSA-238p-pmpm-9mq7 covers (<0.18.2); it reads only katex/dist/katex.css. Drop once mermaid-cli moves to katex 0.18.",
+  "//": "shortcut: mermaid-cli 12.0.0 pins katex ^0.16 (GHSA-238p-pmpm-9mq7, fixed in 0.18.2) and reads only its katex/dist/katex.css, so overrides lifts it to 0.18; drop once mermaid-cli moves to katex 0.18.",
   "overrides": {
     "@mermaid-js/mermaid-cli": {
       "katex": "^0.18.2"
