@@ -51,11 +51,11 @@ def test_a_busy_queue_does_not_count_only_the_jobs_own_run_times_along_their_nee
 
 def test_a_genuinely_slow_job_still_warns():
     slow = [
-        j | {"completed_at": "2026-11-01T21:04:34Z"} if j["name"] == "Model (mujoco)" else j for j in QUEUED_BUT_FAST
+        j | {"completed_at": "2026-11-01T21:06:14Z"} if j["name"] == "Model (mujoco)" else j for j in QUEUED_BUT_FAST
     ]
     took = critical_path(slow, CHECK, ATTEMPT, NOW)
-    assert took == 4 + 4 + 200 + 4
-    assert "212 s > 180 s" in (over("pull_request", took, warm=True) or "")
+    assert took == 4 + 4 + 300 + 4
+    assert "312 s > 300 s" in (over("pull_request", took, warm=True) or "")
 
 
 def test_a_job_still_running_counts_up_to_now_and_one_without_a_runner_not_at_all():
@@ -86,13 +86,13 @@ def test_an_attempt_start_later_than_every_job_falls_back_to_every_job_that_ran(
     assert critical_path(jobs, CHECK, "2026-11-01T12:00:09Z", "2026-11-01T12:01:05Z") == 3 + 60
 
 
-def test_a_warm_pr_run_within_three_minutes_passes():
-    assert over("pull_request", 179, warm=True) is None
+def test_a_warm_pr_run_within_five_minutes_passes():
+    assert over("pull_request", 299, warm=True) is None
 
 
-def test_a_warm_pr_run_past_three_minutes_warns(capsys):
-    assert "181 s > 180 s" in (over("pull_request", 181, warm=True) or "")
-    assert "181 s along the critical path" in capsys.readouterr().out
+def test_a_warm_pr_run_past_five_minutes_warns(capsys):
+    assert "301 s > 300 s" in (over("pull_request", 301, warm=True) or "")
+    assert "301 s along the critical path" in capsys.readouterr().out
 
 
 def test_main_past_nine_minutes_warns():

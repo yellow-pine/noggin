@@ -77,10 +77,12 @@ PARTS = {
     "next pan bar": neck.pan_bar,
     "next tilt bar": neck.tilt_bar,
     "next jaw bar": neck.jaw_bar,
-    # the next Mech's Torso (#685) and its Base candidates' board carriers (#642)
+    # the next Mech's Torso (#685) and its head variants' board carriers (#686)
     "next torso": base.torso,
-    "next board tray": base.tray,
-    "next board tower": base.tower,
+    "next board rack": base.rack,
+    "next crown shelf": base.crown_shelf,
+    "next split shelf": base.split_shelf,
+    "next switch bracket": base.switch_bracket,
 }
 # test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
 COUPONS = {"clearance coupon": coupon.build}

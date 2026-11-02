@@ -1,5 +1,5 @@
-"""Seam: model/base.py, the next Mech's Base candidates (#642): where the boards go, the tower's sway, the leads that
-cross pan and tilt, and the ranking of two sim reports."""
+"""Seam: model/base.py, the next Mech's head variants (#686): where the boards go, the crown wall's sway, the leads that
+cross pan and tilt, and the ranking of their sim reports."""
 
 import itertools
 
@@ -46,15 +46,24 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     """The row's copy of the Envelopes' extents (ADR 0011) is theirs, and the boards stand side by side GAP apart with
     their backs on the plane asked for and their bottoms level (#687): the switch board, 32 tall, its middle on -90, the
     Shield, 30 tall, on -91."""
-    for parts, (x0, x1), back, bottom in base._ROW:
+    for parts, (x0, x1), back, bottom in base.ROW:
         (lo, hi) = BOXES[parts[0][1]]
         assert (x0, x1) == (lo[0], hi[0])
         assert back == min(BOXES[mesh][0][1] for _, mesh in parts)
         assert bottom == min(BOXES[mesh][0][2] for _, mesh in parts)
-    placed = base.boards(10.0, -90.0)
-    assert placed["next Shield 1"][1] == pytest.approx((-26.75, 20.68, -91.0))
-    assert placed["next Core 1"][1] == placed["next Shield 1"][1]
-    assert placed["next switch board"][1] == pytest.approx((28.0, 14.6, -90.0))
+    placed = {n: at[:3, 3] for n, (_, at) in base.standing(10.0, -90.0).items()}
+    assert placed["next Shield 1"] == pytest.approx((-26.75, 20.68, -91.0))
+    assert placed["next Core 1"] == pytest.approx(placed["next Shield 1"])
+    assert placed["next switch board"] == pytest.approx((28.0, 14.6, -90.0))
+
+
+def test_lying_boards_rest_on_their_backs_with_their_tops_forward():
+    """Crown and Split (#686): turned 90 deg about x onto their backs, the Shield's back (y -10.68) on z 40, its
+    bottom (z -15) on y 30 + 16 = 46 and its top (z 15) 30 mm forward of it, on y 16."""
+    _, at = base.lying(30.0, 40.0)["next Shield 1"]
+    back, bottom, top = (at @ [0, -10.68, 0, 1], at @ [0, 0, -15, 1], at @ [0, 0, 15, 1])
+    assert back[2] == pytest.approx(40.0) and bottom[1] == pytest.approx(46.0) and top[1] == pytest.approx(16.0)
+    assert set(base.lying(30.0, 40.0, base.PAIR)) == {"next Shield 1", "next Core 1", "next Shield 2", "next Core 2"}
 
 
 def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
@@ -63,27 +72,29 @@ def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
     assert base.PACK == (hi[1] - lo[1], hi[0] - lo[0])
 
 
-def test_the_tower_sways_as_a_cantilever_with_the_boards_on_its_tip():
-    """A 3 mm PETG rod 150 mm long (across layers: E 1540 MPa, 1.28 g/cm3) under 20 g of boards: k = 3EI/L^3 =
-    3 x 1540 x 63.62 / 150^3 = 87.1 N/m, its tip mass 20 g + 0.236 x 5.43 g, so sqrt(87.1 / 0.02128) / 2 pi = 10.18 Hz."""
-    assert base.sway(3.0, 20.0, 150.0) == pytest.approx(10.18, abs=0.01)
+def test_the_crown_wall_sways_as_a_cantilever_with_the_boards_on_its_tip():
+    """A PETG plate 100 x 3 mm, 100 mm long (across layers: E 1540 MPa, 1.28 g/cm3) under 30 g of boards: I = 100 x
+    3^3 / 12 = 225 mm^4, k = 3EI/L^3 = 3 x 1540 x 225 / 100^3 = 1.0395 N/mm, its tip mass 30 g + 0.236 x 38.4 g =
+    39.06 g, so sqrt(1039.5 / 0.03906) / 2 pi = 25.96 Hz."""
+    assert base.sway(100.0, 3.0, 30.0, 100.0) == pytest.approx(25.96, abs=0.01)
 
 
 @pytest.mark.parametrize(
     "doc,crossing",
     [
-        # (a) the boards ride the head: the pan servo's lead and the pack's cross both, the only two that leave the
-        # Torso for the head's side of pan (#685, #51's wiring rules), the tilt servo's the tilt
-        ("next-mech-a", {"pan pivot": 2, "tilt pivot": 3}),
-        # (b) the boards stand still: the gimbal's four servos and the mouth's cross both, the tilt servo's the pan
-        ("next-mech-b", {"pan pivot": 6, "tilt pivot": 5}),
+        # the boards ride the head: the pan servo's lead and the pack's cross both, the only two that leave the Torso
+        # for the head's side of pan (#685, #51's wiring rules), the tilt servo's the tilt
+        ("next-mech-back", {"pan pivot": 2, "tilt pivot": 3}),
+        ("next-mech-crown", {"pan pivot": 2, "tilt pivot": 3}),
+        # the switch board rides the pan alone: the pack's pair crosses the pan to it, its own the tilt to the Shields
+        ("next-mech-split", {"pan pivot": 2, "tilt pivot": 3}),
     ],
 )
 def test_the_leads_that_cross_pan_and_tilt_go_from_each_servo_and_the_pack_to_the_boards(doc, crossing):
     assert base.leads(stages.STAGES[doc]) == crossing
 
 
-def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, sway=None):
+def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, sway=None, head=None):
     servo = {"hold_kgf_cm": hold, "peak_kgf_cm": peak, "rest_kgf_cm": rest, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}
     return {
         "mujoco": {
@@ -94,52 +105,88 @@ def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.
             "vibration": {"tilt horn": {"servo_loop_hz": hz}, "pan horn": {"servo_loop_hz": hz + 5}},
             "tip_over": {"margin_mm": tip, "moving": {"margin_mm": tip}},
         },
-        "base": {
-            "parts": ["next torso:1", "next board tray:1", "next board tower:1"],
+        "variant": {
+            "parts": ["next torso:1", "next board rack:1", "next crown shelf:1"],
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
             "sway_hz": sway,
+            "head_mm": head or [138.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
         },
     }
 
 
-def test_a_candidate_whose_base_meets_the_head_ranks_last_whatever_its_figures():
-    bad = _report(pairs=[(("next board tower:1", "next yaw servo:1"), -2.0)], hold=0.01)
-    ranked = base.rank({"next-mech-a": _report(hold=0.3), "next-mech-b": bad})
-    assert ranked["order"] == ["next-mech-a", "next-mech-b"]
-    assert ranked["candidates"]["next-mech-b"]["gates"]["clearance"] == [["next board tower:1", "next yaw servo:1"]]
+def test_a_variant_whose_boards_meet_the_head_ranks_last_whatever_its_figures():
+    bad = _report(pairs=[(("next crown shelf:1", "next L lid:1"), -2.0)], hold=0.01)
+    ranked = base.rank({"next-mech-back": _report(hold=0.3), "next-mech-crown": bad})
+    assert ranked["order"] == ["next-mech-back", "next-mech-crown"]
+    assert ranked["variants"]["next-mech-crown"]["gates"]["clearance"] == [["next L lid:1", "next crown shelf:1"]]
+    assert ranked["variants"]["next-mech-crown"]["fails"] == ["clearance"]
+
+
+def test_a_head_past_140_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_that_fits():
+    """#51: everything that rides the head fits a head of at most 140 W x 150 H x 120 D mm; a variant 2 mm too deep
+    ranks after one that fits, though its servo holds less."""
+    ranked = base.rank(
+        {"next-mech-back": _report(hold=0.05, head=[130.0, 122.0, 140.0]), "next-mech-crown": _report(hold=0.3)}
+    )
+    assert ranked["order"] == ["next-mech-crown", "next-mech-back"]
+    assert ranked["variants"]["next-mech-back"]["gates"]["head"] == ["depth"]
+    assert ranked["variants"]["next-mech-back"]["fails"] == ["head size"]
+    assert ranked["variants"]["next-mech-crown"]["fails"] == []
 
 
 def test_the_first_criterion_in_51s_order_that_differs_decides():
     """Simplicity ties, so the servo torque decides, though the other has the lower rest torque and more leads."""
     ranked = base.rank(
         {
-            "next-mech-a": _report(hold=0.12, rest=0.05, leads={"pan pivot": 1}),
-            "next-mech-b": _report(hold=0.10, rest=0.0, leads={"pan pivot": 6}),
+            "next-mech-back": _report(hold=0.12, rest=0.05, leads={"pan pivot": 1}),
+            "next-mech-crown": _report(hold=0.10, rest=0.0, leads={"pan pivot": 6}),
         }
     )
-    assert ranked["order"] == ["next-mech-b", "next-mech-a"]
+    assert ranked["order"] == ["next-mech-crown", "next-mech-back"]
 
 
-def test_a_mark_missed_outranks_a_better_figure_after_it():
+def test_the_head_fit_decides_after_the_mode_and_before_the_leads():
+    """#51's order: ... lowest mode, fits the big head, fewest leads: of two that fit, the one with more room left
+    in its tightest direction ranks first, though it has more leads."""
+    ranked = base.rank(
+        {
+            "next-mech-back": _report(head=[139.0, 100.0, 120.0], leads={"pan pivot": 1}),
+            "next-mech-crown": _report(head=[130.0, 110.0, 140.0], leads={"pan pivot": 6}),
+        }
+    )
+    assert ranked["order"] == ["next-mech-crown", "next-mech-back"]
+
+
+def test_a_mark_missed_outranks_a_better_figure_after_it_and_names_what_it_fails():
     """#51's marks (hold at most rated, peak at most half the stall, lowest mode at least MODE_HZ, the moving centre of
-    mass inside the footprint) come before any figure: a mode under MODE_HZ (the tower's sway counts) loses to one
-    over it, though its rest torque is lower."""
-    ranked = base.rank({"next-mech-a": _report(rest=0.05), "next-mech-b": _report(rest=0.0, sway=base.MODE_HZ - 1)})
-    assert ranked["order"] == ["next-mech-a", "next-mech-b"]
-    assert ranked["candidates"]["next-mech-b"]["criteria"]["mode_hz"] == base.MODE_HZ - 1
+    mass inside the footprint) come before any figure: a mode under MODE_HZ (the crown's sway counts) loses to one
+    over it, though its rest torque is lower; a peak over half the stall fails the torque."""
+    ranked = base.rank(
+        {
+            "next-mech-back": _report(rest=0.05, peak=0.6),
+            "next-mech-crown": _report(rest=0.0, sway=base.MODE_HZ - 1, peak=0.6, tip=-1.0),
+        }
+    )
+    assert ranked["order"] == ["next-mech-back", "next-mech-crown"]
+    assert ranked["variants"]["next-mech-crown"]["criteria"]["mode_hz"] == base.MODE_HZ - 1
+    assert ranked["variants"]["next-mech-crown"]["fails"] == ["torque", "mode", "tip-over"]
+    assert ranked["variants"]["next-mech-back"]["fails"] == ["torque"]
 
 
 @pytest.mark.model
-def test_the_tray_is_drawn_at_its_optimum():
-    """The tray drawn (ADR 0011) is where optimise() finds the tilt servo's least worst hold, within 0.002 kgf.cm of it
-    (the hold is flat there, so COBYLA's stop wanders about a mm), and as clear as optimise() asks: rerun
+@pytest.mark.parametrize(
+    "doc,drawn",
+    [
+        ("next-mech-back", {"back_z_mm": base.BACK_Z}),
+        ("next-mech-crown", {"crown_mm": [base.CROWN_Y, base.CROWN_Z]}),
+        ("next-mech-split", {"crown_mm": [base.SPLIT_Y, base.CROWN_Z]}),
+    ],
+)
+def test_each_variant_is_drawn_at_its_optimum(doc, drawn):
+    """The numbers drawn (ADR 0011) are where optimise() finds the tilt servo's least worst hold (and, for a crown, its
+    shelf the lowest that clears the gimbal), within 0.5 mm, and the hold there within 0.002 kgf.cm of it: rerun
     `python -m model.candidates` and copy its numbers when this fails."""
-    found = candidates.optimise("next-mech-a")
+    found = candidates.optimise(doc)
+    assert all(np.ravel(found[k]) == pytest.approx(np.ravel(v), abs=0.5) for k, v in drawn.items())
     assert found["drawn_kgf_cm"] <= found["hold_kgf_cm"] + 0.002
-    assert found["drawn_clear_mm"] >= -0.05  # COBYLA meets a constraint to within its tolerance
-
-
-@pytest.mark.model
-def test_the_tower_is_drawn_at_its_optimum():
-    assert candidates.optimise("next-mech-b")["tower_r_mm"] == pytest.approx(base.TOWER_R, abs=0.05)

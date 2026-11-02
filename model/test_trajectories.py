@@ -162,9 +162,9 @@ def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
     """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
     (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking lid shuts past the
     cap's rim (-65, model/test_gimbal.py) and the other squints; all come back to rest."""
-    model = built("next-mech-a")
+    model = built("next-mech-back")
     names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
-    writes, times = tj.commands("next-mech-a", "wink")
+    writes, times = tj.commands("next-mech-back", "wink")
     frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
     left, right, pitch, lid, other = frames.T
     assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
@@ -191,7 +191,7 @@ def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco()
 def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
     """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
     (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""
-    model = built("next-mech-a")
+    model = built("next-mech-back")
     yaw, pitch = gimbal.servos(gimbal.YAW, gimbal.PITCH)
     data = mjcf.pose(model, {"next yaw horn": yaw, "next pitch horn": pitch})
     for s in "LR":

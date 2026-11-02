@@ -66,8 +66,6 @@ MADE_FROM = {
     # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
     "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
-    # the site's checks: the images they run in too
-    "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", *DOCKERFILES]),
     # Convex, Shards and the Model shards: the tests marked model, just sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
     # and the scripts, config and workflow that run them

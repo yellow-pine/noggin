@@ -49,13 +49,16 @@ HERO_STAGE = "noggin-stage3"  # whose GLB carries the hero's camera too (hero_ca
 HERO_FPS, HERO_MAX_BYTES = 8, 3_000_000
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
-# the neck, the boards back off what carries them, the tray with the head it rides, the tower with the neck
+# the neck, the boards off what carries them: the rack back with the head it rides, the crown shelves up over it, the
+# switch bracket back with the neck
 EXPLODE = {
     "next-base": (0, 0, 0),
     "next-neck": (0, 0, 45),
     "next-eyes": (0, 0, 95),
-    "next-tray": (0, 60, 95),
-    "next-tower": (0, 60, 45),
+    "next-back": (0, 60, 95),
+    "next-crown": (0, 0, 155),
+    "next-split": (0, 0, 155),
+    "next-switch": (0, 60, 45),
 }
 # the site's icon (#603): Stage 1's right eye at rest from straight ahead, its eyeball, pupil and lids alone, square;
 # rendered with the panels, served as PNG

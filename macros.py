@@ -9,7 +9,7 @@ panels: the Stage panels' grid (model/render/pictures.py PANELS), on no page sin
 the next Mech's (geometry.py NEXT, #629), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of
 each of its parts, on docs/pictures.md (#649).
 published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro),
-and bases: the viewer's button per Base candidate.
+and variants: the viewer's button per head variant, in the ranking's order (#686).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -149,7 +149,7 @@ def panels(labels=None):
 
 def next_panels():
     """The next Mech's panels (#629), framed among themselves: Pictures' alone."""
-    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-')})" for doc in g.NEXT})  # a Base candidate each
+    return panels({doc: f"Next Mech ({doc.removeprefix('next-mech-')})" for doc in g.NEXT})  # a head variant each
 
 
 def figures(labels, kind="parts"):
@@ -251,12 +251,24 @@ def explode():
     return {glb[doc]: {n: xyz[sub] for sub in subs for n in stages.SUBS[sub]().parts} for doc, subs in g.NEXT.items()}
 
 
-def bases():
-    """The viewer page's button per Base candidate (#664), by its GLB: what carries its boards, its one sub-assembly the
-    other lacks (geometry.py NEXT), e.g. next-tray, "Board tray"."""
-    common = set.intersection(*map(set, g.NEXT.values()))
-    carrier = {doc: (set(subs) - common).pop() for doc, subs in g.NEXT.items()}
-    return {f.removesuffix(".glb"): f"Board {carrier[doc].removeprefix('next-')}" for doc, f in viewer.PUBLIC.items()}
+RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # just sim's (model/report.py, base.rank)
+
+
+def variants():
+    """The viewer page's button per head variant (#664, #686), by its GLB: in RANKING's order when it ranks today's
+    variants, each marked with the gates and marks it fails, else in geometry.NEXT's unmarked; its name from its
+    document (next-mech-crown, "Crown") and a line on where its boards go, from what carries them (each carrier's
+    sub-assembly's docstring in model/stages.py, "next-crown: <the line>; ...")."""
+    ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
+    ranked = set(ranking.get("order", [])) == set(g.NEXT)
+    buttons = []
+    for doc in ranking["order"] if ranked else g.NEXT:
+        fails = ranking["variants"][doc]["fails"] if ranked else []
+        carriers = [s for s in g.NEXT[doc] if s not in ("next-neck", "next-eyes", "next-base")]
+        about = [" ".join(stages.SUBS[s].__doc__.split()).split(": ", 1)[1].split(";")[0] for s in carriers]
+        label = doc.removeprefix("next-mech-").capitalize() + (f" (fails {', '.join(fails)})" if fails else "")
+        buttons.append({"glb": viewer.PUBLIC[doc].removesuffix(".glb"), "label": label, "about": " and ".join(about)})
+    return {"ranked": ranked, "buttons": buttons}
 
 
 def build():
@@ -279,7 +291,7 @@ def numbers():
         "next_panels": next_panels(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
-        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "bases": bases()},
+        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "variants": variants()},
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),
