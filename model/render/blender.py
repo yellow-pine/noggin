@@ -2,12 +2,14 @@
 The job names each part's mesh (its own frame, metres) and colour, and the shots: output paths, size, camera and every
 part's world matrix per frame (one: a still; more: one animation, keeping one depsgraph). Look (docs/model-notes.md):
 satin plastic in the spool colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
-silhouettes and creases, a transparent background. Each shot renders twice: the parts without their lines, then the
-lines alone (the parts held out), which pictures.py lays over the parts in each theme's colour. Prints each frame's
-render time (`frame <layer> <frame> <s>`), which pictures.py passes to its log."""
+silhouettes and creases, a transparent background. Each frame renders once, in two themes: the render itself with
+black lines (the light theme), and through the compositor the job's dark-theme line colour added where the Grease
+Pencil pass has lines (black adds nothing, so the parts under a line keep their share). Prints each frame's render
+time (`frame <frame> <s>`), which pictures.py passes to its log."""
 
 import json
 import math
+import os
 import sys
 import time
 
@@ -110,7 +112,34 @@ def setup():
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
     sun.data.energy, sun.data.angle = SUN, math.radians(SUN_ANGLE)
     sc.collection.objects.link(sun)
-    return sc, cam, sun, art, lines
+    return sc, cam, sun, art
+
+
+def dark_theme(sc, hexc):
+    """The compositor's dark theme: the render with hexc times the Grease Pencil pass's alpha added, written by a File
+    Output node (frameNNNN.png in its directory); the render itself stays the light theme."""
+    bpy.context.view_layer.use_pass_grease_pencil = True
+    tree = bpy.data.node_groups.new("themes", "CompositorNodeTree")
+    sc.compositing_node_group = tree
+    n, link = tree.nodes.new, tree.links.new
+    tree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    layers, light = n("CompositorNodeRLayers"), n("NodeGroupOutput")
+    link(layers.outputs["Image"], light.inputs[0])
+    coverage = n("CompositorNodeSeparateColor")
+    link(layers.outputs["Grease Pencil"], coverage.inputs[0])
+    tint, add = n("ShaderNodeMix"), n("ShaderNodeMix")
+    for node, blend in ((tint, "MULTIPLY"), (add, "ADD")):
+        node.data_type, node.blend_type = "RGBA", blend
+        node.inputs["Factor"].default_value = 1.0
+    tint.inputs["A"].default_value = lin(hexc)
+    link(coverage.outputs["Alpha"], tint.inputs["B"])
+    link(layers.outputs["Image"], add.inputs["A"])
+    link(tint.outputs["Result"], add.inputs["B"])
+    dark = n("CompositorNodeOutputFile")
+    dark.format.media_type, dark.format.file_format, dark.format.color_mode = "IMAGE", "PNG", "RGBA"
+    dark.file_output_items.new("RGBA", "frame")
+    link(add.outputs["Result"], dark.inputs["frame"])
+    return dark
 
 
 def load(parts):
@@ -160,15 +189,14 @@ def px_metres(cam, objs, width):
 
 
 def main(job):
-    sc, cam, sun, art, lines = setup()
+    sc, cam, sun, art = setup()
+    dark = dark_theme(sc, job["dark"])
     objs = load(job["parts"])
     lighten(objs)
     start = {}
     bpy.app.handlers.render_pre.append(lambda scene, *_: start.update(t=time.monotonic()))
     bpy.app.handlers.render_post.append(
-        lambda scene, *_: print(
-            f"frame {start['layer']} {scene.frame_current} {time.monotonic() - start['t']:.2f}", flush=True
-        )
+        lambda scene, *_: print(f"frame {scene.frame_current} {time.monotonic() - start['t']:.2f}", flush=True)
     )
     for shot in job["shots"]:
         poses = shot["poses"]
@@ -196,19 +224,9 @@ def main(job):
         w, h = shot["size"]
         sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
         art.radius = ART_PX * px_metres(cam, objs, w)  # Blender 5.2 draws the stroke about `radius` wide (measured)
-        for layer, out in shot["out"].items():  # the parts, then the lines alone: their alpha is the lines' coverage
-            alone = layer == "lines"
-            lines.hide_render = not alone
-            sun.data.use_shadow = not alone
-            for ob in objs.values():
-                ob.is_holdout = alone
-            start["layer"] = layer
-            if len(poses) > 1:
-                sc.render.filepath = out + "/###"
-                bpy.ops.render.render(animation=True)
-            else:
-                sc.render.filepath = out
-                bpy.ops.render.render(write_still=True)
+        sc.render.filepath = os.path.join(shot["out"]["light"], "frame####")  # as the File Output node names them
+        dark.directory = shot["out"]["dark"] + os.sep
+        bpy.ops.render.render(animation=True)
 
 
 if __name__ == "__main__":  # web/glb.py imports the look

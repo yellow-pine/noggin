@@ -32,8 +32,9 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
 PANELS = [(doc.removeprefix("noggin-"), view) for doc in g.STAGES for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
-LAYERS = ("parts", "lines")  # Blender draws each shot twice: the parts, then their lines alone (blender.py)
-THEMES = {"light": "#000000", "dark": "#C8CACF"}  # each theme's line colour: grey lines keep the black base readable
+# each theme's line colour: blender.py draws black lines and the dark theme's in its compositor; grey keeps the
+# black base readable on a dark page
+THEMES = {"light": "#000000", "dark": "#C8CACF"}
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # the hero: stage 3 from 15 deg to its right (right eye nearest), 15 deg up
 _R = math.radians(15)
@@ -87,11 +88,10 @@ def points(hulls, mats):
 
 
 def shot(name, size, cam, poses):
-    """A Blender shot (blender.py): one pose, a still (name.png), or several, an animation (name/NNN.png), drawn twice:
-    the parts alone in OUT/parts, their lines alone in OUT/lines, which compose() lays over the parts per theme."""
+    """A Blender shot (blender.py), one frame per pose: each theme's in OUT/<theme>/<name>/frameNNNN.png."""
     c = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "ortho_scale": cam.ortho_scale}
     return {
-        "out": {layer: os.path.join(OUT, layer, name) for layer in LAYERS},
+        "out": {theme: os.path.join(OUT, theme, name) for theme in THEMES},
         "size": list(size),
         "camera": c,
         "poses": [{n: np.asarray(m).tolist() for n, m in pose.items()} for pose in poses],
@@ -100,14 +100,10 @@ def shot(name, size, cam, poses):
 
 def blender(name, manifest, shots):
     job = os.path.join(OUT, "meshes", name, "job.json")
-    json.dump({"parts": manifest, "shots": shots}, open(job, "w"))
+    json.dump({"parts": manifest, "dark": THEMES["dark"], "shots": shots}, open(job, "w"))
     r = subprocess.run([BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
-    frames = [len(s["poses"]) for s in shots]
     files = [
-        p if k == 1 else os.path.join(p, f"{i:03d}.png")
-        for s, k in zip(shots, frames)
-        for p in s["out"].values()
-        for i in range(k)
+        os.path.join(p, f"frame{i:04d}.png") for s in shots for p in s["out"].values() for i in range(len(s["poses"]))
     ]
     if r.returncode or not all(os.path.isfile(f) for f in files):
         sys.exit(f"Blender failed on {name}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
@@ -129,12 +125,10 @@ def views():
     w, h = w + 2 * pad, h + 2 * pad
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
     for name, (manifest, _, mats, pts) in plans.items():
-        shots = [
-            shot(f"{name}-{v}.png", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS
-        ]
+        shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
         blender(name, manifest, shots)
     for name, v in PANELS:
-        compose(f"{name}-{v}.png", os.path.join(OUT, f"{name}-{v}"))
+        encode(f"{name}-{v}")
 
 
 def at_fps(frames, fps):
@@ -171,11 +165,11 @@ def hero():
     cam = camera.fit(
         np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
     )
-    for layer in LAYERS:
-        shutil.rmtree(os.path.join(OUT, layer, "hero"), ignore_errors=True)
+    for theme in THEMES:
+        shutil.rmtree(os.path.join(OUT, theme, "hero"), ignore_errors=True)
     blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses)])
     out = os.path.join(OUT, "hero")
-    compose("hero", out, HERO_FPS)
+    encode("hero", HERO_FPS)
     for theme in THEMES:
         size = os.path.getsize(f"{out}-{theme}.webp")
         if size > HERO_MAX_BYTES:
@@ -183,26 +177,22 @@ def hero():
         print(f"hero-{theme}.webp: {len(poses)} frames, {size // 1024} KB")
 
 
-def compose(name, out, fps=None):
-    """OUT/lines/<name> in each theme's line colour (THEMES) over OUT/parts/<name>, as <out>-<theme>.webp with its
-    alpha: a still, or with fps an animation of <name>/NNN.png."""
-    ins = []
-    for layer in LAYERS:
-        path = os.path.join(OUT, layer, name)
-        ins += ["-framerate", str(fps), "-i", os.path.join(path, "%03d.png")] if fps else ["-i", path]
-    n = len(THEMES)
-    graph = [
-        f"[0]split={n}{''.join(f'[p{i}]' for i in range(n))}",
-        f"[1]split={n}{''.join(f'[l{i}]' for i in range(n))}",
-    ]
-    outs = []
-    for i, (theme, colour) in enumerate(THEMES.items()):
-        red, green, blue = (int(colour[k : k + 2], 16) for k in (1, 3, 5))
-        # format=auto: the output keeps the parts' alpha (#489's review: overlay's default is yuv420)
-        graph.append(f"[l{i}]lutrgb=r={red}:g={green}:b={blue}[c{i}];[p{i}][c{i}]overlay=format=auto[o{i}]")
-        codec = ["libwebp_anim", "-loop", "0"] if fps else ["libwebp"]
-        outs += ["-map", f"[o{i}]", "-c:v", *codec, "-quality", str(WEBP_QUALITY), f"{out}-{theme}.webp"]
-    ffmpeg(*ins, "-filter_complex", ";".join(graph), *outs)
+def encode(name, fps=None):
+    """Each theme's OUT/<theme>/<name> frames as OUT/<name>-<theme>.webp with their alpha: a still, or with fps a
+    looping animation."""
+    rate, codec = (["-framerate", str(fps)], ["libwebp_anim", "-loop", "0"]) if fps else ([], ["libwebp"])
+    for theme in THEMES:
+        frames = os.path.join(OUT, theme, name, "frame%04d.png")
+        ffmpeg(
+            *rate,
+            "-i",
+            frames,
+            "-c:v",
+            *codec,
+            "-quality",
+            str(WEBP_QUALITY),
+            os.path.join(OUT, f"{name}-{theme}.webp"),
+        )
 
 
 def ffmpeg(*args):

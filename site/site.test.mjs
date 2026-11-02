@@ -73,11 +73,25 @@ test('every link on the site lands on a page or file of it, and no .md link is l
   expect(broken).toEqual([]);
 });
 
+/** The heading a link's #fragment names on its page: none on a picture (/images/), nor for GitHub's
+ * #gh-light-mode-only and #gh-dark-mode-only, which pick a picture's theme (#470). */
+const headingOf = (url) => {
+  const [p, anchor] = url.split('#');
+  return anchor && !p.includes(`${HOME}/images/`) && !/^gh-(light|dark)-mode-only$/.test(anchor) ? anchor : undefined;
+};
+
+test("a link's heading is its fragment, but not a picture's or a GitHub theme's", () => {
+  expect(headingOf(`${SITE}${BASE}/docs/model-notes/#numbers-from-the-code`)).toBe('numbers-from-the-code');
+  expect(headingOf(`${SITE}${HOME}/images/hero-dark.webp#top`)).toBeUndefined();
+  expect(headingOf(`${SITE}${BASE}/#gh-light-mode-only`)).toBeUndefined();
+  expect(headingOf(`${SITE}${BASE}/#gh-dark-mode-only`)).toBeUndefined();
+});
+
 test("every site URL the repo's Markdown links to is a page with that heading", () => {
   for (const doc of ['README.md', ...docs]) {
-    const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#([\w-]+))?)/g);
-    for (const [, url, anchor] of links) {
-      const file = fileOf(url);
+    const links = read(doc).matchAll(/(?:\]\(|src=")(https:\/\/yellowpine\.com\/noggin\/[^)\s"#]*(?:#[\w-]+)?)/g);
+    for (const [, url] of links) {
+      const file = fileOf(url), anchor = headingOf(url);
       if (!file || !built(file)) continue; // a Docs version's: the live site's pictures and viewer
       expect(existsSync(file), `${doc}: ${url}`).toBe(true);
       if (anchor) expect(parse(readFileSync(file, 'utf8')).getElementById(anchor), `${doc}: ${url}`).not.toBeNull();
