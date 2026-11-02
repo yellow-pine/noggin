@@ -49,8 +49,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
   from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
-  hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand, the rest by the `Issue Labels`
-  workflow.
+  hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand. The implementer sets `in-progress`
+  on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR opened by hand),
+  and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). Release Please keeps a
   release PR that bumps it and adds the CHANGELOG.md entry from the titles merged since the last release. It stays a
   draft until its newest version has a Features or a BREAKING CHANGES section (`scripts/release_gate.py`); fixes alone
@@ -111,7 +112,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
-  a Dockerfile changes, so a PR that changes one only builds them and its jobs still run main's.
+  a Dockerfile changes and weekly, uncached, before the Monday image scan (#534), so a PR that changes one only builds them and its jobs still run main's.
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
   Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.

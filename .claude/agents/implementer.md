@@ -9,8 +9,9 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
 
 ## Steps
 
-1. Read the issue (`gh issue view N`). Add a git worktree where CONTRIBUTING.md puts it, on a new branch off
-   `origin/main`, and work only there.
+1. Read the issue (`gh issue view N`) and mark it picked up at once:
+   `gh issue edit N --add-label in-progress --remove-label ready-for-agent,blocked` (`on-hold` stays). Add a git
+   worktree where CONTRIBUTING.md puts it, on a new branch off `origin/main`, and work only there.
 2. Invoke the cycle's skills in this order:
    1. `research` (`prototype` for a design question, `diagnosing-bugs` for a bug), as the ticket needs.
    2. `domain-modeling` for a new term (GLOSSARY.md) or decision (a new ADR).

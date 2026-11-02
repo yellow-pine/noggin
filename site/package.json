@@ -31,5 +31,11 @@
   "allowScripts": {
     "fsevents": false,
     "puppeteer": false
+  },
+  "//": "shortcut: mermaid-cli 12.0.0 pins katex ^0.16 (GHSA-238p-pmpm-9mq7, fixed in 0.18.2) and reads only its katex/dist/katex.css, so overrides lifts it to 0.18; drop once mermaid-cli moves to katex 0.18.",
+  "overrides": {
+    "@mermaid-js/mermaid-cli": {
+      "katex": "^0.18.2"
+    }
   }
 }

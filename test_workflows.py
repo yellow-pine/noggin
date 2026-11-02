@@ -136,3 +136,17 @@ def test_checks_never_run_on_edited():
     assert (
         "edited" not in yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())[True]["pull_request"]["types"]
     )
+
+
+def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
+    """#534: a weekly run pushes both images as a push to main does, but uncached, so the apt layers take the
+    distro's security fixes and the newest gh; it starts before image-scan.yml's Monday scan reads them."""
+    flows = {f: yaml.safe_load((WORKFLOWS[0].parent / f).read_text()) for f in ("images.yml", "image-scan.yml")}
+    build, scan = (flows[f][True]["schedule"][0]["cron"].split() for f in flows)
+    assert (build[2:], scan[2:]) == (["*", "*", "1"], ["*", "*", "1"])  # both on Mondays
+    assert int(build[1]) < int(scan[1])
+    jobs = flows["images.yml"]["jobs"]
+    assert jobs["push"]["if"] == "${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}"
+    assert "pull_request" in jobs["build"]["if"]
+    pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
+    assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2

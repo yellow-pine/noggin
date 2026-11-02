@@ -1,7 +1,7 @@
 """Watch the Core's firmware releases (#334, .github/workflows/firmware.yml). The vendor publishes them only on its
 wiki's release notes page (linked in docs/credits.md), one `<h2>` per release, e.g. `01.00.03.02 (20251126)`.
-Reads the page on stdin and prints the newest version. Usage: curl -fsS "$NOTES" | python3 scripts/firmware_watch.py
-(the wiki answers urllib's user agent with 403, curl's with the page)"""
+Reads the page on stdin and prints the newest version. Usage: python3 scripts/firmware_watch.py < notes.html,
+saved by curl (the wiki answers urllib's user agent with 403, curl's with the page)"""
 
 import re
 import sys
