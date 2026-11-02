@@ -8,7 +8,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 ## The next Mech, in progress
 
-[![The next Mech in progress, isometric](https://yellowpine.com/noggin/images/next-mech-a-isometric.webp)](pictures.md)
+[![The next Mech in progress, isometric](https://yellowpine.com/noggin/images/next-mech-back-isometric.webp)](pictures.md)
 [![Its eyes sweeping, the lids following](https://yellowpine.com/noggin/images/next-eyes-sweep.webp)](pictures.md)
 
 The next Mech (#51), clean-room, as its model has it after the latest merge, and its eyes sweeping. Each part and

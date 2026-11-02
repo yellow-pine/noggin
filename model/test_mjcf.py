@@ -12,7 +12,6 @@ import trimesh
 
 from model import electrical, gimbal, mating, mjcf, mujoco_report, stages
 from model import geometry as g
-from model.test_report import TOWER
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -82,21 +81,22 @@ TOUCH = {
             ("next jaw:1", "next head mount:1"),
         ]
     },
-    # the Torso (#685) and the Base candidates' carriers (#642): the same; (b)'s tower meets the head's middle
-    # (test_report.TOWER)
+    # the Torso (#685) and the head variants' carriers (#686): the same
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
-        for carrier in ("next board tray:1", "next board tower:1")
+        for carrier in ("next board rack:1", "next crown shelf:1", "next split shelf:1")
         for pair in [
             *((carrier, f"{b}:1") for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")),
             (carrier, "next switch board:1"),
+            (carrier, "next gimbal frame:1"),
         ]
     },
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("next board tray:1", "next gimbal frame:1"),
+            ("next switch bracket:1", "next switch board:1"),
+            ("next switch bracket:1", "next pan yoke:1"),
             ("next torso:1", "next neck mount:1"),
             ("next torso:1", "next pack:1"),
         ]
@@ -170,7 +170,7 @@ def test_no_two_parts_overlap_at_rest_unless_they_are_mounted(doc):
         rest = pieces[i + 1 :]  # thousands of pieces: a row at a time, another part's whose bounding spheres meet a's
         for b in rest[(body[rest] != body[a]) & (np.linalg.norm(pos[rest] - pos[a], axis=1) <= reach[rest] + reach[a])]:
             pair = tuple(sorted((model.body(body[a]).name, model.body(body[b]).name)))
-            if frozenset(pair) in allowed or TOWER in pair:
+            if frozenset(pair) in allowed:
                 continue
             mm = -1000 * mujoco.mj_geomDistance(model, data, a, b, 0.01, None)
             if mm > PENETRATION_MM:

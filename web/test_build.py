@@ -17,7 +17,7 @@ from model.render import pictures
 from web import build
 
 STAGES = {"noggin-stage1": "stage1.glb", "noggin-stage2": "stage2.glb", "noggin-stage3": "stage3.glb"}
-STAGES |= {d: f"{d}.glb" for d in ("next-mech-a", "next-mech-b")}  # #649; their gestures, Rest and next hero (#663)
+STAGES |= {d: f"{d}.glb" for d in ("next-mech-back", "next-mech-crown", "next-mech-split")}  # #649, #686; #663
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 

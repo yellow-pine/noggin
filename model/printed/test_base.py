@@ -1,18 +1,19 @@
-"""Seam: the next Mech's Torso and its Base candidates' board carriers (model/printed/base.py) as model/stages.py places
+"""Seam: the next Mech's Torso and its head variants' board carriers (model/printed/base.py) as model/stages.py places
 them at rest with the neck and the gimbal: the Torso holds the neck mount, the pan servo and the pack inside its walls;
-(a)'s overlap nothing; (b)'s tower meets the head's middle and nothing else."""
+each variant's carriers and boards overlap nothing."""
 
 import itertools
 
 import pytest
 
 from model import base, stages
+from model import geometry as g
 from model.printed.base import WALL
 from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next Core", "next Shield", "next switch board")
+BASE = ("next torso", "next pack", "next board", "next crown", "next split", "next switch", "next Core", "next Shield")
 
 
 def _hits(doc):
@@ -43,20 +44,6 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
 
 
 @pytest.mark.build
-def test_candidate_a_overlaps_nothing_at_rest():
-    assert _hits("next-mech-a") == set()
-
-
-@pytest.mark.build
-def test_candidate_bs_tower_meets_the_neck_and_gimbal_on_the_pan_axis_and_nothing_else():
-    """The pan yoke's disc, the head mount, the gimbal frame's plate, the tie-bar and the yaw servo with its horn all sit
-    on the pan axis (model/base.py)."""
-    middle = (
-        "next pan yoke",
-        "next head mount",
-        "next gimbal frame",
-        "next tie-bar",
-        "next yaw servo",
-        "next yaw horn",
-    )
-    assert _hits("next-mech-b") == {frozenset(("next board tower:1", f"{n}:1")) for n in middle}
+@pytest.mark.parametrize("doc", sorted(g.NEXT))
+def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(doc):
+    assert _hits(doc) == set()

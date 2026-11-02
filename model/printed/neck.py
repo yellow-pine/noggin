@@ -12,6 +12,7 @@ COLUMN_R = 10.0  # the neck mount's column: its top is the yoke's thrust face, i
 NECK_R = 5.0  # the column's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
 POCKET = ((0.5, 10.0), (27.0, 41.0))  # (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
 Y, Z = nk.AXIS
+FLOOR_D = 35.0  # the yoke's floor, back from the pan axis under the tilt servo
 
 
 def _servo(label):
@@ -44,7 +45,7 @@ def yoke():
     """The pan yoke (printed upright): a disc on the column (the pan shank's bore) and a floor back under the tilt
     servo (the pan lever's pin; a pocket through it where the tilt horn and bar swing), the cheeks up to the tilt axis (the tilt shanks' tapping holes), the tilt servo's
     collar, the pan span's upper clamp in front and the tilt span's clamp on a post outside the R cheek."""
-    out = cyl("z", (0, Y, 0), nk.DISC_R, nk.DISC_Z).union(box((nk.LOOP_X[0], 38), (Y, Y + 35), nk.DISC_Z))
+    out = cyl("z", (0, Y, 0), nk.DISC_R, nk.DISC_Z).union(box((nk.LOOP_X[0], 38), (Y, Y + FLOOR_D), nk.DISC_Z))
     r, (_, z1) = nk.PAN_SPAN
     out = out.union(box((-3, 3), (Y - r - 3, Y - nk.DISC_R + 1), nk.DISC_Z)).cut(
         box((-3, 3), (Y - r - 2, Y - r + 2), (z1 - 0.75, z1 + 0.75))

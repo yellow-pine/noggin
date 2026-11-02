@@ -28,14 +28,11 @@ KNOWN_PAIRS = {
         for s in "LR"
     },
 }
-# Base candidate (b)'s tower rises on the pan axis through the head's middle (model/base.py): every pair with it is the
-# clearance gate the ranking drops (b) for (base.rank), a finding about (b), not a fault in the model (#642)
-TOWER = "next board tower:1"
 
 
 def known(pair):
-    """A pair (names) whose depth is no problem: in KNOWN_PAIRS, or with (b)'s tower."""
-    return frozenset(pair) in KNOWN_PAIRS or TOWER in pair
+    """A pair (names) whose depth is no problem: in KNOWN_PAIRS."""
+    return frozenset(pair) in KNOWN_PAIRS
 
 
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
@@ -158,7 +155,7 @@ def mujoco_problems(report):
     (its singularity margin or transmission angle under the gate, #627), a servo holding over its rated torque (in a pose
     of the sweep or along a motion), a servo's load peaking over half its stall torque along a motion, a joint a
     full-speed swing leaves off the slow pose, the centre of mass off the footprint, at rest or moving. Listed exceptions
-    (KNOWN_PAIRS and the TOWER's, KNOWN_FULL_SPEED, KNOWN_TRANSMISSION, KNOWN_PEAKS) carry their reasons."""
+    (KNOWN_PAIRS, KNOWN_FULL_SPEED, KNOWN_TRANSMISSION, KNOWN_PEAKS) carry their reasons."""
     m, doc, out = report.get("mujoco", {}), report["doc"], []
     for p in m.get("pairs", []):
         if deeper(p) > mujoco_report.PENETRATION_MM and not known(p["pair"]):
