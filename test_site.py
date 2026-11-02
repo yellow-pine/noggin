@@ -77,17 +77,6 @@ def test_the_readme_is_for_contributors():
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
-def test_the_home_page_links_every_gesture_the_model_plays_into_the_viewer():
-    """The gesture GIFs are gone (#468): the landing page's Gestures row is built from model/traces.py, in order, each
-    gesture a deep link that plays it in the viewer on Stage 1; GitHub shows the line around it instead."""
-    import macros  # here, not at the top: it imports the model
-    from model import traces
-
-    links = re.findall(r"\[(\w+)\]\(https://yellowpine\.com/noggin/viewer/\?gesture=(\w+)&stage=1\)", macros.gestures())
-    assert links == [(g, g) for g in traces.GESTURES]
-    assert "<!--{{ gestures }}-->" in (ROOT / "docs" / "index.md").read_text()
-
-
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,

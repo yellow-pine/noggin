@@ -3,7 +3,6 @@
 `<!--{{ name }}-->`; GitHub, which hides HTML comments, shows the prose around it instead.
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
 landing page and docs/use/gestures.md.
-gestures: the landing page's row of gestures (model/traces.py), each a deep link into the web viewer (#468).
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
@@ -22,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
-from model import mjcf, stages, traces
+from model import mjcf, stages
 from model.render import pictures
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
@@ -71,10 +70,6 @@ def behaviour():
             sent = director.handle({"hook_event_name": event, "session_id": "s", "notification_type": kind}, 1)
             rows.append(f"| {event}{' ' + kind if kind else ''} | {MECH[sent[0].split()[0]].format(**numbers)} |")
     return "\n".join(rows)
-
-
-def gestures():
-    return " · ".join(f"[{g}](https://yellowpine.com/noggin/viewer/?gesture={g}&stage=1)" for g in traces.GESTURES)
 
 
 def picture_numbers():
@@ -169,7 +164,6 @@ def numbers():
     parts, servos = stage_guides()
     return {
         "behaviour": behaviour(),
-        "gestures": gestures(),
         "pictures": picture_numbers(),
         "stage_parts": parts,
         "stage_servos": servos,

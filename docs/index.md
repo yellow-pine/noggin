@@ -13,14 +13,6 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 [Build one](build/parts.md) · [Use it](use/noggin-service.md) · [Turn it in 3D](https://yellowpine.com/noggin/viewer/)
 
-## Gestures
-
-<!--{{ gestures }}-->
-
-<!--{# GitHub shows the line below; the site drops it for the row above, which it builds from the code -->
-Each gesture plays in [the viewer](https://yellowpine.com/noggin/viewer/).
-<!-- #}-->
-
 ## What it does
 
 <!--{{ behaviour }}-->

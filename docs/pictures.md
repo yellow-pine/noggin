@@ -30,5 +30,5 @@ MuJoCo's trajectories (every picture here). Main's sim reports are on the site a
 
 ## The gestures
 
-The gestures play in [the viewer](https://yellowpine.com/noggin/viewer/), each from the landing page's
-[Gestures](index.md#gestures).
+The gestures play in [the viewer](https://yellowpine.com/noggin/viewer/), on the landing page too: its buttons pick
+one, and the address links to it.

@@ -113,9 +113,7 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
     const shown = page(route(doc)).querySelectorAll('tr').map((tr) => tr.querySelectorAll('th, td').map((c) => plain(c.text)));
     for (const [, name, key] of source.matchAll(/^<!--\{\{\s*(\w+)(?:\[(\w+)\])?\s*\}\}-->$/gm)) {
       used++;
-      const value = key === undefined ? numbers[name] : numbers[name][key];
-      if (!value.startsWith('|')) continue; // the landing page's gestures, a row of links: checked on their own below
-      const table = rows(value);
+      const table = rows(key === undefined ? numbers[name] : numbers[name][key]);
       expect(table.length, `${doc}: ${name}`).toBeGreaterThan(1);
       for (const row of table) expect(shown, `${doc}: ${name}`).toContainEqual(row);
     }
@@ -171,15 +169,10 @@ test('the hero shows at its size in a figure on the landing page and Pictures', 
   }
 });
 
-test("the landing page opens with Stage 3's viewer, the hero its poster, and links each gesture into the viewer", () => {
-  const home = page(`${BASE}/`);
-  const viewer = home.querySelector('.noggin-viewer');
+test("the landing page opens with Stage 3's viewer, the hero its poster", () => {
+  const viewer = page(`${BASE}/`).querySelector('.noggin-viewer');
   expect(viewer.getAttribute('data-stage')).toBe(numbers.stages.at(-1));
   expect(viewer.querySelector(`figure img[src="${SITE}${HOME}/images/hero.gif"]`)).not.toBeNull();
-  const gestures = [...numbers.gestures.matchAll(/\[(\w+)\]/g)].map((m) => m[1]); // macros.py, test_site.py
-  expect(gestures).toContain('wink');
-  const links = home.querySelectorAll('a').map((a) => a.getAttribute('href')).filter((h) => h.includes('/viewer/?'));
-  expect(links).toEqual(gestures.map((g) => `${SITE}${HOME}/viewer/?gesture=${g}&stage=1`));
 });
 
 test("the viewer's page has a button per Stage and serves the Draco decoder from three's npm package", () => {
