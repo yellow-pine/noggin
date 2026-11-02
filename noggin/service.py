@@ -34,6 +34,7 @@ HOLD = {"thinking": 8.0}  # a background mode, not a gesture: the demo holds it 
 FLASH_FILES = tuple(f"{m}.mpy" for m in (*MODULES, STAMP))  # eyes/build (just mpy); boot.py goes over USB alone, as .py
 READ_CAP = 1 << 20  # bytes per connection; a Trigger with a long paste fits, a runaway writer is cut off
 READ_SECONDS = 0.5  # the whole connection, so a stalled writer can't hold up the Director's tick
+TOGETHER = 10.0  # s between both Cores' restarts for a pack cut: each boots and joins Wi-Fi at its own pace
 MANUAL = {"thinking", "rest", "release", "exercise", *GESTURES}
 
 
@@ -109,6 +110,7 @@ class Service:
         self.director.muted = self.mute_file.exists()
         self.link, self.last_probe, self.ready, self.running = None, 0.0, False, True
         self.live = {}  # name -> uptime, of each Core whose beacon was fresh at the last loop
+        self.pack_cut = None  # when the Cores came back from the last pack cut (s since the epoch)
         self.mode = "follow"  # or the demo command playing, or the pose held; never persisted, so a restart follows
         self.duration, self.pause, self.demo, self.step, self.next_step = duration, pause, [], 0, 0.0
         token = json.loads(wifi_file.read_text())["token"] if wifi_file.exists() else ""
@@ -123,6 +125,9 @@ class Service:
                 lines.append(
                     f"warning: {name} runs program {core}, older than the noggin service's {VERSION}: just flash"
                 )
+        if self.pack_cut:
+            at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.pack_cut))
+            lines.append(f"warning: pack cut at {at} (both Cores restarted): charge the pack")
         return "".join(line + "\n" for line in lines) + f"mode {self.mode}\n"
 
     def link_status(self, name, now):
@@ -307,6 +312,12 @@ class Service:
                 if name == "eyes":  # a Core (back) on Wi-Fi
                     self.catch_up()
             self.live = live
+            restarts = self.wifi.restarts
+            if all(n in restarts for n in CORES):
+                boots = [restarts[n] for n in CORES]
+                if max(boots) - min(boots) <= TOGETHER and max(boots) != self.pack_cut:
+                    self.pack_cut = max(boots)
+                    log("pack cut: both Cores restarted, charge the pack")
             if self.mode == "follow":
                 self.send(self.director.tick(now))
             elif self.mode.startswith("demo"):
