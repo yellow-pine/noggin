@@ -15,8 +15,8 @@ import math
 
 import numpy as np
 from scipy.optimize import brentq
-from scipy.spatial.transform import Rotation
 from scipy.spatial import cKDTree
+from scipy.spatial.transform import Rotation
 
 from model import fits, linkage
 from model import geometry as g
