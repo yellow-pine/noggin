@@ -25,7 +25,7 @@ jobs:
   changes:   # what the PR touches (dorny/paths-filter: its files from the API, no checkout); only mech filters
     name: Changes
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
@@ -47,7 +47,7 @@ jobs:
     needs: changes
     # on main (changes skipped) or when changes failed too: only a clean "nothing touched" skips the work
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.mech != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -80,7 +80,7 @@ jobs:
   code:
     name: Code
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -103,7 +103,7 @@ jobs:
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/envelopes.py', 'model/geometry.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
       # model/electrical.py's SPICE circuit: spicelib runs the ngspice program in batch mode
-      # (https://packages.ubuntu.com/noble/ngspice)
+      # (https://packages.ubuntu.com/resolute/ngspice)
       - name: Install ngspice and shellcheck
         run: sudo apt-get update && sudo apt-get install -y ngspice shellcheck
       - name: Run make check
@@ -125,7 +125,7 @@ jobs:
   convex:   # warm: only looks the parts cache up. Cold: from main's latest entry, lists the parts whose pieces are stale
     name: Convex
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       key: ${{ steps.parts.outputs.cache-primary-key }}
       parts: ${{ steps.stale.outputs.parts }}
@@ -175,7 +175,7 @@ jobs:
     name: Convex (${{ matrix.part }})
     needs: convex
     if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false   # the parts that do cut keep their caches
       matrix:
@@ -213,7 +213,7 @@ jobs:
     name: Model (${{ matrix.shard }})
     needs: [convex, convex-part]
     if: ${{ !cancelled() && !failure() && !github.event.pull_request.draft }}   # convex-part is skipped when warm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       # by document (pytest -k on its parameter id), each document's tests on one worker (--dist loadgroup): stage 2 and
@@ -358,7 +358,7 @@ jobs:
     name: Model
     if: ${{ !cancelled() && !github.event.pull_request.draft }}
     needs: model-shard
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check every shard passed
         run: '[ "${{ needs.model-shard.result }}" = success ]'

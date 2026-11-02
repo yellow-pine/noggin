@@ -7,7 +7,7 @@ jobs:
   auto-merge:
     name: Auto-merge
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
