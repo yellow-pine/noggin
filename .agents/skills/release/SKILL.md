@@ -19,12 +19,12 @@ and you resume when its process exits.
    Cancelled (a newer Release Please run took its place in their shared queue): run it again. Failed: print
    `gh run view <id> --log-failed`'s error and stop.
 3. **Merge.** Release Now marked the draft PR ready, which starts its checks; it merges once its required checks and
-   Claude's review pass. `gh pr checks <n> --watch --required`,
-   then `gh pr view <n> --json state,mergeCommit,autoMergeRequest`:
+   Claude's review pass. Wait on PR `<n>` with the "Waiting on CI" loop, then
+   `gh pr view <n> --json state,mergeCommit,autoMergeRequest`:
    - `MERGED`: go on with its `mergeCommit.oid`.
    - Open with `autoMergeRequest` null (a Release Please update raced Release Now): run step 2 again, then this step.
    - Open with a red check: print the check and its link, and stop; the release waits on that fix.
-   - Open and green (a Release Please update restarted the checks, or the review is still landing): watch again.
+   - Open and green (a Release Please update restarted the checks, or the review is still landing): wait again.
 4. **Tag.** The merge's Release Please run tags `vX.Y.Z` and creates the GitHub Release:
    `gh run list -w release-please.yml -c <oid> --json databaseId` (it starts seconds after the merge; list again until
    it shows), then `gh run watch <id> --exit-status`. Cancelled (a newer push took its place in the queue): watch the
