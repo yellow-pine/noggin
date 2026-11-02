@@ -34,7 +34,10 @@ TOUCH = {
             ("next pitch bar:1", "next bail:1"),
             ("next bail:1", "next gimbal frame:1"),
             *[(f"next {s} lid horn:1", f"next {s} lid bar:1") for s in "LR"],
-            *[(f"next {s} lid:1", f"next {s} lid bar:1") for s in "LR"],
+            *[(f"next {s} upper lid:1", f"next {s} lid bar:1") for s in "LR"],
+            *[(f"next {s} lid bar:1", f"next {s} lid link:1") for s in "LR"],
+            *[(f"next {s} lid link:1", f"next {s} lower lid:1") for s in "LR"],
+            *[(f"next {s} upper lid:1", f"next {s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
             *[(f"next {s} yaw yoke:1", p) for s in "LR" for p in ("next tie-bar:1", "next gimbal frame:1")],
             *[(f"next {s} eyeball cap:1", f"next {s} eyeball core:1") for s in "LR"],
         ]

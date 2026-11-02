@@ -16,8 +16,11 @@ PARTS = {
     "next push-rod": gimbal.push_rod,
     "next pitch bar": gimbal.pitch_bar,
     "next lid bar": gimbal.lid_bar,
-    "next L lid": lambda: gimbal.lid("L"),
-    "next R lid": lambda: gimbal.lid("R"),
+    "next lid link": gimbal.lid_link,
+    "next L upper lid": functools.partial(gimbal.upper_lid, "L"),
+    "next R upper lid": functools.partial(gimbal.upper_lid, "R"),
+    "next L lower lid": functools.partial(gimbal.lower_lid, "L"),
+    "next R lower lid": functools.partial(gimbal.lower_lid, "R"),
     "next gimbal frame": gimbal.frame,
     # the next Mech's neck and jaw (#641)
     "next neck mount": neck.mount,
@@ -40,6 +43,8 @@ STYLED = {
     "next tie-bar": gimbal.tie_bar,
     "next bail": gimbal.bail,
     "next push-rod": gimbal.push_rod,
+    **{stem: PARTS[stem] for stem in ("next lid bar", "next lid link")},
+    **{f"next {s} {lid}": PARTS[f"next {s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
     "next torso": base.torso,
     "next board rack": base.rack,
     "next test stand": base.stand,
@@ -47,7 +52,7 @@ STYLED = {
 # the Skeleton's parts drawn plain alone: their Bones wait on the ticket reshaping them, which draws both styles
 UNSTYLED = {
     "next eyeball core": "the eyeball's ball under its cap: none",
-    **dict.fromkeys(("next L lid", "next R lid", "next lid bar", "next pitch bar", "next gimbal frame"), "#698"),
+    **dict.fromkeys(("next pitch bar", "next gimbal frame"), "#704"),
     **dict.fromkeys(
         (
             "next neck mount",
