@@ -8,7 +8,8 @@ mjcf.py).
 panels: the Stage panels' grid (model/render/pictures.py PANELS), on no page since #640 (docs/adr/0019); next_panels:
 the next Mech's (geometry.py NEXT, #629), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of
 each of its parts, on docs/pictures.md (#649).
-published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro).
+published: the pictures and the GLB the site serves, the next Mech's alone (site/site.test.mjs, src/pages/viewer.astro),
+and bases: the viewer's button per Base candidate.
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -17,7 +18,7 @@ moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), 
 stages: the Stages, one per geometry.STAGES (each Stage's guide, site/site.test.mjs).
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
-explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
+explode: the viewer's exploded next Mech (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -243,9 +244,19 @@ def coupon():
 
 
 def explode():
-    """Each part of Stage 3 by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its GLB node's name."""
-    subs = pictures.EXPLODE.items()
-    return {"stage3": {n: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in subs for n in stages.SUBS[sub]().parts}}
+    """Each part of the next Mech's documents by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its
+    GLB node's name, under the document's GLB name (web/build.py PUBLIC)."""
+    glb = {doc: f.removesuffix(".glb") for doc, f in viewer.PUBLIC.items()}
+    xyz = {sub: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in pictures.EXPLODE.items()}
+    return {glb[doc]: {n: xyz[sub] for sub in subs for n in stages.SUBS[sub]().parts} for doc, subs in g.NEXT.items()}
+
+
+def bases():
+    """The viewer page's button per Base candidate (#664), by its GLB: what carries its boards, its one sub-assembly the
+    other lacks (geometry.py NEXT), e.g. next-tray, "Board tray"."""
+    common = set.intersection(*map(set, g.NEXT.values()))
+    carrier = {doc: (set(subs) - common).pop() for doc, subs in g.NEXT.items()}
+    return {f.removesuffix(".glb"): f"Board {carrier[doc].removeprefix('next-')}" for doc, f in viewer.PUBLIC.items()}
 
 
 def build():
@@ -268,7 +279,7 @@ def numbers():
         "next_panels": next_panels(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
-        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values())},
+        "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "bases": bases()},
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),

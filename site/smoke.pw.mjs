@@ -1,7 +1,7 @@
 // The built site in Chrome (#513): the diagrams draw, search finds a page, the Docs version switcher opens the same
 // page in another version, the wordmark's eye looks at the pointer (#603), and nothing breaks the CSP, logs an error or
 // asks another host than api.github.com (the header's stars and forks). The viewer loads the next Mech (#649), the only
-// one the site serves (docs/adr/0019).
+// one the site serves (docs/adr/0019), and plays its gestures (#664).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -27,13 +27,18 @@ test.afterEach(async ({ baseURL }) => {
   expect(elsewhere).toEqual([]);
 });
 
-test('the viewer loads the next Mech, see-through, and the wheel zooms it', async ({ page }) => {
+test('the viewer loads the next Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
   // CI always has the GLBs; a local build has them once just web next ran before just site
   test.skip(!existsSync(new URL('dist/viewer/next-mech-a.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer').first(); // a viewer per Base candidate (#642)
+  const viewer = page.locator('.noggin-viewer'); // one, a button per Base candidate (#664)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
-  await expect(viewer.getByRole('navigation', { name: 'Gesture' })).toBeHidden(); // still: nothing to play
+  await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
+  await viewer.getByRole('button', { name: 'Board tower' }).click();
+  await expect(page).toHaveURL(/\?stage=2$/);
+  await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+  await viewer.getByRole('button', { name: 'Explode' }).click();
+  await expect(page).toHaveURL(/\?stage=2&explode=1$/);
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
