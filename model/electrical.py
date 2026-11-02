@@ -1,8 +1,7 @@
 """The Mech's supply as a SPICE netlist (ngspice through spicelib), figures from the datasheets
-(docs/research/2026-10-31-electrical.md), the pack by its charge (docs/research/2026-11-02-literature-electrical.md),
-and the leads the cable corridors route. Run: .venv/bin/python -m
-model.electrical. worst_case() is merged into the Mech-wide (noggin-stage3) report and leads() routed by
-model/cables.py. It reads only CHANNELS and the lead lengths."""
+(docs/research/2026-10-31-electrical.md), the pack by its charge (docs/research/2026-11-02-literature-electrical.md).
+Run: .venv/bin/python -m model.electrical. worst_case() is merged into the report of each document with both Cores
+(model/report.py). It reads only CHANNELS and the lead lengths."""
 
 import importlib.util
 import json
@@ -16,7 +15,7 @@ from scipy.optimize import brentq
 from spicelib import RawRead
 from spicelib.simulators.ngspice_simulator import NGspiceSimulator
 
-from model.geometry import CHANNELS, SERVO_LABEL
+from model.geometry import CHANNELS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -171,26 +170,6 @@ def worst_case():
         "nominal": nominal,
         "cutoff": cutoff,
     }
-
-
-def leads():
-    """(lead, Port, Port, length mm) for every lead of the Mech: each servo from where its lead leaves the servo to its
-    shield header (CHANNELS), the pack's lead to the switch board and the Y lead's two branches from the switch board to
-    the shields. Port names are model/stages.py's ports; model/cables.py routes each
-    from its first Port."""
-    out = [("pack 1 -> switch 1", "battery 1 lead", "switch board 1 in", XH_LEAD_MM)]
-    for n in (1, 2):
-        out.append((f"switch 1 -> shield {n}", "switch board 1 out", f"Core {n} XH power", XH_LEAD_MM))
-        for port, name in CHANNELS[f"core{n}"].items():
-            out.append(
-                (
-                    f"{name} servo -> Core {n} PWM{port}",
-                    f"{SERVO_LABEL[name]} servo lead",
-                    f"Core {n} servo PWM{port}",
-                    SERVO_LEAD_MM,
-                )
-            )
-    return out
 
 
 if __name__ == "__main__":

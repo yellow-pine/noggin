@@ -1,8 +1,8 @@
-"""Blender side of web/build.py: runs INSIDE Blender (`Blender -b -P web/glb.py -- job.json`). Loads the Stage's
+"""Blender side of web/build.py: runs INSIDE Blender (`Blender -b -P web/glb.py -- job.json`). Loads the document's
 parts in the pictures' satin (model/render/blender.py; the toon band and lines are render-only), keys every part's
 world pose per frame of each motion into its own action, stashes each as an NLA track named for the motion (the
 exporter merges tracks of one name into one glTF clip) and exports a Draco GLB, Y-up as glTF is, with the look numbers
-the page draws style B from in the scene's extras, and the hero picture's camera where the job has it."""
+the page draws style B from in the scene's extras."""
 
 import json
 import math
@@ -57,13 +57,6 @@ def main(job):
         "key": look.KEY,
     }.items():
         sc[k] = v
-    if "camera" in job:  # the hero picture's (pictures.hero_camera): glTF's camera from its lens and frame
-        c = job["camera"]
-        cam = bpy.data.objects.new("hero", bpy.data.cameras.new("hero"))
-        sc.collection.objects.link(cam)
-        cam.matrix_world = Matrix(c["matrix"])
-        cam.data.sensor_fit, cam.data.lens = "HORIZONTAL", c["lens"]  # as model/render/blender.py renders it
-        sc.render.resolution_x, sc.render.resolution_y = c["size"]
     bpy.ops.export_scene.gltf(
         filepath=job["out"],
         export_format="GLB",
@@ -71,7 +64,6 @@ def main(job):
         export_animation_mode="NLA_TRACKS",
         export_draco_mesh_compression_enable=True,
         export_extras=True,
-        export_cameras=True,
     )
 
 

@@ -1,9 +1,8 @@
-"""The web viewer's GLBs (docs/adr/0008): one per Stage and per next Mech document (PUBLIC, the ones the site serves,
-#649, #642), written into one folder that the site serves at viewer/ beside the viewer's page and its module
-(site/src/pages/viewer.astro, `just site`, docs/adr/0009). Each GLB is Blender's (web/glb.py): the Stage's parts in the
-pictures' look, one glTF clip per motion of its baked trajectories (model/trajectories.py, `just trajectories`); the
-hero's Stage's also the hero picture's camera (model/render/pictures.py hero_camera). The next Mech's play their
-gestures, Rest (#663) and the next hero (#642).
+"""The web viewer's GLBs (docs/adr/0008): one per next Mech document (PUBLIC, #649, #642), written into one folder that
+the site serves at viewer/ beside the viewer's page and its module (site/src/pages/viewer.astro, `just site`,
+docs/adr/0009). Each GLB is Blender's (web/glb.py): the document's parts in the pictures' look, one glTF clip per motion
+of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the next hero
+(#642).
 Usage: python -m web.build [out [doc ... | next]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
 
 import json
@@ -19,12 +18,11 @@ from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "glb.py")
-GLBS = {doc: doc.removeprefix("noggin-") + ".glb" for doc in g.STAGES | g.NEXT}
-PUBLIC = {doc: GLBS[doc] for doc in g.NEXT}  # what the site serves: the next Mech alone (docs/adr/0019)
+PUBLIC = {doc: doc + ".glb" for doc in g.NEXT}  # what the site serves: the next Mech (docs/adr/0019)
 
 
 def glb(doc, path):
-    """Blender writes the Stage's GLB: every part keyed per frame of each of its motions."""
+    """Blender writes the document's GLB: every part keyed per frame of each of its motions."""
     with tempfile.TemporaryDirectory() as tmp:
         parts = scene.export(stages.STAGES[doc], tmp)
         for p in parts.values():
@@ -35,9 +33,6 @@ def glb(doc, path):
         }
         rest = next(iter(motions.values()))[0]
         spec = {"parts": parts, "motions": motions, "rest": rest, "fps": trajectories.FPS, "out": path}
-        if doc == pictures.HERO_STAGE:  # the hero picture's camera, for the page whose poster it is (#597)
-            cam = pictures.hero_camera(pictures.hulls(parts))
-            spec["camera"] = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "size": pictures.HERO_SIZE}
         job = os.path.join(tmp, "job.json")
         json.dump(spec, open(job, "w"))
         r = subprocess.run([pictures.BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
@@ -46,13 +41,13 @@ def glb(doc, path):
 
 
 def build(out, docs=()):
-    """The documents' GLBs (every one by default; "next": PUBLIC's, the next Mech's) in out, emptied first."""
+    """The documents' GLBs (every one by default, as "next") in out, emptied first."""
     docs = [d for a in docs for d in (PUBLIC if a == pictures.NEXT else [a])]
     shutil.rmtree(out, ignore_errors=True)  # what an older build left would land on the site's
     os.makedirs(out)
-    for doc in docs or GLBS:
-        glb(doc, os.path.join(out, GLBS[doc]))
-        print(f"{GLBS[doc]}: {os.path.getsize(os.path.join(out, GLBS[doc])) // 1024} KB")
+    for doc in docs or PUBLIC:
+        glb(doc, os.path.join(out, PUBLIC[doc]))
+        print(f"{PUBLIC[doc]}: {os.path.getsize(os.path.join(out, PUBLIC[doc])) // 1024} KB")
 
 
 if __name__ == "__main__":

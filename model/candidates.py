@@ -28,7 +28,7 @@ def head(doc, model):
     far up the box the eye centres sit (0 its bottom, 1 its top)."""
     v = _drawn(model, _rest(model), stages.STAGES[doc].horns["tilt horn"].loops[0].rockers)
     lo, hi = v.min(axis=0), v.max(axis=0)
-    eyes = stages.DOCS[doc][0]["next-eyes"][0][2]
+    eyes = stages.DOCS[doc]["next-eyes"][0][2]
     return [round(float(s), 1) for s in hi - lo], round(float((eyes - lo[2]) / (hi[2] - lo[2])), 2)
 
 
@@ -61,7 +61,7 @@ def optimise(doc):
     lo, hi = stage.horns["tilt horn"].limits
     tilts = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
     pos0, turn = model.body_pos[group].copy(), still.xmat[model.body("next head mount:1").id].reshape(3, 3)
-    origin = np.array(stages.DOCS[doc][0]["next-eyes"][0])
+    origin = np.array(stages.DOCS[doc]["next-eyes"][0])
 
     def hold(dy, dz):
         model.body_pos[group] = pos0 + turn.T @ [0, dy, dz] / 1000
