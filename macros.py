@@ -10,7 +10,7 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
 stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
-explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (model/render/pictures.py EXPLODE).
+explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -150,11 +150,8 @@ def wiring():
 
 def explode():
     """Each part of Stage 3 by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its GLB node's name."""
-    return {
-        "stage3": {
-            n: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in pictures.EXPLODE.items() for n in stages.SUBS[sub]().parts
-        }
-    }
+    subs = pictures.EXPLODE.items()
+    return {"stage3": {n: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in subs for n in stages.SUBS[sub]().parts}}
 
 
 def build():
