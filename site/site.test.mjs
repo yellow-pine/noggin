@@ -261,9 +261,12 @@ test('Pictures shows the next Mech, it in motion and each of its parts, each lin
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
 
-test("the viewer's page draws the next Mech and serves the Draco decoder from three's npm package", () => {
-  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer');
-  expect(viewers.map((v) => `${v.getAttribute('data-stage')}.glb`)).toEqual(numbers.published.viewer);
+test("the viewer's page draws the next Mech, a button per Base candidate, and serves three's Draco decoder", () => {
+  const viewers = page(`${BASE}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664)
+  expect(viewers).toHaveLength(1);
+  const buttons = viewers[0].querySelectorAll('nav button[data-stage]');
+  expect(buttons.map((b) => `${b.getAttribute('data-stage')}.glb`)).toEqual(numbers.published.viewer);
+  expect(buttons.map((b) => b.text.trim())).toEqual(['Board tray', 'Board tower']);
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
     expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);

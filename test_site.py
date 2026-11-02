@@ -301,18 +301,22 @@ def test_the_hero_is_800x400():
     assert pictures.HERO_SIZE == (800, 400)
 
 
-def test_the_viewer_explodes_stage_3_by_the_renders_offsets():
-    """Cansin (#482): the viewer's Explode moves each of Stage 3's parts by its sub-assembly's offset in
-    model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up (x, z, -y), and no
-    picture of it is rendered."""
+def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
+    """Cansin (#482, #664): the viewer's Explode moves each part of the next Mech, both Base candidates, by its
+    sub-assembly's offset in model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up
+    (x, z, -y), none of today's parts (#649), and no picture of it is rendered."""
     import macros  # here, not at the top: it imports the model
     from model import stages
     from model.render import pictures
+    from web import build
 
     explode = macros.explode()
-    assert list(explode) == ["stage3"] and set(explode["stage3"]) == set(stages.STAGES["noggin-stage3"].parts)
-    assert explode["stage3"]["top jaw:1"] == pytest.approx([0, 0.095, 0.045])  # the mouth: up and forward
-    assert explode["stage3"]["base plate:1"] == [0, 0, 0]
+    assert [f"{doc}.glb" for doc in explode] == list(build.PUBLIC.values())
+    for doc, apart in explode.items():
+        assert set(apart) == set(stages.STAGES[doc].parts)
+    assert explode["next-mech-a"]["next base plate:1"] == [0, 0, 0]
+    assert explode["next-mech-a"]["next board tray:1"] == pytest.approx([0, 0.095, -0.06])  # up with the head, back
+    assert explode["next-mech-b"]["next board tower:1"] == pytest.approx([0, 0.045, -0.06])  # up with the neck, back
     assert "exploded.jpg" not in sum(pictures.SITE.values(), [])
 
 

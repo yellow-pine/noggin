@@ -1,18 +1,25 @@
 ---
-// The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro) draws
-// the next Mech's GLB beside this page at viewer/, the one the site serves (web/build.py PUBLIC, docs/adr/0019, #649).
+// The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro), which
+// draws the next Mech's GLB beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) and moves these
+// Base candidate buttons (macros.py bases, from model/geometry.py NEXT) into its bar (#664).
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { published } from '../macros.json';
 ---
 
 <StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
   <p>
-    The next Mech as its model has it so far, once per Base candidate: (a) the boards on a tray riding the head, then
-    (b) the boards on a tower standing on the pan axis. Drag to turn one, scroll or pinch to zoom.
+    The next Mech as its model has it so far, per Base candidate: (a) the boards on a tray riding the head, (b) the
+    boards on a tower standing on the pan axis. Drag to turn it, scroll or pinch to zoom, play each gesture and take it
+    apart.
   </p>
-  {published.viewer.map((glb) => <div class="noggin-viewer" data-stage={glb.replace(/\.glb$/, '')} data-zoom />)}
+  <div class="noggin-viewer" data-stage={Object.keys(published.bases)[0]} data-zoom>
+    <nav aria-label="Base">
+      <span>Base</span>
+      {Object.entries(published.bases).map(([glb, label]) => <button data-stage={glb}>{label}</button>)}
+    </nav>
+  </div>
 </StarlightPage>
 
 <style is:global>
-  .noggin-viewer canvas { height: 60vh; } /* in view on a laptop */
+  .noggin-viewer canvas { height: 60vh; } /* the bar under it in view on a laptop */
 </style>

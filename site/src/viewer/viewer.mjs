@@ -1,6 +1,6 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
-// it: the page's Stage buttons (src/pages/viewer.astro, a segmented 1 2 3), the Tour and a chip per gesture, Explode;
+// it: the page's buttons (src/pages/viewer.astro, one per Base candidate, #664), the Tour and a chip per gesture, Explode;
 // under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
 // small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
@@ -8,7 +8,7 @@
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
 // button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
-// macros.json has for it (Stage 3's, model/render/pictures.py EXPLODE, #482) and back, &explode=1 opens it so. Only a
+// macros.json has for it (the next Mech's, model/render/pictures.py EXPLODE, #482, #664) and back, &explode=1 opens it so. Only a
 // viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -245,7 +245,7 @@ function mount(root) {
     toggle.hidden = !parts.length;
     toggle.disabled = false;
     press(toggle, goal === 1);
-    bar.hidden = caption.hidden = !tour.length;  // a still Stage (the next Mech's, #649) plays nothing
+    bar.hidden = caption.hidden = !tour.length;  // a GLB without clips plays nothing
     if (tour.length) play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
     root.setAttribute("aria-busy", false);
   }
