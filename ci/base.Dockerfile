@@ -20,14 +20,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libice6 libsm6 libx11-6 libxcursor1 libxext6 libxfixes3 libxi6 libxkbcommon0 libxrender1 libxxf86vm1 \
  && rm -rf /var/lib/apt/lists/*
 # gh from GitHub CLI's signed apt repo, as cli/cli's docs/install_linux.md has it, its keyring checked against the
-# sha256 published there. Not pinned, by exception (ADR 0012, #529): each rebuild takes the newest gh, where Ubuntu's
-# archive froze it at 2.45, built with a Go whose stdlib Grype flags
+# sha256 published there. Not pinned and no 14-day cooldown, by exception (ADR 0012, #529): this step takes the newest
+# gh whenever it rebuilds (a new Ubuntu digest above, or no cache), where Ubuntu's archive froze it at 2.45, built with
+# a Go whose stdlib Grype flags
 ARG GH_KEYRING_SHA256=6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b
-RUN install -d -m 755 /etc/apt/keyrings \
- && curl -fsSL -o /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
- && echo "$GH_KEYRING_SHA256  /etc/apt/keyrings/githubcli-archive-keyring.gpg" | sha256sum -c \
- && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
- && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+RUN keyring=/etc/apt/keyrings/githubcli-archive-keyring.gpg \
+ && install -d -m 755 /etc/apt/keyrings \
+ && curl -fsSL -o "$keyring" https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+ && echo "$GH_KEYRING_SHA256  $keyring" | sha256sum -c \
+ && chmod go+r "$keyring" \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=$keyring] https://cli.github.com/packages stable main" \
       > /etc/apt/sources.list.d/github-cli.list \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/* \

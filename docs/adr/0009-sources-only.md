@@ -24,6 +24,7 @@
 > Amended 2026-11-02 (#472, spec #467): the CI images rebuild only when a Dockerfile changes, no weekly no-cache
 > rebuild; the distro's security fixes arrive with Dependabot's base-image bumps (ADR 0012).
 > Amended 2026-11-02 (#481, spec #467): the jobs run the CI images by the `:main` tag, not by digest; ci/pins goes.
+> Amended 2026-11-02 (#529): gh in the base image from GitHub CLI's signed apt repo, unpinned (ADR 0012).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
