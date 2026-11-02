@@ -31,6 +31,7 @@
 > Amended 2026-11-02 (#534): reverses #472's "no weekly no-cache rebuild". `CI Images` also rebuilds both images
 > weekly without the layer cache, Mondays before the image scan, so the archive's security fixes and the newest gh
 > land without waiting for a base-image bump (ADR 0012).
+> Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -56,7 +57,7 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   site's Markdown plugin puts each in its doc's marker (ADR 0013). The markers sit in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
   their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a Core's servo count) is not
   the code's (#227).
-- **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into
+- **The sim reports are built, never committed** (#229). `just sim` writes them and their MJCFs into
   model/build/reports; a `Model` shard caches them under a key of what they are made from (`sim-`), so it
   runs the sim only when that changed. A PR that runs it diffs the new reports against main's latest
   (the newest `sim-` entry, which only main saves) in its job summary; Site Deploy runs once Checks is done on main
@@ -66,7 +67,7 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
 - **The pictures are built in CI** (#226): Checks' `Blender` jobs render the README's pictures beside `Site`, and the
   `Checks` gate adds them to the site, which serves them at /images, and the README points at those absolute URLs. A
   PR touching their inputs gets them as artifacts. The motions and the viewer are packed into Blender runners longest
-  first, a matrix read from the code (`make blender-bins`, #297, #496), and the gate gathers them.
+  first, a matrix read from the code (`just blender-bins`, #297, #496), and the gate gathers them.
 - **CI images are build outputs in the registry** (#288). The jobs that need a system tool uv can't install run in our
   own images, so they download no tool (a 403 from download.blender.org had taken the pictures down):
   ci/base.Dockerfile (Ubuntu with Python and uv, Node with mermaid-cli, Chrome for Testing, ngspice, each

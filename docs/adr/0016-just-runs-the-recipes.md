@@ -1,6 +1,7 @@
 # just runs the recipes, not Make
 
 > Decided with Cansin on 2026-11-02, #492 (the research is its body: Make, just and Task side by side).
+> Amended 2026-11-02 (#547): the older ADRs' commands to run are `just` recipes; their history keeps `make`.
 
 The Makefile had grown to 44 targets with one real file dependency; the rest were commands. About 33 of its 54 commits
 on main edited the one shared `.PHONY` line, so two PRs adding a target clashed, and the Claude Code hook found the
@@ -17,7 +18,8 @@ heavy targets with a regex over rule headers. So the commands live in a `justfil
 - **Up to date stays ours.** just has no timestamps (its `[cache]` is unstable); `ours` keeps its `.key`, the
   trajectories their stamps, and the MicroPython build checks for its binary.
 
-The ADRs before this one keep the `make` words of their day.
+The ADRs before this one keep the `make` words of their day where they record what was done; where they say
+what to run, they name the `just` recipe.
 
 ## Considered options
 

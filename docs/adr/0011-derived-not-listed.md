@@ -2,6 +2,7 @@
 
 > Decided with Cansin on 2026-11-01 ("whatever can be deduced from the code should be deduced from it"); #304 does
 > the code, #305 CI and #306 the docs and tests.
+> Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 
 A list the code already holds is never typed out again: the gesture names, the servos on each Core's ports, the
 eye program's files, the Stage and document ids. Every copy was one more place to forget when a gesture or a servo
@@ -13,7 +14,7 @@ else reads it:
 - **Servo ports**: `CHANNELS` in model/geometry.py, the Cores by name in `noggin/core.py` `CORES` (Core 1 the eyes,
   Core 2 the neck). The setup wizard writes core.json from it.
 - **The eye program's files**: what eyes/boot.py imports from eyes/, followed through their imports
-  (`noggin/core.py` `MODULES`); `make mpy-list` prints them for `make mpy`, `make flash-usb` and the release
+  (`noggin/core.py` `MODULES`); `just mpy-list` prints them for `just mpy`, `just flash-usb` and the release
   workflow, and the noggin service flashes the same files over Wi-Fi.
 - **The workflows** (#397, #425): the CI/CD table, from .github/workflows (`scripts/workflow_table.py`), on the
   site's CI/CD page (docs/ci-cd.md), built with the site's other tables (docs/adr/0009); the README links to it.
