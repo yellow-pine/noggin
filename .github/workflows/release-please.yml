@@ -1,10 +1,10 @@
 name: Release Please
-# Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it
-# Keeps the release PR (docs/adr/0010): the next version in pyproject.toml, uv.lock and .release-please-manifest.json,
-# and its CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token
-# minted per run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR
-# would get no checks, its auto-merge no push to main and its tag no Release Assets. The PR auto-merges only when a
-# feature or a break is pending, or Release Now asked (#407); till then it is a draft, which no check runs on (#414).
+# Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it.
+# The PR (docs/adr/0010) carries the next version in pyproject.toml, uv.lock and .release-please-manifest.json, and its
+# CHANGELOG.md entry, from the Conventional Commit titles merged since the last release. It runs on a token minted per
+# run from the release GitHub App (CONTRIBUTING.md): what GITHUB_TOKEN creates starts no workflow, so the PR would get
+# no checks, its auto-merge no push to main and its tag no Release Assets. The PR auto-merges only when a feature or a
+# break is pending, or Release Now asked (#407); till then it is a draft, which no check runs on (#414).
 # Merged, the PR's next run tags vX.Y.Z and releases it.
 # Until the App's RELEASE_APP_CLIENT_ID variable exists, the run only leaves a notice.
 on:

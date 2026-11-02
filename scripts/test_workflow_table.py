@@ -12,8 +12,8 @@ from scripts.workflow_table import table
 ROOT = Path(__file__).resolve().parent.parent
 
 WORKFLOW = """name: Site Checks
-# Builds the site
-# (the rest of the header says how)
+# Builds the site.
+# The rest of the header says how.
 on:
   push:
     branches: [main]
@@ -36,7 +36,7 @@ jobs:
 """
 
 
-def test_a_row_reads_name_file_triggers_jobs_and_the_one_line_purpose(tmp_path):
+def test_a_row_reads_name_file_triggers_jobs_and_the_headers_first_line_as_its_purpose(tmp_path):
     (tmp_path / "site-checks.yml").write_text(WORKFLOW)
     assert table(tmp_path).splitlines()[2] == (
         "| Site Checks | `site-checks.yml` | `push` (`main`), `pull_request` (paths: `ci/*.Dockerfile`),"
@@ -52,7 +52,7 @@ def test_a_bare_trigger_reads_as_itself(tmp_path):
     assert table(tmp_path).splitlines()[2] == "| A | `a.yml` | `push`, `pull_request` | A | Does a |"
 
 
-def test_a_workflow_without_its_purpose_line_fails(tmp_path):
+def test_a_workflow_without_a_header_comment_fails(tmp_path):
     (tmp_path / "a.yml").write_text("name: A\non: pull_request\njobs: {}\n")
     with pytest.raises(ValueError, match="a.yml"):
         table(tmp_path)

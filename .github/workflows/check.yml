@@ -1,5 +1,5 @@
 name: Code Checks
-# `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export
+# Runs `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export
 on:
   push:
     branches: [main]

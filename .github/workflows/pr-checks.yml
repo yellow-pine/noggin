@@ -1,7 +1,7 @@
 name: PR Checks
-# The PR's title is a Conventional Commit with one of the repo's scopes (ADR 0010) and its body links its issue
-# A PR's title and body, each checked by main's copy of its script (a PR can't loosen its own check). Required checks
-# `PR Title` and `PR Issue` (the job names, which the ruleset matches); editing the title or body re-runs them.
+# Checks the PR's title is a Conventional Commit with one of the repo's scopes and its body links its issue.
+# Main's copy of each script checks it (a PR can't loosen its own check). Required checks `PR Title` and `PR Issue` (the
+# job names, which the ruleset matches); editing the title or body re-runs them.
 # `PR Title`: the title is its squash commit, which release-please reads (docs/adr/0010): a Conventional Commit,
 # `type(scope)[!]: subject`, of @commitlint/config-conventional's types and rules, with one scope derived from the repo
 # (scripts/pr_title.py).
