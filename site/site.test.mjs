@@ -57,7 +57,7 @@ test('the sidebar reaches every decision and the viewer', () => {
 const ADDED = ['images', 'reports'];
 const built = (file) =>
   BASE !== HOME || !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
-const pages = html.filter((f) => !ADDED.some((d) => f.startsWith(`${d}/`))); // Astro's pages, not the reports' index
+const pages = html; // every one Astro's, the reports' page too (#603)
 
 test('every link on the site lands on a page or file of it, and no .md link is left', () => {
   const broken = [];
@@ -180,6 +180,68 @@ test("every page's footer links the version to its release (the releases before 
       [`v${version}`, release],
       [commit.slice(0, 7), `${REPO}/commit/${commit}`],
     ]);
+  }
+});
+
+// the look (#603): Yellow Pine's base, the Mech's filament accents, Rubik headings
+test("every page's header names the site with its wordmark, whose o is the Mech's eye", () => {
+  for (const f of pages) {
+    const mark = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelector('header a.site-title');
+    expect(mark?.text.trim(), f).toBe('noggin');
+    expect(mark.getAttribute('href'), f).toBe(`${BASE}/`);
+    expect(mark.querySelectorAll('.noggin-o .noggin-eye').length, f).toBe(1);
+  }
+  expect(page(`${BASE}/`).querySelectorAll('h1 .noggin-o .noggin-eye').length).toBe(1); // and the landing page's title
+});
+
+test("every page's footer credits Yellow Pine with its logo, for the light theme and the dark", () => {
+  for (const f of pages) {
+    const credit = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelector('footer .noggin-credit, .noggin-credit');
+    expect(credit?.getAttribute('href'), f).toBe('https://yellowpine.com/');
+    const logos = credit.querySelectorAll('img');
+    expect(logos.map((i) => i.getAttribute('alt')), f).toEqual(['Yellow Pine', 'Yellow Pine']);
+    for (const i of logos) expect(existsSync(fileOf(i.getAttribute('src'))), f).toBe(true);
+  }
+});
+
+test("every page's icon is the Mech's eye Blender renders, at /images like every picture", () => {
+  for (const f of pages) {
+    const icons = parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('link[rel~="icon"]');
+    expect(icons.map((l) => l.getAttribute('href')), f).toEqual([`${SITE}${HOME}/images/favicon.png`]);
+  }
+});
+
+test("the headings' Rubik is the site's own file, never another host's", () => {
+  const css = globSync('**/*.css', { cwd: DIST }).map((f) => readFileSync(path.join(DIST, f), 'utf8')).join('\n');
+  const faces = [...css.matchAll(/@font-face\s*{[^}]*}/g)].map(([f]) => f).filter((f) => /font-family:\s*["']?Rubik/.test(f));
+  expect(faces.length).toBeGreaterThan(0);
+  for (const face of faces) {
+    const [, weight] = face.match(/font-weight:\s*(\d+)/);
+    expect(weight).toBe('700');
+    for (const [, url] of face.matchAll(/url\(([^)]+)\)/g)) expect(existsSync(fileOf(url.replace(/["']/g, ''))), url).toBe(true);
+  }
+});
+
+test("the sim reports' page is the site's own, listing each report the build has, or saying there is none", () => {
+  const reports = page(`${BASE}/reports/`);
+  expect(reports.querySelector('h1').text.trim()).toBe('Reports');
+  const links = reports.querySelectorAll('main li a').map((a) => a.getAttribute('href'));
+  const files = existsSync(path.join(DIST, 'reports'))
+    ? globSync('*.{json,xml}', { cwd: path.join(DIST, 'reports') }).sort()
+    : [];
+  expect(links).toEqual(files);
+  expect(reports.querySelectorAll('[data-reports]').length).toBe(files.length ? 0 : 1);
+});
+
+test("each Stage's guide opens with the Stages in order, by their titles, its own marked", () => {
+  const guides = docs.filter((d) => d.startsWith('docs/build/stage-')).sort();
+  expect(guides.length).toBe(numbers.stages.length);
+  for (const guide of guides) {
+    const rail = page(route(guide)).querySelectorAll('nav[aria-label="Stages"] a');
+    expect(rail.map((a) => [plain(a.text).replace(/\s+/g, ' '), a.getAttribute('href')]), guide).toEqual(
+      guides.map((g) => [read(g).match(/^# (.+)$/m)[1].replace(': ', ' '), route(g)]),
+    );
+    expect(rail.map((a) => a.getAttribute('aria-current')), guide).toEqual(guides.map((g) => (g === guide ? 'page' : undefined)));
   }
 });
 

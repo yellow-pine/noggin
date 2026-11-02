@@ -10,6 +10,17 @@
 > Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds and tests
 > the site, and its `Checks` gate adds the pictures and the viewer, runs the Playwright smoke test and uploads it.
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
+>
+> Amended 2026-11-02 (#603): the site keeps Starlight (search, Docs versions, dark mode) but no longer its default
+> look. Cansin picked direction A, "Googly", from a three-way prototype (branch `prototype/603-site-directions`):
+> Yellow Pine's brand v2.2 as the base (ink, paper, surfaces, links, an azure focus), the Mech's filament colours as
+> the accents (Milky Pink and Apricot as flat fields), Rubik 700 headings self-hosted from `@fontsource/rubik` (the CSP
+> allows only the site's own files) and the system font for the body, all in `site/src/styles/custom.css`. Component
+> overrides: `SiteTitle` (the "noggin" wordmark, its o one of the Mech's eyes, which looks at the pointer and blinks,
+> holding still for reduced motion), `PageTitle` (the landing page's big wordmark; each Stage guide's Stages, read from
+> their titles) and the `Footer`'s "by Yellow Pine" credit. The icon is the Mech's eye, rendered by Blender
+> (model/render/pictures.py FAVICON) and served at /images like every picture. /reports/ is an Astro page that
+> `scripts/site_reports.sh` lists the sim's reports on.
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that

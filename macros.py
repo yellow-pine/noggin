@@ -110,6 +110,7 @@ def picture_numbers():
             "|---|---|---|",
             f"| Stage panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
             f"| hero | {size(*p.HERO_SIZE)} | {p.HERO_FPS} fps, at most {p.HERO_MAX_BYTES / 1e6:g} MB |",
+            f"| favicon | {size(*p.FAVICON_SIZE)} | PNG |",
             "",
             "| Spool (PLA) | Colour | Drawn by Blender | `just view` |",
             "|---|---|---|---|",

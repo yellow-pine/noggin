@@ -1,4 +1,9 @@
 #!/bin/sh
-# The sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index:
-# just site-reports, and Site Deploy (pages.yml) on main's site with the reports Checks saved, where just is not set up.
-[ ! -d model/build/reports ] || { rm -rf site/dist/reports && cp -R model/build/reports site/dist/reports && cd site/dist/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
+# The sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports, each listed on
+# its page (site/src/pages/reports.astro) in place of the line saying there are none: just site-reports, and Site
+# Deploy (pages.yml) on main's site with the reports Checks saved, where just is not set up.
+[ ! -d model/build/reports ] || {
+  cp -R model/build/reports/. site/dist/reports/ && cd site/dist/reports &&
+    links=$(ls *.json *.xml 2>/dev/null | sed 's|.*|<li><a href="&">&</a></li>|' | tr -d '\n') &&
+    sed "s|<li data-reports[^>]*>[^<]*</li>|$links|" index.html > index.html.new && mv index.html.new index.html
+}

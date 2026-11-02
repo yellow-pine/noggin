@@ -1,0 +1,26 @@
+---
+// The header's wordmark (#603, src/components/Wordmark.astro), linking the landing page. Its script points every eye on
+// the page at the pointer (the landing page's big wordmark's too, src/components/PageTitle.astro); with reduced motion
+// they hold still, and their lids do not blink (src/styles/custom.css).
+import Wordmark from './Wordmark.astro';
+
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title"><Wordmark /></a>
+
+<script>
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const eyes = document.querySelectorAll<HTMLElement>('.noggin-eye');
+    addEventListener('pointermove', (e) => {
+      for (const eye of eyes) {
+        const r = eye.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+        // the pupil leans toward the pointer, all the way once it is 300 px off
+        const k = Math.min(1, Math.hypot(dx, dy) / 300) / (Math.hypot(dx, dy) || 1);
+        eye.style.setProperty('--look-x', `${dx * k * 28}%`);
+        eye.style.setProperty('--look-y', `${dy * k * 28}%`);
+      }
+    });
+  }
+</script>

@@ -32,3 +32,16 @@ def test_eight_fps_keeps_a_blinks_shut_frame_that_the_nearest_frame_would_skip()
     out = pictures.at_fps(frames, 8)
     assert len(out) == 8  # one second at 8 fps
     assert any(f is frames[3] for f in out)  # nearest-frame alone takes 0, 1, 2, 4, 5, 6, 8, 9
+
+
+def test_the_site_icon_is_one_whole_eye_of_its_stage():
+    """The favicon (#603): Stage 1's right eyeball, pupil and both lids, each a part the Stage has."""
+    name, _ = pictures.FAVICON
+    parts = pictures.assembled(name, g.STAGES[f"noggin-{name}"]).parts
+    assert set(pictures.FAVICON_PARTS) <= set(parts)
+    assert {stages.stem(parts[p].file) for p in pictures.FAVICON_PARTS} == {
+        "R eyeball",
+        "pupil",
+        "upper lid",
+        "lower lid",
+    }

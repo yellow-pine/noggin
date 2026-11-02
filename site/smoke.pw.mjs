@@ -1,6 +1,7 @@
 // The built site in Chrome, in tests as short as CI's software WebGL allows (#513): the hero's wheel scrolls the page
 // and the viewer page's zooms (#598), the viewer loads a Stage, the diagrams draw, search finds a page, the Docs
-// version switcher opens the same page in another version, and nothing breaks the CSP, logs an error or asks another host than api.github.com (the header's stars and forks). What the
+// version switcher opens the same page in another version, the wordmark's eye looks at the pointer (#603), and nothing
+// breaks the CSP, logs an error or asks another host than api.github.com (the header's stars and forks). What the
 // viewer plays, links and takes apart is Vitest's (src/viewer/state.test.mjs).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -43,6 +44,23 @@ test("the hero's wheel scrolls the landing page and leaves the Mech's scale", as
   await expect(page.locator('.noggin-viewer canvas')).toBeVisible({ timeout: 45_000 }); // Stage 3 replaced the poster
   expect(await wheel(page)).toBe(false);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+});
+
+// the wordmark's o is the Mech's eye (#603): its pupil looks at the pointer, unless the reader asks for less motion
+test("the wordmark's eye looks at the pointer, and holds still for reduced motion", async ({ page }) => {
+  const pupil = page.locator('header .noggin-pupil');
+  const centre = async () => (await pupil.boundingBox()).x;
+  for (const reducedMotion of ['no-preference', 'reduce']) {
+    await page.emulateMedia({ reducedMotion });
+    await page.goto('docs/build/parts/');
+    await page.mouse.move(0, 0);
+    const before = await centre();
+    await page.mouse.move(1200, 600);
+    if (reducedMotion === 'reduce') {
+      await page.waitForTimeout(300);
+      expect(await centre()).toBe(before);
+    } else await expect.poll(centre).toBeGreaterThan(before);
+  }
 });
 
 test('the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {
