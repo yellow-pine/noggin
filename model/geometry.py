@@ -397,11 +397,17 @@ def battery_at():
     )
 
 
-# Printed parts: spool and material per part (model/mjcf.py mass() and beams.py take masses from it). Spools are PLA; the density
-# is the slicer's PLA base profile (no PLA Pure figure is published). Colours per the build (grilled 2026-10-31);
-# "(colour inferred)" where the build does not show the part's colour.
+# Printed parts: spool and material per part (model/mjcf.py mass() and beams.py read theirs). Today's spools are PLA
+# Pure. Colours per the build (grilled 2026-10-31); "(colour inferred)" where the build does not show the part's colour.
 SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
-MATERIALS = {"PLA Pure": {"density_g_cm3": 1.24}}  # PETG possible later, per part
+# Each spool variant from its maker's TDS (100% infill, ISO 527 tensile; docs/research/2026-11-02-literature-cams-am.md,
+# 2026-10-31-filament.md), in-layer (xy) and across layers (z, what beams.py checks, #626). PETG for the next Mech's
+# skeleton (#51): HF is the worst case until the spool's variant is confirmed.
+MATERIALS = {
+    "PLA Pure": {"density_g_cm3": 1.24, "E_mpa": {"xy": 2481, "z": 2196}, "tensile_mpa": {"xy": 51.5, "z": 30.0}},
+    "PETG HF": {"density_g_cm3": 1.28, "E_mpa": {"xy": 1810, "z": 1540}, "tensile_mpa": {"xy": 34.0, "z": 23.0}},
+    "PETG Basic": {"density_g_cm3": 1.25, "E_mpa": {"xy": 1460, "z": 1120}, "tensile_mpa": {"xy": 48.0, "z": 39.0}},
+}
 PRINTED = {
     name: (spool, "PLA Pure")
     for spool, names in {

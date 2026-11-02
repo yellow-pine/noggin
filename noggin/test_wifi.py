@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -51,11 +52,12 @@ class FakeCore(threading.Thread):
         rollback=False,
         beacon_token=TOKEN,
         ack_token=TOKEN,
+        uptime=42,
     ):
         super().__init__(daemon=True)
         self.name_, self.token, self.drop, self.ack, self.claim_ip = name, token, drop, ack, claim_ip
         self.beacon_token, self.ack_token, self.program = beacon_token, ack_token, program
-        self.busy, self.last_seq, self.rollback, self.uptime, self.reply = busy, None, rollback, 42, ""
+        self.busy, self.last_seq, self.rollback, self.uptime, self.reply = busy, None, rollback, uptime, ""
         self.stranger = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if stranger else None  # acks from another port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("127.0.0.1", 0))
@@ -362,6 +364,43 @@ def test_a_core_that_rebooted_inside_the_window_is_calibrated_again(tmp_path, ca
     core.running = False
 
 
+def beaconing(s, core):
+    """A second Core (start() starts one), beaconing to the service."""
+    core.beacon_to = ("127.0.0.1", s.wifi.port)
+    core.start()
+    return core
+
+
+PACK_CUT = re.compile(r"warning: pack cut at \d{4}-\d\d-\d\d \d\d:\d\d:\d\d \(both Cores restarted\): charge the pack")
+
+
+def test_both_cores_restarting_together_is_a_pack_cut_in_status(tmp_path, capsys):
+    eyes = FakeCore()
+    s, sock = start(tmp_path, eyes)
+    neck = beaconing(s, FakeCore(name="neck", uptime=600))
+    assert wait_for(lambda: "neck wifi" in ask(sock, "status\n") and "eyes wifi" in ask(sock, "status\n"))
+    assert not PACK_CUT.search(ask(sock, "status\n"))
+    eyes.uptime, neck.uptime = 1, 2  # the pack's protection opened: the whole Mech went dark and came back
+    assert wait_for(lambda: PACK_CUT.search(ask(sock, "status\n")))
+    assert ask(sock, "status\n").endswith("charge the pack\nmode follow\n")
+    assert capsys.readouterr().out.count("pack cut: both Cores restarted, charge the pack") == 1
+    s.stop()
+    eyes.running = neck.running = False
+
+
+def test_one_core_restarting_alone_is_no_pack_cut(tmp_path, capsys):
+    eyes = FakeCore()
+    s, sock = start(tmp_path, eyes)
+    neck = beaconing(s, FakeCore(name="neck"))
+    assert wait_for(lambda: "neck wifi" in ask(sock, "status\n") and "eyes wifi" in ask(sock, "status\n"))
+    eyes.uptime = 1  # its USB cable pulled and put back, say
+    assert wait_for(lambda: "eyes beacon back: wifi 127.0.0.1 uptime 1s" in capsys.readouterr().out)
+    time.sleep(0.3)  # a few more beacons from both
+    assert not PACK_CUT.search(ask(sock, "status\n"))
+    s.stop()
+    eyes.running = neck.running = False
+
+
 def test_unacked_wifi_lines_go_over_usb(tmp_path, capsys, fast):
     core, fake = FakeCore(ack=False), FakeSerial()
     s, sock = start(tmp_path, core, open_serial=lambda: fake)
@@ -484,6 +523,20 @@ def test_flash_waits_for_a_beacon_not_seen_yet(tmp_path, monkeypatch):
     assert reply.startswith("flashed eyes"), reply
     s.stop()
     core.running = False
+
+
+def test_a_reboot_the_service_sent_is_no_pack_cut(tmp_path, monkeypatch):
+    eyes = FakeCore()
+    s, sock = flashing(tmp_path, monkeypatch, eyes)
+    neck = beaconing(s, FakeCore(name="neck"))
+    assert wait_for(lambda: "neck wifi" in ask(sock, "status\n"))
+    neck.uptime = 1  # the neck restarts by itself while flash reboots the eyes
+    assert ask(sock, "flash\n", timeout=30).startswith("flashed eyes")
+    time.sleep(0.3)
+    assert "neck wifi 127.0.0.1 uptime 1s" in ask(sock, "status\n")
+    assert not PACK_CUT.search(ask(sock, "status\n"))
+    s.stop()
+    eyes.running = neck.running = False
 
 
 def test_flash_needs_the_core_on_wifi(tmp_path, monkeypatch):

@@ -6,7 +6,7 @@ test_base_plate.py)."""
 import cadquery as cq
 import trimesh
 
-from model import ours
+from model import ours, printed
 
 BOX_MM = 1.0
 PUPIL = (50.17, -8.83, -20.49, 67.83, 8.83, -18.5)
@@ -32,6 +32,13 @@ def test_a_printed_parts_stl_is_watertight_in_its_designers_box(tmp_path):
         mesh = trimesh.load(ours.printable(stem, str(tmp_path / f"{stem}.stl")), force="mesh")
         assert mesh.is_watertight and mesh.volume > 0, stem
         assert near(mesh.bounds.flatten(), want), (stem, mesh.bounds)
+
+
+def test_just_stl_prints_the_clearance_coupon_watertight_flat_on_the_bed(tmp_path):
+    """#624: a Coupon prints from `just stl` beside the parts, but is no part of the Mech."""
+    assert "clearance coupon" in ours.PRINTS and "clearance coupon" not in printed.PARTS
+    mesh = trimesh.load(ours.printable("clearance coupon", str(tmp_path / "coupon.stl")), force="mesh")
+    assert mesh.is_watertight and mesh.volume > 0 and mesh.bounds[0][2] == 0
 
 
 def test_a_printed_parts_step_is_one_valid_solid_in_its_designers_box(tmp_path):

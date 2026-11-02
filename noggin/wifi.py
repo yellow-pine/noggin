@@ -43,6 +43,7 @@ class Wifi:
         self.token, self.command_port, self.stale = token, command_port, stale
         self.cores = {}  # name -> (ip, uptime, seen at)
         self.programs = {}  # name -> (version, commit) of the program it runs
+        self.restarts = {}  # name -> when it last booted, by its uptime going back; a reboot flash sent is not one
         self.seq = 0
         self.beacons = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.beacons.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -70,6 +71,8 @@ class Wifi:
                 and re.fullmatch(r"\d+\.\d+\.\d+(-\d+-g[0-9a-f]+|-untagged)?", parts[4])
                 and self.signed(parts[1], body, t)
             ):
+                if parts[1] in self.cores and int(parts[3]) < int(self.cores[parts[1]][1]):
+                    self.restarts[parts[1]] = now - int(parts[3])
                 self.cores[parts[1]] = (addr[0], parts[3], now)
                 self.programs[parts[1]] = (parts[4], parts[5])
 
@@ -149,6 +152,7 @@ class Wifi:
             self.poll(time.time())
             _, uptime, seen = self.cores[name]
             if seen > since and int(uptime) <= seen - since:  # a beacon from after the reboot
+                self.restarts.pop(name, None)  # the service rebooted it: no pack cut
                 break
             time.sleep(0.05)
         else:

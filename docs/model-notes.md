@@ -9,7 +9,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468).
 - Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
-  drawn a touch lighter so its shading and lines read) and the PLA density (1.24 g/cm3). Electronics and servos are
+  drawn a touch lighter so its shading and lines read) and its material (geometry.MATERIALS, from the spool's TDS:
+  density, and the across-layer values model/beams.py checks, #626). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `just view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
   renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in
@@ -39,7 +40,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   renders it with its preview panel.
 - README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
   `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
-  model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;
+  model/render/pictures.py SITE; main alone renders them, a PR one panel and the next Mech's as a preview, pictures.py PREVIEW, #562, #629;
   main's hero in frame shards of about a minute each that Checks' `Hero` job joins, model/shards.py, #537;
   yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
@@ -90,7 +91,8 @@ Today's documents follow Cansin's build, then our model (CLAUDE.md). What we pla
 until the model stabilises.
 - The next Mech (#51; the spec lives there) is designed in the model instead, as its own documents beside the Stages
   (geometry.NEXT, #629), starting from today's Stage 3: linked eyes (one servo for left/right, one for up/down, each lid
-  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton
+  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
+  as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
 - From the #81 sweep, the remaining non-original choices in the model (each marked inferred where it is used; the
   values that waited for a measurement are settled as best guesses, docs/research/2026-11-01-best-guesses.md):

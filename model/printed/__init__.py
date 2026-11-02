@@ -6,6 +6,7 @@ from model.printed import (
     base_plate,
     bearing_block,
     bottom_jaw,
+    coupon,
     eye_bracket,
     eyeball,
     eyeball_bar,
@@ -53,6 +54,8 @@ PARTS = {
     "base plate": base_plate.build,
     "wire keeper": wire_keeper.build,
 }
+# test pieces we print to find a fit, not parts of the Mech (GLOSSARY.md Coupon)
+COUPONS = {"clearance coupon": coupon.build}
 FEATURES = {
     "eye bracket": eye_bracket.features(),
     "desk eye bracket": eye_bracket.features(desk=True),

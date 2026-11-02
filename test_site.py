@@ -53,6 +53,7 @@ SITE_TABLES = {
     "docs/build/stage-3.md": "docs/build/stage-3/#servos-it-adds",
     "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
     "docs/build/wiring.md": "docs/build/wiring/#servo-ports",
+    "docs/build/tests.md": "docs/build/tests/#the-clearance-coupon",
     "docs/ci-cd.md": "docs/ci-cd/#workflows",
 }
 
@@ -93,6 +94,21 @@ def test_the_wiring_table_is_built_from_the_code():
         "| 2 (neck) | 1 | 3 | tilt | 30..150 | 90 |",
         "| 2 (neck) | 2 | 2 | jaw | 15..90 | 90 |",
         "| 2 (neck) | 3 | 1 | pan | 50..160 | 90 |",
+    ]:
+        assert row in table, row
+
+
+def test_the_coupon_table_is_built_from_the_code():
+    """#624: the clearance coupon's pins and magnet pockets (model/printed/coupon.py), each fit by its place from the
+    notch: 3 mm pins at 0.10 to 0.40 mm per side, pockets for the 4 mm disc at 0.05 to 0.20 mm."""
+    import macros  # here, not at the top: it imports the model
+
+    table = macros.coupon()
+    for row in [
+        "| 1 | 0.10 mm | 3.20 mm | 0.05 mm | 4.10 mm |",
+        "| 4 | 0.25 mm | 3.50 mm | 0.20 mm | 4.40 mm |",
+        "| 5 | 0.30 mm | 3.60 mm | | |",
+        "| 7 | 0.40 mm | 3.80 mm | | |",
     ]:
         assert row in table, row
 
