@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/yellow-pine/noggin/compare/v0.1.1...v0.2.0) (2026-11-02)
+
+
+### Features
+
+* **release:** /release releases whatever is pending ([#413](https://github.com/yellow-pine/noggin/issues/413)) ([303d69c](https://github.com/yellow-pine/noggin/commit/303d69c16bbf7d1caf401a885a8d6eb8351028ba))
+
+
+### Documentation
+
+* **adr:** a taken ADR number fails Code, and one command renumbers the draft ([#410](https://github.com/yellow-pine/noggin/issues/410)) ([ae61acb](https://github.com/yellow-pine/noggin/commit/ae61acbec3124b47994d9589458472f67f9057cb))
+* **docs:** rebase a PR only when it needs main ([#406](https://github.com/yellow-pine/noggin/issues/406)) ([002f18c](https://github.com/yellow-pine/noggin/commit/002f18cb4fc739b5bf8fbe674953f2b753550b9d))
+* **docs:** regenerate the README's CI/CD table after [#417](https://github.com/yellow-pine/noggin/issues/417) and [#419](https://github.com/yellow-pine/noggin/issues/419) ([#423](https://github.com/yellow-pine/noggin/issues/423)) ([9024d40](https://github.com/yellow-pine/noggin/commit/9024d4082d3ce7d2a81d3013016a7b4082e661f0))
+* **docs:** the README's CI/CD table is generated from the workflows ([#408](https://github.com/yellow-pine/noggin/issues/408)) ([e6320fc](https://github.com/yellow-pine/noggin/commit/e6320fc726ccb3c40f39ea56b210a2affaed2bc2))
+
 ## [0.1.1](https://github.com/yellow-pine/noggin/compare/v0.1.0...v0.1.1) (2026-11-01)
 
 
