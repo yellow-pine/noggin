@@ -32,7 +32,9 @@ jobs:
         run: |
           NOTES=$(grep -o 'https://[^() ]*/Firmware-release-notes' docs/credits.md)
           APP_NOTES=$(grep -o 'https://[^() ]*/PC-release-notes' docs/credits.md)
-          version=$(curl -fsS "$NOTES" | python3 scripts/firmware_watch.py)
+          # to a file first: Scorecard reads a download piped into an interpreter as download-and-execute (#533)
+          curl -fsS -o "$RUNNER_TEMP/notes.html" "$NOTES"
+          version=$(python3 scripts/firmware_watch.py < "$RUNNER_TEMP/notes.html")
           title="Core firmware $version: update both Cores"
           echo "$title"
           # its own assignment, so a failed search fails the step instead of opening a duplicate

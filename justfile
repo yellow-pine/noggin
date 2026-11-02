@@ -55,7 +55,7 @@ check-light: venv lint
     {{PY}} -m pyright
     {{BIN}}/actionlint -shellcheck= -pyflakes=   # without the shellcheck CI's image has and a Mac may not: one result everywhere
     {{BIN}}/zizmor -q --offline .
-    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum; USER runner is uid 1001 (useradd)
+    {{BIN}}/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions), and gh GitHub CLI's repo's newest (ADR 0012); the only pipes are echo into sha256sum and printf into sort; USER runner is uid 1001 (useradd)
     {{PY}} -m pytest -q -n auto -m "not model and not build"
 
 # CI's Code job: just check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)

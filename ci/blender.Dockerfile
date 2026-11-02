@@ -4,8 +4,10 @@
 # the tarball falls back to Blender's official mirrors (mirror.blender.org's ?mirrorlist); any of them must match the hash.
 # Blender's own pip then uninstalls the bundled requests, urllib3, certifi and idna (only its remote asset libraries
 # import them), setuptools and pip itself: nothing we run imports them, and they carried open CVEs (#530)
-ARG BASE
-FROM $BASE
+# BASE's default is a digest-pinned base only so Scorecard counts the FROM as pinned (it reads a ${ARG} default, #533);
+# images.yml always passes BASE, so a stale default is never built in CI
+ARG BASE=ghcr.io/yellow-pine/noggin-ci-base:main@sha256:09ff172cb483f580f174dda58bc12d7394d9e1615ed79043178289ad732c436d
+FROM ${BASE}
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends libegl1 libegl-mesa0 libgl1-mesa-dri \
  && rm -rf /var/lib/apt/lists/*

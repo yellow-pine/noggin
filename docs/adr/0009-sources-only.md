@@ -28,6 +28,9 @@
 > Amended 2026-11-02 (#538, #496): Code Checks and Site Checks are one workflow, Checks (`checks.yml`), whose `Checks`
 > gate fails unless every job before it passed or was skipped; Site Deploy deploys the site that gate uploads once
 > main's Checks passed. Main's ruleset requires four checks: PR, Checks, Fetch Skills and Review.
+> Amended 2026-11-02 (#534): reverses #472's "no weekly no-cache rebuild". `CI Images` also rebuilds both images
+> weekly without the layer cache, Mondays before the image scan, so the archive's security fixes and the newest gh
+> land without waiting for a base-image bump (ADR 0012).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -77,8 +80,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   Every other job stays on the bare runner with setup-uv and apt: pulling an image costs ~30-40 s a job, which a chain
   of them (convex, then a model shard) can't fit in the PR budget, and MuJoCo and CoACD are wheels. Python packages
   stay out of the images: `uv sync` in the job. Only main writes to the registry: it pushes `:main` with GitHub's build
-  provenance only when a Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472), and every job that
-  starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
+  provenance when a Dockerfile changes (Dependabot's base-image bumps in ci/ among them, #472) and weekly without the
+  layer cache (#534), and every job that starts after runs in them; a PR that changes a Dockerfile only builds the images, from main's cache read only.
 
 ## Known limits
 

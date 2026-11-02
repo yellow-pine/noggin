@@ -10,6 +10,8 @@
 > Amended 2026-11-02 (#472, spec #467): the CI images rebuild only on a Dockerfile change, no weekly rebuild.
 >
 > Amended 2026-11-02 (#529): gh in the CI images comes from GitHub CLI's signed apt repo, unpinned, no cooldown.
+>
+> Amended 2026-11-02 (#534): reverses #472's "no weekly rebuild": the CI images also rebuild weekly, uncached.
 
 Every dependency, tool, toolchain and firmware is kept at its **newest stable release once that release is at least
 14 days old**; a security fix goes in at once. The delay guards against a bad or compromised fresh release.
@@ -18,12 +20,12 @@ Every dependency, tool, toolchain and firmware is kept at its **newest stable re
   Claude's review gate them, on what the bump changes, not its age), majors included.
 - **Pins Dependabot cannot see** get a weekly re-pin job that opens a PR (Blender's tarball and its sha256, like the
   reviewer's skills already).
-- **CI images** (ci/, ADR 0009) rebuild only when a Dockerfile changes (#472): Dependabot's `/ci` bumps of their base
-  images trigger the rebuild. The distro's security fixes (its archive's packages too) reach the images when Ubuntu
-  republishes its image and that bump clears the cooldown: up to about three weeks, accepted over a scheduled no-cache
-  rebuild of unchanged images. They run only CI. One exception to their pinned sources and the cooldown: gh comes
+- **CI images** (ci/, ADR 0009) rebuild when a Dockerfile changes (#472), Dependabot's `/ci` bumps of their base
+  images among them, and weekly without the layer cache, on Mondays before the image scan (#534): the archive's
+  security fixes land within a week, not when Ubuntu republishes its image and that bump clears the cooldown (up to
+  about three weeks, which left Grype's weekly scan re-finding fixed issues). They run only CI. One exception to their pinned sources and the cooldown: gh comes
   from GitHub CLI's signed apt repo (keyring sha256-checked), its newest release whenever its build step reruns (a new
-  Ubuntu digest, or no cache); Ubuntu's archive froze it at 2.45, built with a Go whose stdlib Grype flagged in 120
+  Ubuntu digest, or the weekly uncached build); Ubuntu's archive froze it at 2.45, built with a Go whose stdlib Grype flagged in 120
   alerts (#529).
 - **GitHub's runner image** is named (`ubuntu-26.04`), never `ubuntu-latest`, which moves under us (#392); it moves
   to the next LTS by hand, when GitHub announces that as `ubuntu-latest`, two years apart, too rare for a re-pin job.
