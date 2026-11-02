@@ -1,7 +1,7 @@
 """Does every required check main's ruleset names still name a job in .github/workflows? A renamed job strands the old
 name in the ruleset, and every PR waits on a check that never reports (#450). Exits 1 with an Actions error per stale
 check. Code job (.github/workflows/check.yml), which feeds it the ruleset's contexts from the GitHub API.
-Usage: gh api repos/OWNER/REPO/rules/branches/main --jq '...context' | python3 scripts/required_checks.py [workflows]"""
+Usage: gh api repos/OWNER/REPO/rules/branches/main --jq '...context' | .venv/bin/python scripts/required_checks.py [workflows]"""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 
-def stale(required, workflows: Path) -> list[str]:
+def stale(required: list[str], workflows: Path) -> list[str]:
     """The required checks no job in the workflows names (a job without a name reports its id)."""
     # shortcut: a matrix job's expanded name ("Model (hero)") isn't matched; upgrade if one ever becomes required
     jobs = {

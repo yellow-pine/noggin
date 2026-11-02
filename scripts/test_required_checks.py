@@ -24,13 +24,12 @@ def test_a_required_check_no_job_names_is_stale(tmp_path):
     assert stale(required, workflows(tmp_path)) == ["Lint", "Model (hero)"]
 
 
+def run(tmp_path: Path, required: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, SCRIPT, workflows(tmp_path)], input=required, capture_output=True, text=True)
+
+
 def test_the_script_fails_on_a_stale_check_and_names_it(tmp_path):
-    run = subprocess.run(
-        [sys.executable, SCRIPT, workflows(tmp_path)], input="Code\nLint\n", capture_output=True, text=True
-    )
-    assert run.returncode == 1
-    assert "Lint" in run.stdout and "Code" not in run.stdout
-    ok = subprocess.run(
-        [sys.executable, SCRIPT, workflows(tmp_path)], input="Code\nReview\n", capture_output=True, text=True
-    )
-    assert ok.returncode == 0
+    failed = run(tmp_path, "Code\nLint\n")
+    assert failed.returncode == 1
+    assert "Lint" in failed.stdout and "Code" not in failed.stdout
+    assert run(tmp_path, "Code\nReview\n").returncode == 0
