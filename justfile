@@ -196,6 +196,10 @@ render: venv ours trajectories
 hero: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures hero
 
+# the hero's frames, rendered in shards (CI's Blender bins, #537), encoded into model/build/images/hero.webp
+hero-join: venv
+    {{PY}} -m model.render.pictures join
+
 # the site's pictures (model/render/pictures.py SITE), or the motions named (views or hero; or in MOTIONS, CI's Blender bins), in model/build/images, which the site serves at images/
 [group('heavy')]
 pictures *motions=env("MOTIONS", ""): venv ours trajectories

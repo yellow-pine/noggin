@@ -6,8 +6,9 @@ PANELS). `hero` (`just hero`): the README hero, stage 3 talking (model/render/he
 trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's pictures, motion by motion
 (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site serves at
 yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `just blender-bins`)
-on main; a PR renders the `preview` motion alone, one panel (PREVIEW, #562).
-Usage: python -m model.render.pictures views | hero | site [motion ...] (Blender at $BLENDER)"""
+on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders the `preview`
+motion alone, one panel (PREVIEW, #562).
+Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
 
 import json
 import math
@@ -88,13 +89,14 @@ def points(hulls, mats):
     return np.concatenate([trimesh.transform_points(hulls[n], np.array(m)) for n, m in mats.items()])
 
 
-def shot(name, size, cam, poses):
-    """A Blender shot (blender.py), one frame per pose in OUT/frames/<name>/frameNNNN.png."""
+def shot(name, size, cam, poses, first=0):
+    """A Blender shot (blender.py), one frame per pose in OUT/frames/<name>/frameNNNN.png, numbered from first."""
     c = {"matrix": cam.matrix.tolist(), "lens": cam.lens, "ortho_scale": cam.ortho_scale}
     return {
         "out": os.path.join(OUT, "frames", name),
         "size": list(size),
         "camera": c,
+        "first": first,
         "poses": [{n: np.asarray(m).tolist() for n, m in pose.items()} for pose in poses],
     }
 
@@ -103,7 +105,7 @@ def blender(name, manifest, shots):
     job = os.path.join(OUT, "meshes", name, "job.json")
     json.dump({"parts": manifest, "shots": shots}, open(job, "w"))
     r = subprocess.run([BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
-    files = [os.path.join(s["out"], f"frame{i:04d}.png") for s in shots for i in range(len(s["poses"]))]
+    files = [os.path.join(s["out"], f"frame{s['first'] + i:04d}.png") for s in shots for i in range(len(s["poses"]))]
     missing = [f for f in files if not os.path.isfile(f)]
     if r.returncode or missing:
         sys.exit(f"Blender failed on {name}, missing {missing[:3]}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
@@ -162,22 +164,39 @@ def at_fps(frames, fps):
     return out
 
 
-def hero():
+def hero_frames():
+    """The hero's frame count, without MuJoCo: its trajectory's frames (trajectories.hero_commands) at HERO_FPS."""
+    return len(at_fps([{}] * len(trajectories.hero_commands()[1]), HERO_FPS))
+
+
+def hero(frames=None):
     """The hero's trajectory on stage 3 (its keys in model/render/hero.py, played by MuJoCo) through one three-quarter
-    camera fitted to every pose, rendered as one animation and encoded to hero.webp: HERO_FPS, looping, at most
-    HERO_MAX_BYTES."""
+    camera fitted to every pose, rendered as one animation and joined into hero.webp. frames: (first, end) renders those
+    alone, a CI frame shard (#537), whose frames the Hero job joins."""
     _, manifest, hulls = prepare("stage3", g.STAGES["noggin-stage3"])
     poses = at_fps(trajectories.poses("noggin-stage3", "hero"), HERO_FPS)
     cam = camera.fit(
         np.concatenate([points(hulls, m) for m in poses]), HERO, g.Z, HERO_SIZE[0] / HERO_SIZE[1], LENS, MARGIN
     )
-    shutil.rmtree(os.path.join(OUT, "frames", "hero"), ignore_errors=True)
-    blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses)])
+    first, end = frames or (0, len(poses))
+    if not frames:
+        shutil.rmtree(os.path.join(OUT, "frames", "hero"), ignore_errors=True)
+    blender("stage3", manifest, [shot("hero", HERO_SIZE, cam, poses[first:end], first)])
+    if not frames:
+        join()
+
+
+def join():
+    """OUT/frames/hero, every frame of the hero's (a CI run's from its shards, #537), as hero.webp: HERO_FPS,
+    looping, at most HERO_MAX_BYTES."""
+    n, folder = hero_frames(), os.path.join(OUT, "frames", "hero")
+    if sorted(os.listdir(folder)) != [f"frame{i:04d}.png" for i in range(n)]:
+        sys.exit(f"the hero's frames in {folder} are not frame0000.png to frame{n - 1:04d}.png")
     encode("hero", HERO_FPS)
     size = os.path.getsize(os.path.join(OUT, "hero.webp"))
     if size > HERO_MAX_BYTES:
         sys.exit(f"hero.webp is {size // 1024} KB, over {HERO_MAX_BYTES // 1000} KB")
-    print(f"hero.webp: {len(poses)} frames, {size // 1024} KB")
+    print(f"hero.webp: {n} frames, {size // 1024} KB")
 
 
 def encode(name, fps=None):
@@ -192,8 +211,11 @@ def ffmpeg(*args):
 
 
 def render(motion):
-    """A motion of the site's pictures (SITE), or the preview."""
-    hero() if motion == "hero" else views(PREVIEW if motion == "preview" else PANELS)
+    """A motion of the site's pictures (SITE), the preview, or a hero frame shard `hero:<first>-<end>` (#537)."""
+    if motion.startswith("hero"):
+        hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
+    else:
+        views(PREVIEW if motion == "preview" else PANELS)
 
 
 def main(what, names):
@@ -206,8 +228,12 @@ def main(what, names):
         os.makedirs(IMAGES, exist_ok=True)
         for motion in names or SITE:
             render(motion)
-            for f in MOTIONS[motion]:
+            for f in MOTIONS.get(motion, []):  # a hero frame shard's frames stay in OUT/frames/hero, for join
                 shutil.copy(os.path.join(OUT, f), IMAGES)
+    elif what == "join":
+        join()
+        os.makedirs(IMAGES, exist_ok=True)
+        shutil.copy(os.path.join(OUT, "hero.webp"), IMAGES)
     else:
         sys.exit(f"unknown: {what}")
 

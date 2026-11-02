@@ -37,6 +37,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - README media (#117), built in CI and served from the site, never in git (#226: `just pictures`, Checks'
   `Blender` bins, the motions packed into runners (`just blender-bins`, #297, #496), gathered in its `Checks` gate;
   model/render/pictures.py SITE; main alone renders them, a PR one panel as a preview, pictures.py PREVIEW, #562;
+  main's hero in frame shards of about a minute each that Checks' `Hero` job joins, model/shards.py, #537;
   yellowpine.com/noggin/images/): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in

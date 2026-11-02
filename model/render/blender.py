@@ -170,18 +170,18 @@ def main(job):
         lambda scene, *_: print(f"frame {scene.frame_current} {time.monotonic() - start['t']:.2f}", flush=True)
     )
     for shot in job["shots"]:
-        poses = shot["poses"]
+        poses, first = shot["poses"], shot["first"]  # first: a hero frame shard's number (#537)
         for name, ob in objs.items():
             ob.animation_data_clear()
             ob.hide_render = name not in poses[0]  # a shot shows only the parts it poses
             ob.rotation_mode = "QUATERNION"
-            for i, pose in enumerate(poses if not ob.hide_render else []):
+            for i, pose in enumerate(poses if not ob.hide_render else [], first):
                 ob.matrix_world = Matrix(pose[name])
                 if len(poses) > 1:
                     ob.keyframe_insert("location", frame=i)
                     ob.keyframe_insert("rotation_quaternion", frame=i)
-        sc.frame_start, sc.frame_end = 0, len(poses) - 1
-        sc.frame_set(0)
+        sc.frame_start, sc.frame_end = first, first + len(poses) - 1
+        sc.frame_set(first)
         c = shot["camera"]
         cam.matrix_world = Matrix(c["matrix"])
         cam.data.type = "PERSP" if c["lens"] else "ORTHO"
