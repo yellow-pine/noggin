@@ -77,19 +77,18 @@ def test_the_readme_is_for_contributors():
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 
-def test_the_landing_page_shows_the_stills_as_pictures_does_each_linking_there():
-    """Cansin (#468): the Stage strip and Stage 3 exploded sit under the landing page's viewer, each image and caption
-    as docs/pictures.md has them (Markdown has no include, so this holds the copy), each linking to that page."""
-
-    def stills(doc):
-        jpg = r'(<img src="https://yellowpine\.com/noggin/images/(?:stages|exploded)\.jpg"[^>]*>)'
-        return re.findall(jpg + r"\S*\s*<figcaption>([^<]+)</figcaption>", (ROOT / doc).read_text())
-
-    home = stills("docs/index.md")
-    assert len(home) == 2 and home == stills("docs/pictures.md")
-    index = (ROOT / "docs" / "index.md").read_text()
-    assert re.findall(r"\[(<img [^>]+>)\]\(pictures\.md\)", index) == [img for img, _ in home]
-    assert index.index("hero.gif") < index.index("stages.jpg") < index.index("exploded.jpg") < index.index("## ")
+def test_the_landing_page_shows_the_stills_in_one_row_each_opening_full_size():
+    """Cansin (#468): the Stage strip and Stage 3 exploded sit in one row under the landing page's viewer
+    (custom.css .stills), each image as docs/pictures.md has it (Markdown has no include, so this holds the copy),
+    with a short caption, and a click opens it full size."""
+    jpg = r'<img src="(https://yellowpine\.com/noggin/images/(?:stages|exploded)\.jpg)"[^>]*>'
+    index, pictures = ((ROOT / "docs" / d).read_text() for d in ("index.md", "pictures.md"))
+    row = re.search(r'<div class="stills">(.*?)</div>', index, re.S)
+    assert row and re.findall(jpg, row[1]) and index.index("hero.gif") < row.start() < index.index("## ")
+    assert [m[0] for m in re.finditer(jpg, row[1])] == [m[0] for m in re.finditer(jpg, pictures)]
+    links = re.findall(r"\[(<img [^>]+>)\]\(([^)]+)\)", row[1])
+    assert [url for _, url in links] == re.findall(jpg, row[1])
+    assert re.findall(r"<figcaption>([^<]+)</figcaption>", row[1]) == ["The three Stages", "Stage 3 exploded"]
 
 
 def test_the_wiring_table_is_built_from_the_code():
