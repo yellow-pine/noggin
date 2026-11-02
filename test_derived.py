@@ -3,6 +3,7 @@ gestures, the servos, the documents the model simulates). A list is two or more 
 the justfile, or three on one line of Markdown, where two is prose ("pan and tilt"). A name joined to another word by a
 hyphen ("pan-tilt") is not the name."""
 
+import json
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
@@ -176,3 +177,26 @@ def test_the_jobs_run_in_our_images_by_the_main_tag():
 def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():
     assert covered("model/printed/lid.py", ["model/printed/**", "!model/build/**"])
     assert not covered("model/fits.py", ["model/printed/**", "model/geometry.py"])
+
+
+RECIPES = json.loads(
+    subprocess.run([ROOT / ".venv/bin/just", "--dump", "--dump-format", "json"], cwd=ROOT, capture_output=True).stdout
+)["recipes"].values()
+HEAVY = {r["name"] for r in RECIPES if {"group": "heavy"} in r["attributes"]}
+
+
+def test_every_recipe_under_the_heavy_lock_is_in_the_heavy_group():
+    """A recipe that takes the lock (HEAVY, scripts/heavy.py) is heavy, so the deny list below must ban it."""
+    locked = {r["name"] for r in RECIPES if '["variable", "HEAVY"]' in json.dumps(r["body"])}
+    assert locked
+    assert locked <= HEAVY
+
+
+def test_claude_codes_deny_list_bans_the_heavy_recipes_and_no_other():
+    """CI builds the heavy recipes, never an agent's session (#611): .claude/settings.json's permissions.deny names
+    each in the forms agents run it."""
+    deny = json.loads((ROOT / ".claude/settings.json").read_text())["permissions"]["deny"]
+    assert HEAVY
+    assert {r for r in deny if re.match(r"Bash\((uv run )?just ", r)} == {
+        f"Bash({runner}just {name} *)" for name in HEAVY for runner in ("", "uv run ")
+    }
