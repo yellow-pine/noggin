@@ -558,6 +558,7 @@ NEXT = {
     f"next-mech-{v}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD} | dict.fromkeys(carriers, _HEAD)
     for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
 }
+NEXT |= {doc + "-plain": subs for doc, subs in NEXT.items()}  # each variant also with its Skeleton plain (#704, PLAIN)
 STEM_IN = {"noggin-stage1": "base plate", "noggin-stage2": "tilt arm", "noggin-stage3": "tilt arm"}
 # Where the stem's bottom lands in the PT frame: flush with the plate's underside in its stem slot, feet on its top
 # (stage 1, DESK_STEM_BOTTOM: the build photos and the meshes); in the tilt arm window at (0, -13), the eye centres

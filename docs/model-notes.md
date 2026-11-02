@@ -130,10 +130,15 @@ until the model stabilises.
   forward, so the head's centre of mass stays near the tilt axis), driving its lid's crank through a bar down along
   the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
-  Its tie-bar and push-rods are Bones (#703, GLOSSARY; model/printed/bone.py), the pilot of the Skeleton's organic
-  look: each prints as drawn with no overhang past 45 deg and holds its servo's stall at SF 2 and against buckling
-  (model/printed/test_gimbal.py), its CoACD pieces capped (mjcf.MAX_PIECES); the rest of the Skeleton follows Cansin's
-  pick of the look.
+  Its Skeleton is drawn in two styles (#704, docs/adr/0020), plain and as Bones (GLOSSARY; model/printed/bone.py), and
+  Back is built in each (`next-mech-back`, `next-mech-back-plain`). As Bones the tie-bar and push-rods (#703, the
+  pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
+  and input arm flat-bottomed, its arms round struts), the Torso (round in plan) and the board rack (round corners):
+  each prints as drawn (the rack on its back) with no overhang past 45 deg, its bores across the layers where its pins
+  are not along Z (the yoke's pitch axle, the bail's three), holds its servo's stall at SF 2 (axial and buckling for the
+  tie-bar and push-rods, bending for the crank and the bail's arms; model/printed/test_gimbal.py), its CoACD pieces
+  capped (mjcf.MAX_PIECES). The lids, the lid and pitch bars and the frame wait on #698, the neck, head mount, jaw and
+  jaw bar on #708 (model/printed UNSTYLED), drawn plain in both until then; the core, a ball under its cap, has none.
   In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
   horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the

@@ -22,7 +22,7 @@ _Avoid_: frame, chassis, core
 
 **Bone**:
 A Skeleton link between two joints drawn organic: thick at the joints, waisted mid-span, rounded in section, its
-joints kept exact.
+joints kept exact. Each Skeleton part is drawn both as Bones and plain, the same interfaces in both (docs/adr/0020).
 _Avoid_: strut, organic bar
 
 **Torso**:

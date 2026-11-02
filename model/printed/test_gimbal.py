@@ -28,8 +28,9 @@ def _overlaps(a, b):
 
 
 @pytest.mark.build
-def test_no_two_parts_overlap_at_rest():
-    shapes = gimbal.at_rest()
+@pytest.mark.parametrize("plain", [False, True])
+def test_no_two_parts_overlap_at_rest(plain):
+    shapes = gimbal.at_rest(plain)
     hits = [
         f"{a} / {b}: {v:.2f} mm3"
         for a, b in itertools.combinations(shapes, 2)

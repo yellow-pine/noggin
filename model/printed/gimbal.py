@@ -248,15 +248,15 @@ def _moved(shape, m):
     return cq.Workplane().add(shape.val().transformGeometry(t))
 
 
-def at_rest():
+def at_rest(plain=False):
     """{next-eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
-    shank from the frame's upright through the lid's boss)."""
+    shank from the frame's upright through the lid's boss); `plain`: the Skeleton plain (#704)."""
     from model import stages
-    from model.printed import PARTS  # here: model.printed imports this module
+    from model.printed import PARTS, styled  # here: model.printed imports this module
 
     out = {}
     for name, p in stages.next_eyes().parts.items():
-        stem = stages.stem(p.file)
+        stem = styled(stages.stem(p.file), plain)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
     for s, sign in (("L", 1), ("R", -1)):
         x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["boss"][0] + 2, gm.LID_X["upright"][1]))
@@ -331,15 +331,16 @@ def _path(segments, step):
     return np.round(rows, 6)  # a value shared by two lines reads the same
 
 
-def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650): each lid, its bar, its horn and its shank against every other part over the lid x
-    pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()). Every pair at least LID_CLEAR_MM apart at rest
+def sweep(plain=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
+    """The lid drives' sweep (#650), the Skeleton `plain` or as Bones (#704): each lid, its bar, its horn and its shank
+    against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+    Every pair at least LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is
     reported. Every pair closer at rest (a pin, a face sliding on a face, the boss on its shank) is checked for overlap
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
-    rest = at_rest()
+    rest = at_rest(plain)
     drives = [f"next {s} {n}" for s in "LR" for n in ("lid:1", "lid bar:1", "lid horn:1", "lid shank")]
     spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
@@ -419,9 +420,9 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     return {"clearance_mm": round(closest[0], 2), "pair": closest[1], "at": closest[2], "overlaps": overlaps}
 
 
-def bounds():
+def bounds(plain=False):
     """The gimbal's bounding box at rest, mm: its width (x), depth (y) and height (z), servos and horns included (#684)."""
-    b = cq.Compound.makeCompound(list(at_rest().values())).BoundingBox()
+    b = cq.Compound.makeCompound(list(at_rest(plain).values())).BoundingBox()
     return [round(b.xlen, 1), round(b.ylen, 1), round(b.zlen, 1)]
 
 

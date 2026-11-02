@@ -43,7 +43,8 @@ def report(doc):
         "beams": beams.beam_table(links),
     }
     if "next-eyes" in stages.DOCS[doc][0]:  # the next Mech's eye gimbal moves by its own kinematics (#630)
-        out["gimbal"] = {**gimbal.report(), "block_mm": gimbal_parts.bounds(), "sweep": gimbal_parts.sweep()}
+        plain = doc.endswith("-plain")  # its Skeleton plain (#704)
+        out["gimbal"] = {**gimbal.report(), "block_mm": gimbal_parts.bounds(plain), "sweep": gimbal_parts.sweep(plain)}
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report
