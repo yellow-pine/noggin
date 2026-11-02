@@ -54,6 +54,7 @@ SITE_TABLES = {
     "docs/build/stage-3.md": "docs/build/stage-3/#servos-it-adds",
     "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
     "docs/build/wiring.md": "docs/build/wiring/#servo-ports",
+    "docs/ci-cd.md": "docs/ci-cd/#workflows",
 }
 
 
@@ -74,6 +75,7 @@ def test_the_readme_is_for_contributors():
         in readme
     )
     assert "(https://yellowpine.com/noggin/docs/credits/)" in readme and "(CONTRIBUTING.md)" in readme
+    assert "(https://yellowpine.com/noggin/docs/ci-cd/)" in readme  # #425
     assert "scripts/setup.sh" not in readme and "## Gestures" not in readme
 
 

@@ -17,6 +17,10 @@
 > Amended 2026-11-02 (#397): the README's CI/CD table is generated from .github/workflows into a cog block in the
 > README, committed, and `cog --check` in `make check` fails while it is stale. The README is off the site (#280) yet
 > GitHub must show the table, and GitHub renders committed Markdown only; a site page and a link would lose it there.
+> Amended 2026-11-02 (#425): reverses #397. The committed table conflicted on every workflow PR and was too volatile
+> for a README. Generated tables live on the site, never in a committed file (the README included): the CI/CD table
+> is a site page (docs/ci-cd.md) filled from .github/workflows at build time like the other numbers, and the README
+> links it.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds
@@ -37,8 +41,8 @@ site to GitHub Pages from main. No bot commits: a bot may only open a PR.
   made from, #221) and uploads them as an artifact linked from its job summary; no external preview host. It is a required check (#245), and runs the built site's tests (ADR 0013).
 - **Numbers come from the code.** A doc's numbers that the code owns (the behaviour table, each Stage guide's parts
   and servos, the picture sizes and colours in docs/model-notes.md, the wiring table and the viewer's Stage buttons,
-  #306) are filled at build time: `macros.py` writes them as JSON and the site's Markdown plugin puts each in its
-  doc's marker (ADR 0013). The markers sit in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
+  #306, the CI/CD table from the workflows, #425) are filled at build time: `macros.py` writes them as JSON and the
+  site's Markdown plugin puts each in its doc's marker (ADR 0013). The markers sit in HTML comments, which GitHub hides, so GitHub shows the prose and a link to the site in
   their place; test_site.py fails if a number GitHub still shows in a doc (a duration, a Core's servo count) is not
   the code's (#227).
 - **The sim reports are built, never committed** (#229). `make sim` writes them and their MJCFs into

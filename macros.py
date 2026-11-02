@@ -10,6 +10,7 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
 stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
+workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -25,6 +26,7 @@ from model import mjcf, stages
 from model.render import pictures
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
+from scripts.workflow_table import table as workflows
 
 ROOT = Path(__file__).resolve().parent
 MECH = {  # what each gesture looks like, by the name the director sends
@@ -170,6 +172,7 @@ def numbers():
         "stage_parts": parts,
         "stage_servos": servos,
         "wiring": wiring(),
+        "workflows": workflows(),
         "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
         "build": (b := build()),
         "released": released(b["version"]),

@@ -120,7 +120,16 @@ test("each number a doc asks for is the code's, and what GitHub shows in its pla
     const text = page(route(doc)).text;
     for (const [, github] of source.matchAll(/^<!--\{#.*-->\n(.{20})/gm)) expect(text, doc).not.toContain(github);
   }
-  expect(used).toBeGreaterThanOrEqual(8);
+  expect(used).toBeGreaterThanOrEqual(9);
+});
+
+test('the CI/CD page lists every workflow file, under Reference beside Contributing', () => {
+  const files = globSync('*.yml', { cwd: path.join(ROOT, '.github/workflows') });
+  expect(files.length).toBeGreaterThan(5);
+  const cells = page(route('docs/ci-cd.md')).querySelectorAll('td').map((td) => td.text.trim());
+  for (const f of files) expect(cells, f).toContain(f);
+  const nav = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
+  expect(nav.indexOf(route('docs/ci-cd.md'))).toBe(nav.indexOf(route('CONTRIBUTING.md')) + 1);
 });
 
 test("every page's CSP lets only the site's scripts run: each inline one by its hash, no 'unsafe-inline'", () => {

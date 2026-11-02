@@ -98,9 +98,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no job does: `scripts/required_checks.py`) and
   run `gh pr update-branch --rebase` on every open PR so it reports the new name.
-- Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the README's
-  CI/CD table is generated from the workflows (`make readme`, #397) and `make check` fails while it is stale. Two PRs
-  that conflict on a README table row: take either side, then run `make readme`.
+- Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
+  CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
   numbered the next free one. When Code fails because main took that number since, run
   `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).

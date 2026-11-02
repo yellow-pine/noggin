@@ -40,7 +40,7 @@ jobs:
         with:
           filters: |
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/site-checks.yml", "ci/pins/Dockerfile", "macros.py"]
+                   ".github/workflows/*.yml", "ci/pins/Dockerfile", "macros.py", "scripts/workflow_table.py"]
       # whether the pictures and the viewer built from the same inputs are cached: then neither Blender job runs, nor
       # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys are written here alone (YAML
       # anchors); render's per-motion key hashes the same inputs as pictures- (test_site.py)
