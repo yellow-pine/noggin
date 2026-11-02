@@ -1,7 +1,7 @@
-"""Remove the worktrees whose branch is gone from origin (its PR squash-merged) or whose PR merged or closed, never
-one on an open PR's branch, never pushed, with uncommitted changes (git worktree remove refuses those) or unpushed
-commits, or the one this runs in; prints each removed path. Never by ancestry alone: a branch pushed before its first
-commit sits on main. Usage: make worktrees-clean"""
+"""Remove the worktrees whose branch is gone from origin (its PR squash-merged) or sits where a merged or closed PR
+ended, never one on an open PR's branch, never pushed, with uncommitted changes (git worktree remove refuses those)
+or unpushed commits, or the one this runs in; prints each removed path. Never by ancestry alone: a branch pushed
+before its first commit sits on main. Usage: make worktrees-clean"""
 
 import contextlib
 import json
@@ -20,14 +20,15 @@ if __name__ == "__main__":
     # shortcut: the newest 1000 PRs, enough while a worktree's PR is among them; page further if the repo outgrows it
     prs = json.loads(
         subprocess.run(
-            ["gh", "pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName,state"],
+            ["gh", "pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName,headRefOid,state"],
             check=True,
             capture_output=True,
             text=True,
         ).stdout
     )
-    open_ = {pr["headRefName"] for pr in prs if pr["state"] == "OPEN"}
-    ended = {pr["headRefName"] for pr in prs if pr["state"] in ("MERGED", "CLOSED")}
+    open_heads = {pr["headRefName"] for pr in prs if pr["state"] == "OPEN"}
+    # by its head commit too: a new branch may reuse an old PR's name
+    ended = {(pr["headRefName"], pr["headRefOid"]) for pr in prs if pr["state"] in ("MERGED", "CLOSED")}
     here = git("rev-parse", "--show-toplevel").stdout.strip()
     git("worktree", "prune")  # the entries of worktrees whose folder is already gone
     for block in git("worktree", "list", "--porcelain").stdout.strip().split("\n\n")[1:]:  # [0] is the main worktree
@@ -38,7 +39,8 @@ if __name__ == "__main__":
         if not git("rev-parse", "-q", "--verify", f"refs/remotes/origin/{branch}", check=False).stdout:
             continue  # never pushed: a session may have just started it
         unpushed = git("rev-list", "-1", branch, "--not", "--remotes").stdout
-        if branch not in open_ and (branch not in on_origin or branch in ended) and not unpushed:
+        done = branch not in on_origin or (branch, fields["HEAD"]) in ended
+        if branch not in open_heads and done and not unpushed:
             if git("worktree", "remove", path, check=False).returncode == 0:
                 print(path)
                 with contextlib.suppress(OSError):  # the parents it leaves empty: ../noggin-wt/<session>/, ...

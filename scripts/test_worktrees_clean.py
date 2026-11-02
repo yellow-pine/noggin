@@ -38,9 +38,14 @@ def clone(tmp_path, monkeypatch):
     return repo
 
 
-def prs(repo, **states):
-    """GitHub's PRs as `gh pr list --json headRefName,state` prints them: head branch -> OPEN, MERGED or CLOSED."""
-    (repo.parent / "prs.json").write_text(json.dumps([{"headRefName": b, "state": s} for b, s in states.items()]))
+def prs(repo, **heads):
+    """GitHub's PRs as `gh pr list --json headRefName,headRefOid,state` prints them: branch -> OPEN, MERGED or CLOSED
+    with the branch's tip as its head commit, or (state, sha) for an older PR on the same name."""
+    rows = []
+    for branch, pr in heads.items():
+        state, sha = pr if isinstance(pr, tuple) else (pr, git(repo, "rev-parse", branch).strip())
+        rows.append({"headRefName": branch, "headRefOid": sha, "state": state})
+    (repo.parent / "prs.json").write_text(json.dumps(rows))
 
 
 def worktree(repo, branch, *, commit=True, push=True):
@@ -64,7 +69,7 @@ def test_a_worktree_whose_pr_merged_or_closed_or_whose_branch_is_gone_from_origi
     closed = worktree(clone, "closed")
     squashed = worktree(clone, "squashed")
     git(clone.parent / "origin.git", "branch", "-D", "squashed")  # its PR squash-merged and GitHub deleted it
-    prs(clone, merged="MERGED", closed="CLOSED", squashed="MERGED")
+    prs(clone, merged="MERGED", closed="CLOSED")  # gone from origin is enough: squashed needs no PR record
 
     out = clean(clone)
 
@@ -91,13 +96,15 @@ def test_a_worktree_never_pushed_with_changes_unpushed_commits_or_a_live_branch_
         assert str(path) not in out
 
 
-def test_a_pushed_branch_at_mains_tip_is_kept_with_its_pr_open_or_with_none_yet(clone):
+def test_a_pushed_branch_is_kept_with_its_pr_open_none_yet_or_only_an_old_one_on_its_name(clone):
     opened = worktree(clone, "opened", commit=False)  # pushed before its first commit: an ancestor of main
     started = worktree(clone, "started", commit=False)
-    prs(clone, opened="OPEN")
+    reused = worktree(clone, "reused")  # a new branch on the name of an old closed PR
+    old_tip = git(clone, "rev-parse", "origin/main").strip()
+    prs(clone, opened="OPEN", reused=("CLOSED", old_tip))
 
     out = clean(clone)
 
-    for path in (opened, started):
+    for path in (opened, started, reused):
         assert path.exists()
         assert str(path) not in out
