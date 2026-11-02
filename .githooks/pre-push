@@ -1,3 +1,4 @@
 #!/bin/sh
-# make check-light before every push (CONTRIBUTING.md)
+# make check-light before every push (CONTRIBUTING.md); without git's GIT_DIR, which would point the tests' own repos at this one
+unset GIT_DIR
 exec make check-light
