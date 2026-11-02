@@ -19,8 +19,8 @@ and you resume when its process exits.
    Cancelled (a newer Release Please run took its place in their shared queue): run it again. Failed: print
    `gh run view <id> --log-failed`'s error and stop.
 3. **Merge.** Release Now marked the draft PR ready, which starts its checks; it merges once its required checks and
-   Claude's review pass. Wait on PR `<n>` with the "Waiting on CI" loop, then
-   `gh pr view <n> --json state,mergeCommit,autoMergeRequest`:
+   Claude's review pass. Wait on PR `<n>` with the "Waiting on CI" line's loop, its `gh pr checks` given `--required`
+   and its `gh pr view` asking for `state,mergeCommit,autoMergeRequest`:
    - `MERGED`: go on with its `mergeCommit.oid`.
    - Open with `autoMergeRequest` null (a Release Please update raced Release Now): run step 2 again, then this step.
    - Open with a red check: print the check and its link, and stop; the release waits on that fix.
