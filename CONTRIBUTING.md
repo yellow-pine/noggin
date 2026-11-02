@@ -13,8 +13,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   push and auto-merge switched on right away (`gh pr merge --auto --squash`): the moment every required check is green
   and every review conversation is resolved, GitHub squash-merges it (the only method the repo allows) straight onto
   main, with no merge queue, then deletes the branch. Whoever works the ticket keeps that PR green and answers each
-  review thread (a fix, or a reply saying why not) before resolving it. No integration or feature branches: a spec's
-  tickets land on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It need
+  review thread (a fix, or a reply saying why not) before resolving it; Claude's approval resolves its own threads
+  that a later push outdated (`scripts/claude_approved.py`). No integration or feature branches: a spec's tickets land
+  on main one PR at a time. Main is protected: a green PR with one approval is the only way in. It need
   not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. So the rebase rule: bring main into your PR with
