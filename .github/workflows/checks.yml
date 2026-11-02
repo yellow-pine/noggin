@@ -191,6 +191,26 @@ jobs:
           exit 1
         env:
           GH_TOKEN: ${{ github.token }}
+  # on main a failed job fails the run, which then can neither deploy nor release, and main's runs queue one at a time
+  # (#689): so once a job fails the rest is cancelled at once (#769), and Main Red files the cancelled run with its
+  # failed job. Outside the gate's needs; runs no repo code, the one job here that may cancel the run
+  fail-fast:
+    name: Fail Fast
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: write   # gh run cancel
+    steps:
+      - name: Cancel the run once a job fails
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |   # every 15 s until a job failed or every other job is done; a failing gh only polls again
+          until state=$(gh run view "$RUN_ID" --json jobs --jq '[.jobs[] | select(.name != "Fail Fast")]
+            | if any(.conclusion == "failure") then "failed" elif all(.status == "completed") then "done" else "" end')
+            [ -n "$state" ]; do sleep 15; done
+          [ "$state" = done ] || gh run cancel "$RUN_ID"
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
   # then saves the cache the model shards restore. The cache, never an artifact: an artifact of a public repo is
   # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0019)

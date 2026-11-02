@@ -1,6 +1,7 @@
 """CI's names follow GitHub's own UI (#298): every job has a Title Case name ("Fetch Skills", "Model (hero)"), every
 step a short sentence-case imperative, like GitHub's built-in "Set up job" ("Set up uv", "Run just check")."""
 
+import json
 import os
 import re
 import shutil
@@ -270,10 +271,12 @@ def test_a_job_names_an_environment_only_to_deploy():
 
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722)."""
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722). Fail Fast checks nothing and
+    runs no repo code: it may cancel its own run (#769)."""
     for f in ("checks.yml", "pr-gate.yml"):
         flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
-        perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+        jobs = [j for id_, j in flow["jobs"].items() if id_ != "fail-fast"]
+        perms = [flow["permissions"], *(j.get("permissions", {}) for j in jobs)]
         assert not [p for p in perms if "write" in p.values()], f
 
 
@@ -428,3 +431,63 @@ def test_main_red_watches_checks_site_deploy_and_ci_images_and_files_its_issue_b
     assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
     assert 'title="main red (CI Images)"' in run  # its own issue: a deploy says nothing about the images
     assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
+
+
+def fake_gh(tmp_path: Path, jobs: list[dict]) -> dict[str, str]:
+    """A `gh` that logs its first three arguments and answers `gh run view ... --json jobs --jq <filter>` with jq on
+    `jobs`, so a step's own filter runs; `gh issue list` finds no open issue."""
+    (tmp_path / "jobs.json").write_text(json.dumps({"jobs": jobs}))
+    (tmp_path / "gh").write_text(
+        "#!/bin/sh\n"
+        f'echo "$1 $2 $3" >> {tmp_path}/gh.log\n'
+        'if [ "$1 $2" = "run view" ]; then shift 2; while [ "$1" != --jq ]; do shift; done; '
+        f'exec jq -r "$2" {tmp_path}/jobs.json; fi\n'
+    )
+    (tmp_path / "gh").chmod(0o755)
+    return {"PATH": f"{tmp_path}:{os.environ['PATH']}", "RUN_ID": "41", "GITHUB_STEP_SUMMARY": "/dev/null"}
+
+
+def gh_calls(tmp_path: Path) -> list[str]:
+    log = tmp_path / "gh.log"
+    return [c for c in log.read_text().splitlines() if not c.startswith("run view")] if log.exists() else []
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
+@pytest.mark.parametrize(
+    ("other", "calls"),
+    [
+        ({"name": "Code", "status": "completed", "conclusion": "failure"}, ["run cancel 41"]),
+        ({"name": "Code", "status": "completed", "conclusion": "success"}, []),
+    ],
+)
+def test_main_cancels_a_checks_run_once_a_job_fails(tmp_path, other, calls):
+    """#769: a failed run can neither deploy nor release, and main's runs queue one at a time (#689), so its Fail Fast
+    job cancels the rest at once (a 15-minute Blender held ~20 merges' runs back); a run that passes ends it alone."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    job = flow["jobs"]["fail-fast"]
+    assert job["if"] == "${{ github.ref == 'refs/heads/main' }}" and job["permissions"] == {"actions": "write"}
+    assert "needs" not in job and "fail-fast" not in str(flow["jobs"]["checks"]["needs"])
+    (step,) = job["steps"]
+    me = {"name": job["name"], "status": "in_progress", "conclusion": ""}
+    env = fake_gh(tmp_path, [me, {"name": "Site", "status": "completed", "conclusion": "success"}, other])
+    subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
+    assert gh_calls(tmp_path) == calls
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
+@pytest.mark.parametrize(
+    ("conclusions", "calls"),
+    [
+        (["failure", "cancelled"], ["issue list --label", "issue create --title"]),  # Fail Fast cancelled it
+        (["success", "cancelled"], ["issue list --label"]),  # cancelled by hand, nothing failed
+        ([], ["issue list --label"]),  # superseded while it waited: no job ran
+    ],
+)
+def test_main_red_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
+    """#769: Fail Fast cancels a red Checks run, so its conclusion reads cancelled; a failed job still makes it red."""
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())["jobs"].values()
+    (step,) = job["steps"]
+    env = fake_gh(tmp_path, [{"name": f"Job {i}", "conclusion": c} for i, c in enumerate(conclusions)])
+    env |= {"WORKFLOW": "Checks", "CONCLUSION": "cancelled", "RUN_URL": "u", "SHA": "s"}
+    subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
+    assert gh_calls(tmp_path) == calls
