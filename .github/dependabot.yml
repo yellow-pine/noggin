@@ -58,8 +58,8 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       github-actions:
         update-types: [minor, patch]
         patterns: ["*"]
-  # the CI images' sources (ci/*.Dockerfile FROM digests): main builds the images once a bump lands, and the entry
-  # below proposes them; Node stays on its major, Ubuntu moves LTS to LTS
+  # the CI images' sources (ci/*.Dockerfile FROM digests): main rebuilds :main once a bump lands (images.yml); Node
+  # stays on its major, Ubuntu moves LTS to LTS
   - package-ecosystem: docker
     directory: /ci
     schedule:
@@ -75,16 +75,3 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
     commit-message:
       prefix: ci
       include: scope
-  # the jobs' container images (ci/pins/Dockerfile's ghcr.io/yellow-pine/noggin-ci-*:main@sha256, which the workflows
-  # read: Dependabot can't bump a workflow's `container:`, #444): the digests main's CI Images run pushed on a
-  # Dockerfile change, proposed for review like any other PR
-  - package-ecosystem: docker
-    directory: /ci/pins
-    schedule:   # no cooldown: our own build outputs, carrying the /ci entry's security fixes
-      interval: daily
-    commit-message:
-      prefix: ci
-      include: scope
-    groups:
-      ci-images:
-        patterns: ["*"]

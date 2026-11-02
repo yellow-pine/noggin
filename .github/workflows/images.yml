@@ -1,11 +1,11 @@
 name: CI Images
 # Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR.
 # ghcr.io/yellow-pine/noggin-ci-base and -blender (base plus Blender; ci/, docs/adr/0009, #288) are what the jobs
-# needing a tool uv can't install run in, by digest (`container:`). Only main writes to the registry: on a push that
-# changes a Dockerfile (Dependabot's base-image bumps in ci/ carry the distro's security fixes, #472) and on a dispatch
-# from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes the layer cache;
-# Dependabot (docker, ci/pins/Dockerfile) then proposes the new digests as a PR, whose checks run in them before any
-# job on main does. A PR that changes a Dockerfile builds both from main's cache, read only, and pushes nothing.
+# needing a tool uv can't install run in, by the :main tag (`container:`, #481). Only main writes to the registry: on a
+# push that changes a Dockerfile (Dependabot's base-image bumps in ci/ carry the distro's security fixes, #472) and on
+# a dispatch from main, it pushes both as :main with their build provenance (GitHub's attestations) and refreshes the
+# layer cache; the next job to start pulls them. A PR that changes a Dockerfile builds both from main's cache, read
+# only, and pushes nothing.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -82,7 +82,7 @@ jobs:
           file: ci/base.Dockerfile
           tags: ${{ env.REPO }}-base:main
           outputs: type=image,push=true,compression=zstd,force-compression=true
-          provenance: false   # one manifest, whose digest the jobs pin; the attestation below is GitHub's
+          provenance: false   # one manifest; the attestation below is GitHub's
           cache-from: type=registry,ref=${{ env.REPO }}-base:cache
           cache-to: type=registry,ref=${{ env.REPO }}-base:cache,mode=max
       - name: Push the Blender image
@@ -109,15 +109,3 @@ jobs:
           subject-name: ${{ env.REPO }}-blender
           subject-digest: ${{ steps.blender.outputs.digest }}
           push-to-registry: true
-      # Dependabot proposes these digests within a day; the same pin by hand, for a PR that can't wait for it
-      - name: Write the pins to the summary
-        env:
-          BASE: ${{ steps.base.outputs.digest }}
-          BLENDER: ${{ steps.blender.outputs.digest }}
-        run: |
-          {
-            echo "### Pushed $REPO-base:main and $REPO-blender:main"
-            echo '```sh'
-            echo "perl -pi -e 's|($REPO-base:main@)sha256:[0-9a-f]{64}|\${1}$BASE|; s|($REPO-blender:main@)sha256:[0-9a-f]{64}|\${1}$BLENDER|' ci/pins/Dockerfile"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"

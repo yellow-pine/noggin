@@ -43,7 +43,7 @@ Generated from `.github/workflows` (`make readme`):
 |---|---|---|---|---|
 | Blender Updates | `blender.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Blender | Re-pins Blender to the newest stable release at least 14 days old and opens (or refreshes) a PR, weekly |
 | Cache Prune | `cache-prune.yml` | `schedule` (`0 5 * * 1`), `workflow_dispatch` | Prune | Deletes the Actions caches whose key prefix no workflow uses any more, weekly |
-| Code Checks | `check.yml` | `push` (`main`), `pull_request` | Changes, Mech, Images, Code, Convex, Shards, Model | Runs `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export |
+| Code Checks | `check.yml` | `push` (`main`), `pull_request` | Changes, Mech, Code, Convex, Shards, Model | Runs `make check`, the Link's live checks on the Mech stand-in (`make mech`), the model tests, sim and STL/STEP export |
 | Dependabot Auto-merge | `dependabot.yml` | `pull_request` | Auto-merge | Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass |
 | Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site |
 | Firmware Watch | `firmware.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Watch | Opens an issue for each new Core firmware on the vendor's release notes, weekly |
@@ -55,7 +55,7 @@ Generated from `.github/workflows` (`make readme`):
 | Release Please | `release-please.yml` | `push` (`main`), `workflow_dispatch` | Release Please | Keeps the release PR (version bump, CHANGELOG.md), auto-merged on green; merged, tags and releases it |
 | Release Assets | `release.yml` | `push` (`v*`) | Release Assets, Release Docs | Zips the Core's program (stamped with its version and commit) and the setup wizard onto the release, then its docs |
 | Claude Review | `review.yml` | `pull_request` | Fetch Skills, Review | Claude reviews the PR and approves or requests changes |
-| Site Checks | `site-checks.yml` | `push` (`main`), `pull_request` | Changes, Images, Motions, Render, Pictures, Viewer, Site | Builds and checks the site: the pictures in Blender, then the docs, viewer and reports, uploaded as an artifact |
+| Site Checks | `site-checks.yml` | `push` (`main`), `pull_request` | Changes, Motions, Render, Pictures, Viewer, Site | Builds and checks the site: the pictures in Blender, then the docs, viewer and reports, uploaded as an artifact |
 | Skills Updates | `skills.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Re-pin Skills, Propose | Re-pins skills-lock.json to each source's HEAD and opens (or refreshes) a PR, weekly |
 <!-- [[[end]]] -->
 
