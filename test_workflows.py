@@ -52,6 +52,24 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
+def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
+    """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
+    Site Deploy, Release and Release Assets never cancel a run mid-way."""
+    wrong = []
+    for f in WORKFLOWS:
+        flow = yaml.safe_load(f.read_text())
+        group = str(flow.get("concurrency", {}).get("group", ""))
+        if "pull_request" in flow[True] and not (
+            "github.workflow" in group
+            and "github.event.pull_request.number" in group
+            and flow["concurrency"].get("cancel-in-progress") is True
+        ):
+            wrong.append(f.name)
+    assert wrong == []
+    for name in ("pages.yml", "semantic-release.yml", "release.yml"):
+        assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
+
+
 def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
     """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
     job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
@@ -136,10 +154,8 @@ def test_main_skips_by_input_as_a_pr_does_and_a_weekly_or_dispatched_run_runs_ev
 
 
 # what carries the geometry of a document: the built parts and their cut (STL), the renders' meshes and frames, the
-# pictures, the GLBs, the preview and the site that carry them
-DERIVED = re.compile(
-    r"model/build/(ours|convex|images|pictures|preview)|web/build|site/dist|\.(glb|stl|step|webp|png)\b"
-)
+# pictures, the GLBs and the site that carry them
+DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/dist|\.(glb|stl|step|webp|png)\b")
 # a Blender run in a workflow: the recipe and what it draws
 BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b([^\n|&;]*)")
 
@@ -147,7 +163,7 @@ BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render|hero|hero-join)\b(
 def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
     workflows render and bake the next Mech alone (just pictures next, just web next-mech: documents holding none of
-    today's printed parts), upload only the site and the PR's preview, never a part, its cut, a mesh or a frame, put
+    today's printed parts), upload only the site, never a part, its cut, a mesh or a frame, put
     only the next-* pictures and GLBs in the site, and a release's docs fetch only the GLBs the site publishes. The
     Actions cache carries the parts between jobs: nobody outside the repo's workflows reads it."""
     from model import geometry as g
@@ -161,9 +177,7 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     runs = [s.get("run", "") for s in steps]
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
     assert drawn == {("pictures", pictures.NEXT), ("web", " ".join(build.PUBLIC))}
-    assert {m for r in runs for m in re.findall(r"-m (model\.render\.\w+|web\.\w+)( \w+)?", r)} <= {
-        ("model.render.pictures", " compare")
-    }
+    assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
     assert [doc for doc in {*g.NEXT, *build.PUBLIC} if stages.todays(doc)] == []
     uploaded = {
         line.strip()
@@ -172,36 +186,20 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
         for line in str(s["with"]["path"]).splitlines()
         if DERIVED.search(line)
     }
-    assert uploaded == {"site/dist", "model/build/preview"}
+    assert uploaded == {"site/dist"}  # #673: no PR preview
     into_site = [c for r in runs for c in re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", r)]
     assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
     fetched = [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
-    viewer, previews = [[r for r in fetched if key in r] for key in (".published.viewer", "gh release upload pr-")]
-    assert viewer and len(previews) == 1 and sorted(fetched) == sorted(viewer + previews)
-    # a PR's sticky comment (#657): the preview artifact's before/after alone, the next Mech's
-    assert re.findall(r"for f in (\S+); do cp", previews[0]) == ["preview/before-after*.webp"]
-    assert re.findall(r"gh release upload pr-previews .*", previews[0]) == [
-        'gh release upload pr-previews --clobber "$prefix"*.webp'  # only those copies
-    ]
+    viewer = [r for r in fetched if ".published.viewer" in r]
+    assert viewer and sorted(fetched) == sorted(viewer)
 
 
-def test_a_prs_preview_comment_holds_the_least_and_publishes_no_release():
-    """#657: one sticky comment per PR shows the next Mech's before/after inline, its pictures assets of the one
-    `pr-previews` pre-release: never latest, nor a v* tag (Release Assets, semantic-release and the docs' versions read
-    only those). Its job alone writes, with contents and pull-requests only, and only on this repo's PRs: a fork's
-    and Dependabot's tokens are read-only."""
+def test_no_check_job_writes():
+    """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
+    Checks that wrote; every job reads alone."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
-    [job] = [j for j in flow["jobs"].values() if j["name"] == "Preview Comment"]
-    assert job["needs"] == "blender"
-    for cond in ("event_name == 'pull_request'", "head.repo.full_name == github.repository", "actor != 'dependabot"):
-        assert cond in job["if"], cond
-    assert job["permissions"] == {"contents": "write", "pull-requests": "write"}
-    writers = [j["name"] for j in flow["jobs"].values() if "write" in j.get("permissions", {}).values()]
-    assert writers == ["Preview Comment"] and "write" not in flow["permissions"].values()
-    run = "\n".join(s.get("run", "") for s in job["steps"])
-    assert "gh release create pr-previews --prerelease --latest=false" in run
-    [sticky] = [s for s in job["steps"] if s.get("uses", "").startswith("marocchino/sticky-pull-request-comment@")]
-    assert sticky["with"]["header"]  # one comment, found again and edited in place on every preview
+    perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+    assert not [p for p in perms if "write" in p.values()]
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():

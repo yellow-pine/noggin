@@ -14,9 +14,9 @@ parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid positiv
 import math
 
 import numpy as np
-import trimesh
 from scipy.optimize import brentq
 from scipy.spatial import cKDTree
+from scipy.spatial.transform import Rotation
 
 from model import fits, linkage
 from model import geometry as g
@@ -128,7 +128,8 @@ def servos(yaw, pitch):
 def _carry(a0, b0, a, b):
     """4x4 taking a part pinned at a0 and b0 to its pins at a and b: the least turn about a0, then a shift (in a plane
     across x, a turn about x)."""
-    m = trimesh.geometry.align_vectors(np.subtract(b0, a0), np.subtract(b, a))
+    m = np.eye(4)  # scipy's single-pair alignment is the least turn; trimesh's align_vectors is not (#670)
+    m[:3, :3] = Rotation.align_vectors([np.subtract(b, a)], [np.subtract(b0, a0)])[0].as_matrix()
     m[:3, 3] = np.subtract(a, m[:3, :3] @ a0)
     return m
 

@@ -10,12 +10,10 @@ served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/001
 `just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
 `site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS:
-its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649); `compare`: a PR's preview of them,
-the live site's above its own (PREVIEW_OUT).
-Usage: python -m model.render.pictures views | hero | site [motion ...] | join | compare (Blender at $BLENDER)"""
+its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649).
+Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
 
 import functools
-import io
 import json
 import math
 import os
@@ -23,12 +21,10 @@ import shutil
 import subprocess
 import sys
 import time
-import urllib.request
 
 import imageio_ffmpeg
 import numpy as np
 import trimesh
-from PIL import Image, ImageSequence
 
 from model import geometry as g
 from model import gimbal, stages, trajectories
@@ -99,8 +95,6 @@ NEXT_MOTIONS = {
     **dict.fromkeys(trajectories.motions(next(iter(g.NEXT)))),
 }  # fmt: skip
 MOTION_SIZE = (480, 320)
-LIVE = "https://yellowpine.com/noggin/images/"  # where the site serves them: main's
-PREVIEW_OUT = os.path.join(stages.REPO, "model", "build", "preview")  # a PR's preview artifact (compare)
 
 
 @functools.cache
@@ -294,53 +288,6 @@ def motion_pictures():
         encode(name, HERO_FPS)
 
 
-def compare(live=LIVE):
-    """A PR's preview (#649) in PREVIEW_OUT: every picture it publishes, from IMAGES, the live site's (main's) next Mech
-    panels in before/, and before-after.webp, those above this run's, one column; a panel the site lacks yet is left out
-    of the top. Each motion (#656) the live site has otherwise: before-after-<motion>.webp, the live one above."""
-    shutil.rmtree(PREVIEW_OUT, ignore_errors=True)
-    os.makedirs(os.path.join(PREVIEW_OUT, "before"))
-    before = []
-    for f in NEXT_PANELS:
-        if (data := fetch(live + f)) is not None:
-            before.append(os.path.join(PREVIEW_OUT, "before", f))
-            open(before[-1], "wb").write(data)
-    rows = [*before, *(os.path.join(IMAGES, f) for f in NEXT_PANELS)]
-    out = os.path.join(PREVIEW_OUT, "before-after.webp")
-    ffmpeg(*(a for f in rows for a in ("-i", f)), "-filter_complex", f"vstack=inputs={len(rows)}", "-c:v", "libwebp",
-           "-quality", str(WEBP_QUALITY), out)  # fmt: skip
-    for f in published():
-        shutil.copy(os.path.join(IMAGES, f), PREVIEW_OUT)
-    for motion in NEXT_MOTIONS:  # #656: a motion that changed, live above new, frame by frame
-        f = next_motion(motion)
-        new = open(os.path.join(IMAGES, f), "rb").read()
-        if (old := fetch(live + f)) not in (None, new):
-            top, bottom = (ticks(b) for b in (old, new))
-            frames = []
-            for i in range(max(len(top), len(bottom))):  # the shorter holds its last frame
-                a, b = top[min(i, len(top) - 1)], bottom[min(i, len(bottom) - 1)]
-                frames.append(Image.new("RGBA", (max(a.width, b.width), a.height + b.height)))
-                frames[-1].paste(a)
-                frames[-1].paste(b, (0, a.height))
-            frames[0].save(os.path.join(PREVIEW_OUT, f"before-after-{motion}.webp"), save_all=True,
-                           append_images=frames[1:], duration=1000 // HERO_FPS, loop=0, quality=WEBP_QUALITY)  # fmt: skip
-
-
-def ticks(webp):
-    """An animated WebP's frames, one per HERO_FPS tick: the encoder merges a held frame into one that lasts longer."""
-    frames = [(f.convert("RGBA"), f.info["duration"]) for f in ImageSequence.Iterator(Image.open(io.BytesIO(webp)))]
-    return [f for f, ms in frames for _ in range(max(1, round(ms * HERO_FPS / 1000)))]  # a frame's duration once loaded
-
-
-def fetch(url):
-    """The bytes at url, the live site's (or a test's file:), or None: not on the site yet, or the site not answering."""
-    try:
-        with urllib.request.urlopen(url, timeout=30) as r:  # noqa: S310 # the site's https, or a test's file:
-            return r.read()
-    except OSError:
-        return None
-
-
 def at_fps(frames, fps):
     """Trajectory frames (trajectories.FPS a second) resampled to fps: per output frame the nearest one, unless a key
     frame lies within half an output frame, where a horn turns back or settles into a hold: toon timing's shut blinks
@@ -457,8 +404,6 @@ def main(what, names):
                 shutil.copy(os.path.join(OUT, f), IMAGES)
         os.makedirs(SECONDS, exist_ok=True)
         json.dump(took, open(os.path.join(SECONDS, "pictures.json"), "w"))
-    elif what == "compare":
-        compare()
     elif what == "join":
         join()
         os.makedirs(IMAGES, exist_ok=True)
