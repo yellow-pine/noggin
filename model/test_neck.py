@@ -90,5 +90,6 @@ def test_each_neck_servo_turns_the_head_with_the_gimbal_on_it(doc, drive, horn, 
 
 
 def test_the_head_is_the_parts_the_tilt_turns():
-    assert set(neck.HEAD) <= set(stages.next_neck().parts)
-    assert {f"next {label} servo:1" for label in neck.drives()} <= set(stages.next_neck().parts)
+    parts = stages.next_neck().parts | stages.next_jaw().parts
+    assert set(neck.HEAD) <= set(parts)
+    assert {f"next {label} servo:1" for label in neck.drives()} <= set(parts)

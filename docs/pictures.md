@@ -9,12 +9,12 @@ made: [Model notes](model-notes.md).
 <!--{{ next_panels }}-->
 
 <!--{# GitHub shows the line below; the site drops it for the grids, which it builds from the code -->
-The next Mech from the side and isometric, and each of its parts, are in
+The next Mech's Stages from the side and isometric, and each of its parts, are in
 [the grids on the site](https://yellowpine.com/noggin/docs/pictures/).
 <!-- #}-->
 
-For now the eye gimbal and the hardware the next Mech keeps (the Cores, the Shields, the switch board, the pack, the
-servos), laid out apart until the neck and the base place them. Turn it in
+Stage by Stage, each with its Skeleton as Bones and plain: Stage 1 the eye block on its test stand with the eyes Core,
+Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw, the whole Mech. Turn each in
 [the viewer](https://yellowpine.com/noggin/viewer/).
 
 ## In motion

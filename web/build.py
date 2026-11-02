@@ -18,7 +18,7 @@ from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "glb.py")
-PUBLIC = {doc: doc + ".glb" for doc in g.NEXT}  # what the site serves: the next Mech (docs/adr/0019)
+PUBLIC = {doc: doc + ".glb" for doc in g.STAGES}  # what the site serves: the next Mech's Stages (#720, ADR 0019)
 
 
 def glb(doc, path):

@@ -73,6 +73,16 @@ def back_boards():
     return standing(RACK_Y + TRAY_T, BACK_Z)
 
 
+# Stage 1's test stand (#720): a box under the gimbal frame's plate, screwed up through the head mount's holes, from the
+# desk to the plate's underside, the eyes Core (Shield 1, Core 1) standing on the desk against its back face (inferred)
+STAND_H = 40.0
+STAND_Z = gimbal.PLATE_Z[0] - STAND_H  # its foot, in the head's frame
+
+
+def stand_boards():
+    return standing(RACK_Y, STAND_Z + BOARD_H / 2, ROW[:1])
+
+
 def leads(stage):
     """{pivot: leads crossing it} for the pan and tilt pivots: each servo's lead to the Shields, the pack's to the switch
     board and the switch board's on to the Shields, so one crosses each pivot that turns one end and not the other."""

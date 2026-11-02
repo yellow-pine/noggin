@@ -1,13 +1,13 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
-// it: the page's buttons (src/pages/viewer.astro, one per head variant, #664, #686), the Tour and a chip per gesture, Explode;
+// it: the page's buttons (src/pages/viewer.astro: a Stage switch and a look switch, #720), the Tour and a chip per gesture, Explode;
 // under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
 // small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
-// ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a
-// button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
+// ?stage=<n>&look=plain&gesture=<g>, opens the viewer on its nth Stage button's Stage in that look playing that gesture;
+// each click on a button rewrites the address to the deep link of what it plays. Explode moves a Stage's parts apart by the offsets
 // macros.json has for it (the next Mech's, model/render/pictures.py EXPLODE, #482, #664) and back, &explode=1 opens it so. Only a
 // viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
 import * as THREE from "three";
@@ -19,7 +19,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { address, caption as captionFor, offsets as offsetsFor, opened, title } from "./state.mjs";
+import { address, bony, caption as captionFor, look as lookOf, offsets as offsetsFor, opened, title } from "./state.mjs";
 
 // the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -33,7 +33,8 @@ const APART_S = 1;  // the seconds Explode takes to move the parts apart, or bac
 const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
-  const stages = root.querySelectorAll("[data-stage]"), poster = root.querySelector("figure");
+  const stages = root.querySelectorAll("[data-stage]"), looks = root.querySelectorAll("[data-look]");
+  const poster = root.querySelector("figure");
   const names = [...stages].map((b) => b.dataset.stage), link = opened(location.search, names, root.dataset.stage);
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
@@ -177,7 +178,8 @@ function mount(root) {
     const mine = ++loading, offsets = offsetsFor(stage);
     current = stage;
     goal = exploded ? 1 : 0;  // a Stage switch puts it back together
-    for (const b of stages) press(b, b.dataset.stage === stage);
+    for (const b of stages) press(b, b.dataset.stage === bony(stage));
+    for (const b of looks) press(b, b.dataset.look === lookOf(stage));
     for (const b of [...bar.children, toggle]) b.disabled = true;
     root.setAttribute("aria-busy", true);
     const gltf = await loader.loadAsync(here(`${stage}.glb`));
@@ -250,7 +252,8 @@ function mount(root) {
     root.setAttribute("aria-busy", false);
   }
 
-  for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
+  for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage + lookOf(current)), share()));
+  for (const b of looks) b.addEventListener("click", () => (load(bony(current) + b.dataset.look), share()));
   addEventListener("resize", () => scene && resize());
   const timer = new THREE.Timer();
   renderer.setAnimationLoop((t) => {

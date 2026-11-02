@@ -29,19 +29,19 @@ test.afterEach(async ({ baseURL }) => {
 
 test('the viewer loads the next Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
   // CI always has the GLBs; a local build has them once just web next ran before just site
-  test.skip(!existsSync(new URL('dist/viewer/next-mech-back.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer'); // one, a button per head variant (#664, #686)
+  const viewer = page.locator('.noggin-viewer'); // one, its Stage and look switches (#720)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
-  // its labels follow the ranking; the last of however many there are (Back and Back plain since #704; #741)
-  const heads = viewer.getByRole('navigation', { name: 'Head' }).getByRole('button');
-  const n = await heads.count();
-  await heads.nth(n - 1).click();
-  await expect(page).toHaveURL(new RegExp(`\\?stage=${n}$`));
+  await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
+  await expect(page).toHaveURL(/\?stage=1$/);
+  await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+  await viewer.getByRole('navigation', { name: 'Look' }).getByRole('button', { name: 'Plain' }).click();
+  await expect(page).toHaveURL(/\?stage=1&look=plain$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await viewer.getByRole('button', { name: 'Explode' }).click();
-  await expect(page).toHaveURL(new RegExp(`\\?stage=${n}&explode=1$`));
+  await expect(page).toHaveURL(/\?stage=1&look=plain&explode=1$/);
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));

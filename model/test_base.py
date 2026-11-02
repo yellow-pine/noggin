@@ -16,10 +16,10 @@ TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo
 
 
 @pytest.mark.build
-@pytest.mark.parametrize("doc", sorted(g.NEXT))
+@pytest.mark.parametrize("doc", sorted(g.STAGES))
 def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the next Mech assembled, nothing lying apart: every part of each document
-    touches one that leads, part on part, down to the Torso. Each part's surface sampled about 1 mm apart, plus its
+    touches one that leads, part on part, down to the Torso (Stage 1's test stand, #720). Each part's surface sampled about 1 mm apart, plus its
     vertices: two touching faces have samples closer than TOUCH_MM, two 1 mm apart none."""
     parts = stages.STAGES[doc].parts
     meshes = {n: trimesh.load(p.file, force="mesh").apply_transform(p.matrix) for n, p in parts.items()}
@@ -33,7 +33,7 @@ def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
         if (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all() and trees[b].query(points[a])[0].min() < TOUCH_MM:
             near[a].add(b)
             near[b].add(a)
-    reached, todo = set(), ["next torso:1"]
+    reached, todo = set(), ["next torso:1" if "next torso:1" in parts else "next test stand:1"]
     while todo:
         n = todo.pop()
         if n not in reached:
@@ -55,6 +55,13 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     assert placed["next Shield 1"] == pytest.approx((-26.75, 20.68, -91.0))
     assert placed["next Core 1"] == pytest.approx(placed["next Shield 1"])
     assert placed["next switch board"] == pytest.approx((28.0, 14.6, -90.0))
+
+
+def test_stage_1s_test_stand_stands_on_the_desk():
+    """#720: geometry's copy of the stand's height (ADR 0011): Stage 1's frame puts the stand's foot (base.STAND_Z, the
+    gimbal frame plate's underside less STAND_H) on z 0, the eye block on it."""
+    (origin, x, z), *rest = g.STAGES["next-stage1"].values()
+    assert rest == [(origin, x, z)] and origin[2] + base.STAND_Z == 0
 
 
 def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
