@@ -58,6 +58,7 @@ MODEL_TESTS = subprocess.run(
 # What a cache key or paths filter in the workflows stands for: the entry files whose repo imports, followed through,
 # it must cover (scripts/inputs.py), and the other files they read. A key the patterns miss restores stale outputs; a
 # filter that misses one skips the checks of a PR that changes it.
+PINS = "ci/pins/Dockerfile"  # the CI images' digests, which Dependabot bumps (#444)
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "convex": (
@@ -66,11 +67,12 @@ MADE_FROM = {
     ),  # a part's pieces: its mesh, settings and clip  # make ours; mjcf's CoACD settings
     "sim": (["model/report.py"], ["uv.lock"]),
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
-    "images": (["model/render/pictures.py"], ["uv.lock"]),
-    "pictures": (["model/render/pictures.py"], ["uv.lock"]),  # every motion's images together, for changes (#386)
-    "viewer": (["web/build.py"], ["uv.lock"]),
+    # the Blender jobs' outputs and the site's checks: the image they run in too (PINS)
+    "images": (["model/render/pictures.py"], ["uv.lock", PINS]),
+    "pictures": (["model/render/pictures.py"], ["uv.lock", PINS]),  # every motion's images together, for changes (#386)
+    "viewer": (["web/build.py"], ["uv.lock", PINS]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "Makefile"]),  # the Core's program, its tag
-    "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json"]),
+    "site": (["macros.py", "web/build.py", "model/render/pictures.py"], ["site/package.json", PINS]),
     # Convex, Shards and the Model shards: the tests marked model, make sim, the shard list and the parts' cut, and
     # beside their imports the Core program and calibration traces.py plays (from eyes/, so not an import inputs sees)
     # and the scripts, config and workflow that run them
@@ -127,6 +129,21 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
         if not covered(file, globs)
     }
     assert missed == set()
+
+
+def test_the_jobs_read_their_image_from_the_pins():
+    """Dependabot reads no workflow's `container:` (docs/research/2026-11-02-dependabot-container-images.md): a digest
+    spelled in a workflow would never move, so every job's image is an Images job's output, one per pin, or a
+    name no pull finds (an empty image would run the job on the bare runner)."""
+    names = re.findall(r"^FROM \S+ AS (\S+)$", (ROOT / PINS).read_text(), re.M)
+    images = [
+        job["container"]["image"]
+        for f in (ROOT / ".github" / "workflows").glob("*.yml")
+        for job in yaml.safe_load(f.read_text())["jobs"].values()
+        if "container" in job
+    ]
+    assert images
+    assert [i for i in images if i not in {f"${{{{ needs.images.outputs.{n} || 'no-image' }}}}" for n in names}] == []
 
 
 def test_a_pattern_covers_a_file_as_hashfiles_and_paths_filter_match_it():

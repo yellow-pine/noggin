@@ -40,7 +40,7 @@ jobs:
         with:
           filters: |
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
-                   ".github/workflows/site-checks.yml", "macros.py"]
+                   ".github/workflows/site-checks.yml", "ci/pins/Dockerfile", "macros.py"]
       # whether the pictures and the viewer built from the same inputs are cached: then neither Blender job runs, nor
       # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys are written here alone (YAML
       # anchors); render's per-motion key hashes the same inputs as pictures- (test_site.py)
@@ -58,15 +58,34 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'ci/pins/Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
       - name: Look up the cached viewer
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'ci/pins/Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
           lookup-only: true
+  images:   # as check.yml's: the CI images' digests
+    name: Images
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      base: ${{ steps.pins.outputs.base }}
+      blender: ${{ steps.pins.outputs.blender }}
+    steps:
+      - name: Check out the pins
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          sparse-checkout: ci/pins/Dockerfile
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Read the pins
+        id: pins
+        run: awk '$1 == "FROM" { print $4 "=" $2 }' ci/pins/Dockerfile >> "$GITHUB_OUTPUT"
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
     name: Motions
@@ -99,11 +118,11 @@ jobs:
   # Cansin, #297), and the site job gathers them
   render:
     name: Render (${{ matrix.motion }})
-    needs: motions
+    needs: [images, motions]
     if: ${{ !cancelled() && needs.motions.result == 'success' }}
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.blender || 'no-image' }}   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
     strategy:
@@ -133,7 +152,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: images-${{ matrix.motion }}-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'ci/pins/Dockerfile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
       # our built parts and the latest trajectories, as in viewer (whose make web then finds these trajectories fresh); the
       # trajectories need no convex pieces (mjcf.model collide=False: no CoACD on this path, #276)
       - name: Restore the parts cache
@@ -198,13 +217,13 @@ jobs:
   # for the other (#278)
   viewer:
     name: Viewer
-    needs: changes
+    needs: [changes, images]
     if: >-   # as site, unless the viewer is cached
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false'
       && needs.changes.outputs.viewer != 'true' }}
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/yellow-pine/noggin-ci-blender:main@sha256:21bb3940c3e3e2d82f8c0b8869c2ee9dc387dbae8ede2a87d4e3607274ec4d06   # ci/blender.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.blender || 'no-image' }}   # ci/blender.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
     permissions:
@@ -277,12 +296,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
   site:
     name: Site
-    needs: [changes, render, viewer]
+    needs: [changes, images, render, viewer]
     if: >-   # as check.yml's mech
       ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.site != 'false' }}
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:1acfcba692ce1bfcd6d3f6fcc7f9ee09922326c3b6d0bf19aa1cfdbf1216f6ac   # ci/base.Dockerfile (images.yml)
+      image: ${{ needs.images.outputs.base || 'no-image' }}   # ci/base.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
         UV_CACHE_DIR: /__w/uv-cache   # as check.yml's code: uv sync hard-links make site's venv, copying it took ~25 s (#386)
