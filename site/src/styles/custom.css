@@ -189,7 +189,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-viewer button[aria-pressed='true'] { color: #202020; background: var(--noggin-apricot); border-color: var(--noggin-apricot); }
 .noggin-viewer button:focus-visible { outline: 2px solid var(--noggin-azure); outline-offset: 2px; }
 .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
-.noggin-viewer button[hidden] { display: none; }
+.noggin-viewer [hidden] { display: none; } /* Explode, and the gestures of a still Stage */
 .noggin-controls nav[aria-label='Stage'] button { width: 2.5rem; padding: 0; font-family: var(--noggin-rubik); font-weight: 700; font-size: 1rem; }
 .noggin-controls > button { margin-inline-start: auto; order: 1; }
 .noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
