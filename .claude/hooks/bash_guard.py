@@ -1,9 +1,10 @@
 """The project's PreToolUse hook on Bash (.claude/settings.json, #443): blocks the commands the agents' rules ban
 (CONTRIBUTING.md, .claude/agents/implementer.md), each with a one-line reason naming the allowed alternative. Claude
-Code's hook JSON on stdin; exit 2 blocks, stderr is the reason it shows the agent. Runs as the Mac's python3 (3.9),
-stdlib only."""
+Code's hook JSON on stdin; exit 2 blocks, stderr is the reason it shows the agent. Claude Code runs it as the Mac's
+python3 (3.9), and it runs itself again on the checkout's .venv, whose tree-sitter-bash reads bash's grammar (#591)."""
 
 import json
+import os
 import re
 import shlex
 import shutil
@@ -11,12 +12,26 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    import tree_sitter_bash
+    from tree_sitter import Language, Parser
+
+    BASH = Parser(Language(tree_sitter_bash.language()))
+except ImportError:  # the Mac's python3, or a checkout before uv sync
+    BASH = None
+
+VENV = Path(__file__).resolve().parents[2] / ".venv"
 PUNCTUATION = "();<>|&`\n"  # ` too: an unquoted `cmd` is a command of its own
 KEYWORDS = ("do", "then", "else", "{", "!")  # what may stand before a loop's until/while in a simple command
 SHELLS = ("bash", "sh", "zsh", "dash")
 INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a pipe may not feed
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
-UNPARSED = "this command does not parse (an open quote or heredoc); fix it, or write long text to a file first."
+UNPARSED = "this command does not parse as bash (an open quote or heredoc, zsh-only syntax); fix it, or write a file."
+NOPARSER = "no tree-sitter-bash to read its $(…), `…` or <(…); run uv sync (just venv) in the checkout, then retry."
+# zsh, the Bash tool's shell, runs code where bash's grammar sees none: =(…) opening a word, ${(…)…} flags such as
+# (e), and a glob qualifier's e:…: or +cmd. ${=var} stays (UNSPLIT asks for it).
+ZSH = r"(?:^|[\s;&|(){}])=\(|\$\{\(|[^\s$<>=;&|(){}'\"`]\([^()\s]*?(?:e[^\w\s)]|\+)"
+ZSHONLY = "zsh-only syntax that runs code (=(…), ${(…)…} flags, a glob qualifier's e:…: or +) hides it; use bash's."
 UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
 
@@ -28,7 +43,7 @@ def heavy_recipes(folder):
     """The recipes in the justfile's heavy group ([group('heavy')]): CI builds those (docs/adr/0011, read from the
     justfile, not listed). From just's JSON dump, else from the justfile's own lines (no just yet, as uv run just
     installs it); None when neither reads, so the caller fails closed."""
-    venv = Path(__file__).resolve().parents[2] / ".venv" / "bin" / "just"  # rust-just, the dev group's
+    venv = VENV / "bin" / "just"  # rust-just, the dev group's
     just = str(venv) if venv.is_file() else shutil.which("just")
     dump = just and subprocess.run([just, "--dump", "--dump-format", "json"], cwd=folder, capture_output=True)
     if dump and not dump.returncode:
@@ -76,10 +91,32 @@ def tokens(command):
     return found
 
 
-def bash_parses(command):
-    """Whether bash's own parser reads the command, where shlex can't ($(…) holding a quote inside "…", #579). Never
-    with a heredoc: bash -n lets one stay open to the end, and bash would run its body unchecked."""
-    return "<<" not in command and not subprocess.run(["bash", "-n", "-c", command], capture_output=True).returncode
+SUBS = {}  # placeholder: the body of a $(…), `…`, <(…) or >(…) that split() took out
+PLACEHOLDER = r"_noggin_sub_\d+_"
+
+
+def split(command):
+    """The command with each $(…), `…`, <(…) and >(…) that bash would run swapped for a placeholder word, its body
+    kept in SUBS: shlex can't tell where one ends ($(…) holding a quote inside "…", #579), bash's grammar can. None
+    when there's no tree-sitter-bash and the command holds one. Raises ValueError where the grammar finds an error."""
+    if not BASH:
+        return None if re.search(r"\$\(|`|[<>]\(", command) else command
+    source = command.encode()
+    tree = BASH.parse(source)
+    if tree.root_node.has_error:
+        raise ValueError(command)
+
+    def outermost(node):
+        if node.type in ("command_substitution", "process_substitution"):
+            return [node]
+        return [found for child in node.children for found in outermost(child)]
+
+    text, end = b"", 0
+    for node in outermost(tree.root_node):
+        key = f"_noggin_sub_{len(SUBS)}_"  # PLACEHOLDER
+        SUBS[key] = source[node.children[0].end_byte : node.children[-1].start_byte].decode()
+        text, end = text + source[end : node.start_byte] + key.encode(), node.end_byte
+    return (text + source[end:]).decode()
 
 
 def commands(command):
@@ -97,23 +134,9 @@ def commands(command):
         elif set(token) <= set(PUNCTUATION):
             if words or fed:
                 found.append((words, fed, piped))
-            words, fed, piped = [], [], token in ("|", "|&")
+            words, fed, piped = [], [], bool(re.search(r"(?<!\|)\|&?$", token))  # | or |&, after a ) too
         else:
             words.append(token)
-    return found
-
-
-def substitutions(word):
-    """The commands inside a word's $(…) and `…`, which shlex leaves in a quoted word."""
-    found, start = re.findall(r"`([^`]*)`", word), word.find("$(")
-    while start != -1:
-        depth, end = 0, len(word)
-        for end in range(start + 1, len(word)):
-            depth += {"(": 1, ")": -1}.get(word[end], 0)
-            if depth == 0:
-                break
-        found.append(word[start + 2 : end])
-        start = word.find("$(", end)
     return found
 
 
@@ -124,17 +147,29 @@ def after(words, word):
 
 def reason(command, folder):
     """Why the command is blocked, or None. Fails closed: a command it cannot read is blocked."""
+    if re.search(ZSH, command):
+        return ZSHONLY
     try:
+        command = split(command)
+        if command is None:
+            return NOPARSER
         segments = commands(command)
     except ValueError:
         return UNPARSED
+    # every $(…) split() took out, wherever it stood: a redirect's target too, which commands() drops; a heredoc's body
+    # is text, its $(…) a command bash runs (unless the heredoc is quoted: split() leaves those)
+    bodies = (SUBS[k] for k in re.findall(PLACEHOLDER, command) if k in SUBS)
+    why = next((r for r in (reason(b, folder) for b in bodies) if r), None)
+    if why:
+        return why
     for i, (words, fed, piped) in enumerate(segments):
         first = next((w for w in words if "=" not in w), "")
         if piped and Path(first).name in INTERPRETERS:
             return "a pipe into a shell or interpreter hides its commands; pipe into jq, or run a script file."
         if any(re.match(r"GIT_CONFIG_(PARAMETERS|COUNT|KEY_)", w) for w in words):
             return "GIT_CONFIG_*: run the git command itself, with no config from the environment."
-        inner = [f for f in fed if first not in TEXT] + [c for w in words for c in substitutions(w)]
+        subs = [SUBS[k] for w in words for k in re.findall(PLACEHOLDER, w) if k in SUBS]  # for the pgrep rule
+        inner = [f for f in fed if first not in TEXT]
         shell = next((k for k, w in enumerate(words) if Path(w).name in SHELLS), len(words))
         inner += [words[k + 1] for k in range(shell + 1, len(words) - 1) if re.fullmatch(r"-\w*c\w*", words[k])][:1]
         if "eval" in words:
@@ -163,7 +198,7 @@ def reason(command, folder):
             return "just: no just or justfile to read the heavy recipes from; uv sync, then run it from the checkout."
         if heavy & set(just or ()):
             return "just: heavy builds run in CI, not here; run just check-light and the tests you touched, then push."
-        if loop and any("pgrep" in w for w in words):
+        if loop and any("pgrep" in w for w in words + subs):
             return "pgrep in a loop matches itself; gh run watch, or kill -0 on a PID (CONTRIBUTING's Waiting on CI)."
         body = next((segments[i:j] for j in range(i, len(segments)) if segments[j][0][:1] == ["done"]), segments[i:])
         if loop == "until" and not any(Path(w).name == "sleep" for b, *_ in body for w in b):
@@ -175,14 +210,10 @@ def unsplit(command):
     """Why a for loop would run once, or None: zsh, the Bash tool's shell, doesn't split an unquoted $var or ${…}
     (#578). Only the outer command is zsh's; a heredoc or -c fed to bash splits. Each $ gets a \\NUL before it, which
     shlex drops outside quotes and keeps inside them, so the words show which $ stood unquoted."""
-    try:
-        segments = commands(command.replace("$", "\\\0$"))
-    except ValueError:  # only bash reads it, and main() let it run
-        return None
-    for words, *_ in segments:
+    for words, *_ in commands(split(command).replace("$", "\\\0$")):
         for k, word in enumerate(words[:-2]):
             loop = word == "for" and words[k + 2] == "in" and (k == 0 or words[k - 1] in KEYWORDS)
-            # ${=var} and ${(f)…} are zsh's own splitting; $(…) splits in zsh too
+            # ${=var} is zsh's own splitting (reason() blocks ${(f)…} with every flag); $(…) splits in zsh too
             if loop and any(re.search(r"(?<!\\)\0\$(\w|\{(?![=(]))", w) for w in words[k + 3 :]):
                 return UNSPLIT
     return None
@@ -190,15 +221,14 @@ def unsplit(command):
 
 def main():
     try:
+        python = VENV / "bin" / "python"
+        if not BASH and python.is_file() and Path(sys.prefix).resolve() != VENV.resolve():
+            # the checkout's own python, with stdin still unread; S606: exec is the point, no shell takes part
+            os.execv(python, [str(python), __file__])  # noqa: S606
         event = json.load(sys.stdin)
         command = event["tool_input"].get("command", "")
         # shortcut: the session's justfile, so just -f elsewhere passes; follow -f if agents start using it
-        why = reason(command, event.get("cwd", "."))
-        # shlex can misread the whole command, so its open quote may show only in a $(…) it cut wrong: ask bash about
-        # all of it; when bash reads it, the rules can't see into it and it runs
-        if why == UNPARSED and bash_parses(command):
-            why = None
-        why = why or unsplit(command)
+        why = reason(command, event.get("cwd", ".")) or unsplit(command)
     except Exception as error:  # fail closed: a guard that crashes must not wave the command through
         why = f"bash_guard.py failed ({error!r}); fix the hook or tell Cansin."
     if why:

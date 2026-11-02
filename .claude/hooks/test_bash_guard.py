@@ -4,6 +4,7 @@ allowed alternative (Claude Code shows it to the agent and skips the call); anyt
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -69,6 +70,22 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("for f in $files\ndo\n  echo $f\ndone", "${=var}"),
         ('for f in "$a"$b; do :; done', "${=var}"),
         ("if true; then for n in $nums; do :; done; fi", "${=var}"),
+        # a command only bash parses meets every rule (#591)
+        ("""echo "$(printf '"')"; git stash""", "commit"),
+        ("""echo "$(printf '"')" | python3""", "pipe"),
+        ("""echo "$(echo ")" ; git stash ; echo "(")" """, "commit"),  # shlex reads it, wrongly
+        ("cat <(git stash)", "commit"),
+        ("diff <(true) >(just sim)", "CI"),
+        ("(echo hi)|python3", "pipe"),
+        ("cat <<EOF\n$(git stash)\nEOF", "commit"),  # an unquoted heredoc runs its $(…)
+        ('echo "${x:-$(git stash)}"', "commit"),
+        ("cat < <(git stash)", "commit"),  # a redirect's target runs too
+        ("echo hi > $(git stash)", "commit"),
+        # zsh, the Bash tool's shell, runs code where bash's grammar sees none
+        ("cat =(git stash)", "runs code"),
+        ("echo ${(e)x}", "runs code"),
+        ("ls *(e:'git stash':)", "runs code"),
+        ("ls *(+stashit)", "runs code"),
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -109,6 +126,11 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "cat > loop.sh <<'EOF'\nfor n in $nums; do echo $n; done\nEOF",
         """echo "x: $(gh api repos/a/b --jq '"\\(.a)"')" """,  # shlex misreads it, bash can (#579)
         """echo "$(printf '"')" """,  # shlex raises on it, bash reads it
+        "cat > notes.md <<'EOF'\n$(git stash) is text in a quoted heredoc\nEOF",
+        "echo '$(git stash)'",
+        "x=(e f) && echo $x",
+        "git commit -m 'feat(eyes): x' && (echo a) && f() { :; }",
+        'git commit -m "$(cat msg) and don\'t git stash"',
     ],
 )
 def test_anything_else_runs(command):
@@ -166,6 +188,24 @@ def test_without_just_the_guard_reads_our_justfile_as_just_does(without_just):
     light = [r["name"] for r in recipes if r["name"] not in heavy]
     assert without_just("just " + " ".join(light), REPO).returncode == 0
     assert all(without_just(f"just {name}", REPO).returncode == 2 for name in heavy)
+
+
+def test_the_macs_python3_runs_the_guard_on_the_checkouts_venv():
+    """A python3 without tree-sitter-bash (sys._base_executable stands in for the Mac's) runs the hook again on the
+    checkout's .venv, so it still reads what only bash parses."""
+    assert guard("""echo "$(printf '"')" """, hook=(sys._base_executable, SCRIPT)).returncode == 0
+    assert "commit" in guard("""echo "$(printf '"')"; git stash""", hook=(sys._base_executable, SCRIPT)).stderr
+
+
+def test_without_the_venv_a_substitution_is_blocked(tmp_path):
+    hooks = tmp_path / "checkout/.claude/hooks"
+    hooks.mkdir(parents=True)
+    shutil.copy(SCRIPT, hooks)
+    bare = (sys._base_executable, hooks / SCRIPT.name)
+    assert "uv sync" in guard("echo $(date)", tmp_path, bare).stderr
+    assert "uv sync" in guard("diff <(true) x", tmp_path, bare).stderr
+    assert guard("uv sync", tmp_path, bare).returncode == 0
+    assert "commit" in guard("git stash", tmp_path, bare).stderr
 
 
 def test_a_hook_that_cannot_read_its_input_blocks():

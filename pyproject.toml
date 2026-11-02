@@ -30,6 +30,8 @@ dev = [
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
     "rust-just>=1.59.0",  # just runs the recipes (justfile, docs/adr/0016)
+    "tree-sitter>=0.26.0",
+    "tree-sitter-bash>=0.25.1",  # bash's grammar: .claude/hooks/bash_guard.py reads commands with it (#591)
 ]
 
 [tool.uv]
