@@ -17,6 +17,18 @@ For now the eye gimbal and the hardware the next Mech keeps (the Cores, the Shie
 servos), laid out apart until the neck and the base place them. Turn it in
 [the viewer](https://yellowpine.com/noggin/viewer/).
 
+## In motion
+
+<!--{{ next_motions }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the grid, which it builds from the code -->
+Its eye gimbal sweeping its yaw and pitch with the lids following, a blink and a wink, are in
+[the grid on the site](https://yellowpine.com/noggin/docs/pictures/#in-motion).
+<!-- #}-->
+
+The gimbal's own kinematics move it (model/gimbal.py) until the next Mech plays the gestures; the neck and the jaw join
+as they land.
+
 ## Its parts
 
 <!--{{ next_parts }}-->

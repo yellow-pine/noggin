@@ -27,6 +27,7 @@ dev = [
     "pytest-xdist==3.8.0",
     "pytest-split>=0.11.0",  # --store-durations: the model shards' measured seconds (model/shards.py)
     "imageio-ffmpeg>=0.7.0",
+    "pillow>=13.0.0",  # the preview's before/after of an animated WebP, which ffmpeg cannot decode (#656)
     "zizmor>=1.31.1",
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
