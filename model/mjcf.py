@@ -53,10 +53,10 @@ LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
 SLEW_DEG_S = 100
 # The 9 g servo: its published stall torque at 4.8 V, the figure nearest the shield's 5 V servo rail
 # (electrical.SERVO_RAIL_V), as the actuator's force limit; full torque 0.5 deg off its command (a servo's deadband,
-# inferred); the motor's inertia through the gears as the shaft's armature (inferred: a micro motor's rotor through
-# ~1:300, and what keeps kp stable at TIMESTEP); critically damped on it.
+# inferred); the motor's inertia through the gears as the shaft's armature (eyes/servo.py, inferred; what keeps kp
+# stable at TIMESTEP); critically damped on it.
 STALL_NM = electrical.servo.SPEC[electrical.SERVO_MIN_V]["stall_kgfcm"] * 0.0980665
-KP, ARMATURE = STALL_NM / math.radians(0.5), 1e-4
+KP, ARMATURE = STALL_NM / math.radians(0.5), electrical.servo.ARMATURE
 KV = 2 * math.sqrt(KP * ARMATURE)
 
 
