@@ -28,9 +28,10 @@ INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a 
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse as bash (an open quote or heredoc, zsh-only syntax); fix it, or write a file."
 NOPARSER = "no tree-sitter-bash to read its $(…), `…` or <(…); run uv sync (just venv) in the checkout, then retry."
-# zsh, the Bash tool's shell, runs code where bash's grammar sees none: =(…) opening a word, ${(…)…} flags such as
-# (e), and a glob qualifier's e:…: or +cmd. ${=var} stays (UNSPLIT asks for it).
-ZSH = r"(?:^|[\s;&|(){}])=\(|\$\{\(|[^\s$<>=;&|(){}'\"`]\([^()\s]*?(?:e[^\w\s)]|\+)"
+# zsh, the Bash tool's shell, runs code where bash's grammar sees none: =(…) opening a word and a glob qualifier's
+# e:…: or +cmd, both outside quotes, and ${(…)…} flags such as (e) anywhere. ${=var} stays (UNSPLIT asks for it).
+ZSH = r"(?:^|[\s;&|(){}])=\(|(?<![$<>])\([^()\s]*?(?:e[^\w\s)]|\+)[^()\s]*\)"
+QUOTED = ("string", "raw_string", "ansi_c_string", "translated_string", "heredoc_body")
 ZSHONLY = "zsh-only syntax that runs code (=(…), ${(…)…} flags, a glob qualifier's e:…: or +) hides it; use bash's."
 UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
@@ -97,14 +98,33 @@ PLACEHOLDER = r"_noggin_sub_\d+_"
 
 def split(command):
     """The command with each $(…), `…`, <(…) and >(…) that bash would run swapped for a placeholder word, its body
-    kept in SUBS: shlex can't tell where one ends ($(…) holding a quote inside "…", #579), bash's grammar can. None
-    when there's no tree-sitter-bash and the command holds one. Raises ValueError where the grammar finds an error."""
+    kept in SUBS: shlex can't tell where one ends ($(…) holding a quote inside "…", #579), bash's grammar can. Raises
+    ValueError(ZSHONLY) on zsh's code syntax, ValueError(NOPARSER) for one of those without tree-sitter-bash, and
+    ValueError(UNPARSED) where the grammar finds an error."""
+    if "${(" in command:
+        raise ValueError(ZSHONLY)
     if not BASH:
-        return None if re.search(r"\$\(|`|[<>]\(", command) else command
+        if re.search(ZSH, command):
+            raise ValueError(ZSHONLY)
+        if re.search(r"\$\(|`|[<>]\(", command):
+            raise ValueError(NOPARSER)
+        return command
     source = command.encode()
     tree = BASH.parse(source)
+
+    def nodes(node):
+        yield node
+        for child in node.children:
+            yield from nodes(child)
+
+    unquoted = bytearray(source)  # each quoted span and heredoc body filled with _, where zsh neither globs nor =(…)s
+    for node in nodes(tree.root_node):
+        if node.type in QUOTED:
+            unquoted[node.start_byte : node.end_byte] = b"_" * (node.end_byte - node.start_byte)
+    if re.search(ZSH, unquoted.decode()):
+        raise ValueError(ZSHONLY)
     if tree.root_node.has_error:
-        raise ValueError(command)
+        raise ValueError(UNPARSED)
 
     def outermost(node):
         if node.type in ("command_substitution", "process_substitution"):
@@ -147,15 +167,11 @@ def after(words, word):
 
 def reason(command, folder):
     """Why the command is blocked, or None. Fails closed: a command it cannot read is blocked."""
-    if re.search(ZSH, command):
-        return ZSHONLY
     try:
         command = split(command)
-        if command is None:
-            return NOPARSER
         segments = commands(command)
-    except ValueError:
-        return UNPARSED
+    except ValueError as error:
+        return error.args[0] if error.args[0] in (ZSHONLY, NOPARSER) else UNPARSED
     # every $(…) split() took out, wherever it stood: a redirect's target too, which commands() drops; a heredoc's body
     # is text, its $(…) a command bash runs (unless the heredoc is quoted: split() leaves those)
     bodies = (SUBS[k] for k in re.findall(PLACEHOLDER, command) if k in SUBS)

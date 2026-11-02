@@ -86,6 +86,9 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("echo ${(e)x}", "runs code"),
         ("ls *(e:'git stash':)", "runs code"),
         ("ls *(+stashit)", "runs code"),
+        ("ls (a|b)(e:'git stash':)", "runs code"),  # a qualifier right after a group
+        ("ls *.(py)(+cmd)", "runs code"),
+        ("""echo "it's"; ls *(e:x:); echo "don't" """, "runs code"),
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -130,6 +133,8 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         "echo '$(git stash)'",
         "x=(e f) && echo $x",
         "git commit -m 'feat(eyes): x' && (echo a) && f() { :; }",
+        'gh pr comment 1 --body "(re-run) (one-way) (e.g.)"',  # no glob qualifier inside quotes
+        "gh pr create --body-file - <<'EOF'\n(re-run) and (one-way)\nEOF",
         'git commit -m "$(cat msg) and don\'t git stash"',
     ],
 )
