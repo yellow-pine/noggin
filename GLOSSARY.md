@@ -18,6 +18,12 @@ _Avoid_: board, receiver, controller, ESP
 The expansion board the Core sits on; carries the servo ports and the power input; one per Core.
 _Avoid_: receiver, receiver shield, product codes
 
+**Pack cut**:
+The battery pack's protection switching the pack off under a load it can no longer carry (near empty), so every Core
+and servo goes dark at once. The noggin service knows one by both Cores restarting together without a reboot it sent;
+the cure is to charge the pack.
+_Avoid_: brownout (the Core's own reset, which a pack cut comes before), power loss, crash
+
 **Servo**:
 One of the seven actuators, named by what it moves: left lid, left eye, right lid, right eye (eyes Core); tilt, mouth, pan (neck Core).
 _Avoid_: channel, PWM, actuator, motor
