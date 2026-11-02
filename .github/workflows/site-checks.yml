@@ -42,7 +42,8 @@ jobs:
             site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
                    ".github/workflows/site-checks.yml", "macros.py"]
       # whether the pictures and the viewer built from the same inputs are cached: then neither Blender job runs, nor
-      # pulls its image (~50 s on the critical path for a cache hit, #386)
+      # pulls its image (~50 s on the critical path for a cache hit, #386). Their keys are written here alone (YAML
+      # anchors); render's per-motion key hashes the same inputs as pictures- (test_site.py)
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -52,14 +53,14 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: &pictures-key pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
           lookup-only: true
       - name: Look up the cached viewer
         id: viewer
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: &viewer-key viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
           lookup-only: true
   # render's matrix from the code (make pictures-list, model/render/pictures.py SITE): a new motion needs no edit here
   motions:
@@ -221,7 +222,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', '.github/workflows/site-checks.yml') }}-${{ steps.lock.outputs.hash }}
+          key: *viewer-key
       # the check workflow's cache of our built parts (same key: its model job fills it); restore only, since a save here
       # would store the key without model/build/convex first and the check workflow's full save would be refused;
       # restore-keys as in check.yml: a part's own .key rebuilds only what changed. The latest trajectories: make web
@@ -279,6 +280,8 @@ jobs:
       image: ghcr.io/yellow-pine/noggin-ci-base:main@sha256:1acfcba692ce1bfcd6d3f6fcc7f9ee09922326c3b6d0bf19aa1cfdbf1216f6ac   # ci/base.Dockerfile (images.yml)
       env:   # shortcut: the pinned image still sets UV_PYTHON_DOWNLOADS=never (ci/base.Dockerfile before #344); drop once Dependabot pins a newer one
         UV_PYTHON_DOWNLOADS: automatic
+        UV_CACHE_DIR: /__w/uv-cache   # as check.yml's code: uv sync hard-links make site's venv, copying it took ~25 s (#386)
+        UV_LINK_MODE: hardlink
       options: --ipc=host   # Chrome's shared memory (https://playwright.dev/docs/docker)
     permissions:
       contents: read
@@ -302,7 +305,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: model/build/images
-          key: pictures-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: *pictures-key
           fail-on-cache-miss: ${{ needs.changes.outputs.pictures == 'true' }}
       - name: Download the pictures
         if: ${{ steps.images.outputs.cache-hit != 'true' }}
@@ -324,7 +327,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: web/build
-          key: viewer-${{ hashFiles('model/**', '!model/build/**', 'eyes/**', 'web/**', 'Makefile', 'uv.lock', '.github/workflows/site-checks.yml') }}
+          key: *viewer-key
           fail-on-cache-miss: true
       # Node by site/.nvmrc, npm's cache keyed on the lockfile (make site runs npm ci)
       - name: Set up Node
