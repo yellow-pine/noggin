@@ -20,6 +20,11 @@ The next Mech's structural parts, the same under every Character: the eye gimbal
 electronics mount, in black PETG.
 _Avoid_: frame, chassis, core
 
+**Bone**:
+A Skeleton link between two joints drawn organic: thick at the joints, waisted mid-span, rounded in section, its
+joints kept exact.
+_Avoid_: strut, organic bar
+
 **Torso**:
 The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low and
 the neck mount with the pan servo; its bottom is the foot the Mech stands on.

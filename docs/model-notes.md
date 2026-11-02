@@ -130,6 +130,10 @@ until the model stabilises.
   forward, so the head's centre of mass stays near the tilt axis), driving its lid's crank through a bar down along
   the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
+  Its tie-bar and push-rods are Bones (#703, GLOSSARY; model/printed/bone.py), the pilot of the Skeleton's organic
+  look: each prints as drawn with no overhang past 45 deg and holds its servo's stall at SF 2 and against buckling
+  (model/printed/test_gimbal.py), its CoACD pieces capped (mjcf.MAX_PIECES); the rest of the Skeleton follows Cansin's
+  pick of the look.
   In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
   horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
