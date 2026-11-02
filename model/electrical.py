@@ -1,15 +1,18 @@
 """The Mech's supply as a SPICE netlist (ngspice through spicelib), figures from the datasheets
-(docs/research/2026-10-31-electrical.md), and the leads the cable corridors route. Run: .venv/bin/python -m
+(docs/research/2026-10-31-electrical.md), the pack by its charge (docs/research/2026-11-02-literature-electrical.md),
+and the leads the cable corridors route. Run: .venv/bin/python -m
 model.electrical. worst_case() is merged into the Mech-wide (noggin-stage3) report and leads() routed by
 model/cables.py. It reads only CHANNELS and the lead lengths."""
 
 import importlib.util
 import json
+import math
 import os
 import subprocess
 import tempfile
 from pathlib import Path
 
+from scipy.optimize import brentq
 from spicelib import RawRead
 from spicelib.simulators.ngspice_simulator import NGspiceSimulator
 
@@ -38,12 +41,14 @@ SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
 
 
 CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)
-# The pack, 2S 14500: 7.4 V nominal, over-discharge cutoff 5.8 V (its datasheet, in the research note). Its internal
-# resistance is not published [I]: two cells at <= 85 mohm each (AC 1 kHz, a 14500 800 mAh cell datasheet,
-# https://www.dnkpower.com/wp-content/uploads/2022/08/14500-battery-datasheet.pdf) plus 40 mohm for the protection
-# board's MOSFETs.
+# The pack, 2S 14500: 7.4 V nominal (taken as its resting voltage), over-discharge cutoff 5.8 V (its datasheet, in the
+# research note), which its protector compares with the cells' loaded voltage. Its cells and their resistance are not
+# published: pack_ohm(), pack_ocv(). The protection board's MOSFETs, 40 mohm [I].
 PACK_V = {"nominal": 7.4, "cutoff": 5.8}
-PACK_OHM = 2 * 0.085 + 0.040
+PROTECTOR_OHM = 0.040
+# The protector's over-discharge delay is not published [I]: a typical protector's shortest factory setting, 20 ms less
+# its 20 % tolerance (TI BQ2970 datasheet, https://www.ti.com/lit/ds/symlink/bq2970.pdf; 96, 125 and 144 ms the others).
+CUTOFF_DELAY_MS = 20 * 0.8
 # The switch board (3 A; its spec table, in the research note): contact resistance not published [I]: 50 mohm for the
 # switch and its two XH matings.
 SWITCH_OHM = 0.050
@@ -67,6 +72,31 @@ WIFI_TX_A = 0.335
 BROWNOUT_V = 2.51
 
 
+def pack_ohm(soc):
+    """The pack's series resistance at a state of charge (0-1), all a 20-200 ms servo start sees: per cell Chen &
+    Rincon-Mora 2006 eq. 3 (https://doi.org/10.1109/TEC.2006.874229), fit to an 850 mAh polymer cell, not our 14500s
+    [I]; flat over 20-100 %, rising steeply below (docs/research/2026-11-02-literature-electrical.md 1)."""
+    return 2 * (0.1562 * math.exp(-24.37 * soc) + 0.0745) + PROTECTOR_OHM
+
+
+def pack_ocv(soc):
+    """The pack's resting (open-circuit) voltage at a state of charge: per cell Chen & Rincon-Mora 2006 eq. 2, the same
+    polymer cell [I]."""
+    return 2 * (-1.031 * math.exp(-35 * soc) + 3.685 + 0.2156 * soc - 0.1178 * soc**2 + 0.3201 * soc**3)
+
+
+def cells_v(soc, amps):
+    """The cells' voltage under a current, what the protector compares with the cutoff: the MOSFETs it switches sit
+    after it [I]."""
+    return pack_ocv(soc) - amps * (pack_ohm(soc) - PROTECTOR_OHM)
+
+
+def cuts(soc, amps, ms):
+    """Whether the protector cuts the pack: its cells held under the cutoff by a current for longer than its delay, a
+    loaded-voltage event that comes before the resting voltage reaches the cutoff."""
+    return cells_v(soc, amps) < PACK_V["cutoff"] and ms >= CUTOFF_DELAY_MS
+
+
 def operating_point(netlist):
     """{node: volts} at the netlist's DC operating point (ngspice in batch mode)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -80,14 +110,15 @@ def operating_point(netlist):
         return {n[2:-1]: float(raw.get_wave(n)[0]) for n in raw.get_trace_names() if n.lower().startswith("v(")}
 
 
-def mech(pack_v):
-    """The stock wiring at its worst: pack, its lead, the switch board, the Y lead's branch to each shield; per shield
-    its standby, the 5 V servo rail and every servo at stall on its lead, and the Core's 3.3 V in a transmit burst.
-    A regulator is a behavioural source in series, dropping what is above its output or at least its dropout."""
+def mech(soc):
+    """The stock wiring at its worst, on a pack at a state of charge: pack, its lead, the switch board, the Y lead's
+    branch to each shield; per shield its standby, the 5 V servo rail and every servo at stall on its lead, and the
+    Core's 3.3 V in a transmit burst. A regulator is a behavioural source in series, dropping what is above its output
+    or at least its dropout."""
     lines = [
         "* noggin supply",
-        f"Vpack cells 0 {pack_v}",
-        f"Rpack cells pack {PACK_OHM}",
+        f"Vpack cells 0 {pack_ocv(soc)}",
+        f"Rpack cells pack {pack_ohm(soc)}",
         f"Rpack_lead pack switch_in {XH_LEAD_MM * OHM_PER_MM}",
         f"Rswitch switch_in switch_out {SWITCH_OHM}",
     ]
@@ -108,21 +139,38 @@ def mech(pack_v):
 
 
 def worst_case():
-    """Every servo at stall and both Cores bursting, DC (no bulk capacitance rides the bursts out), on a nominal and a
-    cut-off pack: the voltage at each servo and each Core's 3.3 V, the current from the pack and into each shield."""
-    out = {"cap_a": CAP_A, "servo_min_v": SERVO_MIN_V, "brownout_v": BROWNOUT_V}
-    for case, pack_v in PACK_V.items():
-        v = operating_point(mech(pack_v))
-        out[case] = {
-            "pack_v": pack_v,
-            "pack_a": round((v["cells"] - v["pack"]) / PACK_OHM, 3),
+    """Every servo at stall and both Cores bursting, DC (no bulk capacitance rides the bursts out, and it outlasts the
+    protector's delay), on a nominal pack and at the charge where it cuts the pack: the pack's charge, resting voltage,
+    resistance and loaded cells, the voltage at each servo and each Core's 3.3 V, the current from the pack and into
+    each shield."""
+
+    def at(soc):
+        v = operating_point(mech(soc))
+        a = (v["cells"] - v["pack"]) / pack_ohm(soc)
+        return {
+            "soc": round(soc, 4),
+            "pack_v": round(pack_ocv(soc), 3),
+            "pack_ohm": round(pack_ohm(soc), 3),
+            "cells_v": round(cells_v(soc, a), 3),
+            "pack_a": round(a, 3),
             "shield_a": {
                 core: round((v["switch_out"] - v[f"{core}_vbat"]) / (XH_LEAD_MM * OHM_PER_MM), 3) for core in CHANNELS
             },
             "servo_v": {name: round(v[name], 3) for ports in CHANNELS.values() for name in ports.values()},
             "core_v": {core: round(v[core], 3) for core in CHANNELS},
         }
-    return out
+
+    nominal = at(brentq(lambda s: pack_ocv(s) - PACK_V["nominal"], 0, 1))
+    # the loads are fixed currents, so the nominal pack's current is the cut's
+    cutoff = at(brentq(lambda s: cells_v(s, nominal["pack_a"]) - PACK_V["cutoff"], 0, 1))
+    return {
+        "cap_a": CAP_A,
+        "servo_min_v": SERVO_MIN_V,
+        "brownout_v": BROWNOUT_V,
+        "cutoff_delay_ms": CUTOFF_DELAY_MS,
+        "nominal": nominal,
+        "cutoff": cutoff,
+    }
 
 
 def leads():

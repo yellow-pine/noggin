@@ -1,6 +1,6 @@
 """Seam: model/electrical.py, the SPICE circuit of the Mech's supply (ngspice through spicelib): its operating point on a
-hand-checkable circuit, worst_case() (the entry the Mech-wide report merges) and leads() (what model/cables.py
-routes)."""
+hand-checkable circuit, the pack by its charge (pack_ohm(), pack_ocv()) and when its protector cuts (cuts()),
+worst_case() (the entry the Mech-wide report merges) and leads() (what model/cables.py routes)."""
 
 from model import electrical
 
@@ -8,6 +8,25 @@ from model import electrical
 def test_one_resistor_and_one_load_obey_ohms_law():
     c = "* ohm\nVpack a 0 6\nRlead a b 1\nIload b 0 1"  # 1 A through 1 ohm: 1 V lost, 5 V left
     assert abs(electrical.operating_point(c)["b"] - 5.0) < 1e-9
+
+
+def test_the_packs_resistance_is_flat_above_a_fifth_of_its_charge_and_rises_steeply_to_half_an_ohm_at_empty():
+    # Chen & Rincon-Mora 2006 eq. 3 per cell (75 mohm from mid charge, 231 at empty), two in series plus the 40 mohm
+    # protection MOSFETs: 0.19 ohm flat, about 0.50 at empty (docs/research/2026-11-02-literature-electrical.md 1)
+    assert all(abs(electrical.pack_ohm(soc) - 0.189) < 0.001 for soc in (0.3, 0.5, 1.0))
+    assert abs(electrical.pack_ohm(0.2) - 0.192) < 0.001  # within 2 % of flat
+    assert electrical.pack_ohm(0.1) > electrical.pack_ohm(0.2) + 0.015
+    assert abs(electrical.pack_ohm(0.0) - 0.501) < 0.001
+
+
+def test_the_protector_cuts_on_the_cells_loaded_voltage_held_under_5v8_past_its_delay_not_on_the_resting_voltage():
+    # the resting voltage, Chen eq. 2 per cell: 3.67 V at 10 % (the note's "about 3.68"), 3.52 V at 5 % (the note 1)
+    assert round(electrical.pack_ocv(0.10) / 2, 2) == 3.67 and round(electrical.pack_ocv(0.05) / 2, 2) == 3.52
+    # at 5 % the pack rests at 7.03 V, far above 5.8 V, yet 5.34 A (the worst case) pulls its cells to 5.74 V: a cut
+    # once held past the protector's shortest delay, 20 ms less its 20 % tolerance (the BQ2970 datasheet)
+    assert electrical.cuts(0.05, 5.34, 20) and not electrical.cuts(0.05, 5.34, 15)
+    assert not electrical.cuts(0.05, 1.0, 1000)  # one servo's start
+    assert not electrical.cuts(0.5, 5.34, 1000)  # mid charge: 6.81 V under the worst case
 
 
 W = electrical.worst_case()  # every servo at stall and both Cores in a Wi-Fi transmit burst, on one pack
@@ -31,14 +50,25 @@ def test_on_a_nominal_pack_every_servo_keeps_its_minimum_and_both_cores_their_3v
     assert all(abs(v - 3.3) < 1e-6 for v in nominal["core_v"].values())
 
 
-def test_at_the_packs_cutoff_the_servos_sag_below_their_minimum_and_the_cores_stay_above_brownout():
+def test_the_worst_case_cuts_the_pack_while_it_still_rests_far_above_its_cutoff():
     cutoff = W["cutoff"]
-    assert cutoff["pack_v"] == 5.8  # the pack's over-discharge protection (its datasheet)
+    # the protector trips once the worst case pulls the cells to 5.8 V (its datasheet): at about 5 % charge, resting
+    # at 7.0-7.1 V, where the pack's resistance has risen to about 0.27 ohm
+    assert cutoff["cells_v"] == 5.8 and W["cutoff_delay_ms"] == 16
+    assert 0.05 < cutoff["soc"] < 0.06 and 7.0 < cutoff["pack_v"] < 7.1 and abs(cutoff["pack_ohm"] - 0.27) < 0.01
+    # a pack resting at its nominal 7.4 V is at 13 % on Chen's curve, just inside the knee: 0.203 ohm, not 0.189
+    nominal = W["nominal"]
+    assert nominal["pack_v"] == 7.4 and abs(nominal["soc"] - 0.13) < 0.005 and abs(nominal["pack_ohm"] - 0.203) < 0.001
+
+
+def test_at_the_cut_the_servos_sag_below_their_minimum_and_the_cores_keep_their_3v3():
+    cutoff = W["cutoff"]
     assert all(v < W["servo_min_v"] for v in cutoff["servo_v"].values())  # "sluggish when the battery is low"
-    assert all(v > W["brownout_v"] for v in cutoff["core_v"].values())
-    # the rail falls out of regulation: Core 1's shield (4 servos) sags further than Core 2's (3)
-    assert all(abs(cutoff["servo_v"][n] - 3.645) < 0.001 for n in ("l_lid", "l_eye", "r_lid", "r_eye"))
-    assert all(abs(cutoff["servo_v"][n] - 3.662) < 0.001 for n in ("tilt", "mouth", "pan"))
+    assert all(abs(v - 3.3) < 1e-6 for v in cutoff["core_v"].values())  # the pack cuts before a Core browns out
+    # 5.8 V less 5.34 A through the MOSFETs, the pack lead and the switch, the shield's branch, the rail's 0.5 V dropout
+    # and the servo lead: Core 1's shield (4 servos) sags further than Core 2's (3)
+    assert all(abs(cutoff["servo_v"][n] - 4.552) < 0.001 for n in ("l_lid", "l_eye", "r_lid", "r_eye"))
+    assert all(abs(cutoff["servo_v"][n] - 4.570) < 0.001 for n in ("tilt", "mouth", "pan"))
 
 
 def test_leads_run_every_servo_to_its_header_and_the_one_pack_through_its_switch_and_a_y_lead_to_both_shields():

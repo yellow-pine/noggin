@@ -40,7 +40,8 @@ Source: Bambu spec sheet, model B-PG001 (https://cdn.shopify.com/s/files/1/0611/
 ## SPICE inputs (#152, fetched 2026-10-31)
 - Pack internal resistance: not in the PC003 sheet. A 14500 800 mAh cell datasheet gives internal impedance <= 85 mohm
   (AC 1 kHz; https://www.dnkpower.com/wp-content/uploads/2022/08/14500-battery-datasheet.pdf); the pack's own cells
-  are not named, so model/electrical.py takes 2 x 85 + 40 mohm (protection MOSFETs) as inferred.
+  are not named, so model/electrical.py took 2 x 85 + 40 mohm (protection MOSFETs) as inferred. Since #623 it takes
+  a resistance by charge instead (2026-11-02-literature-electrical.md 1).
 - Switch board XA007 (SW101): max input 12.6 V, XH2.54 2P, 3 A permissible (spec table on
   https://us.store.bambulab.com/en/products/power-switch-module-with-2pin-xh2-54-connector-1pcs). No contact resistance published.
 - Shield XA004 servo ports: "universal 5V servo" only; Core XA003: VBAT 3.7-12.6 V. Neither regulator is named.
