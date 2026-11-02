@@ -1,0 +1,73 @@
+name: Issue Title
+# Checks an issue's title is a Conventional Commit, as a PR's is, so the title can become its PR's (#767).
+# commitlint runs on the title with main's ci/commitlint.config.mjs, the PR check's rules and repo-derived scopes. An
+# issue can't be blocked: a failing title gets a comment with the rule and an example, and the `needs-title` label; a
+# passing one loses both. Each run replaces the last one's comment. An issue the workflows open (Main Red) starts no
+# workflow (GITHUB_TOKEN), so its title is valid from the start (ci/commitlint.test.mjs).
+on:
+  issues:
+    types: [opened, edited]
+concurrency:   # one run per issue; a newer edit supersedes the one in progress
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  title:
+    name: Title
+    runs-on: ubuntu-26.04
+    permissions:
+      issues: write
+    steps:
+      - name: Check out the config
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:   # main's, as the issue event checks it out; git ls-files still lists every tracked file
+          persist-credentials: false
+          sparse-checkout: |
+            ci/commitlint.config.mjs
+            ci/package.json
+            ci/package-lock.json
+          sparse-checkout-cone-mode: false
+      # the runner's Node, npm's cache keyed on the lockfile
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - name: Install commitlint
+        run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      - name: Check the title
+        env:   # via env, never inlined into the script
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          TITLE: ${{ github.event.issue.title }}
+          PR_AUTHOR_TYPE: ${{ github.event.issue.user.type }}   # a bot's title is its own: no length limit
+        run: |
+          marker='<!-- issue-title -->'
+          for id in $(gh api --paginate "repos/$GH_REPO/issues/$ISSUE/comments" --jq ".[] | select(.user.login ==
+            \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id"); do
+            gh api -X DELETE "repos/$GH_REPO/issues/comments/$id"
+          done
+          if out=$(ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"$TITLE"); then
+            gh issue edit "$ISSUE" --remove-label needs-title
+            exit 0
+          fi
+          gh issue edit "$ISSUE" --add-label needs-title
+          # commitlint's findings alone: its input echo would quote the title into the comment
+          gh issue comment "$ISSUE" --body-file - <<EOF
+          $marker
+          This title isn't a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) yet, the form its PR's title takes (CONTRIBUTING.md).
+
+          \`type(scope): subject\`, for example \`fix(eyes): the left eye stops short of its limit\`:
+          one type (build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test),
+          exactly one scope (a tracked top-level folder or a folder in docs/),
+          and a subject that doesn't start with a capital or end with a period, at most 100 characters in all.
+
+          commitlint says:
+
+          \`\`\`
+          $(grep '^✖' <<<"$out" | grep -v 'found [0-9]* problems')
+          \`\`\`
+
+          Editing the title checks it again.
+          EOF
