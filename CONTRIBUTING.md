@@ -20,7 +20,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   rare break two green PRs make together is fixed forward on main (#283). Bring main into a PR as a merge (`gh pr
   update-branch <n>`, or `git fetch && git merge origin/main`) only when GitHub reports a conflict, a required check was
   renamed or the PR needs a fix that just landed on main, and push plain commits, never a force-push: each push
-  dismisses the approval and re-runs the review. A Dependabot PR gets `@dependabot rebase`.
+  dismisses the approval and re-runs the review. GitHub shows no update-branch banner (the repo's "Always suggest
+  updating pull request branches" is off, Cansin, 2026-11-02). A Dependabot PR gets `@dependabot rebase`.
 - Every ready PR gets Claude's review (`.github/workflows/review.yml`: mattpocock code-review plus ponytail):
   claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
   ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
@@ -45,13 +46,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
-  yet. The required `PR Issue` check (`scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it.
-  A bot's PR has no issue and passes. `PR Issue` also runs GitHub's dependency review, which fails any PR, a bot's too,
-  that adds a dependency with a known vulnerability (#500).
+  yet. The required `PR Issue` check (`scripts/pr_issue.py` as on main) fails without one.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
   from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
-  hardware), `on-hold` (paused by Cansin). The `Issue Labels` workflow sets `in-progress` on each issue a PR's body
-  links and clears the label when the issue closes; `blocked` and `on-hold` are otherwise set by hand.
+  hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand, the rest by the `Issue Labels`
+  workflow.
 - Releases: the whole repo has one version, noggin vX.Y.Z, in `pyproject.toml` (docs/adr/0010). Release Please keeps a
   release PR that bumps it and adds the CHANGELOG.md entry from the titles merged since the last release. It stays a
   draft until its newest version has a Features or a BREAKING CHANGES section (`scripts/release_gate.py`); fixes alone
@@ -74,7 +73,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Waiting on CI: one background command that exits only on a terminal state (merged, failed, or needs a human). `gh pr
   checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
   `sleep 60; until gh pr checks N >/dev/null; [ $? != 8 ]; do sleep 60; done; sleep 60; gh pr view N --json
-  state,mergeStateStatus,reviewDecision`. A build: `gh run watch`, or a loop with a sleep on its PID.
+  state,mergeStateStatus,reviewDecision`. A build: `gh run watch`, or a loop with a sleep on its PID, which ends even when the build stops short.
 - A Claude Code hook (`.claude/hooks/bash_guard.py`) blocks the commands these rules ban, each with a one-line reason
   naming the allowed alternative.
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
@@ -98,7 +97,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
-  release tag's run and Release Please's are never cancelled). Each workflow's header comment says what it does.
+  release tag's run and Release Please's are never cancelled).
 - A `Changes` job (dorny/paths-filter) skips a required job when nothing it is made from changed, which GitHub counts as
   passing; `test_derived.py` holds each filter to its inputs. A push to main filters against main's last commit whose
   Code Checks passed on a push (#471), but main's `Site` always runs, since it builds the deploy.

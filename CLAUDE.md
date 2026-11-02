@@ -6,7 +6,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 
 - Interviewing or grilling me: ALWAYS the AskUserQuestion tool, never a markdown list of questions.
 - Record my directives in this file. Keep it short: pointers, not restated facts.
-- Development cycle and PR workflow: CONTRIBUTING.md (the mattpocock skills cycle, one PR per concern straight against main with auto-merge on, strict Conventional Commit titles). Grilling is interview-only: it builds nothing.
+- Development cycle and PR workflow: CONTRIBUTING.md. Grilling is interview-only: it builds nothing.
 - The main session coordinates: it grills, files tickets, briefs and relays. Every fix on a PR (a conflict, a re-run, a review thread, a label on the PR) goes to that PR's `implementer` (SendMessage while it lives, else a fresh one).
 - Standards and well-maintained open-source libraries first: wherever one covers the job, use it instead of custom code; always for security, protocols, parsing and numerics. Small glue stays custom (ponytail).
 - Never a paid service or paid tier (plugins, early access, hosted search); free and open-source only.

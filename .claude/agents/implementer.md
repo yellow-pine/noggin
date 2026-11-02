@@ -21,13 +21,12 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    7. `pr` for the body.
 3. Stage your files by name (a symlink you made for the worktree stays out of the commit) and push; the pre-push hook
    runs your one local check. Check the title (`python3 scripts/pr_title.py "<title>"` exits 0, and its one scope is in
-   what `python3 scripts/pr_title.py` prints), open one PR against main with the title and issue link CONTRIBUTING.md
-   describes, then `gh pr merge --auto --squash` at once.
+   what `python3 scripts/pr_title.py` prints), then open the PR as CONTRIBUTING.md describes.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
    - Bring main in only when CONTRIBUTING.md says to. Commits are the only place work waits.
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
-   - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
-     thread with GraphQL `resolveReviewThread`.
+   - A review finding, security ones included, in a thread or a review body: answer it as CONTRIBUTING.md says, and
+     resolve each thread with GraphQL `resolveReviewThread`.
    - Wait as CONTRIBUTING.md's "Waiting on CI" says.
 5. A choice the ticket and docs leave open: make it, and record it on the issue as a `Decision (made while away)`
    comment.
