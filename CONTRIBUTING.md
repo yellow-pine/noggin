@@ -112,7 +112,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   passed on a push (#471), but main's `Site` always runs, since it builds the deploy.
 - `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
   `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. `Blender`
-  packs the pictures' motions and the viewer into runners longest first (`just blender-bins`). The sim's reports are
+  packs the pictures' motions and the viewer into runners longest first (`just blender-bins`), on the seconds each
+  bin measured in main's last run that rendered (its `blender-seconds-*` artifacts, #569), else the ones typed in
+  `model/durations.json`. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a PR that changes their inputs diffs its reports
   against main's in its job summary.
 - With a warm cache a run's critical path should stay within 3 min on a PR and 9 min on main; past it the run warns in

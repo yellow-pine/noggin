@@ -5,10 +5,13 @@ seconds are the CI runs' own (model/durations.json, pytest-split's --store-durat
 core-seconds: `just model-durations`), so a new document needs no workflow edit and no list of names. MODEL=false or
 MECH=false (the Changes job's filters) leaves that group's units out.
 And Checks' Blender bins (`just blender-bins`): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
-when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds in
-model/durations.json under "blender <unit>"; PREVIEW=true (a PR's, #562) makes the pictures the preview alone. The
-hero splits into frame shards of about a minute each, from its frame count and "blender hero frame" (#537)."""
+when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds
+"blender <unit>" that main's last rendering run measured (MEASURED, #569), else those typed in
+model/durations.json; PREVIEW=true (a PR's, #562) makes the pictures the preview alone. The hero splits into frame
+shards of about a minute each, from its frame count and "blender hero frame", each paying "blender hero setup"
+(#537)."""
 
+import glob
 import json
 import os
 import shlex
@@ -20,6 +23,8 @@ SHARD_SECONDS = 60  # a hero frame shard's render, about a minute (Cansin, #537)
 HERO = "test_hero.py"  # -k on its module, model/render/test_hero.py
 JUST = {"sim": "just sim", "mech": "just mech"}  # their keys in DURATIONS
 DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
+# the Blender seconds main's last rendering run measured, a folder a bin (Changes downloads them, #569)
+MEASURED = os.path.join(stages.REPO, "model", "build", "main-seconds")
 
 
 def units(model=True, mech=True):
@@ -69,6 +74,16 @@ def packed(weight):
     return bins
 
 
+def measured(folder):
+    """{"blender <unit>": seconds} from each bin's JSON files under folder, the slower where two bins measured one key
+    (the hero's frame shards); {} without any."""
+    took = {}
+    for f in glob.glob(os.path.join(folder, "*", "*.json")):
+        for k, s in json.load(open(f)).items():
+            took[k] = max(s, took.get(k, 0))
+    return took
+
+
 def frame_ranges(frames, frame_seconds):
     """The hero's frames as contiguous [first, end) ranges, as many as make each about SHARD_SECONDS of render."""
     k = max(1, round(frames * frame_seconds / SHARD_SECONDS))
@@ -84,18 +99,16 @@ def blender(pictures=True, viewer=True, preview=False):
     from model.render.pictures import hero_frames, motions  # Blender's side only: the model shards need none of it
 
     stages_of = {m["motion"]: m["stages"].split() for m in motions(preview)} if pictures else {}
-    # shortcut: the "blender <unit>" seconds are run 41388039993's, typed in, since a bin times its units together;
-    # upgrade to a per-motion timing in the bins' durations-* when the bins stop matching the runs (#569)
-    took = json.load(open(DURATIONS))
+    took = json.load(open(DURATIONS)) | measured(MEASURED)
     if "hero" in stages_of:
-        n, per = hero_frames(), took["blender hero frame"]
-        setup = took["blender hero"] - n * per  # every shard pays it: the bake, Blender's start, the first frame
+        n, per, setup = hero_frames(), took["blender hero frame"], took["blender hero setup"]
+        # every shard pays the setup: the parts, Blender's start, the first frame's shader compile
         for a, b in frame_ranges(n, per):
             stages_of[f"hero:{a}-{b}"], took[f"blender hero:{a}-{b}"] = stages_of["hero"], setup + (b - a) * per
         del stages_of["hero"]
     cold = [*stages_of, "viewer"] if viewer else [*stages_of]
-    measured = [took[f"blender {u}"] for u in cold if f"blender {u}" in took] or [1.0]
-    weight = {u: took.get(f"blender {u}", sum(measured) / len(measured)) for u in cold}  # unmeasured: the mean
+    known = [took[f"blender {u}"] for u in cold if f"blender {u}" in took] or [1.0]
+    weight = {u: took.get(f"blender {u}", sum(known) / len(known)) for u in cold}  # unmeasured: the mean
     out = []
     for b in packed(weight):
         moving = [u for u in b if u in stages_of]
