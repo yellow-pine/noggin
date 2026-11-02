@@ -157,7 +157,7 @@ class Service:
         log("Link lost:", e)
         try:
             self.link.close()  # pyright: ignore[reportOptionalMemberAccess]
-        except Exception:
+        except Exception:  # noqa: S110 the Link is already lost: a failed close changes nothing
             pass
         self.link = None
 

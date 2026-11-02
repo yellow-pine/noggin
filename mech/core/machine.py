@@ -44,6 +44,6 @@ class Timer:
 def reset():
     """A hard reset from any thread: SystemExit from a scheduled callback is only printed (docs/research
     2026-11-01-micropython-unix.md). SIGTERM ends the process; mech/standin.py boots it again."""
-    os.system("kill -TERM $PPID")
+    os.system("kill -TERM $PPID")  # noqa: S605 a fixed command, no input in it
     while True:
         time.sleep_ms(1000)
