@@ -16,14 +16,19 @@ that wears a Character. Today's Mech stays the supported build until the next on
 _Avoid_: Mech 2, new Mech
 
 **Skeleton**:
-The next Mech's structural parts, the same under every Character: the eye gimbal, the jaw, the neck, the base and the
+The next Mech's structural parts, the same under every Character: the eye gimbal, the jaw, the neck, the Torso and the
 electronics mount, in black PETG.
 _Avoid_: frame, chassis, core
+
+**Torso**:
+The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low and
+the neck mount with the pan servo; its bottom is the foot the Mech stands on.
+_Avoid_: base plate (today's Mech's part), body, stand
 
 **Base candidate**:
 One way to carry the next Mech's boards and pack, ranked against the other before Cansin picks: (a) the boards on a
 board tray riding the head behind and below the tilt Pivot, (b) the boards on a static board tower rising on the pan
-axis into the cranium. In both the pack lies low in the base, inside the shirt.
+axis into the cranium. In both the pack lies low in the Torso.
 _Avoid_: option, variant, layout
 
 **Eye gimbal**:

@@ -77,8 +77,8 @@ PARTS = {
     "next pan bar": neck.pan_bar,
     "next tilt bar": neck.tilt_bar,
     "next jaw bar": neck.jaw_bar,
-    # the next Mech's base and its Base candidates' board carriers (#642)
-    "next base plate": base.plate,
+    # the next Mech's Torso (#685) and its Base candidates' board carriers (#642)
+    "next torso": base.torso,
     "next board tray": base.tray,
     "next board tower": base.tower,
 }

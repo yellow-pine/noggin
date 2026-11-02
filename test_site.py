@@ -314,7 +314,7 @@ def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
     assert [f"{doc}.glb" for doc in explode] == list(build.PUBLIC.values())
     for doc, apart in explode.items():
         assert set(apart) == set(stages.STAGES[doc].parts)
-    assert explode["next-mech-a"]["next base plate:1"] == [0, 0, 0]
+    assert explode["next-mech-a"]["next torso:1"] == [0, 0, 0]
     assert explode["next-mech-a"]["next board tray:1"] == pytest.approx([0, 0.095, -0.06])  # up with the head, back
     assert explode["next-mech-b"]["next board tower:1"] == pytest.approx([0, 0.045, -0.06])  # up with the neck, back
     assert "exploded.jpg" not in sum(pictures.SITE.values(), [])

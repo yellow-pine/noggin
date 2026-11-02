@@ -20,6 +20,12 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     assert placed["next switch board"][1] == pytest.approx((28.0, 14.6, -90.0))
 
 
+def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
+    """The Torso's copy of the pack's footprint (ADR 0011) is the battery Envelope's, its length along x."""
+    lo, hi = BOXES["battery"]
+    assert base.PACK == (hi[1] - lo[1], hi[0] - lo[0])
+
+
 def test_the_tower_sways_as_a_cantilever_with_the_boards_on_its_tip():
     """A 3 mm PETG rod 150 mm long (across layers: E 1540 MPa, 1.28 g/cm3) under 20 g of boards: k = 3EI/L^3 =
     3 x 1540 x 63.62 / 150^3 = 87.1 N/m, its tip mass 20 g + 0.236 x 5.43 g, so sqrt(87.1 / 0.02128) / 2 pi = 10.18 Hz."""
@@ -29,7 +35,8 @@ def test_the_tower_sways_as_a_cantilever_with_the_boards_on_its_tip():
 @pytest.mark.parametrize(
     "doc,crossing",
     [
-        # (a) the boards ride the head: the pan servo's lead and the pack's cross both, the tilt servo's the tilt
+        # (a) the boards ride the head: the pan servo's lead and the pack's cross both, the only two that leave the
+        # Torso for the head's side of pan (#685, #51's wiring rules), the tilt servo's the tilt
         ("next-mech-a", {"pan pivot": 2, "tilt pivot": 3}),
         # (b) the boards stand still: the gimbal's four servos and the mouth's cross both, the tilt servo's the pan
         ("next-mech-b", {"pan pivot": 6, "tilt pivot": 5}),
@@ -51,7 +58,7 @@ def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.
             "tip_over": {"margin_mm": tip, "moving": {"margin_mm": tip}},
         },
         "base": {
-            "parts": ["next base plate:1", "next board tray:1", "next board tower:1"],
+            "parts": ["next torso:1", "next board tray:1", "next board tower:1"],
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
             "sway_hz": sway,

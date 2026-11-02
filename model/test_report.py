@@ -9,7 +9,8 @@ import subprocess
 
 import pytest
 
-from model import fits, gimbal, mujoco_report, neck, report, sim, stages
+from model import base, fits, gimbal, mujoco_report, neck, report, sim, stages
+from model import geometry as g
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
@@ -231,6 +232,13 @@ def test_reports_are_build_outputs_git_ignores():
 @pytest.mark.parametrize("doc", sorted(stages.DOCS))
 def test_built_report_is_clean(doc):
     assert problems(built(doc)) == []
+
+
+@pytest.mark.parametrize("doc", sorted(g.NEXT))
+def test_the_next_mechs_footprint_is_reported_and_is_its_torsos(doc):
+    """#685: the shirt is the base, so the footprint the tip-over gate reads is the Torso's foot, x by y mm."""
+    (x0, x1), (y0, y1), _ = base.TORSO
+    assert built(doc)["mujoco"]["tip_over"]["footprint_mm"] == [x1 - x0, y1 - y0]
 
 
 FIXTURE_PROBLEMS = {

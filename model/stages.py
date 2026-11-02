@@ -308,11 +308,11 @@ def mouth():
 
 
 def next_base():
-    """next-base: the next Mech's base plate (#642, model/base.py) with the pack lying on it, the same in both Base
-    candidates."""
-    pack = translate((0, candidates.PACK_Y, candidates.PLATE[2][1] - g.BATTERY_STEP["floor_z"]))
+    """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
+    -x, the same in both Base candidates."""
+    pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
-        "next base plate:1": part(stl("next base plate"), None, printed("next base plate")),
+        "next torso:1": part(stl("next torso"), None, printed("next torso")),
         "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
     return Sub(parts, {}, [], {})

@@ -82,7 +82,8 @@ TOUCH = {
             ("next jaw:1", "next head mount:1"),
         ]
     },
-    # the base and the Base candidates' carriers (#642): the same; (b)'s tower meets the head's middle (test_report.TOWER)
+    # the Torso (#685) and the Base candidates' carriers (#642): the same; (b)'s tower meets the head's middle
+    # (test_report.TOWER)
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
@@ -96,8 +97,8 @@ TOUCH = {
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
             ("next board tray:1", "next gimbal frame:1"),
-            ("next base plate:1", "next neck mount:1"),
-            ("next base plate:1", "next pack:1"),
+            ("next torso:1", "next neck mount:1"),
+            ("next torso:1", "next pack:1"),
         ]
     },
 }

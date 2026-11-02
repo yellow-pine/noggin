@@ -2,8 +2,11 @@
 model/printed/base.py draws the parts from them, model/stages.py places them and the boards), what the sim report
 reads (sway(), leads()) and the ranking of the two (rank()); model/candidates.py optimises their parameters in MuJoCo.
 
-Frame: the head's (model/neck.py), z up, -y forward. In both the pack lies flat on the base plate behind the neck mount,
-as low as it goes, inside the shirt; the base plate is the shirt's floor and the footprint the Mech stands on.
+Frame: the head's (model/neck.py), z up, -y forward. In both the base is the Torso (#685, GLOSSARY): the shirt itself, a
+compact open box whose floor carries the neck mount (with the pan servo in its collar) and, behind it, the pack lying
+flat across x as low as it goes; its bottom is the foot the Mech stands on. Its walls stay under the pack's top, so
+(a)'s tray swings clear above them as it did above the pack. Only the pack's pair and the pan servo's lead leave it for
+the head's side of pan (leads(); #51's wiring rules).
 - (a) next-mech-a: the boards (both Shields, each Core plugged in under it, and the switch board) on the board tray,
   screwed under the gimbal frame's plate behind the head mount: they ride pan and tilt, behind and below the tilt axis.
   Optimised: the tray's place (TRAY), for the tilt servo's least worst hold over its range (mujoco_report.torques),
@@ -20,8 +23,12 @@ import os
 from model import geometry as g
 from model import neck
 
-PLATE = ((-60.0, 60.0), (-45.0, 95.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0]))  # the base plate: x, y, z
-PACK_Y = 30.0  # the pack's front end, behind the neck mount's foot; its lead out the back
+# the Torso's outside: x, y, and z from its foot to its walls' top (under the pack's, 16.3 mm up), round the neck mount's
+# foot (x -14..42, y -13.5..24.5) and the pack in its cradle behind it; its front reaches on to y -35, where the next
+# hero's tilt (~3.8 m/s2 on candidate (b)'s head) bears the moving centre of mass to y -25.5 (inferred, #685)
+TORSO = ((-46.0, 46.0), (-35.0, 58.5), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 16))
+PACK_Y = 41.5  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
+PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY = (64.6, -89.6)  # (a): (y of the tray's front face, z of the boards' middles), candidates.optimise()'s
 TRAY_T = 3.0  # the tray's plate
 SHELF_Z = 45.0  # (b): the shelf's underside, over the lids' highest reach as the head tilts

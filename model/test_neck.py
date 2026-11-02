@@ -65,12 +65,12 @@ def test_the_pan_span_bends_in_an_s_and_the_tilt_spans_arc_breathes(report):
 
 
 @pytest.mark.parametrize("doc", g.NEXT)
-def test_the_neck_and_the_gimbal_share_the_heads_frame_the_base_plate_on_z_0(doc):
-    """geometry.NEXT copies the base plate's depth (ADR 0011): the neck, the gimbal and the base are drawn in one frame,
-    the head's, and the document stands the base plate on z 0."""
+def test_the_neck_and_the_gimbal_share_the_heads_frame_the_torsos_foot_on_z_0(doc):
+    """geometry.NEXT copies the Torso's depth (ADR 0011): the neck, the gimbal and the base are drawn in one frame, the
+    head's, and the document stands the Torso's foot on z 0."""
     frames = g.NEXT[doc]
     assert len({f for f in frames.values()}) == 1
-    assert frames["next-neck"][0][2] == -base.PLATE[2][0]
+    assert frames["next-neck"][0][2] == -base.TORSO[2][0]
 
 
 @pytest.mark.parametrize("doc", g.NEXT)

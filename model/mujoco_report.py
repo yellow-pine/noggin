@@ -7,8 +7,8 @@ its rated and stall torque, and the centre of mass against the base footprint. E
 the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
 gesture, and the hero where the neck is: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
 inverse dynamics reads each servo's torque along it, held against gravity and turning its load, beside its hold at
-Rest; the centre of mass, shifted by its acceleration, against the footprint; and, for ranking the next Mech (#51), the
-neck's vibration figures (vibration()). just sim writes it into
+Rest; the centre of mass, shifted by its acceleration, against the footprint (and the footprint's size); and, for
+ranking the next Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
 model/build/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the MJCF model/build/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 
@@ -78,8 +78,10 @@ def vertices(model, data, body):
 
 
 def _plate(model, data):
-    """The base plate's (today's or the next Mech's) drawn mesh's vertices in MuJoCo's world (mm), where they are."""
-    return vertices(model, data, next(b for b in range(model.nbody) if model.body(b).name.endswith("base plate:1")))
+    """The base's (today's base plate or the next Mech's Torso) drawn mesh's vertices in MuJoCo's world (mm), where they
+    are: its outline is the footprint."""
+    foot = ("base plate:1", "next torso:1")
+    return vertices(model, data, next(b for b in range(model.nbody) if model.body(b).name.endswith(foot)))
 
 
 def footprint(points):
@@ -247,6 +249,7 @@ def measure(doc, model):
     }
     out["motions"], moving = _motions(doc, model, plate)
     if neck:
-        out["tip_over"] = {**tip, "moving": moving}
+        size = [round(float(mm), 1) for mm in np.ptp(plate[:, :2], axis=0)]
+        out["tip_over"] = {**tip, "moving": moving, "footprint_mm": size}  # the base's x by y
         out["vibration"] = vibration(doc, model, still, slow)
     return out
