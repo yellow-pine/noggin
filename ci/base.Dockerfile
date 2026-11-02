@@ -1,5 +1,6 @@
 # The CI base image (docs/adr/0009, #288): the system tools uv can't install for the jobs that run in it
-# (checks.yml's Site and Code), from pinned sources; `uv sync` in the job brings our Python packages.
+# (checks.yml's Site and Code), from pinned sources (gh the one exception, below); `uv sync` in the job brings our
+# Python packages.
 # .github/workflows/images.yml builds it and -blender on top; the jobs run them by the :main tag. Dependabot bumps the
 # FROM digests below after its two-week cooldown, where the registry dates the release (ADR 0012).
 FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS node
@@ -14,10 +15,23 @@ ARG DEBIAN_FRONTEND=noninteractive
 # what VTK (under CadQuery) and Blender load even in the background; the rest what the jobs' steps call (the runner
 # image's)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl gh git jq make python3 shellcheck unzip xz-utils zstd \
+      ca-certificates curl git jq make python3 shellcheck unzip xz-utils zstd \
       ngspice libgl1 libgomp1 \
       libice6 libsm6 libx11-6 libxcursor1 libxext6 libxfixes3 libxi6 libxkbcommon0 libxrender1 libxxf86vm1 \
  && rm -rf /var/lib/apt/lists/*
+# gh from GitHub CLI's signed apt repo, as cli/cli's docs/install_linux.md has it, its keyring checked against the
+# sha256 published there. Not pinned, by exception (ADR 0012, #529): each rebuild takes the newest gh, where Ubuntu's
+# archive froze it at 2.45, built with a Go whose stdlib Grype flags
+ARG GH_KEYRING_SHA256=6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b
+RUN install -d -m 755 /etc/apt/keyrings \
+ && curl -fsSL -o /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+ && echo "$GH_KEYRING_SHA256  /etc/apt/keyrings/githubcli-archive-keyring.gpg" | sha256sum -c \
+ && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/* \
+ && gh --version
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY --from=yq /usr/bin/yq /usr/local/bin/yq
 COPY --from=node /usr/local/bin/node /usr/local/bin/

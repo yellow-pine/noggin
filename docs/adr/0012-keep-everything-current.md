@@ -8,6 +8,8 @@
 > date, like some Docker images) goes in on green.
 >
 > Amended 2026-11-02 (#472, spec #467): the CI images rebuild only on a Dockerfile change, no weekly rebuild.
+>
+> Amended 2026-11-02 (#529): gh in the CI images comes from GitHub CLI's signed apt repo, unpinned.
 
 Every dependency, tool, toolchain and firmware is kept at its **newest stable release once that release is at least
 14 days old**; a security fix goes in at once. The delay guards against a bad or compromised fresh release.
@@ -19,7 +21,9 @@ Every dependency, tool, toolchain and firmware is kept at its **newest stable re
 - **CI images** (ci/, ADR 0009) rebuild only when a Dockerfile changes (#472): Dependabot's `/ci` bumps of their base
   images trigger the rebuild. The distro's security fixes (its archive's packages too) reach the images when Ubuntu
   republishes its image and that bump clears the cooldown: up to about three weeks, accepted over a scheduled no-cache
-  rebuild of unchanged images. They run only CI.
+  rebuild of unchanged images. They run only CI. One exception to their pinned sources: gh comes from GitHub CLI's
+  signed apt repo (keyring sha256-checked), so each rebuild takes its newest release; Ubuntu's archive froze it at
+  2.45, built with a Go whose stdlib Grype flagged in 120 alerts (#529).
 - **GitHub's runner image** is named (`ubuntu-26.04`), never `ubuntu-latest`, which moves under us (#392); it moves
   to the next LTS by hand, when GitHub announces that as `ubuntu-latest`, two years apart, too rare for a re-pin job.
 - **Python** is the newest version every dependency ships wheels for.
