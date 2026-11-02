@@ -26,9 +26,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   in progress (main's site deploy included; a release tag's run and Release Please's are never cancelled), so a
   cancelled run means a newer one superseded it. A pushed branch is never merged locally: it lands through its own PR.
   Every branch on GitHub has a PR, except on-hold work.
-- A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
-  `type(scope): subject`, `type(scope)!: subject` for a breaking change (docs/adr/0010), as
-  @commitlint/config-conventional has it: types build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
+- A PR's title is its squash commit, with no body (the repo's squash message setting is blank, Cansin, 2026-11-02:
+  #388's body forced v0.2.0), so release-please reads the title alone, a body footer never reaches main, and a forced version goes in
+  `release-as` in release-please-config.json, taken out once that release lands. The title is a
+  [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): subject`,
+  `type(scope)!: subject` for a breaking change (docs/adr/0010), as @commitlint/config-conventional has it: types
+  build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
   a subject that doesn't start with a capital (a leading acronym goes in backticks) or end with a period; at most 100
   characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
   ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
