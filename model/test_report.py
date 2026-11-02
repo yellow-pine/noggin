@@ -3,12 +3,13 @@ committed (docs/adr/0009). Right after just sim (CI's sim shard) every built rep
 not built here is skipped. The fixture test checks the checker itself."""
 
 import json
+import math
 import os
 import subprocess
 
 import pytest
 
-from model import gimbal, mujoco_report, report, stages
+from model import fits, gimbal, mujoco_report, report, stages
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
@@ -23,6 +24,12 @@ KNOWN_PAIRS = {
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
 # servos are DC motors (#625): the stage 3 pan swing to -40 no longer carries the head through the pan toggle.
 KNOWN_FULL_SPEED = {}
+# Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
+KNOWN_TRANSMISSION = {
+    "pan pivot": "23 deg at pan -40, geometry.LIMITS rotate's own end: the textbook 40 would stop the pan near -32 and"
+    " give 39 deg end to end, under the mouth GIF's 46 (docs/research/2026-10-31-neck.md)",
+    "jaw hinge": "29 deg at horn 0, the jaws closed (geometry.LIMITS mouth): the stock jaw bar's, recorded, not settled",
+}
 
 
 def problems(report):
@@ -92,10 +99,11 @@ def deeper(pair):
 
 
 def mujoco_problems(report):
-    """The MuJoCo half (model/mujoco_report.py): a pair deeper than at rest, an open four-bar, a servo holding over its rated
-    torque (in a pose of the sweep or along a motion), a servo's load peaking over half its stall torque along a motion, a
-    joint a full-speed swing leaves off the slow pose, the centre of mass off the footprint, at rest or moving. Listed exceptions
-    (KNOWN_PAIRS, KNOWN_FULL_SPEED) carry their reasons."""
+    """The MuJoCo half (model/mujoco_report.py): a pair deeper than at rest, an open four-bar, a four-bar near its toggle
+    (its singularity margin or transmission angle under the gate, #627), a servo holding over its rated torque (in a pose
+    of the sweep or along a motion), a servo's load peaking over half its stall torque along a motion, a joint a
+    full-speed swing leaves off the slow pose, the centre of mass off the footprint, at rest or moving. Listed exceptions
+    (KNOWN_PAIRS, KNOWN_FULL_SPEED, KNOWN_TRANSMISSION) carry their reasons."""
     m, doc, out = report.get("mujoco", {}), report["doc"], []
     for p in m.get("pairs", []):
         if deeper(p) > mujoco_report.PENETRATION_MM and frozenset(p["pair"]) not in KNOWN_PAIRS:
@@ -105,6 +113,19 @@ def mujoco_problems(report):
     for loop, r in m.get("residuals", {}).items():
         if r["max_mm"] > mujoco_report.LOOP_MM:
             out.append(f"mujoco four-bar {loop}: open {r['max_mm']} mm at {r['at']} > {mujoco_report.LOOP_MM}")
+    for loop, r in m.get("loops", {}).items():
+        if r["margin_mm_rad"] < mujoco_report.MARGIN_MM_RAD:
+            play = math.degrees(fits.CLEARANCE[0] / r["margin_mm_rad"])
+            out.append(
+                f"mujoco four-bar {loop}: singularity margin {r['margin_mm_rad']} mm/rad at {r['margin_at']} <"
+                f" {mujoco_report.MARGIN_MM_RAD:.2f} (a {fits.CLEARANCE[0]} mm pin fit turns its free pivots"
+                f" {play:.1f} deg > {mujoco_report.PLAY_DEG})"
+            )
+        if r["transmission_deg"] < mujoco_report.TRANSMISSION_DEG and loop not in KNOWN_TRANSMISSION:
+            out.append(
+                f"mujoco four-bar {loop}: transmission angle {r['transmission_deg']} deg at {r['transmission_at']}"
+                f" < {mujoco_report.TRANSMISSION_DEG}"
+            )
     for horn, a in m.get("actuators", {}).items():
         if a["hold_kgf_cm"] > a["rated_kgf_cm"]:
             out.append(
@@ -167,6 +188,9 @@ FIXTURE_PROBLEMS = {
         "mujoco R eye horn:1 / R servo bracket:1: -0.12 mm at {'R eye horn': -22}, 0.1 deeper than at rest",
         "mujoco pan turntable:1 / tilt bar:1: -0.08 mm at {'tilt horn': -60}, 0.08 deeper than at rest",
         "mujoco four-bar tilt pivot: open 0.07 mm at {'tilt horn': 60} > 0.05",
+        "mujoco four-bar pan pivot: singularity margin 1.2 mm/rad at {'pan horn': -40} < 2.86 (a 0.1 mm pin fit turns"
+        " its free pivots 4.8 deg > 2.0)",
+        "mujoco four-bar tilt pivot: transmission angle 35.0 deg at {'tilt horn': -60} < 40.0",
         "mujoco tilt horn: holds 0.45 kgf.cm at {'tilt horn': -60} > its rated 0.4 (stall 1.0)",
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
@@ -193,10 +217,12 @@ def test_fixture_reports(name):
 def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
     swing lands, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
-    going, swings = set(), set()
+    going, swings, low = set(), set(), set()
     for doc in stages.DOCS:
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
+        low |= {loop for loop, r in m["loops"].items() if r["transmission_deg"] < mujoco_report.TRANSMISSION_DEG}
     assert set(KNOWN_PAIRS) <= going
     assert swings == set(KNOWN_FULL_SPEED)
+    assert low == set(KNOWN_TRANSMISSION)

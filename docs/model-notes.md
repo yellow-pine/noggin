@@ -79,6 +79,14 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 
+## Gates (#627)
+- Each four-bar's singularity margin and transmission angle over its horn's sweep, in the sim report's `loops`
+  (model/gates.py loops, model/mujoco_report.py): the margin keeps a 0.1 mm pin fit's play under 2 deg, the angle stays
+  at 40 deg or more, the stock pan and jaw bars excepted with their reasons (model/test_report.py KNOWN_TRANSMISSION).
+- Every pair of parts certified clear at every step of each gesture and the hero, not only at the 100 ms frames:
+  `mj_geomDistance` at the ends of a span, halved where the parts could move further than that (model/gates.py certify,
+  model/test_trajectories.py).
+
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
   no guide sheets. The designer's and the vendor's files are credits ([Credits](credits.md)) and history (docs/research) only.

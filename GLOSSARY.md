@@ -244,6 +244,11 @@ A revolute axis between two parts; in the Model, a MuJoCo joint (model/mjcf.py) 
 kinematics that pose a horn angle without simulating (model/linkage.py).
 _Avoid_: hinge, axle
 
+**Singularity margin**:
+How far a four-bar is from its toggle over its Horn's range: the smallest singular value of the loop's constraint
+Jacobian over its free Pivots, in mm of pin per radian; zero at the toggle, where a Bar and its lever line up.
+_Avoid_: dead point margin, condition number
+
 **Port**:
 A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
