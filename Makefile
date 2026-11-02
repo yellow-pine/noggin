@@ -117,7 +117,7 @@ pictures: venv ours trajectories   ## the README's pictures (model/render/pictur
 model-shards-list: venv   ## the model tests' three shards, balanced on model/durations.json, as JSON (Code Checks' model matrix, #305, #474; make -s for the JSON alone)
 	@$(PY) -m model.shards
 model-durations:   ## model/durations.json from a Code Checks run's measured seconds (its durations-* artifacts): make model-durations RUN=<run id>
-	@d=$$(mktemp -d) && gh run download $(RUN) -p 'durations-*' -D $$d && jq -S -s add $$d/*/*.json > model/durations.json
+	@d=$$(mktemp -d) && gh run download $(RUN) -p 'durations-*' -D $$d && jq -S -s '(.[0] | with_entries(select(.key == "make sim"))) + (.[1:] | add)' model/durations.json $$d/*/*.json > $$d/all.json && mv $$d/all.json model/durations.json; rm -rf $$d
 pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
 	@$(PY) -m model.render.pictures list
 web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site

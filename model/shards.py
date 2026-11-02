@@ -10,7 +10,7 @@ import shlex
 
 from model import stages
 
-N = 3
+N = 3  # runners (#467)
 HERO = "test_hero.py"  # -k on its module, model/render/test_hero.py
 SIM = "make sim"  # its key in DURATIONS
 DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
@@ -25,26 +25,30 @@ def units():
 
 def seconds(durations):
     """{unit: seconds}: each test's under the unit whose -k picks it (the rest otherwise); an unmeasured unit, the mean."""
-    pick = {u: k for u, k in units().items() if k and u != "rest"}
-    took = dict.fromkeys(units(), 0.0)
+    expr = units()
+    took = dict.fromkeys(expr, 0.0)
     for test, s in durations.items():
-        took["sim" if test == SIM else next((u for u, k in pick.items() if k in test), "rest")] += s
+        took[
+            "sim" if test == SIM else next((u for u, k in expr.items() if k and u != "rest" and k in test), "rest")
+        ] += s
     measured = [s for s in took.values() if s]
     return {u: s or (sum(measured) / len(measured) if measured else 1.0) for u, s in took.items()}
 
 
 def shards():
     """[{shard, units, tests}]: tests is the shard's pytest arguments (PYTEST_ADDOPTS), empty when it has none."""
-    took = seconds(json.load(open(DURATIONS)))
-    bins = [[] for _ in range(N)]
-    for u in sorted(took, key=lambda u: (-took[u], u)):
-        min(bins, key=lambda b: sum(took[x] for x in b)).append(u)
-    k = units()
-    picks = [[f"({k[u]})" for u in b if k[u]] for b in bins]
-    return [
-        {"shard": " ".join(b), "units": b, "tests": shlex.join(["-k", " or ".join(p)]) if p else ""}
-        for b, p in zip(bins, picks, strict=True)
-    ]
+    weight = seconds(json.load(open(DURATIONS)))
+    loads = [[] for _ in range(N)]
+    for unit in sorted(weight, key=lambda u: (-weight[u], u)):
+        min(loads, key=lambda load: sum(weight[u] for u in load)).append(unit)
+    expr = units()
+    out = []
+    for load in loads:
+        picks = [f"({expr[u]})" for u in load if expr[u]]
+        out.append(
+            {"shard": " ".join(load), "units": load, "tests": shlex.join(["-k", " or ".join(picks)]) if picks else ""}
+        )
+    return out
 
 
 if __name__ == "__main__":
