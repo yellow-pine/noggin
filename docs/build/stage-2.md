@@ -57,8 +57,3 @@ In the model pan swings 46° end to end and tilt about ±17° (docs/research/202
 Core 2 sits on its own Shield and joins the Wi-Fi like Core 1 ([Wiring](wiring.md)). The Mech keeps the stock power:
 one pack and one switch board, a Y lead to both Shields; the gestures are to stay inside the pack's 3 A (a pack per Shield
 was dropped, #51).
-
-## Pictures
-
-Each Stage from the side and isometric is in [Pictures](../pictures.md). Turn it around in
-[the web viewer](https://yellowpine.com/noggin/viewer/), Stage 2.

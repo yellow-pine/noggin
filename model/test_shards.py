@@ -165,13 +165,12 @@ def test_a_pr_s_bins_render_the_preview_panel_in_place_of_the_site_s_pictures():
     assert listed("blender-bins", PREVIEW="true", PICTURES="false") == listed("blender-bins", PICTURES="false")
 
 
-def test_the_model_and_blender_matrices_are_the_changes_job_s_lists():
-    """A new document, Stage or motion needs no workflow edit."""
+def test_the_model_matrix_is_the_changes_job_s_list():
+    """A new document needs no workflow edit (CI runs no Blender bin since #640, docs/adr/0019)."""
     jobs = yaml.safe_load(open(f"{stages.REPO}/.github/workflows/checks.yml"))["jobs"]
     (lists,) = [s for s in jobs["changes"]["steps"] if s.get("id") == "lists"]
-    assert "just model-shards-list" in lists["run"] and "just blender-bins" in lists["run"]
+    assert "just model-shards-list" in lists["run"]
     assert jobs["model"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.shards) }}"}
-    assert jobs["blender"]["strategy"]["matrix"] == {"include": "${{ fromJSON(needs.changes.outputs.bins) }}"}
 
 
 def test_the_bins_weigh_main_s_measured_seconds_over_the_typed_ones(tmp_path, monkeypatch):

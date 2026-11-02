@@ -44,8 +44,3 @@ The jaw rides on the eyes, so it pans and tilts with the head.
 ## Wiring
 
 The mouth servo goes to Core 2, on the port in the table above ([Wiring](wiring.md)).
-
-## Pictures
-
-See it [exploded in the web viewer](https://yellowpine.com/noggin/viewer/?stage=3&explode=1): the base, the neck
-lifted off it, the eyes above and the mouth forward of them; turn it around, and Explode puts it back together.

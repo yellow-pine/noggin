@@ -5,8 +5,8 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-panels: the Stage panels' grid (model/render/pictures.py PANELS) on the landing page and docs/pictures.md;
-next_panels: the next Mech's (geometry.py NEXT, #629), on docs/pictures.md alone.
+panels: the Stage panels' grid (model/render/pictures.py PANELS); next_panels: the next Mech's (geometry.py NEXT, #629).
+Neither is on a page since #640 (docs/adr/0019).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
