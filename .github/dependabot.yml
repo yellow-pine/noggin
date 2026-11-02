@@ -14,6 +14,9 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       uv:  # one weekly PR for patch and minor; majors stay their own PRs
         update-types: [minor, patch]
         patterns: ["*"]
+      uv-security:  # every open security fix in one PR, majors too (version updates wait on cooldown, these never do)
+        applies-to: security-updates
+        patterns: ["*"]
     ignore:
       # They follow the Core's firmware, not upstream ([tool.noggin], eyes/test_micropython.py): bumped with
       # [tool.noggin] micropython when a vendor update changes the MicroPython the Core runs.
@@ -32,6 +35,9 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       npm:
         update-types: [minor, patch]
         patterns: ["*"]
+      npm-security:  # as above
+        applies-to: security-updates
+        patterns: ["*"]
   - package-ecosystem: npm   # CI's tools (ci/package.json): the skills CLI the review and the weekly re-pin run
     directory: /ci
     schedule:
@@ -44,6 +50,9 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
     groups:
       ci-tools:
         update-types: [minor, patch]
+        patterns: ["*"]
+      ci-tools-security:  # as above
+        applies-to: security-updates
         patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
@@ -58,6 +67,9 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       github-actions:
         update-types: [minor, patch]
         patterns: ["*"]
+      github-actions-security:  # as above
+        applies-to: security-updates
+        patterns: ["*"]
   # the CI images' sources (ci/*.Dockerfile FROM digests): main rebuilds :main once a bump lands (images.yml); Node
   # stays on its major, Ubuntu moves LTS to LTS
   - package-ecosystem: docker
@@ -66,6 +78,10 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       interval: weekly
     cooldown:   # as above
       default-days: 14
+    groups:
+      # no update-types: a digest refresh of the same tag has none, and the only major left is Ubuntu's LTS move
+      docker:
+        patterns: ["*"]
     ignore:
       # LTS only (even-year .04): skip the interim releases between them (.10, odd-year .04), #352; extend past 30.04
       - dependency-name: ubuntu
