@@ -200,6 +200,7 @@ def test_a_pr_runs_the_slim_gate_alone():
         "Link the image's venv",
         "Run just check-light",
         "List the slowest tests",
+        "Cancel the run on failure",  # #769
     ]
     assert "uv run just check-light " in jobs["code"]["steps"][2]["run"]
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
@@ -271,13 +272,12 @@ def test_a_job_names_an_environment_only_to_deploy():
 
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722). Fail Fast checks nothing and
-    runs no repo code: it may cancel its own run (#769)."""
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), but may cancel its own run
+    (`actions: write`, cancel-on-failure, #769)."""
     for f in ("checks.yml", "pr-gate.yml"):
         flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
-        jobs = [j for id_, j in flow["jobs"].items() if id_ != "fail-fast"]
-        perms = [flow["permissions"], *(j.get("permissions", {}) for j in jobs)]
-        assert not [p for p in perms if "write" in p.values()], f
+        perms = [flow["permissions"], *(j.get("permissions", {}) for j in flow["jobs"].values())]
+        assert not [p for p in perms if "write" in [v for k, v in p.items() if k != "actions"]], f
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():
@@ -451,47 +451,60 @@ def gh_calls(tmp_path: Path) -> list[str]:
     return [c for c in log.read_text().splitlines() if not c.startswith("run view")] if log.exists() else []
 
 
-GATE = {"name": "Checks", "status": "completed"}
+CANCEL = {"name": "Cancel the run on failure", "if": "${{ failure() }}", "uses": "./.github/actions/cancel-on-failure"}
 
 
-@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
-@pytest.mark.parametrize(
-    ("others", "calls"),
-    [
-        ([{"name": "Code", "status": "completed", "conclusion": "failure"}], ["run cancel 41"]),
-        ([{"name": "Code", "status": "completed", "conclusion": "success"}, GATE | {"conclusion": "success"}], []),
-        ([GATE | {"conclusion": "failure"}], []),  # the gate ends the run itself
-    ],
-)
-def test_main_cancels_a_checks_run_once_a_job_fails(tmp_path, others, calls):
-    """#769: a failed run can neither deploy nor release, and main's runs queue one at a time (#689), so its Fail Fast
-    job cancels the rest at once (a 15-minute Blender held ~20 merges' runs back); the gate's end ends it, since a job
-    waiting on its needs is not listed yet."""
-    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
-    job = flow["jobs"]["fail-fast"]
-    assert job["if"] == "${{ github.ref == 'refs/heads/main' }}" and job["permissions"] == {"actions": "write"}
-    assert "needs" not in job and "fail-fast" not in str(flow["jobs"]["checks"]["needs"])
-    (step,) = job["steps"]
-    me = {"name": job["name"], "status": "in_progress", "conclusion": ""}
-    env = fake_gh(tmp_path, [me, {"name": "Site", "status": "completed", "conclusion": "success"}, *others])
-    subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
-    assert gh_calls(tmp_path) == calls
+def needs(job: dict) -> list[str]:
+    n = job.get("needs", [])
+    return [n] if isinstance(n, str) else n
+
+
+def test_a_failed_job_cancels_the_rest_of_its_run():
+    """#769 (Cansin: across the board, PR CI too): a failed run can neither pass a PR's gate nor deploy or release main,
+    and main's runs queue one at a time (#689; a 15-minute Blender held ~20 merges back), so every job of Checks and PR
+    Gate but the gate ends in cancel-on-failure, the one job permission it adds `actions: write`, and a matrix fails
+    fast. Every other workflow runs its jobs one after another (each needs the one before) or one per event, so a
+    failed job leaves none running."""
+    action = yaml.safe_load((WORKFLOWS[0].parents[1] / "actions" / "cancel-on-failure" / "action.yml").read_text())
+    assert [s["run"] for s in action["runs"]["steps"]] == ['gh run cancel "$GITHUB_RUN_ID"']
+    for f in ("checks.yml", "pr-gate.yml"):
+        for id_, job in yaml.safe_load((WORKFLOWS[0].parent / f).read_text())["jobs"].items():
+            cancels = id_ != "checks"  # the gate: every other job is its need, so none is left to cancel
+            assert (job["steps"][-1] == CANCEL) == cancels, (f, id_)
+            assert (job.get("permissions", {}).get("actions") == "write") == cancels, (f, id_)
+            assert job.get("strategy", {}).get("fail-fast", True) is True, (f, id_)
+    side_by_side = []
+    for f in WORKFLOWS:
+        jobs = yaml.safe_load(f.read_text())["jobs"]
+        if f.name in ("checks.yml", "pr-gate.yml", "issue-labels.yml"):  # issue-labels: a PR's job or an issue's
+            continue
+        before = {j: set(needs(jobs[j])) for j in jobs}
+        for _ in jobs:  # every job's needs, theirs and so on
+            before = {j: b.union(*(before[n] for n in b)) for j, b in before.items()}
+        side_by_side += [
+            (f.name, a, b) for a in jobs for b in jobs if a < b and a not in before[b] and b not in before[a]
+        ]
+    assert side_by_side == []
 
 
 @pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
 @pytest.mark.parametrize(
     ("conclusions", "calls"),
     [
-        (["failure", "cancelled"], ["issue list --label", "issue create --title"]),  # Fail Fast cancelled it
+        (["failure", "cancelled"], ["issue list --label", "issue create --title"]),  # its failed step cancelled it
         (["success", "cancelled"], ["issue list --label"]),  # cancelled by hand, nothing failed
         ([], ["issue list --label"]),  # superseded while it waited: no job ran
     ],
 )
 def test_main_red_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
-    """#769: Fail Fast cancels a red Checks run, so its conclusion reads cancelled; a failed job still makes it red."""
+    """#769: a failed step cancels its run (cancel-on-failure), its own job too, so run and job may read cancelled; a
+    failed step still makes it red."""
     (job,) = yaml.safe_load((WORKFLOWS[0].parent / "main-red.yml").read_text())["jobs"].values()
     (step,) = job["steps"]
-    env = fake_gh(tmp_path, [{"name": f"Job {i}", "conclusion": c} for i, c in enumerate(conclusions)])
+    jobs = [
+        {"name": f"Job {i}", "conclusion": "cancelled", "steps": [{"conclusion": c}]} for i, c in enumerate(conclusions)
+    ]
+    env = fake_gh(tmp_path, jobs)
     env |= {"WORKFLOW": "Checks", "CONCLUSION": "cancelled", "RUN_URL": "u", "SHA": "s"}
     subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
     assert gh_calls(tmp_path) == calls

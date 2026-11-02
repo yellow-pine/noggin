@@ -330,11 +330,10 @@ def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
 def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
     """`Checks`, the one required check of a PR's gate and the one main's Site Deploy and Release wait on (#496, #722):
     it needs every other job of its workflow, runs past a failed or skipped one (a skipped required check passes) and
-    fails unless each passed or, conditioned on its inputs, was skipped as unchanged. A draft runs none of it (#414).
-    Fail Fast alone stays out: it watches the run until the gate is done (#769)."""
+    fails unless each passed or, conditioned on its inputs, was skipped as unchanged. A draft runs none of it (#414)."""
     jobs = yaml.safe_load((ROOT / ".github" / "workflows" / workflow).read_text())["jobs"]
     gate = jobs["checks"]
-    assert sorted(gate["needs"]) == sorted(j for j in jobs if j not in ("checks", "fail-fast"))
+    assert sorted(gate["needs"]) == sorted(j for j in jobs if j != "checks")
     assert gate["if"] == runs
     green = gate["steps"][0]
     assert "re-actors/alls-green@" in green["uses"]

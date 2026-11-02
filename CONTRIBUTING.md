@@ -130,7 +130,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
   Site Deploy and Release wait on (Checks) never cancels: main's runs queue and each finishes, so merges minutes apart
   still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
-  neither deploy nor release, so its `Fail Fast` job cancels the rest at once, and Main Red files it all the same (#769).
+  neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
+  (`.github/actions/`), which cancels the rest of the run at once, and Main Red files it all the same (#769).
   Site Deploy, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job

@@ -20,6 +20,9 @@ jobs:
     name: Code
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as checks.yml's Code
     steps:
@@ -38,6 +41,10 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # the required check (#496): Code passed. A skipped required check passes, so this one never skips; a failed need
   # fails it
   checks:
