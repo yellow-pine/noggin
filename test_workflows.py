@@ -255,6 +255,18 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert viewer and sorted(fetched) == sorted(viewer)
 
 
+def test_blender_joins_every_render_shard():
+    """#770: each Render shard saves its share of the pictures, and Blender restores every one of them, so a shard added
+    to the matrix is never left out of the site."""
+    jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
+    saved = [s["with"]["key"] for s in jobs["render"]["steps"] if "cache/save" in s.get("uses", "")]
+    restored = [s["with"]["key"] for s in jobs["blender"]["steps"] if "cache/restore" in s.get("uses", "")]
+    assert saved == ["next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}"]
+    assert restored == [
+        saved[0].replace("${{ matrix.shard }}", str(i)) for i in jobs["render"]["strategy"]["matrix"]["shard"]
+    ]
+
+
 def test_a_job_names_an_environment_only_to_deploy():
     """#754: a job naming an environment makes a Deployment record, so an environment with nothing in it (Release
     Assets' `release`, #358) showed every release twice. A job names one only as a real deploy target, or with
