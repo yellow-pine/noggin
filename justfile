@@ -56,6 +56,11 @@ worktrees-clean:
 check-light: venv lint
     {{PY}} -m pytest -q -n auto -m "not model and not build"
 
+# just ours, then the pytest arguments given, in CI's base image as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
+[positional-arguments]
+linux-test +args:
+    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-base:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), the tests marked build, wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
 check: check-light ours
@@ -196,7 +201,7 @@ trajectories *docs=env("TRAJ_DOCS", ""): venv ours
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Blender job runs `just pictures next`, #649)
+# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, #649, #770)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}

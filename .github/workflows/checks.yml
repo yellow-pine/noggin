@@ -11,11 +11,12 @@ name: Checks
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
-# the Actions cache alone. `Blender` renders the next Mech alone (#649): its panels, its eye gimbal in motion and a
-# picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
+# the Actions cache alone. `Render` renders the next Mech alone (#649), in four shards (#770): its panels, its eye
+# gimbal in motion and a picture per part (just pictures next) and its viewer GLBs (just web next), when what they are
+# made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it (on main what Site Deploy,
-# pages.yml, deploys). Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
+# pages.yml, deploys). Code and Site run in our base image, Render in our Blender image; the others on the bare runner.
 on:
   push:
     branches: [main]
@@ -40,7 +41,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      actions: read   # main's last checked commit
+      actions: write   # main's last checked commit; cancel-on-failure
     outputs:
       model: ${{ steps.filter.outputs.model }}
       release: ${{ steps.filter.outputs.release }}
@@ -123,10 +124,17 @@ jobs:
         env:
           MODEL: ${{ steps.filter.outputs.model }}
           MECH: ${{ steps.filter.outputs.mech }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   code:
     name: Code
     needs: changes   # its release filter
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     # uv and the synced venv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode),
     # shellcheck, gh and yq
     container:
@@ -191,6 +199,10 @@ jobs:
           exit 1
         env:
           GH_TOKEN: ${{ github.token }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
   # then saves the cache the model shards restore. The cache, never an artifact: an artifact of a public repo is
   # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0019)
@@ -199,6 +211,9 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.model != 'false' && needs.changes.outputs.parts != 'true' }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -227,6 +242,10 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ needs.changes.outputs.parts-key }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   model:
     name: Model (${{ matrix.shard }})
     needs: [changes, convex]
@@ -235,8 +254,11 @@ jobs:
       ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.shards != '[]'
       && needs.convex.result != 'failure' }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     strategy:
-      fail-fast: false
+      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
       # on one worker, --dist loadgroup), the rest, just sim and just mech (model/shards.py)
       matrix:
@@ -385,18 +407,30 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
-  # changed: rendered and baked from its trajectories on CI's software GL and saved for checks (and later runs) to
-  # restore
-  blender:
-    name: Blender
+  # changed: rendered and baked from its trajectories on CI's software GL in four shards (#770), each its share of the
+  # pictures by frames (model/render/pictures.py share) and the first the GLB too, each saved for Blender to join
+  render:
+    name: Render (${{ matrix.shard }})
     needs: changes
     if: ${{ needs.changes.outputs.next != 'true' }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
+    strategy:
+      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
+      matrix:
+        shard: [0, 1, 2, 3]   # Blender restores each
     env:
       TRAJ_DOCS: next   # the trajectories just pictures and just web draw from: the next Mech's alone
+      PICTURES_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -416,7 +450,66 @@ jobs:
       - name: Run just pictures next
         run: uv run just BLENDER=blender pictures next
       - name: Run just web next
+        if: ${{ matrix.shard == 0 }}
         run: uv run just BLENDER=blender web next
+      - name: Save the shard's pictures
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
+  # the shards' pictures and GLB joined into the one entry Site (and later runs) restore
+  blender:
+    name: Blender
+    needs: [changes, render]
+    if: ${{ needs.changes.outputs.next != 'true' }}   # as render's, so the gate allows its skip (test_site.py)
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
+    steps:
+      - name: Check out cancel-on-failure   # its last step's local action alone
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+          sparse-checkout: .github/actions
+      - name: Restore shard 0's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-0-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 1's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-1-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 2's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-2-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 3's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-3-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
       - name: Save the next Mech's pictures
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -424,6 +517,10 @@ jobs:
             model/build/images
             web/build
           key: next-${{ needs.changes.outputs.next-hash }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # the docs (Astro Starlight, just site) with the next Mech's pictures and GLB, tested and played in Chrome: main's
   # deploy. After Blender, so it builds, tests and plays the site once (#732); a skipped Blender (its pictures cached)
   # holds it up for nothing
@@ -432,6 +529,9 @@ jobs:
     needs: [changes, blender]
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
       options: --ipc=host   # Chrome's shared memory, for mermaid-cli and Playwright (https://playwright.dev/docs/docker)
@@ -499,11 +599,15 @@ jobs:
             echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
           } >> "$GITHUB_STEP_SUMMARY"
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
   # the gate (#496): every job above passed, or was skipped as its inputs were unchanged (it never skips itself; a
   # failed need fails it)
   checks:
     name: Checks
-    needs: [changes, code, convex, model, blender, site]
+    needs: [changes, code, convex, model, render, blender, site]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
     steps:
@@ -511,4 +615,4 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, blender
+          allowed-skips: convex, model, render, blender

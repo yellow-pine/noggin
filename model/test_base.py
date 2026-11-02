@@ -16,10 +16,10 @@ TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo
 
 
 @pytest.mark.build
-@pytest.mark.parametrize("doc", sorted(g.NEXT))
+@pytest.mark.parametrize("doc", sorted(g.STAGES))
 def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the next Mech assembled, nothing lying apart: every part of each document
-    touches one that leads, part on part, down to the Torso. Each part's surface sampled about 1 mm apart, plus its
+    touches one that leads, part on part, down to the Torso (Stage 1's test stand, #720). Each part's surface sampled about 1 mm apart, plus its
     vertices: two touching faces have samples closer than TOUCH_MM, two 1 mm apart none."""
     parts = stages.STAGES[doc].parts
     meshes = {n: trimesh.load(p.file, force="mesh").apply_transform(p.matrix) for n, p in parts.items()}
@@ -33,7 +33,7 @@ def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
         if (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all() and trees[b].query(points[a])[0].min() < TOUCH_MM:
             near[a].add(b)
             near[b].add(a)
-    reached, todo = set(), ["next torso:1"]
+    reached, todo = set(), ["next torso:1" if "next torso:1" in parts else "next test stand:1"]
     while todo:
         n = todo.pop()
         if n not in reached:
@@ -55,6 +55,13 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     assert placed["next Shield 1"] == pytest.approx((-26.75, 20.68, -91.0))
     assert placed["next Core 1"] == pytest.approx(placed["next Shield 1"])
     assert placed["next switch board"] == pytest.approx((28.0, 14.6, -90.0))
+
+
+def test_stage_1s_test_stand_stands_on_the_desk():
+    """#720: geometry's copy of the stand's height (ADR 0011): Stage 1's frame puts the stand's foot (base.STAND_Z, the
+    gimbal frame plate's underside less STAND_H) on z 0, the eye block on it."""
+    (origin, x, z), *rest = g.STAGES["next-stage1"].values()
+    assert rest == [(origin, x, z)] and origin[2] + base.STAND_Z == 0
 
 
 def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
@@ -86,24 +93,24 @@ def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.
             "parts": ["next torso:1", "next board rack:1", "next shelf:1"],
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
-            "head_mm": head or [138.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
+            "head_mm": head or [118.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
         },
     }
 
 
 def test_a_variant_whose_boards_meet_the_head_ranks_last_whatever_its_figures():
-    bad = _report(pairs=[(("next shelf:1", "next L lid:1"), -2.0)], hold=0.01)
+    bad = _report(pairs=[(("next shelf:1", "next L upper lid:1"), -2.0)], hold=0.01)
     ranked = base.rank({"next-mech-back": _report(hold=0.3), "next-mech-later": bad})
     assert ranked["order"] == ["next-mech-back", "next-mech-later"]
-    assert ranked["variants"]["next-mech-later"]["gates"]["clearance"] == [["next L lid:1", "next shelf:1"]]
+    assert ranked["variants"]["next-mech-later"]["gates"]["clearance"] == [["next L upper lid:1", "next shelf:1"]]
     assert ranked["variants"]["next-mech-later"]["fails"] == ["clearance"]
 
 
-def test_a_head_past_140_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_that_fits():
-    """#51: everything that rides the head fits a head of at most 140 W x 150 H x 120 D mm; a variant 2 mm too deep
+def test_a_head_past_126_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one_that_fits():
+    """#51, #698: everything that rides the head fits a head of at most 126 W x 150 H x 120 D mm; a variant 2 mm too deep
     ranks after one that fits, though its servo holds less."""
     ranked = base.rank(
-        {"next-mech-back": _report(hold=0.05, head=[130.0, 122.0, 140.0]), "next-mech-later": _report(hold=0.3)}
+        {"next-mech-back": _report(hold=0.05, head=[120.0, 122.0, 140.0]), "next-mech-later": _report(hold=0.3)}
     )
     assert ranked["order"] == ["next-mech-later", "next-mech-back"]
     assert ranked["variants"]["next-mech-back"]["gates"]["head"] == ["depth"]
@@ -143,8 +150,8 @@ def test_the_head_fit_decides_after_the_mode_and_before_the_leads():
     in its tightest direction ranks first, though it has more leads."""
     ranked = base.rank(
         {
-            "next-mech-back": _report(head=[139.0, 100.0, 120.0], leads={"pan pivot": 1}),
-            "next-mech-later": _report(head=[130.0, 110.0, 140.0], leads={"pan pivot": 6}),
+            "next-mech-back": _report(head=[124.0, 100.0, 120.0], leads={"pan pivot": 1}),
+            "next-mech-later": _report(head=[115.0, 110.0, 140.0], leads={"pan pivot": 6}),
         }
     )
     assert ranked["order"] == ["next-mech-later", "next-mech-back"]

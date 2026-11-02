@@ -216,46 +216,46 @@ def test_nothing_public_shows_todays_mech():
     assert [f for f, t in texts.items() if re.search(r"\{\{ panels \}\}|noggin-viewer|favicon\.png", t)] == []
 
 
+STAGE_DOCS = ["next-stage1", "next-stage2", "next-mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
+LOOKS = ["", "-plain"]  # its Skeleton as Bones and plain (#704)
+
+
 def test_every_document_has_a_side_and_an_isometric_panel():
-    """Cansin (#470): the panels come from the next Mech's documents in the code, each from the side and isometric, one
-    WebP each with its lines in one grey for both themes (#489)."""
+    """Cansin (#470): the panels come from the next Mech's documents in the code, each Stage in each look (#720), from
+    the side and isometric, one WebP each with its lines in one grey for both themes (#489)."""
     from model.render import pictures
 
-    # #686, Back alone since #712, its Skeleton as Bones and plain (#704)
-    panels = [f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")]
+    panels = [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
     assert [pictures.picture(*p) for p in pictures.PANELS] == panels
 
 
 def test_the_next_mech_has_its_own_panels():
-    """#629: the next Mech's panels in a grid of their own, framed among themselves, one per head variant (#686)."""
+    """#629, #720: Pictures shows each Stage of the next Mech in both looks, framed among themselves."""
     import macros
 
     grid = macros.next_panels()
-    # Back alone since #712, its Skeleton as Bones and plain (#704)
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == ["Next Mech (back)", "Next Mech (back plain)"]
+    names = [f"Stage {n}{look}" for look in ("", " plain") for n in (1, 2, 3)]
+    assert re.findall(r"<strong>([^<]+)</strong>", grid) == names
     views = re.findall(r'<img src="[^"]+/([^/"]+)"', grid)
-    assert sorted(views) == sorted(
-        f"next-mech-{d}-{v}.webp" for d in ("back", "back-plain") for v in ("side", "isometric")
-    )
+    assert views == [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
 
 
 def test_the_site_publishes_the_next_mech_alone():
     """#649 (docs/adr/0019): the site's pictures are the next Mech's panels, its motions (#656, #663) and one per part,
-    its viewer the next Mech's GLB, every name starting next-, and no document they draw has a part of today's print."""
+    its viewer the next Mech's GLBs, a Stage each in each look (#720), every name starting next-."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
     from web import build
 
-    stems = {stages.stem(p.file) for doc in g.NEXT for p in stages.STAGES[doc].parts.values()}
+    stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per document (a head variant each, #686), the sweep (#656), the 7 it plays (#663) and a
-    # picture per part
-    assert len(published) == 2 * len(g.NEXT) + 1 + 7 + len(stems) == len(set(published))
-    assert {"next-mech-back-isometric.webp", "next-eyes-rest.webp", "next-board-rack.webp"} <= {*published}
-    assert build.PUBLIC == {d: f"{d}.glb" for d in ("next-mech-back", "next-mech-back-plain")}  # #712, #704
+    # side and isometric per document, the sweep (#656), the 7 it plays (#663) and a picture per part
+    assert len(published) == 2 * len(g.STAGES) + 1 + 7 + len(stems) == len(set(published))
+    assert {"next-stage1-isometric.webp", "next-eyes-rest.webp", "next-test-stand.webp"} <= {*published}
+    assert build.PUBLIC == {f"{d}{look}": f"{d}{look}.glb" for look in LOOKS for d in STAGE_DOCS}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
-    assert {doc for doc, _ in pictures.next_parts().values()} | set(build.PUBLIC) == set(g.NEXT)
+    assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
 
 
 def test_the_home_and_the_readme_show_the_next_mech():
@@ -272,41 +272,29 @@ def test_the_home_and_the_readme_show_the_next_mech():
     assert picture in readme.split("## Setup")[0] and f"{site}docs/pictures/" in readme
 
 
-def test_the_viewer_has_a_button_and_a_glb_for_every_head_variant_in_the_rankings_order(tmp_path, monkeypatch):
-    """#686 (Cansin): every next-Mech document has its GLB and its button, even one that fails a gate; with just sim's
-    ranking of today's variants the buttons follow its order, each marked with what it fails, else geometry.NEXT's
-    unmarked (a ranking of other documents: main's reports before the variants' first sim). Each button's line says
-    where its boards go, from what carries them (model/stages.py). Back alone since #712; the machinery stays for the
-    next variant."""
+def test_the_viewer_switches_the_stage_and_the_look_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
+    """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and the look switch Bony
+    and Plain, each the GLB's suffix. #705: with just sim's ranking of today's head variants, the Stage that is one is
+    marked with what it fails, unmarked else (a ranking of other documents: main's reports before the variants' first
+    sim)."""
     import json
 
     import macros
-    from model import geometry as g
-    from web import build
 
-    assert set(build.PUBLIC) == set(g.NEXT) and all(build.PUBLIC[d] == f"{d}.glb" for d in g.NEXT)
     monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
-    unranked = macros.variants()
-    assert [v["glb"] for v in unranked["buttons"]] == list(g.NEXT) and not unranked["ranked"]
-    assert [v["label"] for v in unranked["buttons"]] == ["Back", "Back plain"]  # its Skeleton as Bones and plain (#704)
+    unranked = macros.stage_switch()
+    assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
+    assert unranked["looks"] == [{"suffix": "", "label": "Bony"}, {"suffix": "-plain", "label": "Plain"}]
     fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-plain": []}
-    ranking = {
-        "order": ["next-mech-back-plain", "next-mech-back"],
-        "variants": {d: {"fails": f} for d, f in fails.items()},
-    }
+    ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
-    ranked = macros.variants()
-    assert ranked["ranked"] and [v["glb"] for v in ranked["buttons"]] == ["next-mech-back-plain", "next-mech-back"]
-    # #705: a variant that fails a gate keeps its button, saying what it fails
-    assert [v["label"] for v in ranked["buttons"]] == ["Back plain", "Back: head size, tilt loop"]
-    about = {v["glb"]: v["about"] for v in ranked["buttons"]}
-    assert set(about.values()) == {"the boards upright on the board rack's back face, behind the eye gimbal"}
+    assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]
     macros.RANKING.write_text(json.dumps({"order": ["next-mech-a"], "variants": {"next-mech-a": {"fails": []}}}))
-    assert macros.variants() == unranked
+    assert macros.stage_switch() == unranked
 
 
 def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
-    """Cansin (#482, #664): the viewer's Explode moves each part of the next Mech, every head variant, by its
+    """Cansin (#482, #664): the viewer's Explode moves each part of the next Mech, every Stage in each look, by its
     sub-assembly's offset in model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up
     (x, z, -y), none of today's parts (#649), and no picture of it is rendered."""
     import macros  # here, not at the top: it imports the model
@@ -339,7 +327,9 @@ def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
     assert "re-actors/alls-green@" in green["uses"]
     assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
     skips = {j.strip() for j in green["with"].get("allowed-skips", "").split(",") if j.strip()}
-    assert skips == {j for j in gate["needs"] if "needs.changes.outputs" in jobs[j].get("if", "")}
+    unchanged = {j for j in gate["needs"] if "needs.changes.outputs" in jobs[j].get("if", "")}
+    unchanged |= {j for j in gate["needs"] if "if" not in jobs[j] and set(jobs[j].get("needs", [])) & unchanged}
+    assert skips == unchanged  # and a job with no `if` skips with such a need: Blender with Render (#780)
 
 
 def test_no_real_photos_are_tracked():

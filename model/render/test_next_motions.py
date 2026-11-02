@@ -35,7 +35,7 @@ def test_the_sweep_turns_the_eyes_through_their_whole_range_and_the_lids_follow(
     gaze = angles(motions["sweep"], "next L eyeball core:1", (0, -1, 0))
     assert gaze.min(axis=0) == pytest.approx((-gimbal.YAW, -gimbal.PITCH), abs=0.01)
     assert gaze.max(axis=0) == pytest.approx((gimbal.YAW, gimbal.PITCH), abs=0.01)
-    lid = angles(motions["sweep"], "next R lid:1", (0, -1, 0))[:, 1]
+    lid = angles(motions["sweep"], "next R upper lid:1", (0, -1, 0))[:, 1]
     assert lid == pytest.approx(angles(motions["sweep"], "next R eyeball core:1", (0, -1, 0))[:, 1], abs=0.5)
 
 
@@ -61,4 +61,4 @@ def test_the_next_mech_plays_each_gesture_and_rest_in_the_pictures_as_mujoco_bak
     assert set(played) == {"eureka", "attention", "bored", "wince", "wink", "thinking", "rest"}
     for frames in played.values():
         assert len(frames) == 24 and set(frames[0]) == set(stages.next_eyes().parts)
-        assert frames[-1]["next L lid:1"][0, 0] == pytest.approx(30)  # it ends on the last baked frame
+        assert frames[-1]["next L upper lid:1"][0, 0] == pytest.approx(30)  # it ends on the last baked frame

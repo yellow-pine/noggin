@@ -1,0 +1,4 @@
+# zizmor's configuration (https://docs.zizmor.sh/configuration/)
+rules:
+  self-repository:   # its fix, `uses: $/...`, fails actionlint (1.7.12), so a local action stays `./...` (#769)
+    disable: true

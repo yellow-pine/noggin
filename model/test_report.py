@@ -39,7 +39,7 @@ KNOWN_PEAKS = {
     " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
     for doc in stages.DOCS
-    if doc.startswith("next-")
+    if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
     for horn in ("pan horn", "tilt horn")
 }
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
@@ -250,7 +250,7 @@ FIXTURE_PROBLEMS = {
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
-        "gimbal block: 150.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 140.0 x 120.0 x 150.0",
+        "gimbal block: 150.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 126.0 x 120.0 x 150.0",
         "gimbal sweep: next L lid bar:1 / next L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
         "gimbal sweep: next L lid bar:1 / next gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",

@@ -174,7 +174,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-stages a:hover strong { text-decoration: underline; }
 
 /* ---------- the web viewer's chrome (src/viewer/viewer.mjs): one bar under it, chunky pills, pressed Apricot; the
-   head variants a row of pills; Explode a toggle at the right (on their row where there is one, the chips then on
+   Stage and look switches rows of pills; Explode a toggle at the right (on their row where there is one, the chips then on
    a row of their own); the line on what plays under it ---------- */
 .noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
 .noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 1rem; }
@@ -191,7 +191,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-viewer button:disabled { opacity: 0.4; pointer-events: none; }
 .noggin-viewer [hidden] { display: none; } /* Explode, and the gestures of a still Stage */
 .noggin-controls > button { margin-inline-start: auto; order: 1; }
-.noggin-controls:has(nav[aria-label='Head']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
+.noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
 .noggin-caption { margin-top: 0.6rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
 /* the viewer's own page (src/pages/viewer.astro): the Mech on a pink-washed desk, the bar on it */
 .noggin-viewer[data-zoom] { background: var(--noggin-wash); border-radius: 1.5rem; padding: 1rem 1rem 0.75rem; }

@@ -5,7 +5,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Rendering rules (2026-10-31, #47)
 - Today's Mech left the model (Cansin, 2026-11-02, #720): its Stages, sub-assemblies and printed parts, their tests,
   renders and the hero live in git history alone; the model holds the next Mech.
-- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Blender` job renders its two panels
+- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` shards render its two panels
   and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
   `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
   document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,
@@ -99,21 +99,26 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to change stays here until it stabilises.
 - The next Mech (#51; the spec lives there) is designed in the model, as its own documents (geometry.NEXT, #629),
   clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
-  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each lid
-  its own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
+  hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
+  lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
   with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the next Mech's documents, moved
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
-  beside the Hooke form, the vergence a print error makes, the lids' clearance and range, the caps' gap, and the lid
-  drives' sweep: each lid, bar, horn and shank against the frame and every other part, certified along every line of the
+  beside the Hooke form, the vergence a print error makes, the lids' clearance and range, where they meet shut, the
+  lower lid's link angle, the caps' gap, and the lid drives' sweep: each lid, bar, link, horn and shank against the frame and every other part, certified along every line of the
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points; and the gimbal's bounding box, servos and horns included, "block_mm", against the compact head's `HEAD_MM`),
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, the pitch servo beside the pitch bar, each lid servo under and behind its eye (low and
-  forward, so the head's centre of mass stays near the tilt axis), driving its lid's crank through a bar down along
-  the eye's outer side. The pitch push-rod's Hooke coupling is undone by the command map
+  forward, so the head's centre of mass stays near the tilt axis), its horn between the eyes (#698). Each eye has an
+  upper and a lower lid on that one servo, as today's Mech: the upper lid's crank through the lid bar (a
+  parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
+  four-bar turning it against the upper about 0.8x (`gimbal.lower`); shut they meet 4 deg below the eye's middle,
+  1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
+  shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
+  the face is as wide as the lids' frame (120 mm, 138 before) and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), plain and as Bones (GLOSSARY; model/printed/bone.py), and
   Back is built in each (`next-mech-back`, `next-mech-back-plain`). As Bones the tie-bar and push-rods (#703, the
@@ -122,13 +127,14 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   each prints as drawn (the rack on its back) with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three), holds its servo's stall at SF 2 (axial and buckling for the
   tie-bar and push-rods, bending for the crank and the bail's arms; model/printed/test_gimbal.py), its CoACD pieces
-  capped (mjcf.MAX_PIECES). The lids, the lid and pitch bars and the frame wait on #698, the neck, head mount, jaw and
-  jaw bar on #708 (model/printed UNSTYLED), drawn plain in both until then; the core, a ball under its cap, has none.
-  In MuJoCo its four servos drive it (#663): the lids and the bail through their four-bars, both yokes off the yaw
-  horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
+  capped (mjcf.MAX_PIECES); so are the lid bars, links and the lids' spokes (#698, each lying in its 3 mm slab, the
+  bent lid bar for its bending too). The pitch bar and the frame wait on #704, the neck, head mount, jaw and jaw bar on
+  #708 (model/printed UNSTYLED), drawn plain in both until then; the core, a ball under its cap, has none.
+  In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
+  yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
+  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
   gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
-  (closed shut past the cap's rim, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
   the next Mech's calibration (traces.NEXT_CAL, 0.6, inferred), the pan in the eyes' degrees scaled as the yaw and
@@ -162,5 +168,13 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   (#705). Today Back does not fit that head: its boards behind the gimbal make it 141.5 deep, since the head mount
   and the jaw already hang 101 mm under the eyes (eyes_up 0.77, not the lower-middle); the head size stays reported,
   not a hard gate, until #708. Every size is inferred.
+- The Stages (#720, geometry.STAGES), for ease of build, each a document in both looks: Stage 1 the eye block (the
+  gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
+  stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
+  `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, the
+  boards' rack with both Cores and the switch board; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
+  the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
+  the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
+  what it fails) and a look switch (Bony, Plain); Pictures shows each Stage's panels in both looks.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.

@@ -81,8 +81,11 @@ PRINTED = {
             "next push-rod",
             "next pitch bar",
             "next lid bar",
-            "next L lid",
-            "next R lid",
+            "next lid link",
+            "next L upper lid",
+            "next R upper lid",
+            "next L lower lid",
+            "next R lower lid",
             "next gimbal frame",
             "next neck mount",
             "next pan yoke",
@@ -93,6 +96,7 @@ PRINTED = {
             "next jaw bar",
             "next torso",
             "next board rack",
+            "next test stand",
         )
     },
     "next L eyeball cap": ("Pure White", "PLA Pure"),
@@ -108,7 +112,18 @@ PRINTED |= {name + PLAIN: v for name, v in PRINTED.items() if name.startswith("n
 # foot on z 0 (base.TORSO, model/test_neck.py).
 _HEAD = ((0, -150, 153), X, Z)
 NEXT = {
-    f"next-mech-{v}": {"next-neck": _HEAD, "next-eyes": _HEAD, "next-base": _HEAD} | dict.fromkeys(carriers, _HEAD)
+    f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
     for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
 }
-NEXT |= {doc + "-plain": subs for doc, subs in NEXT.items()}  # each variant also with its Skeleton plain (#704, PLAIN)
+# The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
+# stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso, the neck, the head mount and the boards' rack
+# with the neck Core; 3 adds the jaw and the mouth: the whole Mech, the leading head variant's document
+_STAND = ((0, -150, 107), X, Z)
+STAGES = {
+    "next-stage1": {"next-eyes": _STAND, "next-stand": _STAND},
+    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base", "next-back")},
+    **dict([next(iter(NEXT.items()))]),
+}
+# each document also with its Skeleton plain (#704, PLAIN): the two looks, Bones and plain
+NEXT |= {doc + "-plain": subs for doc, subs in NEXT.items()}
+STAGES |= {doc + "-plain": subs for doc, subs in STAGES.items()}

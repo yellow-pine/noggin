@@ -37,7 +37,9 @@ def report(doc, model):
     the gimbal (the Torso, the pack, the carriers and the boards) and how many are printed, the leads crossing pan and
     tilt, the head's box and the eyes' height in it and its parameters."""
     stage = stages.STAGES[doc]
-    parts = [n for sub in g.NEXT[doc] if sub not in ("next-neck", "next-eyes") for n in stages.SUBS[sub]().parts]
+    parts = [
+        n for sub in g.NEXT[doc] if sub not in ("next-neck", "next-jaw", "next-eyes") for n in stages.SUBS[sub]().parts
+    ]
     size, eyes = head(doc, model)
     return {
         "parts": parts,

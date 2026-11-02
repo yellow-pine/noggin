@@ -1,6 +1,6 @@
 """The next Mech as data: its sub-assemblies (every part with its mesh file, neutral placement and material, the horns
 and their four-bar chains) built from model/gimbal.py, model/neck.py and model/base.py, and assemble() putting
-sub-assemblies at frames into one document (geometry.NEXT). pose() gives every part's world transform at a horn angle by
+sub-assemblies at frames into one document (geometry.STAGES, geometry.NEXT). pose() gives every part's world transform at a horn angle by
 the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry a ":1" suffix, as MuJoCo's
 bodies and the GLBs' nodes."""
 
@@ -27,9 +27,10 @@ Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_
 Horn = namedtuple(
     "Horn", "pivot limits crank loops still frame rods", defaults=((),)
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
-# A ball-ended push-rod (the next Mech's pitch drive, #663): `part` on a universal `joint` at `arm` (about `axes`) on the
-# rocker its `carrier` joint turns, its other ball on `lever`, the lever of the parts `driven` turn on their own `hinge`
-# (joint, point, axis): a spatial loop, closed at `lever` as a four-bar is at its rocker pin.
+# A rod riding another moving part, the `carrier` (the next Mech's pitch push-rods on the bail, #663; each lower lid's
+# link on its lid bar, #698): `part` on a `joint` at `arm` (about `axes`: two, a universal joint), its other end on
+# `lever`, the lever of the parts `driven` turn on their own `hinge` (joint, point, axis): a loop closed at `lever` as a
+# four-bar is at its rocker pin.
 Rod = namedtuple("Rod", "joint part carrier arm axes hinge driven lever")
 Sub = namedtuple("Sub", "parts horns")
 Doc = namedtuple("Doc", "doc parts horns")
@@ -116,10 +117,11 @@ def next_back():
 
 def next_eyes():
     """next-eyes: the next Mech's eye gimbal (#630, model/gimbal.py) at rest, in its own frame: per eye the core, its
-    cap, yoke, push-rod, lid and lid bar; the tie-bar, the bail, the pitch bar and the frame; the eyes Core's servos
-    with their horns on the drives, each a hinge MuJoCo drives (#663): the lids and the pitch horn's bail through
-    their four-bars, both yokes off the yaw horn's tie-bar, each core pitched on its yoke by its push-rod off the bail
-    (Rods). Kinematics and its report: model/gimbal.py."""
+    cap, yoke, push-rod, upper and lower lid, lid bar and link; the tie-bar, the bail, the pitch bar and the frame; the
+    eyes Core's servos with their horns on the drives, each a hinge MuJoCo drives (#663): the upper lids and the pitch
+    horn's bail through their four-bars, both yokes off the yaw horn's tie-bar, each core pitched on its yoke by its
+    push-rod off the bail and each lower lid by its link off the lid bar (Rods, #698). Kinematics and its report:
+    model/gimbal.py."""
     parts, horns = {}, {}
     for s, (cx, _, _) in gimbal.EYE.items():
         at = translate(gimbal.EYE[s])
@@ -129,8 +131,10 @@ def next_eyes():
             ("eyeball cap", f"next {s} eyeball cap", at),
             ("yaw yoke", "next yaw yoke", at),
             ("push-rod", "next push-rod", translate((cx, 0, 0))),
-            ("lid", f"next {s} lid", at),
-            ("lid bar", "next lid bar", translate((cx + sign * sum(gimbal.LID_X["bar"]) / 2, 0, 0))),
+            ("upper lid", f"next {s} upper lid", at),
+            ("lower lid", f"next {s} lower lid", at),
+            ("lid bar", "next lid bar", translate((cx - sign * sum(gimbal.LID_X["bar"]) / 2, 0, 0))),
+            ("lid link", "next lid link", translate((cx - sign * sum(gimbal.LID_X["link"]) / 2, 0, 0))),
         ):
             parts[f"next {s} {name}:1"] = part(stl(stem), m, printed(stem))
     for stem in ("next tie-bar", "next bail", "next pitch bar", "next gimbal frame"):
@@ -188,7 +192,7 @@ def next_eyes():
             Rod(
                 f"next {s} push-rod",
                 f"next {s} push-rod:1",
-                "next bail pivot",
+                "next bail:1",
                 (x, bail[1], bail[2] + gimbal.LEVER),
                 (g.X, g.Z),
                 (f"next {s} eyeball pitch", (x, 0.0, 0.0), (-1, 0, 0)),  # pitch up positive, as gimbal.core
@@ -213,35 +217,36 @@ def next_eyes():
                     (x, *gimbal.LID_PIN),
                     (-1, 0, 0),
                     f"next {s} lid bar:1",
-                    [f"next {s} lid:1"],
+                    [f"next {s} upper lid:1"],
                 )
             ],
             [],
             None,
+            [
+                Rod(
+                    f"next {s} lid link",
+                    f"next {s} lid link:1",
+                    f"next {s} lid bar:1",
+                    (x, *gimbal.LINK_PIN),
+                    (-1, 0, 0),
+                    (f"next {s} lower lid pivot", (x, 0.0, 0.0), (-1, 0, 0)),  # up positive, as gimbal.lower
+                    [f"next {s} lower lid:1"],
+                    (x, *gimbal.LOWER_PIN),
+                )
+            ],
         )
     return Sub(parts, horns)
 
 
-def next_neck():
-    """next-neck: the next Mech's neck and jaw (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the
-    neck mount, the pan yoke, the head mount, the jaw and their bars, the neck Core's servos with their horns on the
-    drives. Each drive turns its horn as today's Stages do, so the MuJoCo report and the Core's servo names apply (#642):
-    the pan carries the yoke and the head, the tilt the head (neck.HEAD, and what rides the head mount: RIDES), the
-    mouth the jaw."""
-    parts = {
-        f"{stem}:1": part(stl(stem), None, printed(stem))
-        for stem in (
-            "next neck mount",
-            "next pan yoke",
-            "next head mount",
-            "next jaw",
-            "next pan bar",
-            "next tilt bar",
-            "next jaw bar",
-        )
-    }
+def _neck_drives(labels, drives, stems):
+    """(parts, horns): the neck Core's drives of `drives` (pan, tilt, jaw) with their servos (`labels`) and the printed
+    `stems`, at rest in the head's frame (model/neck.py). Each drive turns its horn so the MuJoCo report and the Core's
+    servo names apply (#642): the pan carries the yoke and the head, the tilt the head (neck.HEAD, those of its parts
+    the document has, and what rides the head mount: RIDES), the mouth the jaw."""
+    parts = {f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in stems}
     for label, (face, shaft, tab, arm) in neck.drives().items():
-        parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
+        if label in labels:
+            parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, f"next {label}", arm))
     pins, head = neck.pins(), list(neck.HEAD)
     carried = {
         "pan": ["next pan yoke:1", "next tilt servo:1", "next tilt horn:1", "next tilt bar:1", *head],
@@ -254,26 +259,50 @@ def next_neck():
         ("tilt", "next tilt horn:1", "tilt horn", "next tilt bar:1"),
         ("jaw", "next mouth horn:1", "jaw horn", "next jaw bar:1"),
     ):
-        o4, _, o2, axis = pins[drive]
-        loop = Loop(f"{drive} pivot", neck.LINKAGES[drive], bar, carried[drive], (tuple(o4), tuple(axis)))
-        ends = sorted(neck.servo_for(drive, d) if d else 0.0 for d in neck.RANGES[drive])
-        still = [f"{d} pivot" for d in neck.RANGES if d != drive]
-        horns[horn] = Horn({"point": o2, "axis": axis}, tuple(ends), crank, [loop], still, None)
+        if drive in drives:
+            o4, _, o2, axis = pins[drive]
+            loop = Loop(f"{drive} pivot", neck.LINKAGES[drive], bar, carried[drive], (tuple(o4), tuple(axis)))
+            ends = sorted(neck.servo_for(drive, d) if d else 0.0 for d in neck.RANGES[drive])
+            still = [f"{d} pivot" for d in ("pan", "tilt") if d != drive]  # the jaw rides them both
+            horns[horn] = Horn({"point": o2, "axis": axis}, tuple(ends), crank, [loop], still, None)
     return Sub(parts, horns)
+
+
+def next_neck():
+    """next-neck: the next Mech's neck (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the neck mount,
+    the pan yoke, the head mount and the pan and tilt bars, the neck Core's pan and tilt servos with their horns on the
+    drives."""
+    stems = ("next neck mount", "next pan yoke", "next head mount", "next pan bar", "next tilt bar")
+    return _neck_drives(("pan", "tilt"), ("pan", "tilt"), stems)
+
+
+def next_jaw():
+    """next-jaw: the next Mech's jaw (#641, model/neck.py) at rest, in the head's frame: the jaw and its bar, the mouth
+    servo with its horn on the drive; it rides the head (RIDES)."""
+    return _neck_drives(("mouth",), ("jaw",), ("next jaw", "next jaw bar"))
+
+
+def next_stand():
+    """next-stand: Stage 1's test stand (#720, model/base.py) under the gimbal frame's plate, the eyes Core upright on
+    its back face."""
+    return _boards("next test stand", candidates.stand_boards())
 
 
 SUBS = {
     "next-eyes": next_eyes,
     "next-neck": next_neck,
+    "next-jaw": next_jaw,
     "next-base": next_base,
     "next-back": next_back,
+    "next-stand": next_stand,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
-# geometry.align_rows
-DOCS = g.NEXT
+# geometry.align_rows: the next Mech's Stages in both looks, the last of them the head variant's (geometry.NEXT)
+DOCS = g.STAGES | g.NEXT
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
     "next-back": "next head mount:1",  # the rack under the plate
+    "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
 }  # clamped to that part
 
 
@@ -307,7 +336,7 @@ def assemble(doc, frames):
                     if n not in rockers:
                         rockers.append(n)
                         todo.append(n)
-            loops.append(loop._replace(rockers=rockers))
+            loops.append(loop._replace(rockers=[n for n in rockers if n in parts]))  # the Stage's own
         horns[h] = horn._replace(loops=loops)
     return Doc(doc, parts, horns)
 

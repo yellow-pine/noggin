@@ -80,8 +80,9 @@ def writes(line, cal=CAL):
 def next_commands(motion):
     """The motion as the eye program writes it, from rest, through the next Mech's eye gimbal (#663): the L eye's
     position over the gimbal's yaw range to the yaw and pitch servos (gimbal.servos, the Hooke error taken out), the
-    gaze level (the program turns the eyes about one axis); each lid level to its edge, closed shut past the cap's rim,
-    rest just over the pupil, open (gimbal.LID_EDGES), the lid following the pitch (#51); under its calibration
+    gaze level (the program turns the eyes about one axis); each lid level to its upper lid's edge, closed shut where
+    the lower lid meets it (gimbal.LID_SHUT, #698), rest just over the pupil, open (gimbal.LID_EDGES), the lid following
+    the pitch (#51); under its calibration
     (NEXT_CAL) the head joins wide gaze shifts (#688): the pan, in the eyes' degrees, scaled as the yaw, through the
     pan's four-bar (neck.servo_for), each Core's writes DELAY_MS late. ([(ms, horn, servo degrees from centre)] in time
     order, rest's writes before ms 0; the frame times), as commands()."""
@@ -89,7 +90,7 @@ def next_commands(motion):
     lo, hi = _CORE.range(mod.L_EYE)
     half = (hi - lo) / 2
     levels = [CAL[k] for k in ("lid_closed", "lid_rest", "lid_open")]
-    edges = [gimbal.LID_EDGES[0], gimbal.LID_REST, gimbal.LID_EDGES[1]]
+    edges = [gimbal.LID_SHUT, gimbal.LID_REST, gimbal.LID_EDGES[1]]
     pitch, out = 0.0, []
     for t, s, a in log:
         t += DELAY_MS[CORE[s]]

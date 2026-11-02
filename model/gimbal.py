@@ -38,43 +38,74 @@ PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the
 CAP_R, CAP_HALF = 27.0, 45.0  # each Character's largest eyeball cap: a sphere segment this wide about the gaze
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
-LID_R = (CAP_R + 1.5, CAP_R + 3.5)  # the lid wedge's inner and outer radius
-LID_COVER = 3.0  # how far past the cap's rim a closed lid reaches
-LID_SPAN = 2 * (CAP_HALF + LID_COVER)  # the wedge's width about x
-LID_REST = PUPIL_DEG + 2.0  # the lid's lower edge just over the pupil (#51), at the lid servo's centre
-LID_EDGES = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)  # the lid's edge closed (past the cap's rim) and open (#51)
+LID_R = (CAP_R + 1.5, CAP_R + 3.5)  # the upper lid's shell, inner and outer radius
+LOWER_R = (CAP_R + 4.5, CAP_R + 6.5)  # the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
+LID_COVER = 3.0  # how far past the cap's rim a shut lid reaches
+LID_REST = PUPIL_DEG + 2.0  # the upper lid's edge just over the pupil (#51), at the lid servo's centre
+LID_SHUT, LID_GAP = -4.0, 1.5  # shut, the upper lid's edge slightly below the eye's middle, the lower's this far under
+LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: shut, it covers the cap's top
+LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
+# the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
+LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
 # (y, z) of each lid servo's horn: under and behind the eye, its case under the tie-bar and in front of the bail's
 # upright, low and forward so the head's centre of mass stays near the tilt axis (the tilt bar's load, #684)
 LID_HORN = (18.0, -45.0)
-# the lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's) mid-range,
-# so the bar meets it at 50 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
+# the upper lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's)
+# mid-range, so the bar meets it at 64 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
 LID_CRANK = math.degrees(math.atan2(LID_HORN[1], -LID_HORN[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
 LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
+LID_BEND = (33.0, -36.0)  # (y, z) the lid bar bends at, at rest: under the pitch servo, behind the yawing tie-bar
+# The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
+# four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
+# upper, 0.8x (docs/research: 38 deg upper, 30 lower). Inferred, searched for its link meeting the crank at 57 deg or
+# more, its crank pin out of the reach of a cap yawed in and pitched down.
+LINK_PIN = (26.0, -8.0)  # (y, z) of the link's pin on the bar at rest, a joint between its upper pin and the bend
+LOWER_PIN = (-6.0 * math.cos(math.radians(258.0)), 6.0 * math.sin(math.radians(258.0)))  # the lower crank's pin
+_LOWER = linkage.four_bar(
+    (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
+)  # about -x: up positive, as the lids
+
+
+def lower(lid):
+    """The lower lid's turn, deg up from rest, with the lid servo at `lid` deg (its upper lid's turn)."""
+    return _LOWER(lid)[0]
+
+
+LOWER_REST = LID_SHUT - LID_GAP - lower(LID_SHUT - LID_REST)  # the lower lid's edge at the servo's centre
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
 PRINT_SCALE = 0.0075  # in-plane print error (docs/research/2026-11-02-literature-cams-am.md [ZF]), on one eye's cranks
 GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
 PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2, the pitch horn outboard of the bar
-LID_X = {"boss": (28.0, 31.0), "crank": (28.0, 31.0), "bar": (31.0, 34.0), "upright": (34.0, 37.0)}  # x out from L eye
+# |x| from each eye's centre (#698): outboard each lid's boss, clear of the yawing yoke (17.5), which turns on a shank
+# from the frame's upright beside the caps; inboard the lid bar on the horn's face (behind the yoke, so nearer the eye:
+# its servo under the eye then clears the pitch servo's collar), the link, and the lids' ears with their crank pins past
+# where a cap reaches yawed in (25.4)
+LID_X = {
+    **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (25.0, 28.0)},
+    **{"bar": (16.5, 19.5), "link": (22.9, 25.9), "ear": (25.9, 28.9)},
+}
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo
 PLATE_Y = (-25.0, 70.0)  # under the head mount's front screws to past the pitch servo's collar
-HEAD_MM = (140.0, 120.0, 150.0)  # the compact head the gimbal fits (#684): width, depth, height
+SHELL_MM = 3.0  # the head shell's wall beside the frame's uprights (inferred: no shell is drawn yet, #665)
+# the compact head the gimbal fits (#684): width, depth, height; its width the face's, the lids' frame (#698) and shell
+HEAD_MM = (SPACING + 2 * (LID_X["upright"][1] + SHELL_MM), 120.0, 150.0)
 
 
 def drives():
     """{label: (horn's outer face centre, shaft direction, tab direction, arm direction at rest)}: the four servos of the
     eyes Core, each horn at its drive's crank (model/stages.py mounts them, model/printed/gimbal.py seats them), each
     case behind the eyes' centres and within their width (#684): the yaw servo under the tie-bar, the pitch servo
-    beside the pitch bar, each lid servo under and behind its eye, its horn on the inner face of the lid's bar."""
+    beside the pitch bar, each lid servo under and behind its eye, its horn between the eyes on the lid bar (#698)."""
     out = {
         "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (0, -1, 0), g.Y),
         "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), g.Y, g.Y),
     }
     for s, sign in (("L", 1), ("R", -1)):
-        x = EYE[s][0] + sign * LID_X["bar"][0]
-        out[f"{s} lid"] = ((x, *LID_HORN), (sign, 0, 0), (0, -1, 0), (0, *np.divide(LID_PIN, CRANK)))
+        x = EYE[s][0] - sign * LID_X["bar"][0]
+        out[f"{s} lid"] = ((x, *LID_HORN), (-sign, 0, 0), (0, -1, 0), (0, *np.divide(LID_PIN, CRANK)))
     return out
 
 
@@ -147,14 +178,16 @@ def _carry(a0, b0, a, b):
 
 def moved(lid, pitch, yaw=0.0):
     """{next-eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg (or {side: deg}, each its own) and
-    the L eye at (yaw, pitch) through the command map (#650, #656): each lid, its bar and its horn; yawed, the yaw horn,
-    the tie-bar and each yoke; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
+    the L eye at (yaw, pitch) through the command map (#650, #656): each eye's lids, its bar, link and horn; yawed, the
+    yaw horn, the tie-bar and each yoke; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
     out, lids = {}, lid if isinstance(lid, dict) else dict.fromkeys(EYE, lid)
     for s, (x, _, _) in EYE.items():
         lid_m, horn_m = linkage.rotation(g.X, -lids[s], (x, 0, 0)), linkage.rotation(g.X, -lids[s], (x, *LID_HORN))
-        crank, pin = (x, *LID_PIN), (x, *np.add(LID_HORN, LID_PIN))
-        out[f"next {s} lid:1"], out[f"next {s} lid horn:1"] = lid_m, horn_m
-        out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
+        low_m = linkage.rotation(g.X, -lower(lids[s]), (x, 0, 0))
+        crank, pin, link, low = ((x, *p) for p in (LID_PIN, np.add(LID_HORN, LID_PIN), LINK_PIN, LOWER_PIN))
+        out[f"next {s} upper lid:1"], out[f"next {s} lower lid:1"], out[f"next {s} lid horn:1"] = lid_m, low_m, horn_m
+        bar = out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
+        out[f"next {s} lid link:1"] = _carry(link, low, (bar @ [*link, 1])[:3], (low_m @ [*low, 1])[:3])
     yaw_servo, servo = servos(yaw, pitch)
     if yaw:  # else they stay at rest, left out: the lid drives' sweep (model/printed/gimbal.py) poses what is here
         out["next yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo, (0, YAW_Y, 0))
@@ -201,11 +234,12 @@ def _moving(yaw, pitch):
     return out + [((0, 0, bottom), (0, 0, YOKE["stem_z"]), YOKE["stem_r"])]
 
 
-def lid_points(edge, n=48):
-    """Points on the L lid's two faces (about its eye centre) with its lower edge at `edge` deg: the wedge about x."""
-    u, phi = np.meshgrid(np.linspace(0.02, math.pi - 0.02, n), np.radians(np.linspace(edge, edge + LID_SPAN, n)))
+def lid_points(edge, n=48, radii=LID_R, span=LID_SPAN):
+    """Points on an L lid's two faces (about its eye centre), its wedge about x from `edge` deg up `span`: the upper
+    lid's from its edge, the lower lid's (LOWER_R, LOWER_SPAN) from its edge less its span."""
+    u, phi = np.meshgrid(np.linspace(0.02, math.pi - 0.02, n), np.radians(np.linspace(edge, edge + span, n)))
     unit = np.stack([np.cos(u), -np.sin(u) * np.cos(phi), np.sin(u) * np.sin(phi)], -1).reshape(-1, 3)
-    return np.concatenate([r * unit for r in LID_R])
+    return np.concatenate([r * unit for r in radii])
 
 
 def _to_segment(p, a, b):
@@ -218,6 +252,13 @@ def cap_points(n=40):
     """Points on the L cap's dome and rim (about its eye centre, at rest): the sphere within CAP_HALF of the gaze."""
     u, phi = np.meshgrid(np.radians(np.linspace(0, CAP_HALF, n)), np.linspace(0, 2 * math.pi, n))
     return CAP_R * np.stack([np.sin(u) * np.cos(phi), -np.cos(u), np.sin(u) * np.sin(phi)], -1).reshape(-1, 3)
+
+
+def _link_deg(lid):
+    """The angle the lower lid's link meets its crank at, folded to 0..90, with the lid servo at `lid` deg."""
+    m, q = (np.asarray(p) for p in _LOWER(lid)[1:])
+    link, crank = (m - q)[1:] / np.linalg.norm(m - q), q[1:] / np.linalg.norm(q)
+    return math.degrees(math.asin(min(1.0, abs(float(link[0] * crank[1] - link[1] * crank[0])))))
 
 
 def report():
@@ -245,12 +286,21 @@ def report():
         abs(math.degrees(math.asin(math.sin(math.radians(p)) / math.cos(math.radians(y)))) - p) for y, p in grid
     )
     edges = LID_EDGES
+    shells = [
+        p
+        for edge in np.linspace(*edges, 9)
+        for p in (
+            lid_points(edge),
+            lid_points(LOWER_REST + lower(edge - LID_REST) - LOWER_SPAN, 48, LOWER_R, LOWER_SPAN),
+        )
+    ]
     clear = min(
-        min(float(_to_segment(lid_points(edge), a, b).min()) - r for a, b, r in _moving(yaw, pitch))
+        min(float(_to_segment(shell, a, b).min()) - r for a, b, r in _moving(yaw, pitch))
         for yaw in (-YAW, 0, YAW)
         for pitch in np.linspace(-PITCH, PITCH, 7)
-        for edge in np.linspace(*edges, 9)
+        for shell in shells
     )
+    link = min(_link_deg(lid) for lid in np.linspace(*np.subtract(edges, LID_REST), 41))
     cap, offset = cap_points(), np.subtract(EYE["L"], EYE["R"])
     gap = min(float(cKDTree(cap @ core(*pose).T + offset).query(cap @ core(*pose).T)[0].min()) for pose in grid)
     return {
@@ -265,7 +315,9 @@ def report():
         "lid": {
             "edge_deg": list(edges),
             "servo_deg": [e - LID_REST for e in edges],
+            "shut_deg": [LID_SHUT, round(LOWER_REST + lower(LID_SHUT - LID_REST), 2)],  # upper, lower
+            "link_deg": round(link, 1),
             "clearance_mm": round(min(clear, LID_R[0] - CAP_R), 2),
-            "apart_mm": SPACING - 2 * LID_R[1],
+            "apart_mm": SPACING - 2 * LID_X["ear"][1],  # the two eyes' lid drives, between the eyes
         },
     }
