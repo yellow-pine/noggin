@@ -7,8 +7,7 @@ the side and isometric, each group framed on its own: PANELS) and the icon, an e
 hero`): the README hero, stage 3 talking (model/render/hero.py), its trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's
 pictures, motion by motion (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site
 served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/0019). Checks packed the motions into its Blender bins (model/shards.py,
-`just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
-the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
+`just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537).
 `site next` (`just pictures next`): what the site serves, the next Mech's panels, its eye gimbal in motion (NEXT_MOTIONS:
 its sweep, #656, and each motion it plays, #663) and a picture per part (NEXT, #649).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
@@ -75,10 +74,6 @@ SITE = {
     "views": [picture(*p) for p in [*PANELS, FAVICON]],
     "hero": ["hero.webp"],
 }
-# a PR's pictures in place of SITE, which main alone renders and deploys (#562): one panel, as the site frames it, the
-# next Mech's panels, the design a PR shows Cansin (#51, #629), and the icon, which every page shows
-PREVIEW = [("stage3", "isometric"), *(p for p in PANELS if p[0] in g.NEXT), FAVICON]
-MOTIONS = SITE | {"preview": [picture(*p) for p in PREVIEW]}
 # what the site publishes (#649, docs/adr/0019): the next Mech alone, clean-room: its panels and a picture of each of
 # its parts, alone at rest, isometric, framed on its own (`just pictures next`, Checks' Blender job); every name next-
 NEXT = "next"
@@ -141,12 +136,11 @@ def next_motions(rest):
     return out
 
 
-def motions(preview=False):
-    """Each motion of SITE (or the preview alone) with the Stages it draws, whose trajectories its runner bakes (just
-    trajectories TRAJ_DOCS): the preview every document views draws, for the panels' one scale."""
-    every = " ".join(g.STAGES | g.NEXT)
-    stages_of = {"views": every, "hero": HERO_STAGE, "preview": every}
-    return [{"motion": m, "stages": stages_of[m]} for m in (["preview"] if preview else SITE)]
+def motions():
+    """Each motion of SITE with the Stages it draws, whose trajectories its runner bakes (just trajectories
+    TRAJ_DOCS)."""
+    stages_of = {"views": " ".join(g.STAGES | g.NEXT), "hero": HERO_STAGE}
+    return [{"motion": m, "stages": stages_of[m]} for m in SITE]
 
 
 def prepare(doc):
@@ -370,7 +364,7 @@ def ffmpeg(*args):
 
 
 def render(motion):
-    """A motion of the site's pictures (SITE), the preview, or a hero frame shard `hero:<first>-<end>` (#537); the
+    """A motion of the site's pictures (SITE) or a hero frame shard `hero:<first>-<end>` (#537); the
     hero's frames' seconds."""
     if motion.startswith("hero"):
         return hero(tuple(map(int, motion.removeprefix("hero:").split("-"))) if ":" in motion else None)
@@ -379,7 +373,7 @@ def render(motion):
         part_pictures()
         motion_pictures()
     else:
-        views(PREVIEW) if motion == "preview" else views()
+        views()
 
 
 def main(what, names):
@@ -400,7 +394,7 @@ def main(what, names):
                 setup = took.pop(f"blender {motion}") - len(frames) * per
                 took |= {"blender hero frame": per, "blender hero setup": setup}
             # a hero frame shard's frames stay in OUT/frames/hero, for join
-            for f in published() if motion == NEXT else MOTIONS.get(motion, []):
+            for f in published() if motion == NEXT else SITE.get(motion, []):
                 shutil.copy(os.path.join(OUT, f), IMAGES)
         os.makedirs(SECONDS, exist_ok=True)
         json.dump(took, open(os.path.join(SECONDS, "pictures.json"), "w"))

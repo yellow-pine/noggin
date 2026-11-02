@@ -59,11 +59,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   feat, fix, perf, revert or a `!` break (before 1.0 a break bumps the minor, the rest the patch); docs, ci, chore,
   build, test, style and refactor release nothing. The tag starts `Release Assets`, which attaches the Core program
   zip and the release's docs (docs/adr/0014). No release PR, nothing committed back; tag nothing by hand.
-- The workflows that open PRs or push (Release, the weekly `skills` and `blender` ones, `Review`'s
-  rebase) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a private App on
-  yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and write and no
-  webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the `RELEASE_APP_PRIVATE_KEY`
-  secret. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
+- The workflows that open PRs, push or merge (Release, the weekly `skills` and `blender` ones, `Review`'s
+  rebase, Dependabot Auto-merge) run as the repo's bot App, because what `GITHUB_TOKEN` creates starts no workflow: a
+  private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
+  write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
+  `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
+  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or
+  its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
   --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
@@ -110,10 +112,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
-  #722): `Code` (`just check-light`), then its `Checks`; Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) and CodeQL run on main after the merge, and a red main files its own 'main red' issue (#697). Only the
-  main session runs the full run on a branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main
-  failure; an implementer's branch runs the slim gate alone.
+  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue (#697).
+  Only the main session runs the full run on a branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a
+  main failure; an implementer's branch runs the slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
@@ -136,8 +138,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - With a warm cache a run's critical path should stay within 2 min on a PR and 9 min on main; past it the run warns in
   its summary and never fails (#442; `scripts/ci_budget.py`). Each job's slowest tests are in its run summary.
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
-  every other job stays on the bare runner, since an image pull costs ~30-40 s a job. Only main pushes the images, when
-  a Dockerfile changes and weekly, uncached, before the Monday image scan (#534), so a PR that changes one only builds them and its jobs still run main's.
+  every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
+  synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
+  venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
+  (#534), so a PR that changes a Dockerfile only builds them and its jobs still run main's.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
   Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.

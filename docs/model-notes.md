@@ -50,10 +50,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   VIEWS, PANELS). The landing page and Pictures showed them in one grid until #640 (macros.py panels): a column per Stage, a row
   per view, each linking to its file; on a phone stacked by Stage.
 - The site's icon (#603; until #640, now Yellow Pine's pine): Stage 1's right eye at rest from straight ahead (its eyeball, pupil and lids alone,
-  orthographic, square), rendered with the panels in the same look and served as a PNG (pictures.py FAVICON). A PR
-  renders it with its preview panel.
+  orthographic, square), rendered with the panels in the same look and served as a PNG (pictures.py FAVICON).
 - README media (#117), never in git (#226: `just pictures`, the motions packable into runners (`just blender-bins`,
-  #297, #496), model/render/pictures.py SITE, a PR's preview panel and the next Mech's, pictures.py PREVIEW, #562, #629; the hero in frame shards
+  #297, #496), model/render/pictures.py SITE; the hero in frame shards
   of about a minute each, model/shards.py, #537; until #640 CI rendered them and the site served them): the hero, an animated WebP (`just hero`: stage 3 from 15 degrees to its right, 15
   degrees above, perspective; an 8 s talking loop keyed by hand in model/render/hero.py and played by MuJoCo (its
   trajectory), the head's pan and nod in

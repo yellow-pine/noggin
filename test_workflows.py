@@ -164,10 +164,11 @@ def test_a_pr_runs_the_slim_gate_alone():
     assert {id_: job["name"] for id_, job in jobs.items()} == {"code": "Code", "checks": "Checks"}
     assert [s["name"] for s in jobs["code"]["steps"]] == [
         "Check out the repo",
+        "Link the image's venv",
         "Run just check-light",
         "List the slowest tests",
     ]
-    assert "uv run just check-light " in jobs["code"]["steps"][1]["run"]
+    assert "uv run just check-light " in jobs["code"]["steps"][2]["run"]
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
@@ -267,10 +268,40 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
 
 
-def test_codeql_scans_main_and_weekly_never_a_pr():
-    """#560: a PR waiting on CodeQL's results stalled merges, so CodeQL scans main and Mondays into the Security tab."""
+def test_the_jobs_in_our_images_use_its_synced_venv():
+    """#725: the base image carries uv's Python and the venv synced from uv.lock; main rebuilds it when the venv's
+    inputs change, and every job running in our images links it as .venv before uv touches the checkout."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert {"uv.lock", "pyproject.toml", ".python-version"} <= set(images[True]["push"]["paths"])
+    for f in WORKFLOWS:
+        for id_, job in yaml.safe_load(f.read_text())["jobs"].items():
+            if "container" in job:
+                runs = [s.get("run", "") for s in job["steps"]]
+                link = next(i for i, r in enumerate(runs) if "ln -s /opt/uv/venv .venv" in r)
+                assert all("uv " not in r for r in runs[:link]), (f.name, id_)
+
+
+def test_codeql_scans_weekly_never_a_push_or_pr():
+    """#560: a PR waiting on CodeQL's results stalled merges. #728: a run per push to main cost ~40 runs a day for two
+    won't-fix alerts ever, so CodeQL scans Mondays (and on demand) into the Security tab."""
     on = yaml.safe_load((WORKFLOWS[0].parent / "codeql.yml").read_text())[True]
-    assert set(on) == {"push", "schedule"} and on["push"]["branches"] == ["main"]
+    assert set(on) == {"schedule", "workflow_dispatch"}
+
+
+def test_dependabot_turns_on_auto_merge_as_the_bot_app():
+    """#733: a merge whose auto-merge GITHUB_TOKEN turned on starts no push workflow on main, so Dependabot's bumps
+    landed untested. The bot App turns it on, its token holding only what a merge needs (`workflows`: actions bumps
+    edit workflow files), and the job's GITHUB_TOKEN gets nothing."""
+    (job,) = yaml.safe_load((WORKFLOWS[0].parent / "dependabot.yml").read_text())["jobs"].values()
+    assert job.get("permissions", {}) == {}
+    app = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@"))
+    assert {k for k in app["with"] if k.startswith("permission-")} == {
+        "permission-contents",
+        "permission-pull-requests",
+        "permission-workflows",
+    }
+    merge = next(s for s in job["steps"] if "gh pr merge --auto" in s.get("run", ""))
+    assert merge["env"]["GH_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
 
 
 def test_main_releases_itself_once_its_checks_pass():

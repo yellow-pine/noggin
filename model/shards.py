@@ -7,7 +7,7 @@ MECH=false (the Changes job's filters) leaves that group's units out.
 And the Blender bins (`just blender-bins`; Checks ran them until #640, docs/adr/0019): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
 when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds
 "blender <unit>" that main's last rendering run measured (MEASURED, #569), else those typed in
-model/durations.json; PREVIEW=true (a PR's, #562) makes the pictures the preview alone. The hero splits into frame
+model/durations.json. The hero splits into frame
 shards of about a minute each, from its frame count and "blender hero frame", each paying "blender hero setup"
 (#537)."""
 
@@ -90,15 +90,14 @@ def frame_ranges(frames, frame_seconds):
     return [(i * frames // k, (i + 1) * frames // k) for i in range(k)]
 
 
-def blender(pictures=True, viewer=True, preview=False):
+def blender(pictures=True, viewer=True):
     """[{bin, motions, stages, viewer, images, frames}]: stages are what the bin's just trajectories bakes (TRAJ_DOCS),
     every Stage (empty) with the viewer, whose just web bakes them all; images, whether its motions put site pictures in
-    model/build/images; frames, whether it holds a frame shard. preview: the pictures are the preview alone (a PR's).
-    The hero renders in frame shards (frame_ranges), motions `hero:<first>-<end>` whose frames the Hero job joins
-    (#537)."""
+    model/build/images; frames, whether it holds a frame shard. The hero renders in frame shards (frame_ranges),
+    motions `hero:<first>-<end>` whose frames the Hero job joins (#537)."""
     from model.render.pictures import hero_frames, motions  # Blender's side only: the model shards need none of it
 
-    stages_of = {m["motion"]: m["stages"].split() for m in motions(preview)} if pictures else {}
+    stages_of = {m["motion"]: m["stages"].split() for m in motions()} if pictures else {}
     took = json.load(open(DURATIONS)) | measured(MEASURED)
     if "hero" in stages_of:
         n, per, setup = hero_frames(), took["blender hero frame"], took["blender hero setup"]
@@ -131,6 +130,6 @@ if __name__ == "__main__":
 
     on = {g: os.environ.get(g.upper()) != "false" for g in ("model", "mech", "pictures", "viewer")}
     if sys.argv[1:] == ["blender"]:
-        print(json.dumps(blender(on["pictures"], on["viewer"], os.environ.get("PREVIEW") == "true")))
+        print(json.dumps(blender(on["pictures"], on["viewer"])))
     else:
         print(json.dumps(shards(on["model"], on["mech"])))

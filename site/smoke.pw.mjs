@@ -64,6 +64,12 @@ test("the wordmark's eye looks at the pointer, and holds still for reduced motio
   }
 });
 
+// Expressive Code draws a code block in a <figure>; the centred picture figures leave it left-aligned (#719)
+test('a code block reads left-aligned', async ({ page }) => {
+  await page.goto('docs/build/flashing/');
+  await expect(page.locator('.expressive-code .ec-line').first()).toHaveCSS('text-align', 'start');
+});
+
 test('the diagrams draw, search finds a page, the version switcher switches', async ({ page }) => {
   // a deploy's versions.json with one Release's docs (scripts/docs_versions.py), and its page (docs/adr/0014)
   await page.route('**/noggin/versions.json', (r) =>

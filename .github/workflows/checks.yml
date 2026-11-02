@@ -123,17 +123,19 @@ jobs:
   code:
     name: Code
     runs-on: ubuntu-26.04
-    # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
+    # uv and the synced venv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode),
+    # shellcheck, gh and yq
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # ci/base.Dockerfile, which main's images.yml pushes (ADR 0009)
-      env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
-        UV_CACHE_DIR: /__w/uv-cache
-        UV_LINK_MODE: hardlink
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
+      # the image's venv, synced from uv.lock (#725): uv run downloads nothing, or what a newer lock changed. A :main
+      # from before #725 has none, and uv builds .venv as it did
+      - name: Link the image's venv
+        run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
       # just check's parts. Restore only: this job never decomposes, so a save here would store the key without
       # model/build/convex first and the model job's full save would be refused (a key is written once). restore-keys:
       # a change to a part starts from main's latest entry and rebuilds only what its .key files miss
@@ -386,6 +388,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Link the image's venv   # as code's
+        run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
       # restore only, as in code; the trajectories need no convex pieces (mjcf.model collide=False: no CoACD, #276)
       - name: Restore the parts cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
@@ -412,9 +416,6 @@ jobs:
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
-      env:
-        UV_CACHE_DIR: /__w/uv-cache   # as code's: uv sync hard-links just site's venv, copying it took ~25 s (#386)
-        UV_LINK_MODE: hardlink
       options: --ipc=host   # Chrome's shared memory, for mermaid-cli (https://playwright.dev/docs/docker)
     steps:
       - name: Check out the repo
@@ -423,6 +424,8 @@ jobs:
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
           fetch-depth: 0   # the tags and the commits since the last: the footer's version is git describe's (docs/adr/0017)
           filter: blob:none   # the history without its old files
+      - name: Link the image's venv   # as code's
+        run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
       # Node by site/.nvmrc, npm's cache keyed on the lockfile (just site runs npm ci)
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0

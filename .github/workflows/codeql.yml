@@ -1,14 +1,15 @@
 name: CodeQL
-# Scans the code with CodeQL on main and weekly into the Security tab; a finding gets a follow-up PR.
-# Not on PRs (#560): waiting on code scanning results stalled them, so main's ruleset no longer requires them. Advanced
-# setup (#549): one job runs the three languages in turn (init takes several, analyze uploads one result per language),
-# none of which needs a build. Default setup is off: GitHub rejects an advanced setup's uploads while it is on.
+# Scans main with CodeQL weekly (and on demand) into the Security tab; a finding gets a follow-up PR.
+# Not on PRs (#560): waiting on code scanning results stalled them, so main's ruleset no longer requires them. Not on
+# every push to main (#728): ~40 runs a day found two alerts ever, both won't-fix; ruff, pyright and zizmor cover the
+# Python and the workflows on each push. Advanced setup (#549): one job runs the three languages in turn (init takes
+# several, analyze uploads one result per language), none of which needs a build. Default setup is off: GitHub rejects
+# an advanced setup's uploads while it is on.
 on:
-  push:
-    branches: [main]
   schedule:
-    - cron: "0 4 * * 1"   # Mondays: new queries find old code
-concurrency:   # a new push to main cancels the run in progress
+    - cron: "0 4 * * 1"   # Mondays
+  workflow_dispatch:
+concurrency:   # a newer run cancels the one in progress
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions: {}

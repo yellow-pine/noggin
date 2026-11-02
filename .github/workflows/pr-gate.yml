@@ -23,14 +23,13 @@ jobs:
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as checks.yml's Code
-      env:   # as checks.yml's Code: uv sync hard-links the venv
-        UV_CACHE_DIR: /__w/uv-cache
-        UV_LINK_MODE: hardlink
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
+      - name: Link the image's venv   # as checks.yml's Code (#725)
+        run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
       - name: Run just check-light
         run: uv run just check-light | tee "$RUNNER_TEMP/pytest.txt"
         env:
