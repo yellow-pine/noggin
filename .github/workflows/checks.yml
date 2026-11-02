@@ -621,7 +621,8 @@ jobs:
   # main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009), from main's push once the gate passed (#795):
   # Site's artifact, no rebuild, with main's newest sim reports swapped in (the sim shard has saved them by now), the
   # latest docs alone (docs/adr/0021). In this run, as GitHub's Pages starter workflow, so each github-pages Deployment
-  # records the commit built and links its run. A red run deploys nothing and leaves the last site up; Main Red reports it
+  # records the commit built and links its run. A red run deploys nothing and leaves the last site up; Default Branch
+  # Failure reports it
   deploy:
     name: Deploy
     needs: checks

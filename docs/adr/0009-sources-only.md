@@ -44,6 +44,8 @@
 > required `Checks` gate), so a PR lists no job every PR skips; Checks (`checks.yml`) runs on main alone.
 > Amended 2026-11-02 (#729, Cansin): no PR builds the CI images either; main's `CI Images` run fails without moving
 > `:main`, and its failure files 'main red (CI Images)' (main-red.yml), which its next successful run closes.
+> Amended 2026-11-03 (#791, Cansin): 'main red' is now Default Branch Failure (`default-branch-failure.yml`), its
+> issues labelled `default branch failure` and `default branch images failure`.
 > Amended 2026-11-03 (#795): Site Deploy is gone; Checks' last job, `Deploy`, deploys its own run's site artifact on
 > main's push once the gate passed (GitHub's Pages starter workflow), so each github-pages Deployment records the
 > commit built.

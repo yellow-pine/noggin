@@ -1,0 +1,75 @@
+name: Default Branch Failure
+# Opens one `default branch failure` issue while the default branch's Checks fail, and closes it once Checks' Deploy
+# puts it up again; a failed CI Images run (the default branch alone builds the images, #729) opens one `default branch
+# images failure` issue, closed by its next push. PRs run a slim gate, so the default branch's post-merge run catches
+# what they no longer run (#697). A failed run opens the issue (that label, bug, ready for agent) linking the commit and
+# the run, titled a Conventional Commit scoped by the failed job, which it names (#767, #791: 'fix(model): `Checks` fail
+# on the default branch at <sha7> (Model)'), or comments on the open one, found by its label, as does a run a failed
+# step cancelled (cancel-on-failure, #769); anything else (a pass, a cancelled run superseded) says nothing (#745). It
+# acts only for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named
+# main).
+run-name: "${{ startsWith(github.event.workflow_run.display_title, format('{0}: ', github.event.workflow_run.name)) && format('Default Branch Failure: {0}', github.event.workflow_run.display_title) || format('Default Branch Failure: {0}: {1}', github.event.workflow_run.name, github.event.workflow_run.display_title) }}"
+on:
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
+    workflows: ["Checks", "CI Images"]   # by their names (test_workflows.py)
+    types: [completed]
+    branches: [main]
+concurrency:   # one at a time, so two red runs never open two issues
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  report:
+    name: Report
+    if: >-
+      ${{ github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read   # the run's jobs
+      issues: write
+    steps:
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # found by its label, never its title, which anyone may edit (#767)
+          label="default branch failure" done="Checks deployed it"
+          if [ "$WORKFLOW" = "CI Images" ]; then
+            label="default branch images failure" done="CI Images pushed the images"
+          fi
+          # the open one, by the issues API: search lags a just-opened issue
+          issue=$(gh issue list --label "$label" --json number --jq '.[0].number // empty')
+          # the failed job; a failed step cancels the rest of its run (cancel-on-failure, #769), its own job too, which
+          # may then read cancelled: a cancelled run with a failed step is red
+          [ "$CONCLUSION" = success ] || job=$(gh run view "$RUN_ID" --json jobs --jq '[.jobs[] |
+            select(.conclusion == "failure" or any(.steps[]?; .conclusion == "failure"))][0].name // empty')
+          if [ "$CONCLUSION" = cancelled ] && [ -n "$job" ]; then CONCLUSION=failure; fi
+          case "$CONCLUSION" in
+            failure|timed_out|startup_failure)
+              # a Conventional Commit, scoped by the failed job (#791); backticks keep subject-case off the name
+              case "$job" in Model*|Render*|Blender*|Convex*) scope=model ;; Site*) scope=site ;; *) scope=ci ;; esac
+              title="fix($scope): \`$WORKFLOW\` fail on the default branch at ${SHA:0:7}"
+              # the job, less a matrix's '(<shard>)'; the images' run has one job
+              if [ -n "$job" ] && [ "$WORKFLOW" != "CI Images" ]; then title+=" (${job%% (*})"; fi
+              body="$WORKFLOW failed on the default branch at $SHA${job:+ in $job}: $RUN_URL"
+              if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
+              else gh issue create --title "$title" --label "$label,bug,ready for agent" --body "$body"; fi ;;
+            success)   # green once CI Images pushed, or Checks' Deploy put a commit up (the weekly run skips it)
+              case "$WORKFLOW" in
+                "CI Images") green=1 ;;
+                Checks) green=$(gh run view "$RUN_ID" --json jobs \
+                  --jq '[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length') ;;
+                *) green=0 ;;
+              esac
+              if [ -n "$issue" ] && [ "$green" -gt 0 ]; then
+                gh issue edit "$issue" --remove-label "ready for agent,in progress,blocked,on hold"
+                gh issue close "$issue" --comment "The default branch is green again: $done ($RUN_URL)."
+              fi ;;
+          esac

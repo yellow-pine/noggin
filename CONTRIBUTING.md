@@ -13,7 +13,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   branches whose PR merged or closed, and their clean worktrees, with gh-poi). Open the PR against main on the first push and turn auto-merge on at once
   (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
   conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
-  branch on GitHub has a PR, except on-hold work.
+  branch on GitHub has a PR, except work on hold.
 - Whoever works the ticket keeps its PR green and answers each review thread (a fix, or a reply saying why not) before
   resolving it.
 - Main is protected: a green PR with Claude's approval is the only way in. A PR merges on the slim gate (#696, #714:
@@ -24,12 +24,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   renamed or the PR needs a fix that just landed on main, and push plain commits, never a force-push: each push
   dismisses the approval and re-runs the review. GitHub shows no update-branch banner (the repo's "Always suggest
   updating pull request branches" is off, Cansin, 2026-11-02). A Dependabot PR gets `@dependabot rebase`.
-- Every ready PR gets Claude's review (`.github/workflows/review.yml`: mattpocock code-review plus ponytail):
+- Every ready PR gets Claude's review (`.github/workflows/claude-review.yml`: mattpocock code-review plus ponytail):
   claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
   ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
   approval lands on the head (re-run the job, #389). Its approval resolves its own threads a later push outdated
-  (`scripts/claude_approved.py`). A PR that edits review.yml gets no review and needs Cansin's bypass. When main's
-  review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
+  (`scripts/claude_approved.py`). A PR that edits claude-review.yml gets no review and needs Cansin's bypass. When main's
+  claude-review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
   the new head (#433): `git pull --rebase` before your next push. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice,
   for Actions and for Dependabot (whose PRs only see Dependabot secrets): run `claude setup-token`, then `gh secret set
   CLAUDE_CODE_OAUTH_TOKEN` and `gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`.
@@ -47,18 +47,19 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
   is wrong.
 - An issue's title is a Conventional Commit too, by the same rules, so it can become its PR's title (#767), whoever or
-  whatever opens it: an automation writes a valid one from the start (Main Red's is `fix(ci): main red on <sha7>`) and
-  finds its issues by label, never by a title anyone may edit. The `Issue Title` workflow
+  whatever opens it: an automation writes a valid one from the start (Default Branch Failure's is `fix(model):
+  \`Checks\` fail on the default branch at <sha7> (Model)`, #791) and finds its issues by label, never by a title
+  anyone may edit. The `Issue Title` workflow
   (`.github/workflows/issue-title.yml`) runs main's commitlint on each issue opened or edited; an issue can't be
-  blocked, so a failing title gets a comment with the rule and the `needs-title` label, and passing removes both.
+  blocked, so a failing title gets a comment with the rule and the `needs title` label, and passing removes both.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
-- Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet; a spec
-  from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another ticket,
-  hardware), `on-hold` (paused by Cansin). `blocked` and `on-hold` are set by hand. The implementer sets `in-progress`
-  on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR opened by hand),
-  and clears every state label when the issue closes.
+- Issue state labels, one per state: `ready for agent` (can start), `in progress` (picked up and not in main yet; a
+  spec from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another
+  ticket, hardware), `on hold` (paused by Cansin). `blocked` and `on hold` are set by hand. The implementer sets
+  `in progress` on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR
+  opened by hand), and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
   holds a placeholder). Main releases itself: once a push to main passes Checks, `Release` (semantic-release,
   `.releaserc.json`) tags `vX.Y.Z` and writes the GitHub release's notes when a title merged since the last tag is a
@@ -71,7 +72,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   private App on yellow-pine, installed on this repo only, with Contents, Pull requests, Issues and Workflows read and
   write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
   `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
-  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in review.yml's `allowed_bots`, or
+  secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in claude-review.yml's `allowed_bots`, or
   its PRs get no review.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
@@ -97,7 +98,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`) under a kebab-case id,
   every step a short sentence-case imperative like its `Set up job`, every workflow a Title Case name in its kebab-case
-  file (Main Red in `main-red.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
+  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
   weekly <what>`, `<Workflow>: manual by <actor>`, `<Workflow>: <triggering run's title>` (#773, `test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: its `Check the required checks`
   step, yq and comm) and run `gh pr update-branch` on every open PR so it reports the new name. A required check names
@@ -126,8 +127,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own `fix(ci): main red on
-  <sha7>` issue, labelled `main-red` and found by it (#697, #745, #767). Only the main session runs the full run on a
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red default branch files its own issue (`fix(<the
+  failed job's scope>): \`Checks\` fail on the default branch at <sha7> (<job>)`), labelled `default branch failure`
+  and found by it (#697, #745, #767, #791). Only the main session runs the full run on a
   branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
   slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
@@ -136,7 +138,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   which deploys and Release waits on, never cancels: main's runs queue and each finishes, so merges minutes apart
   still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
   neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
-  (`.github/actions/`), which cancels the rest of the run at once, and Main Red files it all the same (#769).
+  (`.github/actions/`), which cancels the rest of the run at once, and Default Branch Failure files it all the same
+  (#769).
   Checks' `Deploy`, Release and Release Assets never cancel a run mid-way.
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
@@ -159,11 +162,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
   (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
-  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `main-red-images`.
+  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `default branch images failure`.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Checks' last job, `Deploy`, deploys the very artifact its `Site` built to GitHub Pages, once the gate passed on
   main's push (#295, #310, #795), as GitHub's Pages starter workflow does: each github-pages Deployment records the
-  commit built and links its run. Main Red reports a red Checks run.
+  commit built and links its run. Default Branch Failure reports a red Checks run.
 
 ## Licence
 
