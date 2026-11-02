@@ -23,6 +23,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - I can't measure (no calliper): a size my build doesn't settle is a best guess from its behaviour or photos, then the model's nominals, marked inferred.
 - Hardware never gates a merge: Core and Link PRs merge on green, and I try them on the physical Mech after.
 - Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- After a merge that changes the next Mech's look, the main session opens its new pictures and motion for me: the PR's preview, then the live Pictures page once deployed.
 - No real photos in git, the README or the site until staged photos exist; Blender pictures and the viewer stand in, once ADR 0019 lets them.
 - Today's Mech is shown nowhere public (site, README, releases, CI artifacts) until the clean-room Mech exists (ADR 0019, #640).
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).
