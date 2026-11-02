@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from model import mujoco_report, report, stages
+from model import gimbal, mujoco_report, report, stages
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
@@ -55,7 +55,29 @@ def problems(report):
                     out.append(
                         f"electrical {core}: {v} V on a {e[case]['pack_v']} V pack < the {e['brownout_v']} V brownout"
                     )
-    return out + mujoco_problems(report)
+    return out + mujoco_problems(report) + gimbal_problems(report)
+
+
+def gimbal_problems(report):
+    """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play, the caps' gap, the lids' clearance
+    to what moves inside them and to each other, their servo range."""
+    m, out = report.get("gimbal"), []
+    if not m:
+        return out
+    if m["gaze_deg"] > gimbal.GAZE_DEG:
+        out.append(f"gimbal gaze: {m['gaze_deg']} deg off with play > {gimbal.GAZE_DEG}")
+    if m["cap_gap_mm"] < gimbal.CAP_GAP_MM:
+        out.append(f"gimbal caps: {m['cap_gap_mm']} mm apart < {gimbal.CAP_GAP_MM}")
+    lid = m["lid"]
+    if min(lid["clearance_mm"], lid["apart_mm"]) < gimbal.LID_CLEAR_MM:
+        out.append(
+            f"gimbal lids: {lid['clearance_mm']} mm clear of the parts inside them, {lid['apart_mm']} mm apart"
+            f" < {gimbal.LID_CLEAR_MM}"
+        )
+    out += [
+        f"gimbal lid servo: {d} deg past its {gimbal.SERVO_DEG}" for d in lid["servo_deg"] if abs(d) > gimbal.SERVO_DEG
+    ]
+    return out
 
 
 def deeper(pair):
@@ -126,6 +148,10 @@ FIXTURE_PROBLEMS = {
         "mujoco tilt horn: holds 0.45 kgf.cm at {'tilt horn': -60} > its rated 0.4 (stall 1.0)",
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
+        "gimbal gaze: 2.1 deg off with play > 2.0",
+        "gimbal caps: 0.8 mm apart < 1.0",
+        "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
+        "gimbal lid servo: -95.0 deg past its 90.0",
     ],
 }
 

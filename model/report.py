@@ -1,8 +1,8 @@
 """The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
-whole Mech, and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
-model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads:
-build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
+whole Mech, the next Mech's eye gimbal (model/gimbal.py), and the MuJoCo half (model/mujoco_report.py), measured on
+the document's MJCF, written beside it as model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json
+in the shape model/test_report.py reads: build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
 Usage: python -m model.report [doc ...]"""
 
 import concurrent.futures
@@ -14,7 +14,7 @@ import time
 
 import mujoco
 
-from model import beams, convex_parts, electrical, fits, mjcf, mujoco_report, stages
+from model import beams, convex_parts, electrical, fits, gimbal, mjcf, mujoco_report, stages
 from model import geometry as g
 
 OUT = os.path.join(stages.REPO, "model", "build", "reports")  # CI thresholds them (model/test_report.py)
@@ -39,6 +39,8 @@ def report(doc):
         "fits": fits.fit_table(joints),
         "beams": beams.beam_table(links),
     }
+    if "next-eyes" in stages.DOCS[doc][0]:  # the next Mech's eye gimbal moves by its own kinematics (#630)
+        out["gimbal"] = gimbal.report()
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report

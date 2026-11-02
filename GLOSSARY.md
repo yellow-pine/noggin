@@ -20,6 +20,12 @@ The next Mech's structural parts, the same under every Character: the eye gimbal
 electronics mount, in black PETG.
 _Avoid_: frame, chassis, core
 
+**Eye gimbal**:
+The Skeleton's linked eyes: each eyeball core turns up/down inside a yoke that turns left/right, one servo turns both
+yokes through a tie-bar, one turns both cores through push-rods, and each lid turns about the up/down axis on a servo
+of its own. The eyeball caps (Shells) sit on the cores.
+_Avoid_: eye mech, eye frame, linked eyes (as a part name)
+
 **Shell**:
 One cosmetic part a Character puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in
 PLA Pure, held on by magnets.
