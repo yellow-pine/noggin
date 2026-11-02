@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.6](https://github.com/yellow-pine/noggin/compare/v0.2.5...v0.2.6) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ci:** the Bash guard knows the heavy recipes even without just on the PATH ([#573](https://github.com/yellow-pine/noggin/issues/573)) ([d3d6e23](https://github.com/yellow-pine/noggin/commit/d3d6e237c460ad1e380acc26323b3235cdda2e0b))
+* **scripts:** `pr_title.py` checks the subject with the pattern the PR check now takes from it ([#557](https://github.com/yellow-pine/noggin/issues/557)) ([664f7b7](https://github.com/yellow-pine/noggin/commit/664f7b7dcb4df0f2c1a9febae7fee0eeb7d627ca))
+* **site:** katex 0.18 under mermaid-cli (GHSA-238p-pmpm-9mq7) ([#539](https://github.com/yellow-pine/noggin/issues/539)) ([6661228](https://github.com/yellow-pine/noggin/commit/6661228a996afcd694bbd9e9d678700c5c8bcbc4))
+
+
+### Documentation
+
+* **adr:** name the Checks workflow and the four required checks ([#544](https://github.com/yellow-pine/noggin/issues/544)) ([35e3f57](https://github.com/yellow-pine/noggin/commit/35e3f575fe878e9a738392c740c8fb691965d278))
+* **adr:** the web viewer's ADR names Checks and Site Deploy, and ADRs name just recipes ([#566](https://github.com/yellow-pine/noggin/issues/566)) ([9b5e752](https://github.com/yellow-pine/noggin/commit/9b5e75288e4af02114aece2292bd1756e52d5aab))
+* **docs:** a private vulnerability report form and the GitHub tools directive ([#571](https://github.com/yellow-pine/noggin/issues/571)) ([476cf14](https://github.com/yellow-pine/noggin/commit/476cf14ec42d06b1e40b19aef3144ba2f049f213))
+* **docs:** the directive for security alerts in CLAUDE.md ([#559](https://github.com/yellow-pine/noggin/issues/559)) ([63af439](https://github.com/yellow-pine/noggin/commit/63af439f74525e2388ea9ce871d6ab7fb715abd4))
+* **docs:** the implementer marks its issue in-progress on pickup ([#546](https://github.com/yellow-pine/noggin/issues/546)) ([8215584](https://github.com/yellow-pine/noggin/commit/82155840b993516f7515c6ce92706fe7940b8051))
+* **docs:** the implementer's run ends only on a merged PR or a human blocker ([#558](https://github.com/yellow-pine/noggin/issues/558)) ([54824eb](https://github.com/yellow-pine/noggin/commit/54824ebc5afeaa51fe01c7591dfe8bc3b0dfac21))
+* **docs:** the README's badges match today's CI, releases and stack ([#541](https://github.com/yellow-pine/noggin/issues/541)) ([00ec9fa](https://github.com/yellow-pine/noggin/commit/00ec9fa746d9505216a1417b4f31b6927eb468c3))
+
 ## [0.2.5](https://github.com/yellow-pine/noggin/compare/v0.2.4...v0.2.5) (2026-11-02)
 
 
