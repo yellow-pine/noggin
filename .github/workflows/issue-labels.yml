@@ -1,0 +1,53 @@
+name: Issue Labels
+# Keeps issues' state labels in step: a PR sets the issues it links in-progress, and closing an issue clears its labels.
+# `In Progress`: each open issue the PR's body links (Closes/Fixes/Resolves #N or Refs #N, main's scripts/pr_issue.py)
+# gets `in-progress` in place of `ready-for-agent` and `blocked`; `on-hold` stays (#446). `Clear Labels`: a closed
+# issue loses every state label (CONTRIBUTING.md). `blocked` and `on-hold` are otherwise set and lifted by hand.
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review]
+  issues:
+    types: [closed]
+concurrency:   # one run per PR or issue; a newer edit supersedes the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  in-progress:
+    name: In Progress
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    permissions:
+      issues: write
+    steps:
+      - name: Check out the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}   # main's script, as PR Issue runs it
+          persist-credentials: false
+          sparse-checkout: scripts/pr_issue.py
+          sparse-checkout-cone-mode: false
+      - name: Label the linked issues in-progress
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
+        run: |
+          for n in $(python3 scripts/pr_issue.py --list <<<"$BODY"); do
+            # a fix-forward PR may Refs a closed issue (or a merged PR): only an open one is in progress
+            [ "$(gh issue view "$n" --repo "$GITHUB_REPOSITORY" --json state -q .state)" = OPEN ] || continue
+            gh issue edit "$n" --repo "$GITHUB_REPOSITORY" --add-label in-progress --remove-label ready-for-agent,blocked
+          done
+  clear:
+    name: Clear Labels
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-26.04
+    permissions:
+      issues: write
+    steps:
+      - name: Remove the state labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: >-
+          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY"
+          --remove-label ready-for-agent,in-progress,blocked,on-hold

@@ -60,7 +60,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
-  `on-hold` (paused by Cansin). Closing an issue removes its state label.
+  `on-hold` (paused by Cansin). The `Issue Labels` workflow keeps them in step: a PR sets each issue its body links
+  `in-progress` (dropping `ready-for-agent` and `blocked`), and closing an issue removes its state label; `blocked` and
+  `on-hold` are otherwise set by hand.
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json` to a commit (`ref`); the `skills` CLI
   (`ci/package.json`, `npm ci --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`)
   restores them into `.agents/skills` (gitignored but for the project's own skill, `release`), which the committed
