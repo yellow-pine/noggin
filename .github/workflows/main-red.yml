@@ -1,0 +1,42 @@
+name: Main Red
+# Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again.
+# PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). scripts/main_red.py: a failed
+# run opens the issue (bug, ready-for-agent) with the commit, the failing jobs and their FAILED and Error lines, or
+# comments on the open one; a deploy closes it; a cancelled run (superseded) says nothing. It acts only for this
+# repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named main).
+on:
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checking out main
+    workflows: ["Checks", "Site Deploy"]   # as main_red.WATCHED (scripts/test_main_red.py)
+    types: [completed]
+    branches: [main]
+concurrency:   # one at a time, so two red runs never open two issues
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  report:
+    name: Report
+    if: >-
+      ${{ github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: read   # the run's jobs and log
+      issues: write
+    steps:
+      - name: Check out main_red.py
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          sparse-checkout: scripts/main_red.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false   # nothing here pushes
+      - name: Open, update or close the issue
+        run: python3 scripts/main_red.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
