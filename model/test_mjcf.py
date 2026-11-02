@@ -306,8 +306,8 @@ def test_every_screw_and_pin_joint_keeps_its_sites_together(doc):
     for (h, d), data in sweep(doc).items():
         gaps = mjcf.mating_gaps(model, data)
         assert set(gaps) == {j for j, feats in mating.JOINTS if all(p in stage.parts for p, _ in feats)}
-        worst = max(gaps, key=gaps.get)
-        assert gaps[worst] < mating.COAXIAL_MM, (h, d, worst, gaps[worst])
+        for joint, mm in gaps.items():  # none in the next Mech's documents
+            assert mm < mating.COAXIAL_MM, (h, d, joint, mm)
 
 
 def test_every_part_weighs_its_mass_spread_over_its_pieces():

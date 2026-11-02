@@ -23,6 +23,13 @@ _OPEN = (
     " past the model's free travel (geometry.LIMITS, #210): the ears' back corners cross from +16.5 and the upper lid"
     " reaches the eye bracket's arm from +28. Conflict, recorded, not settled"
 )
+# Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
+NESTED = {
+    frozenset((f"next {s} eyeball cap:1", f"next {s} lid:1")): "the lid's shell turns about the cap's own centre, its"
+    " inside 1.5 mm out from the cap (gimbal.LID_R, CAP_R): its convex pieces fill that inside, so they read the cap"
+    " 0.06 mm deeper than at rest as it yaws under a half-shut lid (attention); gimbal.report() holds the exact gap (#663)"
+    for s in "LR"
+}
 KNOWN_CALIBRATED = {
     **{frozenset((f"{s} lower lid:1", f"{s} upper lid:1")): _OPEN for s in "LR"},
     **{frozenset((f"{s} upper lid:1", "eye bracket:1")): _OPEN for s in "LR"},
@@ -36,14 +43,14 @@ def built(doc):
 
 def overlaps(doc, motion, calibrated=KNOWN_CALIBRATED):
     """{(part, part): (ms, mm)} a reading of each pair whose pieces go PENETRATION_MM deeper than at rest anywhere in
-    the motion as played, certified between the sim's steps (gates.certify, #627), KNOWN_PAIRS aside and the calibrated
-    pairs while their lid horn is past its free travel."""
+    the motion as played, certified between the sim's steps (gates.certify, #627), KNOWN_PAIRS and NESTED aside and the
+    calibrated pairs while their lid horn is past its free travel."""
     model = built(doc)
     rest = mjcf.pose(model, {})
     floors = {
         p: min(gates.separation(model, rest, p), 0) - mujoco_report.PENETRATION_MM
         for p in gates.pairs(model)
-        if frozenset(p) not in KNOWN_PAIRS
+        if frozenset(p) not in KNOWN_PAIRS.keys() | NESTED.keys()
     }
 
     def excused(pair, data):

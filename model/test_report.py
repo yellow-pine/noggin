@@ -20,6 +20,12 @@ KNOWN_PAIRS = {
         " nothing 0.1 mm inside (model/test_mjcf.py holds the pieces to that)"
         for s in "LR"
     },
+    **{
+        frozenset((f"next {s} push-rod:1", "next bail:1")): "the push-rod's cup round the bail arm's ball: its convex"
+        " pieces fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the"
+        " exact solids share no volume at pitch -15, 0 and 15 (#663)"
+        for s in "LR"
+    },
 }
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
 # servos are DC motors (#625): the stage 3 pan swing to -40 no longer carries the head through the pan toggle.
