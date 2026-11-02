@@ -49,12 +49,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   release, and the tag's `Release Assets` run attaches the Core program zip and the release's docs, built under
   /noggin/vX.Y/ (docs/adr/0014), as the release's deployment in the `release` environment (Deployments panel), linked
   from the release's notes, and then deploys the site so those docs are live at once. Never edit the version, the
-  manifest or CHANGELOG.md by hand. Both workflows run as the release GitHub App, because what `GITHUB_TOKEN` creates
-  starts no workflow: a private App on yellow-pine, installed on this repo only, with Contents, Pull requests and Issues
-  read and write and no webhook. Each run mints a short-lived token from the App's Client ID (the
-  `RELEASE_APP_CLIENT_ID` variable) and private key (the `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists
-  Release Please only leaves a notice. The App's `<slug>[bot]` must be in review.yml's `allowed_bots`, or its release PR
-  gets no review.
+  manifest or CHANGELOG.md by hand. Both workflows, and the weekly `skills` and `blender` ones, run as the repo's bot
+  App, because what `GITHUB_TOKEN` creates starts no workflow, so its PRs would get no checks: a private App on
+  yellow-pine, installed on this repo only, with Contents, Pull requests and Issues read and write and no webhook. Each
+  run mints a short-lived token from the App's Client ID (the `RELEASE_APP_CLIENT_ID` variable) and private key (the
+  `RELEASE_APP_PRIVATE_KEY` secret); until the variable exists Release Please only leaves a notice. The App's
+  `<slug>[bot]` must be in review.yml's `allowed_bots`, or its PRs get no review.
 - Issue state labels, one per state: `ready-for-agent` (can start), `in-progress` (picked up and not in main yet:
   being worked on or waiting on its PR; a spec is in-progress from its first ticket until its
   last ticket reaches main), `blocked` (waits on something else, named in the issue: another ticket, hardware),
@@ -64,7 +64,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   restores them into `.agents/skills` (gitignored but for the project's own skill, `release`), which the committed
   `.claude/skills` link points at, and
   `node scripts/verify_skills.mjs` checks each against its `computedHash`. Bumps arrive as PRs: the weekly `skills`
-  workflow re-pins to upstream HEAD (close and reopen its PR to start the checks, again after each refresh),
+  workflow re-pins to upstream HEAD,
   Dependabot pins actions by SHA and bumps the CLI. Every Dependabot PR, majors too, gets auto-merge (`.github/workflows/dependabot.yml`)
   and merges once the required checks and Claude's review pass.
   Blender is pinned (version and the Linux tarball's sha256) in the workflows that run it; the weekly `blender`

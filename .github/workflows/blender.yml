@@ -1,8 +1,8 @@
 name: Blender Updates
 # Re-pins Blender to the newest stable release at least 14 days old and opens (or refreshes) a PR, weekly.
-# scripts/blender_pin.py (#334) rewrites the version and the Linux tarball's sha256 wherever the pin lives. A PR opened
-# with GITHUB_TOKEN starts no workflows (https://docs.github.com/en/actions/concepts/security/github_token): close and
-# reopen it to run its checks.
+# scripts/blender_pin.py (#334) rewrites the version and the Linux tarball's sha256 wherever the pin lives. It acts as
+# the bot App (CONTRIBUTING.md): a PR opened with GITHUB_TOKEN starts no workflows
+# (https://docs.github.com/en/actions/concepts/security/github_token).
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -16,8 +16,7 @@ jobs:
     name: Re-pin Blender
     runs-on: ubuntu-26.04
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -32,10 +31,19 @@ jobs:
           echo "version=${out%% *}" >> "$GITHUB_OUTPUT"
           echo "sources=${out#* }" >> "$GITHUB_OUTPUT"
       # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
+      - name: Mint the bot App's token
+        id: app
+        if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write   # its own branch
+          permission-pull-requests: write
       - name: Open or refresh the PR
         if: ${{ github.ref == 'refs/heads/main' && steps.pin.outputs.version != '' }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.pin.outputs.version }}
           SOURCES: ${{ steps.pin.outputs.sources }}
         run: |
