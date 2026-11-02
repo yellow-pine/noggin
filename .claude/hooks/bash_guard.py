@@ -152,10 +152,10 @@ def reason(command, makefile):
             light = "make check-light" if "check" in heavy else "make lint"
             return f"make: heavy builds run in CI, not here; run {light} and the tests you touched, then push."
         if loop and any("pgrep" in w for w in words):
-            return "pgrep in a loop matches itself; wait with gh pr checks --watch, gh run watch or kill -0 on a PID."
+            return "pgrep in a loop matches itself; gh run watch, or kill -0 on a PID (CONTRIBUTING's Waiting on CI)."
         body = next((segments[i:j] for j in range(i, len(segments)) if segments[j][0][:1] == ["done"]), segments[i:])
         if loop == "until" and not any(Path(w).name == "sleep" for b, *_ in body for w in b):
-            return "until without sleep spins the CPU; add sleep N to its body, or use gh pr checks --watch."
+            return "until without sleep spins the CPU; add sleep N to its body (CONTRIBUTING's Waiting on CI)."
     return None
 
 
