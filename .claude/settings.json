@@ -1,4 +1,29 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(git stash *)",
+      "Bash(just check *)",
+      "Bash(just check-all *)",
+      "Bash(just hero *)",
+      "Bash(just pictures *)",
+      "Bash(just render *)",
+      "Bash(just sim *)",
+      "Bash(just test *)",
+      "Bash(just trajectories *)",
+      "Bash(just view *)",
+      "Bash(just web *)",
+      "Bash(uv run just check *)",
+      "Bash(uv run just check-all *)",
+      "Bash(uv run just hero *)",
+      "Bash(uv run just pictures *)",
+      "Bash(uv run just render *)",
+      "Bash(uv run just sim *)",
+      "Bash(uv run just test *)",
+      "Bash(uv run just trajectories *)",
+      "Bash(uv run just view *)",
+      "Bash(uv run just web *)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -6,10 +31,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash_guard.py" }]
-      },
       {
         "matcher": "Agent",
         "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/sync_checkout.py" }]

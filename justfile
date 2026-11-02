@@ -12,7 +12,7 @@ MPYC := BIN / "mpy-cross"
 BLENDER := "/Applications/Blender.app/Contents/MacOS/Blender"
 NOGGIN := "noggin/noggin"
 # one heavy command (MuJoCo, CoACD, Blender) at a time on this machine, the next waits (#246); the recipes that take
-# it are in the heavy group, which .claude/hooks/bash_guard.py keeps for CI
+# it are in the heavy group, which .claude/settings.json's deny list keeps for CI
 HEAVY := PY + " scripts/heavy.py"
 PLIST := home_directory() / "Library/LaunchAgents/com.noggin.plist"
 LABEL := "gui/" + `id -u` + "/com.noggin"
