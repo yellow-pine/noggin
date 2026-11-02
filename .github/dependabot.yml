@@ -76,11 +76,11 @@ updates:   # PR titles are Conventional Commits with a scope (docs/adr/0010): ev
       prefix: ci
       include: scope
   # the jobs' container images (ci/pins/Dockerfile's ghcr.io/yellow-pine/noggin-ci-*:main@sha256, which the workflows
-  # read: Dependabot can't bump a workflow's `container:`, #444): the digests main's CI Images run pushed (a Dockerfile
-  # change, the Monday rebuild), proposed for review like any other PR
+  # read: Dependabot can't bump a workflow's `container:`, #444): the digests main's CI Images run pushed on a
+  # Dockerfile change, proposed for review like any other PR
   - package-ecosystem: docker
     directory: /ci/pins
-    schedule:   # no cooldown: our own build outputs, the weekly rebuild's security fixes
+    schedule:   # no cooldown: our own build outputs, carrying the /ci entry's security fixes
       interval: daily
     commit-message:
       prefix: ci

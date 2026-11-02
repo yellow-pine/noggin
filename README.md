@@ -12,7 +12,7 @@
 
 An animatronic Mech on the desk that reacts to Claude Code.
 
-<p align="center"><img src="https://yellowpine.com/noggin/images/hero.gif" width="800" alt="noggin: Stage 3 talking, turning and nodding"></p>
+<p align="center"><a href="https://yellowpine.com/noggin/viewer/"><img src="https://yellowpine.com/noggin/images/hero.gif" width="800" alt="noggin: Stage 3 talking, turning and nodding"></a></p>
 
 > [!TIP]
 > ## [Docs, build guide and live 3D viewer → https://yellowpine.com/noggin](https://yellowpine.com/noggin/)
@@ -47,7 +47,7 @@ Generated from `.github/workflows` (`make readme`):
 | Dependabot Auto-merge | `dependabot.yml` | `pull_request` | Auto-merge | Turns on auto-merge (squash) for Dependabot's PRs: each merges once the required checks and Claude's review pass |
 | Deploy Pending | `deploy-pending.yml` | `push` (`main`) | Deploy Pending | Sets a main commit's `deploy` status pending while Site Checks build its site |
 | Firmware Watch | `firmware.yml` | `schedule` (`0 6 * * 1`), `workflow_dispatch` | Watch | Opens an issue for each new Core firmware on the vendor's release notes, weekly |
-| CI Images | `images.yml` | `pull_request` (paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `push` (`main`; paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `schedule` (`0 4 * * 1`), `workflow_dispatch` | Build, Push | Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR |
+| CI Images | `images.yml` | `pull_request` (paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `push` (`main`; paths: `ci/*.Dockerfile`, `.github/workflows/images.yml`), `workflow_dispatch` | Build, Push | Builds the CI images the Chrome and Blender jobs run in; main pushes them to GHCR |
 | Issue Labels | `issue-labels.yml` | `pull_request`, `issues` | In Progress, Clear Labels | Keeps issues' state labels in step: a PR sets the issues it links in-progress, and closing an issue clears its labels |
 | Site Deploy | `pages.yml` | `workflow_run` (workflows: `Code Checks`, `Site Checks`; `main`), `workflow_dispatch` | Checks, Deploy, Deploy Status | Deploys Site Checks' site artifact to Pages once main's checks pass, with every release's docs beside it |
 | PR Checks | `pr-checks.yml` | `pull_request` | PR Title, PR Issue | Checks the PR's title is a Conventional Commit with one of the repo's scopes and its body links its issue |

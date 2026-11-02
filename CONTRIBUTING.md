@@ -18,7 +18,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   not be up to date with main: the rare break two green PRs make together is fixed forward on main (#283). The
   approval comes from Claude's review (claude[bot]) and is dismissed on every push, so each push is re-reviewed; a PR
   that edits review.yml gets no review and needs Cansin's bypass. So rebase a PR onto main only when GitHub reports a
-  conflict, a required check was renamed or the PR needs a fix that just landed on main. When main's
+  conflict, a required check was renamed or the PR needs a fix that just landed on main, and then with
+  `scripts/rebase_pr.sh <n>` (`--help`): it rebases in your session's worktree, runs `make check-light` and pushes
+  with a lease. A session labels each PR it opens or takes `session:<name>` (`gh label create session:<name> --force`,
+  `gh pr edit <n> --add-label session:<name>`); the script refuses another session's PR unless `--take`. When main's
   `.github/workflows/review.yml` changed since the branch's base, claude-code-action skips the review (it reviews only
   a PR whose review.yml matches main's), so `Review` rebases the branch itself (as the release App) and fails, and the
   review re-runs on the new head (#433); pull before your next push. A Dependabot PR gets `@dependabot rebase`. The
@@ -117,7 +120,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Run `make check-light` before pushing (the pre-push hook `make venv` turns on runs it): lint, types and the tests
   marked neither `model` nor `build`, in seconds without the CadQuery build. `make check` is CI's `Code` set, everything
   but the tests marked `model`; `make check-all` adds those. The heavy targets (`make check-all`'s model tests, `test`,
-  `sim`, `trajectories`, `render`, `gifs`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
+  `sim`, `trajectories`, `render`, `hero`, `web`, `view`'s MJCF) take a machine-wide lock (`scripts/heavy.py`), so only one runs at a time and the next waits,
   saying for which process: several at once took the Mac to ~30 GB. CI runs everything (a PR what it touches, below), split over three required jobs
   (`.github/workflows/check.yml`): `Code` (`make check`), `Mech` (below) and `Model` (the `model` tests, `make
   view`'s scene rendered offscreen among them, and `make stl step` on main or when the parts changed, split into
@@ -141,11 +144,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Code Checks' `Code` in `ci/base.Dockerfile`, `Render` and `Viewer` in `ci/blender.Dockerfile` (base plus Blender),
   pinned by digest in `ci/pins/Dockerfile`, which each workflow's `Images` job hands to their `container:` (Dependabot
   can't bump a pin in a workflow, #444); every other job stays on the bare runner with setup-uv and apt, since an
-  image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`)
-  builds them; only main writes to GHCR: it pushes `:main`, with its build provenance, when a Dockerfile changes and
-  every Monday without cache, and Dependabot proposes the new digests within a day (the run's summary has the same pin
-  as one command); that PR's checks are the first to run in them. A PR that changes a Dockerfile only builds the images
-  (main's layer cache, read only).
+  image pull costs ~30-40 s a job. The `CI Images` workflow (`images.yml`) builds them; only main writes to GHCR: it
+  pushes `:main`, with its build provenance, only when a Dockerfile changes (Dependabot's base-image bumps in ci/
+  bring the security fixes, #472), and Dependabot proposes the new digests within a day (the run's summary has the
+  same pin as one command); that PR's checks are the first to run in them. A PR that changes a Dockerfile only builds
+  the images (main's layer cache, read only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
   and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,

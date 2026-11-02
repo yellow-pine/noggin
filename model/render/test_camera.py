@@ -24,17 +24,10 @@ def test_perspective_fit_backs_off_until_the_widest_points_touch_the_frame_edge(
     assert cam.matrix[:3, 3] == pytest.approx([0, -1 / 0.36, 0])
 
 
-def test_three_quarter_is_halfway_between_front_and_side_and_raised():
-    # the Mech's front faces -Y, its right side -X (PT frame): front-right corner, 25 degrees up
-    c, s = np.cos(np.radians(25)), np.sin(np.radians(25))
-    assert camera.three_quarter((0, -1, 0), (-1, 0, 0), (0, 0, 1), 25) == pytest.approx(
-        [-c / np.sqrt(2), -c / np.sqrt(2), s]
-    )
-
-
 def test_perspective_fit_keeps_every_point_in_frame_and_one_on_an_edge():
     pts = np.random.default_rng(1).normal(size=(200, 3)) * (60, 90, 40)
-    eye_dir = camera.three_quarter((0, -1, 0), (-1, 0, 0), (0, 0, 1), 25)
+    c, s = np.cos(np.radians(25)), np.sin(np.radians(25))
+    eye_dir = (-c / np.sqrt(2), -c / np.sqrt(2), s)  # the Mech's front-right corner, 25 degrees up
     cam = camera.fit(pts, eye_dir, (0, 0, 1), aspect=4 / 3, lens=60, margin=1.1)
     local = (pts - cam.matrix[:3, 3]) @ cam.matrix[:3, :3]  # camera frame: x right, y up, -z ahead
     u = local[:, 0] / -local[:, 2] / (camera.SENSOR_MM / 2 / 60)  # +-1 at the frame's side edges
