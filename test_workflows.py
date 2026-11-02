@@ -262,10 +262,16 @@ def test_the_ci_images_rebuild_uncached_each_week_before_the_scan():
     assert (build[2:], scan[2:]) == (["*", "*", "1"], ["*", "*", "1"])  # both on Mondays
     assert int(build[1]) < int(scan[1])
     jobs = flows["images.yml"]["jobs"]
-    assert jobs["push"]["if"] == "${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}"
-    assert "pull_request" in jobs["build"]["if"]
+    assert jobs["push"]["if"] == "${{ github.ref == 'refs/heads/main' }}"
     pushes = [s["with"] for s in jobs["push"]["steps"] if s["name"].startswith("Push")]
     assert [p["no-cache"] for p in pushes] == ["${{ github.event_name != 'push' }}"] * 2
+
+
+def test_the_ci_images_build_on_main_alone():
+    """#729: a PR never builds the images; main's push build fails without moving :main, and hadolint lints the
+    Dockerfiles in main's Code job, so a broken Dockerfile files 'main red' (main-red.yml)."""
+    images = yaml.safe_load((WORKFLOWS[0].parent / "images.yml").read_text())
+    assert "pull_request" not in images[True] and list(images["jobs"]) == ["push"]
 
 
 def test_the_jobs_in_our_images_use_its_synced_venv():
@@ -304,6 +310,22 @@ def test_dependabot_turns_on_auto_merge_as_the_bot_app():
     assert merge["env"]["GH_TOKEN"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
 
 
+def test_bump_prs_open_through_create_pull_request():
+    """#748: the weekly bumps open their PR with peter-evans/create-pull-request as the bot App, whose token holds only
+    its own branch and the PR; no hand-rolled push or `gh pr` is left."""
+    for name in ("blender.yml", "skills.yml"):
+        jobs = yaml.safe_load((WORKFLOWS[0].parent / name).read_text())["jobs"].values()
+        steps = [s for job in jobs for s in job["steps"]]
+        app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token@"))
+        assert {k for k in app["with"] if k.startswith("permission-")} == {
+            "permission-contents",
+            "permission-pull-requests",
+        }
+        pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request@"))
+        assert pr["with"]["token"] == f"${{{{ steps.{app['id']}.outputs.token }}}}"
+        assert not [s for s in steps if "git push" in s.get("run", "") or "gh pr" in s.get("run", "")], name
+
+
 def test_main_releases_itself_once_its_checks_pass():
     """#582, docs/adr/0017: semantic-release runs after this repo's push to main passed Checks, on that commit, one run
     at a time and never cancelled, as the bot App, so its tag starts Release Assets. No Release Please is left."""
@@ -324,3 +346,20 @@ def test_main_releases_itself_once_its_checks_pass():
     left = ["release-please.yml", "release-now.yml"]
     assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
+
+
+def test_site_deploy_deploys_a_passed_main_push_checks_run_in_one_job():
+    """#731: one Deploy job, no `deploy` commit status (the github-pages environment records each deploy, Main Red the
+    failures): it takes the artifact of the Checks run that completed it, once that passed on this repo's push to
+    main, or on Release Docs' dispatch the newest such run."""
+    wf = WORKFLOWS[0].parent
+    flow = yaml.safe_load((wf / "pages.yml").read_text())
+    (job,) = flow["jobs"].values()
+    for cond in ("conclusion == 'success'", "event == 'push'", "head_repository.full_name == github.repository"):
+        assert f"github.event.workflow_run.{cond}" in job["if"], cond
+    assert "statuses" not in job["permissions"]
+    download = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/download-artifact@"))
+    assert "github.event.workflow_run.id" in str(next(s for s in job["steps"] if s.get("id") == "run"))
+    assert download["with"]["run-id"] == "${{ steps.run.outputs.id }}"
+    assert not (wf / "deploy-pending.yml").exists()
+    assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()

@@ -15,9 +15,8 @@ name: Checks
 # picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
 # `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML;
 # `Checks` adds the next Mech's pictures and GLB, tests and plays the site in Chrome (Playwright) and uploads it (on
-# main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). On main, Deploy
-# Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
-# outcome. Code and Site run in our base image, Blender in our Blender image; the others on the bare runner.
+# main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). Code and Site run
+# in our base image, Blender in our Blender image; the others on the bare runner.
 on:
   push:
     branches: [main]
@@ -160,9 +159,9 @@ jobs:
       # through commitlint's CLI (docs/adr/0010)
       - name: Test the release and title rules
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs ci/commitlint.test.mjs
-      # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
+      # SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
-        run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
+        run: shellcheck -e SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
       # just check runs it offline; with a token it adds the audits that ask GitHub's API (known-vulnerable-actions,
       # impostor-commit among them), here alone, never on a PR, since they hang on the API's rate limits and rarely turn
       # on a PR's change (#561)

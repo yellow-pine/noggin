@@ -9,8 +9,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   → TDD → code review → PR → retro. An agent building a ticket runs as the `implementer` subagent
   (`.claude/agents/implementer.md`), so its brief is just the issue.
 - One PR per concern, kept small, built in its own worktree at `../noggin-wt/<session>/<branch>` (the session's name as
-  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `just worktrees-clean` removes the worktrees
-  of merged, closed or deleted branches). Open the PR against main on the first push and turn auto-merge on at once
+  ListAgents shows it, e.g. noggin-87, so two sessions never share a path; `just worktrees-clean` deletes the local
+  branches whose PR merged or closed, and their clean worktrees, with gh-poi). Open the PR against main on the first push and turn auto-merge on at once
   (`gh pr merge --auto --squash`): GitHub squash-merges it once every required check is green and every review
   conversation resolved. No integration or feature branches: a spec's tickets land on main one PR at a time. Every
   branch on GitHub has a PR, except on-hold work.
@@ -72,7 +72,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   against its `computedHash`.
 - Bumps arrive as PRs and merge through checks and review like any other: the weekly `skills` workflow re-pins the
   skills to upstream HEAD, the weekly `blender` one re-pins Blender to the newest stable release at least 14 days old
-  (`scripts/blender_pin.py`), each from its own `skills-bump` or `blender-bump` branch, and Dependabot pins actions by
+  (`scripts/blender_pin.py`), each from its own `skills-bump` or `blender-bump` branch, opened or refreshed by
+  peter-evans/create-pull-request (#748), and Dependabot pins actions by
   SHA and gets auto-merge on every PR, majors too. Bots never commit to main.
 - Waiting on CI: one background command that exits only on a terminal state (merged, failed, or needs a human). `gh pr
   checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
@@ -95,8 +96,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Each workflow has one header comment, right under `name:`, whose first line is its one-line purpose; the site's
   CI/CD page builds its table from them (docs/ci-cd.md, #425).
 - Vocabulary lives in `GLOSSARY.md` and the decisions in `docs/adr/`; use those words and record a new decision as a new ADR,
-  numbered the next free one. When Code fails because main took that number since, run
-  `.venv/bin/python scripts/adr_number.py docs/adr/NNNN-slug.md` and commit what it moved (docs/adr/0015).
+  numbered the next free one. When Code fails because main took that number since, `git mv` the
+  draft to the next free number and change the old number on the lines your branch added (docs/adr/0015).
 - Secrets (a Wi-Fi password, a token) are typed in a Terminal window (`just wifi` for a new network), never at
   Claude Code's `!` prompt, which has no stdin.
 
@@ -141,11 +142,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
-  (#534), so a PR that changes a Dockerfile only builds them and its jobs still run main's.
+  (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
+  `CI Images` run, which leaves `:main` as it was and files 'main red (CI Images)'.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
-- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310).
-  Main's commit carries a `deploy` status (#292, `scripts/deploy_status.py`): error when a newer commit superseded it.
-  A main commit is green only once its `deploy` is.
+- Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
+  (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.
 
 ## Licence
 

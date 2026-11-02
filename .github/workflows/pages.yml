@@ -2,72 +2,43 @@ name: Site Deploy
 # Deploys the site artifact Checks built once main's checks pass, with every release's docs beside it.
 # Main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009) is built once: Checks (checks.yml) builds and
 # tests it on main, and this deploys a main commit's site artifact once its Checks passed (#310, #496), with
-# no rebuild. It runs when Checks complete for a push to main; `checks` (scripts/deploy_status.py) hands `deploy` the
-# Checks run to download from when it passed, else sets the commit's `deploy` status: failure linking the red run
-# ("not deployed: checks failed", #295) or error when a newer commit superseded it (a cancelled run). `deploy` swaps in
-# main's newest sim reports (Checks builds the site beside the sim), unpacks every Release's docs beside main's
-# (docs/adr/0014), deploys, and `deploy-status` sets success with the site's URL or why not (#292); Deploy Pending
-# (deploy-pending.yml) sets it pending while Checks build. A red run leaves the last site up. Pages' source is GitHub
-# Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); deploy's github-pages environment lists each deploy
-# with its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main]
-# alone also matches a fork's PR from a branch named main), on that push's commit (head_sha), the one the status goes
-# on; or for Release Docs' dispatch on main, on main's head (#414).
+# no rebuild, from the Checks run that completed (#731). `Deploy` swaps in main's newest sim reports (Checks builds the
+# site beside the sim), unpacks every Release's docs beside main's (docs/adr/0014) and deploys; red or cancelled Checks
+# deploy nothing and leave the last site up, and Main Red (main-red.yml) reports a red run. Pages' source is GitHub
+# Actions (POST /repos/{owner}/{repo}/pages, build_type=workflow); the github-pages environment lists each deploy with
+# its URL in the repo's Deployments panel. It acts only for this repository's push to main (branches: [main] alone
+# also matches a fork's PR from a branch named main), on that push's commit (head_sha); or for Release Docs' dispatch
+# on main, with main's newest passed Checks run (#414).
 on:
-  workflow_run:   # zizmor: ignore[dangerous-triggers] the Checks job acts only on this repo's push to main
-    workflows: ["Checks"]   # as deploy_status.CHECKS (scripts/test_deploy_status.py)
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the Deploy job acts only on this repo's push to main
+    workflows: ["Checks"]   # by its name (test_workflows.py)
     types: [completed]
     branches: [main]
-  workflow_dispatch:   # Release Docs, once a release's docs are on it (#414): main's head again, with them
+  workflow_dispatch:   # Release Docs, once a release's docs are on it (#414): main's site again, with them
 permissions: {}
 env:   # the commit it deploys: the completed check run's, or main's head on a dispatch
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 jobs:
-  checks:
-    name: Checks
-    if: >-
-      ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository
-      || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      actions: read   # the commit's check runs
-      statuses: write
-    outputs:
-      site-run: ${{ steps.gate.outputs.site-run }}
-    steps:
-      - name: Check out deploy_status.py
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          sparse-checkout: scripts/deploy_status.py
-          sparse-checkout-cone-mode: false
-          persist-credentials: false   # nothing here pushes
-      - name: Gate the deploy
-        id: gate
-        run: python3 scripts/deploy_status.py checks
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
   deploy:
     name: Deploy
-    needs: checks
-    if: ${{ needs.checks.outputs.site-run != '' }}
-    # one deploy at a time; a newer one waiting cancels an older waiting one (its status says superseded), so main
-    # ends on its latest. Not in progress: a deploy is a minute, and the same commit may come twice (both workflows
-    # completing together)
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    # one deploy at a time; a newer one waiting cancels an older waiting one, so main ends on its latest. Not in
+    # progress: a deploy is a minute, and the same commit may come twice (both workflows completing together)
     concurrency:
       group: site-deploy
       cancel-in-progress: false
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      actions: read   # Checks' artifact
+      actions: read   # Checks' runs and artifact
       pages: write
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    outputs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out the deploy's scripts
@@ -79,12 +50,21 @@ jobs:
             scripts/docs_versions.py
           sparse-checkout-cone-mode: false
           persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      # the Checks run that completed, or on a dispatch main's newest push run that passed
+      - name: Find the Checks run
+        id: run
+        run: >-
+          echo "id=${RUN_ID:-$(gh run list --repo "$GITHUB_REPOSITORY" --workflow Checks --branch main --event push
+          --status success --limit 1 --json databaseId --jq '.[0].databaseId')}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
       - name: Download the site
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:
           name: site
           path: site/dist
-          run-id: ${{ needs.checks.outputs.site-run }}
+          run-id: ${{ steps.run.outputs.id }}
           github-token: ${{ github.token }}
       # main's latest sim reports, which Checks' sim shard has saved by now (newest sim- entry, as in Checks' Site)
       - name: Restore main's sim reports
@@ -108,26 +88,3 @@ jobs:
       - name: Deploy to Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346   # v5.0.1
-  # always(): a cancelled deploy says so too
-  deploy-status:
-    name: Deploy Status
-    needs: [checks, deploy]
-    if: ${{ always() && needs.checks.outputs.site-run != '' }}
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      statuses: write
-    steps:
-      - name: Check out deploy_status.py
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          sparse-checkout: scripts/deploy_status.py
-          sparse-checkout-cone-mode: false
-          persist-credentials: false   # nothing here pushes
-      - name: Set the deploy status
-        run: python3 scripts/deploy_status.py deploy
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DEPLOY: ${{ needs.deploy.result }}
-          PAGE_URL: ${{ needs.deploy.outputs.url }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
