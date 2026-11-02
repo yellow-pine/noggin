@@ -481,6 +481,9 @@ PRINTED |= {
     "next L eyeball cap": ("Pure White", "PLA Pure"),
     "next R eyeball cap": ("Pure White", "PLA Pure"),
 }
+# Each Skeleton part is drawn in two styles (#704, model/printed): as Bones under its own name, plain under this suffix
+PLAIN = " plain"
+PRINTED |= {name + PLAIN: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
 
 
 # The pan servo mounts trade places (27.9, the base's foot-hole pitch): the cutout goes to the shaft end, where the servo's
