@@ -1,9 +1,8 @@
 """Site Deploy (pages.yml) on a main commit (#310): whether it deploys, and its `deploy` commit status (#292). Deploy
-Pending (deploy-pending.yml) sets the status pending while Site Checks build the site; Site Deploy runs on the
-completion of each check workflow for the commit and acts once both are done: it deploys Site Checks' site when both
-passed, else says why not. A red one is "not deployed: checks failed", linking it (#295); a cancelled one means a
-newer commit superseded it (CONTRIBUTING.md), which is `error`, not `failure`: nothing about this commit failed, it just
-never deployed. Both make the commit's combined status red.
+Pending (deploy-pending.yml) sets the status pending while Checks build the site; Site Deploy runs on the completion
+of Checks for the commit: it deploys their site when they passed, else says why not. Red is "not deployed: checks
+failed", linking the run (#295); cancelled means a newer commit superseded it (CONTRIBUTING.md), which is `error`, not
+`failure`: nothing about this commit failed, it just never deployed. Both make the commit's combined status red.
 Usage: SHA=... RUN_URL=... GITHUB_REPOSITORY=o/r python3 scripts/deploy_status.py checks (site-run to GITHUB_OUTPUT
 when it deploys), or with DEPLOY=<the deploy job's result> PAGE_URL=... python3 scripts/deploy_status.py deploy"""
 
@@ -12,7 +11,7 @@ import os
 import subprocess
 import sys
 
-CHECKS = ("Code Checks", "Site Checks")  # by their names, as Site Deploy's workflow_run names them
+CHECKS = "Checks"  # by its name, as Site Deploy's workflow_run names it (#496)
 
 
 def superseded(run_url: str) -> tuple[str, str, str]:
@@ -20,17 +19,16 @@ def superseded(run_url: str) -> tuple[str, str, str]:
 
 
 def gate(runs: list[dict], run_url: str) -> int | tuple[str, str, str] | None:
-    """From the commit's push runs: None while a check workflow is not done (its completion runs Site Deploy again),
-    else the Site Checks run whose site deploys when both passed, or the `deploy` status saying why nothing does"""
-    latest = {r["name"]: r for r in sorted(runs, key=lambda r: r["id"]) if r["name"] in CHECKS}
-    if len(latest) < len(CHECKS) or any(r["status"] != "completed" for r in latest.values()):
+    """From the commit's push runs: None while Checks are not done (their completion runs Site Deploy again), else the
+    Checks run whose site deploys when it passed, or the `deploy` status saying why nothing does"""
+    latest = max((r for r in runs if r["name"] == CHECKS), key=lambda r: r["id"], default=None)
+    if latest is None or latest["status"] != "completed":
         return None
-    failed = [r for r in latest.values() if r["conclusion"] not in ("success", "cancelled")]
-    if failed:
-        return "failure", "not deployed: checks failed", failed[0]["html_url"]
-    if any(r["conclusion"] == "cancelled" for r in latest.values()):
+    if latest["conclusion"] == "cancelled":
         return superseded(run_url)
-    return latest["Site Checks"]["id"]
+    if latest["conclusion"] != "success":
+        return "failure", "not deployed: checks failed", latest["html_url"]
+    return latest["id"]
 
 
 def status(deploy: str, page_url: str, run_url: str) -> tuple[str, str, str]:
@@ -55,10 +53,10 @@ if __name__ == "__main__":
         ).stdout
         result = gate(json.loads(out), e["RUN_URL"])
         if result is None:
-            print("deploy: waiting for the other check workflow")
+            print("deploy: waiting for Checks")
             sys.exit()
         if isinstance(result, int):
-            print(f"deploy: both checks passed, deploying Site Checks run {result}")
+            print(f"deploy: Checks passed, deploying run {result}")
             with open(e["GITHUB_OUTPUT"], "a") as f:
                 f.write(f"site-run={result}\n")
             sys.exit()

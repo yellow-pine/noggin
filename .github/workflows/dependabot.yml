@@ -13,7 +13,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      # shortcut: a merge GITHUB_TOKEN enabled starts no push workflow on main (Code Checks, Site Deploy); the next
+      # shortcut: a merge GITHUB_TOKEN enabled starts no push workflow on main (Checks, Site Deploy); the next
       # merge runs them. Upgrade to the bot App's token (ADR 0010) stored as Dependabot secrets.
       - name: Turn on auto-merge
         run: gh pr merge --auto --squash "$PR_URL"

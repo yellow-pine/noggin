@@ -15,7 +15,7 @@ USB_PORTS := $(wildcard /dev/cu.usbmodem*)
 PROGRAM = $(or $(shell $(PY) -m noggin.core),$(error noggin/core.py listed no eye program))
 MODULES = $(PROGRAM:eyes/%.py=%)
 
-.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures pictures-list model-shards-list trajectories view web site site-reports lint fmt mech worktrees-clean model-durations
+.PHONY: venv test check-light check check-all sim ours stl step install hooks unhooks start stop status log demo follow wifi interrupt core-info backup-stock mpy mpy-list flash flash-usb restore-stock render hero pictures blender-bins model-shards-list trajectories view web site site-reports lint fmt mech worktrees-clean model-durations
 
 venv:            ## .venv with pyserial, pytest, mpremote; git runs .githooks (pre-push: make check-light)
 	uv sync -q
@@ -35,7 +35,7 @@ check-light: venv lint  ## seconds, no CadQuery build: lint, formatting, types, 
 	$(REPO)/.venv/bin/zizmor -q --offline .
 	$(REPO)/.venv/bin/hadolint --ignore DL3008 --ignore DL4006 --ignore DL3066 ci/*.Dockerfile   # apt takes what the digest-pinned base's archive has (it drops old versions); the only pipes are echo into sha256sum; USER runner is uid 1001 (useradd)
 	$(PY) -m pytest -q -n auto -m "not model and not build"
-check: check-light ours  ## CI's Code job: make check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Site Checks)
+check: check-light ours  ## CI's Code job: make check-light, the tests marked build, wizard syntax, plist validity, hook script syntax (the site's own tests: npm --prefix site test, Checks)
 	$(PY) -m pytest -q -n auto -m "build and not model"
 	bash -n scripts/setup.sh
 	for f in noggin/hook.sh noggin/noggin; do sh -n $$f; done
@@ -114,12 +114,12 @@ hero: venv ours trajectories     ## the hero: stage 3 talking, an 8 s loop keyed
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures hero
 pictures: venv ours trajectories   ## the site's pictures (model/render/pictures.py SITE) in model/build/images, which the site serves at images/; MOTIONS= picks some (views or hero)
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m model.render.pictures site $(MOTIONS)
-model-shards-list: venv   ## the model tests' three shards, balanced on model/durations.json, as JSON (Code Checks' model matrix, #305, #474; make -s for the JSON alone)
+model-shards-list: venv   ## the model tests' and make mech's four shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out; make -s for the JSON alone)
 	@$(PY) -m model.shards
-model-durations:   ## model/durations.json from a Code Checks run's measured seconds (its durations-* artifacts): make model-durations RUN=<run id>
-	@d=$$(mktemp -d) && gh run download $(RUN) -p 'durations-*' -D $$d && jq -S -s '(.[0] | with_entries(select(.key == "make sim"))) + (.[1:] | add)' model/durations.json $$d/*/*.json > $$d/all.json && mv $$d/all.json model/durations.json; rm -rf $$d
-pictures-list: venv   ## the pictures' motions and the Stages each draws, as JSON (Site Checks' render matrix, #297; make -s for the JSON alone)
-	@$(PY) -m model.render.pictures list
+model-durations:   ## model/durations.json from a Checks run's measured seconds (its durations-* artifacts): make model-durations RUN=<run id>
+	@d=$$(mktemp -d) && gh run download $(RUN) -p 'durations-*' -D $$d && jq -S -s '(.[0] | with_entries(select(.key | test("^(make|blender) ")))) + (.[1:] | add)' model/durations.json $$d/*/*.json > $$d/all.json && mv $$d/all.json model/durations.json; rm -rf $$d
+blender-bins: venv   ## the pictures' motions and the viewer packed into Blender runners, each with the Stages it bakes, as JSON (Checks' Blender matrix, #297, #496; PICTURES=false or VIEWER=false leaves those out; make -s for the JSON alone)
+	@$(PY) -m model.shards blender
 web: venv ours trajectories   ## the web viewer's GLBs in web/build, Blender's per Stage from its trajectories (docs/adr/0008), then their tests; look with make site
 	BLENDER=$(BLENDER) $(HEAVY) $(PY) -m web.build
 	$(PY) -m pytest -q web
@@ -129,7 +129,7 @@ site: venv       ## the site in site/dist (docs/adr/0009, 0013): the numbers fro
 	[ ! -d web/build ] || cp -R web/build/. site/dist/viewer
 	[ ! -d model/build/images ] || cp -R model/build/images site/dist/images
 	@$(MAKE) --no-print-directory site-reports
-site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Code Checks saved
+site-reports:   ## the sim reports (model/build/reports, once make sim made them) into the built site's site/dist/reports with an index; Site Deploy reruns it on main's site with the reports Checks saved
 	[ ! -d model/build/reports ] || { rm -rf site/dist/reports && cp -R model/build/reports site/dist/reports && cd site/dist/reports && ls *.json *.xml | sed 's|.*|<a href="&">&</a><br>|' > index.html; }
 
 # the Core's MicroPython (pyproject [tool.noggin]): flash-usb's hmac and the stand-in build from it, CI caches mech/build on it (no comment after the value, as above)

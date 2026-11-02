@@ -1,4 +1,4 @@
-"""pr_issue.py: the PR Issue check passes a PR body that links an issue with a closing keyword or Refs, and fails one
+"""pr_issue.py: the PR check passes a PR body that links an issue with a closing keyword or Refs, and fails one
 that doesn't."""
 
 import subprocess

@@ -5,9 +5,8 @@ transparent background, its lines one grey for the site's light and dark themes 
 PANELS). `hero` (`make hero`): the README hero, stage 3 talking (model/render/hero.py), its
 trajectory at 8 fps (at_fps) as one animation. `site` (`make pictures`): renders the site's pictures, motion by motion
 (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site serves at
-yellowpine.com/noggin/images/. `list` (`make pictures-list`): the motions as JSON, Site Checks' render matrix
-(one job per motion, #297).
-Usage: python -m model.render.pictures views | hero | site [motion ...] | list (Blender at $BLENDER)"""
+yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py, `make blender-bins`).
+Usage: python -m model.render.pictures views | hero | site [motion ...] (Blender at $BLENDER)"""
 
 import json
 import math
@@ -48,7 +47,7 @@ EXPLODE = {
     "noggin-mouth": (0, -45, 95),
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
-# what the site serves, by the motion that renders it (Site Checks render each on its own runner, #297)
+# what the site serves, by the motion that renders it (Checks' Blender bins render them, #297, #496)
 SITE = {
     "views": [f"{name}-{view}.webp" for name, view in PANELS],
     "hero": ["hero.webp"],
@@ -198,8 +197,6 @@ def main(what, names):
             render(motion)
             for f in SITE[motion]:
                 shutil.copy(os.path.join(OUT, f), IMAGES)
-    elif what == "list":
-        print(json.dumps(motions()))
     else:
         sys.exit(f"unknown: {what}")
 

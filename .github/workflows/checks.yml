@@ -1,0 +1,745 @@
+name: Checks
+# Runs `make check`, the model tests with the Mech stand-in, sim and STL/STEP export, renders the pictures and builds the site.
+# One workflow, one required check (#496): `Checks`, the gate every other job here leads into. On PRs, on main
+# (docs/adr/0009, #310) and weekly. `Changes` is the one fan-out: what the PR (its files from the API) or main's push
+# (by git, against main's last commit whose Checks passed, #471) touches (dorny/paths-filter), the caches of the parts,
+# the pictures and the viewer looked up, and from the code the model shards (make model-shards-list) and the Blender
+# bins (make blender-bins); work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs
+# make check; `Model` the tests marked model in four shards balanced on the seconds they measured (model/shards.py: the
+# hero's collision sweep, each document, the rest with make view's offscreen render, make sim when its inputs changed,
+# and make mech, the Link's live checks on the Mech stand-in, #222), with make stl and make step on main or when the
+# parts changed; a cold parts cache is cut part by part first (`Convex`, #223), so the shards start warm. `Blender`
+# renders the README's pictures (make pictures, #226) and bakes the viewer's GLBs (make web, docs/adr/0008) when what
+# they are made from changed, packed into bins longest first (#496). `Site` builds the docs beside them (make site,
+# docs/adr/0013) with main's latest sim reports and tests the built HTML; `Checks` adds the pictures and the viewer,
+# runs the link checks again with them, plays the site in Chrome (Playwright), uploads the site (a PR's preview, and on
+# main what Site Deploy, pages.yml, deploys) and checks the CI budget once (scripts/ci_budget.py). On main, Deploy
+# Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
+# outcome. Code and Site run in our base image, Blender in our Blender image (ci/, docs/adr/0009); the others on the
+# bare runner.
+on:
+  push:
+    branches: [main]
+  pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:   # main's weekly full run (#471): no filters or output lookups, so every check runs, the filters' safety net
+    - cron: "0 7 * * 1"
+concurrency:   # one run per PR (or main): a new push cancels the one in progress, main runs its latest; the weekly run
+  # has its own group, so it neither cancels a push's run (which Site Deploy waits for) nor is cancelled
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  actions: read   # scripts/ci_budget.py reads when the run's jobs started
+defaults:
+  run:
+    shell: bash   # -eo pipefail: make's exit code survives the tee
+jobs:
+  changes:
+    name: Changes
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read   # main's last checked commit
+    outputs:
+      model: ${{ steps.filter.outputs.model }}
+      # main's Site always runs: it builds the deploy
+      site: ${{ github.event_name != 'pull_request' || steps.filter.outputs.site == 'true' }}
+      parts: ${{ steps.parts.outputs.cache-hit }}   # warm: convex skips
+      parts-key: ${{ steps.parts.outputs.cache-primary-key }}
+      pictures: ${{ steps.pictures.outputs.cache-hit }}   # warm: no Blender bin renders, checks restores them
+      viewer: ${{ steps.viewer.outputs.cache-hit }}   # warm: no Blender bin bakes, checks restores it
+      pictures-hash: ${{ steps.inputs.outputs.pictures }}
+      viewer-hash: ${{ steps.inputs.outputs.viewer }}
+      shards: ${{ steps.lists.outputs.shards }}
+      bins: ${{ steps.lists.outputs.bins }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      # a push diffs against main's last commit whose push run here passed, not the one before it: a newer push
+      # cancels the run in progress, and that commit's changes are then checked in the next run (#471). None: the
+      # commit before the push (an empty base)
+      - name: Find main's last checked commit
+        if: ${{ github.event_name == 'push' }}
+        id: checked
+        run: |   # its own assignment, so a failing gh fails the step
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/checks.yml/runs?branch=main&event=push&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Filter the changed paths
+        if: ${{ github.event_name != 'schedule' }}
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d   # v4.0.3
+        with:   # mech: the Makefile's MicroPython tag, pyproject's mpy-cross pin; model: test_derived.py's MADE_FROM says why
+          base: ${{ steps.checked.outputs.sha }}   # a PR's: its base branch, from the API
+          filters: |
+            mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "Makefile", "pyproject.toml", ".github/workflows/checks.yml"]
+            model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "Makefile", ".github/workflows/checks.yml"]
+            site: ["model/**", "eyes/**", "noggin/**", "reactions/**", "web/**", "docs/**", "**/*.md", "site/**", "Makefile", "pyproject.toml", "uv.lock",
+                   ".github/workflows/*.yml", "ci/*.Dockerfile", "macros.py", "scripts/workflow_table.py"]
+      # the pictures' and the viewer's keys hash only what they are made from (#469): the render code and the parts'
+      # make (model/ours.py) with what they import or name (the trajectories' sources, the script Blender runs;
+      # scripts/inputs.py), Blender's pin and uv.lock, so a Makefile, workflow or test edit renders nothing. Hashed here
+      # alone, on the runner's Python (the repo's syntax; the images' is older), for every job
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - name: Hash the inputs
+        id: inputs
+        run: |   # each the inputs' sha256 and the lockfile's
+          lock=$LOCK
+          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py model/ours.py ci/blender.Dockerfile)
+          viewer=$(python3 scripts/inputs.py --hash web/build.py model/ours.py ci/blender.Dockerfile)
+          { echo "pictures=$pictures-$lock"; echo "viewer=$viewer-$lock"; } >> "$GITHUB_OUTPUT"
+        env:
+          LOCK: ${{ steps.lock.outputs.hash }}
+      # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
+      - name: Look up the parts cache
+        id: parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          lookup-only: true
+      # whether the pictures and the viewer built from the same inputs are cached: then no Blender bin runs for them,
+      # nor pulls its image (#386). The weekly run renders and bakes again
+      - name: Look up the cached pictures
+        if: ${{ github.event_name != 'schedule' }}
+        id: pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: pictures-${{ steps.inputs.outputs.pictures }}
+          lookup-only: true
+      - name: Look up the cached viewer
+        if: ${{ github.event_name != 'schedule' }}
+        id: viewer
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: web/build
+          key: viewer-${{ steps.inputs.outputs.viewer }}
+          lookup-only: true
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # uv sync downloads the wheels faster than the cache restores (#220)
+      # the model and Blender matrices from the code (model/shards.py): a new document or motion needs no edit here.
+      # "false" leaves a group out: the filters' (empty in the weekly run, so everything), and a site left alone or a
+      # cached output for the Blender units
+      - name: List the shards and bins
+        id: lists
+        run: |   # each its own assignment, so a failing make fails the step
+          shards=$(make -s model-shards-list)
+          bins=$(make -s blender-bins)
+          { echo "shards=$shards"; echo "bins=$bins"; } >> "$GITHUB_OUTPUT"
+        env:
+          MODEL: ${{ steps.filter.outputs.model }}
+          MECH: ${{ steps.filter.outputs.mech }}
+          PICTURES: >-
+            ${{ (github.event_name != 'pull_request' || steps.filter.outputs.site == 'true')
+            && steps.pictures.outputs.cache-hit != 'true' }}
+          VIEWER: >-
+            ${{ (github.event_name != 'pull_request' || steps.filter.outputs.site == 'true')
+            && steps.viewer.outputs.cache-hit != 'true' }}
+  code:
+    name: Code
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    # uv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode), shellcheck, gh and yq
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-base:main   # ci/base.Dockerfile, which main's images.yml pushes (ADR 0009)
+      env:   # uv's cache on the checkout's mount (/__w), so uv sync hard-links the venv: copying it took ~25 s
+        UV_CACHE_DIR: /__w/uv-cache
+        UV_LINK_MODE: hardlink
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      # restore only: this job never decomposes, so a save here would store the key without model/build/convex first
+      # and the model job's full save would be refused (a key is written once). restore-keys: a PR that changes a part
+      # starts from main's latest entry (a branch reads main's caches) and rebuilds only what its .key files miss
+      - name: Restore the parts cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/geometry.py', 'model/linkage.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+          restore-keys: ours-convex-
+      - name: Run make check
+        run: make check | tee "$RUNNER_TEMP/pytest.txt"
+        env:
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
+          OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
+      - name: List the slowest tests
+        if: always()
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
+      - name: Run shellcheck
+        run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
+      # make check runs it offline; with a token it adds the audits that ask GitHub's API (known-vulnerable-actions,
+      # impostor-commit among them)
+      - name: Run zizmor online
+        run: .venv/bin/zizmor -q .
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
+      - name: Check the required checks
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
+            --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
+            | .venv/bin/python scripts/required_checks.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+  convex:   # a cold parts cache: from main's latest entry, lists the parts whose pieces are stale
+    name: Convex
+    needs: changes
+    if: ${{ needs.changes.outputs.model != 'false' && needs.changes.outputs.parts != 'true' }}
+    runs-on: ubuntu-26.04
+    outputs:
+      parts: ${{ steps.stale.outputs.parts }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
+      # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false
+      - name: Restore main's latest parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
+          restore-keys: ours-convex-   # as in code
+      - name: List the stale parts
+        id: stale
+        run: |
+          make ours
+          parts=$(.venv/bin/python -m model.convex_parts)   # its own line, so a failure fails the step
+          echo "parts=$parts" >> "$GITHUB_OUTPUT"
+      - name: Upload our built parts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: ours
+          path: model/build/ours/
+          include-hidden-files: true   # its .key: make ours in the jobs below then builds nothing
+          retention-days: 1
+          overwrite: true   # a re-run of every job uploads it again
+  convex-part:   # one stale part's pieces, cut on a runner of its own; the part's own cache saves a rerun the cut
+    name: Convex (${{ matrix.part }})
+    needs: convex
+    if: ${{ needs.convex.outputs.parts && needs.convex.outputs.parts != '[]' }}
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false   # the parts that do cut keep their caches
+      matrix:
+        part: ${{ fromJSON(needs.convex.outputs.parts) }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in convex
+      - name: Download our built parts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: ours
+          path: model/build/ours
+      - name: Cache this part's pieces
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/convex/${{ matrix.part }}
+          key: convex-${{ matrix.part }}-${{ hashFiles(format('model/build/ours/{0}.stl', matrix.part), 'model/mjcf.py', 'model/stages.py') }}-${{ steps.lock.outputs.hash }}
+      - name: Cut the part
+        run: make venv && .venv/bin/python -m model.convex_parts "$PART"   # after a hit, cuts only if its .key differs
+        env:
+          PART: ${{ matrix.part }}
+      - name: Upload the part's pieces
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: convex-${{ matrix.part }}
+          path: model/build/convex/   # this part's folder alone
+          include-hidden-files: true   # its .key
+          retention-days: 1
+          overwrite: true   # as ours
+  model:
+    name: Model (${{ matrix.shard }})
+    needs: [changes, convex, convex-part]
+    # convex and convex-part are skipped when warm; their needs by name, not !failure(), which a failed ancestor would trip
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.shards != '[]'
+      && needs.convex.result != 'failure' && needs.convex-part.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      # four, balanced on measured seconds: the hero's sweep, each document (pytest -k on its parameter id; its tests
+      # on one worker, --dist loadgroup), the rest, make sim and make mech (model/shards.py)
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.shards) }}   # {shard, units, tests} (model/test_shards.py)
+    env:   # a shard of make mech alone, on a PR leaving the model's inputs alone, needs no parts, EGL or ngspice
+      MODEL: ${{ needs.changes.outputs.model != 'false' }}
+    steps:
+      # make sim's SPICE circuit (model/electrical.py; model/test_electrical.py runs it as mujoco collects it) and
+      # Mesa's EGL, which renders make view's scene offscreen (MUJOCO_GL below) in software: installed while the job
+      # sets up
+      - name: Install ngspice and EGL
+        if: ${{ env.MODEL == 'true' }}
+        run: (sudo apt-get update && sudo apt-get install -y ngspice libegl1 libegl-mesa0 libgl1-mesa-dri; echo $? > "$RUNNER_TEMP/apt.rc") > "$RUNNER_TEMP/apt.txt" 2>&1 &
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in convex
+      # our built parts and their convex pieces: make ours rebuilds only when model/build/ours/.key no longer matches,
+      # model/mjcf.py decomposes a part again only when its model/build/convex/<part>/.key does not
+      - name: Restore the parts cache
+        if: ${{ env.MODEL == 'true' }}
+        id: parts
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
+          restore-keys: ours-convex-   # as in code
+      # missed: the parts convex built and cut over the entry restored
+      - name: Download our built parts
+        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: ours
+          path: model/build/ours
+      - name: Drop the parts cut again
+        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}   # a part cut again may have fewer pieces
+        run: jq -r '.[]' <<< "$PARTS" | while read -r part; do rm -rf "model/build/convex/$part"; done
+        env:
+          PARTS: ${{ needs.convex.outputs.parts || '[]' }}
+      - name: Download the cut pieces
+        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: convex-*
+          path: model/build/convex
+          merge-multiple: true
+      # missed the exact key: decompose what is still stale (nothing, after convex-part) before the tests, in mjcf's own
+      # process pool, or several xdist workers would decompose the same part into the same folder at once
+      - name: Rebuild and cut what is stale
+        if: ${{ env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
+        run: make ours && .venv/bin/python -m model.mjcf
+      - name: Make the venv
+        run: make venv
+      - name: Wait for apt
+        if: ${{ env.MODEL == 'true' }}
+        run: |   # the install begun above
+          timeout 300 sh -c 'until [ -f "$RUNNER_TEMP/apt.rc" ]; do sleep 1; done' || echo "apt still running" > "$RUNNER_TEMP/apt.rc"
+          [ "$(cat "$RUNNER_TEMP/apt.rc")" = 0 ] || { cat "$RUNNER_TEMP/apt.txt" "$RUNNER_TEMP/apt.rc"; exit 1; }
+      # each test's seconds (pytest-split), which the next balance is made from (make model-durations)
+      - name: Run make test
+        if: ${{ matrix.tests != '' }}
+        run: mkdir -p "$RUNNER_TEMP/durations" && make test | tee -a "$RUNNER_TEMP/pytest.txt"
+        env:
+          PYTEST_ADDOPTS: >-
+            -m model -n auto --dist loadgroup --durations=20 --store-durations
+            --durations-path ${{ runner.temp }}/durations/tests.json ${{ matrix.tests }}
+          OMP_NUM_THREADS: 1   # as in code
+          MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)
+      # the Mech stand-in (mech/, #222): the Core's program on its MicroPython's unix port beside the real noggin
+      # service, the Link's live checks on the Mech (docs/use/noggin-service.md) as tests. Its unix port and hmac (make
+      # mech/build/micropython) cached on the MicroPython tag the Makefile pins
+      - name: Read the MicroPython tag
+        if: ${{ contains(matrix.units, 'mech') }}
+        id: tag
+        run: echo "tag=$(sed -n 's/^MICROPYTHON := //p' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the MicroPython build
+        if: ${{ contains(matrix.units, 'mech') }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: mech/build
+          key: micropython-unix-${{ steps.tag.outputs.tag }}
+      - name: Run make mech
+        if: ${{ contains(matrix.units, 'mech') }}
+        run: |   # and its core-seconds, as make sim's below
+          start=$SECONDS
+          make mech | tee -a "$RUNNER_TEMP/pytest.txt"
+          mkdir -p "$RUNNER_TEMP/durations"
+          echo "{\"make mech\": $(( (SECONDS - start) * $(nproc --all) ))}" > "$RUNNER_TEMP/durations/mech.json"
+        env:
+          PYTEST_ADDOPTS: -n auto --durations=10
+      - name: List the slowest tests
+        if: ${{ always() && (matrix.tests != '' || contains(matrix.units, 'mech')) }}
+        run: |
+          { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # the print and FreeCAD exports as a smoke test, beside the hero's sweep: on main, and on a PR whose parts
+      # missed their exact key (what they are made from changed)
+      - name: Run make stl step
+        if: ${{ contains(matrix.units, 'hero') && (github.event_name != 'pull_request' || steps.parts.outputs.cache-hit != 'true') }}
+        run: make stl step
+      # the sim reports (make sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
+      # on what they are made from (over-broad on purpose: any model module, the Makefile, this file). An exact hit is
+      # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports (a PR reads
+      # main's caches) as the baseline the new ones are diffed against in this job's summary. Main saves them for the
+      # PRs after it and for the site, which publishes them at /reports (Site Deploy, pages.yml)
+      - name: Restore the sim reports
+        if: ${{ contains(matrix.units, 'sim') }}
+        id: reports
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-${{ hashFiles('model/*.py', 'model/printed/*.py', 'model/render/scene.py', 'eyes/servo.py', 'Makefile', '.github/workflows/checks.yml') }}-${{ steps.lock.outputs.hash }}
+          restore-keys: sim-
+      - name: Run make sim
+        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
+        run: |   # and its core-seconds, as the tests' seconds summed over the xdist workers
+          [ ! -d model/build/reports ] || mv model/build/reports model/build/main-reports
+          start=$SECONDS
+          make sim
+          mkdir -p "$RUNNER_TEMP/durations"
+          echo "{\"make sim\": $(( (SECONDS - start) * $(nproc --all) ))}" > "$RUNNER_TEMP/durations/sim.json"   # --all: nproc heeds OMP_NUM_THREADS
+        env:
+          OMP_NUM_THREADS: 1   # a document per process (model/report.py), as the xdist workers in make test
+      - name: Report the sim inputs unchanged
+        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit == 'true' }}
+        run: |
+          echo "### Sim inputs unchanged: main's reports for them stand, no sim ran" >> "$GITHUB_STEP_SUMMARY"
+      - name: Diff the reports against main's
+        if: ${{ !cancelled() && contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
+        run: |
+          {
+            echo "### Sim reports against main's latest"
+            if [ ! -d model/build/main-reports ]; then echo "No reports of main's to diff against."
+            elif d=$(diff -ru -x '*.xml' model/build/main-reports model/build/reports); then echo "No change."
+            else printf '```diff\n%s\n```\n' "${d:0:900000}"   # the summary holds 1 MiB a step
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the sim reports
+        if: ${{ contains(matrix.units, 'sim') && github.event_name != 'pull_request' && steps.reports.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: ${{ steps.reports.outputs.cache-primary-key }}
+      - name: Upload the measured seconds
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: durations-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/durations/
+          if-no-files-found: ignore   # a shard of make sim alone, its reports cached
+          retention-days: 7
+          overwrite: true   # a re-run of a failed shard
+      # saved even when a test or make sim fails (a red main would otherwise never fill its cache); an interrupted build
+      # is safe to keep, since each .key above is written last
+      - name: Save the parts cache
+        if: ${{ always() && env.MODEL == 'true' && steps.parts.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ steps.parts.outputs.cache-primary-key }}
+  # every deploy replaces the whole site, so every run has the pictures and the viewer: rendered or baked when what they
+  # are made from changed, else the last ones made from the same inputs (a docs-only change renders nothing). Each bin
+  # renders its motions of the pictures (on CI's software GL, each frame's seconds in its log, #470) and bakes and
+  # tests the viewer's GLBs (make web) when it holds the viewer; checks gathers them
+  blender:
+    name: Blender (${{ matrix.bin }})
+    needs: changes
+    if: ${{ needs.changes.outputs.bins != '[]' }}
+    runs-on: ubuntu-26.04
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
+    strategy:
+      fail-fast: false   # every bin runs to its end; checks fails unless all of them succeeded
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.bins) }}   # {bin, motions, stages, viewer} (model/test_shards.py)
+    env:   # only the Stages its motions draw are baked (make trajectories), every one with the viewer
+      TRAJ_DOCS: ${{ matrix.stages }}
+      MESA_SHADER_CACHE_DIR: /tmp/mesa-shader-cache   # cached below
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Hash the lockfile
+        id: lock
+        run: |   # uv.lock minus noggin's version, which a release bumps (#403); a failing script fails the step
+          hash=$(python3 scripts/lock_hash.py)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      # restore only, as in code; the trajectories need no convex pieces (mjcf.model collide=False: no CoACD, #276)
+      - name: Restore the parts cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
+          restore-keys: ours-convex-
+      # the latest trajectories: make trajectories rebakes only the Stages whose stamp moved (model/trajectories.py)
+      - name: Restore the trajectories
+        id: trajectories
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: trajectories-${{ hashFiles('model/**', '!model/build/**', 'eyes/**') }}-${{ steps.lock.outputs.hash }}
+          restore-keys: trajectories-
+      # llvmpipe's compiled shaders, so Blender's first frame does not compile Eevee's again (~10-20 s, #470); Mesa checks
+      # each entry against its own build, so an older cache only misses
+      - name: Restore Mesa's shader cache
+        if: ${{ matrix.motions != '' }}
+        id: mesa
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: /tmp/mesa-shader-cache
+          key: mesa-${{ matrix.bin }}-${{ hashFiles('model/render/blender.py', 'ci/blender.Dockerfile') }}
+          restore-keys: |   # a bin's name moves with the packing
+            mesa-${{ matrix.bin }}-
+            mesa-
+      # its own step first, so the run's timings show the bake apart from the renders
+      - name: Run make trajectories
+        run: make trajectories
+      - name: Run make pictures
+        if: ${{ matrix.motions != '' }}
+        run: make pictures BLENDER=blender
+        env:
+          MOTIONS: ${{ matrix.motions }}
+      - name: Run make web
+        if: ${{ matrix.viewer }}
+        run: make web BLENDER=blender
+      # saved by the viewer's bin, whose make web bakes every Stage; even when a web test fails: the bake stays good
+      - name: Save the trajectories
+        if: ${{ always() && matrix.viewer && steps.trajectories.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/trajectories
+          key: ${{ steps.trajectories.outputs.cache-primary-key }}
+      - name: Save the viewer
+        if: ${{ matrix.viewer && github.event_name != 'schedule' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: web/build
+          key: viewer-${{ needs.changes.outputs.viewer-hash }}
+      - name: Save Mesa's shader cache
+        if: ${{ matrix.motions != '' && steps.mesa.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: /tmp/mesa-shader-cache
+          key: ${{ steps.mesa.outputs.cache-primary-key }}
+      - name: Upload the pictures
+        if: ${{ matrix.motions != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: images-${{ strategy.job-index }}
+          path: model/build/images
+          if-no-files-found: error
+      - name: Upload the viewer
+        if: ${{ matrix.viewer }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: viewer
+          path: web/build
+          if-no-files-found: error
+  # the docs (Astro Starlight, make site) beside the Blender bins, without their pictures and viewer, which checks adds
+  site:
+    name: Site
+    needs: changes
+    if: ${{ needs.changes.outputs.site == 'true' }}
+    runs-on: ubuntu-26.04
+    container:
+      image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
+      env:
+        UV_CACHE_DIR: /__w/uv-cache   # as code's: uv sync hard-links make site's venv, copying it took ~25 s (#386)
+        UV_LINK_MODE: hardlink
+      options: --ipc=host   # Chrome's shared memory, for mermaid-cli (https://playwright.dev/docs/docker)
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      # Node by site/.nvmrc, npm's cache keyed on the lockfile (make site runs npm ci)
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      # main's latest sim reports (the sim shard saves them on main), which make site publishes at /reports: no entry
+      # carries this key, so the newest sim- entry is restored. This runs beside the sim, so on main Site Deploy swaps
+      # in the newest once it is done (make site-reports)
+      - name: Restore main's sim reports
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-latest
+          restore-keys: sim-
+      - name: Run make site
+        run: make site
+      # the built site's HTML: pages, links, numbers, CSP; and the diagrams drawn by mermaid-cli in the image's Chrome
+      - name: Test the built site
+        run: npm --prefix site test
+      # with the numbers its tests read (src/macros.json), for checks
+      - name: Upload the built site
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: built-site
+          path: |
+            site/dist
+            site/src/macros.json
+          include-hidden-files: true   # as upload-pages-artifact would take them
+          if-no-files-found: error
+          retention-days: 1
+      # a Docs version's build, as release.yml makes each release's (docs/adr/0014): the same site under /noggin/v0.0/,
+      # its links inside it (dist is rebuilt here, after its upload)
+      - name: Test a docs version build
+        run: npm --prefix site run build && npm --prefix site test
+        env:
+          SITE_BASE: /noggin/v0.0
+  # the required check (#496): every job above passed or was skipped as its inputs were unchanged (a skipped required
+  # check passes, so this one never skips; a failed need fails it). Then the site whole: the pictures (the last ones
+  # rendered from the same inputs, else the bins', saved here for changes to find) and the viewer's GLBs at
+  # site/dist/images and site/dist/viewer, as make site puts them, its links checked again with them, and played in
+  # the runner's Chrome
+  checks:
+    name: Checks
+    needs: [changes, code, convex, convex-part, model, blender, site]
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check every job passed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: convex, convex-part, model, blender, site
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes; the token stays out of what is uploaded
+      - name: Restore the pictures
+        if: ${{ needs.site.result == 'success' && github.event_name != 'schedule' }}   # weekly: the ones it rendered
+        id: images
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/images
+          key: pictures-${{ needs.changes.outputs.pictures-hash }}
+          fail-on-cache-miss: ${{ needs.changes.outputs.pictures == 'true' }}
+      - name: Download the pictures
+        if: ${{ needs.site.result == 'success' && steps.images.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: images-*
+          merge-multiple: true
+          path: model/build/images
+      - name: Download the viewer
+        if: ${{ needs.site.result == 'success' && needs.changes.outputs.viewer != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: viewer
+          path: web/build
+      - name: Restore the viewer
+        if: ${{ needs.site.result == 'success' && needs.changes.outputs.viewer == 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: web/build
+          key: viewer-${{ needs.changes.outputs.viewer-hash }}
+          fail-on-cache-miss: true
+      - name: Download the built site
+        if: ${{ needs.site.result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          name: built-site
+          path: site
+      - name: Add the pictures and viewer
+        if: ${{ needs.site.result == 'success' }}
+        run: cp -R model/build/images site/dist/images && cp -R web/build/. site/dist/viewer   # as make site does
+      - name: Set up Node
+        if: ${{ needs.site.result == 'success' }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install the site's packages
+        if: ${{ needs.site.result == 'success' }}
+        run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
+      # the links Site checked, now with the pictures and the viewer they point at (site.test.mjs checks a link into
+      # images/ once it is there)
+      - name: Check the links to the pictures
+        if: ${{ needs.site.result == 'success' }}
+        run: npm --prefix site test -- site.test.mjs -t link
+      # the viewer loads Stage 1, the diagrams draw, search finds a page, the version switcher switches, in the
+      # runner's Chrome, with no CSP violation or console error and no request to another host but api.github.com
+      - name: Smoke-test the site in Chrome
+        if: ${{ needs.site.result == 'success' }}
+        run: npm --prefix site run smoke
+      # the PR's preview, and on main what Site Deploy deploys (actions/download-artifact by this run's id)
+      - name: Upload the site
+        if: ${{ needs.site.result == 'success' }}
+        id: preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: site
+          path: site/dist
+          include-hidden-files: true   # as upload-pages-artifact would take them
+          if-no-files-found: error
+      - name: Upload the pictures
+        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
+        id: pictures
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: pictures
+          path: model/build/images
+      - name: Link the preview
+        if: ${{ needs.site.result == 'success' && github.event_name == 'pull_request' }}
+        env:
+          URL: ${{ steps.preview.outputs.artifact-url }}
+          PICTURES: ${{ steps.pictures.outputs.artifact-url }}
+          BUILT: ${{ needs.changes.outputs.pictures != 'true' && 'rendered from this PR' || 'unchanged, the last build of the same inputs' }}
+        run: |
+          echo "Site preview with the web viewer: [the site artifact]($URL)," >> "$GITHUB_STEP_SUMMARY"
+          echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open' >> "$GITHUB_STEP_SUMMARY"
+          echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).' >> "$GITHUB_STEP_SUMMARY"
+          echo "Pictures ($BUILT): [the pictures artifact]($PICTURES), what the site serves at images/ once this lands." >> "$GITHUB_STEP_SUMMARY"
+      # once for the run: its critical path, every job along its needs up to here. Warm: the parts, the pictures and
+      # the viewer all cached from the same inputs
+      - name: Check the CI budget
+        run: >-
+          python3 scripts/ci_budget.py ${{ needs.changes.outputs.parts == 'true'
+          && needs.changes.outputs.pictures == 'true' && needs.changes.outputs.viewer == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}

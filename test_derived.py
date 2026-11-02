@@ -70,7 +70,6 @@ MADE_FROM = {
     "trajectories": (["model/trajectories.py"], ["uv.lock"]),
     # the Blender jobs' outputs: the parts' make, the scripts Blender runs, the Core's calibration the trajectories play
     # and Blender's pin
-    "images": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),
     "pictures": (["model/render/pictures.py"], [*BLENDER, "model/render/blender.py"]),  # every motion, for changes
     "viewer": (["web/build.py"], [*BLENDER, "web/glb.py"]),
     "mesa": (["model/render/blender.py"], ["ci/blender.Dockerfile"]),  # Eevee's shaders, as its Mesa compiles them
@@ -90,7 +89,7 @@ MADE_FROM = {
             "uv.lock",
             ".python-version",
             "Makefile",
-            ".github/workflows/check.yml",
+            ".github/workflows/checks.yml",
         ],
     ),
 }
@@ -160,9 +159,7 @@ def test_the_blender_jobs_keys_hash_no_makefile_workflow_or_test():
         if f == "Makefile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
     found = patterns()
-    assert {
-        (n, f) for n in ("images", "pictures", "viewer") for globs in found[n] for f in tooling if covered(f, globs)
-    } == set()
+    assert {(n, f) for n in ("pictures", "viewer") for globs in found[n] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_jobs_run_in_our_images_by_the_main_tag():
