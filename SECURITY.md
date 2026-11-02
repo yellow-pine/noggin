@@ -1,6 +1,6 @@
 # Security
 
-Report vulnerabilities privately through GitHub's [private vulnerability reporting](https://github.com/yellow-pine/noggin/security/advisories/new) (the Security tab's "Report a vulnerability"). Do not open a public issue. You will get a reply within a week.
+Report vulnerabilities privately through GitHub's [private vulnerability reporting](https://github.com/yellow-pine/noggin/security/advisories/new) (the Security tab's "Report a vulnerability"). Do not open a public issue. You will get a reply within a week. We disclose a fixed vulnerability in a public advisory, and any report goes public 90 days after it arrives, fixed or not.
 
 ## Supported versions
 

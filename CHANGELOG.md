@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.3](https://github.com/yellow-pine/noggin/compare/v0.2.2...v0.2.3) (2026-11-02)
+
+
+### Documentation
+
+* **docs:** a PR says Refs until its proof is in the body, then Closes ([#498](https://github.com/yellow-pine/noggin/issues/498)) ([d6f9b9e](https://github.com/yellow-pine/noggin/commit/d6f9b9e1a96512217686ec628000801e6f7f0c51))
+* **docs:** point `SECURITY.md` at private vulnerability reporting ([#507](https://github.com/yellow-pine/noggin/issues/507)) ([7885ac5](https://github.com/yellow-pine/noggin/commit/7885ac56453209c4ffec8884f9e2d2120c588360))
+* **docs:** the main session owns the cycle-step file; implementers report their steps ([#491](https://github.com/yellow-pine/noggin/issues/491)) ([aceab5b](https://github.com/yellow-pine/noggin/commit/aceab5b132bc3a2241581e9bfdc71fbbaaea3325))
+* **site:** the CI/CD table moves from the README to a site page built from the workflows ([#432](https://github.com/yellow-pine/noggin/issues/432)) ([ca02573](https://github.com/yellow-pine/noggin/commit/ca02573d3affe217542df6792e2dba257cd9eba8))
+
 ## [0.2.2](https://github.com/yellow-pine/noggin/compare/v0.2.1...v0.2.2) (2026-11-02)
 
 
