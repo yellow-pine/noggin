@@ -1,6 +1,6 @@
 """The sim report (`just sim`, ADR 0007): for every document in stages.DOCS (the recorded sweep documents and the Stage
 configurations) the parts' placements against the geometry tables, the fits and beams, the electrical budget on the
-whole Mech, the next Mech's eye gimbal (model/gimbal.py; its lid drives' sweep, model/printed/gimbal.py), neck
+whole Mech, the next Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
 (model/neck.py) and Base candidate (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py), measured on the document's MJCF, written beside it as
 model/build/reports/<doc>.xml. Written to model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the Base candidates'
 ranking from theirs to model/build/reports/next-mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's at /reports (docs/adr/0009).
@@ -43,7 +43,7 @@ def report(doc):
         "beams": beams.beam_table(links),
     }
     if "next-eyes" in stages.DOCS[doc][0]:  # the next Mech's eye gimbal moves by its own kinematics (#630)
-        out["gimbal"] = {**gimbal.report(), "sweep": gimbal_parts.sweep()}
+        out["gimbal"] = {**gimbal.report(), "block_mm": gimbal_parts.bounds(), "sweep": gimbal_parts.sweep()}
     if all(f"{label} servo:1" in stage.parts for label in g.SERVO_LABEL.values()):  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report

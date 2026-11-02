@@ -34,6 +34,12 @@ def test_no_two_parts_overlap_at_rest():
     assert hits == []
 
 
+@pytest.mark.build
+def test_the_block_fits_the_compact_head():
+    """#684: the gimbal, servos and horns included, fits a head of at most 140 W x 120 D x 150 H."""
+    assert all(b <= h for b, h in zip(gimbal.bounds(), gm.HEAD_MM))
+
+
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
 def test_the_pupil_seat_sits_toward_the_other_eye(side, inward):
     """Just inside the cap's front, 6.6 mm either side of the gaze: the seat (r 7) is cut on the inward side, the cap

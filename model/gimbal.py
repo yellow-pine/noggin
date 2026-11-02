@@ -31,6 +31,7 @@ LEVER, BALL_R = 17.0, 3.0  # the lever up the yaw axis to its ball's centre
 YOKE = {"inner": 14.0, "wall": 3.0, "half_y": 4.0, "stem_r": 4.0, "stem_z": -27.0}  # yoke U from below; stem bottom
 YAW_CRANK_Z = (-27.0, -24.0)  # the yokes' cranks; the tie-bar under them, the yaw horn's outer face under that
 TIE_Z = (-30.0, -27.0)
+YAW_Y = 11.0  # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684)
 BAIL = (40.0, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
@@ -43,27 +44,35 @@ LID_SPAN = 2 * (CAP_HALF + LID_COVER)  # the wedge's width about x
 LID_REST = PUPIL_DEG + 2.0  # the lid's lower edge just over the pupil (#51), at the lid servo's centre
 LID_EDGES = (-(CAP_HALF + LID_COVER), LID_REST + PITCH)  # the lid's edge closed (past the cap's rim) and open (#51)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
-LID_HORN = (0.0, -40.0)  # (y, z) of each lid servo's horn, under the lid's crank (along +y at rest)
+LID_HORN = (53.0, 0.0)  # (y, z) of each lid servo's horn: behind the eye, its case just behind the bail's upright
+# the lid's crank at rest, deg from forward toward up: square to the bar (along +y) mid-range, so the bar meets it at
+# 50 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
+LID_CRANK = 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
+LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
 PRINT_SCALE = 0.0075  # in-plane print error (docs/research/2026-11-02-literature-cams-am.md [ZF]), on one eye's cranks
 GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
 PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2, the pitch horn outboard of the bar
-LID_X = {"boss": (28.0, 33.5), "crank": (30.5, 33.5), "bar": (33.5, 36.5), "upright": (36.5, 39.5)}  # x out from L eye
+LID_X = {"boss": (28.0, 31.0), "crank": (28.0, 31.0), "bar": (31.0, 34.0), "upright": (34.0, 37.0)}  # x out from L eye
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo
+PLATE_Y = (-25.0, 77.0)  # under the head mount's front screws to past the lid servos' collars
+HEAD_MM = (140.0, 120.0, 150.0)  # the compact head the gimbal fits (#684): width, depth, height
 
 
 def drives():
     """{label: (horn's outer face centre, shaft direction, tab direction, arm direction at rest)}: the four servos of the
-    eyes Core, each horn at its drive's crank (model/stages.py mounts them, model/printed/gimbal.py seats them)."""
+    eyes Core, each horn at its drive's crank (model/stages.py mounts them, model/printed/gimbal.py seats them), each
+    case behind the eyes' centres and within their width (#684): the yaw servo under the tie-bar, the pitch servo
+    beside the pitch bar, each lid servo behind its eye, its horn on the inner face of the lid's bar."""
     out = {
-        "yaw": ((0.0, 0.0, TIE_Z[0]), g.Z, g.Y, g.Y),
+        "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (0, -1, 0), g.Y),
         "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), g.Y, g.Y),
     }
     for s, sign in (("L", 1), ("R", -1)):
-        x = EYE[s][0] + sign * LID_X["upright"][0]
-        out[f"{s} lid"] = ((x, *LID_HORN), (-sign, 0, 0), g.Y, g.Y)
+        x = EYE[s][0] + sign * LID_X["bar"][0]
+        out[f"{s} lid"] = ((x, *LID_HORN), (sign, 0, 0), (0, -1, 0), (0, *np.divide(LID_PIN, CRANK)))
     return out
 
 
@@ -141,14 +150,15 @@ def moved(lid, pitch, yaw=0.0):
     out, lids = {}, lid if isinstance(lid, dict) else dict.fromkeys(EYE, lid)
     for s, (x, _, _) in EYE.items():
         lid_m, horn_m = linkage.rotation(g.X, -lids[s], (x, 0, 0)), linkage.rotation(g.X, -lids[s], (x, *LID_HORN))
-        crank, pin = (x, CRANK, 0), (x, LID_HORN[0] + CRANK, LID_HORN[1])
+        crank, pin = (x, *LID_PIN), (x, *np.add(LID_HORN, LID_PIN))
         out[f"next {s} lid:1"], out[f"next {s} lid horn:1"] = lid_m, horn_m
         out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
     yaw_servo, servo = servos(yaw, pitch)
     if yaw:  # else they stay at rest, left out: the lid drives' sweep (model/printed/gimbal.py) poses what is here
-        out["next yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo)
+        out["next yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo, (0, YAW_Y, 0))
         out["next tie-bar:1"] = tie = np.eye(4)
-        tie[:3, 3] = (horn @ (0, CRANK, 0, 1))[:3] - (0, CRANK, 0)  # a parallelogram: the bar shifts, never turns
+        pin = (0, YAW_Y + CRANK, 0)
+        tie[:3, 3] = (horn @ (*pin, 1))[:3] - pin  # a parallelogram: the bar shifts, never turns
     bail, a, b = _PITCH(servo)
     out["next pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
     out["next bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))

@@ -80,11 +80,15 @@ def yoke():
 
 
 def tie_bar():
-    """The tie-bar under the yokes' cranks: both eyes' and the yaw horn's pins, one parallelogram."""
-    c = gm.EYE["L"][0]
+    """The tie-bar under the yokes' cranks: both eyes' pins and, on a tail back from its middle, the yaw horn's, one
+    parallelogram."""
+    c, horn = gm.EYE["L"][0], gm.YAW_Y + gm.CRANK
     out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
-    for x in (-c, 0.0, c):
-        out = out.cut(cyl("z", (x, gm.CRANK, 0), gm.PIN_R, gm.TIE_Z))
+    out = out.union(box((-ARM / 2, ARM / 2), (gm.CRANK, horn), gm.TIE_Z)).union(
+        cyl("z", (0, horn, 0), ARM / 2, gm.TIE_Z)
+    )
+    for x, y in ((-c, gm.CRANK), (c, gm.CRANK), (0.0, horn)):
+        out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, gm.TIE_Z))
     return out
 
 
@@ -117,10 +121,10 @@ def push_rod():
 
 def link(a, b, x):
     """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    (ya, za), (yb, zb) = a, b
-    assert ya == yb, "the drives' bars stand along z"
     w = ARM / 2
-    out = box(x, (ya - w, ya + w), sorted((za, zb)))
+    side = np.array([a[1] - b[1], b[0] - a[0]]) * w / math.dist(a, b)
+    outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
+    out = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(outline).close().extrude(x[1] - x[0])
     for y, z in (a, b):
         out = out.union(cyl("x", (0, y, z), w, x)).cut(cyl("x", (0, y, z), gm.PIN_R, x))
     return out
@@ -132,9 +136,9 @@ def pitch_bar():
 
 
 def lid_bar():
-    """One lid's bar (drawn centred on x 0): the lid's crank down to its horn."""
+    """One lid's bar (drawn centred on x 0): the lid's crank back to its horn, behind the eye."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
-    return link((gm.CRANK, 0.0), (gm.LID_HORN[0] + gm.CRANK, gm.LID_HORN[1]), (-w, w))
+    return link(gm.LID_PIN, tuple(np.add(gm.LID_HORN, gm.LID_PIN)), (-w, w))
 
 
 def lid(side):
@@ -145,10 +149,9 @@ def lid(side):
     fan = [(0.0, 0.0)] + [(-(ro + 5) * math.cos(a), (ro + 5) * math.sin(a)) for a in arc]
     wedge = cq.Workplane("YZ", origin=(-ro - 1, 0, 0)).polyline(fan).close().extrude(2 * ro + 2)
     out = ball(ro).cut(ball(ri)).intersect(wedge)
-    bx, cx = gm.LID_X["boss"], gm.LID_X["crank"]
-    out = out.union(cyl("x", (0, 0, 0), 4.0, bx)).union(box(cx, (0, gm.CRANK), (-ARM / 2, ARM / 2)))
-    out = out.union(cyl("x", (0, gm.CRANK, 0), ARM / 2, cx))
-    out = out.cut(cyl("x", (0, gm.CRANK, 0), gm.PIN_R, cx)).cut(cyl("x", (0, 0, 0), gm.PIN_R, (bx[0] + 2, bx[1])))
+    bx, cx, pin = gm.LID_X["boss"], gm.LID_X["crank"], (0, *gm.LID_PIN)
+    out = out.union(cyl("x", (0, 0, 0), 4.0, bx)).union(link((0.0, 0.0), gm.LID_PIN, cx))
+    out = out.cut(cyl("x", pin, gm.PIN_R, cx)).cut(cyl("x", (0, 0, 0), gm.PIN_R, (bx[0] + 2, bx[1])))
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -158,7 +161,8 @@ def frame():
     head mount (model/printed/neck.py) is screwed up through."""
     c, top = gm.EYE["L"][0], gm.PLATE_Z[1]
     by, bz = gm.BAIL
-    out = box((-c - 58, c + 58), (-25, 70), gm.PLATE_Z)
+    edge = c + gm.LID_X["upright"][1]
+    out = box((-edge, edge), gm.PLATE_Y, gm.PLATE_Z)
     for s in (-1, 1):
         stem = gm.YOKE["stem_z"]
         out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem))).cut(
@@ -167,7 +171,7 @@ def frame():
         bx = sorted((s * (c + 8), s * (c + 12)))
         out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).cut(cyl("x", (0, by, bz), gm.PIN_R, bx))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
-        out = out.union(box(ux, (-4, by), (-4, 4))).union(box(ux, (by - 4, by + 4), (top, 4)))
+        out = out.union(box(ux, (-4, 4), (top, 4)))
         out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, ux))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
@@ -370,6 +374,12 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
         segments = [((lids[0], p), (lids[-1], p)) for p in ps] + [((lid, pitches[0]), (lid, pitches[-1])) for lid in ls]
         certify(group, _path([s[:: (-1) ** i] for i, s in enumerate(segments)], step))
     return {"clearance_mm": round(closest[0], 2), "pair": closest[1], "at": closest[2], "overlaps": overlaps}
+
+
+def bounds():
+    """The gimbal's bounding box at rest, mm: its width (x), depth (y) and height (z), servos and horns included (#684)."""
+    b = cq.Compound.makeCompound(list(at_rest().values())).BoundingBox()
+    return [round(b.xlen, 1), round(b.ylen, 1), round(b.zlen, 1)]
 
 
 def _gap(a, b):
