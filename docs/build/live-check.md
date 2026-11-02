@@ -2,7 +2,7 @@
 
 Both Cores on the Mech, end to end ([#29](https://github.com/yellow-pine/noggin/issues/29)): each Core flashed over
 USB and over Wi-Fi, then probed over Wi-Fi with the cable in, with the cable out and after the Mech was off. Run it
-once Core 2 is set up as the neck Core (`scripts/setup.sh`, answering `neck`), and again after a change to the Link.
+once the second Core is set up as the neck Core (`scripts/setup.sh`, answering `neck`), and again after a change to the Link.
 
 ```
 just start         # the noggin service, from this checkout

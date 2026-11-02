@@ -7,12 +7,14 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 ### Hardware
 
 **Mech**:
-The physical animatronic: two eyeballs, two eyelid pairs, the pan-tilt neck and the mouth, seven servos on two Cores, built from the designer's eyes, pan-and-tilt and mouth designs (the site's Credits page, docs/credits.md).
+The physical animatronic, our own design (#51), being designed and not built yet: two linked eyes with an upper and a
+lower lid each, the pan-and-tilt neck and the mouth, seven servos on two Cores, a Skeleton that wears a Character.
+Today's Mech, the one on Cansin's desk built from another designer's parts, runs the eye program until it is built.
 _Avoid_: robot, head, beast, eye mech
 
 **Next Mech**:
-The Mech being designed to follow today's (#51): our own design on the Cores, Shields and servos we own, a Skeleton
-that wears a Character. Today's Mech stays the supported build until the next one is built.
+The Mech, by the name the Model, the pictures and the Web viewer give it (`next-`) while today's Mech still stands on
+the desk.
 _Avoid_: Mech 2, new Mech
 
 **Skeleton**:
@@ -76,7 +78,9 @@ the cure is to charge the pack.
 _Avoid_: brownout (the Core's own reset, which a pack cut comes before), power loss, crash
 
 **Servo**:
-One of the seven actuators, named by what it moves: left lid, left eye, right lid, right eye (eyes Core); tilt, mouth, pan (neck Core).
+One of the seven actuators, named by what it moves: yaw (both eyes left and right), pitch (both eyes up and down), left
+lid, right lid (eyes Core); tilt, mouth, pan (neck Core). Today's Mech's eye program drives its own four: left lid,
+left eye, right lid, right eye.
 _Avoid_: channel, PWM, actuator, motor
 
 **Link**:
@@ -167,15 +171,14 @@ Blender renders the pictures from MuJoCo's Trajectories. Today's Mech left it (#
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
-A cumulative build state of a Mech, each a complete Mech on the desk. Today's: Stage 1 the eyes on the base plate,
-Stage 2 the eyes on a pan-and-tilt neck, Stage 3 Stage 2 with the mouth; the build guides go Stage by Stage. The Next
-Mech's: Stage 1 the eye block on its Test stand with the eyes Core, Stage 2 the eye block on the Torso's neck under the
-head mount with the boards and the neck Core, Stage 3 Stage 2 with the jaw (the whole Mech); each in both looks.
+A cumulative build state of the Mech, each complete on the desk: Stage 1 the eye block on its Test stand with the eyes
+Core, Stage 2 the eye block on the Torso's neck under the head mount with the boards and the neck Core, Stage 3 Stage 2
+with the jaw (the whole Mech); each in both looks. The build guides go Stage by Stage.
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
 The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
-(docs/adr/0008): the Next Mech, playing its gestures and the Tour, whole or exploded.
+(docs/adr/0008): the Mech Stage by Stage, playing its gestures and the Tour, whole or exploded.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
@@ -206,7 +209,7 @@ checks, review or Release Assets run as they would for a person's (docs/adr/0010
 _Avoid_: release App, bot token
 
 **Hero**:
-The Next Mech's showcase loop: talking, glancing aside and nodding, the first clip of the Tour.
+The Mech's showcase loop: talking, glancing aside and nodding, the first clip of the Tour.
 _Avoid_: banner, idle loop
 
 **Tour**:
@@ -215,7 +218,7 @@ a gesture picked plays once, then the Tour goes on.
 _Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:
-An ownership unit that owns its parts exactly once (the Next Mech's eyes, neck, jaw, base, boards' carrier and Test
+An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base, boards' carrier and Test
 stand) and is placed into a document at a frame (model/stages.py).
 
 **Envelope**:
@@ -227,32 +230,28 @@ The printed arm on a servo spline; the driven link of every chain.
 _Avoid_: arm, lever
 
 **Bar**:
-A rigid link between two Pivots: eyeball bar, lid bar, tilt bar, pan bar, jaw bar.
+A rigid link between two Pivots: tie-bar, pitch bar, lid bar, pan bar, tilt bar, jaw bar, and the push-rods and lid
+links.
 _Avoid_: rod, linkage
 
 **Crank**:
-The lid crank: the lid bar with its lid end stepped 3 mm, turning Horn rotation into upper lid rotation.
+The lever on a turning part that a Bar drives: the yaw yoke's, each upper lid's.
 
 **Printed part**:
-A part we print, by our name (the designer's file names are history: docs/credits.md, docs/research); today's Mech's:
-- eye bracket: the frame the eye mech hangs on (eyeball forks, lid pins, servo bracket feet, the jaw rail) and its stem;
-  desk eye bracket: Stage 1's, without the jaw rail, its stem 5 mm shorter;
-- L / R servo bracket: one side's lid servo and eye servo, its feet on the eye bracket;
-- L / R eyeball: turns in the eye bracket's fork; pupil: the disc on its front;
-- upper lid, lower lid: the two lid shells of an eye on the eye bracket's lid pins, the upper one nested inside;
-- eyeball bar, lid bar, lid crank: the eye mech's Bars from the Horns to the eyeball, the lower lid and the upper lid;
-- wire keeper: holds the eye servo leads down on the base plate's cable holder posts;
-- base plate: carries the pan pivot, the pan servo mounts, the Shields' standoffs, the battery box and the switch board holder;
-- bearing block: the ring the pan turntable turns on in the base plate's recess;
-- pan turntable: turns on the pan axis and carries the tilt servo tower and the upright;
-- upright: the post carrying the tilt pivot, its lever driven by the pan bar;
-- tilt arm: turns on the tilt pivot, the eye bracket's stem clamped in its window, its lever driven by the tilt bar;
-- pan servo lead mount, pan servo tail mount: the pan servo's two mounts, the lead mount at the shaft end arched to let the
-  servo lead out;
-- wire holder: holds the leads down on the base plate's two wire holder posts;
-- top jaw (screwed under the eye bracket, the jaw hinge pins), bottom jaw (turns on them), jaw servo mount (on the eye
-  bracket's rail), jaw bar (the jaw Horn to the bottom jaw's lug).
-_Avoid_: the designer's file names, version suffixes, plain / cutout / regular
+A part we print, by our name (model/printed); the Skeleton's:
+- gimbal frame: the eye block's plate, carrying the eyes' pivots and the four eye servos;
+- yaw yoke: one per eye, turning left and right in the frame; tie-bar: joins both yokes to the yaw Horn;
+- eyeball core: turns up and down in its yoke, its eyeball cap (a Shell) on it;
+- bail, push-rod, pitch bar: turn both cores up and down from the pitch Horn;
+- upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
+  off the lid bar;
+- test stand: the Test stand;
+- torso: the Torso; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan; pan bar: the pan
+  Horn to the yoke;
+- head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
+- board rack: both Cores and the switch board, upright behind the eyes;
+- jaw: turns on the head mount's lugs; jaw bar: the jaw Horn to the jaw.
+_Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
 
 **Coupon**:
 A test piece we print to find a fit on our printer and filament before a Printed part relies on it, such as the

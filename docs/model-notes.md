@@ -91,10 +91,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 
 ## Our model is the source (#88, #97)
 - Since `stock-parity` nothing reads docs/references: no gate against the designer's meshes, no vendor STEP meshing,
-  no guide sheets. The designer's and the vendor's files are credits ([Credits](credits.md)) and history (docs/research) only.
-- Every picture (`just render`, `just pictures`) draws our geometry, never the designer's meshes (Cansin, 2026-10-31).
-- `just stl` (#98): our printed parts as print-ready STLs (mm, the designer's frames, 0.02 mm tessellation) in
-  model/build/stl; future prints use ours.
+  no guide sheets. The vendor's files are credits ([Credits](credits.md)), the designer's history (docs/research) only.
+- Every picture (`just render`, `just pictures`) draws our geometry (Cansin, 2026-10-31).
+- `just stl` (#98): our printed parts as print-ready STLs (mm, 0.02 mm tessellation) in model/build/stl.
 - `just step` (#98): every part and envelope, and each document at neutral (model/stages.py's placements, coloured,
   one assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/next-mech-back.step`.
 

@@ -65,11 +65,10 @@ how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
-The mechanism is PurpleShark's CyberBrick animatronic series; the full credits are on
+The Mech is our own design on Bambu Lab's CyberBrick electronics; the full credits are on
 [the site](https://yellowpine.com/noggin/docs/credits/).
 
 ## Licence
 
 [PolyForm Noncommercial 1.0.0](LICENSE.md), copyright Yellow Pine. You may use, change and share noggin for any
-noncommercial purpose; contact hello@yellowpine.com for commercial licensing. The designer's models carry their own
-licences and are not redistributed here.
+noncommercial purpose; contact hello@yellowpine.com for commercial licensing.

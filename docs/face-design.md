@@ -1,9 +1,9 @@
 # Skeleton and character shells (grilled 2026-11-02, #51)
 
 > [!NOTE]
-> **Planned.** Not built yet, and on hold with the next Mech (#51, which holds the whole spec).
+> **Being designed, not built yet.** The Shells come after the Skeleton (#665); #51 holds the whole spec.
 
-The next Mech is one shared skeleton that wears a character: a set of cosmetic shells held on by magnets, swapped by
+The Mech is one shared skeleton that wears a character: a set of cosmetic shells held on by magnets, swapped by
 pulling one set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our
 own design; nothing comes from other people's designs.
 

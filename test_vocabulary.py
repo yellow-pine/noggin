@@ -87,7 +87,7 @@ DESIGNER = [
 # CyberBrick product codes: only where we buy them.
 CODES = ["ZK004", "ZL003", "PG001", "XA004", "PC003", "X11"]
 # Where the vendor, the designer and their names may appear: the site's Credits page, README's credits line, the buy
-# list, dated research notes (history).
+# list, dated research notes and the ADRs, which keep the words of their day (history).
 CREDITS = {"README.md": "## Credits", "docs/build/parts.md": "## Parts to buy"}
 
 
@@ -104,10 +104,11 @@ def outside_credits(f, text):
 
 def test_vendor_and_designer_names_only_in_credits():
     """Every part and board goes by our name (GLOSSARY.md); the vendor, the designer, product codes and the
-    designer's file names stay in docs/credits.md, README's credits line, the buy list and dated docs/research."""
+    designer's file names stay in docs/credits.md, README's credits line, the buy list, dated docs/research and the
+    ADRs."""
     from model import printed
 
-    # our names: the model's parts and today's Mech's, which GLOSSARY.md's Printed part lists (#720)
+    # our names: the model's parts, which GLOSSARY.md's Printed part lists (#721)
     names = set(printed.PARTS) | set(re.findall(r"^- ([a-z ]+):", (ROOT / "GLOSSARY.md").read_text(), re.M))
     # the stems, and their shortened forms the code used for parts (no "PandT" prefix, no version suffix)
     variants = {v for s in DESIGNER for v in (s, s.removeprefix("PandT "), s.removesuffix(" v2"))}
@@ -121,7 +122,7 @@ def test_vendor_and_designer_names_only_in_credits():
         f
         for f in tracked
         if f not in {"test_vocabulary.py", "docs/credits.md"}
-        and not re.match(r"docs/research/\d{4}-\d\d-\d\d-", f)
+        and not re.match(r"docs/research/\d{4}-\d\d-\d\d-|docs/adr/", f)
         and Path(f).suffix in (".py", ".md", ".json", ".sh", ".yml", ".toml", "")
         and (ROOT / f).is_file()
     ]

@@ -49,6 +49,7 @@ def github(path):
 SITE_TABLES = {
     "docs/index.md": "#what-it-does",
     "docs/use/gestures.md": "docs/use/gestures/#which-event-plays-what",
+    **{f"docs/build/stage-{n}.md": f"docs/build/stage-{n}/#servos-it-adds" for n in (1, 2, 3)},  # #721
     "docs/model-notes.md": "docs/model-notes/#numbers-from-the-code",
     "docs/build/wiring.md": "docs/build/wiring/#servo-ports",
     "docs/build/tests.md": "docs/build/tests/#the-clearance-coupon",
@@ -94,6 +95,33 @@ def test_the_wiring_table_is_built_from_the_code():
         assert row in table, row
     neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| 90 \|$", table, re.M)
     assert neck == [("1", "3", "tilt"), ("2", "2", "jaw"), ("3", "1", "pan")]
+
+
+def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
+    """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
+    the next Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
+    Core, then the Torso, the neck and the boards with the neck Core (the stand comes off), then the jaw."""
+    import macros
+
+    parts, servos = macros.stage_guides()
+    assert list(parts) == list(servos) == ["1", "2", "3"]
+    for row in [
+        "| Core | 1 | bought |",
+        "| L eyeball cap | 1 | Pure White PLA |",
+        "| servo | 4 | bought |",
+        "| Shield | 1 | bought |",
+        "| test stand | 1 | Absolute Black PETG |",
+    ]:
+        assert row in parts["1"], row
+    assert "| servo | 2 | bought |" in parts["2"] and "| torso | 1 | Absolute Black PETG |" in parts["2"]
+    assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
+    assert "| jaw | 1 | Absolute Black PETG |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
+    row = r"^\| (\w+) \| ([\w ]+) \| [\d.]+\.\.[\d.]+ \|$"
+    assert [re.findall(row, servos[n], re.M) for n in servos] == [
+        [("eyes", "yaw"), ("eyes", "pitch"), ("eyes", "L lid"), ("eyes", "R lid")],
+        [("neck", "pan"), ("neck", "tilt")],
+        [("neck", "jaw")],
+    ]
 
 
 def test_the_coupon_table_is_built_from_the_code():

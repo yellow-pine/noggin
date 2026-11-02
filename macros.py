@@ -11,6 +11,8 @@ parts, on docs/pictures.md (#649), and next_front: the front doors' own two ther
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage, and its looks (#720).
+stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
+(model/stages.py, geometry.py STAGES and PRINTED, #721).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py next_neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
@@ -22,6 +24,7 @@ build, released: every page's footer and /version.json (site/src/components/Foot
 import ast
 import json
 import subprocess
+from collections import Counter
 from pathlib import Path
 
 from model import geometry as g
@@ -210,6 +213,33 @@ HARDWARE = {
 }
 
 
+def stage_guides():
+    """Per Stage ("1" to "3", the Bony documents): the parts it adds to the Stage before it (and any it takes off), each
+    printed in its spool and material or bought, and its new servos with their Core (the eyes Core's are the eye
+    gimbal's horns, model/stages.py next_eyes) and the model's range, from neutral 90 as wiring() gives them."""
+    made = {name: f"{spool} {material.split()[0]}" for name, (spool, material) in g.PRINTED.items()}
+    eyes = set(stages.SUBS["next-eyes"]().horns)
+    parts, servos, before, horns = {}, {}, Counter(), set()
+    for n, doc in enumerate(BONY, 1):
+        d = stages.STAGES[doc]
+        now = Counter(stages.stem(p.file) for p in d.parts.values())
+        added = [
+            (HARDWARE.get(s, s.removeprefix("next ")), k, made.get(s, "bought")) for s, k in (now - before).items()
+        ]
+        rows = ["| Part | Count | Printed in |", "|---|---|---|"]
+        rows += [f"| {name} | {k} | {m} |" for name, k, m in sorted(added, key=lambda r: r[0].lower())]
+        gone = sorted(s.removeprefix("next ") for s in before - now)
+        parts[str(n)] = "\n".join(rows + ([f"\nIt takes off: {', '.join(gone)}."] if gone else []))
+        rows = ["| Core | Servo | The model's range |", "|---|---|---|"]
+        for name, horn in d.horns.items():
+            if name not in horns:
+                lo, hi = (round(90 + a, 1) for a in horn.limits)
+                servo = name.removeprefix("next ").removesuffix(" horn")
+                rows.append(f"| {'eyes' if name in eyes else 'neck'} | {servo} | {lo:g}..{hi:g} |")
+        servos[str(n)], before, horns = "\n".join(rows), now, set(d.horns)
+    return parts, servos
+
+
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
     shared lid frame, the eyes resting centred between their ends), the neck's the next Mech's neck's limits (its horns
@@ -294,6 +324,8 @@ def numbers():
         "next_motions": next_motions(),
         "next_parts": next_parts(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},
+        "stage_parts": (guides := stage_guides())[0],
+        "stage_servos": guides[1],
         "wiring": wiring(),
         "coupon": coupon(),
         "workflows": workflows(),
