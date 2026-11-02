@@ -2,7 +2,7 @@
 // Run: npm ci --prefix ci && node --test ci/commitlint.test.mjs (Checks' Code job)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -54,6 +54,16 @@ test('the header is at most 100 characters, except a bot\'s', () => {
   assert.ok(passes(head + 'b'.repeat(100 - head.length)));
   assert.ok(!passes(head + 'b'.repeat(101 - head.length)));
   assert.ok(passes(head + 'b'.repeat(101 - head.length), { env: { PR_AUTHOR_TYPE: 'Bot' } }));
+});
+
+test('the issues Main Red files have valid titles (#767)', () => {
+  const titles = [...readFileSync(join(ci, '../.github/workflows/main-red.yml'), 'utf8').matchAll(/title="([^"]+)"/g)];
+  assert.equal(titles.length, 2);
+  for (const [, title] of titles) {
+    const filed = title.replace('${SHA:0:7}', '0a1b2c3'); // a sha may start with a digit
+    assert.notEqual(filed, title);
+    assert.ok(passes(filed, { env: { PR_AUTHOR_TYPE: 'Bot' } }), filed);
+  }
 });
 
 // subject-case fails a subject whose first letter is a capital, acronym or not; backticked text is skipped (#509)

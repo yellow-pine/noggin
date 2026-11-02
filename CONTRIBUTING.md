@@ -46,6 +46,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   title re-runs it. Check a title before you open the PR, at the repo's root after `npm ci --prefix ci`:
   `ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"<title>"`, which lists the scopes when one
   is wrong.
+- An issue's title is a Conventional Commit too, by the same rules, so it can become its PR's title (#767), whoever or
+  whatever opens it: an automation writes a valid one from the start (Main Red's is `fix(ci): main red on <sha7>`) and
+  finds its issues by label, never by a title anyone may edit. The `Issue Title` workflow
+  (`.github/workflows/issue-title.yml`) runs main's commitlint on each issue opened or edited; an issue can't be
+  blocked, so a failing title gets a comment with the rule and the `needs-title` label, and passing removes both.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
@@ -116,9 +121,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
-  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own 'main red' issue,
-  labelled `main-red` (#697, #745). Only the main session runs the full run on a branch (`gh workflow run checks.yml
-  --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the slim gate alone.
+  the smoke) runs on main after the merge, CodeQL weekly (#728), and a red main files its own `fix(ci): main red on
+  <sha7>` issue, labelled `main-red` and found by it (#697, #745, #767). Only the main session runs the full run on a
+  branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
+  slim gate alone.
   Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
   workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
   `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). What
@@ -146,7 +152,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
   venv's inputs (uv.lock, pyproject.toml, .python-version) change and weekly, uncached, before the Monday image scan
   (#534). No PR builds them (#729): a PR that changes a Dockerfile runs main's images, and a broken one fails main's
-  `CI Images` run, which leaves `:main` as it was and files 'main red (CI Images)'.
+  `CI Images` run, which leaves `:main` as it was and files its own issue, labelled `main-red-images`.
 - `just mech` runs the Link's live checks on the Mech stand-in (mech/), in a `Model` shard.
 - Site Deploy deploys the very artifact Checks built, once main's Checks passed (#295, #310), from that Checks run
   (#731). The github-pages environment lists every deploy; Main Red reports a red Checks or Site Deploy run.
