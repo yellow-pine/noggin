@@ -402,7 +402,7 @@ jobs:
           start=$SECONDS
           make sim
           mkdir -p "$RUNNER_TEMP/durations"
-          echo "{\"make sim\": $(( (SECONDS - start) * $(nproc) ))}" > "$RUNNER_TEMP/durations/sim.json"
+          echo "{\"make sim\": $(( (SECONDS - start) * $(nproc --all) ))}" > "$RUNNER_TEMP/durations/sim.json"   # --all: nproc heeds OMP_NUM_THREADS
         env:
           OMP_NUM_THREADS: 1   # a document per process (model/report.py), as the xdist workers in make test
       - name: Report the sim inputs unchanged
