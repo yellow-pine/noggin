@@ -109,3 +109,21 @@ def run_check_the_verdict(tmp_path: Path, changed: str, conclusion: str, app_tok
 def test_a_review_with_no_verdict(tmp_path, changed, conclusion, app_token, code, says, gh):
     got_code, out, got_gh = run_check_the_verdict(tmp_path, changed, conclusion, app_token)
     assert (got_code, says in out, got_gh) == (code, True, gh)
+
+
+def test_main_skips_by_input_as_a_pr_does_and_a_weekly_run_runs_everything():
+    """#471: a push to main filters its changed paths against the parent commit and looks its Blender outputs up, as a
+    PR does; the weekly scheduled run on main does neither, so every job runs. Its own concurrency group, so it never
+    cancels a push's run (whose deploy would then never happen) nor one of those cancels it."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS if f.name in ("check.yml", "site-checks.yml")}
+    for flow in flows.values():
+        assert "cron" in flow[True]["schedule"][0]
+        assert "github.event_name" in flow["concurrency"]["group"]
+    changes = flows["check.yml"]["jobs"]["changes"]
+    assert changes["if"] == "${{ github.event_name != 'schedule' && !github.event.pull_request.draft }}"
+    assert [s.get("if") for s in changes["steps"] if s.get("id") == "filter"] == [None]
+    # Site Checks' changes runs weekly too, for the keys' hash (#469); main's Site always runs: it builds the deploy
+    changes = flows["site-checks.yml"]["jobs"]["changes"]
+    assert [s["if"] for s in changes["steps"] if s.get("id") in ("pictures", "viewer")] == [
+        "${{ github.event_name != 'schedule' }}"
+    ] * 2

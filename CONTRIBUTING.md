@@ -130,8 +130,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   their cache (`sim-`) is keyed on it, so a PR whose inputs match one of main's runs reuses its reports; otherwise it
   diffs the new reports against main's latest in its job summary. The reports are never committed: main's are on the
   site at /reports (ADR 0009). Site Checks' `Site` job caches npm's downloads by `site/package-lock.json`
-  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR whose pictures and viewer are cached
-  from the same inputs, neither Blender job runs and `site` restores them (#386). A cold parts cache is first cut part
+  (setup-node), which pins Mermaid, three.js and mermaid-cli (ADR 0013); on a PR or main push whose pictures and viewer
+  are cached from the same inputs, neither Blender job runs and `site` restores them (#386, #471). A cold parts cache is first cut part
   by part, one runner per part whose CoACD pieces are stale (`Convex`, `model/convex_parts.py`), so the model shards start warm.
   Every Monday `Cache Prune` deletes the caches whose key prefix no workflow on main uses any more (`scripts/cache_prune.py`,
   #473), so retired caches never crowd live ones out of the 10 GB cap.
@@ -147,11 +147,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Dockerfiles' base images digest-pinned and bumps them, bringing the security fixes, #472), and every job that starts
   after runs in them. A PR that changes a Dockerfile only builds the images (main's layer cache, read only).
 - `make mech` runs the Link's live checks on the Mech stand-in (mech/): CI's `Mech` job (`check.yml`, beside `Code`
-  and `Model`, so main's Code Checks cover all three, #295), on PRs touching eyes/, noggin/ or mech/ and on main. The
+  and `Model`, so main's Code Checks cover all three, #295), on PRs and main pushes touching eyes/, noggin/ or mech/. The
   site's `Site` and `Pictures` (Site Checks, `.github/workflows/site-checks.yml`) are required checks too: `Mech`,
   `Model`, `Site` and `Pictures` run on every PR, and a `Changes` job (dorny/paths-filter) skips the work when nothing
-  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing; main
-  runs everything. `Pictures` sums up the `Render` job's runners (one per
+  it is made from changed (`test_derived.py` holds each filter to its inputs), which GitHub counts as passing. A
+  push to main filters the same way, against the commit before it (#471), but main's `Site` always runs, since it
+  builds the deploy; every Monday a scheduled run on main runs everything, the filters' safety net, and deploys
+  nothing. `Pictures` sums up the `Render` job's runners (one per
   motion of the README's pictures, a matrix the `Motions` job reads from the code with `make pictures-list`, #297)
   under one name.
 - A PR runs checks; main runs the same checks, then deploys (#310). Site Checks build and test the site on both and
