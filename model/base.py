@@ -44,17 +44,16 @@ SPLIT_Y = -24.0  # Split: the pair's middle front to back, candidates.optimise()
 SWITCH = (82.0, neck.DISC_Z[0])  # Split: (y of the switch board's middle, z of the bracket's underside) (inferred)
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
 # bottom: model/envelopes.py, held to it by model/test_base.py)
-_ROW = (
+ROW = (
     ((("next Shield 1", "receiver"), ("next Core 1", "core")), (-14.5, 14.5), -10.68, -15.0),
     ((("next Shield 2", "receiver"), ("next Core 2", "core")), (-14.5, 14.5), -10.68, -15.0),
     ((("next switch board", "switch"),), (-7.25, 13.25), -4.6, -16.0),
 )
-PAIR = _ROW[:2]  # the Cores and Shields alone (Split's crown)
+PAIR = ROW[:2]  # the Cores and Shields alone (Split's crown)
 BOARD_H, BOARD_D = 32.0, 21.5  # the row's height (the switch board's) and depth (a Shield with its Core)
-SWITCH_D = 19.76  # the switch board's depth, back to front (model/envelopes.py switch)
 
 
-def width(row=_ROW):
+def width(row=ROW):
     return sum(x1 - x0 for _, (x0, x1), _, _ in row) + GAP * (len(row) - 1)
 
 
@@ -75,7 +74,7 @@ def _moved(row, m):
     return {n: (mesh, m @ at) for n, (mesh, at) in row.items()}
 
 
-def standing(back, z, row=_ROW):
+def standing(back, z, row=ROW):
     """The row upright, its backs on the plane y = back, its bottoms level BOARD_H / 2 under z (the tallest's middle at
     z), so each stands on what holds them (#687)."""
     m = np.eye(4)
@@ -83,7 +82,7 @@ def standing(back, z, row=_ROW):
     return _moved(_row(row), m)
 
 
-def lying(y, z, row=_ROW):
+def lying(y, z, row=ROW):
     """The row turned onto its backs (90 deg about x, its tops forward), the backs on the plane z = z, the row's middle
     front to back on y (each board's bottom edge level, BOARD_H / 2 behind y)."""
     m = np.array([[1, 0, 0, 0], [0, 0, -1, y + BOARD_H / 2], [0, 1, 0, z], [0, 0, 0, 1]], dtype=float)
@@ -105,7 +104,7 @@ def split_boards():
 def switch_boards():
     """The switch board lying face down under its bracket, its back on the bracket's underside, centred on x 0."""
     down = np.array([[1, 0, 0, 0], [0, 0, 1, SWITCH[0] - BOARD_H / 2], [0, -1, 0, SWITCH[1]], [0, 0, 0, 1]], float)
-    return _moved(_row(_ROW[2:]), down)
+    return _moved(_row(ROW[2:]), down)
 
 
 def sway(wide, thick, grams, length, material="PETG HF"):

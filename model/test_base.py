@@ -46,7 +46,7 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     """The row's copy of the Envelopes' extents (ADR 0011) is theirs, and the boards stand side by side GAP apart with
     their backs on the plane asked for and their bottoms level (#687): the switch board, 32 tall, its middle on -90, the
     Shield, 30 tall, on -91."""
-    for parts, (x0, x1), back, bottom in base._ROW:
+    for parts, (x0, x1), back, bottom in base.ROW:
         (lo, hi) = BOXES[parts[0][1]]
         assert (x0, x1) == (lo[0], hi[0])
         assert back == min(BOXES[mesh][0][1] for _, mesh in parts)

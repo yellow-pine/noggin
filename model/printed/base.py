@@ -44,7 +44,7 @@ def _shelf(row, y):
 
 
 def crown_shelf():
-    return _shelf(nb._ROW, nb.CROWN_Y)
+    return _shelf(nb.ROW, nb.CROWN_Y)
 
 
 def split_shelf():
@@ -55,5 +55,5 @@ def switch_bracket():
     """Split's switch bracket (printed flat): an arm back from the pan yoke's floor, under its floor's level, the switch
     board lying under it."""
     y, z = nb.SWITCH
-    w = nb.width(nb._ROW[2:]) / 2 + 3
+    w = nb.width(nb.ROW[2:]) / 2 + 3
     return box((-w, w), (nk.AXIS[0] + FLOOR_D, y + nb.BOARD_H / 2 + 1), (z, z + nb.TRAY_T))

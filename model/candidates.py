@@ -60,7 +60,7 @@ def report(doc, model):
     # on the wall's tip: the boards and the whole carrier, as the MJCF weighs them (its wall and flange too: an
     # underestimate of the mode)
     tip = sum(model.body(f"{n}:1").mass[0] for n in (stem, *boards())) * 1000
-    wide = base.width(base.PAIR if "split" in stem else base._ROW) + 6
+    wide = base.width(base.PAIR if "split" in stem else base.ROW) + 6
     length = base.CROWN_Z + base.TRAY_T - gimbal.PLATE_Z[0]  # the wall, free from the plate's underside
     y = base.SPLIT_Y if "split" in stem else base.CROWN_Y
     return out | {
