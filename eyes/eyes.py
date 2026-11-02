@@ -30,10 +30,15 @@ except ImportError:
 between_steps = None
 
 
+clock = 0  # ms waited so far: the start budget's time base (moves only wait; time between commands only adds slack)
+
+
 def wait(ms):
     """sleep_ms a FRAME at a time, between_steps() after each: beacons and acks go out while a gesture plays."""
+    global clock
     while ms > 0:
         sleep_ms(min(ms, FRAME))
+        clock += min(ms, FRAME)
         ms -= FRAME
         if between_steps:
             between_steps()
@@ -53,6 +58,7 @@ LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
 SLEW = 428  # deg/s, the servo's rated slew at 4.8 V (eyes/servo.py, not flashed): no move asks for more
 ACCEL = 28094  # deg/s^2, the cap: half the stall torque at 4.8 V on the rotor's inertia through the gears (servo.py)
 FRAME = 20  # ms, one 50 Hz PWM period: LEDC takes a new duty only at the next one, so a servo gets one write a frame
+BUDGET = 2  # servos jumping at once: each draws ~0.6 A stall current till it arrives; pack, Shield, switch: 3 A
 OVER = 0.05  # toon overshoot past a lid level, then settle (docs/research/2026-11-01-toon-eyes.md)
 
 
@@ -124,6 +130,7 @@ class Eyes:
         self.trace_i = -1
         self.until = 0
         self.rand = 12345
+        self.jumps = {}  # pin -> clock ms its jump arrives
 
     # --- calibration ------------------------------------------------------
     def range(self, pin):
@@ -162,6 +169,18 @@ class Eyes:
             self.pwm[gpio].duty_ns(_pulse_ns(angle))
             self.pos[pin] = angle
 
+    def step(self, targets):
+        """Jump each servo to its target at full slew, drawing stall current until it arrives. Past the start budget
+        a jump waits, in whole frames, until another one arrived (2026-11-02-literature-motion-control.md 4)."""
+        for p, angle in targets.items():
+            busy = sorted(end for q, end in self.jumps.items() if q != p and end > clock)
+            if len(busy) >= BUDGET:
+                wait(FRAME * math.ceil((busy[-BUDGET] - clock) / FRAME))
+            before = self.pos.get(p)
+            self.set({p: angle})
+            if before is not None:
+                self.jumps[p] = clock + abs(self.pos[p] - before) * 1000 / SLEW
+
     def glide(self, ms, targets):
         """Move along minimum jerk over ms, a write a FRAME, in more frames when it would pass SLEW or ACCEL."""
         start = {
@@ -189,11 +208,11 @@ class Eyes:
             self.lids(f + over, ms, pins)
             ms = 100
         t = {p: self._lid_angle(p, f) for p in pins}
-        self.glide(ms, t) if ms else self.set(t)
+        self.glide(ms, t) if ms else self.step(t)
 
     def eyes(self, angle, ms=0):
         t = {p: self._eye_angle(p, angle) for p in EYES}
-        self.glide(ms, t) if ms else self.set(t)
+        self.glide(ms, t) if ms else self.step(t)
 
     def _side(self):
         self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF

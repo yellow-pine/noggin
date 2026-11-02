@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 import wifi as core_wifi  # eyes/wifi.py: the fake Core flashes with the Core's own code
 
+from noggin.core import CORES
 from noggin.service import CAL_FILE, DEMO_LINES, HOLD, Service, gesture_seconds
 from noggin.test_service import FakeSerial, wait_for
 from noggin.wifi import STALE, add_network, tag
@@ -86,6 +87,9 @@ class FakeCore(threading.Thread):
                 continue
             t, seq, line = data.decode().split(" ", 2)
             if t != tag(self.token, f"{self.name_} {seq} {line}"):
+                other = [n for n in CORES if t == tag(self.token, f"{n} {seq} {line}")]
+                if other and self.ack:  # the other Core's line: one command port serves both here, so ack it for it
+                    self.sock.sendto(signed(self.ack_token, other[0], f"ok {seq}"), addr)
                 continue
             if seq != self.last_seq:
                 self.lines.append(line)
@@ -441,15 +445,15 @@ def test_offline_core_makes_commands_silent_no_ops(tmp_path):
     core.running = False
 
 
-def test_neck_core_is_seen_but_receives_nothing(tmp_path):
+def test_the_neck_core_gets_the_lines_too(tmp_path):
+    """#620: the neck Core plays each gesture a frame after the eyes Core (its own program skips the eye servos)."""
     core = FakeCore(name="neck")
     s, sock = start(tmp_path, core)
     assert wait_for(
         lambda: ask(sock, "status\n").startswith("eyes offline\nneck wifi 127.0.0.1 uptime 42s program 0.1.0 abc1234\n")
     )
     ask(sock, "eureka 2\n")
-    time.sleep(0.2)
-    assert core.datagrams == []
+    assert wait_for(lambda: core.lines[-1:] == ["eureka 2"])
     s.stop()
     core.running = False
 

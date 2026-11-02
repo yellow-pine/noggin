@@ -42,6 +42,10 @@ _Avoid_: emulator, simulator, fake Core
 The angle of every servo at one instant.
 _Avoid_: position, frame, state
 
+**Start budget**:
+How many servos one Core lets jump at full speed at once (two): a jump draws stall current until the servo arrives, so any further jump waits for one to finish.
+_Avoid_: stall budget, current limit, power budget
+
 **Gesture**:
 A named, timed sequence of poses the Core plays to completion, such as eureka or attention.
 _Avoid_: animation, routine, effect, cue, sequence
