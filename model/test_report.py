@@ -56,13 +56,17 @@ def problems(report):
 
 
 def gimbal_problems(report):
-    """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play, the caps' gap, the lids' clearance
-    to what moves inside them and to each other, their servo range."""
+    """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
+    lids' clearance to what moves inside them and to each other, their servo range, and the lid drives' sweep (#650,
+    model/printed/gimbal.py sweep())."""
     m, out = report.get("gimbal"), []
     if not m:
         return out
     if m["gaze_deg"] > gimbal.GAZE_DEG:
-        out.append(f"gimbal gaze: {m['gaze_deg']} deg off with play > {gimbal.GAZE_DEG}")
+        out.append(
+            f"gimbal gaze: {m['gaze_deg']} deg off with play ({m['play_deg']}) and pupil seating ({m['pupil_deg']})"
+            f" > {gimbal.GAZE_DEG}"
+        )
     if m["cap_gap_mm"] < gimbal.CAP_GAP_MM:
         out.append(f"gimbal caps: {m['cap_gap_mm']} mm apart < {gimbal.CAP_GAP_MM}")
     lid = m["lid"]
@@ -74,7 +78,12 @@ def gimbal_problems(report):
     out += [
         f"gimbal lid servo: {d} deg past its {gimbal.SERVO_DEG}" for d in lid["servo_deg"] if abs(d) > gimbal.SERVO_DEG
     ]
-    return out
+    s = m.get("sweep")
+    if s and s["clearance_mm"] < gimbal.LID_CLEAR_MM:
+        out.append(
+            f"gimbal sweep: {' / '.join(s['pair'])} {s['clearance_mm']} mm apart at {s['at']} < {gimbal.LID_CLEAR_MM}"
+        )
+    return out + [f"gimbal sweep: {' / '.join(o['pair'])} overlap at {o['at']}" for o in (s or {}).get("overlaps", [])]
 
 
 def deeper(pair):
@@ -165,10 +174,12 @@ FIXTURE_PROBLEMS = {
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
         "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
         " {'motion': 'hero', 'ms': 410}",
-        "gimbal gaze: 2.1 deg off with play > 2.0",
+        "gimbal gaze: 2.1 deg off with play (1.4) and pupil seating (0.7) > 2.0",
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
+        "gimbal sweep: next L lid bar:1 / next L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
+        "gimbal sweep: next L lid bar:1 / next gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
     ],
 }
 
