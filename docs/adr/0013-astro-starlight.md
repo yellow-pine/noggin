@@ -7,8 +7,8 @@
 > Amended 2026-11-02 (#372): the `Footer` override also shows the version and the commit built, linking their GitHub
 > pages, and `/version.json` gives them with the build time (`macros.py` `build`).
 >
-> Amended 2026-11-02 (#538, #496): Site Checks is now the `Site` job of the Checks workflow, and its `Checks` gate
-> runs the Playwright smoke test and uploads the site once the pictures and the viewer are in.
+> Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds and tests
+> the site, and its `Checks` gate adds the pictures and the viewer, runs the Playwright smoke test and uploads it.
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that

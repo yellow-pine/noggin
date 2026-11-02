@@ -2,7 +2,8 @@
 
 > Decided with Cansin on 2026-11-01, #307 item 3; ticket #373. Research: #331's comments ("2. Versioned docs").
 >
-> Amended 2026-11-02 (#538, #496): Site Checks is now the Checks workflow; its `Site` job builds the docs version.
+> Amended 2026-11-02 (#538, #496): Site Checks is now part of the Checks workflow: its `Site` job builds the docs
+> version.
 
 A reader with a Mech built at noggin v0.2 needs v0.2's docs, not main's. Neither Astro nor Starlight versions docs,
 and starlight-versions archives each version's pages into the repo, which ADR 0009 forbids. So each Release builds

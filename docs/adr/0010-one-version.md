@@ -45,8 +45,8 @@ copy, and the tag is `v` plus it.
 - **release-please keeps a release PR** (`Release Please` workflow) that bumps the version and writes CHANGELOG.md,
   generated but committed (ADR 0009, amended) through that reviewed PR, with the version bump; no bot commits to
   main. Only feat, fix and perf (and breaks) open it and fill the changelog; the other types ride along with the next
-  release. It passes the required checks (PR, Checks, Fetch Skills and Review, Claude's review); merged, it tags
-  `vX.Y.Z` and creates the GitHub release, its notes the version's CHANGELOG.md section (each entry links its PR, which links
+  release. It passes the required checks, Claude's review included; merged, it tags `vX.Y.Z`
+  and creates the GitHub release, its notes the version's CHANGELOG.md section (each entry links its PR, which links
   its issue (#356), and its commit), and the tag starts Release Assets, which attaches the Core program zip as the release's
   deployment in the `release` environment (the Deployments panel links the release; its notes link the run).
 - **Features and breaks release themselves; the rest waits (#407).** Every merge to main once released a fix on its own,
