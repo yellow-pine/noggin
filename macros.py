@@ -257,8 +257,8 @@ RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # jus
 def variants():
     """The viewer page's button per head variant (#664, #686), by its GLB: in RANKING's order when it ranks today's
     variants, each marked with the gates and marks it fails, else in geometry.NEXT's unmarked; its name from its
-    document (next-mech-crown, "Crown") and a line on where its boards go, from what carries them (each carrier's
-    sub-assembly's docstring in model/stages.py, "next-crown: <the line>; ...")."""
+    document (next-mech-back, "Back") and a line on where its boards go, from what carries them (each carrier's
+    sub-assembly's docstring in model/stages.py, "next-back: <the line>; ...")."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == set(g.NEXT)
     buttons = []

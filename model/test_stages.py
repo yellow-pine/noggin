@@ -152,14 +152,7 @@ def test_stage2_eyes_ride_the_tilt_arm_and_the_pan():
     assert "tilt horn" not in s1.horns
 
 
-@pytest.mark.parametrize(
-    "doc,carrier",
-    [
-        ("next-mech-back", "next board rack"),
-        ("next-mech-crown", "next crown shelf"),
-        ("next-mech-split", "next split shelf"),
-    ],
-)
+@pytest.mark.parametrize("doc,carrier", [("next-mech-back", "next board rack")])
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
     hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and

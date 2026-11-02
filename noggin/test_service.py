@@ -369,3 +369,18 @@ def test_the_neck_core_gets_each_batch_a_frame_after_the_eyes_core(tmp_path):
 
 def test_the_frame_is_the_core_programs():
     assert service.FRAME * 1000 == service._replay()._eyes().FRAME
+
+
+def test_flash_names_the_core_and_defaults_to_the_eyes(tmp_path):
+    """#29: the live check flashes the neck Core over Wi-Fi too; `flash` alone stays the eyes Core's (just flash)."""
+    build = tmp_path / "build"
+    build.mkdir()
+    for f in service.FLASH_FILES:
+        (build / f).write_bytes(b"x")
+    s, sock, _ = start(tmp_path)
+    s.wifi.fresh = lambda name, now: True
+    s.wifi.flash = lambda name, files: f"flashed {name}: {' '.join(files)}, uptime 1s"
+    assert ask(sock, "flash neck\n").startswith("flashed neck: ")
+    assert ask(sock, "flash\n").startswith("flashed eyes: ")
+    assert ask(sock, "flash nose\n") == "flash failed: no Core nose (eyes, neck)\n"
+    s.stop()

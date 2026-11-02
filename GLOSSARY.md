@@ -31,9 +31,8 @@ the neck mount with the pan servo; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
-One way to place the next Mech's boards in its compact head, ranked against the others before Cansin picks: Back, the
-boards upright in the back of the head behind the eye gimbal; Crown, the boards lying flat in the crown above it; Split,
-the Cores and Shields in the crown and the switch board low at the back of the neck. In each the pack lies low in the
+One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the
+boards upright in the back of the head behind the eye gimbal, and it is the one variant today; the pack lies low in the
 Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 

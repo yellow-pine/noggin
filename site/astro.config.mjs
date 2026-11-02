@@ -81,6 +81,7 @@ export default defineConfig({
             'docs/build/wiring',
             'docs/build/flashing',
             'docs/build/calibration',
+            'docs/build/live-check',
             'docs/build/tests',
             { label: 'Shells (planned)', slug: 'docs/face-design' },
           ],

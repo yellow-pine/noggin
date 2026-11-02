@@ -330,21 +330,6 @@ def next_back():
     return _boards("next board rack", candidates.back_boards())
 
 
-def next_crown():
-    """next-crown: the boards lying flat on the crown shelf over the eye gimbal; it rides the head (RIDES)."""
-    return _boards("next crown shelf", candidates.crown_boards())
-
-
-def next_split():
-    """next-split: the Cores and Shields lying flat on the split shelf over the eye gimbal; it rides the head (RIDES)."""
-    return _boards("next split shelf", candidates.split_boards())
-
-
-def next_switch():
-    """next-switch: the switch board under its bracket, low at the back of the neck; it rides the pan yoke (RIDES)."""
-    return _boards("next switch bracket", candidates.switch_boards())
-
-
 def next_eyes():
     """next-eyes: the next Mech's eye gimbal (#630, model/gimbal.py) at rest, in its own frame: per eye the core, its
     cap, yoke, push-rod, lid and lid bar; the tie-bar, the bail, the pitch bar and the frame; the eyes Core's servos
@@ -502,9 +487,6 @@ SUBS = {
     "next-neck": next_neck,
     "next-base": next_base,
     "next-back": next_back,
-    "next-crown": next_crown,
-    "next-split": next_split,
-    "next-switch": next_switch,
 }
 EYES_FRAME = (0, 0, 0), g.X, g.Z
 BASE_IN_EYES = (
@@ -532,8 +514,7 @@ RIDES = {
     "noggin-eyes": lambda doc: g.STEM_IN[doc] + ":1",
     "noggin-mouth": lambda doc: "eye bracket:1",
     "next-eyes": lambda doc: "next head mount:1",  # the gimbal frame screwed on its flange
-    **dict.fromkeys(("next-back", "next-crown", "next-split"), lambda doc: "next head mount:1"),  # under the plate
-    "next-switch": lambda doc: "next pan yoke:1",  # the bracket on the yoke's floor
+    "next-back": lambda doc: "next head mount:1",  # the rack under the plate
 }  # clamped to that part
 
 

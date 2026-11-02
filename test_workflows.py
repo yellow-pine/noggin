@@ -159,8 +159,9 @@ OFF_PRS = "github.event_name != 'pull_request'"
 
 
 def test_a_pr_runs_the_slim_gate_alone():
-    """#696: a PR runs `just check-light` (Code) and the site's build and HTML tests (Site), then the gate; the model,
-    sim, Blender, Convex and the site's Chrome smoke run on main only, which fixes forward what they catch (#283)."""
+    """#696, #714: a PR runs `just check-light` (Code: ruff, pyright and the fast tests), then the gate; the site's
+    build, the workflow and Dockerfile linters, the model, sim, Blender, Convex and the site's Chrome smoke run on main
+    only, which fixes forward what they catch (#283)."""
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
 
     def on_prs(id_: str) -> bool:
@@ -170,9 +171,17 @@ def test_a_pr_runs_the_slim_gate_alone():
         needed = all(map(on_prs, [needs] if isinstance(needs, str) else needs))
         return OFF_PRS not in cond and (past_skips or needed)
 
-    assert {id_ for id_ in jobs if on_prs(id_)} == {"code", "site", "checks"}
+    assert {id_ for id_ in jobs if on_prs(id_)} == {"code", "checks"}
     [check] = [s["run"] for s in jobs["code"]["steps"] if s["name"] == "Run just check"]
     assert "${{ github.event_name == 'pull_request' && 'check-light' || 'check' }}" in check
+    assert [s["name"] for s in jobs["code"]["steps"] if OFF_PRS not in str(s.get("if", ""))] == [
+        "Check out the repo",
+        "Run just check",
+        "List the slowest tests",
+    ]
+    justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
+    recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
+    assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
     gate = jobs["checks"]["steps"]
     off = (OFF_PRS, "github.event_name == 'workflow_dispatch'")
     assert [s["name"] for s in gate if not any(o in str(s.get("if", "")) for o in off)] == [

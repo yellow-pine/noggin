@@ -5,8 +5,8 @@ and held, dropping hook Triggers, until `follow`; re-sent, after a `rest`, on ev
 reconnect while unmuted) / `set <key> <value>` (saved to the calibration file and sent) / `reload` (resend the file)
 / `demo [once | <gesture> [level]]` (play gestures on a loop, dropping hook Triggers) / `follow` (back to the hooks
 from demo or pose; the mode after any restart) / `status` (each Core's Link and program, the service's own version) /
-`flash` (the eye program to the eyes Core over Wi-Fi, answered with the outcome; `just flash`). The whole calibration
-file is pushed whenever the Link connects. Run as `python -m noggin.service`."""
+`flash [<core>]` (the eye program to the eyes Core, or the one named, over Wi-Fi, answered with the outcome;
+`just flash`). The whole calibration file is pushed whenever the Link connects. Run as `python -m noggin.service`."""
 
 import glob
 import json
@@ -200,22 +200,25 @@ class Service:
         except Exception as e:  # pyserial raises SerialException(IOError)
             self.drop_link(e)
 
-    def flash(self):
-        """The eye program, compiled into build/ beside calibration.json, to the eyes Core over Wi-Fi; the outcome.
-        Waits up to one stale window for a beacon: the service may have just started, or the Core be mid-gesture."""
+    def flash(self, core="eyes"):
+        """The eye program, compiled into build/ beside calibration.json, to a Core (both run it) over Wi-Fi; the
+        outcome. Waits up to one stale window for a beacon: the service may have just started, or the Core be
+        mid-gesture."""
+        if core not in CORES:
+            return f"flash failed: no Core {core} ({', '.join(CORES)})\n"
         end = time.time() + self.wifi.stale
-        while not self.wifi.fresh("eyes", time.time()) and time.time() < end:
+        while not self.wifi.fresh(core, time.time()) and time.time() < end:
             self.wifi.poll(time.time())
             time.sleep(0.05)
-        if not self.wifi.fresh("eyes", time.time()):
-            msg = f"flash failed: no beacon from eyes in {self.wifi.stale} s (switched off? just flash-usb)"
+        if not self.wifi.fresh(core, time.time()):
+            msg = f"flash failed: no beacon from {core} in {self.wifi.stale} s (switched off? just flash-usb)"
         else:
             try:
                 build = self.cal_file.parent / "build"
-                msg = self.wifi.flash("eyes", {f: (build / f).read_bytes() for f in FLASH_FILES})
+                msg = self.wifi.flash(core, {f: (build / f).read_bytes() for f in FLASH_FILES})
             except (RuntimeError, OSError) as e:
                 msg = f"flash failed: {e}"
-            self.live.pop("eyes", None)  # rebooted inside the window, uptime maybe not lower: the loop recalibrates it
+            self.live.pop(core, None)  # rebooted inside the window, uptime maybe not lower: the loop recalibrates it
         log(msg)
         return msg + "\n"
 
@@ -349,8 +352,8 @@ class Service:
                     try:
                         if line.strip() == "status":
                             conn.sendall(self.status(now).encode())
-                        elif line.strip() == "flash":
-                            conn.sendall(self.flash().encode())
+                        elif line.split()[:1] == ["flash"] and len(line.split()) <= 2:
+                            conn.sendall(self.flash(*line.split()[1:]).encode())
                         elif line.strip():
                             self.command(line.strip(), now)
                     except OSError as e:  # the client hung up before its answer (nc -w): never take the service down

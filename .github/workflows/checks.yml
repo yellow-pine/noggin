@@ -1,7 +1,7 @@
 name: Checks
 # Runs the slim PR gate; on main `just check`, the model tests with the Mech stand-in, sim and STL/STEP export.
 # One workflow, one required check (#496): `Checks`, the gate every other job here leads into. A PR runs the slim gate
-# alone (#696): `Code` (just check-light) and `Site`, its build and HTML tests; everything else runs on main
+# alone (#696, #714): `Code` (just check-light: ruff, pyright and the fast tests); everything else runs on main
 # (docs/adr/0009, #310), weekly and on any branch on demand (#562), and main fixes forward what it catches (#283).
 # `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
@@ -13,7 +13,7 @@ name: Checks
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
 # the Actions cache alone. `Blender` renders the next Mech alone (#649): its panels, its eye gimbal in motion and a
 # picture per part (just pictures next) and its viewer GLBs (just web next), when what they are made from changed.
-# `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML; off PRs,
+# `Site` builds the docs (just site, docs/adr/0013) with main's latest sim reports and tests the built HTML, off PRs;
 # `Checks` adds the next Mech's pictures and GLB, tests and plays the site in Chrome (Playwright) and uploads it (on
 # main what Site Deploy, pages.yml, deploys); it checks the CI budget once (scripts/ci_budget.py). On main, Deploy
 # Pending (deploy-pending.yml) sets the commit's `deploy` status pending while this builds (#292); Site Deploy sets its
@@ -42,7 +42,7 @@ defaults:
 jobs:
   changes:
     name: Changes
-    if: ${{ github.event_name != 'pull_request' }}   # a PR runs the slim gate alone: Code and Site (#696)
+    if: ${{ github.event_name != 'pull_request' }}   # a PR runs the slim gate alone: Code (#696, #714)
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -151,7 +151,7 @@ jobs:
             model/build/convex
           key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
           restore-keys: ours-convex-
-      # a PR's slim gate runs just check-light, as the pre-push hook does; main and the full runs just check (#696)
+      # a PR's slim gate runs just check-light (#714); main and the full runs just check (#696)
       - name: Run just check
         run: uv run just ${{ github.event_name == 'pull_request' && 'check-light' || 'check' }} | tee "$RUNNER_TEMP/pytest.txt"
         env:
@@ -163,9 +163,11 @@ jobs:
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # .releaserc.json's rules through semantic-release's own commit-analyzer (docs/adr/0017)
       - name: Test the release rules
+        if: ${{ github.event_name != 'pull_request' }}   # this and what follows run on main alone (#714)
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs
       # SC2329/SC2317 never-invoked wizard-library functions (code differs by shellcheck version), SC2012 ls glob on /dev, SC2015 A && B || C on purpose
       - name: Run shellcheck
+        if: ${{ github.event_name != 'pull_request' }}
         run: shellcheck -e SC2329,SC2317,SC2012,SC2015 scripts/setup.sh noggin/hook.sh noggin/noggin
       # just check runs it offline; with a token it adds the audits that ask GitHub's API (known-vulnerable-actions,
       # impostor-commit among them): on main's push and weekly only, since they hang on the API's rate limits and
@@ -177,6 +179,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       # a renamed job strands its old name in main's ruleset, where every PR then waits on it (#450)
       - name: Check the required checks
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" \
             --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
@@ -414,10 +417,10 @@ jobs:
             model/build/images
             web/build
           key: next-${{ needs.changes.outputs.next-hash }}
-  # the docs (Astro Starlight, just site), on every run: a PR's slim gate, and main's deploy
+  # the docs (Astro Starlight, just site), off PRs (#714): main's deploy
   site:
     name: Site
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
@@ -471,8 +474,8 @@ jobs:
         env:
           SITE_BASE: /noggin/v0.0
   # the required check (#496): every job above passed, or was skipped as its inputs were unchanged or, on a PR, as
-  # main's alone (#696; a skipped required check passes, so this one never skips; a failed need fails it). Then, off
-  # PRs, the built site with the next Mech's pictures, played in the runner's Chrome
+  # main's alone (#696, #714; a skipped required check passes, so this one never skips; a failed need fails it).
+  # Then, off PRs, the built site with the next Mech's pictures, played in the runner's Chrome
   checks:
     name: Checks
     needs: [changes, code, convex, model, blender, site]
@@ -483,7 +486,7 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: changes, convex, model, blender
+          allowed-skips: changes, convex, model, blender, site
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:

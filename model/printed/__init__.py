@@ -80,12 +80,9 @@ PARTS = {
     "next pan bar": neck.pan_bar,
     "next tilt bar": neck.tilt_bar,
     "next jaw bar": neck.jaw_bar,
-    # the next Mech's Torso (#685) and its head variants' board carriers (#686)
+    # the next Mech's Torso (#685) and its head variant's board carrier (#686, Back alone since #712)
     "next torso": base.torso,
     "next board rack": base.rack,
-    "next crown shelf": base.crown_shelf,
-    "next split shelf": base.split_shelf,
-    "next switch bracket": base.switch_bracket,
 }
 # The Skeleton drawn as Bones (#704): each builder's switch `plain` draws its plain style, the same interfaces; PARTS
 # holds it under the stem's plain name (geometry.PLAIN)
@@ -102,9 +99,17 @@ UNSTYLED = {
     "next eyeball core": "the eyeball's ball under its cap: none",
     **dict.fromkeys(("next L lid", "next R lid", "next lid bar", "next pitch bar", "next gimbal frame"), "#698"),
     **dict.fromkeys(
-        ("next neck mount", "next pan yoke", "next head mount", "next jaw", "next pan bar", "next tilt bar"), "#708"
+        (
+            "next neck mount",
+            "next pan yoke",
+            "next head mount",
+            "next jaw",
+            "next pan bar",
+            "next tilt bar",
+            "next jaw bar",
+        ),
+        "#708",
     ),
-    **dict.fromkeys(("next jaw bar", "next crown shelf", "next split shelf", "next switch bracket"), "#708"),
 }
 PARTS |= {stem + PLAIN: functools.partial(build, plain=True) for stem, build in STYLED.items()}
 

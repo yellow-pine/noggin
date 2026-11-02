@@ -1,4 +1,5 @@
 #!/bin/sh
-# just check-light before every push (CONTRIBUTING.md); without git's GIT_DIR, which would point the tests' own repos at this one
+# just lint (ruff and pyright) before every push (CONTRIBUTING.md, #714); without git's GIT_DIR, which would point
+# the tests' own repos at this one
 unset GIT_DIR
-exec uv run --quiet just check-light   # the venv's just (rust-just): uv alone needed
+exec uv run --quiet just lint   # the venv's just (rust-just): uv alone needed
