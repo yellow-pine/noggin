@@ -9,8 +9,10 @@ stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), wha
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, LIMITS for the neck).
+moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
 stages: the web viewer's Stages (site/src/pages/viewer.astro), one per geometry.STAGES, named as web/build.py's GLBs.
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
+explode: the viewer's exploded Stage 3 (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -39,6 +41,16 @@ MECH = {  # what each gesture looks like, by the name the director sends
     "rest": "back to rest (also when the last turn ends {stale} after its prompt, whatever Triggers arrive)",
 }
 
+MOMENT = {  # each event the hooks take, as the reader lives it (Claude Code's hooks reference)
+    "SessionStart": "a session starts",
+    "UserPromptSubmit": "you send a prompt",
+    "Stop": "Claude finishes a turn",
+    "StopFailure": "a turn fails",
+    "SessionEnd": "the session ends",
+    "Notification permission_prompt": "Claude asks for your permission",
+    "Notification idle_prompt": "Claude waits for your input",
+}
+
 
 def constant(path, name):
     """A literal assigned at the top of a file that does not import here (a hooks script that writes settings on
@@ -64,14 +76,28 @@ def behaviour():
         "stale": duration(STALE_TURN_SECONDS),
     }
     rows = ["| Claude Code event | Mech |", "|---|---|"]
+    rows += [f"| {event} | {MECH[sent].format(**numbers)} |" for event, sent in plays()]
+    return "\n".join(rows)
+
+
+def plays():
+    """Each Claude Code event the hooks take (a Notification by its kind) and what the director sends for it."""
     for event, matcher in constant("noggin/install_hooks.py", "EVENTS").items():
         for kind in matcher.split("|") if matcher else [None]:
             director = Director()
             if event != "UserPromptSubmit":  # a turn under way, so Stop and SessionEnd have one to end
                 director.handle({"hook_event_name": "UserPromptSubmit", "session_id": "s"}, 0)
             sent = director.handle({"hook_event_name": event, "session_id": "s", "notification_type": kind}, 1)
-            rows.append(f"| {event}{' ' + kind if kind else ''} | {MECH[sent[0].split()[0]].format(**numbers)} |")
-    return "\n".join(rows)
+            yield f"{event}{' ' + kind if kind else ''}", sent[0].split()[0]
+
+
+def moments():
+    """The viewer's line under each gesture: the Claude Code moment that plays it, with its event (site/src/viewer)."""
+    out = {}
+    for event, sent in plays():
+        if sent != "rest":  # a gesture two events play names both
+            out[sent] = " or ".join(filter(None, [out.get(sent), f"{MOMENT[event]} ({event})"]))
+    return out
 
 
 def picture_numbers():
@@ -83,7 +109,7 @@ def picture_numbers():
         [
             "| Pictures | Rendered | GIF |",
             "|---|---|---|",
-            f"| views and the exploded stage 3 | {size(*p.VIEW_SIZE)} | |",
+            f"| views | {size(*p.VIEW_SIZE)} | |",
             f"| the Stage strip, per panel | {size(*p.STRIP_PANEL)} | |",
             f"| hero | {size(*p.HERO_SIZE)} | {hero} |",
             "",
@@ -149,6 +175,12 @@ def wiring():
     return "\n".join(rows)
 
 
+def explode():
+    """Each part of Stage 3 by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its GLB node's name."""
+    subs = pictures.EXPLODE.items()
+    return {"stage3": {n: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in subs for n in stages.SUBS[sub]().parts}}
+
+
 def build():
     """The one version (pyproject.toml, docs/adr/0010) and the commit built, the one Site Deploy deploys (#292)."""
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
@@ -172,6 +204,8 @@ def numbers():
         "wiring": wiring(),
         "workflows": workflows(),
         "stages": [doc.removeprefix("noggin-") for doc in g.STAGES],
+        "moments": moments(),
+        "explode": explode(),
         "build": (b := build()),
         "released": released(b["version"]),
     }
