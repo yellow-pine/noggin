@@ -52,20 +52,29 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
+PR_ONLY = "${{ github.event_name == 'pull_request' }}"  # cancels a PR's superseded run, never main's
+
+
 def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
     """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
-    Site Deploy, Release and Release Assets never cancel a run mid-way."""
+    Site Deploy, Release and Release Assets never cancel a run mid-way. #689: what Site Deploy and Release wait on
+    (Checks) runs every push to main to completion, queued, or merges minutes apart never deploy."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
     wrong = []
-    for f in WORKFLOWS:
-        flow = yaml.safe_load(f.read_text())
+    for name, flow in flows.items():
         group = str(flow.get("concurrency", {}).get("group", ""))
         if "pull_request" in flow[True] and not (
             "github.workflow" in group
             and "github.event.pull_request.number" in group
-            and flow["concurrency"].get("cancel-in-progress") is True
+            and flow["concurrency"].get("cancel-in-progress") in (True, PR_ONLY)
         ):
-            wrong.append(f.name)
+            wrong.append(name)
     assert wrong == []
+    awaited = {w for f in ("pages.yml", "semantic-release.yml") for w in flows[f][True]["workflow_run"]["workflows"]}
+    by_name = {flow["name"]: flow for flow in flows.values()}
+    assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
+        awaited, PR_ONLY
+    )
     for name in ("pages.yml", "semantic-release.yml", "release.yml"):
         assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
 

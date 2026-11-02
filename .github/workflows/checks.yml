@@ -29,10 +29,11 @@ on:
   # the same full run on any branch, on demand (#562): every check runs, so the Checks it posts on the branch's head
   # are a real one
   workflow_dispatch:
-concurrency:   # one run per PR (or main): a new push cancels the one in progress, main runs its latest; the weekly run
-  # has its own group, so it neither cancels a push's run (which Site Deploy waits for) nor is cancelled
+concurrency:   # one run per PR (or main): a PR's new push cancels the one in progress; main's runs queue, each running
+  # to completion, since Site Deploy and Release wait for a finished one (#689; a newer push replaces one still waiting);
+  # the weekly run has its own group, so it neither waits behind a push's run nor holds one up
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
   actions: read   # scripts/ci_budget.py reads when the run's jobs started
