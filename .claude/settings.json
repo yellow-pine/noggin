@@ -1,9 +1,18 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/sync_checkout.py" }]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash_guard.py" }]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/sync_checkout.py" }]
       }
     ]
   }

@@ -77,6 +77,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   state,mergeStateStatus,reviewDecision`. A build: `gh run watch`, or a loop with a sleep on its PID, which ends even when the build stops short.
 - A Claude Code hook (`.claude/hooks/bash_guard.py`) blocks the commands these rules ban, each with a one-line reason
   naming the allowed alternative.
+- Keep the session's own checkout clean and detached: `.claude/hooks/sync_checkout.py` fast-forwards it to origin/main
+  at session start and before each subagent dispatch, so subagents load main's `.claude/agents/`, and blocks a dispatch
+  once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (hero)`), every step a short
   sentence-case imperative like its `Set up job` (`test_workflows.py`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: `scripts/required_checks.py`) and
