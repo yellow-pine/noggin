@@ -22,13 +22,14 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   a PR, except on-hold work.
 - A PR's title is its squash commit, so it is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
   `type(scope): subject`, `type(scope)!: subject` for a breaking change (docs/adr/0010), as
-  @commitlint/config-conventional has it: types build, chore, ci, docs, feat, fix, perf, refactor, revert, style,
-  test; a subject that doesn't start uppercase or end with a period; at most 100 characters. The scope is required,
-  exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`, ...), a folder in docs/ (`adr`,
-  `build`, ...), `deps` (`deps-dev`) for a dependency bump as Dependabot writes, `release` for the release PR;
-  `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it lands). A body with a
-  `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check (`.github/workflows/pr-title.yml`) enforces it
-  all (a bot's PR: its title's type and scope); editing the title or body re-runs it.
+  @commitlint/config-conventional has it: types build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test;
+  a subject that doesn't start with a capital (a leading acronym goes in backticks) or end with a period; at most 100
+  characters. The scope is required, exactly one, derived from the repo: a tracked top-level folder (`eyes`, `web`,
+  ...), a folder in docs/ (`adr`, `build`, ...), `deps` and `deps-dev` (dev dependencies) as Dependabot writes them,
+  `release` for the release PR; `python3 scripts/pr_title.py` lists them (main's: a new folder is a scope once it
+  lands). A body with a `BREAKING CHANGE:` footer needs the `!`. The required `PR Title` check
+  (`.github/workflows/pr-title.yml`) enforces it all (a bot's PR: its title's type and scope); editing the title or body
+  re-runs it.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it
   finishes, `Refs #N` for one it only moves along. The required `PR Issue` check (`.github/workflows/pr-issue.yml`,
   `scripts/pr_issue.py` as on main) fails without one; editing the body re-runs it. A bot's PR (release-please,

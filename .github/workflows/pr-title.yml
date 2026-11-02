@@ -20,6 +20,7 @@ jobs:
       - name: Check out the script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.base.ref }}   # main's script and folders: a PR can't loosen its own check
           persist-credentials: false
           sparse-checkout: scripts/pr_title.py   # git ls-files still lists every tracked file
           sparse-checkout-cone-mode: false
@@ -46,7 +47,13 @@ jobs:
             test
           scopes: ${{ steps.scopes.outputs.scopes }}
           requireScope: true
-          subjectPattern: '^(?![A-Z]).*[^.]$'   # config-conventional's subject-case and subject-full-stop
+          # config-conventional's subject-full-stop, and its subject-case (never sentence-, start-, pascal- or
+          # upper-case), which fails exactly a subject whose first letter is a capital: sentence-case is
+          # upperFirst(s) === s (commitlint's @commitlint/ensure/src/to-case.ts; a subject not starting with a letter,
+          # `PR` in backticks say, is skipped by @commitlint/rules/src/subject-case.ts).
+          # shortcut: ASCII capitals only, a Unicode class needs the u flag the action doesn't set; upgrade if a title
+          # ever starts with a non-ASCII letter
+          subjectPattern: '^(?![A-Z]).*[^.]$'
           subjectPatternError: 'The subject "{subject}" must not start with an uppercase letter or end with a period.'
       - name: Check the scope, length and break mark
         # a bot's title is its own (Dependabot, release-please, the weekly bumps): it can't shorten it or add a !
