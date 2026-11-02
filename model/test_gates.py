@@ -72,6 +72,31 @@ def test_a_sweep_that_clears_the_post_is_certified():
     assert gates.certify(arm_past_a_post(40), SWEEP, {("arm", "post"): -0.05}) == {}
 
 
+def test_a_sweep_reads_through_the_separation_it_is_given():
+    """The post 40 mm out clears the arm, but a reading that has every pose 1 mm in fails it at the sweep's start."""
+    found = gates.certify(arm_past_a_post(40), SWEEP, {("arm", "post"): -0.05}, separation=lambda m, d, p: -1.0)
+    assert found == {("arm", "post"): (0, -1.0)}
+
+
+def test_a_turn_too_short_to_close_the_gap_is_read_only_at_its_ends():
+    """The arm turns 10 degrees, its tip 5 mm along, short of the post 8 mm off; a piece of it 300 mm up the hinge's
+    axis turns no further than the tip, so the two readings certify the turn without splitting it."""
+    model = mujoco.MjModel.from_xml_string("""<mujoco><worldbody>
+      <body name="arm"><joint axis="0 0 1"/><geom type="box" size="0.015 0.001 0.001" pos="0.015 0 0"/>
+        <geom size="0.001" pos="0 0 0.3"/></body>
+      <body name="post" pos="0.04 0 0"><geom size="0.002"/></body>
+    </worldbody></mujoco>""")
+    reads = []
+
+    def separation(model, data, pair):
+        reads.append(pair)
+        return gates.separation(model, data, pair)
+
+    turn = np.radians(np.linspace(0, 10, 101))[:, None]
+    assert gates.certify(model, turn, {("arm", "post"): 0.5}, separation=separation) == {}
+    assert len(reads) == 2
+
+
 def test_the_pairs_a_motion_can_change_are_the_ones_a_hinge_turns_apart():
     model = mujoco.MjModel.from_xml_string("""<mujoco><worldbody>
       <body name="base"><geom size="0.001"/>
