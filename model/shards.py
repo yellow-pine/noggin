@@ -6,7 +6,7 @@ core-seconds: `just model-durations`), so a new document needs no workflow edit 
 MECH=false (the Changes job's filters) leaves that group's units out.
 And Checks' Blender bins (`just blender-bins`): each motion of the pictures (PICTURES) and the viewer's GLBs (VIEWER)
 when not false, packed longest first into bins no longer than the longest unit (#496), on the seconds in
-model/durations.json under "blender <unit>"."""
+model/durations.json under "blender <unit>"; PREVIEW=true (a PR's, #562) makes the pictures the preview alone."""
 
 import json
 import os
@@ -67,12 +67,12 @@ def packed(weight):
     return bins
 
 
-def blender(pictures=True, viewer=True):
+def blender(pictures=True, viewer=True, preview=False):
     """[{bin, motions, stages, viewer}]: stages are what the bin's just trajectories bakes (TRAJ_DOCS), every Stage
-    (empty) with the viewer, whose just web bakes them all."""
+    (empty) with the viewer, whose just web bakes them all. preview: the pictures are the preview alone (a PR's)."""
     from model.render.pictures import motions  # Blender's side only: the model shards need none of it
 
-    stages_of = {m["motion"]: m["stages"].split() for m in motions()} if pictures else {}
+    stages_of = {m["motion"]: m["stages"].split() for m in motions(preview)} if pictures else {}
     cold = [*stages_of, "viewer"] if viewer else [*stages_of]
     # shortcut: the "blender <unit>" seconds are run 41388039993's, typed in, since a bin times its units together;
     # upgrade to a per-motion timing in the bins' durations-* when the bins stop matching the runs
@@ -92,6 +92,6 @@ if __name__ == "__main__":
 
     on = {g: os.environ.get(g.upper()) != "false" for g in ("model", "mech", "pictures", "viewer")}
     if sys.argv[1:] == ["blender"]:
-        print(json.dumps(blender(on["pictures"], on["viewer"])))
+        print(json.dumps(blender(on["pictures"], on["viewer"], os.environ.get("PREVIEW") == "true")))
     else:
         print(json.dumps(shards(on["model"], on["mech"])))

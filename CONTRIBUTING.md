@@ -98,7 +98,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   marked neither `model` nor `build`, in seconds. Everything heavier is CI's: `just check` is its `Code` job, `just
   check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
-- CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
+- CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing;
+  `gh workflow run checks.yml --ref <branch>` runs that full run on any branch, for the hero and every panel when a
+  look needs approval (a PR renders one panel as its preview, #562).
   Each workflow runs only the newest commit of a PR or of main, so a cancelled run means a newer one superseded it (a
   release tag's run and Release Please's are never cancelled).
 - The required `Checks` is the gate of `.github/workflows/checks.yml` (#496): it fails unless every job there passed or
