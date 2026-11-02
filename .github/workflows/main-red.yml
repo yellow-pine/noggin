@@ -1,12 +1,12 @@
 name: Main Red
 # Opens one 'main red' issue while main's Checks or Site Deploy fail, and closes it once main deploys again.
-# PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). scripts/main_red.py: a failed
-# run opens the issue (bug, ready-for-agent) with the commit, the failing jobs and their FAILED and Error lines, or
-# comments on the open one; a deploy closes it; a cancelled run (superseded) says nothing. It acts only for this
-# repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named main).
+# PRs run a slim gate, so main's post-merge run catches what they no longer run (#697). A failed run opens the issue
+# (labels main-red, bug, ready-for-agent) linking the commit and the run, or comments on the open one; Site Deploy
+# deploying a commit closes it; anything else (a pass, a cancelled run superseded) says nothing (#745). It acts only
+# for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named main).
 on:
-  workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checking out main
-    workflows: ["Checks", "Site Deploy"]   # as main_red.WATCHED (scripts/test_main_red.py)
+  workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
+    workflows: ["Checks", "Site Deploy"]   # by their names (test_workflows.py)
     types: [completed]
     branches: [main]
 concurrency:   # one at a time, so two red runs never open two issues
@@ -21,22 +21,31 @@ jobs:
       && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-26.04
     permissions:
-      contents: read
-      actions: read   # the run's jobs and log
+      actions: read   # the run's jobs
       issues: write
     steps:
-      - name: Check out main_red.py
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
-        with:
-          sparse-checkout: scripts/main_red.py
-          sparse-checkout-cone-mode: false
-          persist-credentials: false   # nothing here pushes
       - name: Open, update or close the issue
-        run: python3 scripts/main_red.py
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           WORKFLOW: ${{ github.event.workflow_run.name }}
           CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # the open one, by the issues API: search lags a just-opened issue
+          issue=$(gh issue list --label main-red --json number --jq '.[0].number')
+          body="Main's $WORKFLOW failed on $SHA: $RUN_URL"
+          case "$CONCLUSION" in
+            failure|timed_out|startup_failure)
+              if [ -n "$issue" ]; then gh issue comment "$issue" --body "$body"
+              else gh issue create --title "main red" --label main-red,bug,ready-for-agent --body "$body"; fi ;;
+            success)   # green once Site Deploy's Deploy job put a commit up (red Checks skip it)
+              deploy='[.jobs[] | select(.name == "Deploy" and .conclusion == "success")] | length'
+              if [ "$WORKFLOW" = "Site Deploy" ] && [ -n "$issue" ] \
+                && [ "$(gh run view "$RUN_ID" --json jobs --jq "$deploy")" -gt 0 ]; then   # a failed call fails closed
+                gh issue edit "$issue" --remove-label ready-for-agent,in-progress,blocked,on-hold
+                gh issue close "$issue" --comment "Main is green again: Site Deploy deployed it ($RUN_URL)."
+              fi ;;
+          esac

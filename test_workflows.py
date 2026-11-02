@@ -324,3 +324,15 @@ def test_main_releases_itself_once_its_checks_pass():
     left = ["release-please.yml", "release-now.yml"]
     assert not [f for f in left if (WORKFLOWS[0].parent / f).exists()]
     assert not [f for f in ("release-please-config.json", ".release-please-manifest.json") if (root / f).exists()]
+
+
+def test_main_red_watches_checks_and_site_deploy_and_files_its_issue_by_label():
+    """#697, #745: a renamed workflow would never be watched again, and an issue filed without the label it is found by
+    would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
+    flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
+    watched = flows["main-red.yml"][True]["workflow_run"]["workflows"]  # yaml reads `on:` as True
+    assert watched == [flows[f]["name"] for f in ("checks.yml", "pages.yml")]
+    (job,) = flows["main-red.yml"]["jobs"].values()
+    run = "\n".join(s.get("run", "") for s in job["steps"])
+    assert "--label main-red" in run and "--label main-red," in run  # finds by it, files with it
+    assert not (WORKFLOWS[0].parent.parent.parent / "scripts" / "main_red.py").exists()
