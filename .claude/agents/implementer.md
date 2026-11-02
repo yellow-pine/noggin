@@ -19,8 +19,8 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    6. `code-review` (the repo's skill), then `ponytail-review`; fix or answer each finding.
    7. `pr` for the body.
 3. Run light local checks (`make check`); CI runs the heavy builds. Stage your files by name (a symlink you made for the
-   worktree stays out of the commit). Push; check the title (`python3 scripts/pr_title.py "<title>" < body` passes, and
-   its scope is one that `python3 scripts/pr_title.py` prints); open one PR against main as CONTRIBUTING.md describes
+   worktree stays out of the commit). Push; check the title (`python3 scripts/pr_title.py "<title>" < body` exits 0, and
+   its one scope is in what `python3 scripts/pr_title.py` prints); open one PR against main as CONTRIBUTING.md describes
    (Conventional Commits title, `Closes #N`), then `gh pr merge --auto --squash` at once.
 4. Own the PR until `gh pr view --json state` reads `MERGED`:
    - GitHub reports a conflict, a required check was renamed, the PR needs a fix that just landed on main, or main's
@@ -31,9 +31,10 @@ the workflow, the words and the decisions beside CLAUDE.md: read the parts your 
    - A check goes red: read its log (`gh run view --log-failed`), fix the cause, push.
    - A review finding, security ones included, in a thread or a review body: fix it or reply why not; resolve each
      thread with GraphQL `resolveReviewThread`.
-   - Wait as CONTRIBUTING.md's "Waiting on CI" line says, in one blocking wait that returns only on a terminal state:
-     merged, a check red, a finding to answer, or a step only a human can take. The PR lands through its checks and
-     review alone; never `--admin`.
+   - Wait in one background command that exits only on a terminal state (merged, failed, or needs a human); `gh pr
+     checks` exits 8 while any check is pending, and the sleeps cover the checks registering and auto-merge landing:
+     `sleep 60; until gh pr checks N >/dev/null; [ $? != 8 ]; do sleep 60; done; sleep 60; gh pr view N --json
+     state,mergeStateStatus,reviewDecision`. The PR lands through its checks and review alone; never `--admin`.
 5. A choice the ticket and docs leave open: make it, and record it on the issue as a `Decision (made while away)`
    comment.
 
