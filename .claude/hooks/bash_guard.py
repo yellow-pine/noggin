@@ -28,6 +28,10 @@ INTERPRETERS = (*SHELLS, "python", "python3", "node", "perl", "ruby")  # what a 
 TEXT = ("cat", "gh", "git", "tee")  # their heredocs are text (a file, a PR body, a commit message), not commands
 UNPARSED = "this command does not parse as bash (an open quote or heredoc, zsh-only syntax); fix it, or write a file."
 NOPARSER = "no tree-sitter-bash to read its $(…), `…` or <(…); run uv sync (just venv) in the checkout, then retry."
+# zsh, the Bash tool's shell, runs code where bash's grammar sees none: =(…) opening a word, ${(…)…} flags such as
+# (e), and a glob qualifier's e:…: or +cmd. ${=var} stays (UNSPLIT asks for it).
+ZSH = r"(?:^|[\s;&|(){}])=\(|\$\{\(|[^\s$<>=;&|(){}'\"`]\([^()\s]*?(?:e[^\w\s)]|\+)"
+ZSHONLY = "zsh-only syntax that runs code (=(…), ${(…)…} flags, a glob qualifier's e:…: or +) hides it; use bash's."
 UNSPLIT = "zsh won't split an unquoted $var in a for list: it runs once. Use ${=var}, an array or a bash script file."
 
 
@@ -88,6 +92,7 @@ def tokens(command):
 
 
 SUBS = {}  # placeholder: the body of a $(…), `…`, <(…) or >(…) that split() took out
+PLACEHOLDER = r"_noggin_sub_\d+_"
 
 
 def split(command):
@@ -108,7 +113,7 @@ def split(command):
 
     text, end = b"", 0
     for node in outermost(tree.root_node):
-        key = f"_noggin_sub_{len(SUBS)}_"
+        key = f"_noggin_sub_{len(SUBS)}_"  # PLACEHOLDER
         SUBS[key] = source[node.children[0].end_byte : node.children[-1].start_byte].decode()
         text, end = text + source[end : node.start_byte] + key.encode(), node.end_byte
     return (text + source[end:]).decode()
@@ -142,6 +147,8 @@ def after(words, word):
 
 def reason(command, folder):
     """Why the command is blocked, or None. Fails closed: a command it cannot read is blocked."""
+    if re.search(ZSH, command):
+        return ZSHONLY
     try:
         command = split(command)
         if command is None:
@@ -149,15 +156,20 @@ def reason(command, folder):
         segments = commands(command)
     except ValueError:
         return UNPARSED
+    # every $(…) split() took out, wherever it stood: a redirect's target too, which commands() drops; a heredoc's body
+    # is text, its $(…) a command bash runs (unless the heredoc is quoted: split() leaves those)
+    bodies = (SUBS[k] for k in re.findall(PLACEHOLDER, command) if k in SUBS)
+    why = next((r for r in (reason(b, folder) for b in bodies) if r), None)
+    if why:
+        return why
     for i, (words, fed, piped) in enumerate(segments):
         first = next((w for w in words if "=" not in w), "")
         if piped and Path(first).name in INTERPRETERS:
             return "a pipe into a shell or interpreter hides its commands; pipe into jq, or run a script file."
         if any(re.match(r"GIT_CONFIG_(PARAMETERS|COUNT|KEY_)", w) for w in words):
             return "GIT_CONFIG_*: run the git command itself, with no config from the environment."
-        # a heredoc's body is text, its $(…) a command bash runs (unless the heredoc is quoted: split() leaves those)
-        subs = [SUBS[k] for t in words + fed for k in re.findall(r"_noggin_sub_\d+_", t) if k in SUBS]
-        inner = [f for f in fed if first not in TEXT] + subs
+        subs = [SUBS[k] for w in words for k in re.findall(PLACEHOLDER, w) if k in SUBS]  # for the pgrep rule
+        inner = [f for f in fed if first not in TEXT]
         shell = next((k for k, w in enumerate(words) if Path(w).name in SHELLS), len(words))
         inner += [words[k + 1] for k in range(shell + 1, len(words) - 1) if re.fullmatch(r"-\w*c\w*", words[k])][:1]
         if "eval" in words:
@@ -201,7 +213,7 @@ def unsplit(command):
     for words, *_ in commands(split(command).replace("$", "\\\0$")):
         for k, word in enumerate(words[:-2]):
             loop = word == "for" and words[k + 2] == "in" and (k == 0 or words[k - 1] in KEYWORDS)
-            # ${=var} and ${(f)…} are zsh's own splitting; $(…) splits in zsh too
+            # ${=var} is zsh's own splitting (reason() blocks ${(f)…} with every flag); $(…) splits in zsh too
             if loop and any(re.search(r"(?<!\\)\0\$(\w|\{(?![=(]))", w) for w in words[k + 3 :]):
                 return UNSPLIT
     return None

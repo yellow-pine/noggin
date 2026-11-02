@@ -79,6 +79,13 @@ def guard(command: str, cwd: Path = REPO, hook=("python3", SCRIPT), env=None) ->
         ("(echo hi)|python3", "pipe"),
         ("cat <<EOF\n$(git stash)\nEOF", "commit"),  # an unquoted heredoc runs its $(…)
         ('echo "${x:-$(git stash)}"', "commit"),
+        ("cat < <(git stash)", "commit"),  # a redirect's target runs too
+        ("echo hi > $(git stash)", "commit"),
+        # zsh, the Bash tool's shell, runs code where bash's grammar sees none
+        ("cat =(git stash)", "runs code"),
+        ("echo ${(e)x}", "runs code"),
+        ("ls *(e:'git stash':)", "runs code"),
+        ("ls *(+stashit)", "runs code"),
     ],
 )
 def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
@@ -121,6 +128,8 @@ def test_a_banned_command_is_blocked_with_its_alternative(command, alternative):
         """echo "$(printf '"')" """,  # shlex raises on it, bash reads it
         "cat > notes.md <<'EOF'\n$(git stash) is text in a quoted heredoc\nEOF",
         "echo '$(git stash)'",
+        "x=(e f) && echo $x",
+        "git commit -m 'feat(eyes): x' && (echo a) && f() { :; }",
         'git commit -m "$(cat msg) and don\'t git stash"',
     ],
 )
