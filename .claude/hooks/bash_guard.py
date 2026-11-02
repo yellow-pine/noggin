@@ -24,14 +24,21 @@ class Fed(str):
 
 
 def heavy_recipes(folder):
-    """The recipes in the justfile's heavy group ([group('heavy')]), from just's JSON dump: CI builds those
-    (docs/adr/0011, read from the justfile, not listed). Empty without just or a justfile, where just runs nothing."""
+    """The recipes in the justfile's heavy group ([group('heavy')]): CI builds those (docs/adr/0011, read from the
+    justfile, not listed). From just's JSON dump, else from the justfile's own lines (no just yet, as uv run just
+    installs it); None when neither reads, so the caller fails closed."""
     venv = Path(__file__).resolve().parents[2] / ".venv" / "bin" / "just"  # rust-just, the dev group's
     just = str(venv) if venv.is_file() else shutil.which("just")
     dump = just and subprocess.run([just, "--dump", "--dump-format", "json"], cwd=folder, capture_output=True)
-    if not dump or dump.returncode:  # shortcut: no just yet lets uv run just <heavy> through; block if agents use it
-        return set()
-    return {name for name, r in json.loads(dump.stdout)["recipes"].items() if {"group": "heavy"} in r["attributes"]}
+    if dump and not dump.returncode:
+        return {name for name, r in json.loads(dump.stdout)["recipes"].items() if {"group": "heavy"} in r["attributes"]}
+    folder = Path(folder).resolve()
+    justfile = next((d / "justfile" for d in (folder, *folder.parents) if (d / "justfile").is_file()), None)
+    if not justfile:
+        return None
+    # an attribute line naming the group, any more attribute or comment lines, then the recipe's name
+    heavy = r"""^\[.*\bgroup(?:\(|:)\s*['"]heavy['"].*\n(?:[\[#].*\n)*@?([A-Za-z_][\w-]*)"""
+    return set(re.findall(heavy, justfile.read_text(), re.M))
 
 
 def lex(text):
@@ -144,7 +151,10 @@ def reason(command, folder):
             return "gh api graphql from a file: put the query inline, so the rules can read it."
         if merge:
             return "gh merge: a PR lands through its checks and review; gh pr merge --auto --squash."
-        if just is not None and heavy_recipes(folder) & set(just):
+        heavy = heavy_recipes(folder) if just is not None else set()
+        if heavy is None:
+            return "just: no just or justfile to read the heavy recipes from; uv sync, then run it from the checkout."
+        if heavy & set(just or ()):
             return "just: heavy builds run in CI, not here; run just check-light and the tests you touched, then push."
         if loop and any("pgrep" in w for w in words):
             return "pgrep in a loop matches itself; gh run watch, or kill -0 on a PID (CONTRIBUTING's Waiting on CI)."
