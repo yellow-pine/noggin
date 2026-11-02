@@ -5,8 +5,8 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py).
-panels: the Stage panels' grid (model/render/pictures.py PANELS) on the landing page and docs/pictures.md;
-next_panels: the next Mech's (geometry.py NEXT, #629), on docs/pictures.md alone.
+panels: the Stage panels' grid (model/render/pictures.py PANELS); next_panels: the next Mech's (geometry.py NEXT, #629).
+Neither is on a page since #640 (docs/adr/0019).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py PRINTED, CHANNELS and LIMITS).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -20,7 +20,6 @@ build, released: every page's footer and /version.json (site/src/components/Foot
 
 import ast
 import json
-import re
 import subprocess
 from collections import Counter
 from pathlib import Path
@@ -42,7 +41,8 @@ MECH = {  # what each gesture looks like, by the name the director sends
     "attention": "attention: half lids, a real left-right scan",
     "bored": "bored: drooping lids, heavy blinks, one long closure",
     "wince": "wince",
-    "rest": "back to rest (also when the last turn ends {stale} after its prompt, whatever Triggers arrive)",
+    "rest": "back to rest: still but for a blink every {rest_blink} (also when the last turn ends {stale} after its"
+    " prompt, whatever Triggers arrive)",
 }
 
 MOMENT = {  # each event the hooks take, as the reader lives it (Claude Code's hooks reference)
@@ -68,13 +68,16 @@ def duration(seconds):
     return f"{seconds // 60} min" if seconds % 60 == 0 else f"{seconds} s"
 
 
+def seconds(lo, spread):
+    """A gap of lo + up to spread ms, in seconds: (5000, 3000) -> 5-8 s."""
+    return f"{lo / 1000:g}-{(lo + spread) / 1000:g} s"
+
+
 def behaviour():
-    # shortcut: the blink gap read off its line, since eyes/eyes.py is the Core's program and imports machine (only
-    # pytest stubs it); a module constant there if the line changes shape
-    gap = r"self\.next_blink = now_ms \+ (\d+) \+ self\.rand % (\d+)"
-    lo, spread = map(int, re.search(gap, (ROOT / "eyes/eyes.py").read_text()).groups())
+    gap = {k: constant("eyes/eyes.py", k) for k in ("THINK_BLINK", "REST_BLINK")}  # it imports machine: read, not run
     numbers = {
-        "blink": f"{lo / 1000:g}-{(lo + spread) / 1000:g} s",
+        "blink": seconds(*gap["THINK_BLINK"]),
+        "rest_blink": seconds(*gap["REST_BLINK"]),
         "small": duration(TIERS[0][0]),
         "normal": duration(TIERS[1][0]),
         "stale": duration(STALE_TURN_SECONDS),

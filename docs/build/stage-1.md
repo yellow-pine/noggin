@@ -7,9 +7,7 @@ model.
 
 Two eyeballs with eyelids on a base plate, four 180° 9 g servos, a Core on a Shield, a switch board and a 14500 cell
 holder. Our board is mounted rotated 90° relative to the designer's photos, which changes nothing electrically. The
-eyes stand on the desk eye bracket, its stem in the base plate's slot. Turn it around in
-[the web viewer](https://yellowpine.com/noggin/viewer/), Stage 1; each Stage from the side and isometric is in
-[Pictures](../pictures.md).
+eyes stand on the desk eye bracket, its stem in the base plate's slot.
 
 ## Parts, from the model
 

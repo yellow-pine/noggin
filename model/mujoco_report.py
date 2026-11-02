@@ -4,7 +4,11 @@ reached quasi-statically by mjcf.pose, and reports per pose: contacts and penetr
 distance between the convex pieces, within CLEARANCE_MM), the four-bars' residuals, singularity margins and transmission
 angles (model/gates.py), the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
-the servo's rated speed, to see whether the joints land where the slow pose puts them. just sim writes it into
+the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
+gesture, and the hero where the neck is: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
+inverse dynamics reads each servo's torque along it, held against gravity and turning its load, beside its hold at
+Rest; the centre of mass, shifted by its acceleration, against the footprint; and, for ranking the next Mech (#51), the
+neck's vibration figures (vibration()). just sim writes it into
 model/build/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the MJCF model/build/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 
@@ -15,7 +19,7 @@ import mujoco
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from model import electrical, fits, gates, mjcf, sim, stages
+from model import electrical, fits, gates, mjcf, sim, stages, traces, trajectories
 
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
 KGF_CM = 0.0980665  # N.m
@@ -65,8 +69,8 @@ def widen(model):
     model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_FILTERPARENT | mujoco.mjtDisableBit.mjDSBL_MULTICCD
 
 
-def _footprint(model, data):
-    """The base plate's plan outline in MuJoCo's world (mm, footprint()): its drawn mesh's vertices where they are."""
+def _plate(model, data):
+    """The base plate's drawn mesh's vertices in MuJoCo's world (mm), where they are."""
     g = next(
         i
         for i in range(model.ngeom)
@@ -74,8 +78,7 @@ def _footprint(model, data):
     )
     m = model.geom_dataid[g]
     v = model.mesh_vert[model.mesh_vertadr[m] : model.mesh_vertadr[m] + model.mesh_vertnum[m]]
-    world = v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]
-    return footprint(world * 1000)
+    return (v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]) * 1000
 
 
 def footprint(points):
@@ -88,6 +91,94 @@ def margin(outline, xy):
     return float(-(outline[:, :2] @ np.asarray(xy, float) + outline[:, 2]).max())
 
 
+def torques(model, data, moving=True):
+    """N.m each actuator's servo turns its load with at data's pose, by MuJoCo's inverse dynamics (mj_rne, which leaves
+    out the servo's own rotor, its armature) with the four-bars rigid: the servos' torques and the rocker pins' forces
+    that balance it, by least squares. moving: at data's speed and acceleration; else held, against gravity alone."""
+    mujoco.mj_kinematics(model, data)
+    mujoco.mj_comPos(model, data)
+    qvel, need = data.qvel.copy(), np.zeros(model.nv)
+    if not moving:
+        data.qvel[:] = 0
+    mujoco.mj_rne(model, data, int(moving), need)
+    data.qvel[:] = qvel
+    cols = [np.eye(model.nv)[:, model.jnt_dofadr[model.actuator_trnid[:, 0]]]]
+    for i in range(model.neq):  # each connect: its two sites' Jacobians apart (mjcf.spec's closures)
+        a, b = np.zeros((3, model.nv)), np.zeros((3, model.nv))
+        mujoco.mj_jacSite(model, data, a, None, model.eq_obj1id[i])
+        mujoco.mj_jacSite(model, data, b, None, model.eq_obj2id[i])
+        cols.append((a - b).T)
+    return np.linalg.lstsq(np.hstack(cols), need, rcond=None)[0][: model.nu]
+
+
+def shifted(com, acc, floor, g=9.81):
+    """The plan point (mm) a centre of mass at com (mm) accelerating at acc (m/s2) bears on the floor at z floor (mm)
+    through: shifted by h*a/g against its horizontal acceleration (docs/research/2026-11-02-literature-mechanical.md 6)."""
+    return np.asarray(com[:2], float) - (com[2] - floor) * np.asarray(acc[:2], float) / g
+
+
+def _motions(doc, model, plate):
+    """Each motion played through the servos' dynamics (trajectories.play), read every ms: per servo the most it holds
+    against gravity and turns its load with (torques()) and where, and its hold at Rest (every gesture starts there);
+    with the base plate's vertices (mm), the worst margin of the centre of mass shifted by its acceleration (shifted())."""
+    names = trajectories.motions(doc)
+    assert names[0] in traces.GESTURES  # the first starts from Rest
+    servos, moving = {}, None
+    outline, floor, g = (
+        (None, None, None) if plate is None else (footprint(plate), plate[:, 2].min(), -model.opt.gravity[2])
+    )
+
+    def read(data):
+        return torques(model, data, moving=False), torques(model, data), data.subtree_com[0] * 1000  # mm, as just posed
+
+    for name in names:
+        writes, times = trajectories.MOTIONS[name]()
+        hold, turn, com = (np.array(r) for r in zip(*trajectories.play(model, writes, range(times[-1] + 1), read)))
+        for k in range(model.nu):
+            h = model.actuator(k).name
+            s = servos.setdefault(h, {"rest_kgf_cm": round(abs(hold[0, k]) / KGF_CM, 3)})
+            for key, at, series in (("hold_kgf_cm", "hold_at", hold), ("peak_kgf_cm", "peak_at", turn)):
+                ms = int(np.abs(series[:, k]).argmax())
+                if abs(series[ms, k]) / KGF_CM > s.get(key, -1):
+                    s[key], s[at] = round(abs(series[ms, k]) / KGF_CM, 3), {"motion": name, "ms": ms}
+        if outline is not None:
+            # the model's own peaks, every ms: the four-bars' stiff pins ring in them too, so it errs on the safe side
+            acc = (com[2:] - 2 * com[1:-1] + com[:-2]) * 1000  # mm/ms2 to m/s2
+            for ms, (c, a) in enumerate(zip(com[1:-1], acc), 1):
+                at = shifted(c, a, floor, g)
+                mm = margin(outline, at)
+                if moving is None or mm < moving["margin_mm"]:
+                    shift = float(np.linalg.norm(at - c[:2]))
+                    moving = {"margin_mm": round(mm, 1), "at": {"motion": name, "ms": ms}, "shift_mm": round(shift, 1)}
+    stall = round(mjcf.STALL_NM / KGF_CM, 3)
+    out = {h: {**s, "rated_kgf_cm": sim.RATED_KGF_CM, "stall_kgf_cm": stall} for h, s in servos.items()}
+    return {"names": names, "servos": out}, moving
+
+
+def vibration(doc, model, data, slow):
+    """The neck's figures for ranking the next Mech's candidates (#51), at data's pose: the head's mass times its centre
+    of mass's height above the tilt axis, and per neck servo the inertia its output joint turns, its gain (the output's
+    span over the servo's, from the slow sweep's ends) and the servo loop's own mode through it (the servo's kp on its
+    rotor plus the load referred to its shaft). Not the lowest mode: the printed parts' compliance and the gears' backlash,
+    which the rigid model lacks, set that; it is measured on a print."""
+    stage, full, out = stages.STAGES[doc], np.zeros((model.nv, model.nv)), {}
+    mujoco.mj_fullM(model, data, full)
+    for h in (TILT, PAN):
+        lo, hi = stage.horns[h].limits
+        j = model.joint(stage.horns[h].loops[0].joint)
+        q = model.jnt_qposadr[j.id]
+        gain = abs(slow[(h, hi)][q] - slow[(h, lo)][q]) / math.radians(hi - lo)
+        inertia = full[model.jnt_dofadr[j.id], model.jnt_dofadr[j.id]]
+        rotor = model.dof_armature[model.jnt_dofadr[model.actuator(h).trnid[0]]]
+        hz = math.sqrt(mjcf.SERVO["kp"] / (rotor + gain**2 * inertia)) / (2 * math.pi)
+        out[h] = {"inertia_g_cm2": round(inertia * 1e7, 1), "gain": round(gain, 3), "servo_loop_hz": round(hz, 1)}
+        if h == TILT:
+            body = model.jnt_bodyid[j.id]
+            grams, above = model.body_subtreemass[body] * 1000, (data.subtree_com[body] - data.xanchor[j.id])[2] * 1000
+            out |= {"head_g": round(grams, 1), "head_above_tilt_mm": round(above, 1), "mh_g_mm": round(grams * above)}
+    return out
+
+
 def _worst(old, value, at, key):
     return old if old and old[key] >= value else {key: round(value, 3), "at": at}
 
@@ -97,9 +188,13 @@ def measure(doc, model):
     report's own (widen())."""
     stage, todo = stages.STAGES[doc], poses(doc)
     widen(model)
-    rest = _contacts(model, mjcf.pose(model, {}))
+    still = mjcf.pose(model, {})
+    rest = _contacts(model, still)
     pairs, residuals, loops, actuators, slow = {}, {}, {}, {}, {}
-    tip = {} if {PAN, TILT} <= set(stage.horns) else None
+    neck = {PAN, TILT} <= set(stage.horns)
+    plate = _plate(model, still) if neck else None  # static: its outline holds for every pose
+    outline = footprint(plate) if neck else None
+    tip = {} if neck else None
     for ctrl in todo:
         data = mjcf.pose(model, ctrl)
         if len(ctrl) == 1:
@@ -115,7 +210,7 @@ def measure(doc, model):
         for h in stage.horns:
             actuators[h] = _worst(actuators.get(h), abs(data.actuator(h).force[0]) / KGF_CM, ctrl, "hold_kgf_cm")
         if tip is not None:
-            mm = margin(_footprint(model, data), data.subtree_com[0][:2] * 1000)
+            mm = margin(outline, data.subtree_com[0][:2] * 1000)
             if not tip or mm < tip["margin_mm"]:
                 tip = {
                     "margin_mm": round(mm, 1),
@@ -149,6 +244,8 @@ def measure(doc, model):
         },
         "full_speed": full_speed,
     }
-    if tip is not None:
-        out["tip_over"] = tip
+    out["motions"], moving = _motions(doc, model, plate)
+    if neck:
+        out["tip_over"] = {**tip, "moving": moving}
+        out["vibration"] = vibration(doc, model, still, slow)
     return out

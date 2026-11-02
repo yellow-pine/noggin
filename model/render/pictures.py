@@ -6,8 +6,8 @@ site's icon, a PNG.
 the side and isometric, each group framed on its own: PANELS) and the icon, an eye (FAVICON, #603). `hero` (`just
 hero`): the README hero, stage 3 talking (model/render/hero.py), its trajectory at 8 fps (at_fps) as one animation. `site` (`just pictures`): renders the site's
 pictures, motion by motion (SITE; the gestures play in the web viewer, #468) into model/build/images, which the site
-serves at yellowpine.com/noggin/images/. Checks packs the motions into its Blender bins (model/shards.py,
-`just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR renders
+served at yellowpine.com/noggin/images/ until #640 (now local only, docs/adr/0019). Checks packed the motions into its Blender bins (model/shards.py,
+`just blender-bins`) on main, the hero in frame shards (`hero:<first>-<end>`) that `join` encodes (#537); a PR rendered
 the `preview` motion alone, one panel, the next Mech's and the icon (PREVIEW, #562).
 Usage: python -m model.render.pictures views | hero | site [motion ...] | join (Blender at $BLENDER)"""
 

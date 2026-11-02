@@ -326,6 +326,16 @@ def test_a_calibration_set_while_holding_resends_the_pose(tmp_path):
     s.stop()
 
 
+def test_a_link_that_comes_up_while_muted_gets_release_not_rest(tmp_path):
+    """#621: Rest blinks, so a muted Mech brought to rest (the service starting, a Core rebooting) would blink all
+    night: it is released instead."""
+    (tmp_path / "c.json").write_text('{"lid_rest": 0.28}')
+    (tmp_path / "m").touch()
+    s, _, fake = start(tmp_path)
+    assert wait_for(lambda: fake.buf == b"set lid_rest 0.28\nrelease\n"), fake.buf
+    s.stop()
+
+
 def test_a_link_that_comes_back_while_holding_gets_the_pose_not_rest(tmp_path):
     (tmp_path / "c.json").write_text('{"lid_rest": 0.28}')
     fake, plugged = FakeSerial(), []
