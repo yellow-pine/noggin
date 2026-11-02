@@ -4,6 +4,7 @@
 > grilling of 2026-10-31, spec #146; tickets #147 to #151. MuJoCo simulates; Blender draws every picture.
 > The committed reports and MJCFs, and CI's skip-if-fresh, are superseded by ADR 0009 (#229): CI builds them.
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
+> The servos (position actuators clipped at stall, the trajectories' slew) are superseded by ADR 0018 (#625): DC motors.
 
 ADR 0006 moved the simulation out of CAD into Python, and the engine grew in model/engine: our own four-bar solver,
 contact screen, masses, cables and mating. That is a robotics simulator written by hand. MuJoCo is the best-known
