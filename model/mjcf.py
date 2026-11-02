@@ -48,8 +48,9 @@ TIMESTEP, SETTLE_S = 0.0005, 0.5
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
 LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
-# shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default, since at the rated speed the stage 3 head
-# carries the pan four-bar through its toggle at pan -40 (model/mujoco_report.py); revisit with Core 2's choreography.
+# shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default: at the rated speed the position actuator
+# carried the stage 3 head through the pan four-bar's toggle at pan -40; the DC motor (#625) lands that swing
+# (model/mujoco_report.py full_speed), so the rated speed may do now; revisit with Core 2's choreography.
 SLEW_DEG_S = 100
 # The 9 g servo as a DC motor behind its own P loop (#625, docs/research/2026-11-02-literature-simulation.md 1):
 # its published stall torque and no-load speed at 4.8 V, the figures nearest the shield's 5 V servo rail

@@ -17,7 +17,9 @@ driven by the servo's own PD plus its latency, and MuJoCo 3.17 ships that motor.
   H-bridge, so below the clamp the model is a little optimistic at speed. Accepted: a P law in Python on the raw
   voltage would cost a step loop of our own in every caller.
 - **The trajectories send each command straight to its servo** (model/trajectories.py): the motor, its load and the
-  delay set how fast it follows. `mjcf.pose` still eases its commands for the quasi-static sweeps.
+  delay set how fast it follows, so the hero's head runs its keys a delay late. `mjcf.pose` still eases its commands
+  for the quasi-static sweeps. The report's swing of the stage 3 pan to -40 at the rated speed now lands, where ADR
+  0007's servo carried the head through the pan four-bar's toggle.
 - **`model/servo_fit.py` fits the values** with MuJoCo's sysid toolbox (`mujoco[sysid]`) to filmed takes of one servo
   (a marker on the horn, the bare horn and a load a few times the gear train's inertia, steps both ways): stall
   torque, no-load speed, armature and delay, the delay started every 10 ms since least squares finds it only from near

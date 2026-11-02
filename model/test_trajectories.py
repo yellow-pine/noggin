@@ -142,13 +142,13 @@ def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(
 
 
 def test_the_hero_turns_the_head_as_keyed_and_never_through_the_pan_toggle():
-    """Stage 3 plays the hero at full speed: the head follows its keys (hero.HEAD, the pan pivot's own degrees) within
-    2 degrees, so the pan four-bar never passes its dead point (geometry.LIMITS rotate: it toggles at horn -43.4, where
+    """Stage 3 plays the hero at full speed: the head follows its keys (hero.HEAD, the pan pivot's own degrees), read
+    the servo's PWM delay late (mjcf.drive), within 2 degrees, so the pan four-bar never passes its dead point (geometry.LIMITS rotate: it toggles at horn -43.4, where
     the head would swing back the other way)."""
     model = built("noggin-stage3")
     frames = tj.play(model, *tj.hero_commands())
     assert len(frames) == len(hero.frames())
     head = turned(frames, model.body("pan turntable:1").id)
     for k, deg in enumerate(head):
-        keyed = abs(hero._eased(hero.HEAD["rotate"], k / tj.FPS))
+        keyed = abs(hero._eased(hero.HEAD["rotate"], k / tj.FPS - mjcf.SERVO["delay_s"]))
         assert abs(deg - keyed) < 2, (k, deg, keyed)
