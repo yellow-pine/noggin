@@ -44,6 +44,16 @@ Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
 
+@pytest.fixture
+def pivot(turns, fixed):
+    """The turning part's solid and the fixed one's, each built once a worker, in setup: CI's 15 s times the test alone
+    (#808)."""
+    return _solid(turns), _solid(fixed)
+
+
+_solid = functools.cache(lambda build: build().val())
+
+
 @pytest.mark.model
 @pytest.mark.parametrize(
     "turns, fixed, at, across",
@@ -53,14 +63,14 @@ JY, JZ = nk.JAW
         (neck.jaw, neck.head_mount, ((20, JY, JZ), (16, JY, JZ)), (0, 1, 0)),
     ],
 )
-def test_each_shank_turns_in_one_part_and_is_threaded_into_the_other(turns, fixed, at, across):
+def test_each_shank_turns_in_one_part_and_is_threaded_into_the_other(pivot, at, across):
     """1.4 mm off the axis: clear in the turning part's bore (r 1.6), solid in the fixed part's tapping hole (r 1.25);
     2.5 mm off, solid in both (each has a wall round its hole)."""
 
     def solid(part, p, r):
-        return part.val().isInside(cq.Vector(*(c + r * d for c, d in zip(p, across))))
+        return part.isInside(cq.Vector(*(c + r * d for c, d in zip(p, across))))
 
-    t, f = turns(), fixed()
+    t, f = pivot
     assert not solid(t, at[0], 1.4) and solid(t, at[0], 2.5)
     assert solid(f, at[1], 1.4) and solid(f, at[1], 2.5)
 
