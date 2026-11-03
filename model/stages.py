@@ -94,12 +94,13 @@ def rocker_loop(joint, o2, a0, o4, b0, axis, coupler, rockers):
 
 def next_base():
     """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
-    -x, the same in every head variant."""
+    -x, and the switch board lying in front of the lead's end (#828), the same in every head variant."""
     pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
         "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
+    parts |= {f"{name}:1": part(stl(mesh), at, BOARD) for name, (mesh, at) in candidates.switch_board().items()}
     return Sub(parts, {})
 
 
@@ -111,7 +112,7 @@ def _boards(stem, placed):
 
 
 def next_back():
-    """next-back: the boards upright on the board rack's back face, behind the eye gimbal; it rides the head (RIDES)."""
+    """next-back: the Cores, one on edge in each cheek in the board rack's cradles (#828); it rides the head (RIDES)."""
     return _boards("next board rack", candidates.back_boards())
 
 
@@ -313,7 +314,7 @@ SUBS = {
 DOCS = g.STAGES | g.NEXT
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
-    "next-back": "next head mount:1",  # the rack under the plate
+    "next-back": "next head mount:1",  # the rack on the plate
     "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
     # a Skin's Shells, each on its Seats (model/skin.py), the shirt on the Torso, which moves none
     "next morty face:1": "next gimbal frame:1",

@@ -17,6 +17,7 @@ from collections import namedtuple
 
 import numpy as np
 
+from model import base as nb
 from model import gimbal as gm
 from model import neck as nk
 
@@ -59,14 +60,15 @@ def _lid_seats(side, polarity):
 
 
 # Morty's head (#665), in the head's frame (model/neck.py): the face comes off forward, the hair up
-HEAD_X, HEAD_Y, HEAD_Z = 64.0, (-24.0, 81.0), (-80.0, 81.0)  # outside: half-width, front (over the eyes) to back, z
-ROUND = (16.0, 10.0)  # the head's edges rounded, over the eyes and the muzzle: clear of the frame plate's back corners
+# outside: half-width (1.1 mm outside the board rack's cradles, #828), front (over the eyes) to back, z
+HEAD_X, HEAD_Y, HEAD_Z = 68.0, (-24.0, 81.0), (-80.0, 81.0)
+ROUND = (16.0, 10.0)  # the head's edges rounded, over the eyes and the muzzle: clear of the cradles' back corners
 MUZZLE_Y, MUZZLE_Z = -49.0, -36.0  # the face's front under the eyes, over the jaw and the head mount, up to here
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 HAIRLINE = (50.0, 20.0)  # (z, y): the hair over z at the front, back to y, then down to the back's foot
 TORSO = (-35.0, 58.5)  # the Torso's front and back walls (model/base.py TORSO)
 _PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge, its middle height
-_BACK = (53.0, 62.0)  # (|x|, y) on the plate's top at its back corners: outboard of the rack and the lid servos
+_ROOF = (55.0, 58.0)  # (|x|, y) on the board rack's cradles' flat roofs (model/base.py ROOF_Z, #828)
 SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
     *[
@@ -96,11 +98,11 @@ SEATS = [
         )
         for x in (-53.0, 53.0)
     ],
-    # the hair down onto the plate's back corners (a web from its back wall, model/printed/skin.py) and onto the face's
-    # top corners under the hairline
+    # the hair down onto the cradles' roofs in the cheeks (a web from its back wall, model/printed/skin.py) and onto the
+    # face's top corners under the hairline
     *[
-        Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1] + 4.0), (0.0, 0.0, 1.0), 5.0, 6.0, 1)
-        for x in (-_BACK[0], _BACK[0])
+        Seat("next morty hair", "next board rack", (x, _ROOF[1], nb.ROOF_Z), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
+        for x in (-_ROOF[0], _ROOF[0])
     ],
     *[
         Seat(

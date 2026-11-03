@@ -17,9 +17,6 @@ WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's he
 ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third of it
 CORNER = 4.0  # as Bones: the Torso's upright corners round
 WINDOW, POST = 8.0, 4.0  # its windows' width and the posts' between them
-# the rack's Bones (head, waist) as (semi-width, height): the shelf's and the rails' taller than its 3 mm, carved flat
-# on top where the boards stand (#708)
-RACK_BONE, RAIL_BONE, POST_BONE = ((3.0, 3.6), (2.4, 3.4)), ((1.5, 3.6), (1.2, 3.4)), ((1.5, 1.5), (1.1, 1.1))
 
 
 def _box(x, y, z, r=0.0, edges="|Z"):
@@ -73,34 +70,31 @@ def _lancet(axis, c, wall, z0, z1):
 
 @bone.carved
 def rack(mechanical=False):
-    """Back's board rack (#708): a flange screwed under the gimbal frame's plate at its back edge, a post up behind the
-    plate at each end of the row, from each a rail forward over the gimbal, and the shelf the boards stand on over the
-    eyes, between the rails. As Bones, carved from it (#809): the posts struts, the rails Bones, the shelf a Bone across
-    under the boards' fronts and one under their backs."""
-    t, (y, under) = nb.TRAY_T, (nb.RACK_Y, gm.PLATE_Z[0])
-    w, top = nb.width() / 2 + t, nb.BACK_Z - nb.BOARD_H / 2  # the posts and rails outboard of the row; its bottom
-    out = box((-w, w), (y - 8, y + t), (under - 3, under))
-    if mechanical:
-        out = out.union(box((-w, w), (nb.BACK_Y, nb.BACK_Y + nb.BOARD_D), (top - t, top)))
-        for s in (-1, 1):
-            xs = sorted(s * c for c in (w - t, w))
-            out = out.union(box(xs, (y, y + t), (under - 3, top))).union(box(xs, (nb.BACK_Y, y + t), (top - t, top)))
-        return out
-    x, back, (hw, _) = w - t / 2, y + t / 2, RACK_BONE[0]  # inside the mechanical posts and rails (carved, #809)
-    front, rear = nb.BACK_Y + hw, nb.BACK_Y + nb.BOARD_D - hw
-    z = top - t  # flat-ended Bones, each ending inside the next: no heads, a light mesh
+    """Back's board rack (#828), on the gimbal frame's plate behind the eyes: at each end a cradle in its cheek, a sleeve
+    open at the back and inside, so the Core on edge (base.back_boards) slides in from behind onto its floor, against
+    its front stop, its outer wall and under its roof, flat on top (where a Character's hair seats, #665); and a bar
+    across the plate between the two. As Bones, carved from it (#809), like the Torso: each floor open under the Core
+    between its sides and a row of lancet windows through each wall."""
+    t, floor = nb.TRAY_T, gm.PLATE_Z[1]
+    (cx, cy), top = nb.CHEEK, nb.ROOF_Z
+    inner, outer = cx - 11.8, cx + 11.0  # 1 mm inside the Shield's pins, 0.3 mm outside the Core's USB-C
+    front, y0, y1 = cy - 15.0 - t, cy - 15.0, cy + 9.0  # the stop's front; the Shield's front end, 6 short of its back
+    # end: the Core overhangs there, inside the Skin's rounded back corner (model/skin.py ROUND)
+    shut = inner + 6  # the stop and the roof start clear of the bail's upright
+    out = box((-inner, inner), (y0 + 2, y0 + 2 + t), (floor, floor + t))  # the bar
     for s in (-1, 1):
-        out = out.union(bone.bone((s * x, back, z), (s * x, front, z), *RAIL_BONE, heads=False))
-    for y_ in (front, rear):  # the shelf: a Bone across under the boards' fronts and one under their backs
-        out = out.union(bone.bone((-x, y_, z), (x, y_, z), *RACK_BONE, heads=False))
-    (r, _), (waist, _) = POST_BONE
-    for s in (-1, 1):  # from inside the flange up into the rail: two cones, waisted (a round loft this thin and long
-        # tessellates to ~44k faces)
-        lo, hi = under - 1.5, top - t / 2
-        mid = (lo + hi) / 2
-        for z0, z1, r0, r1 in ((lo, mid, r, waist), (mid, hi, waist, r)):
-            cone = cq.Solid.makeCone(r0, r1, z1 - z0, cq.Vector(s * x, back, z0))
-            out = out.union(cq.Workplane().add(cone))
+        x = lambda a, b: sorted((s * a, s * b))  # noqa: E731
+        for xs, ys, zs in (
+            ((inner, outer + t), (y0, y1), (floor, floor + t)),  # the floor
+            ((shut, outer + t), (front, y0), (floor, top)),  # the stop
+            ((outer, outer + t), (front, y1), (floor, top)),  # the wall
+            ((shut, outer + t), (front, y1), (top - t, top)),  # the roof
+        ):
+            out = out.union(box(x(*xs), ys, zs))
+        if not mechanical:
+            out = out.cut(box(x(inner + 4, outer - 4), (y0 + 4, y1 - 4), (floor, floor + t)))
+            for c in _windows(y0, y1):
+                out = out.cut(_lancet("y", c, s * (outer + t / 2), floor + t + 3, top - t - 3))
     return out
 
 

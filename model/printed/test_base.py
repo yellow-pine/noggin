@@ -5,6 +5,7 @@ each variant's carriers and boards overlap nothing."""
 import itertools
 
 import cadquery as cq
+import numpy as np
 import pytest
 
 from model import base, skin, stages
@@ -62,18 +63,21 @@ def head(request):
 
 @pytest.mark.model
 def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(head):
-    """#708, a hard gate in both Skeletons: the parts the tilt turns, at rest, fit gimbal.HEAD_MM (W x D x H), the eye
-    centres at most base.EYES_UP of the way up them (the sim report reads the same off the MJCF: model/candidates.py)."""
+    """#708, a hard gate in both Skeletons: the parts the tilt turns, at rest, under the head's shell (#828,
+    base.shelled), fit gimbal.HEAD_MM (W x D x H), the eye centres at most base.EYES_UP of the way up them (the sim
+    report reads the same off the MJCF: model/candidates.py)."""
     doc, b = head
-    assert all(s <= h for s, h in zip((b.xlen, b.ylen, b.zlen), gm.HEAD_MM))
-    eyes = stages.DOCS[doc]["next-eyes"][0][2]
-    assert (eyes - b.zmin) / b.zlen <= base.EYES_UP
+    eyes = np.array(stages.DOCS[doc]["next-eyes"][0])
+    lo, hi = base.shelled(np.array((b.xmin, b.ymin, b.zmin)) - eyes, np.array((b.xmax, b.ymax, b.zmax)) - eyes)
+    assert all(s <= h for s, h in zip(hi - lo, gm.HEAD_MM))
+    assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP
 
 
 def test_the_torso_and_the_rack_as_bones_open_the_mechanical_ones_walls_and_shelf_and_the_torso_prints_upright():
-    """#708: as Bones, carved from the mechanical parts, the Torso's corners round and its walls windowed, the rack's
-    shelf two Bones under the boards: just inside each mechanical corner, half way up a window's middle, and in the
-    middle of the mechanical shelf lies nothing. The Torso prints upright, no overhang past 45 deg."""
+    """#708: as Bones, carved from the mechanical parts, the Torso's corners round and its walls windowed, each of the
+    rack's cradle floors open under the Core (#828): just inside each mechanical corner, half way up a window's middle,
+    and in the middle of each mechanical cradle floor lies nothing; each cradle's roof is flat on top, 15 mm across, in
+    both looks, where #665's hair seats. The Torso prints upright, no overhang past 45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     torso, rack = printed_base.torso().val(), printed_base.rack().val()
     for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):
@@ -82,6 +86,10 @@ def test_the_torso_and_the_rack_as_bones_open_the_mechanical_ones_walls_and_shel
     wx, wy = printed_base._windows(x0 + c, x1 - c)[0], printed_base._windows(y0 + c, y1 - c)[0]  # a window's middle
     for x, y in ((wx, y0 + 1), (wx, y1 - 1), (x0 + 1, wy), (x1 - 1, wy)):
         assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
-    shelf = base.BACK_Z - base.BOARD_H / 2 - base.TRAY_T / 2
-    assert not rack.isInside(cq.Vector(0, base.BACK_Y + base.BOARD_D / 2, shelf))
+    (x, y), floor = base.CHEEK, gm.PLATE_Z[1] + base.TRAY_T / 2
+    for s in (-1, 1):
+        assert not rack.isInside(cq.Vector(s * x, y, floor))
+        for look in (rack, printed_base.rack(mechanical=True).val()):  # a roof flat on top, 15 across (#665's hair)
+            assert all(look.isInside(cq.Vector(s * (x + d), y, base.ROOF_Z - 0.5)) for d in (-5.0, 2.5, 10.0))
+            assert not look.isInside(cq.Vector(s * x, y, base.ROOF_Z + 0.5))
     assert bone.overhang_deg(torso) <= 45

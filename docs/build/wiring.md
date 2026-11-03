@@ -37,9 +37,11 @@ jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred:
 
 ## The neck Core (tilt, mouth, pan)
 
-The neck Core sits on its own Shield in the head's board rack: port 1 tilt, 2 mouth, 3 pan. Both Cores join the Wi-Fi
-and are addressed directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md), each antenna 15 mm clear of
-the Shells, servos, magnets, pack and leads. Both Shields run off the one pack and switch board through a Y lead
+The neck Core sits on its own Shield in the head's board rack, in the +x cheek: port 1 tilt, 2 mouth, 3 pan. Both
+Cores join the Wi-Fi and are addressed directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md), each
+antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the build allows. In the next Mech's cheeks
+each antenna end sits about 10.5 mm from its lid servo, the USB-C end facing back to stay reachable (#828): check the
+link there on the built Mech. Both Shields run off the one pack and switch board through a Y lead
 ([Stage 2](stage-2.md)); the gestures stay inside the pack's 3 A, since two Shields at stall would draw more
 (2 x 2.6 A > 3 A; a pack per Shield was dropped, #51): each Core starts at most two servos at once (the start budget).
 Electrical figures: docs/research/2026-10-31-electrical.md.

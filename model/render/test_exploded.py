@@ -58,8 +58,9 @@ def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
 
 @pytest.mark.model
 def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_offset():
-    """Stage 3 (#811): the pack up off the Torso's floor, a board back off the rack's face, each lid bar out along its
-    Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the Torso stays."""
+    """Stage 3 (#811): the pack and the switch board up off the Torso's floor, a Core back out of its cradle, each lid
+    bar out along its Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the
+    Torso stays."""
     doc = next(iter(g.NEXT))
     subs, parts = pictures.offsets(doc, 1), pictures.offsets(doc, 2)
     out = {n: np.subtract(parts[n], subs[n]) for n in parts}
@@ -68,7 +69,7 @@ def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_
     for n, d in {
         "next pack:1": g.Z,
         "next Core 1:1": g.Y,
-        "next switch board:1": g.Y,
+        "next switch board:1": g.Z,  # up off the Torso's floor (#828)
         "next L lid bar:1": g.X,
         "next R lid bar:1": (-1, 0, 0),
         "next pan servo:1": g.Z,
