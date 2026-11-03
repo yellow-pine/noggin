@@ -12,7 +12,6 @@ from model import neck as nk
 from model.envelopes import box
 from model.printed import bone
 from model.printed.gimbal import cyl
-from model.printed.neck import strut
 
 WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's height, 0.5 mm clear round the pack
 ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third of it
@@ -87,12 +86,19 @@ def rack(mechanical=False):
         return out
     x, back, (hw, _) = w - t / 2, y + t / 2, RACK_BONE[0]  # inside the mechanical posts and rails (carved, #809)
     front, rear = nb.BACK_Y + hw, nb.BACK_Y + nb.BOARD_D - hw
-    out = out.union(bone.chain([(x, back), (x, front)], *RAIL_BONE, z=top - t))
-    out = out.union(bone.chain([(-x, back), (-x, front)], *RAIL_BONE, z=top - t))
+    z = top - t  # flat-ended Bones, each ending inside the next: no heads, a light mesh
+    for s in (-1, 1):
+        out = out.union(bone.bone((s * x, back, z), (s * x, front, z), *RAIL_BONE, heads=False))
     for y_ in (front, rear):  # the shelf: a Bone across under the boards' fronts and one under their backs
-        out = out.union(bone.chain([(-x, y_), (x, y_)], *RACK_BONE, z=top - t))
-    for s in (-1, 1):  # from inside the flange up into the rail's head
-        out = out.union(strut((s * x, back, under - 1.5), (s * x, back, top - t / 2), *POST_BONE))
+        out = out.union(bone.bone((-x, y_, z), (x, y_, z), *RACK_BONE, heads=False))
+    (r, _), (waist, _) = POST_BONE
+    for s in (-1, 1):  # from inside the flange up into the rail: two cones, waisted (a round loft this thin and long
+        # tessellates to ~44k faces)
+        lo, hi = under - 1.5, top - t / 2
+        mid = (lo + hi) / 2
+        for z0, z1, r0, r1 in ((lo, mid, r, waist), (mid, hi, waist, r)):
+            cone = cq.Solid.makeCone(r0, r1, z1 - z0, cq.Vector(s * x, back, z0))
+            out = out.union(cq.Workplane().add(cone))
     return out
 
 

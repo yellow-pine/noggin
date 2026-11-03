@@ -30,7 +30,10 @@ def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
     near = {n: set() for n in meshes}
     for a, b in itertools.combinations(meshes, 2):
         (lo_a, hi_a), (lo_b, hi_b) = meshes[a].bounds, meshes[b].bounds
-        if (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all() and trees[b].query(points[a])[0].min() < TOUCH_MM:
+        if not (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all():
+            continue
+        close = points[a][((points[a] > lo_b - TOUCH_MM) & (points[a] < hi_b + TOUCH_MM)).all(axis=1)]  # by b alone
+        if len(close) and trees[b].query(close, distance_upper_bound=TOUCH_MM)[0].min() < TOUCH_MM:
             near[a].add(b)
             near[b].add(a)
     reached, todo = set(), ["next torso:1" if "next torso:1" in parts else "next test stand:1"]
