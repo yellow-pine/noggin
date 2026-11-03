@@ -30,7 +30,7 @@ def test_each_left_and_right_shell_keys_to_its_own_seat():
 
 
 def test_every_shell_is_printed_in_a_skin_colour_group_and_sits_on_a_seat_or_in_a_keyed_one():
-    groups = {group for palette in g.THEMES["Skin"].values() for group in palette}
+    groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
     seated = {s.shell for s in skin.SEATS}
     for stem in skin.SHELLS:
         assert g.PRINTED[stem][0] in groups, stem

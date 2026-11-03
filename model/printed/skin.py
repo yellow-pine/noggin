@@ -135,16 +135,16 @@ def pupil(side):
     return _pupil_prism(side, gm.PUPIL_FIT).intersect(ball(gm.CAP_R))
 
 
-def _rounded(x, y, z, r_top, r_side):
-    """A box (spans) its top edges rounded r_top, then its upright edges r_side."""
-    return box(x, y, z).edges(">Z").fillet(r_top).edges("|Z").fillet(r_side)
+def _rounded(x, y, z, r):
+    """A box (spans) its top and upright edges rounded r."""
+    return box(x, y, z).edges(">Z or |Z").fillet(r)
 
 
 def _head(t):
     """The head's solid (Morty's, the face's eye band over the muzzle) `t` in from its outside."""
     x, (y0, y1), (z0, z1) = sk.HEAD_X - t, sk.HEAD_Y, sk.HEAD_Z
-    upper = _rounded((-x, x), (y0 + t, y1 - t), (z0 - 30, z1 - t), 20.0 - t, 12.0 - t)
-    muzzle = _rounded((-x, x), (sk.MUZZLE_Y + t, y1 - t), (z0 - 30, sk.MUZZLE_Z - t), 10.0 - t, 12.0 - t)
+    upper = _rounded((-x, x), (y0 + t, y1 - t), (z0 - 30, z1 - t), sk.ROUND[0] - t)
+    muzzle = _rounded((-x, x), (sk.MUZZLE_Y + t, y1 - t), (z0 - 30, sk.MUZZLE_Z - t), sk.ROUND[1] - t)
     return upper.union(muzzle)
 
 
