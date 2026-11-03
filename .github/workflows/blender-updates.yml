@@ -3,7 +3,7 @@ name: Blender Updates
 # scripts/blender_pin.py (#334) rewrites the version and the Linux tarball's sha256 wherever the pin lives. It acts as
 # the bot App (CONTRIBUTING.md): a PR opened with GITHUB_TOKEN starts no workflows
 # (https://docs.github.com/en/actions/concepts/security/github_token).
-run-name: "${{ github.event_name == 'schedule' && 'Blender Updates: weekly re-pin' || format('Blender Updates: manual by {0}', github.actor) }}"
+run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Blender Updates re-pin' || format('ci(ci): manual Blender Updates run by {0}', github.actor) }}"
 on:
   schedule:
     - cron: "0 6 * * 1"

@@ -2,7 +2,7 @@ name: Skills Updates
 # Re-pins skills-lock.json to each source's HEAD and opens (or refreshes) a PR, weekly.
 # The reviewer's skills thus change only through a reviewed PR. It acts as the bot App (CONTRIBUTING.md): a PR opened
 # with GITHUB_TOKEN starts no workflows (https://docs.github.com/en/actions/concepts/security/github_token).
-run-name: "${{ github.event_name == 'schedule' && 'Skills Updates: weekly re-pin' || format('Skills Updates: manual by {0}', github.actor) }}"
+run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Skills Updates re-pin' || format('ci(ci): manual Skills Updates run by {0}', github.actor) }}"
 on:
   schedule:
     - cron: "0 6 * * 1"

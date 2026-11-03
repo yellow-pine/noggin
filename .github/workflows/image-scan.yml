@@ -3,7 +3,7 @@ name: Image Scan
 # Grype (anchore/scan-action) reads ghcr.io/yellow-pine/noggin-ci-base and -blender at :main, what the jobs run
 # (ci-images.yml), and uploads SARIF to code scanning, one category per image. Only findings with a fix are reported: the
 # remedy is a base-image bump (Dependabot, ci/*.Dockerfile) or a rebuild (`gh workflow run ci-images.yml`).
-run-name: "${{ github.event_name == 'schedule' && 'Image Scan: weekly scan' || format('Image Scan: manual by {0}', github.actor) }}"
+run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Image Scan of the CI images' || format('ci(ci): manual Image Scan run by {0}', github.actor) }}"
 on:
   schedule:
     - cron: "0 6 * * 1"
