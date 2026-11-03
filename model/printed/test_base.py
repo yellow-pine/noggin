@@ -19,19 +19,7 @@ PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)
 BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield", "next test stand")
 
 
-def _hits(doc):
-    """{frozenset(pair)} of the parts overlapping at rest where one is the base's or the boards'."""
-    shapes = {n: _shape(p) for n, p in stages.STAGES[doc].parts.items()}
-    return {
-        frozenset((a, b))
-        for a, b in itertools.combinations(shapes, 2)
-        if (a.startswith(BASE) or b.startswith(BASE))
-        and frozenset((a, b)) not in PLUGGED
-        and _overlaps(shapes[a], shapes[b]) > 0.01
-    }
-
-
-@pytest.mark.build
+@pytest.mark.model
 def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_walls():
     """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pack lying on its floor; the Torso's
     bottom is the foot, so nothing hangs below it."""
@@ -46,10 +34,21 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
     assert lying[0] == pytest.approx(lying[1])  # the pack on the floor the neck mount stands on
 
 
-@pytest.mark.build
-@pytest.mark.parametrize("doc", [*sorted(g.NEXT), "next-stage1"])  # and Stage 1's test stand (#720)
-def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(doc):
-    assert _hits(doc) == set()
+@pytest.fixture(params=[*sorted(g.NEXT), "next-stage1"])  # and Stage 1's test stand (#720)
+def placed(request):
+    """{part: its solid at rest} in the document, built in setup: CI's 15 s times the test alone."""
+    return {n: _shape(p) for n, p in stages.STAGES[request.param].parts.items()}
+
+
+@pytest.mark.model
+def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
+    """No two overlap where one is the base's or the boards'."""
+    pairs = [
+        (a, b)
+        for a, b in itertools.combinations(placed, 2)
+        if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
+    ]
+    assert _overlaps(placed, pairs) == []
 
 
 def test_the_torso_and_the_rack_as_bones_round_their_corners_and_print_as_they_lie():

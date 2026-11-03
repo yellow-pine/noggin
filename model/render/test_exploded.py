@@ -37,7 +37,7 @@ def _apart(doc, level):
     return pictures.offsets(doc, level), pictures.boxes(doc)
 
 
-@pytest.mark.build
+@pytest.mark.model
 @pytest.mark.parametrize("doc", g.STAGES)
 def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
     """#811: every part of each Stage, in each Skeleton, out of every other part's bounding box."""
@@ -50,7 +50,7 @@ def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
         assert not inside.any(), (n, [names[j] for j in np.flatnonzero(inside)])
 
 
-@pytest.mark.build
+@pytest.mark.model
 def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_offset():
     """Stage 3 (#811): the pack up off the Torso's floor, a board back off the rack's face, each lid bar out along its
     Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the Torso stays."""

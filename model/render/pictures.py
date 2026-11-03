@@ -55,22 +55,27 @@ EXPLODE = {
 # carrier's face (model/base.py standing, their backs on it), the pack up off the Torso's floor (stages.next_base)
 GAP = 5.0
 SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Y, "battery": g.Z}
-# the front doors (#739: the README's top, the site's home), side by side in this order, as Bones (#704): Stage 1 from
-# the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3 from the side, exploded (EXPLODE);
-# each (document, eye direction, exploded), framed tight on its own at the panels' size
+# the front doors (#739: the README's top, the site's home), side by side in this order, in each Skeleton (#806), as
+# Bones first (#704): Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
+# from the side, exploded (EXPLODE); each (document, eye direction, exploded), framed tight on its own at the panels'
+# size
 STAGE1, STAGE3 = next(iter(g.STAGES)), next(iter(g.NEXT))
 FRONT = {
-    f"{STAGE1}-front.webp": (STAGE1, (0, -1, 0), False),
-    f"{STAGE3}-isometric.webp": None,
-    f"{STAGE3}-side-exploded.webp": (STAGE3, VIEWS["side"][0], True),
+    f: how
+    for s in g.SKELETON_SUFFIX.values()
+    for f, how in {
+        f"{STAGE1}{s}-front.webp": (STAGE1 + s, (0, -1, 0), False),
+        f"{STAGE3}{s}-isometric.webp": None,
+        f"{STAGE3}{s}-side-exploded.webp": (STAGE3 + s, VIEWS["side"][0], True),
+    }.items()
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site publishes (#649, docs/adr/0019): the next Mech's panels and a picture of each of its parts, alone at
 # rest, isometric, framed on its own; every name next-
 NEXT = "next"
 PART_SIZE = (400, 400)
-# the next Mech in motion, next-eyes alone through one camera at HERO_FPS: its eye gimbal's sweep through its whole range
-# (#656), moved by its own kinematics (model/gimbal.py moved), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in
+# the next Mech in motion, next-eyes alone in each Skeleton (#806) through one camera at HERO_FPS: its eye gimbal's
+# sweep through its whole range (#656), moved by its own kinematics (model/gimbal.py moved), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in
 # degrees, eased from key to key and looping from rest, the lids following the pitch (#51); then each motion it plays,
 # its gestures and Rest (None: as MuJoCo baked it, next_played, #663)
 _Y, _P = gimbal.YAW, gimbal.PITCH
@@ -102,16 +107,17 @@ def next_parts():
     return out
 
 
-def next_motion(motion):
-    return f"next-eyes-{motion}.webp"
+def next_motion(motion, skeleton=g.THEME["Skeleton"]):
+    return f"next-eyes{g.SKELETON_SUFFIX[skeleton]}-{motion}.webp"
 
 
 def published():
     """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), each Stage at the
-    Parts level (#811), its motions (#656), then its parts'."""
+    Parts level (#811), its motions (#656) in each Skeleton (#806), then its parts'."""
     front = [f for f, how in FRONT.items() if how]
     apart = map(parts_exploded, g.STAGES)
-    return [*(picture(*p) for p in PANELS), *front, *apart, *map(next_motion, NEXT_MOTIONS), *next_parts()]
+    moving = [next_motion(m, s) for s in g.SKELETON_SUFFIX for m in NEXT_MOTIONS]
+    return [*(picture(*p) for p in PANELS), *front, *apart, *moving, *next_parts()]
 
 
 def exploded(doc, mats, level=1):
@@ -343,10 +349,11 @@ def part_pictures(mine):
         render(doc, manifest, shots, mine)
 
 
-def next_played():
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each motion the next Mech plays (NEXT_MOTIONS'
-    None, #663): its baked trajectory (just trajectories) at HERO_FPS (at_fps), its eye gimbal alone."""
-    doc, eyes = next(iter(g.NEXT)), stages.next_eyes().parts
+def next_played(doc=STAGE3):
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each motion the next Mech (doc, in its Skeleton)
+    plays (NEXT_MOTIONS' None, #663): its baked trajectory (just trajectories) at HERO_FPS (at_fps), its eye gimbal
+    alone."""
+    eyes = stages.next_eyes().parts
     return {
         m: [{n: f[n] for n in eyes} for f in at_fps(trajectories.poses(doc, m), HERO_FPS)]
         for m, keys in NEXT_MOTIONS.items()
@@ -354,28 +361,35 @@ def next_played():
     }
 
 
-def motions():
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]}: the keyed ones (next_motions), then the played."""
-    return next_motions(trajectories.poses(next(iter(g.NEXT)), "wink")[0]) | next_played()
+def motions(doc=STAGE3):
+    """{motion: [{next-eyes part: world 4x4, metres} per frame]} of doc: the keyed ones (next_motions), then the
+    played."""
+    return next_motions(trajectories.poses(doc, "wink")[0]) | next_played(doc)
 
 
 def frames():
     """{picture: its frames} of published(): a still's one, a motion's as many as it plays."""
-    return dict.fromkeys(published(), 1) | {next_motion(m): len(f) for m, f in motions().items()}
+    moving = {
+        next_motion(m, s): len(f) for s in g.SKELETON_SUFFIX for m, f in motions(STAGE3 + g.SKELETON_SUFFIX[s]).items()
+    }
+    return dict.fromkeys(published(), 1) | moving
 
 
 def motion_pictures(mine):
-    """The next Mech's motions (motions()) in mine, its eye gimbal alone, each a looping WebP at HERO_FPS through one
-    camera from the hero's direction (HERO) fitted to every frame of them all, so they share one framing."""
-    doc = next(iter(g.NEXT))
-    _, manifest, hull = prepare(doc)
-    moves = motions()
-    pts = np.concatenate([points(hull, f) for frames in moves.values() for f in frames])
-    cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
-    names = {m: next_motion(m).removesuffix(".webp") for m in moves}
-    for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
-        shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
-    render(doc, manifest, [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in moves.items()], mine, HERO_FPS)
+    """The next Mech's motions (motions()) in mine, its eye gimbal alone in each Skeleton, each a looping WebP at
+    HERO_FPS through one camera from the hero's direction (HERO) fitted to every frame of a Skeleton's, so they share
+    one framing."""
+    for skeleton, s in g.SKELETON_SUFFIX.items():
+        doc = STAGE3 + s
+        _, manifest, hull = prepare(doc)
+        moves = motions(doc)
+        pts = np.concatenate([points(hull, f) for frames in moves.values() for f in frames])
+        cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
+        names = {m: next_motion(m, skeleton).removesuffix(".webp") for m in moves}
+        for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
+            shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
+        shots = [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in moves.items()]
+        render(doc, manifest, shots, mine, HERO_FPS)
 
 
 def at_fps(frames, fps):

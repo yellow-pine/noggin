@@ -97,6 +97,34 @@ def test_the_wiring_table_is_built_from_the_code():
     assert neck == [("1", "3", "tilt"), ("2", "2", "jaw"), ("3", "1", "pan")]
 
 
+# #806: a printed part's filament in each value of its Colour group's Theme category, each shown in it alone
+WHITES = (
+    '<span data-skin="morty">PLA Basic Jade White (10100)</span>'
+    '<span data-skin="bart">PLA Matte Ivory White (11100)</span>'
+)
+BONES = (
+    '<span data-skeleton="realistic">PETG Basic Dark Beige (30403)</span>'
+    '<span data-skeleton="mechanical">PETG Matte Gray (35102)</span>'
+)
+
+
+def test_the_buy_list_names_the_picked_themes_filaments_from_the_model():
+    """#806: docs/build/parts.md's buy list names each Theme value's filaments by line, name and code, each Colour
+    group's, shown for the value the header's bar picks (model/geometry.py THEMES)."""
+    import macros
+
+    assert "<!--{{ filaments }}-->" in (ROOT / "docs" / "build" / "parts.md").read_text()
+    items = re.findall(r'<li data-(\w+)="(\w+)">([^<]+)</li>', macros.filaments())
+    assert [(c, v) for c, v, _ in items] == [
+        ("skeleton", "realistic"), ("skeleton", "mechanical"), ("skin", "morty"), ("skin", "bart")
+    ]  # fmt: skip
+    assert items[0][2] == (
+        "Skeleton realistic: Bones PETG Basic Dark Beige (30403), Joints PETG Matte White (35100), Linkages PETG Basic"
+        " Red (30201), Mounts PETG Basic Black (30105)"
+    )
+    assert "pupils PLA Matte Charcoal (11101)" in items[3][2]
+
+
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
     the next Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
@@ -107,15 +135,15 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     assert list(parts) == list(servos) == ["1", "2", "3"]
     for row in [
         "| Core | 1 | bought |",
-        "| L eyeball cap | 1 | eye whites, PLA |",
+        f"| L eyeball cap | 1 | eye whites: {WHITES} |",
         "| servo | 4 | bought |",
         "| Shield | 1 | bought |",
-        "| test stand | 1 | Bones, PETG |",
+        f"| test stand | 1 | Bones: {BONES} |",
     ]:
         assert row in parts["1"], row
-    assert "| servo | 2 | bought |" in parts["2"] and "| torso | 1 | Bones, PETG |" in parts["2"]
+    assert "| servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Bones: {BONES} |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
-    assert "| jaw | 1 | Bones, PETG |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
+    assert f"| jaw | 1 | Bones: {BONES} |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
     row = r"^\| (\w+) \| ([\w ]+) \| [\d.]+\.\.[\d.]+ \|$"
     assert [re.findall(row, servos[n], re.M) for n in servos] == [
         [("eyes", "yaw"), ("eyes", "pitch"), ("eyes", "L lid"), ("eyes", "R lid")],
@@ -265,6 +293,7 @@ def test_nothing_public_shows_todays_mech():
 
 STAGE_DOCS = ["next-stage1", "next-stage2", "next-mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
 LOOKS = ["", "-mechanical"]  # its Skeleton realistic (as Bones) and mechanical (#704, #805)
+SKELETONS = ["realistic", "mechanical"]
 
 
 def test_every_document_has_a_side_and_an_isometric_panel():
@@ -277,25 +306,34 @@ def test_every_document_has_a_side_and_an_isometric_panel():
 
 
 def test_the_next_mech_has_its_own_panels():
-    """#629, #720: Pictures shows each Stage of the next Mech in every Skeleton, framed among themselves."""
+    """#629, #720: Pictures shows each Stage of the next Mech in every Skeleton, framed among themselves, each Stage's
+    name and pictures shown in its own Skeleton alone (#806: the header's Theme bar picks it)."""
     import macros
 
     grid = macros.next_panels()
-    names = [f"Stage {n}{look}" for look in ("", " mechanical") for n in (1, 2, 3)]
-    assert re.findall(r"<strong>([^<]+)</strong>", grid) == names
-    views = re.findall(r'<img src="[^"]+/([^/"]+)"', grid)
-    assert views == [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
+    names = [(s, f"Stage {n}") for s in SKELETONS for n in (1, 2, 3)]
+    assert re.findall(r'<strong data-skeleton="(\w+)">([^<]+)</strong>', grid) == names
+    views = re.findall(r'<a href="[^"]+" data-skeleton="(\w+)"><img src="[^"]+/([^/"]+)"', grid)
+    assert views == [
+        (s, f"{d}{look}-{v}.webp")
+        for s, look in zip(SKELETONS, LOOKS, strict=True)
+        for d in STAGE_DOCS
+        for v in ("side", "isometric")
+    ]
 
 
 def test_pictures_shows_each_stage_at_explodes_parts_level():
-    """#811: Pictures has each Stage in each Skeleton with every part apart, under its name."""
+    """#811: Pictures has each Stage with every part apart under its name, in each Skeleton, shown in it alone."""
     import macros
 
     grid = macros.next_exploded()
-    names = [f"Stage {n}{look}, its parts apart" for look in ("", " mechanical") for n in (1, 2, 3)]
+    names = [f"Stage {n}, its parts apart" for n in (1, 2, 3)] * 2
     assert re.findall(r"<figcaption>([^<]+)</figcaption>", grid) == names
-    assert re.findall(r'<img src="[^"]+/([^/"]+)"', grid) == [
-        f"{d}{look}-parts-exploded.webp" for look in LOOKS for d in STAGE_DOCS
+    cells = re.findall(r'<figure data-skeleton="(\w+)"><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
+    assert cells == [
+        (skeleton, f"{d}{look}-parts-exploded.webp")
+        for skeleton, look in zip(("realistic", "mechanical"), LOOKS, strict=True)
+        for d in STAGE_DOCS
     ]
     assert "<!--{{ next_exploded }}-->" in (ROOT / "docs" / "pictures.md").read_text()
 
@@ -310,11 +348,12 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per document, the front doors' own two (#739), each at the Parts level (#811), the sweep
-    # (#656), the 7 it plays (#663) and a picture per part
-    assert len(published) == 3 * len(g.STAGES) + 2 + 1 + 7 + len(stems) == len(set(published))
+    # side and isometric per document, each at the Parts level (#811), the front doors' own two (#739), the sweep (#656)
+    # and the 7 it plays (#663), each per Skeleton (#806), and a picture per part
+    assert len(published) == 3 * len(g.STAGES) + 2 * (2 + 1 + 7) + len(stems) == len(set(published))
     assert {"next-stage1-isometric.webp", "next-eyes-rest.webp", "next-test-stand.webp"} <= {*published}
     assert {"next-stage1-front.webp", "next-mech-back-side-exploded.webp"} <= {*published}
+    assert {"next-stage1-mechanical-front.webp", "next-eyes-mechanical-sweep.webp"} <= {*published}
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-mechanical-parts-exploded.webp"} <= {*published}
     assert build.PUBLIC == {f"{d}{look}": f"{d}{look}.glb" for look in LOOKS for d in STAGE_DOCS}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
@@ -326,20 +365,35 @@ FRONT = [  # #739: the front doors' three, in order, as Bones (#704): (picture, 
     ("next-mech-back-isometric.webp", "Stage 3", "viewer/?stage=3"),
     ("next-mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
 ]
+FRONT_MECHANICAL = [  # #806: the same three in the mechanical Skeleton, its own in the viewer
+    ("next-stage1-mechanical-front.webp", "Stage 1, from the front", "docs/pictures/"),
+    ("next-mech-back-mechanical-isometric.webp", "Stage 3", "viewer/?stage=3&amp;skeleton=mechanical"),
+    (
+        "next-mech-back-mechanical-side-exploded.webp",
+        "Stage 3, exploded",
+        "viewer/?stage=3&amp;skeleton=mechanical&amp;explode=1",
+    ),
+]
 
 
 def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
     """#739: the site's home shows Stage 1 from the front, Stage 3 isometric and Stage 3 from the side exploded, side
     by side in that order, each under its caption and linking to Pictures or its Stage in the viewer; no eyes' sweep
-    (it is on Pictures)."""
+    (it is on Pictures). #806: the three in each Skeleton, each shown in its own alone."""
     import macros  # here, not at the top: it imports the model
 
     site = "https://yellowpine.com/noggin/"
     home, grid = (ROOT / "docs" / "index.md").read_text(), macros.front()
     assert "<!--{{ front }}-->" in home and "next-eyes-sweep" not in home
     assert 'class="noggin-front not-content"' in grid
-    cells = re.findall(r'<figure><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>', grid)
-    assert cells == [(f"{site}{link}", f"{site}images/{f}", caption) for f, caption, link in FRONT]
+    cells = re.findall(
+        r'<figure data-skeleton="(\w+)"><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>', grid
+    )
+    assert cells == [
+        (s, f"{site}{link}", f"{site}images/{f}", caption)
+        for s, front in zip(SKELETONS, (FRONT, FRONT_MECHANICAL), strict=True)
+        for f, caption, link in front
+    ]
 
 
 def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_one_centred_row():
@@ -363,10 +417,10 @@ def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_o
 
 
 def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
-    """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and the Skeleton switch
-    (#805) Realistic and Mechanical, each the GLB's suffix. #705: with just sim's ranking of today's head variants, the
-    Stage that is one is marked with what it fails, unmarked else (a ranking of other documents: main's reports before
-    the variants' first sim)."""
+    """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and each Skeleton (#805)
+    its GLB's suffix, the header's Theme bar picking one (#806). #705: with just sim's ranking of today's head
+    variants, the Stage that is one is marked with what it fails, unmarked else (a ranking of other documents: main's
+    reports before the variants' first sim)."""
     import json
 
     import macros
@@ -374,8 +428,7 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
-    skeletons = [{"suffix": "", "label": "Realistic"}, {"suffix": "-mechanical", "label": "Mechanical"}]
-    assert unranked["skeletons"] == skeletons
+    assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
     fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-mechanical": []}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))

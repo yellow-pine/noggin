@@ -1,6 +1,7 @@
 """Seam: the next Mech's neck and jaw parts (model/printed/neck.py) as model/stages.py places them at rest, under the eye
 gimbal in the head's frame: no two overlap, and the shanks' bores and tapping holes line up across each pivot."""
 
+import functools
 import itertools
 
 import cadquery as cq
@@ -8,34 +9,40 @@ import pytest
 
 from model import envelopes, stages
 from model import neck as nk
-from model.printed import PARTS, neck
+from model.printed import PARTS, gimbal, neck
 from model.printed.test_gimbal import ON_SPLINE, _overlaps
 
 ON_SPLINE = ON_SPLINE | {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in nk.drives()}
 
 
+@functools.cache
+def _built(stem):
+    """The part's or envelope's solid, built once a worker (its placements share it)."""
+    return (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val()
+
+
 def _shape(p):
-    stem = stages.stem(p.file)
-    m = cq.Matrix([list(map(float, row)) for row in p.matrix[:3]])
-    return (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().transformGeometry(m)
+    """The placed part's solid, moved exactly (a rigid placement: no transformGeometry's B-spline copy to intersect)."""
+    return _built(stages.stem(p.file)).moved(gimbal._at(p.matrix))
 
 
-@pytest.mark.build
-def test_no_two_parts_overlap_at_rest():
-    shapes = {n: _shape(p) for sub in (stages.next_neck(), stages.next_eyes()) for n, p in sub.parts.items()}
-    hits = [
-        f"{a} / {b}: {v:.2f} mm3"
-        for a, b in itertools.combinations(shapes, 2)
-        if frozenset((a, b)) not in ON_SPLINE and (v := _overlaps(shapes[a], shapes[b])) > 0.01
-    ]
-    assert hits == []
+@pytest.fixture(scope="module")
+def shapes():
+    """{part: its solid at rest}, the neck's and the eye gimbal's, built once a module: CI's 15 s times the test alone."""
+    return {n: _shape(p) for sub in (stages.next_neck(), stages.next_eyes()) for n, p in sub.parts.items()}
+
+
+@pytest.mark.model
+def test_no_two_parts_overlap_at_rest(shapes):
+    pairs = [(a, b) for a, b in itertools.combinations(shapes, 2) if frozenset((a, b)) not in ON_SPLINE]
+    assert _overlaps(shapes, pairs) == []
 
 
 Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
 
-@pytest.mark.build
+@pytest.mark.model
 @pytest.mark.parametrize(
     "turns, fixed, at, across",
     [  # (the turning part, the fixed one, a point on the axis inside each, a direction across the axis)

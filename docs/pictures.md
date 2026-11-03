@@ -17,8 +17,9 @@ The next Mech's Stages from the side and isometric, and each of its parts, are i
 [the grids on the site](https://yellowpine.com/noggin/docs/pictures/).
 <!-- #}-->
 
-Stage by Stage, each in both Skeletons, realistic (as Bones) and mechanical: Stage 1 the eye block on its test stand with the eyes Core,
-Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw, the whole Mech. Under them, as the home shows them,
+Stage by Stage, in the Skeleton the Theme bar at the top picks, realistic (as Bones) or mechanical: Stage 1 the eye
+block on its test stand with the eyes Core, Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw, the whole
+Mech. Under them, as the home shows them,
 Stage 1 from the front and Stage 3 from the side, exploded. Then each Stage with every part apart, each slid out the
 way it goes on: a servo or horn along its shaft, a part on a pivot along its axis, a board off its carrier. Turn each in
 [the viewer](https://yellowpine.com/noggin/viewer/).

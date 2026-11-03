@@ -83,7 +83,7 @@ jobs:
           base: ${{ steps.checked.outputs.sha }}
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
-            model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
+            model: ["model/**", "eyes/**", "web/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
             release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
       # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB
@@ -156,21 +156,11 @@ jobs:
       # from before #725 has none, and uv builds .venv as it did
       - name: Link the image's venv
         run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
-      # just check's parts. Restore only: this job never decomposes, so a save here would store the key without
-      # model/build/convex first and the model job's full save would be refused (a key is written once). restore-keys:
-      # a change to a part starts from main's latest entry and rebuilds only what its .key files miss
-      - name: Restore the parts cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: |
-            model/build/ours
-            model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/stages.py', 'uv.lock') }}
-          restore-keys: ours-convex-
+      # no parts: the tests that build or read them are marked model and run in the Model shards (#808)
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
-        env:
-          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
+        env:   # --timeout: 15 s a test, its fixtures aside (pyproject's timeout_func_only): a slower one is made fast or split (#808)
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20 --timeout=15
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
       - name: List the slowest tests
         if: always()
@@ -319,7 +309,7 @@ jobs:
         run: mkdir -p "$RUNNER_TEMP/durations" && uv run just test | tee -a "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: >-
-            -m model -n auto --dist loadgroup --durations=20 --store-durations
+            -m model -n auto --dist loadgroup --durations=20 --timeout=15 --store-durations
             --durations-path ${{ runner.temp }}/durations/tests.json ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
           MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)

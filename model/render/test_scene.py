@@ -9,7 +9,7 @@ from model.render import scene
 DOC = next(iter(geometry.NEXT))
 
 
-@pytest.mark.build
+@pytest.mark.model
 def test_export_writes_each_part_in_metres_in_its_themes_colour_or_grey(tmp_path):
     manifest = scene.export(DOC, tmp_path)
     assert set(manifest) == set(stages.STAGES[DOC].parts)

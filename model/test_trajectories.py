@@ -31,10 +31,10 @@ def built(doc):
     return mjcf.model(doc)
 
 
-def overlaps(doc, motion):
-    """{(part, part): (ms, mm)} a reading of each pair whose pieces go PENETRATION_MM deeper than at rest anywhere in
-    the motion as played, certified between the sim's steps (gates.certify, #627), the known pairs aside
-    (test_report.known, NESTED)."""
+@functools.cache
+def played(doc, motion):
+    """(model, qpos a sim step, floors): the motion as played, and the floor (mm) of each pair, PENETRATION_MM deeper
+    than at rest, the known pairs aside (test_report.known, NESTED)."""
     model = built(doc)
     rest = mjcf.pose(model, {})
     floors = {
@@ -45,18 +45,35 @@ def overlaps(doc, motion):
     step_ms = model.opt.timestep * 1000
     writes, times = tj.commands(doc, motion)
     qpos = tj.play(model, writes, np.arange(0, times[-1] + step_ms / 2, step_ms), read=lambda d: d.qpos.copy())
-    found = gates.certify(model, np.array(qpos), floors)
-    return {pair: (row * step_ms, mm) for pair, (row, mm) in found.items()}
+    return model, np.array(qpos), floors
+
+
+@pytest.fixture
+def motion(doc, name):
+    """The motion played in setup, once a worker: CI's 15 s times the certifying alone."""
+    return played(doc, name)
+
+
+CHUNKS = 4  # a motion's pairs certified in four tests, so each holds CI's 15 s (#808)
+
+
+def overlaps(played, chunk, chunks):
+    """{(part, part): (ms, mm)} a reading of each pair (the chunk-th of `chunks` of them) whose pieces go below its
+    floor anywhere in the motion as played, certified between the sim's steps (gates.certify, #627)."""
+    model, qpos, floors = played
+    mine = {p: floors[p] for p in sorted(floors)[chunk::chunks]}
+    step_ms = model.opt.timestep * 1000
+    return {pair: (row * step_ms, mm) for pair, (row, mm) in gates.certify(model, qpos, mine).items()}
 
 
 @pytest.mark.parametrize(
-    "doc,motion", [(d, m) for d in geometry.NEXT for m in tj.motions(d)], ids=lambda x: x
+    "doc, name, chunk", [(d, m, c) for d in geometry.NEXT for m in tj.motions(d) for c in range(CHUNKS)], ids=str
 )  # ids carry the document: CI's model shards split on it
-def test_no_two_parts_overlap_in_any_frame_of_any_motion(doc, motion):
+def test_no_two_parts_overlap_in_any_frame_of_any_motion(motion, chunk):
     """#255, #663: every motion as played on the next Mech (its gestures and Rest on its eye gimbal, #663; the next hero
     on its neck and jaw, #642): no pair of parts more than PENETRATION_MM deeper than at rest at any step of the sim, not
     only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
-    assert overlaps(doc, motion) == {}
+    assert overlaps(motion, chunk, CHUNKS) == {}
 
 
 def turned(frames, body):

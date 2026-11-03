@@ -96,7 +96,7 @@ const rows = (md) =>
   md
     .split('\n')
     .filter((l) => l.startsWith('|') && !/^\|[-|\s]+\|$/.test(l))
-    .map((l) => l.slice(1, -1).split('|').map((c) => c.trim().replaceAll('`', '')));
+    .map((l) => l.slice(1, -1).split('|').map((c) => c.trim().replaceAll('`', '').replace(/<[^>]+>/g, ''))); // a cell's text
 
 test("each number a doc asks for is the code's, and what GitHub shows in its place is not on the site", () => {
   let used = 0;
@@ -173,6 +173,34 @@ test("every page's header names the site with its wordmark, whose o is the Mech'
     expect(mark.querySelectorAll('.noggin-o .noggin-eye').length, f).toBe(1);
   }
   expect(page(`${HOME}/`).querySelectorAll('h1 .noggin-o .noggin-eye').length).toBe(1); // and the landing page's title
+});
+
+test("every page's header has the Theme bar: a labelled select per category of the model's, its values in order", () => {
+  for (const f of html.filter((f) => !f.startsWith('reports/'))) {
+    const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
+    // in the header, and in the mobile menu where the page has one (not the 404's)
+    const bars = [doc.querySelector('header .sl-hidden .noggin-theme'), ...doc.querySelectorAll('.mobile-preferences .noggin-theme')];
+    expect(bars.length, f).toBe(doc.querySelector('.mobile-preferences') ? 2 : 1);
+    for (const bar of bars) {
+      expect(bar?.getAttribute('aria-label'), f).toBe('Theme');
+      const selects = bar.querySelectorAll('label > select[data-category]');
+      expect(selects.map((s) => [s.parentNode.querySelector('span').text, s.getAttribute('data-category')]), f).toEqual([
+        ['Skeleton', 'skeleton'], ['Skin', 'skin'],
+      ]);
+      expect(selects.map((s) => s.querySelectorAll('option').map((o) => o.getAttribute('value')))).toEqual(Object.values(numbers.theme));
+    }
+    expect(doc.toString(), f).toContain(':root:not([data-skeleton="mechanical"]) [data-skeleton="mechanical"]');
+  }
+});
+
+test("each themed picture and filament is marked with its Theme value, the default's shown with no pick (#806)", () => {
+  const home = page(`${HOME}/`), parts = page(route('docs/build/parts.md'));
+  expect(home.querySelectorAll('.noggin-front figure').map((f) => f.getAttribute('data-skeleton'))).toEqual([
+    'realistic', 'realistic', 'realistic', 'mechanical', 'mechanical', 'mechanical',
+  ]);
+  expect(parts.querySelectorAll('li[data-skeleton], li[data-skin]').map((l) => l.text.split(':')[0])).toEqual([
+    'Skeleton realistic', 'Skeleton mechanical', 'Skin morty', 'Skin bart',
+  ]);
 });
 
 test("every page's footer credits Yellow Pine with its logo, for the light theme and the dark", () => {
@@ -253,7 +281,7 @@ test("Pictures shows the next Mech, the front doors' own, it in motion and each 
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
 
-test("the viewer's page draws the next Mech, a Stage switch and a Skeleton switch, and serves three's Draco decoder", () => {
+test("the viewer's page draws the next Mech and a Stage switch, the Theme bar its Skeleton, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
   const { buttons, skeletons } = numbers.published.stages;
@@ -261,10 +289,9 @@ test("the viewer's page draws the next Mech, a Stage switch and a Skeleton switc
   expect(stages.map((b) => b.getAttribute('data-stage'))).toEqual(buttons.map((b) => b.glb));
   expect(stages.map((b) => b.text.trim())).toEqual(buttons.map((b) => b.label)); // a failing Stage's with its mark (#705)
   expect(stages.map((b) => b.text.split(':')[0].trim())).toEqual(['1', '2', '3']);
-  const switches = viewers[0].querySelectorAll('nav[aria-label="Skeleton"] button[data-skeleton]'); // #805
-  expect(switches.map((b) => [b.text.trim(), b.getAttribute('data-skeleton')])).toEqual([['Realistic', ''], ['Mechanical', '-mechanical']]);
+  expect(viewers[0].querySelectorAll('[data-skeleton]')).toHaveLength(0); // the header's bar picks it (#806)
   // every Stage in every Skeleton is a GLB the site serves
-  const glbs = buttons.flatMap((b) => skeletons.map((s) => `${b.glb}${s.suffix}.glb`));
+  const glbs = buttons.flatMap((b) => Object.values(skeletons).map((s) => `${b.glb}${s}.glb`));
   expect(glbs.sort()).toEqual([...numbers.published.viewer].sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
