@@ -55,6 +55,18 @@ def test_a_held_servo_carries_the_gravity_torque_its_four_bar_brings_it():
     )  # the light links weigh 1e-6 kg
 
 
+def test_a_balance_spring_on_the_rocker_takes_its_share_off_the_held_servo():
+    """#838: a torsion spring on the rocker's pivot wound to the mass's torque at rest (mjcf.balance's stiffness and
+    springref) leaves the servo nothing to hold there; wound to half of it, half."""
+    for wound, left in ((1.0, 0.0), (0.5, 0.5)):
+        model = mujoco.MjModel.from_xml_string(FOUR_BAR)
+        rocker = model.joint("rocker")
+        model.jnt_stiffness[rocker.id] = 1.0
+        model.qpos_spring[rocker.qposadr] = -wound * 0.1 * 9.81 * 0.1  # the 100 g turns it -y: the spring +y
+        torque = mujoco_report.torques(model, mujoco.MjData(model), moving=False)[0]
+        assert abs(torque) == pytest.approx(left * 0.1 * 9.81 * 0.1, abs=1e-5)  # the light links weigh 1e-6 kg
+
+
 def test_a_moving_servo_turns_its_load_without_its_own_rotor():
     model = mujoco.MjModel.from_xml_string(FOUR_BAR)
     model.opt.gravity[:] = 0

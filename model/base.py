@@ -2,16 +2,16 @@
 draws the parts from them, model/stages.py places them and the boards), what the sim report reads (sway(), leads(),
 head()) and the ranking of their reports (rank()); model/candidates.py reports their figures from MuJoCo.
 
-Frame: the head's (model/neck.py), z up, -y forward. In each the base is the Torso (#685, GLOSSARY): the shirt itself, a
-compact open box whose floor carries the neck mount (with the pan servo in its collar) and, behind it, the pack lying
-flat across x as low as it goes, and the switch board, which switches the pack, lying on its floor in front of the
-pack's lead end (switch_board(), #828); its bottom is the foot the Mech stands on. Only the switch board's power lead
-and the pan servo's lead leave it for the head's side of pan (leads(); #51's wiring rules). The Cores, each plugged in
-under its Shield, go in the compact head, everything riding it under its shell within gimbal.HEAD_MM (#51), in one
+Frame: the head's (model/neck.py), z up, -y forward. In each the base is the Torso (#685, GLOSSARY): a compact open box
+whose floor carries the neck mount (with the pan servo in its collar) and, behind it, the pack lying flat across x as
+low as it goes, the switch board, which switches the pack, lying on its floor beside the pack's lead end (switch_board(),
+#828), and in front of the neck mount the two Cores, each plugged in under its Shield, lying flat (boards(), #838); its
+bottom is the foot the Mech stands on. Every servo's lead leaves it for the head's side of pan up the neck (leads(); #51's
+wiring rules). Nothing but the mechanism rides the head under its skull or Skin, within gimbal.HEAD_MM (#51), in one
 variant since Cansin picked it (#712; the ranking stays for the next):
-- Back, next-mech-back: one Core on edge in each cheek, behind the eyes and low, in a cradle of the board rack on the
-  gimbal frame's plate (back_boards(), #828), nothing over the eyes but the skull dome, which gives the head its height
-  over them (shelled()), so the eyes sit in the head's lower half (#708).
+- Back, next-mech-back: the eye gimbal on the head mount, the jaw at the realistic skull's condyles, nothing over the
+  eyes but the skull dome, which gives the head its height over them (shelled()), so the eyes sit in the head's lower
+  half (#708).
 Every size is ours and inferred (no build settles one yet)."""
 
 import os
@@ -20,11 +20,11 @@ import numpy as np
 
 from model import gimbal, neck
 
-# the Torso's outside: x, y, and z from its foot to its walls' top (under the pack's, 16.3 mm up), round the neck mount's
-# foot (x -14..42, y -13.5..24.5) and the pack in its cradle behind it; its front reaches on to y -35, where the next
-# hero's tilt (~3.8 m/s2 on the old tower candidate's head) bears the moving centre of mass to y -25.5 (inferred, #685)
-TORSO = ((-46.0, 46.0), (-35.0, 58.5), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 16))
-PACK_Y = 41.5  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
+# the Torso's outside: x, y, and z from its foot to its walls' top (over the Cores on their Shields, 21.5 mm up), round
+# the Cores in front of the neck mount's foot (x -14..42, 22 in front of the pan axis to 16 behind it), the pack in its
+# cradle behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan axis (#838)
+TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 26))
+PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
@@ -35,14 +35,12 @@ EYES_UP = 0.5  # the eye centres at most this far up the head (shelled()), 0 its
 DOME = ((-68.0, 68.0), (-42.6, 74.4), (27.0, 75.25))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand's back face
-# Back: each cheek's Shield (its Core under it) on edge, its frame's x and y: its Core's outer face at x 62, its front
-# 0.5 mm behind the bail's upright (gimbal.BAIL), on its cradle's floor (inferred, #828)
-CHEEK = (51.3, gimbal.BAIL[0] + 4.5 + 15.0)
-ROOF_Z = -29.0  # the cradles' roofs' top, 3 mm over the Shields' edges: flat, where a Character's hair seats (#665)
-# the switch board's frame on the Torso's floor: x -38..-17.5, 2.5 mm inside the ribcage's side ribs and 3.5 mm off the
-# neck mount's foot, 0.8 mm in front of the pack's cradle (model/printed/base.py); the board lies flat, its lever up,
-# reached from the open back along the pack's -x side (inferred, #828, #823)
-SWITCH_AT = (-30.75, 8.0)
+# the switch board's frame on the Torso's floor: beside the pack's lead end (-x), 5 mm off its cradle; the board lies
+# flat, its lever up, reached from the open back (inferred, #828, #838)
+SWITCH_AT = (-47.0, PACK_Y)
+# the Cores lying flat in front of the neck mount's foot, each under its Shield, its USB-C end forward (#838): their
+# middles' x, and y (inferred)
+CORES_AT = ((-16.0, 16.0), neck.AXIS[0] - 42.0)
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
 # bottom: model/envelopes.py, held to it by model/test_base.py)
 ROW = (
@@ -82,14 +80,14 @@ def standing(back, z, row=ROW):
     return _moved(_row(row), m)
 
 
-def back_boards():
-    """Back's boards (#828): {part name: (Envelope, 4x4)}, one Shield with its Core in each cheek, Core 1 at -x, on edge
-    on its cradle's floor: the Shield's headers inward, its USB-C end back (+y), where it slides in and plugs in."""
+def boards():
+    """The Cores in the Torso (#838): {part name: (Envelope, 4x4)}, each plugged in under its Shield, lying flat on the
+    floor, the Shield's pins up and its USB-C end forward, Core 1 at -x."""
     out = {}
-    for (parts, (x0, _), _, _), s in zip(ROW, (-1, 1)):
+    for (parts, _, _, _), x in zip(ROW, CORES_AT[0]):
         m = np.eye(4)
-        m[:3, :3] = np.array(((0, 0, s), (-s, 0, 0), (0, -1, 0))).T  # its x up (s), y inward, z forward
-        m[:3, 3] = (s * CHEEK[0], CHEEK[1], gimbal.PLATE_Z[1] + TRAY_T - x0)
+        m[:3, :3] = np.array(((-1, 0, 0), (0, 0, 1), (0, 1, 0))).T  # its x across (-x), y up, z back
+        m[:3, 3] = (x, CORES_AT[1], neck.MOUNT_Z[0] + 10.68)  # the Core's USB-C on the floor
         out |= {name: (mesh, m) for name, mesh in parts}
     return out
 
@@ -107,6 +105,7 @@ def switch_board():
 # desk to the plate's underside, the eyes Core (Shield 1, Core 1) standing on the desk against its back face (inferred)
 STAND_H = 40.0
 STAND_Z = gimbal.PLATE_Z[0] - STAND_H  # its foot, in the head's frame
+STAND_TOP_Y = 45.5  # its top's front, behind the hanging mouth and yaw servos' collars (#838)
 
 
 def stand_boards():

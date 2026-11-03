@@ -205,11 +205,12 @@ def _hair(grow):
 
 
 def _skull(t):
-    """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut and its
-    floor open round the neck and the jaw (NECK)."""
+    """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
+    floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
     x, up = sk.NECK
     neck = box((-x, x), (-100, 200), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
-    out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck)
+    back = box((-100, 100), (sk.BACK_OPEN[0], 200), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
+    out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck).cut(back)
     return out.intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
 
 
@@ -251,9 +252,9 @@ def face():
 
 def hair():
     """Morty's hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto
-    the board rack's cradles' roofs (#828), each Seat's boss on a web from its back wall, and onto the face's temples."""
+    the gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples."""
     out = _skull(-sk.HAIR).intersect(_hair(-0.1))
-    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next board rack"):
+    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
         out = out.union(web.intersect(_head(0.0)))
@@ -273,7 +274,7 @@ def mouth_cover():
     return _finish("next morty mouth cover", plate.union(wall).union(chin))
 
 
-SHIRT_SPLIT = 8.5  # the halves part across the neck's pan axis (model/neck.py AXIS)
+SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
 SHIRT_TOP = 6.0  # the collar's rise over the shirt's top, round the neck
 SHIRT_ROUND = (10.0, 3.0, 25.0)  # his T-shirt's rounding: its sides, its shoulders, and the crew neck's corners
 

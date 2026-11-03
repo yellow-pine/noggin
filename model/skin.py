@@ -61,7 +61,7 @@ def _lid_seats(side, polarity):
 
 # Morty's head (#665, #844: his model sheet's round head), in the head's frame (model/neck.py): the face comes off
 # forward, the hair up. The head is what lies inside three outlines, each the hull of (u, v, r) circles: from the front
-# (x, z) a round cranium over the cheeks, which take in the board rack's cradles (#828); from the side (y, z) the face
+# (x, z) a round cranium over the cheeks; from the side (y, z) the face
 # flat over the eyes, the cranium round behind it, and the muzzle over the jaw and the head mount (two hulls, the corner
 # between them rounded SIDE_ROUND); from above (x, y), square to the mouth servo's corners. Every size is inferred.
 FRONT = ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
@@ -83,9 +83,11 @@ HAIRLINE = (99.4, 67.4, 111.5)
 NAPE = 78.0
 HAIR = 1.5
 NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
-TORSO = (-35.0, 58.5)  # the Torso's front and back walls (model/base.py TORSO)
-_PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge, its middle height
-_ROOF = (55.0, 58.0)  # (|x|, y) on the board rack's cradles' flat roofs (model/base.py ROOF_Z, #828)
+BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
+# in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
+TORSO = nb.TORSO[1]  # the Torso's front and back walls
+_PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge (its bar to the lids'), mid height
+_BACK = (31.0, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo (#838)
 SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
     *[
@@ -102,7 +104,7 @@ SEATS = [
     ],
     *_lid_seats("L", 1),
     *_lid_seats("R", -1),
-    # the face forward off the gimbal frame plate's front corners, under the mouth servo; its top held by the hair
+    # the face forward off the gimbal frame plate's bar to the lids' uprights (#838); its top held by the hair
     *[
         Seat(
             "next morty face",
@@ -113,13 +115,13 @@ SEATS = [
             _PLATE[0] - 4.0 - GAP - (MUZZLE_Y + WALL) + 1.0,
             1,
         )
-        for x in (-53.0, 53.0)
+        for x in (-45.0, 45.0)
     ],
-    # the hair down onto the cradles' roofs in the cheeks (a web from its back wall, model/printed/skin.py) and onto the
-    # face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
+    # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
+    # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
     *[
-        Seat("next morty hair", "next board rack", (x, _ROOF[1], nb.ROOF_Z), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
-        for x in (-_ROOF[0], _ROOF[0])
+        Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
+        for x in (-_BACK[0], _BACK[0])
     ],
     *[
         Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)

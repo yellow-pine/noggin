@@ -35,14 +35,14 @@ the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low and
-the neck mount with the pan servo; its bottom is the foot the Mech stands on.
+The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low,
+the two Cores and the switch board, and the neck mount with the pan servo; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
-One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, a Core
-on edge in each cheek behind the eyes, the head's shell rising over them so the eyes sit in its lower half, and it is
-the one variant today; the pack and the switch board lie low in the Torso.
+One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
+shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #838 the Cores, the
+pack and the switch board all lie low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -259,8 +259,7 @@ instead.
 _Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:
-An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base, boards' carrier and Test
-stand) and is placed into a document at a frame (model/stages.py).
+An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base and Test stand) and is placed into a document at a frame (model/stages.py).
 
 **Assembly direction**:
 The way a part slides off what holds it: a servo or Horn along its shaft, a part on a Pivot along the Pivot's axis, a
@@ -283,6 +282,11 @@ _Avoid_: rod, linkage
 **Crank**:
 The lever on a turning part that a Bar drives: the yaw yoke's, each upper lid's.
 
+**Balance spring**:
+The torsion spring on the next Mech's tilt pivot that holds the head's weight, which hangs in front of the pivot under
+the skull's base, so the tilt servo moves the head without holding it up.
+_Avoid_: counterweight, gas spring, return spring
+
 **Printed part**:
 A part we print, by our name (model/printed); the Skeleton's:
 - gimbal frame: the eye block's plate, carrying the eyes' pivots and the four eye servos;
@@ -295,8 +299,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - torso: the Torso; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan; pan bar: the pan
   Horn to the yoke;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
-- board rack: a cradle in each cheek holding a Core on edge, joined across the gimbal frame's plate;
-- jaw: turns on the head mount's lugs; jaw bar: the jaw Horn to the jaw.
+- jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 _Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
 
 **Coupon**:

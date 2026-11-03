@@ -9,12 +9,12 @@ from model import gimbal, printed, skin, stages
 
 
 @pytest.mark.parametrize(
-    "doc,carrier", [("next-mech-back", "next board rack"), ("next-mech-back-mechanical", "next board rack mechanical")]
+    "doc,carrier", [("next-mech-back", "next torso"), ("next-mech-back-mechanical", "next torso mechanical")]
 )
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
     hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
-    its own printed parts, all named "next", its boards on its carrier. Its neck's three servos drive it."""
+    its own printed parts, all named "next", its boards in the Torso (#838). Its neck's three servos drive it."""
     nxt = stages.STAGES[doc]
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
@@ -26,12 +26,12 @@ def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its
 
 @pytest.mark.parametrize("doc", sorted(d for d in stages.DOCS if "pan horn" in stages.STAGES[d].horns))
 def test_what_rides_the_head_mount_turns_with_the_tilt_and_the_pan(doc):
-    """The gimbal frame and the board rack are screwed to the head mount (RIDES): the tilt and the pan carry them."""
+    """The gimbal frame is screwed to the head mount (RIDES): the tilt and the pan carry it and its servos."""
     stage = stages.STAGES[doc]
     for horn, deg in (("tilt horn", 10), ("pan horn", 10)):
         moved = stages.pose(stage, horn, deg)
         carrier = moved.parts["next head mount:1"] @ np.linalg.inv(stage.parts["next head mount:1"].matrix)
-        for name in ("next gimbal frame:1", "next board rack:1", "next L lid servo:1"):
+        for name in ("next gimbal frame:1", "next L lid servo:1"):
             assert np.allclose(moved.parts[name] @ np.linalg.inv(stage.parts[name].matrix), carrier), (horn, name)
         assert np.allclose(moved.parts["next torso:1"], stage.parts["next torso:1"].matrix)
 
@@ -53,7 +53,8 @@ def test_each_next_mech_variant_is_built_mechanical_too_from_the_same_layout():
 
 def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
-    eye block on the Torso's neck (pan, tilt) under the head mount, the boards' rack with the neck Core; Stage 3 adds the
+    eye block on the Torso's neck (pan, tilt) under the head mount, the neck Core beside the eyes' in the Torso (#838);
+    Stage 3 adds the
     jaw and the mouth servo, and Morty's Skin (#665): the whole Mech, the head variant's document. Each Stage in every
     Skeleton."""
     one, two, three = (stages.STAGES[d] for d in list(g.STAGES)[:3])
@@ -76,7 +77,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
     "shell, horn, carrier",
     [
         ("next morty face", "tilt horn", "next gimbal frame"),
-        ("next morty hair", "pan horn", "next board rack"),
+        ("next morty hair", "pan horn", "next gimbal frame"),
         ("next morty mouth cover", "jaw horn", "next jaw"),
         ("next morty L upper lid cover", "next L lid horn", "next L upper lid"),
         ("next morty R pupil", "next yaw horn", "next R eyeball cap"),

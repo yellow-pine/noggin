@@ -156,7 +156,7 @@ MATERIALS = {
 }
 # Printed parts: each one's Colour group (THEMES) and material (model/mjcf.py mass() reads it)
 _SKELETON = {
-    "Bones": ("next gimbal frame", "next neck mount", "next head mount", "next jaw", "next torso", "next test stand"),
+    "Bones": ("next gimbal frame", "next neck mount", "next head mount", "next jaw", "next test stand"),
     "Joints": ("next eyeball core", "next yaw yoke", "next bail", "next pan yoke"),
     "Linkages": (
         "next tie-bar",
@@ -172,7 +172,7 @@ _SKELETON = {
         "next tilt bar",
         "next jaw bar",
     ),
-    "Mounts": ("next board rack",),
+    "Mounts": ("next torso",),  # the realistic skull's black box pedestal (#838)
 }
 PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
@@ -200,16 +200,16 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 _HEAD = ((0, -150, 147), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
-    for v, carriers in (("back", ["next-back", "next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's
+    for v, carriers in (("back", ["next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's
     # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
-# stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso, the neck, the head mount and the boards' rack
-# with the neck Core; 3 adds the jaw and the mouth: the whole Mech, the leading head variant's document
-_STAND = ((0, -150, 107), X, Z)
+# stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
+# mount; 3 adds the jaw and the mouth: the whole Mech, the leading head variant's document
+_STAND = ((0, -150, 78), X, Z)
 STAGES = {
     "next-stage1": {"next-eyes": _STAND, "next-stand": _STAND},
-    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base", "next-back")},
+    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base")},
     **dict([next(iter(NEXT.items()))]),
 }
 # each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical

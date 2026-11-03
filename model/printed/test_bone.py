@@ -78,13 +78,13 @@ def test_every_skeleton_part_has_both_styles_or_names_the_ticket_drawing_its_bon
     assert printed.styled("next eyeball core", True) == "next eyeball core"
 
 
-# each Skeleton part's Colour group as Cansin set them (#805)
+# each Skeleton part's Colour group as Cansin set them (#805; the Torso a Mount since #838)
 GROUPS = {
-    "Bones": ["torso", "gimbal frame", "head mount", "neck mount", "jaw", "test stand"],
+    "Bones": ["gimbal frame", "head mount", "neck mount", "jaw", "test stand"],
     "Joints": ["yaw yoke", "pan yoke", "eyeball core", "bail"],
     "Linkages": ["tie-bar", "push-rod", "pitch bar", "lid bar", "lid link", "pan bar", "tilt bar", "jaw bar"]
     + [f"{s} {lid}" for s in "LR" for lid in ("upper lid", "lower lid")],
-    "Mounts": ["board rack"],
+    "Mounts": ["torso"],  # the realistic skull's black box pedestal (#838)
 }
 
 

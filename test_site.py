@@ -130,7 +130,8 @@ def test_the_buy_list_names_the_picked_presets_filaments_from_the_model():
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
     the next Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
-    Core, then the Torso, the neck and the boards with the neck Core (the stand comes off), then the jaw."""
+    Core, then the Torso, the neck and the boards with the neck Core in the Torso (the stand comes off, #838), then the
+    jaw."""
     import macros
 
     parts, servos = macros.stage_guides()
@@ -143,7 +144,8 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
         f"| test stand | 1 | Bones: {BONES} |",
     ]:
         assert row in parts["1"], row
-    assert "| servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Bones: {BONES} |" in parts["2"]
+    mounts = '<span data-presets="cansins-build morty bart">PETG Basic Black (30105)</span>'  # the pedestal (#838)
+    assert "| servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Mounts: {mounts} |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
     assert f"| jaw | 1 | Bones: {BONES} |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
     row = r"^\| (\w+) \| ([\w ]+) \| [\d.]+\.\.[\d.]+ \|$"
@@ -161,8 +163,8 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
 
     table = macros.themes()
     for row in [
-        "| Skeleton | robot | Mounts | board rack | PETG Basic Black (30105) | #000000 |",
-        "| Skeleton | black | Mounts | board rack | PETG Basic Black (30105) | #000000 |",
+        "| Skeleton | robot | Mounts | torso | PETG Basic Black (30105) | #000000 |",
+        "| Skeleton | black | Mounts | torso | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
         "| Skin | morty | hair | morty hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",  # Morty's Shells (#665)
         "| Skin | bart | clothes | morty shirt front, morty shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",

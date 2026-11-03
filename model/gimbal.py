@@ -21,7 +21,7 @@ from scipy.spatial.transform import Rotation
 from model import fits, linkage
 from model import geometry as g
 
-SPACING = 64.0  # eye centres apart
+SPACING = 52.0  # eye centres apart: the realistic skull's orbits (#838)
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 YAW, PITCH = 25.0, 15.0  # each eye's range, +-: the neck joins larger gaze shifts (#51)
 CRANK = g.HORN_STEP["pin"]  # the horn's pin hole from its hub: every crank the horns drive or match
@@ -34,11 +34,12 @@ TIE_Z = (-30.0, -27.0)
 YAW_Y = 11.0  # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684)
 BAIL = (40.0, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
+BAIL_END = 12.0  # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
 CAP_R, CAP_HALF = 27.0, 45.0  # each Character's largest eyeball cap: a sphere segment this wide about the gaze
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
-LID_R = (CAP_R + 1.5, CAP_R + 3.5)  # the upper lid's shell, inner and outer radius
+LID_R = (CAP_R + 1.5, CAP_R + 3.0)  # the upper lid's shell, inner and outer radius: 1.5 mm, slim for the orbits (#838)
 LOWER_R = (CAP_R + 4.5, CAP_R + 6.5)  # the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
 LID_COVER = 3.0  # how far past the cap's rim a shut lid reaches
 LID_REST = PUPIL_DEG + 2.0  # the upper lid's edge just over the pupil (#51), at the lid servo's centre
@@ -48,20 +49,35 @@ LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shu
 # the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
 LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
-# (y, z) of each lid servo's horn: under and behind the eye, its case under the tie-bar and in front of the bail's
-# upright, low and forward so the head's centre of mass stays near the tilt axis (the tilt bar's load, #684)
-LID_HORN = (18.0, -45.0)
+# (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
+# the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
+LID_HORN = (22.0, -12.0)
+
+
 # the upper lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's)
 # mid-range, so the bar meets it at 64 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
-LID_CRANK = math.degrees(math.atan2(LID_HORN[1], -LID_HORN[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
+def _crank(horn):
+    return math.degrees(math.atan2(horn[1], -horn[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
+
+
+LID_CRANK = _crank(LID_HORN)
 LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
-LID_BEND = (33.0, -36.0)  # (y, z) the lid bar bends at, at rest: under the pitch servo, behind the yawing tie-bar
+
+
+def _turned(p, deg):
+    """(y, z) `p` turned `deg` about x, from forward toward up."""
+    a = math.radians(deg)
+    return (p[0] * math.cos(a) + p[1] * math.sin(a), -p[0] * math.sin(a) + p[1] * math.cos(a))
+
+
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
 # upper, 0.8x (docs/research: 38 deg upper, 30 lower). Inferred, searched for its link meeting the crank at 57 deg or
-# more, its crank pin out of the reach of a cap yawed in and pitched down.
-LINK_PIN = (26.0, -8.0)  # (y, z) of the link's pin on the bar at rest, a joint between its upper pin and the bend
-LOWER_PIN = (-6.0 * math.cos(math.radians(258.0)), 6.0 * math.sin(math.radians(258.0)))  # the lower crank's pin
+# more, its crank pin out of the reach of a cap yawed in and pitched down, with the horn under the eye; turned about the
+# eye with the crank (#838), the four-bar keeps its every angle
+_LINK_TURN = LID_CRANK - _crank((18.0, -45.0))
+LINK_PIN = _turned((26.0, -8.0), _LINK_TURN)  # (y, z) of the link's pin on the bar at rest, between its two pins
+LOWER_PIN = _turned((-6.0 * math.cos(math.radians(258.0)), 6.0 * math.sin(math.radians(258.0))), _LINK_TURN)
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
@@ -81,31 +97,38 @@ SERVO_DEG = 90.0  # a servo's travel either side of its centre
 PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2, the pitch horn outboard of the bar
 # |x| from each eye's centre (#698): outboard each lid's boss, clear of the yawing yoke (17.5), which turns on a shank
 # from the frame's upright beside the caps; inboard the lid bar on the horn's face (behind the yoke, so nearer the eye:
-# its servo under the eye then clears the pitch servo's collar), the link, and the lids' ears with their crank pins past
-# where a cap reaches yawed in (25.4)
+# its servo under the eye then clears the pitch servo's collar), then the link and the lids' ears face to face, within
+# 25.5 so the two eyes' drives turn 1 mm apart about their shared axis (#838). A cap yawed in reaches 25.4 at its rim
+# alone, in front of the crank pins: its ball (CAP_R) passes inside the ears' pins and shells (gimbal.report, the sweep)
 LID_X = {
     **{"upper boss": (18.0, 21.0), "lower boss": (21.0, 24.0), "upright": (24.3, 27.3)},
-    **{"bar": (16.5, 19.5), "link": (22.9, 25.9), "ear": (25.9, 28.9)},
+    **{"bar": (16.5, 19.5), "link": (19.5, 22.5), "ear": (22.5, 25.5)},
 }
-PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo
-PLATE_Y = (-25.0, 70.0)  # under the head mount's front screws to past the pitch servo's collar
-# the compact head the gimbal fits (#684): width, depth, height; 140 wide, past the face's 119 (the lids' frame, #698),
-# so the skull dome rounds over it as a cartoon cranium (Cansin, #828)
-HEAD_MM = (140.0, 120.0, 150.0)
+# The gimbal frame's plate (#838): up under the tie-bar, between the realistic skull's coronoids (|x| 32..40, y -5..12)
+# and its condyles, above the mandible, the yaw servo hanging under it through its hole: its body PLATE_X either side
+# from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), and a bar in front of the coronoids (CHEEK_Y) out
+# to the lids' uprights
+PLATE_Z = (-38.0, -35.0)
+PLATE_Y = (-10.0, 87.0)  # in front of the coronoids to past the head mount's rear screws (model/neck.py)
+PLATE_X, BACK_X, BACK_Y = 31.0, 42.0, 40.0  # the body's half-width, and behind BACK_Y (the condyles') the back's
+CHEEK_Y = (-10.0, -6.0)
+# the head the gimbal fits (#684, #838): width, depth, height; 140 wide, past the face's 105 (the lids' frame), and 140
+# deep, so the realistic skull keeps its length
+HEAD_MM = (140.0, 140.0, 150.0)
 
 
 def drives():
     """{label: (horn's outer face centre, shaft direction, tab direction, arm direction at rest)}: the four servos of the
     eyes Core, each horn at its drive's crank (model/stages.py mounts them, model/printed/gimbal.py seats them), each
     case behind the eyes' centres and within their width (#684): the yaw servo under the tie-bar, the pitch servo
-    beside the pitch bar, each lid servo under and behind its eye, its horn between the eyes on the lid bar (#698)."""
+    beside the pitch bar, each lid servo upright behind its eye (#838), its horn between the eyes on the lid bar (#698)."""
     out = {
-        "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (0, -1, 0), g.Y),
+        "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (-1, 0, 0), g.Y),  # its case across, in front of the mouth servo (#838)
         "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), g.Y, g.Y),
     }
     for s, sign in (("L", 1), ("R", -1)):
         x = EYE[s][0] - sign * LID_X["bar"][0]
-        out[f"{s} lid"] = ((x, *LID_HORN), (-sign, 0, 0), (0, -1, 0), (0, *np.divide(LID_PIN, CRANK)))
+        out[f"{s} lid"] = ((x, *LID_HORN), (-sign, 0, 0), (0, 0, -1), (0, *np.divide(LID_PIN, CRANK)))
     return out
 
 

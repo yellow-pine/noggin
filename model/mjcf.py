@@ -23,7 +23,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical, skin, stages
+from model import electrical, neck, skin, stages
 from model import geometry as g
 from model.render import scene
 
@@ -294,7 +294,33 @@ def spec(doc, collide=True):
         )
     for h in stage.horns:
         drive(s, h)
+    if "tilt horn" in stage.horns:
+        balance(s, doc)
     return s
+
+
+KGF_CM = 0.0980665  # N.m
+
+
+def head(doc, model):
+    """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
+    and what rides the head mount), as the MJCF weighs and places them."""
+    data = mujoco.MjData(model)
+    mujoco.mj_kinematics(model, data)
+    ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]
+    kg = model.body_mass[ids]
+    com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
+    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["next-neck"][0]))
+
+
+def balance(s, doc):
+    """The balance spring on the tilt pivot (#838, neck.balance) for the head as `s` weighs it: its rate as the joint's
+    stiffness, its torque at rest as the angle it is wound from (MuJoCo's passive force -stiffness (q - springref))."""
+    s.modelfiledir, s.meshdir = BUILD, "."  # the meshes' paths are BUILD's (write() puts them beside its MJCF)
+    rest, rate = neck.balance(head(doc, s.compile()))
+    joint = s.joint("tilt pivot")
+    joint.stiffness = [rate * KGF_CM, 0.0, 0.0]
+    joint.springref = rest / rate
 
 
 def write(doc, folder=MJCF, *, collide=True):

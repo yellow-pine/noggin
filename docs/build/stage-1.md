@@ -31,7 +31,8 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 ## Assembly, as the model places it
 
-1. **Gimbal frame**: the eye block's plate, carrying both eyes' pivots and the four servos behind and between the eyes.
+1. **Gimbal frame**: the eye block's plate, carrying both eyes' pivots and the four servos behind and between the eyes:
+   each lid servo upright behind its eye, the yaw servo hanging under the plate.
 2. **Yaw yokes**, one per eye, turning left and right in the frame; the **tie-bar** joins them to the yaw servo's horn.
 3. **Eyeball cores** turning up and down in the yokes; the **bail** and its two **push-rods** turn both from the pitch
    servo through the **pitch bar**.

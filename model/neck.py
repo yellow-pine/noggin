@@ -5,13 +5,15 @@ Frame: the eye gimbal's (model/gimbal.py), which is the head's: x along the eye 
 up, the origin midway between the eye centres. The head is the gimbal with the head mount screwed under its plate; it
 turns on its own pivots and every servo drives through a bar, so the splines carry torque only:
 - pan: the pan yoke turns on the neck mount about a vertical axis, the pan servo (on the mount) driving the yoke's lever;
-- tilt: the head turns on the yoke's cheeks about an x axis under its plate, straight under the head's centre of mass at
-  rest (AXIS), the tilt servo (on the yoke) driving the head mount's lever;
-- jaw: the jaw turns on the head mount's lugs about an x axis behind the mouth, the mouth servo (on the head) driving it.
+- tilt: the head turns on the yoke's cheeks about an x axis under its plate, where the realistic skull's foramen magnum
+  is (AXIS, #838): behind the head's centre of mass, whose weight a balance spring on the tilt shank holds (balance()),
+  the tilt servo (on the yoke) driving the head mount's lever;
+- jaw: the jaw turns on the gimbal frame's lugs about an x axis through the realistic mandible's condyles (#838), the
+  mouth servo (on the frame, behind the jaw) driving it.
 Each drive is a four-bar whose horn and lever lie parallel at rest, the bar square to both (model/linkage.py). Each
 busy pivot is a steel shank (an M3 screw from the kit's spares, greased) turning in a bore printed along Z and threaded
 into the part it is fixed in: the yoke turns on the mount's shank, the head mount (printed on its side) on the cheeks',
-the jaw (on its side) on the head mount's, each bar (flat) on its lever's.
+the jaw (on its side) on the frame's, each bar (flat) on its lever's.
 The leads cross pan and tilt in two flexing spans (GLOSSARY): pan's runs up beside the pan axis, so the turn is a twist
 and a gentle S over its free length; tilt's is an arc about the tilt axis whose radius breathes as the head turns. The
 pack's Y lead crosses as one pair and splits after the joints (#51). Angles are degrees: pan positive toward +x's
@@ -29,26 +31,31 @@ from model import linkage
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
-AXIS = (8.5, -71.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the head's com,
-# the cheeks' bosses (BOSS_R) up into the head mount's flange, 0.5 under the gimbal frame's plate (#708)
-FLANGE_Z = (-70.0, -67.0)  # the head mount's flange, under the gimbal frame's plate
+AXIS = (61.0, -42.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the realistic
+# skull's foramen magnum, at its base (#838), the cheeks' bosses (BOSS_R) up into the head mount's flange, 0.5 under the
+# gimbal frame's plate (#708)
+FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's plate's back (model/gimbal.py PLATE_Z)
 HEAD_SCREWS = (
-    (16.0, -20.0),
-    (-16.0, -20.0),
-    (16.0, 26.0),
-    (-16.0, 26.0),
-)  # (x, y): the flange to the plate, nuts on top
+    (16.0, 48.0),
+    (-16.0, 48.0),
+    (16.0, 83.0),
+    (-16.0, 83.0),
+)  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
 DISC_R, DISC_Z = 15.0, (-104.0, -100.0)  # the yoke's disc on the mount's thrust face, its floor at the same depth
 MOUNT_Z = (-144.0, -141.0)  # the neck mount's foot: the base (#642) carries it
 PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-107.0, -104.0)  # the yoke's lever back along +y; the bar along x under it
-TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 20.0, (1.5, 4.5)  # the head's lever back along +y; the bar down to the horn
-JAW = (-10.0, -71.0)  # (y, z) of the jaw's hinge, under the plate level with the tilt axis (#708)
-# the jaw's pin forward of the hinge, in front of the gimbal frame's plate; the horn above it, its servo lying on the
-# plate beside the mouth (#708)
-JAW_LEVER, JAW_HORN_Z, JAW_BAR_X = 22.0, -51.0, (22.0, 25.0)  # the bar and horn clear of the plate, the jaw open
-JAW_X, CHIN_Y = (18.0, 22.0), -40.0  # the jaw's arms and hinge bosses, outside its lugs (LUG_X + 1); its chin's front
-JAW_ARM_Z = (JAW[1] - BOSS_R, FLANGE_Z[0] - 0.5)  # the jaw's arms, under the head mount's flange
+# the head's lever back along +y; the bar down to the horn, its servo under the Skin's foot (#838)
+TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 49.0, (1.5, 4.5)
+JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
+# the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
+# horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
+# neck's cheeks however the head tilts (#838)
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (30.0, 33.0)  # its tabs up through the plate's slot
+JAW_LUG_X, JAW_X = (28.0, 31.0), (33.0, 37.0)  # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
+CHIN_Y = -29.0  # its chin's front, the mandible's
+JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L arm round to the chin, the mandible's
+JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 LEAD_OD = 1.4  # the thickest lead that crosses, the pack's pair (inferred: 24 AWG)
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
 PAN_SPAN = (18.0, (-132.0, -102.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
@@ -59,10 +66,10 @@ LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt 
 HEAD = ("next head mount:1", "next jaw:1", "next jaw bar:1", "next mouth servo:1", "next mouth horn:1")
 
 
-def _four_bar(o4, lever, horn, axis):
-    """The drive with its lever from the pivot o4 to `lever` (its pin) and the horn's pivot at `horn`, the bar between the
-    two pins square to both at rest."""
-    pin = np.add(horn, np.subtract(lever, o4) / np.linalg.norm(np.subtract(lever, o4)) * CRANK)
+def _four_bar(o4, lever, horn, axis, turn=1):
+    """The drive with its lever from the pivot o4 to `lever` (its pin) and the horn's pivot at `horn`, the horn's arm
+    along the lever (`turn` -1: against it), the bar between the two pins square to both at rest."""
+    pin = np.add(horn, turn * np.subtract(lever, o4) / np.linalg.norm(np.subtract(lever, o4)) * CRANK)
     return linkage.four_bar(horn, tuple(pin), o4, lever, axis)
 
 
@@ -73,11 +80,12 @@ def pins():
     return {
         "pan": ((0, y, pan_z), (0, y + PAN_LEVER, pan_z), (PAN_BAR, y + PAN_LEVER - CRANK, pan_z), g.Z),
         "tilt": ((0, y, z), (0, y + TILT_LEVER, z), (0, y + TILT_LEVER - CRANK, z - TILT_BAR), g.X),
-        "jaw": ((0, *JAW), (0, JAW[0] - JAW_LEVER, JAW[1]), (0, JAW[0] - JAW_LEVER + CRANK, JAW_HORN_Z), g.X),
+        "jaw": ((0, *JAW), (0, JAW[0], JAW[1] - JAW_LEVER), (0, *MOUTH_HORN), g.X),
     }
 
 
-LINKAGES = {d: _four_bar(o4, b, o2, axis) for d, (o4, b, o2, axis) in pins().items()}
+TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
+LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items()}
 
 
 def drives():
@@ -88,7 +96,7 @@ def drives():
     return {
         "pan": ((pan[0], pan[1], PAN_Z[0]), g.Z, g.Y, g.Y),
         "tilt": ((TILT_BAR_X[1], *tilt[1:]), (-1, 0, 0), (0, -1, 0), g.Y),
-        "mouth": ((JAW_BAR_X[1], *jaw[1:]), (-1, 0, 0), (0, 1, 0), (0, -1, 0)),
+        "mouth": ((JAW_BAR_X[0], *jaw[1:]), g.X, (0, 0, -1), g.Z),
     }
 
 
@@ -118,13 +126,30 @@ def _sweep(drive):
     return np.linspace(*sorted((lo, hi)), 41)
 
 
-def _hold(head, deg, gain):
-    """kgf.cm the tilt servo holds the head with at `deg`, through the linkage's speed ratio `gain` there: the head's
-    weight times its com's horizontal distance from the tilt axis (g x mm / 10^4 = kgf.cm)."""
+def _weight(head, deg):
+    """kgf.cm the head's weight turns it with about the tilt axis at `deg`, right-handed about +x: its grams times its
+    com's horizontal distance from the axis (g x mm / 10^4 = kgf.cm)."""
     grams, (_, cy, cz) = head
     dy, dz = cy - AXIS[0], cz - AXIS[1]
     a = math.radians(deg)
-    return abs(grams * (dy * math.cos(a) - dz * math.sin(a)) * gain) / 1e4
+    return -grams * (dy * math.cos(a) - dz * math.sin(a)) / 1e4
+
+
+def balance(head):
+    """The balance spring on the tilt shank (#838), for a head of (grams, centre of mass in this frame, mm): (kgf.cm it
+    turns the head with at rest, its rate in kgf.cm a radian), a torsion spring wound against the weight's turn, so that
+    turn and its change as the head tilts cancel at rest. Its torque at `deg` is rest - rate x rad, right-handed about +x;
+    model/mjcf.py sets it on the tilt pivot (stiffness and springref)."""
+    rate = (_weight(head, 0.5) - _weight(head, -0.5)) / math.radians(1.0)
+    assert rate > 0, "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
+    return -_weight(head, 0.0), rate
+
+
+def _hold(head, deg, gain):
+    """kgf.cm the tilt servo holds the head with at `deg`, through the linkage's speed ratio `gain` there: the head's
+    weight's turn less the balance spring's."""
+    rest, rate = balance(head)
+    return abs((_weight(head, deg) + rest - rate * math.radians(deg)) * gain)
 
 
 def _spans():
@@ -156,7 +181,12 @@ def report(head):
     sweep = _sweep("tilt")
     solve = LINKAGES["tilt"]
     holds = [_hold(head, solve(s)[0], (solve(s + 0.5)[0] - solve(s - 0.5)[0])) for s in sweep]
-    out["tilt"] |= {"rest_kgf_cm": round(_hold(head, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(holds), 3)}
+    rest, rate = balance(head)
+    out["tilt"] |= {
+        "rest_kgf_cm": round(_hold(head, 0.0, out["tilt"]["gain"]), 3),
+        "hold_kgf_cm": round(max(holds), 3),
+        "spring": {"rest_kgf_cm": round(rest, 3), "rate_kgf_cm_rad": round(rate, 3)},
+    }
     grams, (_, cy, cz) = head
     out["head"] = {
         "grams": round(grams, 1),

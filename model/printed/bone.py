@@ -11,6 +11,7 @@ import numpy as np
 import trimesh
 
 SECTIONS = 9  # the loft's sections along the span
+LONG, LONG_SECTIONS = 40.0, 13  # a span longer than LONG: more sections, which OCCT on Linux lofts valid (#838)
 SWELL = 1.02  # chain()'s heads over its spans' ends: none of their faces on another
 
 
@@ -31,7 +32,7 @@ def bone(a, b, head, waist, up=(0, 0, 1), round=False, heads=True, swell=1.0):
     # one loft: an ellipsoid fused on fails on Linux (#737)
     caps = np.radians([75, 55, 30]) if round and heads else []
     stations = [(-head[0] * math.sin(q) / span, math.cos(q)) for q in caps]
-    stations += [(t, 1.0) for t in np.linspace(0, 1, SECTIONS)]
+    stations += [(t, 1.0) for t in np.linspace(0, 1, SECTIONS if span <= LONG else LONG_SECTIONS)]
     stations += [(1 + head[0] * math.sin(q) / span, math.cos(q)) for q in reversed(caps)]
     wires = []
     for t, f in stations:
@@ -102,17 +103,25 @@ def carved(build, grow=False):
     physics run on the mechanical one holds for both: drawn, then cut to lie within it; or, `grow` (a Bone whose
     layout or print as drawn cannot fit inside), the mechanical part takes the Bones in, its interfaces unchanged."""
 
+    def one(s):
+        return bool(s.vals()) and s.val().isValid() and len(s.val().Solids()) == 1
+
     @functools.wraps(build)
     def styled(*args, mechanical=False):
         if grow:
             bones = build(*args, mechanical=False)
-            return build(*args, mechanical=True).union(bones) if mechanical else bones
+            if not mechanical:
+                return bones
+            out = build(*args, mechanical=True).union(bones)
+            return out if one(out) else bones.union(build(*args, mechanical=True))  # OCCT's fuse: one way round (#838)
         out = build(*args, mechanical=True)
         if mechanical:
             return out
-        out = build(*args, mechanical=False).intersect(out)
-        assert out.val().isValid() and len(out.val().Solids()) == 1, build  # OCCT's intersect can split or break it
-        return out
+        bones = build(*args, mechanical=False)
+        cut = bones.intersect(out)
+        cut = cut if one(cut) else out.intersect(bones)  # OCCT's intersect: one way round (#838)
+        assert one(cut), build  # OCCT's intersect can split or break it
+        return cut
 
     return styled
 
