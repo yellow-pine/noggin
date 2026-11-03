@@ -8,9 +8,13 @@ export const title = (s) => s[0].toUpperCase() + s.slice(1);
 // what plays, and the Claude Code event that plays it; the Tour (no gesture) plays every gesture in turn
 export const caption = (gesture) => (gesture ? `${title(gesture)}: ${moments[gesture]}` : "Tour: every gesture in turn");
 
-// a Stage's GLB in a Skeleton shape: its name as Bones and the Shape's suffix (#704, #805: "-mechanical"), as macros.py
-// stage_switch has them; Blender draws the GLBs per Shape alone (#819)
-export const glb = (stage, shape) => stage + (published.stages.skeletons[shape] ?? "");
+// a Stage's GLB in a Skeleton shape and a Skin shape: its name as Bones, the Skeleton shape's suffix (#704, #805:
+// "-mechanical"), then the Skin shape's where the site serves that GLB (#876: none's "-bare", Stage 3's alone), as
+// macros.py stage_switch has them; Blender draws the GLBs per Shape alone, the viewer paints each Palette (#819)
+export function glb(stage, shape, skin) {
+  const bones = stage + (published.stages.skeletons[shape] ?? ""), bare = bones + (published.stages.skins[skin] ?? "");
+  return published.viewer.includes(`${bare}.glb`) ? bare : bones;
+}
 
 // the viewer's mix (#819): the Preset's value on each axis (src/theme.mjs), unless the address names another
 // (?skeleton-palette=black)

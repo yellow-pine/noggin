@@ -367,7 +367,7 @@ def test_each_part_picture_shows_for_the_presets_in_its_shape():
 def test_the_site_publishes_the_next_mech_alone():
     """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part, stills alone (#839: its
     motion is the viewer's), each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton
-    shape (#720), every name starting next-."""
+    shape (#720), Stage 3 bare too (#876), every name starting next-."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
@@ -383,9 +383,10 @@ def test_the_site_publishes_the_next_mech_alone():
     assert "next-stage1-morty-front.webp" not in published and "next-mech-back-side-exploded.webp" in published
     assert not [f for f in published if f.startswith("next-eyes")]
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
-    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS}
+    bare = {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
+    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
-    assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
+    assert {doc for doc, _ in pictures.next_parts().values()} <= set(map(build.document, build.PUBLIC)) == set(g.STAGES)
 
 
 # #739: the front doors' three, in order, in the default Preset, Cansin's build (#819), bare of its Skin (#843):

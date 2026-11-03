@@ -296,14 +296,18 @@ test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's 
 test("the viewer's page draws the next Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
-  const { buttons, skeletons } = numbers.published.stages;
+  const { buttons, skeletons, skins } = numbers.published.stages;
   const stages = viewers[0].querySelectorAll('nav[aria-label="Stage"] button[data-stage]');
   expect(stages.map((b) => b.getAttribute('data-stage'))).toEqual(buttons.map((b) => b.glb));
   expect(stages.map((b) => b.text.trim())).toEqual(buttons.map((b) => b.label)); // a failing Stage's with its mark (#705)
   expect(stages.map((b) => b.text.split(':')[0].trim())).toEqual(['1', '2', '3']);
   expect(viewers[0].querySelectorAll('select')).toHaveLength(0); // the bar's Preset, then the mix the viewer adds (#819)
-  // every Stage in every Skeleton shape is a GLB the site serves
-  const glbs = buttons.flatMap((b) => Object.values(skeletons).map((s) => `${b.glb}${s}.glb`));
+  // every Stage in every Skeleton shape is a GLB the site serves, Stage 3 bare in each too (#876)
+  const shapes = Object.values(skeletons), whole = buttons.at(-1).glb;
+  const glbs = [
+    ...buttons.flatMap((b) => shapes.map((s) => `${b.glb}${s}.glb`)),
+    ...shapes.flatMap((s) => Object.values(skins).map((k) => `${whole}${s}${k}.glb`)),
+  ];
   expect(glbs.sort()).toEqual([...numbers.published.viewer].sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);

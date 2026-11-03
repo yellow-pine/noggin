@@ -66,7 +66,7 @@ _Avoid_: mount, socket, pad
 
 **Skin**:
 Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: its Shape and
-its Palette each morty, bart or cansin.
+its Palette each morty, bart or cansin, its Shape none too: the Skeleton bare, its full bones on.
 _Avoid_: shell set, character shells, kit, costume
 
 **Character**:

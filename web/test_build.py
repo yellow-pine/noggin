@@ -17,11 +17,27 @@ from web import build
 STAGES = {
     f"{d}{s}": f"{d}{s}.glb" for s in ("", "-mechanical") for d in ("next-stage1", "next-stage2", "next-mech-back")
 }
+# and Stage 3 bare in each (#876): the viewer's Skin shape none, its Shells off and the realistic one's full skull on
+STAGES |= {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in ("", "-mechanical")}
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
 def test_one_glb_per_document():
     assert build.PUBLIC == STAGES
+
+
+def test_a_bare_glb_is_its_stage_without_the_skin_its_full_bones_on():
+    """#876: the stills' bare rule (model/render/pictures.py bare); any other GLB shows its document's parts."""
+    worn, bare = parts("next-mech-back"), parts("next-mech-back-bare")
+    assert {"next morty face:1", "next worn skull:1", "next worn mandible:1"} <= worn - bare
+    assert {"next skull:1", "next mandible:1"} <= bare - worn and "next torso:1" in bare
+    assert parts("next-mech-back-mechanical-bare") < parts("next-mech-back-mechanical")
+    assert parts("next-stage2") == set(stages.STAGES["next-stage2"].parts)
+
+
+def parts(name):
+    """The part names a GLB carries: its document's, as it shows them (build.shown)."""
+    return set(build.shown(name, stages.STAGES[build.document(name)].parts))
 
 
 @pytest.fixture(scope="module", params=STAGES)
@@ -46,12 +62,12 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb):
 
 def test_every_part_of_the_document_is_a_node(glb):
     doc, g = glb
-    assert {n["name"] for n in g["nodes"] if "mesh" in n} == set(stages.STAGES[doc].parts)
+    assert {n["name"] for n in g["nodes"] if "mesh" in n} == parts(doc)
 
 
 def test_one_clip_per_motion(glb):
     doc, g = glb
-    assert sorted(a["name"] for a in g.get("animations", [])) == sorted(trajectories.motions(doc))
+    assert sorted(a["name"] for a in g.get("animations", [])) == sorted(trajectories.motions(build.document(doc)))
 
 
 def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves(glb):
@@ -61,7 +77,7 @@ def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves
     doc, g = glb
     for a in g.get("animations", []):
         name = a["name"]
-        poses = trajectories.poses(doc, name)
+        poses = [build.shown(doc, p) for p in trajectories.poses(build.document(doc), name)]
         frames = len(poses)
         inputs = [g["accessors"][s["input"]] for s in a["samplers"]]
         assert {i["count"] for i in inputs} == {frames}, name
@@ -69,7 +85,7 @@ def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves
         assert len(spans) == 1 and spans.pop() == pytest.approx((0, (frames - 1) / trajectories.FPS)), name
         moved = {g["nodes"][c["target"]["node"]]["name"] for c in a["channels"]}
         still = {n for n in poses[0] if all(np.allclose(p[n], poses[0][n], atol=5e-4) for p in poses)}
-        assert set(stages.STAGES[doc].parts) - still <= moved <= set(stages.STAGES[doc].parts), name
+        assert parts(doc) - still <= moved <= parts(doc), name
 
 
 def test_each_part_carries_its_explode_offsets_the_page_moves_it_by(glb):

@@ -380,8 +380,9 @@ RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # jus
 def stage_switch():
     """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the Skeleton shape
     adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
-    sim ranked today's variants: its mechanical document's, the one physics runs on (#809); and the Skeleton shapes
-    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix)."""
+    sim ranked today's variants: its mechanical document's, the one physics runs on (#809); the Skeleton shapes
+    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shape none's (#876),
+    where a Stage has a bare GLB."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
@@ -394,7 +395,7 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX}
+    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": {g.SKINLESS: viewer.BARE}}
 
 
 def theme():

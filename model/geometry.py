@@ -81,7 +81,7 @@ THEMES = {
         },
         "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    "Skin shape": ("morty", "bart", "cansin"),
+    "Skin shape": (SKINLESS := "none", "morty", "bart", "cansin"),  # none: the Skeleton bare, the stills' look (#876)
     # face: face, ears, nose, lids (Bart's spikes); hair: hair, brows; eye whites: and teeth; accessories: Cansin's
     # sunglasses, in a colour of its own Palette's in the others
     "Skin palette": {

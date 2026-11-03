@@ -240,12 +240,18 @@ def prepare(name, doc=None):
     manifest = scene.export(doc, folder, g.PRESETS.get(preset))
     for p in manifest.values():
         p["ply"] = os.path.join(folder, p["ply"])
-    for full, worn in g.WORN.items():  # the bare look's bones (bare), coloured as the worn ones they stand in for
+    full_bones(manifest, folder)
+    return stage, manifest, hulls(manifest)
+
+
+def full_bones(manifest, folder):
+    """Adds to manifest (scene.export's, absolute PLY paths) the bare look's bones (bare), each a PLY in folder,
+    coloured as the worn one it stands in for; the GLBs' too (web/build.py, #876)."""
+    for full, worn in g.WORN.items():
         if f"{worn}:1" in manifest:
             ply = os.path.join(folder, f"{full}.ply")
             trimesh.load(stages.stl(full), force="mesh").apply_scale(0.001).export(ply)
             manifest[f"{full}:1"] = {**manifest[f"{worn}:1"], "ply": ply}
-    return stage, manifest, hulls(manifest)
 
 
 def hulls(manifest):

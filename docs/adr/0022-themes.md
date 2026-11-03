@@ -17,6 +17,10 @@
 > reverses the option below for the viewer only: the GLB carries just the satin material (base colour, roughness,
 > specular) and the toon band and lines are Eevee's or the viewer's own, so a swapped base colour loses nothing, while
 > Blender stays the source of the Shapes and the finish.
+> Amended 2026-11-03 (#876): the Skin's Shape is none too, on every Preset's mix: the Skeleton bare as the stills' bare
+> look has it (#843: its Shells off, the realistic skull's full bones for the worn ones). Blender draws Stage 3 bare in
+> each Skeleton shape (`next-mech-back-bare`, `-mechanical-bare`); Stages 1 and 2 wear no Skin, so none draws them as
+> they are.
 
 The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:
