@@ -58,8 +58,10 @@ def inside(tree, p):
         o = hit[0] + Vector((1e-3, 0, 0))
 
 
-bones = [o for o in bpy.data.collections["Skeleton"].all_objects if o.type == "MESH"]
 finished = list(bpy.data.collections["Finished (render only)"].objects)
+bones = [o for o in bpy.data.collections["Skeleton"].all_objects if o.type == "MESH" and o not in finished]
+for o in finished:
+    o.hide_set(False)
 for o in bones:
     o.hide_set(True)
 for o in finished:
@@ -142,4 +144,8 @@ with bpy.context.temp_override(**c):
     r3d = c["area"].spaces.active.region_3d
     r3d.view_perspective = "CAMERA"
     scene.camera = bpy.data.objects["camera 3-4"]
+for o in finished:
+    o.modifiers["Finish"].show_viewport = False
+for o in bones:
+    o.hide_set(False)
 open(os.path.join(OUT, "done"), "w").write("ok\n")

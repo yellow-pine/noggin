@@ -254,8 +254,7 @@ bm.free()
 ob = bpy.data.objects.new("keep swap door", door)
 ob.data.materials.append(KEEP)
 keepouts.objects.link(ob)
-ELECTRONICS = ("next pack", "next spare pack", "next switch board", "next charger dongle", "next Core", "next Shield",
-               "next cranium tray")  # fmt: skip
+ELECTRONICS = ("next pack", "next spare pack", "next switch board", "next charger dongle", "next Core", "next Shield")
 
 
 def hull(ob, coll):
@@ -582,6 +581,13 @@ for s, sx in (("L", 1), ("R", -1)):
 ch = md[np.abs(md[:, 0]) < 5]
 landmark("menton", "skull", ch[np.argmin(ch[:, 2])], t_ment)
 landmark("glabella", "skull", glabella, t_glab)
+# the forehead curving back under Morty's sloping brow, so the limit never opens the frontal bone
+frontal = raw["frontal bone"]
+for up in (55.0, 85.0):
+    band = frontal[(np.abs(frontal[:, 0]) < 6) & (np.abs(frontal[:, 2] - (c_skull[2] + up)) < 4)]
+    src = band[np.argmin(band[:, 1])]
+    z = t_glab[2] + (src[2] - glabella[2]) * sk_z  # above the glabella's target as far as life has it above
+    landmark(f"forehead {up:.0f}", "skull", src, inner((0, c_h[1], z), (0, 1, 0)))
 landmark("vertex", "skull", top, t_vertex)
 landmark("opisthocranion", "skull", opisthocranion, t_opis)
 par = np.vstack([raw[n] for n in ("L parietal bone", "R parietal bone", "L temporal bone", "R temporal bone")])
