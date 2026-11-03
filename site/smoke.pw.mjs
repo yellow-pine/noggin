@@ -91,6 +91,7 @@ test('a viewer in a page shows its Mech and its motion, with no control (#883)',
   await page.route('https://yellowpine.com/**', (r) => r.fulfill({ contentType: 'image/png', body: Buffer.from(PNG, 'base64') }));
   await page.goto('docs/pictures/');
   const viewers = page.locator('.noggin-motions .noggin-viewer'); // one per motion of Stage 1 (#839)
+  await viewers.first().scrollIntoViewIfNeeded(); // the viewer's module loads once one is in view (Footer.astro)
   await expect(viewers.first().locator('.noggin-caption')).toBeAttached(); // mounted
   await expect(viewers.locator('button, select, nav')).toHaveCount(0);
   requests = requests.filter((u) => !u.startsWith('https://yellowpine.com/'));
