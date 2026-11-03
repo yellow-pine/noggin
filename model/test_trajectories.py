@@ -5,6 +5,7 @@ import math
 
 import numpy as np
 import pytest
+import trimesh
 
 from model import electrical, gates, geometry, gimbal, mjcf, mujoco_report, stages
 from model import trajectories as tj
@@ -120,6 +121,29 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
     lid = out["parts"]["next L lid horn:1"]["quat"]
     assert lid[0] != lid[n // 2]  # the wink moves it
     assert tj.stale(DOC)  # its other motions are not baked here
+
+
+def test_a_bone_rides_its_carrier_in_the_baked_poses(tmp_path, monkeypatch):
+    """MuJoCo plays no bone of the realistic skull (mjcf.spec); poses() puts each on its carrier (stages.RIDES), so the
+    pictures and the viewer draw it there: with its carrier at rest, where model/stages.py places it."""
+    doc = next(d for d in geometry.NEXT if geometry.SKULL_SUB in geometry.NEXT[d])
+    stage = stages.STAGES[doc]
+    bones = [n for n, p in stage.parts.items() if stages.stem(p.file) in geometry.BONES]
+    rest = {}
+    for c in {stages.RIDES[b] for b in bones}:
+        m = stage.parts[c].matrix
+        rest[c] = {
+            "pos": [(m[:3, 3] / 1000).tolist()],
+            "quat": [trimesh.transformations.quaternion_from_matrix(m).tolist()],
+        }
+    monkeypatch.setattr(tj, "OUT", str(tmp_path))
+    (tmp_path / doc).mkdir()
+    (tmp_path / doc / "rest.json").write_text(json.dumps({"parts": rest}))
+    (frame,) = tj.poses(doc, "rest")
+    for b in bones:
+        got = frame[b].copy()
+        got[:3, 3] *= 1000
+        np.testing.assert_allclose(got, stage.parts[b].matrix, atol=1e-6, err_msg=b)
 
 
 def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(monkeypatch):
