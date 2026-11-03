@@ -202,16 +202,18 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-caption { margin-top: 0.6rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
 /* the viewer's own page (src/pages/viewer.astro): the Mech on a pink-washed desk, the bar on it */
 .noggin-viewer[data-zoom] { background: var(--noggin-wash); border-radius: 1.5rem; padding: 1rem 1rem 0.75rem; }
-/* the landing page's, the hero's shape, its Play in 3D under the poster on a phone (src/components/Footer.astro) */
+/* the landing page's, the hero's shape */
 .noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
-.noggin-viewer.hero > button { display: block; margin: 0.6rem auto; background: var(--noggin-ink); color: var(--sl-color-black); }
+/* a viewer's still until it is scrolled into view (#839), in its canvas' box */
+.noggin-viewer > figure { margin: 0; }
+.noggin-viewer > figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
 
 /* a picture's figure centred, as on GitHub's README; not a code block's (Expressive Code's figure, #719) */
 figure:has(img) { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* the next Mech's parts and motions (macros.py figures): a picture each over its name, the motions and the front
-   doors' own wider, the home's three (macros.py front, #739) in three columns */
+/* the next Mech's parts (macros.py figures): a picture each over its name, its motions (a viewer each, #839) and the
+   front doors' own wider, the home's three (macros.py front, #739) in three columns */
 .noggin-parts, .noggin-motions, .noggin-views, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
 :is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
 :is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }

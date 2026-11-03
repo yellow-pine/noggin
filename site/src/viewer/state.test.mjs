@@ -1,6 +1,6 @@
 // The viewer's state: its deep link, picker address, caption and Explode's steps, from the site's macros.json (npm test)
 import { expect, test } from "vitest";
-import { address, between, caption, glb, mixed, opened, paint } from "./state.mjs";
+import { ANIMATING, address, between, caption, glb, mixed, opened, paint, touched } from "./state.mjs";
 
 const stages = ["next-stage1", "next-stage2", "next-mech-back"];  // the viewer page's Stage buttons (#720)
 
@@ -63,4 +63,20 @@ test("each Explode step moves from one level to the next, still at both ends, ha
   expect(between(levels, 1.5)).toEqual([0, 2, 2]);
   expect(between(levels, 2)).toEqual([0, 2, 4]);
   expect(between(levels, 0.01)[1]).toBeLessThan(0.0001);  // eased: it starts still
+});
+
+test("of the viewers on screen, the three that came into view or were touched last animate (#839)", () => {
+  expect(ANIMATING).toBe(3);
+  let seen = [];
+  for (const v of ["a", "b", "c", "d"]) seen = touched(seen, v, true);  // scrolled into view in turn
+  expect(seen.slice(-ANIMATING)).toEqual(["b", "c", "d"]);
+  seen = touched(seen, "a", true);  // a drag on the one held still
+  expect(seen.slice(-ANIMATING)).toEqual(["c", "d", "a"]);
+  seen = touched(seen, "d", false);  // scrolled away
+  expect(seen).toEqual(["b", "c", "a"]);
+});
+
+test("a viewer in a page opens on its own link, the Stage its own (#839)", () => {
+  expect(opened("?gesture=wink&explode=1", [], "next-stage1")).toEqual({ stage: "next-stage1", gesture: "wink", explode: 1 });
+  expect(opened(undefined, [], "next-stage1")).toEqual({ stage: "next-stage1", gesture: null, explode: 0 });
 });

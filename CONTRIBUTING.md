@@ -152,8 +152,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   inputs. `Site` runs after Blender unless a job before it failed: it builds the deploy with the next Mech's pictures,
   tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
   (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
-- `Model` runs on four shards, `just mech` one of their units, balanced by the seconds CI measured in
-  `model/durations.json`; `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
+- `Model` runs on eight shards, `just mech` one of their units, balanced by the seconds CI measured in
+  `model/durations.json`, and `Render` on eight, its pictures balanced by their Blender seconds there (#839); `just
+  model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
   public repo is anyone's (ADR 0019, `test_workflows.py`); the

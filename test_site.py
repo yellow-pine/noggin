@@ -280,7 +280,8 @@ def test_every_number_github_shows_agrees_with_the_code():
 def test_nothing_public_shows_todays_mech():
     """#640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so neither the README nor a
     page of the site shows a picture of them: a picture it names is one the site publishes (the next Mech's), it draws
-    no viewer (the viewer's page draws the published GLBs alone: site.test.mjs); the site's icon is no render."""
+    no viewer by hand (the viewer's page and macros.py's draw the published GLBs alone: site.test.mjs); the site's icon
+    is no render."""
     from model.render import pictures
 
     texts = {
@@ -362,9 +363,9 @@ def test_each_part_picture_shows_for_the_presets_in_its_shape():
 
 
 def test_the_site_publishes_the_next_mech_alone():
-    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels, its motions (#656, #663) and one per part,
-    each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton shape (#720), every name
-    starting next-."""
+    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part, stills alone (#839: its
+    motion is the viewer's), each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton
+    shape (#720), every name starting next-."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
@@ -372,21 +373,23 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per Stage, each at the Parts level (#811), the front doors' own two (#739), the sweep (#656)
-    # and the 7 it plays (#663), each per Preset (#819), and a picture per part
-    assert len(published) == 3 * (3 * 3) + 3 * (2 + 1 + 7) + len(stems) == len(set(published))
-    assert {"next-stage1-isometric.webp", "next-eyes-rest.webp", "next-test-stand.webp"} <= {*published}
+    # side and isometric per Stage, each at the Parts level (#811), the front doors' own two (#739), each per Preset
+    # (#819), and a picture per part; no motion (#839)
+    assert len(published) == 3 * (3 * 3) + 3 * 2 + len(stems) == len(set(published))
+    assert {"next-stage1-isometric.webp", "next-test-stand.webp"} <= {*published}
     assert {"next-stage1-front.webp", "next-mech-back-side-exploded.webp"} <= {*published}
-    assert {"next-stage1-morty-front.webp", "next-eyes-bart-sweep.webp"} <= {*published}
+    assert {"next-stage1-morty-front.webp"} <= {*published}
+    assert not [f for f in published if f.startswith("next-eyes")]
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
     assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
 
 
-# #739: the front doors' three, in order, in the default Preset, Cansin's build (#819): (picture, caption, link)
+# #739: the front doors' three, in order, in the default Preset, Cansin's build (#819): (picture, caption, link), each
+# its Stage in the viewer (#839)
 FRONT = [
-    ("next-stage1-front.webp", "Stage 1, from the front", "docs/pictures/"),
+    ("next-stage1-front.webp", "Stage 1, from the front", "viewer/?stage=1"),
     ("next-mech-back-isometric.webp", "Stage 3", "viewer/?stage=3"),
     ("next-mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
 ]
@@ -395,7 +398,7 @@ FRONT = [
 def front(look, preset):
     """The same three in another Preset (#806, #819), its own in the viewer."""
     return [
-        (f"next-stage1{look}-front.webp", "Stage 1, from the front", "docs/pictures/"),
+        (f"next-stage1{look}-front.webp", "Stage 1, from the front", f"viewer/?stage=1&amp;preset={preset}"),
         (f"next-mech-back{look}-isometric.webp", "Stage 3", f"viewer/?stage=3&amp;preset={preset}"),
         (
             f"next-mech-back{look}-side-exploded.webp",
@@ -407,8 +410,8 @@ def front(look, preset):
 
 def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
     """#739: the site's home shows Stage 1 from the front, Stage 3 isometric and Stage 3 from the side exploded, side
-    by side in that order, each under its caption and linking to Pictures or its Stage in the viewer; no eyes' sweep
-    (it is on Pictures). #806, #819: the three in each Preset, each shown in its own alone."""
+    by side in that order, each under its caption and linking to its Stage in the viewer (#839); no motion. #806,
+    #819: the three in each Preset, each shown in its own alone."""
     import macros  # here, not at the top: it imports the model
 
     site = "https://yellowpine.com/noggin/"

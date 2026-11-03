@@ -1,5 +1,6 @@
-"""Seam: `just model-shards-list`, Checks' model matrix (#305, #474, #496): four shards balanced on the measured
-durations (model/durations.json), every unit (each document, the rest, just sim's parts, just mech) on one, from the code."""
+"""Seam: `just model-shards-list`, Checks' model matrix (#305, #474, #496): eight shards (#839) balanced on the measured
+durations (model/durations.json), every unit (each document, the rest, just sim's parts, just mech) on one, from the code;
+and renders(), the Render shards' pictures by their measured Blender seconds (#839)."""
 
 import json
 import os
@@ -42,9 +43,9 @@ def collected(tests, folder):
     return {line.split("::")[1] for line in out.splitlines() if "::" in line} if tests else set()
 
 
-def test_four_shards_hold_every_unit_once():
+def test_eight_shards_hold_every_unit_once():
     units = [u for s in listed() for u in s["units"]]
-    assert len(listed()) == shards.N == 4
+    assert len(listed()) == shards.N == 8
     assert sorted(units) == sorted([*stages.DOCS, "rest", *shards.SIM, "mech"])
     assert sorted(p for s in listed() for p in s["sim"].split()) == ["0/3", "1/3", "2/3"]
     assert [s["shard"] for s in listed()] == [" ".join(s["units"]) for s in listed()]
@@ -78,6 +79,25 @@ def test_tests_count_under_the_unit_that_picks_them_and_an_unmeasured_unit_weigh
     took = shards.seconds({f"model/test_mjcf.py::test_x[{doc}]": 4, "just sim 0/3": 6, "just mech": 8})
     assert (took[doc], took["sim 0/3"], took["mech"]) == (4, 6, 8)
     assert took["rest"] == took["sim 1/3"] == 6  # the mean of the measured units
+
+
+def test_a_picture_s_render_seconds_weigh_it_alone_and_an_unmeasured_picture_the_mean():
+    """#839: Render's units are its pictures, each by the Blender seconds CI measured (`render <picture>`), none of them
+    a model unit's."""
+    doc = next(iter(stages.DOCS))
+    durations = {f"render {doc}-side.webp": 3, "render b.webp": 5, f"model/test_x.py::test_y[{doc}]": 2}
+    assert shards.seconds(durations)[doc] == 2
+    assert shards.renders(durations, [f"{doc}-side.webp", "b.webp", "c.webp"]) == {
+        f"{doc}-side.webp": 3,
+        "b.webp": 5,
+        "c.webp": 4,
+    }
+
+
+def test_deal_puts_each_unit_longest_first_on_the_lightest_load():
+    """A worked example: three long units and four short."""
+    weight = {"long": 92, "mid": 56, "short": 50, "a": 1, "b": 1, "c": 1, "d": 1}
+    assert shards.deal(weight, 3) == [["long"], ["mid"], ["short", "a", "b", "c", "d"]]
 
 
 def test_the_model_matrix_is_the_changes_job_s_list():

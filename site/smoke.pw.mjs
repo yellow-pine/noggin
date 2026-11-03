@@ -53,8 +53,9 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   await explode.getByRole('button', { name: 'Parts' }).click();
   await expect(page).toHaveURL(/\?preset=morty&stage=1&explode=2$/);
   await expect(explode.getByRole('button', { name: 'Parts' })).toHaveAttribute('aria-pressed', 'true');
-  // see-through, so the Mech sits on the page's own background in either theme
-  expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
+  // see-through, so the Mech sits on the page's own background in either theme: its canvas' corner (the one renderer
+  // draws every viewer, each copied into its own canvas, #839)
+  expect(await page.evaluate(() => document.querySelector('.noggin-viewer canvas').getContext('2d').getImageData(0, 0, 1, 1).data[3])).toBe(0);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
   await viewer.locator('canvas').hover();
   await page.mouse.wheel(0, 200);

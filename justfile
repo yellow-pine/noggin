@@ -205,18 +205,18 @@ trajectories *docs=env("TRAJ_DOCS", ""): venv ours
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels, its eye gimbal in motion and a picture per part (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, #649, #770)
+# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels and a picture per part, stills alone (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, balanced on model/durations.json, #649, #770, #839)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
 
-# the model tests' and just mech's four shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
+# the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
 model-shards-list: venv
     @{{PY}} -m model.shards
 
 # model/durations.json from a Checks run's measured seconds (its durations-* artifacts): just model-durations <run id>
 model-durations run:
-    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^just ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
+    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^(just|render) ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
 # the web viewer's GLBs in web/build, Blender's per next Mech document (or the documents named; next: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
