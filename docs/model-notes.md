@@ -174,7 +174,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
   weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The tilt axis lies 40 mm or
-  so behind the head's centre of mass since #838, more than the 9 g servo's 0.4 kgf.cm holds, so a torsion spring on
+  so behind the head's centre of mass since #838, more than the 9 g servo's rated torque (`sim.RATED_KGF_CM`, its 5 V figure) holds, so a torsion spring on
   its shank balances it (`neck.balance`, `tilt.spring` in the report: wound to the head's weight's turn at rest, its
   rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
   and the servo holds only what the spring's straight line misses. One spring holds the head in its Skin and bare

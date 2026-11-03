@@ -1,8 +1,22 @@
 # The 9 g clutch servo as data and a model. Plain Python: imports on the Core too.
-# Published figures: docs/research/2026-10-31-electrical.md section 1 ("<=" bounds taken as values).
-SPEC = {  # volts -> stall torque kgf.cm, stall A, no-load (running) A, standby A, s per 60 deg
-    6.0: {"stall_kgfcm": 1.2, "stall_a": 0.650, "running_a": 0.060, "standby_a": 0.008, "s_per_60": 0.12},
-    4.8: {"stall_kgfcm": 1.0, "stall_a": 0.550, "running_a": 0.050, "standby_a": 0.008, "s_per_60": 0.14},
+# Published figures: docs/research/2026-10-31-electrical.md section 1 and Clutch ("<=" and ">=" bounds taken as values).
+SPEC = {  # volts -> stall and rated torque kgf.cm, stall A, no-load (running) A, standby A, s per 60 deg
+    6.0: {
+        "stall_kgfcm": 1.2,
+        "rated_kgfcm": 0.4,
+        "stall_a": 0.650,
+        "running_a": 0.060,
+        "standby_a": 0.008,
+        "s_per_60": 0.12,
+    },
+    4.8: {
+        "stall_kgfcm": 1.0,
+        "rated_kgfcm": 0.32,
+        "stall_a": 0.550,
+        "running_a": 0.050,
+        "standby_a": 0.008,
+        "s_per_60": 0.14,
+    },
 }
 STALL_KGFCM = SPEC[6.0]["stall_kgfcm"]
 STANDBY_A = SPEC[6.0]["standby_a"]
