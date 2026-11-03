@@ -59,55 +59,91 @@ def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1
     return [r[0] + [t[0]], r[1] + [t[1]], r[2] + [t[2]], [0.0, 0.0, 0.0, 1.0]]
 
 
-# Themes (#805, docs/adr/0022): the next Mech's look, one value of each category (the Skeleton: the PETG parts, the
-# Skin: the PLA Shells), the first value each category's default; each value prints each of its Colour groups (at
-# most 4) in one filament: (line, name, code, hex), the hex its slicer's filaments_color_codes.json (the picks'
-# research: ADR 0022)
+# Themes (#805, #819, docs/adr/0022): the next Mech's look on four axes, a Shape and a Palette per category (the
+# Skeleton: the PETG parts, the Skin: the PLA Shells). The Palettes of a category share its Colour groups, so any paints
+# any Shape; each prints each group in one filament, at most 4 a Palette: (line, name, code, hex), the hex its slicer's
+# filaments_color_codes.json (the picks' research: ADR 0022)
+_BLACK = ("PETG Basic", "Black", "30105", "#000000")
 THEMES = {
-    "Skeleton": {
-        "realistic": {  # drawn as Bones
+    "Skeleton shape": ("realistic", "mechanical"),  # drawn as Bones, or in boxes and cylinders (MECHANICAL)
+    "Skeleton palette": {
+        "anatomical": {
             "Bones": ("PETG Basic", "Dark Beige", "30403", "#DBC8B6"),
             "Joints": ("PETG Matte", "White", "35100", "#FFFFFF"),
             "Linkages": ("PETG Basic", "Red", "30201", "#D6001C"),
-            "Mounts": ("PETG Basic", "Black", "30105", "#000000"),
+            "Mounts": _BLACK,
         },
-        "mechanical": {  # drawn in boxes and cylinders (MECHANICAL)
+        "robot": {
             "Bones": ("PETG Matte", "Gray", "35102", "#7F7E83"),
-            "Joints": ("PETG Basic", "Black", "30105", "#000000"),
+            "Joints": _BLACK,
             "Linkages": ("PETG Basic", "Gray", "30107", "#7F7E83"),
-            "Mounts": ("PETG Basic", "Black", "30105", "#000000"),
+            "Mounts": _BLACK,
         },
+        "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    "Skin": {
+    "Skin shape": ("morty", "bart", "cansin"),
+    # face: face, ears, nose, lids (Bart's spikes); hair: hair, brows; eye whites: and teeth; accessories: Cansin's
+    # sunglasses, in a colour of its own Palette's in the others
+    "Skin palette": {
         "morty": {
-            "face": ("PLA Basic", "Beige", "10201", "#F7E6DE"),  # face, ears, nose, lids
-            "hair and pupils": ("PLA Basic", "Cocoa Brown", "10802", "#6F5034"),  # the pupils jagged
-            "shirt and collar": ("PLA Matte", "Lemon Yellow", "11400", "#F7D959"),
+            "face": ("PLA Basic", "Beige", "10201", "#F7E6DE"),
+            "hair": (brown := ("PLA Basic", "Cocoa Brown", "10802", "#6F5034")),
+            "pupils": brown,  # jagged
+            "clothes": ("PLA Matte", "Lemon Yellow", "11400", "#F7D959"),  # shirt and collar
             "eye whites": ("PLA Basic", "Jade White", "10100", "#FFFFFF"),
+            "accessories": brown,
         },
         "bart": {
-            "face": ("PLA Basic", "Sunflower Yellow", "10402", "#FEC600"),  # face, spikes, lids
-            "shirt and collar": ("PLA Matte", "Scarlet Red", "11200", "#DE4343"),
+            "face": (yellow := ("PLA Basic", "Sunflower Yellow", "10402", "#FEC600")),
+            "hair": yellow,  # the spikes
+            "pupils": (charcoal := ("PLA Matte", "Charcoal", "11101", "#000000")),  # dots
+            "clothes": ("PLA Matte", "Scarlet Red", "11200", "#DE4343"),  # shirt and collar
             "eye whites": ("PLA Matte", "Ivory White", "11100", "#FFFFFF"),
-            "pupils": ("PLA Matte", "Charcoal", "11101", "#000000"),  # dots
+            "accessories": charcoal,
+        },
+        "cansin": {  # #813: PLA Pure, all four owned
+            "face": ("PLA Pure", "Milky Pink", "17200", "#F7CED7"),
+            "hair": (black := ("PLA Pure", "Absolute Black", "17101", "#000000")),
+            "pupils": black,
+            "clothes": (white := ("PLA Pure", "Pure White", "17100", "#FFFFFF")),  # jacket and tee, one Shell
+            "eye whites": white,
+            "accessories": ("PLA Pure", "Apricot", "17300", "#FFB673"),  # the sunglasses
         },
     },
 }
-THEME = {category: next(iter(values)) for category, values in THEMES.items()}  # realistic and morty
-# a document's name in each Skeleton: its name as Bones, the default's, then this (-mechanical)
-SKELETON_SUFFIX = {v: "" if v == THEME["Skeleton"] else f"-{v}" for v in THEMES["Skeleton"]}
+# Presets (#819): a named Theme, its value on each axis in THEMES' order; the first the default, which the README, the
+# site's first visit and the default pictures show. Cansin's build's Skin is Morty's Shape until #813's Shells exist.
+PRESETS = {
+    name: dict(zip(THEMES, axes, strict=True))
+    for name, axes in {
+        "Cansin's build": ("mechanical", "black", "cansin", "cansin"),
+        "Morty": ("realistic", "anatomical", "morty", "morty"),
+        "Bart": ("realistic", "anatomical", "bart", "bart"),
+    }.items()
+}
+THEME = next(iter(PRESETS.values()))
+# a document's name in each Skeleton shape: its name as Bones, the first's, then this (-mechanical)
+SKELETON_SUFFIX = {v: f"-{v}" if i else "" for i, v in enumerate(THEMES["Skeleton shape"])}
+
+
+def slug(preset):
+    """A Preset's name in an address and a picture's: "cansins-build"."""
+    return preset.lower().replace("'", "").replace(" ", "-")
+
+
+def shape(doc):
+    """A document's Skeleton shape: the one its name ends in (-mechanical), else the first."""
+    return next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEMES["Skeleton shape"][0])
 
 
 def theme(doc):
-    """A document's Theme: the Skeleton its name ends in (-mechanical), else the default's, and the default Skin (one
-    per Skin waits on its Shells, #665)."""
-    skeleton = next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEME["Skeleton"])
-    return THEME | {"Skeleton": skeleton}
+    """A document's Theme: the first Preset in its Skeleton shape (the GLB's colours, which the viewer repaints)."""
+    return next(t for t in PRESETS.values() if t["Skeleton shape"] == shape(doc))
 
 
 def filament(group, theme):
-    """The filament a Colour group is printed in under a Theme: (line, name, code, hex)."""
-    return next(THEMES[c][v][group] for c, v in theme.items() if group in THEMES[c][v])
+    """The filament a Colour group is printed in under a Theme, its Palette's: (line, name, code, hex)."""
+    return next(THEMES[a][v][group] for a, v in theme.items() if a.endswith("palette") and group in THEMES[a][v])
 
 
 # Each spool variant from its maker's TDS (100% infill, ISO 527 tensile; docs/research/2026-11-02-literature-cams-am.md,

@@ -1,23 +1,26 @@
-// The header's Theme bar (src/components/ThemeSelect.astro, #806): which Theme a page opens in and the CSS that shows
-// only its pictures and text, from the site's macros.json (npm test)
+// The header's Theme bar (src/components/ThemeSelect.astro, #806, #819): which Preset a page opens in and the CSS that
+// shows only its pictures and text, from the site's macros.json (npm test)
 import { expect, test } from "vitest";
-import { THEMES, chosen, css } from "./theme.mjs";
+import { AXES, PRESETS, chosen, css } from "./theme.mjs";
 
-test("the bar's categories and values are the model's, each category's first its default", () => {
-  expect(THEMES).toEqual({ skeleton: ["realistic", "mechanical"], skin: ["morty", "bart"] });
-  expect(chosen("", null)).toEqual({ skeleton: "realistic", skin: "morty" });
+test("the bar's Presets are the model's, Cansin's build first, the default, each a value on every axis", () => {
+  expect(Object.keys(PRESETS)).toEqual(["cansins-build", "morty", "bart"]);
+  expect(PRESETS["cansins-build"]).toEqual({
+    label: "Cansin's build", "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "cansin", "skin-palette": "cansin",
+  });
+  expect(AXES["skeleton-palette"]).toEqual(["anatomical", "robot", "black"]);
+  expect(chosen("", null)).toBe("cansins-build");
 });
 
-test("the address picks the Theme first, then what the reader picked last, a value the model lacks neither", () => {
-  expect(chosen("?skeleton=mechanical&skin=bart", { skeleton: "realistic" })).toEqual({ skeleton: "mechanical", skin: "bart" });
-  expect(chosen("?stage=2", { skeleton: "mechanical", skin: "bart" })).toEqual({ skeleton: "mechanical", skin: "bart" });
-  expect(chosen("?skeleton=wooden", { skin: "lisa" })).toEqual({ skeleton: "realistic", skin: "morty" });
+test("the address picks the Preset first, then what the reader picked last, a Preset the model lacks neither", () => {
+  expect(chosen("?preset=bart", "morty")).toBe("bart");
+  expect(chosen("?stage=2", "morty")).toBe("morty");
+  expect(chosen("?preset=lisa", "homer")).toBe("cansins-build");
 });
 
-test("the CSS hides each value's pictures and text unless the page is in it, the default's when none is picked", () => {
+test("the CSS hides what is marked for other Presets than the page's, all but the default's when none is picked", () => {
   const rules = css();
-  expect(rules).toContain(':root:not([data-skeleton="mechanical"]) [data-skeleton="mechanical"]');
-  expect(rules).toContain(':root[data-skeleton]:not([data-skeleton="realistic"]) [data-skeleton="realistic"]');
-  expect(rules).toContain(':root:not([data-skin="bart"]) [data-skin="bart"]');
+  expect(rules).toContain(':root:not([data-preset]) [data-presets]:not([data-presets~="cansins-build"])');
+  expect(rules).toContain(':root[data-preset="morty"] [data-presets]:not([data-presets~="morty"])');
   expect(rules).toMatch(/\{ display: none !important; \}$/);
 });

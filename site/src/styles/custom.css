@@ -192,6 +192,13 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-viewer [hidden] { display: none; } /* Explode, and the gestures of a still Stage */
 .noggin-controls > nav[aria-label='Explode'] { margin-inline-start: auto; order: 1; }
 .noggin-controls:has(nav[aria-label='Stage']) nav[aria-label='Gesture'] { order: 2; flex-basis: 100%; }
+/* the mix (#819): four small selects on a row of their own, last */
+.noggin-controls > nav[aria-label='Mix'] { order: 3; flex-basis: 100%; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+.noggin-controls > nav[aria-label='Mix'] label { display: flex; gap: 0.3rem; align-items: center; }
+.noggin-controls > nav[aria-label='Mix'] select {
+  font: inherit; color: var(--noggin-ink); background: var(--sl-color-black);
+  border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.1rem 0.3rem;
+}
 .noggin-caption { margin-top: 0.6rem; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
 /* the viewer's own page (src/pages/viewer.astro): the Mech on a pink-washed desk, the bar on it */
 .noggin-viewer[data-zoom] { background: var(--noggin-wash); border-radius: 1.5rem; padding: 1rem 1rem 0.75rem; }

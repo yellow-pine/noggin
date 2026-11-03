@@ -10,6 +10,8 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 <!--{{ front }}-->
 
+<!--{{ stand_in }}-->
+
 <!--{# GitHub shows the line below; the site drops it for the pictures, which it builds from the code -->
 Its Stage 1 from the front, its Stage 3 isometric and exploded are on [the site's home](https://yellowpine.com/noggin/).
 <!-- #}-->

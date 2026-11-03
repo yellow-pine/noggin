@@ -1,26 +1,20 @@
 ---
-// The header's Theme bar (#806, docs/adr/0022), then Starlight's colour scheme select: a labelled select per Theme
-// category, its values the model's (src/theme.mjs, from model/geometry.py THEMES), so a new category or value needs no
-// edit here. The pick goes on <html> as data-<category>, into the address (?skeleton=realistic&skin=morty) and local
-// storage, and to the viewer (a noggin-theme event); css() shows each page's pictures and text in it alone. In the
-// header and in the mobile menu: both bars stay in step.
+// The header's Theme bar (#806, #819, docs/adr/0022), then Starlight's colour scheme select: one labelled select of the
+// model's Presets (src/theme.mjs, from model/geometry.py PRESETS), so a new Preset needs no edit here. The pick goes on
+// <html> as data-preset, into the address (?preset=cansins-build) and local storage, and to the viewer (a noggin-theme
+// event); css() shows each page's pictures and text for it alone. In the header and in the mobile menu: both bars stay
+// in step.
 import Default from '@astrojs/starlight/components/ThemeSelect.astro';
-import { THEMES, css } from '../theme.mjs';
-
-const title = (s: string) => s[0].toUpperCase() + s.slice(1);
+import { PRESETS, css } from '../theme.mjs';
 ---
 
 <div class="noggin-theme" role="group" aria-label="Theme">
-  {
-    Object.entries(THEMES).map(([category, values]) => (
-      <label>
-        <span>{title(category)}</span>
-        <select data-category={category} autocomplete="off">
-          {values.map((v) => <option value={v}>{title(v)}</option>)}
-        </select>
-      </label>
-    ))
-  }
+  <label>
+    <span>Preset</span>
+    <select autocomplete="off">
+      {Object.entries(PRESETS).map(([slug, p]) => <option value={slug}>{p.label}</option>)}
+    </select>
+  </label>
 </div>
 <Default />
 
@@ -29,25 +23,26 @@ const title = (s: string) => s[0].toUpperCase() + s.slice(1);
 <script>
   import { chosen } from '../theme.mjs';
 
-  // shortcut: the Theme applies once this module runs, so a page in a picked Theme draws the default's for a moment;
+  // shortcut: the Preset applies once this module runs, so a page in a picked Preset draws the default's for a moment;
   // an is:inline script in the head would hide it if it shows
-  const KEY = 'noggin-theme', root = document.documentElement;
+  const KEY = 'noggin-preset', root = document.documentElement;
   const selects = document.querySelectorAll<HTMLSelectElement>('.noggin-theme select');
   const stored = () => {
     try {
-      return JSON.parse(localStorage.getItem(KEY) ?? 'null');
+      return localStorage.getItem(KEY);
     } catch {
-      return null; // no storage (a private window, blocked site data) or a bad entry: the default
+      return null; // no storage (a private window, blocked site data): the default
     }
   };
 
-  function apply(theme: Record<string, string>) {
+  function apply(preset: string) {
     const link = new URLSearchParams(location.search);
-    for (const [c, v] of Object.entries(theme)) (root.dataset[c] = v), link.set(c, v);
-    for (const s of selects) s.value = theme[s.dataset.category!];
+    root.dataset.preset = preset;
+    link.set('preset', preset);
+    for (const s of selects) s.value = preset;
     history.replaceState(history.state, '', `${location.pathname}?${link}${location.hash}`);
     try {
-      localStorage.setItem(KEY, JSON.stringify(theme));
+      localStorage.setItem(KEY, preset);
     } catch {
       // the pick holds on this page and in its address alone
     }
@@ -56,7 +51,7 @@ const title = (s: string) => s[0].toUpperCase() + s.slice(1);
   apply(chosen(location.search, stored()));
   for (const s of selects)
     s.addEventListener('change', () => {
-      apply({ ...chosen(location.search, null), [s.dataset.category!]: s.value });
+      apply(s.value);
       document.dispatchEvent(new Event('noggin-theme'));
     });
 </script>

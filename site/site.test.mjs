@@ -175,7 +175,7 @@ test("every page's header names the site with its wordmark, whose o is the Mech'
   expect(page(`${HOME}/`).querySelectorAll('h1 .noggin-o .noggin-eye').length).toBe(1); // and the landing page's title
 });
 
-test("every page's header has the Theme bar: a labelled select per category of the model's, its values in order", () => {
+test("every page's header has the Theme bar: one labelled select of the model's Presets, in order (#819)", () => {
   for (const f of html.filter((f) => !f.startsWith('reports/'))) {
     const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
     // in the header, and in the mobile menu where the page has one (not the 404's)
@@ -183,23 +183,24 @@ test("every page's header has the Theme bar: a labelled select per category of t
     expect(bars.length, f).toBe(doc.querySelector('.mobile-preferences') ? 2 : 1);
     for (const bar of bars) {
       expect(bar?.getAttribute('aria-label'), f).toBe('Theme');
-      const selects = bar.querySelectorAll('label > select[data-category]');
-      expect(selects.map((s) => [s.parentNode.querySelector('span').text, s.getAttribute('data-category')]), f).toEqual([
-        ['Skeleton', 'skeleton'], ['Skin', 'skin'],
+      const selects = bar.querySelectorAll('label > select');
+      expect(selects.map((s) => s.parentNode.querySelector('span').text), f).toEqual(['Preset']);
+      expect(selects[0].querySelectorAll('option').map((o) => [o.getAttribute('value'), o.text])).toEqual([
+        ['cansins-build', "Cansin's build"], ['morty', 'Morty'], ['bart', 'Bart'],
       ]);
-      expect(selects.map((s) => s.querySelectorAll('option').map((o) => o.getAttribute('value')))).toEqual(Object.values(numbers.theme));
     }
-    expect(doc.toString(), f).toContain(':root:not([data-skeleton="mechanical"]) [data-skeleton="mechanical"]');
+    expect(doc.toString(), f).toContain(':root[data-preset="morty"] [data-presets]:not([data-presets~="morty"])');
   }
 });
 
-test("each themed picture and filament is marked with its Theme value, the default's shown with no pick (#806)", () => {
+test("each Preset's pictures and filaments are marked with it, the default's shown with no pick (#806, #819)", () => {
   const home = page(`${HOME}/`), parts = page(route('docs/build/parts.md'));
-  expect(home.querySelectorAll('.noggin-front figure').map((f) => f.getAttribute('data-skeleton'))).toEqual([
-    'realistic', 'realistic', 'realistic', 'mechanical', 'mechanical', 'mechanical',
+  expect(home.querySelectorAll('.noggin-front figure').map((f) => f.getAttribute('data-presets'))).toEqual([
+    'cansins-build', 'cansins-build', 'cansins-build', 'morty', 'morty', 'morty', 'bart', 'bart', 'bart',
   ]);
-  expect(parts.querySelectorAll('li[data-skeleton], li[data-skin]').map((l) => l.text.split(':')[0])).toEqual([
-    'Skeleton realistic', 'Skeleton mechanical', 'Skin morty', 'Skin bart',
+  expect(home.querySelector('p[data-presets="cansins-build"] em')?.text).toContain("in Morty's Shape");  // the stand-in
+  expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
+    "Cansin's build", 'Morty', 'Bart',
   ]);
 });
 
@@ -281,7 +282,7 @@ test("Pictures shows the next Mech, the front doors' own, it in motion and each 
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
 
-test("the viewer's page draws the next Mech and a Stage switch, the Theme bar its Skeleton, and serves three's Draco decoder", () => {
+test("the viewer's page draws the next Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
   const { buttons, skeletons } = numbers.published.stages;
@@ -289,8 +290,8 @@ test("the viewer's page draws the next Mech and a Stage switch, the Theme bar it
   expect(stages.map((b) => b.getAttribute('data-stage'))).toEqual(buttons.map((b) => b.glb));
   expect(stages.map((b) => b.text.trim())).toEqual(buttons.map((b) => b.label)); // a failing Stage's with its mark (#705)
   expect(stages.map((b) => b.text.split(':')[0].trim())).toEqual(['1', '2', '3']);
-  expect(viewers[0].querySelectorAll('[data-skeleton]')).toHaveLength(0); // the header's bar picks it (#806)
-  // every Stage in every Skeleton is a GLB the site serves
+  expect(viewers[0].querySelectorAll('select')).toHaveLength(0); // the bar's Preset, then the mix the viewer adds (#819)
+  // every Stage in every Skeleton shape is a GLB the site serves
   const glbs = buttons.flatMap((b) => Object.values(skeletons).map((s) => `${b.glb}${s}.glb`));
   expect(glbs.sort()).toEqual([...numbers.published.viewer].sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {

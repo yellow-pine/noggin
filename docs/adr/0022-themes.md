@@ -5,6 +5,18 @@
 > Amended 2026-11-03 (#806): the site's header has a Theme bar, a select per category, its values read from `THEMES`;
 > the pick, kept in the address (`?skeleton=realistic&skin=morty`) and the reader's local storage, chooses the viewer's
 > GLB and every page's pictures and filaments, each drawn in every Skeleton; the README shows the default.
+> Amended 2026-11-03 (#819): a Theme is four axes, a Shape and a Palette per category (GLOSSARY): the Skeleton's Shape
+> realistic or mechanical and Palette anatomical (the old realistic colours), robot (the old mechanical ones) or black
+> (PETG Basic Black for every group); the Skin's Shape and Palette each morty, bart or cansin (#813). The Palettes of a
+> category share its Colour groups, so any Palette paints any Shape. A Preset names one Theme: Cansin's build
+> (mechanical, black, cansin, cansin; its Skin Morty's Shape until #813's Shells exist), the default the README, the
+> site's first visit and the default pictures show, then Morty and Bart (realistic, anatomical, each its own Skin). The
+> Theme bar is one select of the Presets, the address `?preset=cansins-build`; the buy list and the print tables follow
+> it. Blender draws the GLBs per Shape alone, each material named by its Colour group, and the pictures per Preset alone;
+> the viewer mixes any Shape with any Palette, setting each group's base colour from `THEMES` in the browser. That
+> reverses the option below for the viewer only: the GLB carries just the satin material (base colour, roughness,
+> specular) and the toon band and lines are Eevee's or the viewer's own, so a swapped base colour loses nothing, while
+> Blender stays the source of the Shapes and the finish.
 
 The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

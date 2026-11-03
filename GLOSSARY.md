@@ -19,8 +19,8 @@ _Avoid_: Mech 2, new Mech
 
 **Skeleton**:
 The next Mech's structural parts, the same under every Skin: the eye gimbal, the jaw, the neck, the Torso and the
-electronics mount, in PETG. A Theme category: realistic, every part drawn as Bones, or mechanical, every part in boxes
-and cylinders (docs/adr/0022).
+electronics mount, in PETG. A Theme category: its Shape realistic, every part drawn as Bones, or mechanical, every
+part in boxes and cylinders; its Palette anatomical, robot or black (docs/adr/0022).
 _Avoid_: frame, chassis, core
 
 **Bone**:
@@ -58,7 +58,8 @@ held on by magnets.
 _Avoid_: cover, cosmetic
 
 **Skin**:
-Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: morty or bart.
+Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: its Shape and
+its Palette each morty, bart or cansin.
 _Avoid_: shell set, character shells, kit, costume
 
 **Character**:
@@ -66,13 +67,29 @@ Who the next Mech looks like, Morty or Bart: its Skin and its gaze speed, picked
 _Avoid_: persona, theme
 
 **Theme**:
-One value of each Theme category, today a Skeleton and a Skin, which together choose the next Mech's look in the
-Model, the Web viewer and every picture; realistic and morty unless one is picked (docs/adr/0022).
+A Shape and a Palette for each Theme category, today the Skeleton and the Skin, which together choose the next Mech's
+look in the Model, the Web viewer and every picture; Cansin's build unless another Preset is picked (docs/adr/0022).
 _Avoid_: look (Blender's style B is the look), style
+
+**Shape**:
+The form one Theme category's parts are drawn in: the Skeleton's realistic or mechanical, a Skin's morty, bart or
+cansin. Blender draws each Shape; any Palette of its category paints it.
+_Avoid_: style, model (the Model is the digital Mech)
+
+**Palette**:
+The filament each Colour group of one Theme category prints in: the Skeleton's anatomical, robot or black, a Skin's
+morty, bart or cansin.
+_Avoid_: colour scheme, theme (for one category's colours)
+
+**Preset**:
+A named Theme, what the site's Theme bar picks: Cansin's build (mechanical, black, cansin, cansin), Morty (realistic,
+anatomical, morty, morty) or Bart (realistic, anatomical, bart, bart).
+_Avoid_: theme (for the named set), skin (for the whole look)
 
 **Colour group**:
 The parts of one Theme category printed in one filament: the Skeleton's Bones, Joints, Linkages and Mounts, a Skin's
-face, hair, shirt and collar, eye whites, pupils; each Theme value names its filament per group.
+face, hair, pupils, clothes, eye whites and accessories; each Palette names its filament per group, so any Palette
+paints any Shape of its category.
 _Avoid_: spool, colour (for the group)
 
 **Face**:

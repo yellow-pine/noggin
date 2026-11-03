@@ -1,23 +1,24 @@
-// The site's Theme (docs/adr/0022, #806): one value of each category of the model's (model/geometry.py THEMES, via
-// macros.json), picked in the header's bar (src/components/ThemeSelect.astro). A page marks what one value alone shows
-// with data-<category>="<value>" (macros.py themed); the bar puts the Theme on <html> the same way and css() hides the
-// rest, the defaults' showing where nothing is picked (no script).
+// The site's Theme (docs/adr/0022, #806, #819): a Preset of the model's (model/geometry.py PRESETS, via macros.json),
+// picked in the header's bar (src/components/ThemeSelect.astro). A page marks what some Presets alone show with
+// data-presets="<slug> ..." (macros.py themed); the bar puts the Preset on <html> as data-preset and css() hides the
+// rest, the default's showing where nothing is picked (no script).
 import { theme } from "./macros.json";
 
-export const THEMES = theme; // {category: [values]}, each category's first its default
+export const PRESETS = theme.presets; // {slug: {label, <axis>: value}}, the first the default
+export const AXES = theme.axes; // {axis: [values]}: each category's Shape and Palette
+export const PALETTES = theme.palettes; // {palette axis: {Palette: {Colour group: hex}}}
+const SLUGS = Object.keys(PRESETS);
 
-// the address's Theme (?skeleton=mechanical&skin=bart), else what the reader picked last (stored), else the default
+// the address's Preset (?preset=morty), else what the reader picked last (stored), else the default
 export function chosen(search, stored) {
-  const link = new URLSearchParams(search);
-  const pick = (c, values) => [link.get(c), stored?.[c]].find((v) => values.includes(v)) ?? values[0];
-  return Object.fromEntries(Object.entries(THEMES).map(([c, values]) => [c, pick(c, values)]));
+  return [new URLSearchParams(search).get("preset"), stored].find((p) => SLUGS.includes(p)) ?? SLUGS[0];
 }
 
-// one rule hiding every value's marked pictures and text but the page's
+// one rule hiding every marked picture and text but the page's Preset's
 export function css() {
-  const hidden = Object.entries(THEMES).flatMap(([c, [first, ...rest]]) => [
-    ...rest.map((v) => `:root:not([data-${c}="${v}"]) [data-${c}="${v}"]`),
-    `:root[data-${c}]:not([data-${c}="${first}"]) [data-${c}="${first}"]`,
-  ]);
+  const hidden = [
+    `:root:not([data-preset]) [data-presets]:not([data-presets~="${SLUGS[0]}"])`,
+    ...SLUGS.map((p) => `:root[data-preset="${p}"] [data-presets]:not([data-presets~="${p}"])`),
+  ];
   return `${hidden.join(",\n")} { display: none !important; }`;
 }

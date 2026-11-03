@@ -7,8 +7,10 @@
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a button
-// rewrites the address to the deep link of what it plays. It draws the Stage in the Skeleton of the Theme the header's
-// bar picks (src/theme.mjs, #806: on <html>), and again in the next one the bar picks. Explode moves a Stage's parts from level to level,
+// rewrites the address to the deep link of what it plays. It draws the Stage in the Preset the header's bar picks
+// (src/theme.mjs, #806, #819: on <html>), and again in the next one the bar picks, or in its own mix of any Shape and
+// Palette (a select per axis, kept in the address: ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
+// Colour group's material painted in its Palette's colour (state.mjs paint). Explode moves a Stage's parts from level to level,
 // Assembled, Sub-assemblies, Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py
 // offsets, #482, #664, #811), &explode=<level> opens it so. Only a
 // viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
@@ -21,7 +23,8 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { LEVELS, address, between, caption as captionFor, glb, opened, title } from "./state.mjs";
+import { LEVELS, address, between, caption as captionFor, glb, mixed, opened, paint, title } from "./state.mjs";
+import { AXES, chosen } from "../theme.mjs";
 
 // the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -58,6 +61,32 @@ function mount(root) {
   explode.firstChild.textContent = "Explode";
   tools.append(...root.querySelectorAll(":scope > nav"), explode, bar);
   const levels = [...explode.querySelectorAll("button")];
+  // the mix (#819): a select per axis, its Preset's values unless the address names others
+  const preset = () => chosen(location.search, document.documentElement.dataset.preset);
+  let mix = mixed(location.search, preset());
+  const mixing = document.createElement("nav");
+  mixing.setAttribute("aria-label", "Mix");
+  const picks = Object.entries(AXES).map(([axis, values]) => {
+    const label = mixing.appendChild(document.createElement("label")), s = document.createElement("select");
+    label.append(title(axis.replace("-", " ")), s);
+    s.append(...values.map((v) => new Option(title(v), v)));
+    s.dataset.axis = axis;
+    s.addEventListener("change", () => {
+      const link = new URLSearchParams(location.search);
+      link.set(axis, s.value);
+      history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
+      remix();
+    });
+    return s;
+  });
+  tools.append(mixing);
+  // the mix the address and the Preset give: a new Skeleton shape is another GLB, a new Palette a repaint
+  function remix() {
+    mix = mixed(location.search, preset());
+    for (const s of picks) s.value = mix[s.dataset.axis];
+    if (glb(current, mix["skeleton-shape"]) !== file) load(current), share();
+    else repaint();
+  }
   const caption = root.appendChild(document.createElement("p"));
   caption.className = "noggin-caption";
   // see-through: the page's own background behind the Mech, in either theme
@@ -107,8 +136,9 @@ function mount(root) {
     for (const o of meshes) {
       const g = o.geometry;
       o.castShadow = o.receiveShadow = true;
-      o.material = new THREE.MeshToonMaterial({
-        color: o.material.color, gradientMap: gradient, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+      o.material = new THREE.MeshToonMaterial({  // named by its Colour group (web/glb.py), which repaint reads
+        name: o.material.name, color: o.material.color, gradientMap: gradient,
+        polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
       });
       o.material.onBeforeCompile = (s) => {
         s.uniforms.band = band;
@@ -123,6 +153,12 @@ function mount(root) {
       const lines = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(g, look.crease));
       o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
     }
+  }
+
+  // each part's Colour group in the mix's Palette (the hardware keeps the GLB's grey)
+  function repaint() {
+    const colours = paint(mix);
+    scene?.traverse((o) => o.material?.isMeshToonMaterial && colours[o.material.name] && o.material.color.set(colours[o.material.name]));
   }
 
   function resize() {
@@ -186,7 +222,7 @@ function mount(root) {
   async function load(stage, gesture, level = 0) {
     const mine = ++loading;
     current = stage;
-    file = glb(stage, document.documentElement.dataset.skeleton);
+    file = glb(stage, mix["skeleton-shape"]);
     goal = level;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of [...bar.children, ...levels]) b.disabled = true;
@@ -210,6 +246,7 @@ function mount(root) {
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
     scene.add(gltf.scene, camera, key, key.target, ambient);
+    repaint();
     sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
     reach = sphere.radius + Math.max(0, ...parts.flatMap(([, ds]) => ds.map((d) => Math.hypot(...d))));  // apart too
     const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out
@@ -266,9 +303,13 @@ function mount(root) {
   }
 
   for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
-  document.addEventListener("noggin-theme", () => {  // the bar's new Skeleton: its Tour (a new Skin draws the same GLB)
-    if (glb(current, document.documentElement.dataset.skeleton) !== file) load(current), share();
+  document.addEventListener("noggin-theme", () => {  // the bar's new Preset: its own mix, none of the address's
+    const link = new URLSearchParams(location.search);
+    for (const axis in AXES) link.delete(axis);
+    history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
+    remix();
   });
+  for (const s of picks) s.value = mix[s.dataset.axis];
   addEventListener("resize", () => scene && resize());
   const timer = new THREE.Timer();
   renderer.setAnimationLoop((t) => {
