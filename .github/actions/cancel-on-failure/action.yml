@@ -10,7 +10,7 @@ runs:
     - name: Cancel the run
       if: ${{ always() }}   # the caller's failure() gates it; inside a composite the default success() could skip it
       shell: bash
-      run: gh run cancel "$GITHUB_RUN_ID"
+      run: echo probe-no-cancel
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}

@@ -273,7 +273,7 @@ jobs:
       contents: read
       actions: write   # cancel-on-failure
     strategy:
-      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
+      fail-fast: false   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
       # on one worker, --dist loadgroup), the rest, just sim's parts and just mech (model/shards.py)
       matrix:
@@ -474,7 +474,7 @@ jobs:
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
     strategy:
-      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
+      fail-fast: false   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       matrix:
         shard: [0, 1, 2, 3]   # Blender restores each
     env:
