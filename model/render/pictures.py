@@ -180,7 +180,8 @@ def offsets(doc, level):
     """{part: its offset, mm} at an Explode level (#811): 0 assembled; 1 its sub-assembly's EXPLODE offset (#482);
     2 that and on out along its Assembly direction (directions; a joint's axis away from the document's middle) until
     its bounding box is GAP clear of its own there and of every part placed before it: what the rest is assembled on
-    first, then the largest first, so what sits on a part comes off beyond it."""
+    first (each on out along its sub-assembly's offset while it meets one placed), then the largest first, so what sits
+    on a part comes off beyond it."""
     sub = {n: s for s in stages.DOCS[doc] for n in stages.SUBS[s]().parts}
     out = {n: np.array(EXPLODE[sub[n]] if level else (0, 0, 0), float) for n in stages.STAGES[doc].parts}
     if level < 2:
@@ -196,7 +197,10 @@ def offsets(doc, level):
             if not signed and np.dot((lo + hi) / 2 - middle, d) < -0.5:  # a part on the middle goes the axis' way
                 d = -d
             out[n] = out[n] + _clear(lo, hi, d, [(lo, hi), *placed]) * d
-            lo, hi = box[n][0] + out[n], box[n][1] + out[n]
+        elif any(d := EXPLODE[sub[n]]):  # one the rest goes on, inside another (the rack over the eyes, #817): on out
+            d = np.divide(d, np.linalg.norm(d))  # along its sub-assembly's offset until clear of what is placed
+            out[n] = out[n] + _clear(lo, hi, d, placed) * d
+        lo, hi = box[n][0] + out[n], box[n][1] + out[n]
         placed.append((lo, hi))
     return out
 
