@@ -15,8 +15,8 @@ from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 NECK_R = 5.0  # the post's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
-# the post's bore for the neck cable (#858: a 4 mm cable, inferred), up to under the pan shank's tapping hole, and its
-# window out over the pan servo's shelf, under the pan span's lower clamp
+# the post's bore for the neck cable (#858: its four 24 AWG conductors, inferred), up to under the pan shank's tapping
+# hole, and its window out over the pan servo's shelf, under the pan span's lower clamp
 BORE_R, BORE_TOP, WINDOW_Z = 3.0, -106.0, (-120.0, -115.0)
 # (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
 POCKET = ((0.5, 10.0), (nk.AXIS[0] + 18.5, nk.AXIS[0] + 32.5))
