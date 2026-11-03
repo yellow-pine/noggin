@@ -65,10 +65,12 @@ def test_a_moving_servo_turns_its_load_without_its_own_rotor():
 
 
 def test_the_parts_share_the_items_in_turn_each_once():
-    """#809: CI's sim runs a document's poses and motions in parts, the earlier part the earlier ones."""
+    """#809: CI's sim runs a document's poses and motions in parts, the earlier part the earlier ones, the first none
+    (it measures the rest, the gimbal's sweep the slowest)."""
     items = list(range(205))
-    parts = [mujoco_report.share(items, (i, 3)) for i in range(3)]
-    assert sum(parts, []) == items and max(map(len, parts)) - min(map(len, parts)) <= 1
+    first, *parts = [mujoco_report.share(items, (i, 3)) for i in range(3)]
+    assert first == [] and sum(parts, []) == items and max(map(len, parts)) - min(map(len, parts)) <= 1
+    assert mujoco_report.share(items, (0, 1)) == items
 
 
 def _part(poses, pair_mm, at, residual, margin, hold, peak, tip, moving, **first):
@@ -94,10 +96,14 @@ def _part(poses, pair_mm, at, residual, margin, hold, peak, tip, moving, **first
 
 def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
     """#809: the merged report reads as one measured whole: the closest pair, the most open loop, the least margin, the
-    heaviest hold and peak, the motions in turn and the first part's own figures (full speed, vibration, Rest)."""
-    one = _part(100, -0.1, 1, 0.02, 3.0, 0.3, 0.5, 5.0, 4.0, full_speed={"tilt horn": {"off_deg": 0.1}}, vibration={})
+    heaviest hold and peak, the motions in turn and the first part's own figures (full speed, vibration), that part
+    measuring no pose."""
+    speed = {"tilt horn": {"off_deg": 0.1}}
+    rest = {"poses": 0, "pairs": [], "residuals": {}, "loops": {}, "actuators": {}, "full_speed": speed, "vibration": {}}
+    rest |= {"motions": {"names": [], "servos": {}}, "tip_over": {"moving": None, "footprint_mm": [90, 90]}}
+    one = _part(100, -0.1, 1, 0.02, 3.0, 0.3, 0.5, 5.0, 4.0, full_speed={})
     two = _part(105, -0.1, 2, 0.04, 2.5, 0.3, 0.6, 6.0, 3.0, full_speed={}, vibration={"x": 1})
-    m = mujoco_report.merge([one, two])
+    m = mujoco_report.merge([rest, one, two])
     assert m["poses"] == 205 and m["pairs"][0]["at"] == {"pose": 1}  # a tie: the earlier
     assert m["residuals"]["tilt pivot"]["max_mm"] == 0.04 and m["loops"]["tilt pivot"]["margin_at"] == {"pose": 2}
     assert m["loops"]["tilt pivot"]["transmission_at"] == {"pose": 1} and m["actuators"] == one["actuators"]
@@ -105,4 +111,4 @@ def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
     s = m["motions"]["servos"]["tilt horn"]
     assert (s["rest_kgf_cm"], s["hold_at"], s["peak_kgf_cm"], s["peak_at"]) == (1, {"pose": 1}, 0.6, {"pose": 2})
     assert (m["tip_over"]["margin_mm"], m["tip_over"]["moving"]["margin_mm"]) == (5.0, 3.0)
-    assert (m["full_speed"], m["vibration"]) == (one["full_speed"], {})
+    assert (m["full_speed"], m["vibration"], m["tip_over"]["footprint_mm"]) == (speed, {}, [90, 90])

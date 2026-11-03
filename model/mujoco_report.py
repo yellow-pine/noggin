@@ -186,14 +186,16 @@ def _worst(old, value, at, key):
 
 
 def share(items, part):
-    """The `part` (i, n) of `items`: its i-th of n runs in turn, so the earlier share holds the earlier items."""
+    """The `part` (i, n) of `items`: all of them whole (n 1); else none for the first part, which measures the rest (the
+    gimbal's sweep, the slowest: model/report.py), and the others the items in turn, the earlier the earlier ones."""
     i, n = part
-    return items[len(items) * i // n : len(items) * (i + 1) // n]
+    i, n = (i, n) if n == 1 else (i - 1, n - 1)
+    return items[len(items) * i // n : len(items) * (i + 1) // n] if i >= 0 else []
 
 
 def measure(doc, model, part=(0, 1)):
     """The document's MuJoCo report (a dict, in the shape model/test_report.py reads), or its `part` (i, n): its share()
-    of the poses and of the motions, the first part the full-speed swings and the vibration too, which merge() joins
+    of the poses and of the motions, the first part the full-speed swings and the vibration instead, which merge() joins
     into the whole one. Widens `model`, which is the report's own (widen())."""
     stage, todo = stages.STAGES[doc], share(poses(doc), part)
     widen(model)
@@ -270,8 +272,8 @@ def merge(parts):
     tie, as measure keeps the first pose or motion that reads it."""
     out, worse = {**parts[0], "poses": sum(m["poses"] for m in parts)}, {}
 
-    def lower(a, b, key):  # b reads lower than a, or a is the first
-        return a is None or (b.get(key) is not None and b[key] < a[key])
+    def lower(a, b, key):  # b reads lower than a, or a reads nothing (the first, or a part with no poses)
+        return a is None or a.get(key) is None or (b.get(key) is not None and b[key] < a[key])
 
     for m in parts:
         for p in m["pairs"]:
