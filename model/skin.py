@@ -66,8 +66,7 @@ WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 HAIRLINE = (50.0, 20.0)  # (z, y): the hair over z at the front, back to y, then down to the back's foot
 TORSO = (-35.0, 58.5)  # the Torso's front and back walls (model/base.py TORSO)
 _PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge, its middle height
-_RAIL = (45.0, 42.8)  # (y, z) on the rack's rails' tops, behind the boards (model/base.py: BACK_Z - BOARD_H / 2)
-_RAIL_X = 42.75  # each rail's middle (model/printed/base.py rack: the row's half-width, its posts' 3 mm outboard)
+_BACK = (53.0, 62.0)  # (|x|, y) on the plate's top at its back corners: outboard of the rack and the lid servos
 SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
     *[
@@ -97,18 +96,11 @@ SEATS = [
         )
         for x in (-53.0, 53.0)
     ],
-    # the hair down onto the rack's rails, behind the boards, and onto the face's top corners under the hairline
+    # the hair down onto the plate's back corners (a web from its back wall, model/printed/skin.py) and onto the face's
+    # top corners under the hairline
     *[
-        Seat(
-            "next morty hair",
-            "next board rack",
-            (x, _RAIL[0], _RAIL[1] + 3.0),
-            (0.0, 0.0, 1.0),
-            4.0,
-            HEAD_Z[1] - WALL - _RAIL[1] - 3.0 - GAP + 1.0,
-            1,
-        )
-        for x in (-_RAIL_X, _RAIL_X)
+        Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1] + 4.0), (0.0, 0.0, 1.0), 5.0, 6.0, 1)
+        for x in (-_BACK[0], _BACK[0])
     ],
     *[
         Seat(

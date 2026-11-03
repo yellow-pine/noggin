@@ -201,9 +201,14 @@ def _ellipsoid(at, radii):
 
 
 def hair():
-    """Morty's hair (hair): the head's shell over the hairline, its bangs jagged; down onto the rack's rails and the
-    face's top."""
-    return _finish("next morty hair", _skull().intersect(_hair(0.1)), _head(0.0))
+    """Morty's hair (hair): the head's shell over the hairline, its bangs jagged; down onto the gimbal frame plate's
+    back corners, each Seat's boss on a web from its back wall, and onto the face's top."""
+    out = _skull().intersect(_hair(0.1))
+    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
+        x, y, z = seat.at
+        web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
+        out = out.union(web.intersect(_head(0.0)))
+    return _finish("next morty hair", out, _head(0.0))
 
 
 def mouth_cover():

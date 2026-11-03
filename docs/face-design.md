@@ -54,7 +54,7 @@ In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it:
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Where the carrier is too thin
-  for the pocket the Seat stands on a pad: the gimbal frame plate's front corners (the face), the rack's rails (the
+  for the pocket the Seat stands on a pad: the gimbal frame plate's front corners (the face) and its back corners (the
   hair), the jaw's chin (the mouth cover), the Torso's front and back walls (the shirt); the face carries the hair's
   front Seats. The cores and the lids take theirs in their own faces.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid

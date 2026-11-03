@@ -317,7 +317,7 @@ RIDES = {
     "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
     # a Skin's Shells, each on its Seats (model/skin.py), the shirt on the Torso, which moves none
     "next morty face:1": "next gimbal frame:1",
-    "next morty hair:1": "next board rack:1",
+    "next morty hair:1": "next gimbal frame:1",
     **{f"next morty {s} pupil:1": f"next {s} eyeball cap:1" for s in "LR"},
     **{f"next morty {s} {lid} lid cover:1": f"next {s} {lid} lid:1" for s in "LR" for lid in ("upper", "lower")},
     "next morty mouth cover:1": "next jaw:1",
