@@ -28,6 +28,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - PRs merge on the slim gate; everything heavy runs on main, which fixes forward (#696, CONTRIBUTING.md).
 - Heavy Python jobs (sim, CoACD, every test) run on my GX10 via `just gx10`, never the laptop; Blender stays here (#888, CONTRIBUTING.md).
 - Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
+- A model review for me goes into my open Blender (`~/Desktop/noggin-stage3.blend`, reloaded on write by my startup script), never Preview windows of stills; I audit it there myself.
 - After a merge that changes the Mech's look, the main session opens its new pictures and motion for me: the live Pictures page once deployed.
 - No real photos in git, the README or the site until staged photos exist; Blender pictures and the viewer stand in.
 - Sources only in git: CI builds every generated output and the site serves it (ADR 0009).

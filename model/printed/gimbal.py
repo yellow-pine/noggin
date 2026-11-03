@@ -22,10 +22,12 @@ LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every print
 # inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so); the
 # lid drives' (#698) low enough to lie within their 3 mm slabs
 TIE_BONE, ROD_BONE, LID_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
-# (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending; the bail's rod flat-bottomed with the
-# shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch bar's pin
+# (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending, its waist 0.5 mm over the slab so the
+# slab's top cuts it flat (a crown grazing it, 2.9, fused invalid on aarch64's OCCT, #890); the bail's rod flat-bottomed
+# with the shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch
+# bar's pin
 CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
-    ((4.5, 4.2), (3.0, 2.9)),
+    ((4.5, 4.2), (3.0, 3.5)),
     ((4.0, 7.0), (3.0, 6.0)),
     ((2.4, 3.3), (2.2, 3.2)),
     ((3.5, 6.5), (3.0, 5.0)),
@@ -229,7 +231,8 @@ def lid_link(mechanical=False):
     """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698).
     Mechanical or as Bones (#704)."""
     w, pins = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2, (gm.LINK_PIN, gm.LOWER_PIN)
-    return holes(lid_arms(pins, (-w, w), mechanical), pins, (-w, w))
+    # its heads 0.2 mm lower than LID_BONE's: a crown 0.1 mm under the slab's face fused invalid on aarch64's OCCT (#890)
+    return holes(lid_arms(pins, (-w, w), mechanical, ((4.0, 2.7), LID_BONE[1])), pins, (-w, w))
 
 
 def _lid(radii, span, spokes, boss, pin, mechanical):
