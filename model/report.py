@@ -32,7 +32,7 @@ def report(doc):
         mechanical = doc.endswith("-mechanical")  # its Skeleton mechanical (#704)
         out["gimbal"] = {
             **gimbal.report(),
-            "block_mm": gimbal_parts.bounds(mechanical),
+            "block_mm": gimbal_parts.bounds(gimbal_parts.at_rest(mechanical)),
             "sweep": gimbal_parts.sweep(mechanical),
         }
     if {"next Core 1:1", "next Core 2:1"} <= set(stage.parts):  # the whole Mech: both Cores

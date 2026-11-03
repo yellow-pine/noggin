@@ -35,7 +35,7 @@ jobs:
       - name: Run just check-light
         run: uv run just check-light | tee "$RUNNER_TEMP/pytest.txt"
         env:
-          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20 --timeout=15   # as checks.yml's Code (#808)
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
       - name: List the slowest tests
         if: always()

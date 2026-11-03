@@ -6,6 +6,7 @@ import os
 import pytest
 
 from model import geometry as g
+from model import trajectories
 
 HERE = os.path.dirname(__file__)
 spec = importlib.util.spec_from_file_location(
@@ -79,12 +80,11 @@ def test_the_next_mechs_head_joins_a_wide_gaze_shift_within_its_gaze_error_the_n
     assert head[-1] == pytest.approx(0, abs=0.01)
 
 
-@pytest.mark.parametrize("doc", sorted(g.NEXT))
-def test_every_motion_of_the_next_mech_has_its_commands(doc):
+@pytest.mark.parametrize(
+    "doc, motion", [(d, m) for d in sorted(g.NEXT) for m in trajectories.motions(d)], ids=lambda x: x
+)  # a test a motion: each holds CI's 15 s (#808)
+def test_every_motion_of_the_next_mech_has_its_commands(doc, motion):
     """Each motion a next Mech document plays (trajectories.motions) gives writes before ms 0 and its frame times: its
     gestures and Rest through the eye gimbal, the next hero (#642) as the hero's own writes."""
-    from model import trajectories
-
-    for motion in trajectories.motions(doc):
-        writes, times = trajectories.commands(doc, motion)
-        assert any(t < 0 for t, _, _ in writes) and len(times) > 1, motion
+    writes, times = trajectories.commands(doc, motion)
+    assert any(t < 0 for t, _, _ in writes) and len(times) > 1

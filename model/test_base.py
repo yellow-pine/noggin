@@ -15,7 +15,7 @@ from model.test_envelopes import BOXES
 TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
 
 
-@pytest.mark.build
+@pytest.mark.model
 @pytest.mark.parametrize("doc", sorted(g.STAGES))
 def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the next Mech assembled, nothing lying apart: every part of each document

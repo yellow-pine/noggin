@@ -3,6 +3,7 @@ valid solid with the same box, and a document's STEP is valid and holds every pa
 foot on z 0."""
 
 import cadquery as cq
+import pytest
 import trimesh
 
 from model import geometry, ours, printed, stages
@@ -40,7 +41,14 @@ def test_a_printed_parts_step_is_one_valid_solid_in_its_shapes_box(tmp_path):
     assert near(box(shape), box(ours.SHAPES["next pitch bar"]().val())), box(shape)
 
 
-def test_a_documents_step_holds_every_placed_part_at_neutral(tmp_path):
-    shape = cq.importers.importStep(ours.stage_step(DOC, str(tmp_path / "doc.step"))).val()
+@pytest.fixture
+def doc_step(tmp_path):
+    """The document's STEP, every part built and written in setup: CI's 15 s times the test alone."""
+    return ours.stage_step(DOC, str(tmp_path / "doc.step"))
+
+
+@pytest.mark.model
+def test_a_documents_step_holds_every_placed_part_at_neutral(doc_step):
+    shape = cq.importers.importStep(doc_step).val()
     assert shape.isValid() and len(shape.Solids()) == len(stages.STAGES[DOC].parts)
     assert abs(box(shape)[2]) < 1e-6  # the Torso's foot (base.TORSO)
