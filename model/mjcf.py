@@ -33,7 +33,12 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
-FINE_MM = {"horn": 0.08} | {
+FINE_MM = {
+    "horn": 0.08,
+    # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces within 1 mm of the
+    # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
+    f"next gimbal frame{g.MECHANICAL}": 1.0,
+} | {
     # each lower lid's shell nests 1 mm outside the upper's (#698): pieces within 0.5 mm of it, not chords across the gap
     f"next {s} lower lid{style}": 0.5
     for s in "LR"
