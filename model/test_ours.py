@@ -49,6 +49,11 @@ def doc_step(tmp_path):
 
 @pytest.mark.model
 def test_a_documents_step_holds_every_placed_part_at_neutral(doc_step):
+    """Read back, each part is one valid solid, in the order model/stages.py places them, so an invalid one names
+    itself (Linux's OCCT reads some B-spline solids back invalid where macOS's does not: #837, #851)."""
     shape = cq.importers.importStep(doc_step).val()
-    assert shape.isValid() and len(shape.Solids()) == len(stages.STAGES[DOC].parts)
+    names = list(stages.STAGES[DOC].parts)
+    assert len(shape.Solids()) == len(names)
+    assert [n for n, s in zip(names, shape.Solids(), strict=True) if not s.isValid()] == []
+    assert shape.isValid()
     assert abs(box(shape)[2]) < 1e-6  # the Torso's foot (base.TORSO)
