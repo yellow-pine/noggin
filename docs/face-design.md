@@ -13,8 +13,9 @@ anatomical, its own Skin). The model, the [viewer](https://yellowpine.com/noggin
 next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
-- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (with
-  both Cores since #838). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
+- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (the pack,
+  the switch board and the power-path board alone since #858), the cranium tray (both Cores and the hub in the
+  realistic skull's cranium, #858). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
   realistic, every part drawn as Bones, and mechanical, every part in boxes and cylinders (docs/adr/0020); its
   Palettes: anatomical, robot and black (PETG Basic Black throughout).
 - Skin, PLA: the head shell with hair, the ears, the nose, the eyeball caps, separate pupils, the lid covers, the mouth
@@ -41,7 +42,7 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
 size inferred):
 - the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
-  the head mount, square from above where the mouth servo's corners and the cheeks' Cores need it; 140 x 140 x 150 mm
+  the head mount, square from above where the mouth servo's corners need it; 140 x 140 x 150 mm
   but for the ears (model/printed/test_skin.py);
 - the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
   reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;

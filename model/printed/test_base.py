@@ -1,6 +1,6 @@
 """Seam: the next Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
-gimbal: the Torso holds the neck mount, the pan servo, the pack and the Cores inside its walls (#838); its boards
-overlap nothing."""
+gimbal: the Torso holds the neck mount, the pack, the switch board and the power-path board inside its walls, the pan
+servo over them (#858); its boards, the cranium tray's and the tray overlap nothing."""
 
 import itertools
 
@@ -20,22 +20,32 @@ from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield", "next test stand")
+BASE = ("next torso", "next pack", "next switch", "next power-path", "next test stand")  # and the cranium's (#858)
+BASE += ("next cranium tray", "next Core", "next Shield", "next hub")
 
 
 @pytest.mark.model
-def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_walls():
-    """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pack lying on its floor; the Torso's
-    bottom is the foot, so nothing hangs below it."""
-    (x0, x1), (y0, y1), (z0, _) = base.TORSO
+def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside_its_walls():
+    """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pan servo over them (#858), the pack
+    lying on its floor; the Torso's bottom is the foot, so nothing hangs below it."""
+    (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     parts = stages.next_neck().parts | stages.next_base().parts
     foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
-    for name in ("next neck mount:1", "next pan servo:1", "next pack:1", "next Shield 1:1", "next Shield 2:1"):
+    for name in (
+        "next neck mount:1",
+        "next pan servo:1",
+        "next pack:1",
+        "next switch board:1",
+        "next power-path board:1",
+    ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("next pack:1", "next neck mount:1")]
-    assert lying[0] == pytest.approx(lying[1])  # the pack on the floor the neck mount stands on
+    lying = [
+        _shape(parts[n]).BoundingBox().zmin for n in ("next pack:1", "next neck mount:1", "next power-path board:1")
+    ]
+    assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
+    assert _shape(parts["next pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
 
 
 @pytest.fixture(params=g.SIMULATED)  # the whole Mech and Stage 1's test stand (#720), mechanical (#809)

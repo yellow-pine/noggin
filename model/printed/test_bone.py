@@ -85,7 +85,11 @@ GROUPS = {
     "Joints": ["yaw yoke", "pan yoke", "eyeball core", "bail"],
     "Linkages": ["tie-bar", "push-rod", "pitch bar", "lid bar", "lid link", "pan bar", "tilt bar", "jaw bar"]
     + [f"{s} {lid}" for s in "LR" for lid in ("upper lid", "lower lid")],
-    "Mounts": ["torso", "torso lid"],  # the realistic skull's black box pedestal (#838)
+    "Mounts": [
+        "torso",
+        "torso lid",
+        "cranium tray",
+    ],  # the realistic skull's black box pedestal (#838), the tray (#858)
 }
 
 

@@ -31,9 +31,10 @@ PARTS = {
     "next pan bar": neck.pan_bar,
     "next tilt bar": neck.tilt_bar,
     "next jaw bar": neck.jaw_bar,
-    # the next Mech's Torso (#685), which carries the Cores (#838)
+    # the next Mech's Torso (#685) and the cranium tray, which carries the Cores in the head (#858)
     "next torso": base.torso,
     "next torso lid": base.lid,
+    "next cranium tray": base.tray,
     # the next Mech's Stage 1 (#720)
     "next test stand": base.stand,
 }
@@ -48,7 +49,10 @@ STYLED = {
     **{stem: PARTS[stem] for stem in ("next torso", "next torso lid", "next test stand")},
 }
 # the Skeleton's parts drawn mechanical alone, with why
-UNSTYLED = {"next eyeball core": "the eyeball's ball under its cap: none"} | dict.fromkeys(
+UNSTYLED = {
+    "next eyeball core": "the eyeball's ball under its cap: none",
+    "next cranium tray": "hidden in the realistic skull's cranium: none (#858)",
+} | dict.fromkeys(
     BONES, "the realistic Skeleton's skull, a mesh (model/printed/skull.py): the mechanical Skeleton has none (#838)"
 )
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}

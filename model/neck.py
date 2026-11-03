@@ -4,7 +4,8 @@ draws the parts from them, model/stages.py places them), its kinematics and its 
 Frame: the eye gimbal's (model/gimbal.py), which is the head's: x along the eye line (the L eye at +x), -y forward, z
 up, the origin midway between the eye centres. The head is the gimbal with the head mount screwed under its plate; it
 turns on its own pivots and every servo drives through a bar, so the splines carry torque only:
-- pan: the pan yoke turns on the neck mount about a vertical axis, the pan servo (on the mount) driving the yoke's lever;
+- pan: the pan yoke turns on the top of the neck mount's post about a vertical axis, under the head (#858), the pan
+  servo (on the post, over the Torso's lid) driving the yoke's lever;
 - tilt: the head turns on the yoke's cheeks about an x axis under its plate, where the realistic skull's foramen magnum
   is (AXIS, #838): behind the head's centre of mass, whose weight a balance spring on the tilt shank holds (balance()),
   the tilt servo (on the yoke) driving the head mount's lever;
@@ -15,8 +16,9 @@ busy pivot is a steel shank (an M3 screw from the kit's spares, greased) turning
 into the part it is fixed in: the yoke turns on the mount's shank, the head mount (printed on its side) on the cheeks',
 the jaw (on its side) on the frame's, each bar (flat) on its lever's.
 The leads cross pan and tilt in two flexing spans (GLOSSARY): pan's runs up beside the pan axis, so the turn is a twist
-and a gentle S over its free length; tilt's is an arc about the tilt axis whose radius breathes as the head turns. The
-pack's Y lead crosses as one pair and splits after the joints (#51). Angles are degrees: pan positive toward +x's
+and a gentle S over its free length; tilt's is an arc about the tilt axis whose radius breathes as the head turns. The neck
+cable (#858: up the hollow post from the Torso, out of it over the lid) crosses as pairs and the pan servo's lead with
+it (#51). Angles are degrees: pan positive toward +x's
 left (right-handed about +z), tilt and jaw right-handed about +x (the face down, the jaw open). Every size is ours and
 inferred (no build settles one yet), each chosen against the gates in report()."""
 
@@ -42,12 +44,14 @@ HEAD_SCREWS = (
     (-16.0, 83.0),
 )  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
-# The neck as a spine (#838): the pan in the Torso, under its lid, the yoke's post rising from its disc there through
-# the lid to its top floor, on which the tilt servo stands under the head, the cheeks up from it to the tilt axis
-DISC_R, DISC_Z = 15.0, (-134.0, -130.0)  # the yoke's disc on the mount's thrust face, under the Torso's lid
-POST_R, TOP_Z = 5.0, (-80.0, -76.0)  # the yoke's post, and its top floor under the tilt servo
+# The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
+# the neck cable, and the pan at its top under the head (#858): the yoke's disc on it under its top floor, on which the
+# tilt servo stands, the cheeks up from it to the tilt axis; the pan servo hangs on the post over the lid
+DISC_R, DISC_Z = 15.0, (-84.0, -80.0)  # the yoke's disc on the post's thrust face, under its top floor
+POST_R, TOP_Z = 10.0, (-80.0, -76.0)  # the neck mount's post, and the yoke's top floor under the tilt servo
 MOUNT_Z = (-174.0, -171.0)  # the neck mount's foot: the base (#642) carries it
-PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-137.0, -134.0)  # the yoke's lever back along +y; the bar along x under it
+SHELF_Z = (-123.5, -120.5)  # the post's shelf under the pan servo, 1.5 mm over the Torso's lid (model/base.py)
+PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back along +y; the bar along x under it
 # the head's lever back along +y; the bar down to the horn, its servo on the yoke's top floor, clear of the Skin's back
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
@@ -60,9 +64,13 @@ JAW_LUG_X, JAW_X = (28.0, 31.0), (33.0, 37.0)  # the frame's lugs (model/printed
 CHIN_Y = -29.0  # its chin's front, the mandible's
 JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L arm round to the chin, the mandible's
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
-LEAD_OD = 1.4  # the thickest lead that crosses, the pack's pair (inferred: 24 AWG)
+# the thickest lead that crosses, a 24 AWG pair (inferred): each of the neck cable's two (#858, its four conductors:
+# VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
+# docs/research/2026-11-03-usb-c-power.md 7)
+LEAD_OD = 1.4
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
-PAN_SPAN = (18.0, (-162.0, -132.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
+# its clamps in front of the pan axis at this radius: the post's, over where the neck cable leaves it, then the yoke's disc's
+PAN_SPAN = (18.0, (-112.0, -82.0))
 # its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
 TILT_SPAN = (22.0, 45.0)
 LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug

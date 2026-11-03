@@ -37,6 +37,12 @@ servo = _load("servo")
 # lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
 # board is taken as 100 [I] (the battery box lead's length is not published).
 SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
+# The next Mech's power path (#858, docs/research/2026-11-03-usb-c-power.md 7): the pack on the power-path board's
+# battery FET (BQ25886; its on-resistance not read, 20 mohm [I]), the switch board after the board's output, then the
+# neck cable's output pair up the post (24 AWG, 0.0842 ohm/m, out and back; 250 mm, the research's assumed run [I]) to
+# the Y lead into the Shields, across which the bulk capacitor sits (470 uF: open at DC, so worst_case() is unmoved by
+# it; it rides the start edges and the board's switchover).
+BATFET_OHM, NECK_CABLE_MM, NECK_OHM_PER_MM, BULK_F = 0.020, 250, 2 * 0.0842e-3, 470e-6
 
 
 CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)
@@ -110,16 +116,20 @@ def operating_point(netlist):
 
 
 def mech(soc):
-    """The stock wiring at its worst, on a pack at a state of charge: pack, its lead, the switch board, the Y lead's
-    branch to each shield; per shield its standby, the 5 V servo rail and every servo at stall on its lead, and the
-    Core's 3.3 V in a transmit burst. A regulator is a behavioural source in series, dropping what is above its output
-    or at least its dropout."""
+    """The next Mech's wiring at its worst (#858), on a pack at a state of charge, unplugged: pack, its lead, the
+    power-path board's battery FET, the switch board, the neck cable's output pair up the post, the bulk capacitor
+    across its end and the Y lead's branch from there to each shield; per shield its standby, the 5 V servo rail and
+    every servo at stall on its lead, and the Core's 3.3 V in a transmit burst. A regulator is a behavioural source in
+    series, dropping what is above its output or at least its dropout."""
     lines = [
         "* noggin supply",
         f"Vpack cells 0 {pack_ocv(soc)}",
         f"Rpack cells pack {pack_ohm(soc)}",
-        f"Rpack_lead pack switch_in {XH_LEAD_MM * OHM_PER_MM}",
-        f"Rswitch switch_in switch_out {SWITCH_OHM}",
+        f"Rpack_lead pack bat {XH_LEAD_MM * OHM_PER_MM}",
+        f"Rbatfet bat switch_in {BATFET_OHM}",
+        f"Rswitch switch_in post {SWITCH_OHM}",
+        f"Rneck post switch_out {NECK_CABLE_MM * NECK_OHM_PER_MM}",
+        f"Cbulk switch_out 0 {BULK_F}",
     ]
     for core, ports in CHANNELS.items():
         vbat, rail = f"{core}_vbat", f"{core}_rail"

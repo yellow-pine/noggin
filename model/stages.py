@@ -94,17 +94,23 @@ def rocker_loop(joint, o2, a0, o4, b0, axis, coupler, rockers):
 
 def next_base():
     """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
-    -x, the switch board lying beside the lead's end (#828) and the Cores lying in front of the neck (#838), the same in
-    every head variant."""
+    -x, the switch board lying beside the lead's end (#828) and the power-path board in front of the neck (#858), the
+    same in every head variant."""
     pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
         "next torso lid:1": part(stl("next torso lid"), None, printed("next torso lid")),
         "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
-    boards = candidates.switch_board() | candidates.boards()
+    boards = candidates.switch_board() | candidates.power_board()
     parts |= {f"{name}:1": part(stl(mesh), at, BOARD) for name, (mesh, at) in boards.items()}
     return Sub(parts, {})
+
+
+def next_cranium():
+    """next-cranium: the boards in the next Mech's head (#858, model/base.py): the cranium tray on the gimbal frame's
+    plate, both Cores lying on it, each under its Shield, and the hub on its riser; it rides the head (RIDES)."""
+    return _boards("next cranium tray", candidates.cranium())
 
 
 def _boards(stem, placed):
@@ -310,6 +316,7 @@ SUBS = {
     "next-neck": next_neck,
     "next-jaw": next_jaw,
     "next-base": next_base,
+    "next-cranium": next_cranium,
     "next-stand": next_stand,
     "next-morty": next_morty,
     g.SKULL_SUB: next_skull,
@@ -320,6 +327,7 @@ DOCS = g.STAGES | g.NEXT
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
     "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
+    "next-cranium": "next gimbal frame:1",  # the cranium tray on its plate (#858)
     # a Skin's Shells, each on its Seats (model/skin.py), the shirt on the Torso, which moves none
     "next morty face:1": "next gimbal frame:1",
     "next morty hair:1": "next gimbal frame:1",

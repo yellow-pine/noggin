@@ -72,12 +72,21 @@ TOUCH = {
         for s in "LR"
     },
     frozenset(("next gimbal frame:1", "next pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
-    # the Torso (#685), the Cores in it (#838): the same
+    # the Cores on the cranium tray (#858): the same
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            *(("next torso:1", f"next Core {n}:1") for n in (1, 2)),
+            *(
+                ("next cranium tray:1", p)
+                for p in (
+                    "next Core 1:1",
+                    "next Core 2:1",
+                    "next hub:1",
+                    "next bulk capacitor:1",
+                    "next gimbal frame:1",
+                )
+            ),
             # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
             *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
         ]
@@ -87,10 +96,11 @@ TOUCH = {
         for pair in [
             ("next torso:1", "next neck mount:1"),
             ("next torso:1", "next torso lid:1"),
-            # the yoke's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838)
-            ("next torso lid:1", "next pan yoke:1"),
+            # the neck mount's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838, #858)
+            ("next torso lid:1", "next neck mount:1"),
             ("next torso:1", "next pack:1"),
             ("next torso:1", "next switch board:1"),
+            ("next torso:1", "next power-path board:1"),
         ]
     },
 }
