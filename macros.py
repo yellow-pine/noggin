@@ -360,13 +360,14 @@ RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # jus
 def stage_switch():
     """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the header's Theme
     bar's Skeleton adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING
-    (#705), when just sim ranked today's variants; and the Skeletons (#805), each its GLB's suffix (the header's bar
-    picks one, #806)."""
+    (#705), when just sim ranked today's variants: its mechanical document's, the one physics runs on (#809); and the
+    Skeletons (#805), each its GLB's suffix (the header's bar picks one, #806)."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
-    ranked = set(ranking.get("order", [])) == set(g.NEXT)
+    ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
     for n, doc in enumerate(BONY, 1):
-        fails = ranking["variants"][doc]["fails"] if ranked and doc in g.NEXT else []
+        mechanical = doc + g.SKELETON_SUFFIX["mechanical"]
+        fails = ranking["variants"][mechanical]["fails"] if ranked and mechanical in g.NEXT else []
         buttons.append(
             {
                 "glb": viewer.PUBLIC[doc].removesuffix(".glb"),

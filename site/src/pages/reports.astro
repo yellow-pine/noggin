@@ -6,8 +6,9 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
 <StarlightPage frontmatter={{ title: 'Reports', tableOfContents: false }}>
   <p>
-    What the sim measured on main's parts and envelopes (<code>just sim</code>): one report per assembly, as JSON, and the
-    tests' results.
+    What the sim measured on main's parts and envelopes (<code>just sim</code>): one report per mechanical assembly, as
+    JSON, and the tests' results. Physics runs on the mechanical Skeleton alone: each Bone is carved from its mechanical
+    part, so a realistic assembly's figures are its mechanical one's.
   </p>
   <ul>
     <li data-reports>None in this build: CI adds main's.</li>

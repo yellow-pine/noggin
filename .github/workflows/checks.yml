@@ -7,7 +7,8 @@ name: Checks
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
 # work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
 # tests marked model in four shards balanced on the seconds they measured (model/shards.py: each document, the rest
-# with just view's offscreen render, just sim when its inputs changed, and just mech,
+# with just view's offscreen render, just sim's three parts when its inputs changed, which `Sim` merges and thresholds
+# (#809), and just mech,
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
@@ -58,6 +59,7 @@ jobs:
       next: ${{ steps.next.outputs.cache-hit }}   # warm: Blender skips, checks restores them
       next-hash: ${{ steps.inputs.outputs.next }}
       sim-hash: ${{ steps.inputs.outputs.sim }}
+      sim: ${{ steps.sim.outputs.cache-hit }}   # warm: no sim part runs, Sim skips
       shards: ${{ steps.lists.outputs.shards }}
     steps:
       - name: Check out the repo
@@ -108,6 +110,20 @@ jobs:
             web/build
           key: next-${{ steps.inputs.outputs.next }}
           lookup-only: true
+      # whether main's sim reports for the same inputs are cached: then no sim part runs and Sim skips. The weekly and
+      # dispatched runs simulate again
+      - name: Look up the sim reports
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+        id: sim
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-${{ steps.inputs.outputs.sim }}
+          lookup-only: true
+      - name: Report the sim inputs unchanged
+        if: ${{ steps.sim.outputs.cache-hit == 'true' }}
+        run: |
+          echo "### Sim inputs unchanged: main's reports for them stand, no sim ran" >> "$GITHUB_STEP_SUMMARY"
       # our built parts and their convex pieces: a hit starts the model shards warm, a miss runs convex first
       - name: Look up the parts cache
         id: parts
@@ -132,6 +148,7 @@ jobs:
         env:
           MODEL: ${{ steps.filter.outputs.model }}
           MECH: ${{ steps.filter.outputs.mech }}
+          SIM: ${{ steps.sim.outputs.cache-hit != 'true' }}
       # the rest of the run cancelled at once (#769)
       - name: Cancel the run on failure
         if: ${{ failure() }}
@@ -258,9 +275,9 @@ jobs:
     strategy:
       fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
-      # on one worker, --dist loadgroup), the rest, just sim and just mech (model/shards.py)
+      # on one worker, --dist loadgroup), the rest, just sim's parts and just mech (model/shards.py)
       matrix:
-        include: ${{ fromJSON(needs.changes.outputs.shards) }}   # {shard, units, tests} (model/test_shards.py)
+        include: ${{ fromJSON(needs.changes.outputs.shards) }}   # {shard, units, tests, sim} (model/test_shards.py)
     env:   # a shard of just mech alone, on a PR leaving the model's inputs alone, needs no parts, EGL or ngspice
       MODEL: ${{ needs.changes.outputs.model != 'false' }}
     steps:
@@ -343,56 +360,36 @@ jobs:
       - name: Run just stl step
         if: ${{ contains(matrix.units, 'rest') }}
         run: uv run just stl step
-      # the sim reports (just sim on our parts and envelopes, model/build/reports, never committed: ADR 0009), keyed
-      # on what they are made from (Changes hashes them, #732). An exact hit is
-      # main's reports for these very inputs, so the sim does not run; a miss restores main's latest reports as the
-      # baseline the new ones are diffed against in this job's summary. Saved for the site, which publishes them at
-      # /reports (Deploy below)
-      - name: Restore the sim reports
-        if: ${{ contains(matrix.units, 'sim') }}
-        id: reports
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: model/build/reports
-          key: sim-${{ needs.changes.outputs.sim-hash }}
-          restore-keys: sim-
-      - name: Run just sim
-        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
-        run: |   # and its core-seconds, as the tests' seconds summed over the xdist workers
-          [ ! -d model/build/reports ] || mv model/build/reports model/build/main-reports
-          start=$SECONDS
-          uv run just sim
+      # the shard's parts of just sim (SIM_PART, model/report.py: each mechanical document's share of the poses and
+      # motions, #809) into model/build/sim-part-<i>-of-<n>, for Sim to merge
+      - name: Run just sim's parts
+        if: ${{ matrix.sim != '' }}
+        run: |   # and each one's core-seconds, as the tests' seconds summed over the xdist workers
           mkdir -p "$RUNNER_TEMP/durations"
-          echo "{\"just sim\": $(( (SECONDS - start) * $(nproc --all) ))}" > "$RUNNER_TEMP/durations/sim.json"   # --all: nproc heeds OMP_NUM_THREADS
+          for part in $PARTS; do
+            start=$SECONDS
+            SIM_PART=$part uv run just sim
+            echo "{\"just sim $part\": $(( (SECONDS - start) * $(nproc --all) ))}" > "$RUNNER_TEMP/durations/sim-${part%/*}.json"   # --all: nproc heeds OMP_NUM_THREADS
+          done
         env:
+          PARTS: ${{ matrix.sim }}
           OMP_NUM_THREADS: 1   # a document per process (model/report.py), as the xdist workers in just test
-      - name: Report the sim inputs unchanged
-        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit == 'true' }}
-        run: |
-          echo "### Sim inputs unchanged: main's reports for them stand, no sim ran" >> "$GITHUB_STEP_SUMMARY"
-      - name: Diff the reports against main's
-        if: ${{ !cancelled() && contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
-        run: |
-          {
-            echo "### Sim reports against main's latest"
-            if [ ! -d model/build/main-reports ]; then echo "No reports of main's to diff against."
-            elif d=$(diff -ru -x '*.xml' model/build/main-reports model/build/reports); then echo "No change."
-            else printf '```diff\n%s\n```\n' "${d:0:900000}"   # the summary holds 1 MiB a step
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Save the sim reports
-        if: ${{ contains(matrix.units, 'sim') && steps.reports.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+      - name: Upload the sim parts
+        if: ${{ matrix.sim != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
-          path: model/build/reports
-          key: ${{ steps.reports.outputs.cache-primary-key }}
+          name: sim-parts-${{ strategy.job-index }}
+          path: model/build/sim-part-*
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true   # a re-run of a failed shard
       - name: Upload the measured seconds
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         with:
           name: durations-${{ strategy.job-index }}
           path: ${{ runner.temp }}/durations/
-          if-no-files-found: ignore   # a shard of just sim alone, its reports cached
+          if-no-files-found: ignore   # a shard with no tests, mech or sim part
           retention-days: 7
           overwrite: true   # a re-run of a failed shard
       # saved even when a test or just sim fails (a red main would otherwise never fill its cache); an interrupted build
@@ -405,6 +402,60 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
+      # the rest of the run cancelled at once (#769)
+      - name: Cancel the run on failure
+        if: ${{ failure() }}
+        uses: ./.github/actions/cancel-on-failure
+  # the sim reports (just sim on the mechanical documents, model/build/reports, never committed: ADR 0009, #809), merged
+  # from the Model shards' parts and thresholded, when what they are made from changed (Changes hashes it, #732); diffed
+  # against main's latest in its summary and saved under that hash for the site, which publishes them at /reports
+  sim:
+    name: Sim
+    needs: [changes, model]
+    if: ${{ !cancelled() && needs.model.result == 'success' && needs.changes.outputs.model != 'false' && needs.changes.outputs.sim != 'true' }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: write   # cancel-on-failure
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false   # nothing here pushes
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
+        with:
+          enable-cache: false   # as in changes
+      # main's latest, the baseline the new ones are diffed against
+      - name: Restore main's sim reports
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/main-reports
+          key: sim-latest
+          restore-keys: sim-
+      - name: Download the sim parts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
+        with:
+          pattern: sim-parts-*
+          path: model/build
+          merge-multiple: true
+      - name: Run just sim-merge
+        run: uv run just sim-merge
+      - name: Diff the reports against main's
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### Sim reports against main's latest"
+            if [ ! -d model/build/main-reports ]; then echo "No reports of main's to diff against."
+            elif d=$(diff -ru -x '*.xml' model/build/main-reports model/build/reports); then echo "No change."
+            else printf '```diff\n%s\n```\n' "${d:0:900000}"   # the summary holds 1 MiB a step
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the sim reports
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: model/build/reports
+          key: sim-${{ needs.changes.outputs.sim-hash }}
       # the rest of the run cancelled at once (#769)
       - name: Cancel the run on failure
         if: ${{ failure() }}
@@ -549,7 +600,7 @@ jobs:
           node-version-file: site/.nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
-      # main's latest sim reports (the sim shard saves them on main), which just site publishes at /reports: no entry
+      # main's latest sim reports (Sim saves them on main), which just site publishes at /reports: no entry
       # carries this key, so the newest sim- entry is restored. This runs beside the sim, so on main Deploy swaps
       # in the newest once it is done (just site-reports)
       - name: Restore main's sim reports
@@ -605,7 +656,7 @@ jobs:
   # failed need fails it)
   checks:
     name: Checks
-    needs: [changes, code, convex, model, render, blender, site]
+    needs: [changes, code, convex, model, sim, render, blender, site]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
     steps:
@@ -613,10 +664,10 @@ jobs:
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: convex, model, render, blender
+          allowed-skips: convex, model, sim, render, blender
   # main's site on GitHub Pages (yellowpine.com/noggin/, docs/adr/0009), from main's push, or Release's manual run
   # (#802), once the gate passed (#795):
-  # Site's artifact, no rebuild, with main's newest sim reports swapped in (the sim shard has saved them by now), the
+  # Site's artifact, no rebuild, with main's newest sim reports swapped in (Sim has saved them by now), the
   # latest docs alone (docs/adr/0021). In this run, as GitHub's Pages starter workflow, so each github-pages Deployment
   # records the commit built and links its run. A red run deploys nothing and leaves the last site up; Default Branch
   # Failure reports it

@@ -25,8 +25,8 @@ _Avoid_: frame, chassis, core
 
 **Bone**:
 A Skeleton link between two joints drawn organic: thick at the joints, waisted mid-span, rounded in section, its
-joints kept exact. Each Skeleton part is drawn both as Bones and mechanical, the same interfaces in both
-(docs/adr/0020).
+joints kept exact. Each Skeleton part is drawn both as Bones and mechanical, the same interfaces in both, its Bones
+carved from its mechanical part, so they differ only in look (docs/adr/0020).
 _Avoid_: strut, organic bar
 
 **Test stand**:

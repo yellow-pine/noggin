@@ -9,6 +9,7 @@ from model import printed
 from model.printed import bone
 
 A, B = (0.0, 0.0, -5.0), (30.0, 10.0, -5.0)
+CARVED_MM3 = 0.1  # a print tolerance: one 0.1 mm layer over 1 mm2, past the booleans' slivers
 
 
 def test_a_bone_sits_flat_on_the_bed_with_no_overhang():
@@ -52,6 +53,14 @@ def test_a_styled_skeleton_part_builds_mechanical_and_as_bones(stem):
     for shape in (bones, mechanical):
         assert shape.isValid() and len(shape.Solids()) == 1
     assert bones.Volume() != pytest.approx(mechanical.Volume(), rel=1e-3)
+
+
+@pytest.mark.parametrize("stem", sorted(printed.STYLED))
+def test_a_bone_is_carved_from_its_mechanical_part(stem):
+    """#809: the Bones lie inside the mechanical part, so what physics measures on it (clearance, overlap, torque,
+    strength) holds for both: less than CARVED_MM3 of the Bones lies outside it."""
+    bones, mechanical = (printed.PARTS[s]().val() for s in (stem, stem + g.MECHANICAL))
+    assert bones.cut(mechanical).Volume() < CARVED_MM3
 
 
 def test_every_skeleton_part_has_both_styles_or_names_the_ticket_drawing_its_bones():

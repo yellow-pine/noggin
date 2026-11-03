@@ -419,8 +419,8 @@ def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_o
 def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
     """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and each Skeleton (#805)
     its GLB's suffix, the header's Theme bar picking one (#806). #705: with just sim's ranking of today's head
-    variants, the Stage that is one is marked with what it fails, unmarked else (a ranking of other documents: main's
-    reports before the variants' first sim)."""
+    variants, the Stage that is one is marked with what its mechanical document fails, the one physics runs on (#809),
+    unmarked else (a ranking of other documents: main's reports before the variants' first sim)."""
     import json
 
     import macros
@@ -429,7 +429,7 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
-    fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-mechanical": []}
+    fails = {"next-mech-back-mechanical": ["head size", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
     assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]

@@ -28,6 +28,7 @@ def _box(x, y, z, r=0.0, edges="|Z"):
     return out.edges(edges).fillet(r) if r else out
 
 
+@bone.carved
 def torso(mechanical=False):
     """The Torso (printed upright): its floor (the foot; the neck mount stands on it), its walls round it, and the pack's
     cradle on the floor behind the neck mount. As Bones (#708), carved from it (#809): its upright corners round and a
@@ -70,6 +71,7 @@ def _lancet(axis, c, wall, z0, z1):
     return cq.Workplane(plane, origin=origin).polyline(outline).close().extrude(WALL, both=True)
 
 
+@bone.carved
 def rack(mechanical=False):
     """Back's board rack (#708): a flange screwed under the gimbal frame's plate at its back edge, a post up behind the
     plate at each end of the row, from each a rail forward over the gimbal, and the shelf the boards stand on over the
@@ -102,6 +104,7 @@ def rack(mechanical=False):
     return out
 
 
+@bone.carved
 def stand(mechanical=False):
     """Stage 1's test stand (printed upside down, on its top): an open box under the gimbal frame's plate, from the desk
     to the plate's underside, its top's holes under the head mount's (nk.HEAD_SCREWS), the eyes Core against its back

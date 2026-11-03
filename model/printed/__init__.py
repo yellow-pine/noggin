@@ -51,29 +51,6 @@ UNSTYLED = {"next eyeball core": "the eyeball's ball under its cap: none"}
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
 
 
-def carved(build):
-    """`build`'s Bones carved from its mechanical part (#809): they never add to it, so its interfaces and
-    every clearance stay the mechanical part's."""
-
-    def draw(mechanical=False):
-        mech = build(mechanical=True)
-        if mechanical:
-            return mech
-        out = build().intersect(mech)
-        assert out.val().isValid() and len(out.val().Solids()) == 1, build
-        return out
-
-    return draw
-
-
-# the parts #708 drew as Bones, carved so
-for stem in (
-    *("next gimbal frame", "next pitch bar", "next neck mount", "next pan yoke", "next head mount", "next jaw"),
-    *("next pan bar", "next tilt bar", "next jaw bar", "next board rack"),
-):
-    PARTS[stem] = STYLED[stem] = carved(STYLED[stem])
-
-
 def styled(stem, mechanical):
     """The part `stem` in a style: its mechanical name where it has one (STYLED), else itself."""
     return stem + MECHANICAL if mechanical and stem in STYLED else stem

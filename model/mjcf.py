@@ -2,7 +2,7 @@
 model/stages.py, in metres. Each part is drawn with
 its mesh from just ours and collides through its CoACD convex pieces, since MuJoCo collides a mesh by its convex hull;
 the pieces are decomposed once per mesh and cached in model/build/convex. `python -m model.mjcf [doc ...]` writes
-model/build/mjcf/<doc>.xml (every document by default); `just view` opens one in MuJoCo's viewer.
+model/build/mjcf/<doc>.xml (every one physics runs on by default, geometry.SIMULATED: #809); `just view` opens one in MuJoCo's viewer.
 Each horn is a hinge on its servo shaft driven by its servo (drive(): a DC motor behind its own position loop), each
 coupler a hinge on its horn pin and each rocker a hinge on its pivot; the four-bars close by a connect at the coupler's
 rocker pin (#148, research note docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
@@ -38,12 +38,9 @@ FINE_MM = {"horn": 0.08} | {
     for s in "LR"
     for style in ("", g.MECHANICAL)
 }
-# The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
-MAX_PIECES = dict.fromkeys(
-    ("next tie-bar", "next push-rod", "next yaw yoke", "next bail", "next board rack", "next lid bar", "next lid link")
-    + ("next pitch bar", "next pan bar", "next tilt bar", "next jaw bar", "next jaw"),
-    12,
-) | {"next torso": 20}  # its windowed walls and the cradle
+# The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
+# pieces, so each one's capped and the sim stays fast
+MAX_PIECES = dict.fromkeys((f"next {p}{g.MECHANICAL}" for p in ("tie-bar", "yaw yoke", "bail")), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -348,5 +345,5 @@ def residuals(model, data):
 
 
 if __name__ == "__main__":
-    for doc in sys.argv[1:] or stages.DOCS:
+    for doc in sys.argv[1:] or g.SIMULATED:
         print(os.path.relpath(write(doc), stages.REPO))

@@ -119,12 +119,12 @@ def shifted(com, acc, floor, g=9.81):
     return np.asarray(com[:2], float) - (com[2] - floor) * np.asarray(acc[:2], float) / g
 
 
-def _motions(doc, model, plate):
-    """Each motion played through the servos' dynamics (trajectories.play), read every ms: per servo the most it holds
-    against gravity and turns its load with (torques()) and where, and its hold at Rest (every gesture starts there);
-    with the base's vertices (mm), the worst margin of the centre of mass shifted by its acceleration (shifted())."""
-    names = trajectories.motions(doc)
-    assert names[0] in traces.GESTURES  # the first starts from Rest
+def _motions(doc, model, plate, names):
+    """Each motion of `names` played through the servos' dynamics (trajectories.play), read every ms: per servo the most
+    it holds against gravity and turns its load with (torques()) and where, and its hold at Rest (every gesture starts
+    there); with the base's vertices (mm), the worst margin of the centre of mass shifted by its acceleration
+    (shifted())."""
+    assert trajectories.motions(doc)[0] in traces.GESTURES  # the first starts from Rest
     servos, moving = {}, None
     outline, floor, g = (
         (None, None, None) if plate is None else (footprint(plate), plate[:, 2].min(), -model.opt.gravity[2])
@@ -185,10 +185,17 @@ def _worst(old, value, at, key):
     return old if old and old[key] >= value else {key: round(value, 3), "at": at}
 
 
-def measure(doc, model):
-    """The document's MuJoCo report (a dict, in the shape model/test_report.py reads). Widens `model`, which is the
-    report's own (widen())."""
-    stage, todo = stages.STAGES[doc], poses(doc)
+def share(items, part):
+    """The `part` (i, n) of `items`: its i-th of n runs in turn, so the earlier share holds the earlier items."""
+    i, n = part
+    return items[len(items) * i // n : len(items) * (i + 1) // n]
+
+
+def measure(doc, model, part=(0, 1)):
+    """The document's MuJoCo report (a dict, in the shape model/test_report.py reads), or its `part` (i, n): its share()
+    of the poses and of the motions, the first part the full-speed swings and the vibration too, which merge() joins
+    into the whole one. Widens `model`, which is the report's own (widen())."""
+    stage, todo = stages.STAGES[doc], share(poses(doc), part)
     widen(model)
     still = mjcf.pose(model, {})
     rest = _contacts(model, still)
@@ -226,8 +233,10 @@ def measure(doc, model):
         p["min_mm"] = round(p["min_mm"], 3)
         p["rest_mm"] = None if p["rest_mm"] is None else round(p["rest_mm"], 3)
     full_speed = {}
-    for h, horn in stage.horns.items():
+    for h, horn in stage.horns.items() if part[0] == 0 else ():
         for d in horn.limits:
+            if (h, d) not in slow:  # its end in another part's share of the sweep
+                slow[(h, d)] = mjcf.pose(model, {h: d}).qpos.copy()
             fast = mjcf.pose(model, {h: d}, RATED_DEG_S).qpos
             off = math.degrees(float(np.abs(fast - slow[(h, d)]).max()))  # every DOF is a hinge
             if h not in full_speed or off > full_speed[h]["off_deg"]:
@@ -247,9 +256,51 @@ def measure(doc, model):
         },
         "full_speed": full_speed,
     }
-    out["motions"], moving = _motions(doc, model, plate)
+    out["motions"], moving = _motions(doc, model, plate, share(trajectories.motions(doc), part))
     if neck:
         size = [round(float(mm), 1) for mm in np.ptp(plate[:, :2], axis=0)]
         out["tip_over"] = {**tip, "moving": moving, "footprint_mm": size}  # the base's x by y
-        out["vibration"] = vibration(doc, model, still, slow)
+        if part[0] == 0:
+            out["vibration"] = vibration(doc, model, still, slow)
+    return out
+
+
+def merge(parts):
+    """The whole report from its parts' (measure's, in order): each figure's worst across them, the earlier part's on a
+    tie, as measure keeps the first pose or motion that reads it."""
+    out, worse = {**parts[0], "poses": sum(m["poses"] for m in parts)}, {}
+
+    def lower(a, b, key):  # b reads lower than a, or a is the first
+        return a is None or (b.get(key) is not None and b[key] < a[key])
+
+    for m in parts:
+        for p in m["pairs"]:
+            if lower(worse.get(tuple(p["pair"])), p, "min_mm"):
+                worse[tuple(p["pair"])] = p
+        for key, field in (("residuals", "max_mm"), ("actuators", "hold_kgf_cm")):
+            for k, r in m[key].items():
+                if k not in out[key] or r[field] > out[key][k][field]:
+                    out[key] = {**out[key], k: r}
+        for k, r in m["loops"].items():
+            least = dict(out["loops"].get(k) or r)
+            for field, at in (("margin_mm_rad", "margin_at"), ("transmission_deg", "transmission_at")):
+                if r[field] < least[field]:
+                    least[field], least[at] = r[field], r[at]
+            out["loops"] = {**out["loops"], k: least}
+    out["pairs"] = sorted(worse.values(), key=lambda p: p["pair"])
+    names, servos = [], {}
+    for m in parts:
+        names += m["motions"]["names"]
+        for h, s in m["motions"]["servos"].items():
+            best = servos.setdefault(h, dict(s))  # its rest from the first part that plays a motion
+            for key, at in (("hold_kgf_cm", "hold_at"), ("peak_kgf_cm", "peak_at")):
+                if s[key] > best[key]:
+                    best[key], best[at] = s[key], s[at]
+    out["motions"] = {"names": names, "servos": servos}
+    if "tip_over" in out:
+        tip, moving = None, None
+        for m in parts:
+            tip = m["tip_over"] if lower(tip, m["tip_over"], "margin_mm") else tip
+            moving = m["tip_over"]["moving"] if lower(moving, m["tip_over"]["moving"] or {}, "margin_mm") else moving
+        out["tip_over"] = {**tip, "moving": moving}
     return out

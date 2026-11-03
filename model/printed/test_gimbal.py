@@ -34,10 +34,11 @@ def _overlaps(shapes, pairs):
     ]
 
 
-@pytest.fixture(scope="module", params=[False, True], ids=["bones", "mechanical"])
-def rest(request):
-    """{part: its solid at rest} (gimbal.at_rest), built once a module and Skeleton: CI's 15 s times the test alone."""
-    return gimbal.at_rest(request.param)
+@pytest.fixture(scope="module")
+def rest():
+    """{part: its solid at rest} (gimbal.at_rest), built once a module: CI's 15 s times the test alone. The Skeleton
+    mechanical, which the Bones are carved from (#809)."""
+    return gimbal.at_rest(mechanical=True)
 
 
 @pytest.mark.model
@@ -47,7 +48,6 @@ def test_no_two_parts_overlap_at_rest(rest):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("rest", [False], ids=["bones"], indirect=True)
 def test_the_block_fits_the_compact_head(rest):
     """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
@@ -69,7 +69,6 @@ def skeleton(rest):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("rest", [False], ids=["bones"], indirect=True)
 def test_the_skeleton_moves_every_part_as_the_gimbal_does(skeleton):
     """The hinges gates.certify reads (#655): at each (lid, pitch) row every part sits where gimbal.moved() puts it, the
     parts that turn alike about one line on one hinge."""
@@ -143,8 +142,8 @@ def _section(solid, a, b, t, eps=0.01):
 )
 def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
     """SF 2 (beams.MIN_SF) in PETG across its layers along its waist, pinned at both joints: on its strength and against
-    Euler buckling over its span."""
-    solid = (gimbal.tie_bar if part == "tie-bar" else gimbal.push_rod)().val()
+    Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809)."""
+    solid = (gimbal.tie_bar if part == "tie-bar" else gimbal.push_rod)(mechanical=True).val()
     mat = g.MATERIALS[g.PRINTED[f"next {part}"][1]]
     force = beams.stall_force_n() * load
     area, least = min(_section(solid, a, b, t) for t in (0.3, 0.4, 0.5, 0.6, 0.7))
@@ -237,9 +236,10 @@ MEMBERS = {
 @pytest.mark.parametrize("member", MEMBERS)
 def test_the_yokes_crank_and_the_bails_arms_hold_the_servos_at_stall(member):
     """SF 2 (beams.MIN_SF) in bending: the crank under the yaw servo's stall at its pin; each bail arm under the pitch
-    servo's at its ball (one arm taking it all, the bail's ratio on); the input arm under it at the pitch bar's pin."""
+    servo's at its ball (one arm taking it all, the bail's ratio on); the input arm under it at the pitch bar's pin. On
+    the mechanical parts, which their Bones are carved from (#809)."""
     part, *beam = MEMBERS[member]
-    assert _bending_sf(part().val(), *beam) >= beams.MIN_SF
+    assert _bending_sf(part(mechanical=True).val(), *beam) >= beams.MIN_SF
 
 
 def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
@@ -280,14 +280,14 @@ def _slice(solid, a, b, t, eps=0.01):
     return cut.Volume() / eps, float(np.linalg.eigvalsh(basis @ inertia @ basis.T).min()), float(inertia[0, 0]), half
 
 
-@pytest.mark.parametrize("style", ["bone", "mechanical"])  # both looks stay (#704)
 @pytest.mark.parametrize("part", LID_BONES)
-def test_each_lid_bone_holds_its_lid_servo_at_stall(part, style):
+def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
     """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
     between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
-    half-width), and the straight link against Euler buckling."""
+    half-width), and the straight link against Euler buckling. On the mechanical part, which its Bone is carved from
+    (#809)."""
     make, joints = LID_BONES[part]
-    solid, mat = make(mechanical=style == "mechanical").val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):

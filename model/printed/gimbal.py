@@ -75,6 +75,7 @@ def cap(side):
     return out.cut(seat)
 
 
+@bone.grown
 def yoke(mechanical=False):
     """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis
     with its crank (back) on the tie-bar. As Bones (#704): the U a cradle round the core, its underside flaring at 45
@@ -105,6 +106,7 @@ def yoke(mechanical=False):
     return out.cut(cyl("z", (0, 0, 0), gm.PIN_R, (y["stem_z"], y["stem_z"] + 8)))
 
 
+@bone.grown
 def tie_bar(mechanical=False):
     """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Mechanical: a bar across
     both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone (model/printed/bone.py) from
@@ -125,6 +127,7 @@ def tie_bar(mechanical=False):
     return out
 
 
+@bone.grown
 def bail(mechanical=False):
     """The bail: its rod on an x axis behind the eyes, an arm up to a ball behind each eye, the input arm back to the
     pitch bar's pin, the shanks' bores in its ends. As Bones (#704): the rod and the input arm flat on the bed under
@@ -152,11 +155,13 @@ def bail(mechanical=False):
     return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (-2, 2)))
 
 
+@bone.carved
 def push_rod(mechanical=False):
-    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball. Mechanical:
-    an r 2 cylinder; as a Bone (#703), on its cups' rims."""
+    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's on its cups' rims, a cup round
+    each ball. Mechanical: a flat bar round the Bone's waist (#809); as a Bone (#703), carved from it."""
     z, back = gm.LEVER, gm.BAIL[0]
-    out = cyl("y", (0, 0, z), 2.0, (0, back)) if mechanical else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
+    rod = box((-2.5, 2.5), (0, back), (z - 2, z + 2.5))
+    out = rod if mechanical else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
     for y in (0.0, back):
         out = out.union(ball(CUP_R, (0, y, z)).cut(box((-CUP_R, CUP_R), (y - CUP_R, y + CUP_R), (z - CUP_R, z - 2))))
     for y in (0.0, back):
@@ -207,6 +212,7 @@ def lid_bone(points, x, sizes=LID_BONE):
     return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
 
+@bone.carved
 def pitch_bar(mechanical=False):
     """The pitch bar: the pitch horn's pin up to the bail's input arm, mechanical or a Bone (#708)."""
     hy, hz = gm.PITCH_HORN
@@ -218,6 +224,7 @@ def _slab(name, side=1):
     return tuple(sorted(side * u for u in gm.LID_X[name]))
 
 
+@bone.carved
 def lid_bar(mechanical=False):
     """One lid's bar (drawn centred on x 0): the upper lid's crank pin back to the bend, behind the tie-bar, then down to
     its horn's; the link's pin between the first two (#698). Mechanical or as Bones (#704)."""
@@ -227,6 +234,7 @@ def lid_bar(mechanical=False):
     return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
 
 
+@bone.carved
 def lid_link(mechanical=False):
     """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698).
     Mechanical or as Bones (#704)."""
@@ -260,6 +268,7 @@ def _lid(radii, span, spokes, boss, pin, mechanical):
     return holes(out, [pin], inner).cut(cyl("x", (0, 0, 0), gm.PIN_R, outer))
 
 
+@bone.carved
 def upper_lid(side, mechanical=False):
     """The `side` upper lid (drawn for L, the R its mirror): its edge at LID_REST, LID_SPAN up; its boss on the shank
     nearer the eye, its crank pin LID_PIN on the lid bar."""
@@ -267,6 +276,7 @@ def upper_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
+@bone.carved
 def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
@@ -275,6 +285,7 @@ def lower_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
+@bone.carved
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under everything, the yaw bearings under the yokes' stems, the bail's and
     the lids' uprights with the shanks' bores, a collar on posts round each servo at its tab plate, and the holes the
@@ -423,16 +434,16 @@ def _path(segments, step):
     return np.round(rows, 6)  # a value shared by two lines reads the same
 
 
-def sweep(mechanical=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650), the Skeleton `mechanical` or as Bones (#704): each lid, its bar, its horn and its shank
-    against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
+    """The lid drives' sweep (#650), on the Skeleton mechanical (#809: the Bones carved from it): each lid, its bar, its horn and its
+    shank against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
     Every pair at least LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is
     reported. Every pair closer at rest (a pin, a face sliding on a face, the boss on its shank) is checked for overlap
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
-    rest = at_rest(mechanical)
+    rest = at_rest(mechanical=True)
     names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1", "lid shank")
     drives = [f"next {s} {n}" for s in "LR" for n in names]
     spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline

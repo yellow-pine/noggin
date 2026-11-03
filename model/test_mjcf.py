@@ -88,7 +88,7 @@ TOUCH = {
         ]
     },
 }
-DOC = next(iter(g.NEXT))
+DOC = g.SIMULATED[-1]  # the whole Mech, mechanical: physics runs on it (#809)
 LOOP_MM, TURN_DEG, SWEEP_DEG = 0.05, 0.5, 10
 
 
@@ -109,7 +109,7 @@ def forward(doc):
     return model, data
 
 
-@pytest.mark.parametrize("doc", grouped(stages.DOCS))
+@pytest.mark.parametrize("doc", grouped(g.SIMULATED))
 def test_every_part_sits_where_stages_places_it(doc):
     """The tracer (#147): every part is a MuJoCo body whose placement, after MuJoCo's own forward kinematics, puts its
     mesh's bounding-box corners within 0.1 mm of model/stages.py's pose at 0 degrees (the document's frame is MuJoCo's)."""
@@ -126,7 +126,7 @@ def test_every_part_sits_where_stages_places_it(doc):
         assert worst < 0.1, (name, worst)
 
 
-@pytest.mark.parametrize("doc", grouped(stages.DOCS))
+@pytest.mark.parametrize("doc", grouped(g.SIMULATED))
 def test_no_two_parts_overlap_at_rest_unless_they_touch_by_design(doc):
     """No two parts that do not touch by design (TOUCH) overlap by more than 0.05 mm (MuJoCo's signed distance between
     their convex pieces): a sub-assembly in the wrong frame cannot hide."""
@@ -208,7 +208,7 @@ def sweep(doc):
     }
 
 
-MOVING = [doc for doc in stages.DOCS if stages.STAGES[doc].horns]
+MOVING = [doc for doc in g.SIMULATED if stages.STAGES[doc].horns]
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
@@ -241,7 +241,7 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
 
 
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))
-def test_a_bone_part_cuts_into_no_more_pieces_than_its_cap(stem):
+def test_a_grown_part_cuts_into_no_more_pieces_than_its_cap(stem):
     assert 0 < len(mjcf.convex(stages.stl(stem))) <= mjcf.MAX_PIECES[stem]
 
 

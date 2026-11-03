@@ -12,7 +12,7 @@ from model.test_report import known
 
 pytestmark = pytest.mark.model
 SETTLED_DEG = 0.5  # a servo's deadband (mjcf.SERVO kp)
-DOC = next(iter(geometry.NEXT))
+DOC = geometry.SIMULATED[-1]  # the whole Mech, mechanical (#809)
 
 
 # Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
@@ -67,7 +67,9 @@ def overlaps(played, chunk, chunks):
 
 
 @pytest.mark.parametrize(
-    "doc, name, chunk", [(d, m, c) for d in geometry.NEXT for m in tj.motions(d) for c in range(CHUNKS)], ids=str
+    "doc, name, chunk",
+    [(d, m, c) for d in geometry.NEXT for m in tj.motions(d) for c in range(CHUNKS) if d in geometry.SIMULATED],
+    ids=str,
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(motion, chunk):
     """#255, #663: every motion as played on the next Mech (its gestures and Rest on its eye gimbal, #663; the next hero

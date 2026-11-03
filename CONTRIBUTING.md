@@ -157,7 +157,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
   public repo is anyone's (ADR 0019, `test_workflows.py`); the
-  Actions cache carries them between jobs. The sim's reports are
+  Actions cache carries them between jobs. The sim runs on the mechanical documents alone (ADR 0020), in three parts
+  among the shards' units (`SIM_PART`), which `Sim` merges and thresholds (`just sim-merge`, #809). Its reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
 - Each job's slowest tests are in its run summary. On CI a test gets 15 s (pytest-timeout's `--timeout`, in `Code` and

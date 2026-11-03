@@ -1,6 +1,8 @@
 {
   "just mech": 140,
-  "just sim": 888,
+  "just sim 0/3": 300,
+  "just sim 1/3": 300,
+  "just sim 2/3": 300,
   "model/render/test_pictures.py::test_eight_fps_keeps_a_blinks_shut_frame_that_the_nearest_frame_would_skip": 0.0004668809999941459,
   "model/test_mjcf.py::test_every_part_weighs_its_mass_spread_over_its_pieces": 7.935781694000013,
   "model/test_mjcf.py::test_make_view_draws_the_mech_on_the_flat_sky_offscreen": 2.376251685999989,

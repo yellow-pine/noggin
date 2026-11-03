@@ -35,7 +35,7 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
     assert lying[0] == pytest.approx(lying[1])  # the pack on the floor the neck mount stands on
 
 
-@pytest.fixture(params=[*sorted(g.NEXT), "next-stage1"])  # and Stage 1's test stand (#720)
+@pytest.fixture(params=g.SIMULATED)  # the whole Mech and Stage 1's test stand (#720), mechanical (#809)
 def placed(request):
     """{part: its solid at rest} in the document, built in setup: CI's 15 s times the test alone."""
     return {n: _shape(p) for n, p in stages.STAGES[request.param].parts.items()}

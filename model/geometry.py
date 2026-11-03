@@ -169,3 +169,7 @@ STAGES = {
 # each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical
 NEXT |= {doc + s: subs for doc, subs in NEXT.items() for s in SKELETON_SUFFIX.values() if s}
 STAGES |= {doc + s: subs for doc, subs in STAGES.items() for s in SKELETON_SUFFIX.values() if s}
+# Physics runs on the mechanical documents alone (#809): each Bone is carved from its mechanical part, so clearance,
+# overlap, torque, strength, the sim and its gates measured there hold for realistic too, whose figures are these. The
+# sim takes the whole Mech and Stage 1 (its test stand): Stage 2 moves as the whole Mech less parts
+SIMULATED = [d for d in STAGES if d.endswith(SKELETON_SUFFIX["mechanical"]) and not d.startswith("next-stage2")]

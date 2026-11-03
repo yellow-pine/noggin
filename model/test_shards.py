@@ -1,5 +1,5 @@
 """Seam: `just model-shards-list`, Checks' model matrix (#305, #474, #496): four shards balanced on the measured
-durations (model/durations.json), every unit (each document, the rest, just sim, just mech) on one, from the code."""
+durations (model/durations.json), every unit (each document, the rest, just sim's parts, just mech) on one, from the code."""
 
 import json
 import os
@@ -45,7 +45,8 @@ def collected(tests, folder):
 def test_four_shards_hold_every_unit_once():
     units = [u for s in listed() for u in s["units"]]
     assert len(listed()) == shards.N == 4
-    assert sorted(units) == sorted([*stages.DOCS, "rest", "sim", "mech"])
+    assert sorted(units) == sorted([*stages.DOCS, "rest", *shards.SIM, "mech"])
+    assert sorted(p for s in listed() for p in s["sim"].split()) == ["0/3", "1/3", "2/3"]
     assert [s["shard"] for s in listed()] == [" ".join(s["units"]) for s in listed()]
 
 
@@ -66,16 +67,17 @@ def test_the_shards_balance_the_measured_seconds():
 
 def test_a_pr_touching_only_the_mech_runs_one_shard_of_make_mech_and_one_touching_neither_none():
     """MODEL and MECH are the Changes job's filters: "false" leaves that group's units out (#496)."""
-    assert listed(MODEL="false") == [{"shard": "mech", "units": ["mech"], "tests": ""}]
+    assert listed(MODEL="false") == [{"shard": "mech", "units": ["mech"], "tests": "", "sim": ""}]
     assert "mech" not in [u for s in listed(MECH="false") for u in s["units"]]
+    assert not [s for s in listed(SIM="false") if s["sim"]]  # its reports cached (#809)
     assert listed(MODEL="false", MECH="false") == []
 
 
 def test_tests_count_under_the_unit_that_picks_them_and_an_unmeasured_unit_weighs_the_mean():
     doc = next(iter(stages.DOCS))
-    took = shards.seconds({f"model/test_mjcf.py::test_x[{doc}]": 4, "just sim": 6, "just mech": 8})
-    assert (took[doc], took["sim"], took["mech"]) == (4, 6, 8)
-    assert took["rest"] == 6  # the mean of the measured units
+    took = shards.seconds({f"model/test_mjcf.py::test_x[{doc}]": 4, "just sim 0/3": 6, "just mech": 8})
+    assert (took[doc], took["sim 0/3"], took["mech"]) == (4, 6, 8)
+    assert took["rest"] == took["sim 1/3"] == 6  # the mean of the measured units
 
 
 def test_the_model_matrix_is_the_changes_job_s_list():
