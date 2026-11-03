@@ -8,7 +8,7 @@ import cadquery as cq
 import numpy as np
 import pytest
 
-from model import base, stages
+from model import base, skin, stages
 from model import geometry as g
 from model import gimbal as gm
 from model.printed import base as printed_base
@@ -27,7 +27,7 @@ def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_wa
     bottom is the foot, so nothing hangs below it."""
     (x0, x1), (y0, y1), (z0, _) = base.TORSO
     parts = stages.next_neck().parts | stages.next_base().parts
-    foot = _shape(parts["next torso:1"]).BoundingBox()
+    foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in ("next neck mount:1", "next pan servo:1", "next pack:1"):
         b = _shape(parts[name]).BoundingBox()
@@ -57,7 +57,7 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
 def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
-    rides = stage.horns["tilt horn"].loops[0].rockers
+    rides = [n for n in stage.horns["tilt horn"].loops[0].rockers if n.removesuffix(":1") not in skin.DRAWN]  # Skeleton
     return request.param, cq.Compound.makeCompound([_shape(stage.parts[n]) for n in rides]).BoundingBox()
 
 

@@ -78,7 +78,8 @@ def rack(mechanical=False):
     t, floor = nb.TRAY_T, gm.PLATE_Z[1]
     (cx, cy), top = nb.CHEEK, nb.ROOF_Z
     inner, outer = cx - 11.8, cx + 11.0  # 1 mm inside the Shield's pins, 0.3 mm outside the Core's USB-C
-    front, y0, y1 = cy - 15.0 - t, cy - 15.0, cy + 15.0  # the stop's front, the Shield's ends
+    front, y0, y1 = cy - 15.0 - t, cy - 15.0, cy + 9.0  # the stop's front; the Shield's front end, 6 short of its back
+    # end: the Core overhangs there, inside the Skin's rounded back corner (model/skin.py ROUND)
     shut = inner + 6  # the stop and the roof start clear of the bail's upright
     out = box((-inner, inner), (y0 + 2, y0 + 2 + t), (floor, floor + t))  # the bar
     for s in (-1, 1):

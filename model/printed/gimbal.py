@@ -64,17 +64,6 @@ def core():
     return out
 
 
-def cap(side):
-    """The largest eyeball cap (a Shell): the sphere segment within CAP_HALF of the gaze, flat on its seat, with the
-    pupil's seat 1 mm deep, its centre turned TOE_IN toward the other eye."""
-    r = gm.CAP_R
-    out = ball(r).intersect(box((-r, r), (-r - 1, -CAP_BACK), (-r, r)))
-    inward = -1 if side == "L" else 1
-    seat_r = r * math.sin(math.radians(gm.PUPIL_DEG))
-    seat = cyl("y", (inward * r * math.sin(math.radians(gm.TOE_IN)), 0, 0), seat_r, (-r - 1, -r + 1))
-    return out.cut(seat)
-
-
 @bone.grown
 def yoke(mechanical=False):
     """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis

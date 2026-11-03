@@ -31,6 +31,7 @@ test.afterEach(async ({ baseURL }) => {
 test('the viewer loads the next Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
   // CI always has the GLBs; a local build has them once just web next ran before just site
   test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.slow(); // three GLB loads in CI's software GL, each allowed 45 s: 54 s of the default 60 before the mix (#819)
   await page.goto('viewer/');
   const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Shapes the bar's Preset's (#819)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });

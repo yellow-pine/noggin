@@ -1,7 +1,8 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Being designed, not built yet.** The Skins' Shells come after the Skeleton (#665); #51 holds the whole spec.
+> **Being designed, not built yet.** Morty's Shells are in the model (#665); Bart's (#807) and Cansin's (#813) follow.
+> #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our own design;
@@ -36,10 +37,36 @@ picks: docs/adr/0022).
 The table of each Palette's filaments is [on the site](https://yellowpine.com/noggin/docs/face-design/).
 <!-- #}-->
 
-## Magnets
-- Every cosmetic part sits on magnets, moving ones included: one small disc size everywhere (start 4x2 mm N52), more of
-  them on heavier parts.
-- The model checks that each part holds against its weight and its peak gesture acceleration.
+## Morty's Shells
+In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it:
+- the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
+  reach, the nose, an ear each side, the mouth's opening; it comes off forward;
+- the hair (hair): the head's top and back over the hairline, the bangs jagged; it comes off upward, so it goes on
+  last;
+- the eyeball caps (eye whites, each Character's largest) with a jagged pupil (pupils) glued in each, keyed by its
+  shape in its seat with 0.15 mm of play a side and turned toward the other eye;
+- a cover on each lid (face): the lower lid's whole, the upper lid's top band alone, since the lower lid passes outside
+  the upper one when a shut eye looks down;
+- the mouth cover (face), his chin under the jaw, in the face's mouth opening;
+- the shirt (clothes), a front and a back half round the Torso, each with its half of the collar.
+
+## Seats and magnets
+- Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
+  flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
+  which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Where the carrier is too thin
+  for the pocket the Seat stands on a pad: the gimbal frame plate's front corners (the face), the jaw's chin (the
+  mouth cover), the Torso's front and back walls (the shirt); the face carries the hair's front Seats. The cores, the
+  lids and the board rack's flat cradle roofs in the cheeks (the hair's back Seats, #828) take theirs in their own
+  faces.
+- One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
+  covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
+- The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
+  (about 4.6 N a pair) at least twice its weight times the peak acceleration the sim reads at its centroid along
+  every motion.
+- The sim weighs and collides the Skeleton and the eyeball caps alone: the other Shells are drawn, weightless, so the
+  servos' figures are the Skeleton's: weighed, Morty's head takes the tilt servo past its rating (#830). Their
+  clearance is checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo
+  at either end (model/printed/test_skin.py).
 
 ## Hardware
 Inventory and the buy list: [Parts](build/parts.md#parts-to-buy). The one new purchase is the magnets, and the

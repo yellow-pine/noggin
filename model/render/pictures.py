@@ -21,7 +21,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import gimbal, stages, trajectories
+from model import gimbal, skin, stages, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
@@ -54,13 +54,14 @@ EXPLODE = {
     "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
     "next-back": (0, 60, 95),
+    "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
 # Shield back out of its cradle (model/base.py back_boards) or off the test stand's face, the switch board and the pack
 # up off the Torso's floor (stages.next_base)
 GAP = 5.0
-SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Z, "battery": g.Z}
+SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Z, "battery": g.Z} | skin.DIRECTIONS  # a Shell off its Seats
 # the front doors (#739: the README's top, the site's home), side by side in this order, in each Preset (#806, #819),
 # the default's first: Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
 # from the side, exploded (EXPLODE); each (DRAWN's name, eye direction, exploded), framed tight on its own at the
@@ -184,6 +185,7 @@ def offsets(doc, level):
     first (each on out along its sub-assembly's offset while it meets one placed), then the largest first, so what sits
     on a part comes off beyond it."""
     sub = {n: s for s in stages.DOCS[doc] for n in stages.SUBS[s]().parts}
+    sub |= {n: sub[c] for n, c in stages.RIDES.items() if n in sub and c in sub}  # a Shell with what carries it
     out = {n: np.array(EXPLODE[sub[n]] if level else (0, 0, 0), float) for n in stages.STAGES[doc].parts}
     if level < 2:
         return out

@@ -88,6 +88,7 @@ def _part(poses, pair_mm, at, residual, margin, hold, peak, tip, moving, **first
             "servos": {
                 "tilt horn": {"rest_kgf_cm": at, "hold_kgf_cm": hold, "hold_at": a, "peak_kgf_cm": peak, "peak_at": a}
             },
+            "shells": {"face:1": {"g": 80.0, "peak_m_s2": 10.0 * peak, "at": a}},
         },
         "tip_over": {"margin_mm": tip, "at": a, "moving": {"margin_mm": moving, "at": a}, "footprint_mm": [90, 90]},
         **first,
@@ -108,7 +109,10 @@ def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
         "full_speed": speed,
         "vibration": {},
     }
-    rest |= {"motions": {"names": [], "servos": {}}, "tip_over": {"moving": None, "footprint_mm": [90, 90]}}
+    rest |= {
+        "motions": {"names": [], "servos": {}, "shells": {}},
+        "tip_over": {"moving": None, "footprint_mm": [90, 90]},
+    }
     one = _part(100, -0.1, 1, 0.02, 3.0, 0.3, 0.5, 5.0, 4.0, full_speed={})
     two = _part(105, -0.1, 2, 0.04, 2.5, 0.3, 0.6, 6.0, 3.0, full_speed={}, vibration={"x": 1})
     m = mujoco_report.merge([rest, one, two])
@@ -118,5 +122,6 @@ def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
     assert m["motions"]["names"] == ["motion 1", "motion 2"]
     s = m["motions"]["servos"]["tilt horn"]
     assert (s["rest_kgf_cm"], s["hold_at"], s["peak_kgf_cm"], s["peak_at"]) == (1, {"pose": 1}, 0.6, {"pose": 2})
+    assert m["motions"]["shells"]["face:1"] == {"g": 80.0, "peak_m_s2": 6.0, "at": {"pose": 2}}  # a Shell's peak (#665)
     assert (m["tip_over"]["margin_mm"], m["tip_over"]["moving"]["margin_mm"]) == (5.0, 3.0)
     assert (m["full_speed"], m["vibration"], m["tip_over"]["footprint_mm"]) == (speed, {}, [90, 90])
