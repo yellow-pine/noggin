@@ -46,13 +46,13 @@ DISC_R, DISC_Z = 15.0, (-104.0, -100.0)  # the yoke's disc on the mount's thrust
 MOUNT_Z = (-144.0, -141.0)  # the neck mount's foot: the base (#642) carries it
 PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-107.0, -104.0)  # the yoke's lever back along +y; the bar along x under it
 # the head's lever back along +y; the bar down to the horn, its servo under the Skin's foot (#838)
-TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 50.0, (1.5, 4.5)
+TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 49.0, (1.5, 4.5)
 JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
 # the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
 # neck's cheeks however the head tilts (#838)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (29.0, 32.0)  # its tabs up through the plate's slot
-JAW_LUG_X, JAW_X = (28.0, 31.0), (32.0, 36.0)  # the frame's lugs (model/printed/gimbal.py), the jaw's arms outside
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (30.0, 33.0)  # its tabs up through the plate's slot
+JAW_LUG_X, JAW_X = (28.0, 31.0), (33.0, 37.0)  # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
 CHIN_Y = -29.0  # its chin's front, the mandible's
 JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L arm round to the chin, the mandible's
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate

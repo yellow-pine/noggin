@@ -99,8 +99,9 @@ def margin(outline, xy):
 
 def torques(model, data, moving=True):
     """N.m each actuator's servo turns its load with at data's pose, by MuJoCo's inverse dynamics (mj_rne, which leaves
-    out the servo's own rotor, its armature) less the balance spring's turn, with the four-bars rigid: the servos' torques and the rocker pins' forces
-    that balance it, by least squares. moving: at data's speed and acceleration; else held, against gravity alone."""
+    out the servo's own rotor, its armature) less the balance spring's turn, with the four-bars rigid: the servos'
+    torques and the rocker pins' forces that balance it, by least squares. moving: at data's speed and acceleration;
+    else held, against gravity alone."""
     mujoco.mj_kinematics(model, data)
     mujoco.mj_comPos(model, data)
     qvel, need = data.qvel.copy(), np.zeros(model.nv)

@@ -110,7 +110,7 @@ LID_X = {
 # to the lids' uprights
 PLATE_Z = (-38.0, -35.0)
 PLATE_Y = (-10.0, 87.0)  # in front of the coronoids to past the head mount's rear screws (model/neck.py)
-PLATE_X, BACK_X, BACK_Y = 31.0, 42.0, 37.5  # the body's half-width, and behind BACK_Y (the condyles') the back's
+PLATE_X, BACK_X, BACK_Y = 31.0, 42.0, 40.0  # the body's half-width, and behind BACK_Y (the condyles') the back's
 CHEEK_Y = (-10.0, -6.0)
 # the head the gimbal fits (#684, #838): width, depth, height; 140 wide, past the face's 105 (the lids' frame), and 140
 # deep, so the realistic skull keeps its length
