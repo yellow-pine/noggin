@@ -51,7 +51,7 @@ def test_the_vertebrae_ring_the_post_under_the_heads_lugs(placed):
 @pytest.mark.parametrize("source", [skull.CRANIUM, skull.MANDIBLE, skull.ATLAS, skull.AXIS])
 def test_each_source_sits_under_its_own_licence(source):
     """docs/adr/0023: each source's folder carries its licence, its author and where it came from."""
-    notice = open(os.path.join(stages.REPO, os.path.dirname(source), "LICENSE.md")).read()
+    notice = open(os.path.join(stages.REPO, f"{os.path.dirname(source)}/LICENSE.md")).read()  # its folder's own
     assert "printables.com/model/" in notice and "creativecommons.org/licenses/" in notice
     assert "not under the repo's PolyForm Noncommercial licence" in notice
 
