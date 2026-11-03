@@ -1,8 +1,8 @@
-"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield,
-Core, switch board, battery, USB-C hub, power-path board, bulk capacitor) so the model and the renders need no vendor file. Each is drawn in its STEP file's own
-frame, registered in ENVELOPES by its mesh's name. Interfaces
-(mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
-and circle hulls of the STEP's outer faces; inner detail is dropped."""
+"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield, Core, switch
+board, battery, USB-C hub, power-path board, bulk capacitor) so the model and the renders need no vendor file. Each is
+drawn in its STEP file's own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft,
+connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of
+the STEP's outer faces; inner detail is dropped."""
 
 import cadquery as cq
 import numpy as np
