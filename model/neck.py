@@ -29,7 +29,8 @@ from model import linkage
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
-AXIS = (8.5, -77.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the head's com
+AXIS = (8.5, -71.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the head's com,
+# the cheeks' bosses (BOSS_R) up into the head mount's flange, 0.5 under the gimbal frame's plate (#708)
 FLANGE_Z = (-70.0, -67.0)  # the head mount's flange, under the gimbal frame's plate
 HEAD_SCREWS = (
     (16.0, -20.0),
@@ -37,19 +38,23 @@ HEAD_SCREWS = (
     (16.0, 26.0),
     (-16.0, 26.0),
 )  # (x, y): the flange to the plate, nuts on top
-CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 6.0  # the yoke's cheeks, the head's tilt lugs outside them
-DISC_R, DISC_Z = 15.0, (-110.0, -106.0)  # the yoke's disc on the mount's thrust face, its floor at the same depth
-MOUNT_Z = (-150.0, -147.0)  # the neck mount's foot: the base (#642) carries it
-PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-113.0, -110.0)  # the yoke's lever back along +y; the bar along x under it
+CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
+DISC_R, DISC_Z = 15.0, (-104.0, -100.0)  # the yoke's disc on the mount's thrust face, its floor at the same depth
+MOUNT_Z = (-144.0, -141.0)  # the neck mount's foot: the base (#642) carries it
+PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-107.0, -104.0)  # the yoke's lever back along +y; the bar along x under it
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 20.0, (1.5, 4.5)  # the head's lever back along +y; the bar down to the horn
-JAW = (-8.0, -92.0)  # (y, z) of the jaw's hinge
-JAW_LEVER, JAW_HORN_Z, JAW_BAR_X = 20.0, -78.0, (22.0, 25.0)  # the jaw's pin forward of the hinge; the horn above it
+JAW = (-10.0, -71.0)  # (y, z) of the jaw's hinge, under the plate level with the tilt axis (#708)
+# the jaw's pin forward of the hinge, in front of the gimbal frame's plate; the horn above it, its servo lying on the
+# plate beside the mouth (#708)
+JAW_LEVER, JAW_HORN_Z, JAW_BAR_X = 22.0, -51.0, (22.0, 25.0)  # the bar and horn clear of the plate, the jaw open
 JAW_X, CHIN_Y = (18.0, 22.0), -40.0  # the jaw's arms and hinge bosses, outside its lugs (LUG_X + 1); its chin's front
+JAW_ARM_Z = (JAW[1] - BOSS_R, FLANGE_Z[0] - 0.5)  # the jaw's arms, under the head mount's flange
 LEAD_OD = 1.4  # the thickest lead that crosses, the pack's pair (inferred: 24 AWG)
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
-PAN_SPAN = (18.0, (-138.0, -108.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
-TILT_SPAN = (22.0, 45.0)  # its arc about the tilt axis: radius, and the turn from the head's clamp (straight below) to
-LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg up), outside the R tilt lug
+PAN_SPAN = (18.0, (-132.0, -102.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
+# its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
+TILT_SPAN = (22.0, 45.0)
+LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug
 # the parts the tilt turns with the eye gimbal: model/report.py weighs the head from them
 HEAD = ("next head mount:1", "next jaw:1", "next jaw bar:1", "next mouth servo:1", "next mouth horn:1")
 
@@ -83,7 +88,7 @@ def drives():
     return {
         "pan": ((pan[0], pan[1], PAN_Z[0]), g.Z, g.Y, g.Y),
         "tilt": ((TILT_BAR_X[1], *tilt[1:]), (-1, 0, 0), (0, -1, 0), g.Y),
-        "mouth": ((JAW_BAR_X[1], *jaw[1:]), (-1, 0, 0), (0, -1, 0), (0, -1, 0)),
+        "mouth": ((JAW_BAR_X[1], *jaw[1:]), (-1, 0, 0), (0, 1, 0), (0, -1, 0)),
     }
 
 

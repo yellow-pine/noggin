@@ -9,6 +9,7 @@ import pytest
 
 from model import base, stages
 from model import geometry as g
+from model import gimbal as gm
 from model.printed import base as printed_base
 from model.printed import bone
 from model.printed.base import WALL
@@ -51,16 +52,36 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
     assert _overlaps(placed, pairs) == []
 
 
-def test_the_torso_and_the_rack_as_bones_round_their_corners_and_print_as_they_lie():
-    """#704: just inside each of the mechanical Torso's outside corners and the rack's top corners lies nothing; the
-    Torso prints upright and the rack on its back (its back face, the boards', on the bed), no overhang past 45 deg."""
+@pytest.fixture(params=sorted(g.NEXT))
+def head(request):
+    """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
+    stage = stages.STAGES[request.param]
+    rides = stage.horns["tilt horn"].loops[0].rockers
+    return request.param, cq.Compound.makeCompound([_shape(stage.parts[n]) for n in rides]).BoundingBox()
+
+
+@pytest.mark.model
+def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(head):
+    """#708, a hard gate in both Skeletons: the parts the tilt turns, at rest, fit gimbal.HEAD_MM (W x D x H), the eye
+    centres at most base.EYES_UP of the way up them (the sim report reads the same off the MJCF: model/candidates.py)."""
+    doc, b = head
+    assert all(s <= h for s, h in zip((b.xlen, b.ylen, b.zlen), gm.HEAD_MM))
+    eyes = stages.DOCS[doc]["next-eyes"][0][2]
+    assert (eyes - b.zmin) / b.zlen <= base.EYES_UP
+
+
+def test_the_torso_and_the_rack_as_bones_open_the_mechanical_ones_walls_and_shelf_and_the_torso_prints_upright():
+    """#708: as Bones, carved from the mechanical parts, the Torso's corners round and its walls windowed, the rack's shelf two
+    Bones under the boards: just inside each mechanical corner, half way up a window's middle, and in the middle of the mechanical
+    shelf lies nothing. The Torso prints upright, no overhang past 45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     torso, rack = printed_base.torso().val(), printed_base.rack().val()
     for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):
         assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
-    r = rack.BoundingBox()
-    for x in (r.xmin + 0.5, r.xmax - 0.5):
-        assert not rack.isInside(cq.Vector(x, base.RACK_Y + base.TRAY_T / 2, r.zmax - 0.5))
+    c = printed_base.CORNER
+    wx, wy = printed_base._windows(x0 + c, x1 - c)[0], printed_base._windows(y0 + c, y1 - c)[0]  # a window's middle
+    for x, y in ((wx, y0 + 1), (wx, y1 - 1), (x0 + 1, wy), (x1 - 1, wy)):
+        assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
+    shelf = base.BACK_Z - base.BOARD_H / 2 - base.TRAY_T / 2
+    assert not rack.isInside(cq.Vector(0, base.BACK_Y + base.BOARD_D / 2, shelf))
     assert bone.overhang_deg(torso) <= 45
-    on_back = rack.rotate(cq.Vector(), cq.Vector(1, 0, 0), -90)  # its back face (+y) turned down (-z)
-    assert bone.overhang_deg(on_back) <= 45

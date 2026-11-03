@@ -53,13 +53,15 @@ def report(doc, model):
 
 def optimise(doc):
     """The variant's parameters at their optimum on its MJCF without collision pieces (derivative-free, scipy): Back
-    {"back_z_mm"}: the row's height, within the gimbal's (from the plate's underside to its top), where the tilt
-    servo's worst hold against gravity over its range is least (MuJoCo's inverse dynamics, mujoco_report.torques, at
-    each pose its sweep settles to). It also gives the hold there and at the drawn place."""
+    {"back_z_mm"}: the row's height, its top from higher over the eyes than the head's bottom is under them (the eyes in
+    the head's lower half, #708) up to the head's height (gimbal.HEAD_MM), 0.25 mm inside each, where the tilt servo's
+    worst hold against gravity over its range is least (MuJoCo's inverse dynamics, mujoco_report.torques, at each pose
+    its sweep settles to). It also gives the hold there and at the drawn place."""
     model = mjcf.model(doc, collide=False)
     stage, still = stages.STAGES[doc], _rest(model)
     _, boards = CARRIER[doc]
     group = [model.body(f"{b}:1").id for b in boards()]  # the boards alone: the carrier is redrawn round them
+    rest = [n for n in stage.horns["tilt horn"].loops[0].rockers if model.body(n).id not in group]
     lo, hi = stage.horns["tilt horn"].limits
     tilts = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
     pos0, turn = model.body_pos[group].copy(), still.xmat[model.body("next head mount:1").id].reshape(3, 3)
@@ -73,8 +75,8 @@ def optimise(doc):
         return max(abs(mujoco_report.torques(model, d, moving=False)[k]) for d in tilts) / mujoco_report.KGF_CM
 
     try:
-        top = _drawn(model, still, list(stages.next_eyes().parts))[:, 2].max() - origin[2]
-        span = (gimbal.PLATE_Z[0] + base.BOARD_H / 2, top - base.BOARD_H / 2)
+        low = _drawn(model, still, rest)[:, 2].min() - origin[2]  # the head's bottom, under the eyes
+        span = (-low - base.BOARD_H / 2 + 0.25, low + gimbal.HEAD_MM[2] - base.BOARD_H / 2 - 0.25)  # inside each gate
         found = minimize_scalar(lambda z: hold(0, z - base.BACK_Z), bounds=span, method="bounded")
         return {"back_z_mm": round(float(found.x), 1), "hold_kgf_cm": float(found.fun), "drawn_kgf_cm": hold(0, 0)}
     finally:

@@ -127,13 +127,20 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`next-mech-back`,
   `next-mech-back-mechanical`). As Bones the tie-bar and push-rods (#703, the
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
-  and input arm flat-bottomed, its arms round struts), the Torso (round in plan) and the board rack (round corners):
-  each prints as drawn (the rack on its back) with no overhang past 45 deg, its bores across the layers where its pins
+  and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three), holds its servo's stall at SF 2 (axial and buckling for the
   tie-bar and push-rods, bending for the crank and the bail's arms; model/printed/test_gimbal.py), its CoACD pieces
   capped (mjcf.MAX_PIECES); so are the lid bars, links and the lids' spokes (#698, each lying in its 3 mm slab, the
-  bent lid bar for its bending too). The pitch bar and the frame wait on #704, the neck, head mount, jaw and jaw bar on
-  #708 (model/printed UNSTYLED), drawn mechanical in both until then; the core, a ball under its cap, has none.
+  bent lid bar for its bending too). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
+  jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
+  mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
+  screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
+  it prints upright), the rack's posts struts under its rails and a Bone across under each edge of the boards; the
+  core, a ball under its cap, has none (model/printed UNSTYLED). Each of these is carved from its mechanical part (#809,
+  model/printed carved()): the Bones cut to within it, so they add nothing and its interfaces and clearances are the
+  mechanical part's. OCCT fuses Bones unevenly, so model/printed/bone.py chain() draws each on the bed domed up and moves
+  it, swells their heads 2% over the spans' ends, and retries a span a hair smaller or the other way round until it
+  and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
@@ -147,7 +154,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   gestures' gaze is level, so the tilt carries none.
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
-  tilt, straight under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
+  tilt, under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
   weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. Since #642 it moves in
@@ -158,20 +165,26 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The head variants (#686, model/base.py, the parts in model/printed/base.py, GLOSSARY), in place of #642's two Base
   candidates: one document each (geometry.NEXT), all on one Torso (#685: the
   shirt is the base, a compact open box whose floor is the foot, the neck mount with the pan servo on it and the pack
-  lying across behind; its footprint in the sim report's tip_over, footprint_mm). Back: the boards upright on a rack
-  screwed under the gimbal frame plate's back edge, behind the eye gimbal, the one variant since Cansin picked it
+  lying across behind; its footprint in the sim report's tip_over, footprint_mm). Back: the boards upright on the
+  shelf of a rack screwed under the gimbal frame plate's back edge, its posts behind the eye gimbal and its rails over
+  it, the boards in the head's crown over the eyes (#708), the one variant since Cansin picked it
   (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
   are gone; the ranking, its marks and the Viewer's buttons stay for the next). Each one's parameters are optimised in
   MuJoCo (model/candidates.py, `python -m model.candidates`; a model test holds the drawn numbers to it): Back's row
-  height, for the tilt servo's least worst hold. The sim report gives each one's head box (`variant.head_mm`,
-  width x depth x height of what rides the tilt) against #51's 140 x 120 x 150 and how far up it the eyes sit
-  (`eyes_up`), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
-  head-size and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
+  height, for the tilt servo's least worst hold, between the eyes' gate and the head's. The sim report gives each
+  one's head box (`variant.head_mm`, width x depth x height of what rides the tilt) against `gimbal.HEAD_MM` and how
+  far up it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.5: cartoon proportions), both hard gates in each look
+  (model/test_report.py, model/printed/test_base.py), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
+  head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). Today Back does not fit that head: its boards behind the gimbal make it 141.5 deep, since the head mount
-  and the jaw already hang 101 mm under the eyes (eyes_up 0.77, not the lower-middle); the head size stays reported,
-  not a hard gate, until #708. Every size is inferred.
+  (#705). Back fits since #708 (118.6 x 115.8 x 149.3 in both Skeletons, the Bones carved inside, eyes_up 0.5; it was 120 x 134.5
+  x 129.5, eyes_up 0.78): the stack
+  under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'
+  bosses up into the head mount's flange and the whole neck 6 mm shorter, the jaw hinged beside the tilt lugs with its
+  arms under the flange, its servo lying on the plate's front beside the mouth, the tilt span's head clamp straight
+  behind the axis; the boards went over the eyes, as high over them as the head reaches under. Every size is
+  inferred.
 - The Stages (#720, geometry.STAGES), for ease of build, each a document in every Skeleton: Stage 1 the eye block (the
   gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
   stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
