@@ -31,17 +31,17 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   // CI always has the GLBs; a local build has them once just web next ran before just site
   test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer'); // one, its Stage and look switches (#720)
+  const viewer = page.locator('.noggin-viewer'); // one, its Stage and Skeleton switches (#720, #805)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
   await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
   await expect(page).toHaveURL(/\?stage=1$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
-  await viewer.getByRole('navigation', { name: 'Look' }).getByRole('button', { name: 'Plain' }).click();
-  await expect(page).toHaveURL(/\?stage=1&look=plain$/);
+  await viewer.getByRole('navigation', { name: 'Skeleton' }).getByRole('button', { name: 'Mechanical' }).click();
+  await expect(page).toHaveURL(/\?stage=1&skeleton=mechanical$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await viewer.getByRole('button', { name: 'Explode' }).click();
-  await expect(page).toHaveURL(/\?stage=1&look=plain&explode=1$/);
+  await expect(page).toHaveURL(/\?stage=1&skeleton=mechanical&explode=1$/);
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
