@@ -75,6 +75,32 @@ def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     assert seat.Volume() < dome  # the cap and its pupil fill no more than the dome: the pupil is in the seat
 
 
+@pytest.mark.model
+@pytest.mark.parametrize(
+    "seat",
+    [s for s in sk.SEATS if s.carrier not in sk.SHELLS],
+    ids=lambda s: f"{s.shell} on {s.carrier} {s.at[0]:+.0f}",
+)
+def test_a_seat_on_the_skeleton_is_flush_in_its_carriers_surface(seat):
+    """#852: nothing of a Skeleton part stands in front of a Seat's face, and the part is there right behind it, round
+    its magnet's pocket: no raised pad, the pocket and the grooves sunk into the carrier."""
+    carrier = PARTS[seat.carrier]().val()
+    proud = skin._placed(gimbal.cyl("z", (0, 0, 0), sk.PAD_R, (0.05, 3.0)), seat).val()
+    ring = gimbal.cyl("z", (0, 0, 0), sk.RING - sk.GROOVE - 0.1, (-0.5, -0.2))  # under a lid's curve at its edge
+    behind = skin._placed(ring.cut(gimbal.cyl("z", (0, 0, 0), sk.MAGNET[0] / 2 + sk.FIT + 0.1, (-1, 1))), seat).val()
+    assert carrier.intersect(proud).Volume() < 1e-3
+    assert carrier.intersect(behind).Volume() == pytest.approx(behind.Volume(), rel=0.02)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("pair", sorted({(s.shell, s.carrier) for s in sk.SEATS}), ids=" on ".join)
+def test_a_shell_meets_what_carries_it_only_where_its_balls_touch(pair):
+    """Drawn in the same frame, a Shell and its carrier share at most the balls' contacts in the grooves: no boss or wall
+    of the Shell runs into the part it sits on (the clearance test skips that pair)."""
+    shell, carrier = (PARTS[s]().val() for s in pair)
+    assert shell.intersect(carrier).Volume() < 0.1
+
+
 SPACING = 0.4  # mm between the points sampled on each surface
 SEAMS = {frozenset(("next morty shirt front", "next morty shirt back"))}  # Shells meeting 0.2 mm apart by design
 # shortcut: sampled surfaces read a distance up to SPACING long; OCCT's exact distance took minutes a pose (#665)

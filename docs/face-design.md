@@ -58,10 +58,13 @@ size inferred):
 ## Seats and magnets
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
-  which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Where the carrier is too thin
-  for the pocket the Seat stands on a pad: the gimbal frame plate's bar out to the lids' uprights (the face), the jaw's
-  chin (the mouth cover), the Torso's front and back walls (the shirt); the face carries the hair's front Seats. The
-  cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in their own faces.
+  which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
+  carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852):
+  the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
+  1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
+  front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
+  front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in
+  their own faces.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
   covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap

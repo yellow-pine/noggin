@@ -292,7 +292,7 @@ def shirt(half):
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     sides, shoulders, neck = SHIRT_ROUND
     front = next(s for s in sk.SEATS if s.shell == "next morty shirt front")
-    off = y0 - front.at[1] + sk.GAP  # the pads' faces out of the walls, and the Seat's gap
+    off = y0 - front.at[1] + sk.GAP + front.boss  # the Seats' faces out of the walls, their gap and the bosses
     inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5)).edges("|Z").fillet(sides - sk.WALL)
     outer = box(
         (x0 - off - sk.WALL, x1 + off + sk.WALL),
