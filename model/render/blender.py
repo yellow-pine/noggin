@@ -1,7 +1,7 @@
 """Blender side of model/render/pictures.py: runs INSIDE Blender (`Blender -b -P model/render/blender.py -- job.json`).
 The job names each part's mesh (its own frame, metres) and colour, and the shots: output paths, size, camera and every
 part's world matrix per frame (one: a still; more: one animation, keeping one depsgraph). Look (docs/model-notes.md):
-satin plastic in the spool colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
+satin plastic in the filament colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
 silhouettes and creases in one mid grey (INK) that reads on the site's light and dark pages, a transparent background
 (#470). Prints each frame's render time (`frame <frame> <s>`), which pictures.py passes to its log."""
 
@@ -82,7 +82,7 @@ def setup():
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
     sc.render.film_transparent = True  # the page's background shows through (#470)
-    sc.view_settings.view_transform = "Standard"  # spool colours as given
+    sc.view_settings.view_transform = "Standard"  # filament colours as given
     sc.eevee.taa_render_samples = SAMPLES
     sc.render.image_settings.file_format, sc.render.image_settings.color_mode = "PNG", "RGBA"
     world = bpy.data.worlds.new("w")

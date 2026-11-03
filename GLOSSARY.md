@@ -8,7 +8,7 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 
 **Mech**:
 The physical animatronic, our own design (#51), being designed and not built yet: two linked eyes with an upper and a
-lower lid each, the pan-and-tilt neck and the mouth, seven servos on two Cores, a Skeleton that wears a Character.
+lower lid each, the pan-and-tilt neck and the mouth, seven servos on two Cores, a Skeleton that wears a Skin.
 Today's Mech, the one on Cansin's desk built from another designer's parts, runs the eye program until it is built.
 _Avoid_: robot, head, beast, eye mech
 
@@ -18,13 +18,15 @@ the desk.
 _Avoid_: Mech 2, new Mech
 
 **Skeleton**:
-The next Mech's structural parts, the same under every Character: the eye gimbal, the jaw, the neck, the Torso and the
-electronics mount, in black PETG.
+The next Mech's structural parts, the same under every Skin: the eye gimbal, the jaw, the neck, the Torso and the
+electronics mount, in PETG. A Theme category: realistic, every part drawn as Bones, or mechanical, every part in boxes
+and cylinders (docs/adr/0022).
 _Avoid_: frame, chassis, core
 
 **Bone**:
 A Skeleton link between two joints drawn organic: thick at the joints, waisted mid-span, rounded in section, its
-joints kept exact. Each Skeleton part is drawn both as Bones and plain, the same interfaces in both (docs/adr/0020).
+joints kept exact. Each Skeleton part is drawn both as Bones and mechanical, the same interfaces in both
+(docs/adr/0020).
 _Avoid_: strut, organic bar
 
 **Test stand**:
@@ -51,17 +53,31 @@ through a link off it. The eyeball caps (Shells) sit on the cores.
 _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 
 **Shell**:
-One cosmetic part a Character puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in
-PLA Pure, held on by magnets.
-_Avoid_: skin, cover, cosmetic
+One cosmetic part a Skin puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in PLA,
+held on by magnets.
+_Avoid_: cover, cosmetic
 
-**Shell set**:
-Every Shell of one Character, pulled off and pressed on together to swap Characters.
-_Avoid_: kit, costume
+**Skin**:
+Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: morty or bart.
+_Avoid_: shell set, character shells, kit, costume
 
 **Character**:
-Who the next Mech looks like, Morty or Bart: its Shell set and its gaze speed, picked in the noggin service's settings.
-_Avoid_: face, persona, theme
+Who the next Mech looks like, Morty or Bart: its Skin and its gaze speed, picked in the noggin service's settings.
+_Avoid_: persona, theme
+
+**Theme**:
+One value of each Theme category, today a Skeleton and a Skin, which together choose the next Mech's look in the
+Model, the Web viewer and every picture; realistic and morty unless one is picked (docs/adr/0022).
+_Avoid_: look (Blender's style B is the look), style
+
+**Colour group**:
+The parts of one Theme category printed in one filament: the Skeleton's Bones, Joints, Linkages and Mounts, a Skin's
+face, hair, shirt and collar, eye whites, pupils; each Theme value names its filament per group.
+_Avoid_: spool, colour (for the group)
+
+**Face**:
+A Skin's flesh-coloured Colour group: the head, the ears, the nose and the lid covers (Bart's spikes too).
+_Avoid_: skin (for the colour), flesh
 
 **Core**:
 The controller board (ESP32-C3 running MicroPython) that drives the servos; the noggin service reaches it over its Link.
@@ -173,7 +189,7 @@ _Avoid_: twin, digital twin, CAD, simulation
 **Stage**:
 A cumulative build state of the Mech, each complete on the desk: Stage 1 the eye block on its Test stand with the eyes
 Core, Stage 2 the eye block on the Torso's neck under the head mount with the boards and the neck Core, Stage 3 Stage 2
-with the jaw (the whole Mech); each in both looks. The build guides go Stage by Stage.
+with the jaw (the whole Mech); each in every Skeleton. The build guides go Stage by Stage.
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:

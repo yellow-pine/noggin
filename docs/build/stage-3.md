@@ -4,8 +4,8 @@
 > **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
 > [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
-Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. The character's Shells go on
-after it ([Skeleton and shells](../face-design.md)).
+Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. The Skin's Shells go on after
+it ([Themes](../face-design.md)).
 
 ## Parts it adds, from the model
 

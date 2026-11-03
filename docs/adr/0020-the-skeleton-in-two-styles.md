@@ -1,6 +1,8 @@
 # The Skeleton in two styles, plain and Bones
 
 > Decided by Cansin on 2026-11-02, #704, after the Bones pilot (#703).
+> Amended 2026-11-03 (#805, ADR 0022): the two styles are the Skeleton's Theme values, Bones `realistic` and plain
+> renamed `mechanical` (`next-mech-back-mechanical`, the Viewer's Skeleton switch).
 
 Every Skeleton part is drawn in two styles behind one switch: plain (boxes and cylinders) and as Bones (GLOSSARY),
 with the same interfaces (bores, pockets, seats, sockets) in both, and each head variant is built twice from the same

@@ -25,6 +25,7 @@
 > place of the Base candidates.
 > Amended 2026-11-02 (#712): `next-mech-back` alone, Cansin's pick; Crown and Split are gone.
 > Amended 2026-11-02 (#704, ADR 0020): `next-mech-back-plain` beside it, Back with its Skeleton plain.
+> Amended 2026-11-03 (#805, ADR 0022): `-plain` renamed `-mechanical`, the Skeleton's value.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

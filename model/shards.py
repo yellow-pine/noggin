@@ -18,7 +18,8 @@ DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
 
 def units(model=True, mech=True):
     """{unit: its pytest -k expression}, None for just sim and just mech: the model's units, mech's, or both."""
-    # -k matches substrings: a document's id picks the ids it is part of too (next-mech-back-plain), so it leaves them
+    # -k matches substrings: a document's id picks the ids it is part of too (next-mech-back-mechanical), so it
+    # leaves them
     docs = {d: " and ".join([d, *(f"not {o}" for o in stages.DOCS if o != d and d in o)]) for d in stages.DOCS}
     rest = " and ".join(f"not {d}" for d in stages.DOCS)
     return ({**docs, "rest": rest, "sim": None} if model else {}) | ({"mech": None} if mech else {})

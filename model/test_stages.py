@@ -9,7 +9,7 @@ from model import gimbal, printed, stages
 
 
 @pytest.mark.parametrize(
-    "doc,carrier", [("next-mech-back", "next board rack"), ("next-mech-back-plain", "next board rack plain")]
+    "doc,carrier", [("next-mech-back", "next board rack"), ("next-mech-back-mechanical", "next board rack mechanical")]
 )
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
@@ -36,22 +36,25 @@ def test_what_rides_the_head_mount_turns_with_the_tilt_and_the_pan(doc):
         assert np.allclose(moved.parts["next torso:1"], stage.parts["next torso:1"].matrix)
 
 
-def test_each_next_mech_variant_is_built_plain_too_from_the_same_layout():
-    """#704: next-mech-back-plain is next-mech-back part for part, the same names where the same placements put them,
-    each Skeleton part with a plain style (model/printed STYLED) drawn plain, every other the same."""
-    bones, plain = stages.STAGES["next-mech-back"], stages.STAGES["next-mech-back-plain"]
-    assert list(plain.parts) == list(bones.parts) and set(plain.horns) == set(bones.horns)
+def test_each_next_mech_variant_is_built_mechanical_too_from_the_same_layout():
+    """#704: next-mech-back-mechanical is next-mech-back part for part, the same names where the same placements put
+    them, each Skeleton part with a mechanical style (model/printed STYLED) drawn mechanical, every other the same."""
+    bones, mechanical = stages.STAGES["next-mech-back"], stages.STAGES["next-mech-back-mechanical"]
+    assert list(mechanical.parts) == list(bones.parts) and set(mechanical.horns) == set(bones.horns)
     for name, p in bones.parts.items():
-        q, s = plain.parts[name], stages.stem(p.file)
+        q, s = mechanical.parts[name], stages.stem(p.file)
         assert np.array_equal(q.matrix, p.matrix) and q.material == p.material, name
-        assert stages.stem(q.file) == (s + g.PLAIN if s in printed.STYLED else s), name
-    assert "next-mech-back-plain" in g.NEXT and stages.DOCS["next-mech-back-plain"] == stages.DOCS["next-mech-back"]
+        assert stages.stem(q.file) == (s + g.MECHANICAL if s in printed.STYLED else s), name
+    assert (
+        "next-mech-back-mechanical" in g.NEXT
+        and stages.DOCS["next-mech-back-mechanical"] == stages.DOCS["next-mech-back"]
+    )
 
 
 def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
     eye block on the Torso's neck (pan, tilt) under the head mount, the boards' rack with the neck Core; Stage 3 adds the
-    jaw and the mouth servo: the whole Mech, the head variant's document. Each Stage in both looks."""
+    jaw and the mouth servo: the whole Mech, the head variant's document. Each Stage in every Skeleton."""
     one, two, three = (stages.STAGES[d] for d in list(g.STAGES)[:3])
     assert three is stages.STAGES[next(iter(g.NEXT))]
     eye_horns = {f"next {d} horn" for d in gimbal.drives()}
@@ -65,7 +68,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
         "next mouth servo:1",
         "next mouth horn:1",
     }
-    assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-plain")}
+    assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 
 def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():

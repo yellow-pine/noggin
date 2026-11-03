@@ -1,0 +1,23 @@
+# Themes: a Skeleton and a Skin, each value's Bambu filaments in the model
+
+> Decided by Cansin on 2026-11-03, #805, in grilling. Amends ADR 0020 (its two styles are the Skeleton's values,
+> plain renamed mechanical), ADR 0008 (the viewer's Skeleton switch) and ADR 0019 (the `-mechanical` documents).
+
+The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
+`realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:
+`morty` or `bart`); the default is `realistic` and `morty`, which the README, the site's first visit and the default
+renders show. Each value names, for each of its category's Colour groups (at most four), the Bambu filament it is
+printed in, by line, name, code and the hex BambuStudio's `filaments_color_codes.json` gives it. That data has one
+source, model/geometry.py `THEMES` (ADR 0011): each printed part carries its Colour group (`PRINTED`), and the
+pictures, the viewer's GLBs, `just view`, the build guides and the docs read the colour from the document's Theme.
+A document is drawn per Skeleton (`next-stage1`, `next-stage1-mechanical`), each in the default Skin until the Skins'
+Shells exist (#665), when Stage 3 is drawn per Skeleton and Skin; Blender writes each one's colours into its GLB and
+pictures. More values or categories may join later, each a new key there. The picks and the research behind them:
+docs/research/2026-11-03-bambu-theme-colours.md.
+
+## Considered Options
+
+- Colours per spool (black PETG, PLA Pure in four colours): one look; a second Skeleton style or a second Character
+  had nothing of its own to show.
+- The viewer recolours one GLB per Theme in the browser: fewer GLBs, but a second source of the look beside Blender's
+  (ADR 0008).

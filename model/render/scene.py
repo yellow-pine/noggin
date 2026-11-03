@@ -1,5 +1,5 @@
-"""A document for Blender: each part's mesh written once in its own frame with its colour (geometry.SPOOLS; electronics
-and servos in greys), and the servos' horns by name (HORNS), which MuJoCo drives (model/trajectories.py)."""
+"""A document for Blender: each part's mesh written once in its own frame with its colour (its Colour group's filament
+in the document's Theme, geometry.THEMES; electronics and servos in greys), and the servos' horns by name (HORNS), which MuJoCo drives (model/trajectories.py)."""
 
 import os
 
@@ -20,16 +20,16 @@ GREYS = {
 }  # the hardware envelopes (by file name): neutral greys, darker for the boards
 
 
-def colour(file):
+def colour(file, theme):
+    """A part's hex: its Colour group's filament in the Theme (geometry.filament), a hardware envelope's grey."""
     stem = stages.stem(file)
-    if stem in GREYS:
-        return GREYS[stem]
-    return g.SPOOLS[next(spool for k, (spool, _) in g.PRINTED.items() if k.split(" (")[0] == stem)]
+    return GREYS[stem] if stem in GREYS else g.filament(g.PRINTED[stem][0], theme)[3]
 
 
-def export(stage, out):
-    """Each part's mesh in its own frame, in metres, as out/NN.ply; returns {part: {"ply", "colour"}}."""
-    manifest = {}
+def export(doc, out):
+    """Each part of the document's mesh in its own frame, in metres, as out/NN.ply, in its Theme's colours (#805);
+    returns {part: {"ply", "colour"}}."""
+    stage, theme, manifest = stages.STAGES[doc], g.theme(doc), {}
     for i, (name, part) in enumerate(stage.parts.items()):
         mesh = trimesh.load(part.file, force="mesh")  # merges the STL's repeated vertices: normals can be smoothed
         if part.clip:  # as mjcf._mesh: the flexible leads are cut off
@@ -39,5 +39,5 @@ def export(stage, out):
         mesh.apply_scale(0.001)
         ply = f"{i:02d}.ply"
         mesh.export(os.path.join(out, ply))
-        manifest[name] = {"ply": ply, "colour": colour(part.file)}
+        manifest[name] = {"ply": ply, "colour": colour(part.file, theme)}
     return manifest

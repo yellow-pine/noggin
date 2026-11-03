@@ -4,13 +4,13 @@
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
-mjcf.py).
-next_panels: the next Mech's panels' grid, each of its Stages in both looks (model/render/pictures.py PANELS,
+mjcf.py). themes: docs/face-design.md's Themes, each Colour group's filament (geometry.py THEMES, #805).
+next_panels: the next Mech's panels' grid, each of its Stages in every Skeleton (model/render/pictures.py PANELS,
 geometry.py STAGES, #629, #720), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of each of its
 parts, on docs/pictures.md (#649), and next_front: the front doors' own two there.
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
-src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage, and its looks (#720).
+src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeletons (#805).
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py STAGES and PRINTED, #721).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -113,7 +113,7 @@ def moments():
 
 def picture_numbers():
     p, size = pictures, "{}x{}".format
-    lift = {g.SPOOLS["Absolute Black"]: constant("model/render/blender.py", "BLACK_LIFT")}
+    lift = {"#000000": constant("model/render/blender.py", "BLACK_LIFT")}
     return "\n".join(
         [
             "| Pictures | Rendered | Served |",
@@ -122,11 +122,16 @@ def picture_numbers():
             f"| the next Mech's parts | {size(*p.PART_SIZE)} | WebP |",
             f"| the next Mech in motion | {size(*p.MOTION_SIZE)} | {p.HERO_FPS} fps, looping |",
             "",
-            "| Spool (PLA) | Colour | Drawn by Blender | `just view` |",
-            "|---|---|---|---|",
-            *(f"| {n} | {c} | {lift.get(c, c)} | {mjcf.VIEW.get(c, c)} |" for n, c in g.SPOOLS.items()),
-            f"| lines | | {constant('model/render/blender.py', 'INK')} | |",
-            f"| background | | transparent | {mjcf.SKY} |",
+            "| Theme | Colour group | Filament | Colour | Drawn by Blender | `just view` |",
+            "|---|---|---|---|---|---|",
+            *(
+                f"| {value} | {group} | {line} {name} ({code}) | {c} | {lift.get(c, c)} | {mjcf.VIEW.get(c, c)} |"
+                for values in g.THEMES.values()
+                for value, groups in values.items()
+                for group, (line, name, code, c) in groups.items()
+            ),
+            f"| lines | | | | {constant('model/render/blender.py', 'INK')} | |",
+            f"| background | | | | transparent | {mjcf.SKY} |",
         ]
     )
 
@@ -145,17 +150,36 @@ def panels(labels):
     return f'<div class="noggin-panels not-content" style="--views: {len(views)}">{"".join(cells)}</div>'
 
 
-PLAIN = "-plain"  # a document's name with its Skeleton plain (geometry.STAGES, #704)
-BONY = [doc for doc in g.STAGES if not doc.endswith(PLAIN)]  # the Stages in order, as Bones; each also plain
+def themes():
+    """Each Theme value's Colour groups, their parts so far and the filament each is printed in (geometry.THEMES and
+    PRINTED, #805)."""
+    parts = {}
+    for name, (group, _) in g.PRINTED.items():
+        if not name.endswith(g.MECHANICAL):
+            parts.setdefault(group, []).append(name.removeprefix("next "))
+    rows = ["| Category | Value | Colour group | Parts | Filament | Hex |", "|---|---|---|---|---|---|"]
+    for category, values in g.THEMES.items():
+        for value, groups in values.items():
+            rows += [
+                f"| {category} | {value} | {k} | {', '.join(parts.get(k, []))} | {line} {name} ({code}) | {c} |"
+                for k, (line, name, code, c) in groups.items()
+            ]
+    return "\n".join(rows)
+
+
+BONY = [doc for doc in g.STAGES if g.theme(doc) == g.THEME]  # the Stages in order, realistic (as Bones)
 
 
 def stage(doc):
-    """A Stage document's name on a page: "Stage 2", "Stage 2 plain"."""
-    return f"Stage {BONY.index(doc.removesuffix(PLAIN)) + 1}" + (" plain" if doc.endswith(PLAIN) else "")
+    """A Stage document's name on a page: "Stage 2", "Stage 2 mechanical"."""
+    skeleton = g.theme(doc)["Skeleton"]
+    bony = doc.removesuffix(f"-{skeleton}")
+    return f"Stage {BONY.index(bony) + 1}" + ("" if skeleton == g.THEME["Skeleton"] else f" {skeleton}")
 
 
 def next_panels():
-    """The next Mech's panels (#629), each Stage in both looks (#720), framed among themselves: Pictures' alone."""
+    """The next Mech's panels (#629), each Stage in every Skeleton (#720, #805), framed among themselves: Pictures'
+    alone."""
     return panels({doc: stage(doc) for doc in g.STAGES})
 
 
@@ -215,9 +239,10 @@ HARDWARE = {
 
 def stage_guides():
     """Per Stage ("1" to "3", the Bony documents): the parts it adds to the Stage before it (and any it takes off), each
-    printed in its spool and material or bought, and its new servos with their Core (the eyes Core's are the eye
-    gimbal's horns, model/stages.py next_eyes) and the model's range, from neutral 90 as wiring() gives them."""
-    made = {name: f"{spool} {material.split()[0]}" for name, (spool, material) in g.PRINTED.items()}
+    printed in its Colour group and material (the Themes name each group's filament, themes()) or bought, and its new
+    servos with their Core (the eyes Core's are the eye gimbal's horns, model/stages.py next_eyes) and the model's
+    range, from neutral 90 as wiring() gives them."""
+    made = {name: f"{group}, {material.split()[0]}" for name, (group, material) in g.PRINTED.items()}
     eyes = set(stages.SUBS["next-eyes"]().horns)
     parts, servos, before, horns = {}, {}, Counter(), set()
     for n, doc in enumerate(BONY, 1):
@@ -286,9 +311,9 @@ RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # jus
 
 
 def stage_switch():
-    """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the look switch adds
-    PLAIN), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just sim ranked
-    today's variants; and the looks, each its GLB's suffix and its name."""
+    """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the Skeleton switch
+    adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
+    sim ranked today's variants; and the Skeletons (#805), each its GLB's suffix and its name."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == set(g.NEXT)
     buttons = []
@@ -300,7 +325,10 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    return {"buttons": buttons, "looks": [{"suffix": "", "label": "Bony"}, {"suffix": PLAIN, "label": "Plain"}]}
+    skeletons = [
+        {"suffix": "" if v == g.THEME["Skeleton"] else f"-{v}", "label": v.capitalize()} for v in g.THEMES["Skeleton"]
+    ]
+    return {"buttons": buttons, "skeletons": skeletons}
 
 
 def build():
@@ -318,6 +346,7 @@ def numbers():
     return {
         "behaviour": behaviour(),
         "pictures": picture_numbers(),
+        "themes": themes(),
         "next_panels": next_panels(),
         "next_front": next_front(),
         "front": front(),
