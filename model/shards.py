@@ -4,7 +4,8 @@ sim's parts (SIM_PART=i/n, which Checks' Sim job merges, #809) and just mech (th
 first, to the lightest shard. Their seconds are the CI runs' own (model/durations.json, pytest-split's
 --store-durations plus each sim part's and just mech's core-seconds: `just model-durations`), so a new document needs no
 workflow edit and no list of names. MODEL=false or MECH=false (the Changes job's filters) leaves that group's units out,
-SIM=false (its reports cached) the sim's."""
+SIM=false (its reports cached) the sim's. Render's shards deal the pictures the same way (renders, #839): each by the
+Blender seconds CI measured rendering it (`render <picture>` in DURATIONS)."""
 
 import json
 import os
@@ -12,9 +13,10 @@ import shlex
 
 from model import stages
 
-N = 4  # runners (#496)
+N = 8  # runners (#496, #839)
 SIM = [f"sim {i}/3" for i in range(3)]  # just sim's parts, one a runner (#809)
 JUST = {u: f"just {u}" for u in SIM} | {"mech": "just mech"}  # their keys in DURATIONS
+RENDER = "render "  # a picture's key in DURATIONS, before its name: Render's, no model unit's
 DURATIONS = os.path.join(stages.REPO, "model", "durations.json")
 
 
@@ -36,18 +38,33 @@ def seconds(durations):
     took = dict.fromkeys(expr, 0.0)
     docs = sorted(stages.DOCS, key=len, reverse=True)  # the longest id a test names is its document
     for test, s in durations.items():
+        if test.startswith(RENDER):
+            continue
         took[just.get(test) or next((d for d in docs if d in test), "rest")] += s
     measured = [s for s in took.values() if s]
     return {u: s or (sum(measured) / len(measured) if measured else 1.0) for u, s in took.items()}
+
+
+def renders(durations, pictures):
+    """{picture: seconds}: each one's measured Blender seconds; an unmeasured one, the mean."""
+    took = {k.removeprefix(RENDER): s for k, s in durations.items() if k.startswith(RENDER)}
+    mean = sum(took.values()) / len(took) if took else 1.0
+    return {p: took.get(p, mean) for p in pictures}
+
+
+def deal(weight, n):
+    """n loads of weight's units ({unit: seconds}): each, longest first, to the lightest load so far."""
+    loads = [[] for _ in range(n)]
+    for unit in sorted(weight, key=lambda u: (-weight[u], u)):
+        min(loads, key=lambda load: sum(weight[u] for u in load)).append(unit)
+    return loads
 
 
 def shards(model=True, mech=True, sim=True):
     """[{shard, units, tests, sim}]: tests is the shard's pytest arguments (PYTEST_ADDOPTS), empty when it has none;
     sim its parts of just sim (SIM_PART), space-separated, empty when it has none."""
     weight = {u: s for u, s in seconds(json.load(open(DURATIONS))).items() if u in units(model, mech, sim)}
-    loads = [[] for _ in range(N)]
-    for unit in sorted(weight, key=lambda u: (-weight[u], u)):
-        min(loads, key=lambda load: sum(weight[u] for u in load)).append(unit)
+    loads = deal(weight, N)
     expr = units()
     out = []
     for load in filter(None, loads):

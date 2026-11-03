@@ -6,15 +6,15 @@ name: Checks
 # `Changes` is the one fan-out: what main's push (by git, against main's last commit whose Checks passed, #471)
 # touches (dorny/paths-filter), the parts' cache looked up, and from the code the model shards (just model-shards-list);
 # work whose inputs did not change is skipped, which the gate counts as passing. `Code` runs just check; `Model` the
-# tests marked model in four shards balanced on the seconds they measured (model/shards.py: each document, the rest
+# tests marked model in eight shards (#839) balanced on the seconds they measured (model/shards.py: each document, the rest
 # with just view's offscreen render, just sim's three parts when its inputs changed, which `Sim` merges and thresholds
 # (#809), and just mech,
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
-# the Actions cache alone. `Render` renders the next Mech alone (#649), in four shards (#770): its panels, its eye
-# gimbal in motion and a picture per part (just pictures next) and its viewer GLBs (just web next), when what they are
-# made from changed; `Blender` joins the shards.
+# the Actions cache alone. `Render` renders the next Mech alone (#649), in eight shards (#770, #839) balanced on each
+# picture's measured seconds: its panels and a picture per part, stills alone (just pictures next), and its viewer GLBs
+# (just web next), when what they are made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it; `Deploy`, after the gate on
 # main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render in our Blender image; the
@@ -99,9 +99,10 @@ jobs:
           sim=$(python3 scripts/inputs.py --hash model/report.py model/test_report.py model/ours.py uv.lock)
           echo "sim=$sim" >> "$GITHUB_OUTPUT"
       # whether the next Mech's pictures and GLB made from the same inputs are cached: then Blender skips, nor pulls
-      # its image (#386). The weekly and dispatched runs render again
+      # its image (#386). Release's manual run (inputs.deploy) looks up as a push's does (#839); the weekly and
+      # dispatched runs render again
       - name: Look up the next Mech's pictures
-        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.deploy) }}
         id: next
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -110,10 +111,10 @@ jobs:
             web/build
           key: next-${{ steps.inputs.outputs.next }}
           lookup-only: true
-      # whether main's sim reports for the same inputs are cached: then no sim part runs and Sim skips. The weekly and
-      # dispatched runs simulate again
+      # whether main's sim reports for the same inputs are cached: then no sim part runs and Sim skips. Release's
+      # manual run looks up as a push's does (#839); the weekly and dispatched runs simulate again
       - name: Look up the sim reports
-        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.deploy) }}
         id: sim
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -461,8 +462,9 @@ jobs:
         if: ${{ failure() }}
         uses: ./.github/actions/cancel-on-failure
   # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
-  # changed: rendered and baked from its trajectories on CI's software GL in four shards (#770), each its share of the
-  # pictures by frames (model/render/pictures.py share) and the first the GLB too, each saved for Blender to join
+  # changed: rendered and baked from its trajectories on CI's software GL in eight shards (#770, #839), each its share
+  # of the pictures by their measured seconds (model/render/pictures.py share) and the first the GLB too, each saved for
+  # Blender to join
   render:
     name: Render (${{ matrix.shard }})
     needs: changes
@@ -476,7 +478,7 @@ jobs:
     strategy:
       fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       matrix:
-        shard: [0, 1, 2, 3]   # Blender restores each
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]   # Blender restores each
     env:
       TRAJ_DOCS: next   # the trajectories just pictures and just web draw from: the next Mech's alone
       PICTURES_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
@@ -497,7 +499,21 @@ jobs:
           key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-
       - name: Run just pictures next
-        run: uv run just BLENDER=blender pictures next
+        run: |   # and each picture's Blender seconds, for just model-durations (model/shards.py RENDER)
+          uv run just BLENDER=blender pictures next
+          mkdir -p "$RUNNER_TEMP/durations"
+          cp model/build/pictures/seconds.json "$RUNNER_TEMP/durations/render-$SHARD.json"
+        env:
+          SHARD: ${{ matrix.shard }}
+      - name: Upload the measured seconds
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: durations-render-${{ matrix.shard }}
+          path: ${{ runner.temp }}/durations/
+          if-no-files-found: ignore   # just pictures failed
+          retention-days: 7
+          overwrite: true   # a re-run of a failed shard
       - name: Run just web next
         if: ${{ matrix.shard == 0 }}
         run: uv run just BLENDER=blender web next
@@ -558,6 +574,38 @@ jobs:
             model/build/images
             web/build
           key: next-3-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 4's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-4-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 5's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-5-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 6's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-6-${{ needs.changes.outputs.next-hash }}
+          fail-on-cache-miss: true
+      - name: Restore shard 7's pictures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/images
+            web/build
+          key: next-7-${{ needs.changes.outputs.next-hash }}
           fail-on-cache-miss: true
       - name: Save the next Mech's pictures
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0

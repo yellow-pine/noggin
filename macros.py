@@ -6,7 +6,8 @@ landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py). themes: docs/face-design.md's Palettes, each Colour group's filament (geometry.py THEMES, #805, #819).
 next_panels: the next Mech's panels' grid, each of its Stages in every Preset (model/render/pictures.py PANELS,
-geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: its eye gimbal in motion (#656) and next_parts: a
+geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a viewer per motion (#839), and
+next_parts: a
 picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' own two there and
 next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
@@ -32,7 +33,7 @@ from itertools import batched
 from pathlib import Path
 
 from model import geometry as g
-from model import mjcf, stages
+from model import mjcf, stages, trajectories
 from model.printed import coupon as clearance
 from model.render import pictures, scene
 from noggin.core import VERSION
@@ -124,7 +125,6 @@ def picture_numbers():
             "|---|---|---|",
             f"| panels | {p.PANEL_WIDTH} wide, as tall as the tallest | WebP |",
             f"| the next Mech's parts | {size(*p.PART_SIZE)} | WebP |",
-            f"| the next Mech in motion | {size(*p.MOTION_SIZE)} | {p.HERO_FPS} fps, looping |",
             "",
             "| Palette | Colour group | Filament | Colour | Drawn by Blender | `just view` |",
             "|---|---|---|---|---|---|",
@@ -246,12 +246,15 @@ def figures(labels, kind="parts", links=None, presets=None):
 
 def front():
     """The front doors' three (model/render/pictures.py FRONT, #739) in each Preset, shown for it alone (#806, #819),
-    side by side under their captions, Stage 1's linking to Pictures, Stage 3's to it in the viewer in that Preset, the
-    exploded one opened exploded: the site's home (the README's top is a copy of the default's, test_site.py)."""
+    side by side under their captions, each linking to its Stage in the viewer in that Preset (#839), the exploded one
+    opened exploded: the site's home (the README's top is a copy of the default's, test_site.py)."""
     site, links = "https://yellowpine.com/noggin/", {}
     for (p, s), fs in zip(pictures.SUFFIX.items(), batched(pictures.FRONT, 3, strict=True), strict=True):
-        viewer = f"{site}viewer/?stage={BONY.index(pictures.STAGE3) + 1}" + (s and f"&amp;preset={g.slug(p)}")
-        links |= dict(zip(fs, [f"{site}docs/pictures/", viewer, f"{viewer}&amp;explode=1"], strict=True))
+        one, three = (
+            f"{site}viewer/?stage={BONY.index(d) + 1}" + (s and f"&amp;preset={g.slug(p)}")
+            for d in (pictures.STAGE1, pictures.STAGE3)
+        )
+        links |= dict(zip(fs, [one, three, f"{three}&amp;explode=1"], strict=True))
     return figures(front_labels(), "front", links, front_presets())
 
 
@@ -281,11 +284,21 @@ def next_exploded():
 
 
 def next_motions():
-    """The next Mech's eye gimbal in motion (model/render/pictures.py NEXT_MOTIONS, #656), in each Preset (#806,
-    #819)."""
-    moving = {(m, p): pictures.next_motion(m, p) for p in g.PRESETS for m in pictures.NEXT_MOTIONS}
-    labels = {f: f"Eye gimbal, {m}" for (m, _), f in moving.items()}
-    return figures(labels, "motions", presets={f: [p] for (_, p), f in moving.items()})
+    """The next Mech in motion (#839): a web viewer of Stage 1, the eye block, per motion it plays
+    (model/trajectories.py motions: its gestures and Rest), each repeating it (its data-link,
+    site/src/viewer/viewer.mjs), in the Preset the header's bar picks; its still until it is scrolled into view, the
+    Stage's isometric panel in that Preset."""
+    doc, site = pictures.STAGE1, "https://yellowpine.com/noggin/images/"
+    still = "".join(
+        f'<img src="{site}{pictures.picture(doc + s, "isometric")}" alt="{stage(doc)}" loading="lazy"{themed([p])}>'
+        for p, s in pictures.SUFFIX.items()
+    )
+    glb = viewer.PUBLIC[doc].removesuffix(".glb")
+    cells = [
+        f'<div class="noggin-viewer" data-stage="{glb}" data-link="gesture={m}"><figure>{still}</figure></div>'
+        for m in trajectories.motions(doc)
+    ]
+    return f'<div class="noggin-motions not-content">{"".join(cells)}</div>'
 
 
 def next_parts():

@@ -216,7 +216,9 @@ _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
 The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
-(docs/adr/0008): the Mech Stage by Stage, playing its gestures and the Tour, whole or exploded.
+(docs/adr/0008): the Mech Stage by Stage, playing its gestures and the Tour, whole or exploded. The Mech's one
+motion: pictures are stills. A page may embed it several times, each opening on its own Stage, gesture, Explode level
+and Preset.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
@@ -252,7 +254,8 @@ _Avoid_: banner, idle loop
 
 **Tour**:
 The web viewer's default: every clip of the document in turn, the Hero first, round and round;
-a gesture picked plays once, then the Tour goes on.
+a gesture picked plays once, then the Tour goes on. An embedded viewer opened on a gesture repeats that gesture
+instead.
 _Avoid_: hero (for the viewer's default), demo, autoplay
 
 **Sub-assembly**:

@@ -51,6 +51,13 @@
 > sub-assembly's offset (model/render/pictures.py offsets, the pictures' one function). Each GLB node carries its
 > offsets in its extras (web/build.py explode), as the look is carried: they need the parts' meshes, which the site's
 > build lacks, so macros.json no longer has them.
+> Amended 2026-11-03 (#839): the viewer is the Mech's one motion: pages embed it several times, each its own deep link
+> (`data-link`, e.g. `gesture=wink&explode=1&preset=morty`, on its `data-stage`) repeating its gesture, the address
+> the deep link of the /viewer page's alone. One WebGL renderer a page draws every viewer, each copied into its own
+> canvas; each GLB loads once, every viewer of it a clone; a viewer loads only once scrolled into view, a still (its
+> Stage's isometric panel) in its place until then, and of those on screen the three that came into view or were
+> touched last animate, the rest holding their last frame. The README's and the home's stills link to the viewer
+> deep-linked to their Stage, Explode level and Preset. The poster's camera of #597 is gone.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

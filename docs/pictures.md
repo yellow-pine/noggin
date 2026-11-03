@@ -31,14 +31,14 @@ way it goes on: a servo or horn along its shaft, a part on a pivot along its axi
 
 <!--{{ next_motions }}-->
 
-<!--{# GitHub shows the line below; the site drops it for the grid, which it builds from the code -->
-Its eye gimbal sweeping its yaw and pitch with the lids following, then playing each gesture and Rest, are in
-[the grid on the site](https://yellowpine.com/noggin/docs/pictures/#in-motion).
+<!--{# GitHub shows the line below; the site drops it for the viewers, which it builds from the code -->
+Stage 1 playing each gesture and Rest is in [the viewers on the site](https://yellowpine.com/noggin/docs/pictures/#in-motion).
 <!-- #}-->
 
-The sweep is keyed through the gimbal's own kinematics (model/gimbal.py); the gestures and Rest are the eye program's,
-played in MuJoCo through the gimbal's command map, as the next Mech's eyes Core will play them; the neck's pan turns
-the gimbal with it on the wide gaze shifts (eureka, thinking). The jaw joins as it moves.
+Stage 1 in the viewer, once per motion, each playing it over and over: the gestures and Rest are the eye program's,
+played in MuJoCo through the gimbal's command map, as the next Mech's eyes Core will play them. Each starts once it is
+scrolled into view, and three play at a time: touch a still one to play it. Drag to turn it; the neck's pan and the
+jaw play in Stages 2 and 3 in [the viewer](https://yellowpine.com/noggin/viewer/). Pictures are stills alone (#839).
 
 ## Its parts
 

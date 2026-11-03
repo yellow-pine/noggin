@@ -47,6 +47,11 @@ export function address(stages, stage, gesture, explode, search = "") {
   return link.size ? `?${link}` : "";
 }
 
+// the viewers on screen, by when they came into view or were last touched (a drag): the last ANIMATING of them
+// animate, the rest hold still, so a page of viewers costs no more than three (#839)
+export const ANIMATING = 3;
+export const touched = (seen, viewer, on) => [...seen.filter((v) => v !== viewer), ...(on ? [viewer] : [])];
+
 // values (one array per level) `x` of the way through the levels, 0 at the first: between the two levels round it,
 // eased so each step starts and stops still
 export function between(values, x) {

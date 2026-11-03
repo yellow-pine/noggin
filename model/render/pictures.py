@@ -4,13 +4,12 @@ WebP with a transparent background, its lines one grey for the site's light and 
 `views` (`just render`): the panels (each Stage in each Preset at rest, #819, a trajectory's first frame, from the
 side and isometric, framed among themselves: PANELS), the front doors' own (FRONT, #739) and each Stage at Explode's
 Parts level (parts_exploded, #811). `site next` (`just pictures next`, Checks'
-Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those, the eye gimbal in
-motion (NEXT_MOTIONS: its sweep, #656, and each motion it plays, #663) and a picture per part.
+Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those and a picture per
+part, stills alone (#839: the Mech's motion is the web viewer's), each one's Blender seconds in SECONDS.
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
 
 import functools
 import json
-import math
 import os
 import shutil
 import subprocess
@@ -21,13 +20,17 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import gimbal, skin, stages, trajectories
+from model import shards, skin, stages, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
-# "i/n" (from 0): `site next` renders shard i of n's share alone, Checks' Blender shards (#770)
+# "i/n" (from 0): `site next` renders shard i of n's share alone, Checks' Render shards (#770)
 SHARD = os.environ.get("PICTURES_SHARD")
+# each picture `site next` rendered and its Blender seconds, as model/durations.json keys them (model/shards.py RENDER,
+# #839): what Checks' Render shards upload for `just model-durations`
+SECONDS = os.path.join(OUT, "seconds.json")
+TOOK = {}  # {"render <picture>": its Blender seconds}, written to SECONDS
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the panels (Cansin, #470): each document from its left side and isometric from its front left, by eye direction and
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
@@ -39,11 +42,7 @@ BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # t
 DRAWN = {s + SUFFIX[p]: (s + g.SKELETON_SUFFIX[t["Skeleton shape"]], p) for p, t in g.PRESETS.items() for s in BONY}
 PANELS = [(name, view) for name in DRAWN for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
-LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
-# the motions' view (the old README hero's): from 15 deg to the Mech's right (right eye nearest), 15 deg up
-_R = math.radians(15)
-HERO = math.cos(_R) * np.array((-math.sin(_R), -math.cos(_R), 0)) + (0, 0, math.sin(_R))
-HERO_FPS = 8
+MARGIN = 1.06
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
 # the neck (or Stage 1's stand), the boards off what carries them: the rack back with the head it rides, the jaw forward
@@ -81,17 +80,6 @@ IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # rest, isometric, framed on its own; every name next-
 NEXT = "next"
 PART_SIZE = (400, 400)
-# the next Mech in motion, next-eyes alone in each Preset (#806, #819) through one camera at HERO_FPS: its eye gimbal's
-# sweep through its whole range (#656), moved by its own kinematics (model/gimbal.py moved), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in
-# degrees, eased from key to key and looping from rest, the lids following the pitch (#51); then each motion it plays,
-# its gestures and Rest (None: as MuJoCo baked it, next_played, #663)
-_Y, _P = gimbal.YAW, gimbal.PITCH
-NEXT_MOTIONS = {
-    "sweep": [(0, 0, 0, 0, 0), (1, -_Y, 0, 0, 0), (2.5, _Y, 0, 0, 0), (3.5, 0, 0, 0, 0), (4.25, 0, _P, _P, _P),
-              (5.5, 0, -_P, -_P, -_P), (6.25, 0, 0, 0, 0)],
-    **dict.fromkeys(trajectories.traces.NEXT_MOTIONS),
-}  # fmt: skip
-MOTION_SIZE = (480, 320)
 
 
 def picture(name, view):
@@ -115,17 +103,12 @@ def next_parts():
     return out
 
 
-def next_motion(motion, preset):
-    return f"next-eyes{SUFFIX[preset]}-{motion}.webp"
-
-
 def published():
     """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), each Stage at the
-    Parts level (#811), its motions (#656), each in each Preset (#806, #819), then its parts'."""
+    Parts level (#811), each in each Preset (#806, #819), then its parts'; stills alone (#839)."""
     front = [f for f, how in FRONT.items() if how]
     apart = map(parts_exploded, DRAWN)
-    moving = [next_motion(m, p) for p in g.PRESETS for m in NEXT_MOTIONS]
-    return [*(picture(*p) for p in PANELS), *front, *apart, *moving, *next_parts()]
+    return [*(picture(*p) for p in PANELS), *front, *apart, *next_parts()]
 
 
 def exploded(doc, mats, level=1):
@@ -226,37 +209,10 @@ def _clear(lo, hi, d, blockers):
     return t
 
 
-def share(frames, i, n):
-    """The pictures shard i of n (from 0) renders, of {picture: its frames}: each, longest first, to the shard with the
-    fewest frames so far (as model/shards.py deals the model's units)."""
-    loads = [[] for _ in range(n)]
-    for f in sorted(frames, key=lambda f: -frames[f]):
-        min(loads, key=lambda load: sum(frames[p] for p in load)).append(f)
-    return loads[i]
-
-
-def next_motions(rest):
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each keyed motion of NEXT_MOTIONS, from `rest`,
-    those parts at rest as MuJoCo settles the next Mech: each moved in its own frame as model/gimbal.py moves it in
-    next-eyes'."""
-    local = {n: p.matrix for n, p in stages.next_eyes().parts.items()}
-    out = {}
-    for motion, keys in NEXT_MOTIONS.items():
-        if keys is None:  # played: next_played
-            continue
-        keys = np.array(keys, float)
-        t = np.arange(round(keys[-1, 0] * HERO_FPS)) / HERO_FPS
-        i = np.searchsorted(keys[:, 0], t, "right") - 1
-        ease = (1 - np.cos(np.pi * (t - keys[i, 0]) / (keys[i + 1, 0] - keys[i, 0]))) / 2
-        out[motion] = []
-        for yaw, pitch, left, right in keys[i, 1:] + (keys[i + 1, 1:] - keys[i, 1:]) * ease[:, None]:
-            m, frame = gimbal.moved({"L": left, "R": right}, pitch, yaw), {}
-            for n, p in local.items():
-                turn = np.linalg.inv(p) @ m[n] @ p if n in m else np.eye(4)
-                turn[:3, 3] /= 1000  # mm, as the meshes are drawn in metres
-                frame[n] = rest[n] @ turn
-            out[motion].append(frame)
-    return out
+def share(seconds, i, n):
+    """The pictures shard i of n (from 0) renders, of {picture: its seconds}: dealt as model/shards.py deals the model's
+    units (#839)."""
+    return shards.deal(seconds, n)[i]
 
 
 def prepare(name, doc=None):
@@ -307,14 +263,14 @@ def blender(name, manifest, shots):
     return [float(line.split()[2]) for line in frames]  # each frame's seconds
 
 
-def render(name, manifest, shots, mine, fps=None):
-    """The shots of the pictures in mine alone (published(), or a Blender shard's share: share, #770), in one Blender
-    run, each encoded."""
+def render(name, manifest, shots, mine):
+    """The shots of the pictures in mine alone (published(), or a Render shard's share: share, #770), in one Blender
+    run, each encoded, its seconds recorded in TOOK."""
     shots = [s for s in shots if os.path.basename(s["out"]) + ".webp" in mine]
-    if shots:
-        blender(name, manifest, shots)
-    for s in shots:
-        encode(os.path.basename(s["out"]), fps)
+    took = blender(name, manifest, shots) if shots else []
+    for s, seconds in zip(shots, took, strict=True):  # a still is one frame
+        encode(os.path.basename(s["out"]))
+        TOOK[shards.RENDER + os.path.basename(s["out"]) + ".webp"] = round(seconds, 1)
 
 
 def views(mine):
@@ -363,77 +319,10 @@ def part_pictures(mine):
         render(f"parts-{doc}", manifest, shots, mine)
 
 
-def next_played(doc=STAGE3):
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]} for each motion the next Mech (doc, in its Skeleton)
-    plays (NEXT_MOTIONS' None, #663): its baked trajectory (just trajectories) at HERO_FPS (at_fps), its eye gimbal
-    alone."""
-    eyes = stages.next_eyes().parts
-    return {
-        m: [{n: f[n] for n in eyes} for f in at_fps(trajectories.poses(doc, m), HERO_FPS)]
-        for m, keys in NEXT_MOTIONS.items()
-        if keys is None
-    }
-
-
-def motions(doc=STAGE3):
-    """{motion: [{next-eyes part: world 4x4, metres} per frame]} of doc: the keyed ones (next_motions), then the
-    played."""
-    return next_motions(trajectories.poses(doc, "wink")[0]) | next_played(doc)
-
-
-def frames():
-    """{picture: its frames} of published(): a still's one, a motion's as many as it plays."""
-    moving = {next_motion(m, p): len(f) for p in g.PRESETS for m, f in motions(DRAWN[STAGE3 + SUFFIX[p]][0]).items()}
-    return dict.fromkeys(published(), 1) | moving
-
-
-def motion_pictures(mine):
-    """The next Mech's motions (motions()) in mine, its eye gimbal alone in each Preset, each a looping WebP at
-    HERO_FPS through one camera from the hero's direction (HERO) fitted to every frame of a Preset's, so they share
-    one framing."""
-    for preset, s in SUFFIX.items():
-        doc = DRAWN[STAGE3 + s][0]
-        _, manifest, hull = prepare(STAGE3 + s)
-        moves = motions(doc)
-        pts = np.concatenate([points(hull, f) for frames in moves.values() for f in frames])
-        cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
-        names = {m: next_motion(m, preset).removesuffix(".webp") for m in moves}
-        for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
-            shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
-        shots = [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in moves.items()]
-        render(STAGE3 + s, manifest, shots, mine, HERO_FPS)
-
-
-def at_fps(frames, fps):
-    """Trajectory frames (trajectories.FPS a second) resampled to fps: per output frame the nearest one, unless a key
-    frame lies within half an output frame, where a horn turns back or settles into a hold: toon timing's shut blinks
-    and holds (#258) survive the resampling (#276)."""
-    step, keys = trajectories.FPS / fps, set()
-    for n in (n for n in frames[0] if "horn" in n):
-        # each frame's turn from the first as sin(angle) times its axis: one signed number along the horn's own axis
-        v = []
-        for f in frames:
-            r = np.asarray(f[n])[:3, :3] @ np.asarray(frames[0][n])[:3, :3].T
-            v.append((r[2, 1] - r[1, 2], r[0, 2] - r[2, 0], r[1, 0] - r[0, 1]))
-        v = np.array(v) / 2
-        axis = v[np.argmax(np.linalg.norm(v, axis=1))]
-        d = np.diff(v @ axis)
-        moving = np.abs(d) > 1e-4
-        keys |= {j for j in range(1, len(d)) if moving[j - 1] and (not moving[j] or d[j - 1] * d[j] < 0)}
-    out = []
-    for k in range(math.ceil(len(frames) / step)):
-        near = [j for j in keys if (k - 0.5) * step <= j < (k + 0.5) * step]
-        out.append(
-            frames[min(near, key=lambda j: abs(j - k * step)) if near else min(round(k * step), len(frames) - 1)]
-        )
-    return out
-
-
-def encode(name, fps=None):
-    """OUT/frames/<name> as OUT/<name>.webp with its alpha: a still, or with fps a looping animation."""
-    rate, codec = (["-framerate", str(fps)], ["libwebp_anim", "-loop", "0"]) if fps else ([], ["libwebp"])
+def encode(name):
+    """OUT/frames/<name> as OUT/<name>.webp, a still with its alpha."""
     frames = os.path.join(OUT, "frames", name, "frame%04d.png")
-    ffmpeg(*rate, "-i", frames, "-c:v", *codec, "-quality", str(WEBP_QUALITY), os.path.join(OUT, f"{name}.webp"))
+    ffmpeg("-i", frames, "-c:v", "libwebp", "-quality", str(WEBP_QUALITY), os.path.join(OUT, f"{name}.webp"))
 
 
 def ffmpeg(*args):
@@ -446,11 +335,11 @@ def main(what, names):
         views(set(published()))
     elif what == "site" and set(names) <= {NEXT}:
         mine = published()
-        if SHARD:
-            mine = share(frames(), *map(int, SHARD.split("/")))
+        if SHARD:  # shortcut: durations.json is so an input of the pictures' cache key, so its refresh renders once
+            mine = share(shards.renders(json.load(open(shards.DURATIONS)), mine), *map(int, SHARD.split("/")))
         views(mine)
         part_pictures(mine)
-        motion_pictures(mine)
+        json.dump(TOOK, open(SECONDS, "w"), indent=2)
         os.makedirs(IMAGES, exist_ok=True)
         for f in mine:
             shutil.copy(os.path.join(OUT, f), IMAGES)

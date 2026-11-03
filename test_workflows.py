@@ -225,6 +225,21 @@ def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
 
 
+# a run that looks up the outputs cached for its inputs: a push's and Release's manual one (#839), never the weekly or a
+# dispatch on any branch
+CACHED = "${{ github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.deploy) }}"
+
+
+def test_release_s_manual_run_renders_and_simulates_only_what_changed():
+    """#839: Release's manual run (workflow_call with deploy, its event the caller's dispatch) looks up the next Mech's
+    pictures and the sim reports cached for the same inputs, as a push's run does; the weekly run and a dispatch on any
+    branch still render and simulate everything, the lookups' safety net."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
+    assert flow[True]["workflow_call"]["inputs"]["deploy"]["default"] is False
+    steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
+    assert steps["next"]["if"] == steps["sim"]["if"] == CACHED
+
+
 def test_a_pr_runs_the_slim_gate_alone():
     """#696, #714, #722: a PR runs PR Gate alone, `just check-light` (Code: ruff, pyright and the fast tests), then its
     `Checks` gate; Checks (checks.yml: the site's build, the workflow and Dockerfile linters, the model, sim, Blender,
@@ -296,8 +311,12 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
 
 def test_blender_joins_every_render_shard():
     """#770: each Render shard saves its share of the pictures, and Blender restores every one of them, so a shard added
-    to the matrix is never left out of the site."""
+    to the matrix is never left out of the site. #839: eight shards, each uploading its pictures' measured seconds for
+    `just model-durations`."""
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
+    assert jobs["render"]["strategy"]["matrix"]["shard"] == list(range(8))
+    (up,) = [s for s in jobs["render"]["steps"] if "upload-artifact" in s.get("uses", "")]
+    assert up["with"]["name"].startswith("durations-")
     saved = [s["with"]["key"] for s in jobs["render"]["steps"] if "cache/save" in s.get("uses", "")]
     restored = [s["with"]["key"] for s in jobs["blender"]["steps"] if "cache/restore" in s.get("uses", "")]
     assert saved == ["next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}"]

@@ -3,13 +3,17 @@
 // it: the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a chip per gesture, Explode's levels;
 // under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
 // small one in with
-//   <div class="noggin-viewer" data-stage="stage1"></div>
+//   <div class="noggin-viewer" data-stage="next-stage1" data-link="gesture=wink&explode=1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
-// <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
-// ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a button
-// rewrites the address to the deep link of what it plays. It draws the Stage in the Preset the header's bar picks
-// (src/theme.mjs, #806, #819: on <html>), and again in the next one the bar picks, or in its own mix of any Shape and
-// Palette (a select per axis, kept in the address: ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
+// page may hold several (#839): one WebGL renderer draws them all, each into its own canvas, each GLB is loaded once,
+// and a viewer loads its Stage only once scrolled into view, a <figure> inside its still until then; of those on
+// screen the three that came into view or were touched last animate (state.mjs touched), the rest hold their last
+// frame. The viewer with Stage buttons (the /viewer page) keeps the address its deep link: ?stage=<n>&gesture=<g>
+// opens it on its nth Stage button's Stage playing that gesture, and each click on a button rewrites the address to
+// the deep link of what it plays; any other opens on its own, data-link, its Stage data-stage's, and repeats its
+// gesture. It draws the Stage in the Preset the header's bar picks (src/theme.mjs, #806, #819: on <html>) unless its
+// link names one, and again in the next one the bar picks, or in its own mix of any Shape and Palette (a select per
+// axis, kept in its link: ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
 // Colour group's material painted in its Palette's colour (state.mjs paint). Explode moves a Stage's parts from level to level,
 // Assembled, Sub-assemblies, Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py
 // offsets, #482, #664, #811), &explode=<level> opens it so. Only a
@@ -23,14 +27,46 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { LEVELS, address, between, caption as captionFor, glb, mixed, opened, paint, title } from "./state.mjs";
+import {
+  ANIMATING, LEVELS, address, between, caption as captionFor, glb, mixed, opened, paint, title, touched,
+} from "./state.mjs";
 import { AXES, chosen } from "../theme.mjs";
 
 // the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
 const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(here("draco/")));
+const glbs = {};  // each GLB's load, once a page: every viewer of it draws its own clone (its geometry shared)
+const fetched = (file) => (glbs[file] ??= loader.loadAsync(here(`${file}.glb`)));
+// the one WebGL renderer of the page (#839): it draws a viewer in the bottom-left of its own canvas, which grows to the
+// largest viewer, and the viewer copies that corner into its canvas; see-through, the page's own background behind
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.setScissorTest(true);
+const frames = new Map();  // each viewer's frame (its root: its step of dt seconds and its draw)
+let seen = [];  // the viewers on screen, by when they came into view or were touched (state.mjs touched)
+const watch = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    seen = touched(seen, e.target, e.isIntersecting);
+    if (e.isIntersecting) e.target.dispatchEvent(new Event("noggin-seen"));
+  }
+});
+
+function draw(canvas, scene, camera) {
+  const w = canvas.clientWidth, h = canvas.clientHeight, size = renderer.getSize(new THREE.Vector2());
+  if (!w || !h) return;
+  if (size.x < w || size.y < h) renderer.setSize(Math.max(size.x, w), Math.max(size.y, h), false);
+  renderer.setViewport(0, 0, w, h);
+  renderer.setScissor(0, 0, w, h);
+  renderer.render(scene, camera);
+  const r = renderer.getPixelRatio(), [W, H] = [Math.floor(w * r), Math.floor(h * r)], from = renderer.domElement;
+  if (canvas.width !== W || canvas.height !== H) [canvas.width, canvas.height] = [W, H];
+  const out = canvas.getContext("2d");
+  out.clearRect(0, 0, W, H);
+  out.drawImage(from, 0, from.height - H, W, H, 0, 0, W, H);
+}
 const FOV = 20;
-// the hero GIF's view (model/render/pictures.py HERO): 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
+// the old hero GIF's view: 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
 // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
 // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
@@ -40,13 +76,12 @@ const press = (b, on) => b.setAttribute("aria-pressed", on);
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]");
   const poster = root.querySelector("figure");
-  const names = [...stages].map((b) => b.dataset.stage), link = opened(location.search, names, root.dataset.stage);
+  const names = [...stages].map((b) => b.dataset.stage), linked = names.length > 0;
+  let own = root.dataset.link ?? "";  // a viewer in a page: its link, its mix kept in it
+  const search = () => (linked ? location.search : `?${own}`);
+  const link = opened(search(), names, root.dataset.stage);
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
-  else {  // the poster picture's box, so the swap keeps the Mech where it was (#597)
-    const { width, height } = poster.querySelector("img").attributes;
-    canvas.style.cssText = `max-width: ${width.value}px; aspect-ratio: ${width.value} / ${height.value}; margin-inline: auto`;
-  }
   canvas.setAttribute("role", "img");
   const zoom = "zoom" in root.dataset;
   const how = zoom ? "drag to turn it, scroll or pinch to zoom" : "drag to turn it";
@@ -62,8 +97,8 @@ function mount(root) {
   tools.append(...root.querySelectorAll(":scope > nav"), explode, bar);
   const levels = [...explode.querySelectorAll("button")];
   // the mix (#819): a select per axis, its Preset's values unless the address names others
-  const preset = () => chosen(location.search, document.documentElement.dataset.preset);
-  let mix = mixed(location.search, preset());
+  const preset = () => chosen(search(), document.documentElement.dataset.preset);
+  let mix = mixed(search(), preset());
   const mixing = document.createElement("nav");
   mixing.setAttribute("aria-label", "Mix");
   const picks = Object.entries(AXES).map(([axis, values]) => {
@@ -72,9 +107,10 @@ function mount(root) {
     s.append(...values.map((v) => new Option(title(v), v)));
     s.dataset.axis = axis;
     s.addEventListener("change", () => {
-      const link = new URLSearchParams(location.search);
+      const link = new URLSearchParams(search());
       link.set(axis, s.value);
-      history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
+      if (linked) history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
+      else own = `${link}`;
       remix();
     });
     return s;
@@ -82,17 +118,14 @@ function mount(root) {
   tools.append(mixing);
   // the mix the address and the Preset give: a new Skeleton shape is another GLB, a new Palette a repaint
   function remix() {
-    mix = mixed(location.search, preset());
+    mix = mixed(search(), preset());
     for (const s of picks) s.value = mix[s.dataset.axis];
-    if (glb(current, mix["skeleton-shape"]) !== file) load(current), share();
+    if (!current) return;  // not scrolled into view yet: it loads in this mix
+    if (glb(current, mix["skeleton-shape"]) !== file) load(current, linked ? undefined : link.gesture), share();
     else repaint();
   }
   const caption = root.appendChild(document.createElement("p"));
   caption.className = "noggin-caption";
-  // see-through: the page's own background behind the Mech, in either theme
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(devicePixelRatio);
-  renderer.shadowMap.enabled = true;
   const camera = new THREE.PerspectiveCamera(FOV);
   const controls = new OrbitControls(camera, canvas);
   controls.enableZoom = zoom;
@@ -107,13 +140,13 @@ function mount(root) {
   explode.hidden = true;  // until a Stage with offsets loads
   levels.forEach((b, i) => {
     b.textContent = LEVELS[i];
-    b.addEventListener("click", () => (goal = i, pressLevel(), share(linked)));
+    b.addEventListener("click", () => (goal = i, pressLevel(), share(gesture)));
   });
   const pressLevel = () => levels.forEach((b, i) => press(b, i === goal));
   let scene, sphere, reach, refPx, mixer, clips, tour, step, creases, look, current, file, loading = 0;
   // how far apart the parts are (0 together, 1 each sub-assembly apart, 2 each part), the level they are headed to,
   // each part's group with its offset at each level, the camera's framing at each level, and the gesture in the address
-  let apart = 0, goal = 0, parts = [], framings, linked = link.gesture;
+  let apart = 0, goal = 0, parts = [], framings, gesture = link.gesture;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
   // for silhouettes, black crease lines
@@ -163,7 +196,6 @@ function mount(root) {
 
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     creases.resolution.set(w, h);
@@ -177,7 +209,8 @@ function mount(root) {
     outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
   }
 
-  // a gesture (a clip's name) plays once, then the Tour (none) goes on: every clip in turn, round and round
+  // a gesture (a clip's name) plays once, then the viewer's own goes on: its link's gesture again (a viewer in a
+  // page), else the Tour (none): every clip in turn, round and round
   function play(name) {
     step = name ? -1 : 0;
     run(name ?? tour[0]);
@@ -193,7 +226,7 @@ function mount(root) {
   }
 
   function next() {
-    if (step < 0) play();
+    if (step < 0) play(linked || !clips[link.gesture] ? undefined : link.gesture);
     else run(tour[step = (step + 1) % tour.length]);
   }
 
@@ -212,14 +245,16 @@ function mount(root) {
     camera.position.copy(controls.target.add(aim(apart).sub(aim(before)))).add(back);
   }
 
-  // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing
-  function share(gesture) {
-    linked = gesture;
-    const link = address(names, current, gesture, goal, location.search);
+  // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing: the
+  // viewer with Stage buttons alone
+  function share(playing) {
+    gesture = playing;
+    if (!linked) return;
+    const link = address(names, current, playing, goal, location.search);
     history.replaceState(null, "", `${location.pathname}${link}${location.hash}`);
   }
 
-  async function load(stage, gesture, level = 0) {
+  async function load(stage, playing, level = 0) {
     const mine = ++loading;
     current = stage;
     file = glb(stage, mix["skeleton-shape"]);
@@ -227,15 +262,16 @@ function mount(root) {
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of [...bar.children, ...levels]) b.disabled = true;
     root.setAttribute("aria-busy", true);
-    const gltf = await loader.loadAsync(here(`${file}.glb`));
+    const gltf = await fetched(file);
     if (mine !== loading) return;  // a later Stage click won
     poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
-    stylise(gltf.scene);
+    const model = gltf.scene.clone();  // its own nodes and materials, the GLB's geometry
+    stylise(model);
     // each part's offsets, assembled and at each level past it, from its node's extras (none: it stays)
     const home = [0, 0, 0], carried = (o, i) => o.userData.explode?.slice(3 * i, 3 * i + 3) ?? home;
     const offsetsOf = (o) => [home, ...LEVELS.slice(1).map((_, i) => carried(o, i))];
     const named = [];
-    gltf.scene.traverse((o) => o.userData.explode && named.push(o));
+    model.traverse((o) => o.userData.explode && named.push(o));
     parts = named.map((o) => {  // each part in a group that moves it apart, so the clips still pose it
       const group = new THREE.Group();
       o.parent.add(group);
@@ -243,11 +279,12 @@ function mount(root) {
       return [group, offsetsOf(o)];
     });
     if (!parts.length) goal = 0;  // a Stage that does not come apart
-    scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
+    // the last Stage's GPU buffers but the GLB's own geometry, which other viewers of it share
+    scene?.traverse((o) => { if (!o.material?.isMeshToonMaterial) o.geometry?.dispose(); o.material?.dispose(); });
     scene = new THREE.Scene();
-    scene.add(gltf.scene, camera, key, key.target, ambient);
+    scene.add(model, camera, key, key.target, ambient);
     repaint();
-    sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
+    sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
     reach = sphere.radius + Math.max(0, ...parts.flatMap(([, ds]) => ds.map((d) => Math.hypot(...d))));  // apart too
     const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out
     [box.left, box.right, box.bottom, box.top, box.near, box.far] = [-1, 1, -1, 1, 1, 3].map((x) => x * reach);
@@ -257,7 +294,7 @@ function mount(root) {
     // shortcut: fits the Stage at rest, not every pose of its hero loop as the GIF does; fit the clips' frames if a
     // pose leaves the view
     const v = new THREE.Vector3(), at = LEVELS.map(() => []);  // every vertex of the Stage from its centre, at each level
-    gltf.scene.traverse((o) => {
+    model.traverse((o) => {
       if (!o.material?.isMeshToonMaterial) return;  // the parts, not their hulls and lines
       const p = o.geometry.attributes.position, ds = offsetsOf(o);
       for (let i = 0; i < p.count; i++) {
@@ -265,25 +302,18 @@ function mount(root) {
         ds.forEach((d, k) => at[k].push(x.map((c, j) => c + d[j])));
       }
     });
-    // a poster's viewer starts from the poster picture's camera (web/glb.py exports the hero's), its lens too (#597)
-    const shot = poster && gltf.cameras[0];
-    camera.fov = shot?.fov ?? FOV;
-    const frame = (aspect, points = at[0]) => fit(points, VIEW.toArray(), [0, 1, 0], camera.fov, aspect, MARGIN);
-    const aspect = canvas.clientWidth / canvas.clientHeight, gif = frame(GIF_ASPECT);
-    framings = at.map((points) => frame(aspect, points));
+    camera.fov = FOV;
+    const fitted = (aspect, points = at[0]) => fit(points, VIEW.toArray(), [0, 1, 0], camera.fov, aspect, MARGIN);
+    const aspect = canvas.clientWidth / canvas.clientHeight, gif = fitted(GIF_ASPECT);
+    framings = at.map((points) => fitted(aspect, points));
     apart = goal;
     spread();
-    if (shot) {  // turning about the point of its view line nearest the Stage's centre
-      shot.updateWorldMatrix(true, false);
-      const at = shot.getWorldPosition(camera.position), ahead = shot.getWorldDirection(new THREE.Vector3());
-      controls.target.copy(ahead).multiplyScalar(ahead.dot(v.copy(sphere.center).sub(at))).add(at);
-    }
     refPx = radiusPx(sphere.radius, Math.hypot(...gif.target, gif.distance), camera.fov, look.line_at / GIF_ASPECT);
     camera.near = sphere.radius / 100;
     camera.far = reach * 100;
     resize();
     clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
-    mixer = new THREE.AnimationMixer(gltf.scene);
+    mixer = new THREE.AnimationMixer(model);
     mixer.addEventListener("finished", next);
     tour = Object.keys(clips).sort((a, b) => (b === "hero") - (a === "hero"));  // the hero first, where there is one
     const gestures = tour.filter((c) => c !== "hero");
@@ -298,24 +328,13 @@ function mount(root) {
     for (const b of levels) b.disabled = false;
     pressLevel();
     bar.hidden = caption.hidden = !tour.length;  // a GLB without clips plays nothing
-    if (tour.length) play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
+    if (tour.length) play(gestures.includes(playing) ? playing : undefined);  // the link's, if the Stage has it
+    frame(0);  // its first frame, though it may not animate
     root.setAttribute("aria-busy", false);
   }
 
-  for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
-  document.addEventListener("noggin-theme", () => {  // the bar's new Preset: its own mix, none of the address's
-    const link = new URLSearchParams(location.search);
-    for (const axis in AXES) link.delete(axis);
-    history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
-    remix();
-  });
-  for (const s of picks) s.value = mix[s.dataset.axis];
-  addEventListener("resize", () => scene && resize());
-  const timer = new THREE.Timer();
-  renderer.setAnimationLoop((t) => {
-    timer.update(t);
+  function frame(dt) {
     if (!scene) return;
-    const dt = timer.getDelta();
     mixer.update(dt);
     if (apart !== goal) {
       const before = apart;
@@ -326,9 +345,29 @@ function mount(root) {
     lineWidths();
     key.position.fromArray(look.key).normalize().applyQuaternion(camera.quaternion);
     key.position.multiplyScalar(2 * reach).add(sphere.center);
-    renderer.render(scene, camera);
+    draw(canvas, scene, camera);
+  }
+
+  for (const b of stages) b.addEventListener("click", () => (load(b.dataset.stage), share()));
+  document.addEventListener("noggin-theme", () => {  // the bar's new Preset: its own mix, none of the link's
+    const link = new URLSearchParams(search());
+    for (const axis in AXES) link.delete(axis);
+    if (linked) history.replaceState(null, "", `${location.pathname}?${link}${location.hash}`);
+    else own = `${link}`;
+    remix();
   });
-  load(link.stage, link.gesture, link.explode);
+  for (const s of picks) s.value = mix[s.dataset.axis];
+  addEventListener("resize", () => scene && (resize(), frame(0)));
+  canvas.addEventListener("pointerdown", () => seen.includes(root) && (seen = touched(seen, root, true)));
+  frames.set(root, frame);
+  root.addEventListener("noggin-seen", () => load(link.stage, link.gesture, link.explode), { once: true });
+  watch.observe(root);
 }
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);
+const timer = new THREE.Timer();
+renderer.setAnimationLoop((t) => {
+  timer.update(t);
+  const dt = timer.getDelta();
+  for (const root of seen.slice(-ANIMATING)) frames.get(root)(dt);
+});

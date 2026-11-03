@@ -10,16 +10,15 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
   document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,
   from main. No PR preview (#673). Every published name starts `next-`.
-- The next Mech in motion (Cansin, 2026-11-02, #656): its eye gimbal alone sweeping its yaw and pitch with the lids
-  following (pictures.py NEXT_MOTIONS, keyed by hand, eased, at the hero's 8 fps, moved by model/gimbal.py moved),
-  then each motion it plays, its gestures and Rest as MuJoCo baked them (#663, its rest's blink and its wink in place
-  of the keyed ones), each a looping WebP through one camera from the hero's direction, rendered with the rest by
-  `just pictures next`; the neck and the jaw join as their tickets move them.
+- Stills alone (Cansin, 2026-11-03, #839): Blender renders no motion, no animated WebP or GIF (the eye gimbal's
+  motions of #656 and #663 are gone). The next Mech moves in the web viewer alone, which Pictures embeds once per
+  motion (macros.py next_motions) and the front doors' stills link to, deep-linked to their Stage, Explode level and
+  Preset.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
   the panels (each Stage in each Preset at rest, a trajectory's first frame, #819);
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
-  in the web viewer, not in GIFs (#468); the next Mech's eye gimbal moves in its own (#656).
+  in the web viewer, not in GIFs (#468, #839).
 - Parts carry their Colour group's filament colour in the Preset's Palettes (#805, #819, docs/adr/0022: model/geometry.py
   THEMES, PRESETS and PRINTED; a GLB in its Shape's first Preset's, each material named by its Colour group, which the
   viewer repaints; under Numbers from the code below; black drawn a touch lighter so its shading and lines read)
@@ -36,10 +35,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   STL facets draw none; their width blender.py ART_PX in the pictures, LINE_PX in the web viewer), one key light at the camera's upper right, a transparent background. STL facets are
   smoothed by angle (35 degrees) with weighted normals; pupils are lifted 0.3 mm off the eyeball so their outline stays
   whole. For CI's software GL (Cansin, 2026-11-01, #226, #276; docs/research/2026-11-01-render-profile.md): Blender's
-  Line Art draws the lines (Freestyle took ~90 % of a frame on one thread), the motions render at the size they ship,
-  8 fps, keeping toon timing's key frames (pictures.py at_fps). Tuned for speed (Cansin, 2026-11-02, #470; the render
+  Line Art draws the lines (Freestyle took ~90 % of a frame on one thread). Tuned for speed (Cansin, 2026-11-02, #470; the render
   profile on #467): Eevee takes blender.py SAMPLES a frame (was 64, then 4) under a hard sun (SUN_ANGLE, so its shadow
-  edge needs no samples), the motions render as one animation (one depsgraph), the heaviest meshes are decimated for the
+  edge needs no samples), the heaviest meshes are decimated for the
   pictures only (LIGHTER, LIGHTER_FACES; the GLBs keep theirs), Line Art culls back faces, and CI keeps Mesa's shader
   cache.
 - Every picture is one WebP with a transparent background, its lines one mid grey (blender.py INK) that reads on the
@@ -207,7 +205,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
   what it fails), its Shapes and Palettes the Preset's the header's Theme bar picks or its own mix (#805, #806, #819);
-  Pictures' panels, front doors and motions are drawn in every Preset and shown in the one picked, each part in its
+  Pictures' panels and front doors are drawn in every Preset and shown in the one picked, each part in its
   Shape's first Preset.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.

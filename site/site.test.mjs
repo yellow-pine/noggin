@@ -276,10 +276,17 @@ test("every picture and GLB the site ships, links or draws is one of the next Me
   }
 });
 
-test("Pictures shows the next Mech, the front doors' own, it in motion and each of its parts, each linking to its full size", () => {
-  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-views a, .noggin-motions a, .noggin-parts a');
+test("Pictures shows the next Mech, the front doors' own and each of its parts, each linking to its full size", () => {
+  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-views a, .noggin-parts a');
   expect(links.map((a) => a.getAttribute('href').split('/').at(-1))).toEqual(numbers.published.images);
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
+});
+
+test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's panel its still until then (#839)", () => {
+  const viewers = page(route('docs/pictures.md')).querySelectorAll('.noggin-motions .noggin-viewer');
+  const links = viewers.map((v) => v.getAttribute('data-link')).sort();
+  expect(links).toEqual([...Object.keys(numbers.moments), 'rest'].map((g) => `gesture=${g}`).sort()); // its gestures and Rest
+  for (const v of viewers) expect(v.querySelectorAll('figure img').length).toBe(Object.keys(numbers.theme.presets).length);
 });
 
 test("the viewer's page draws the next Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {

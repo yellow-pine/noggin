@@ -17,8 +17,8 @@ Its Stage 1 from the front, its Stage 3 isometric and exploded are on [the site'
 <!-- #}-->
 
 The next Mech (#51), clean-room, as its model has it after the latest merge: Stage 1 from the front, Stage 3 whole and
-pulled apart. Each part and motion in [Pictures](pictures.md), turn it in
-[the viewer](https://yellowpine.com/noggin/viewer/).
+pulled apart; each opens in [the viewer](https://yellowpine.com/noggin/viewer/), to turn it and play its gestures.
+Each part and motion in [Pictures](pictures.md).
 
 ## What it does
 
