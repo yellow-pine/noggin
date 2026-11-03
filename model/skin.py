@@ -140,7 +140,8 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS} | GLUED  # each Shell's Assembly
 # The Shells physics leaves out (#665): drawn, weightless and colliding with nothing, so the sim weighs and collides the
 # Skeleton (and the eyeball caps, the gimbal's own gates read) alone; their hold is checked against the peak acceleration
 # of where they sit (model/mujoco_report.py), their clearance on their own shapes (model/printed/test_skin.py).
-# shortcut: the servos carry the Skeleton's load alone; weigh the Shells once the tilt servo holds a head in its Skin
+# shortcut: the servos carry the Skeleton's load alone; weighed, Morty's head takes the tilt hold to 0.43 kgf.cm, over
+# the rated 0.4: weigh the Shells once the tilt servo holds a head in its Skin (#830)
 DRAWN = [s for s in SHELLS if s.startswith("next morty ")]
 
 

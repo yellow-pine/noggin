@@ -63,9 +63,9 @@ In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it:
   (about 4.6 N a pair) at least twice its weight times the peak acceleration the sim reads at its centroid along
   every motion.
 - The sim weighs and collides the Skeleton and the eyeball caps alone: the other Shells are drawn, weightless, so the
-  servos' figures are the Skeleton's (follow-up: the tilt servo holding a head in its Skin). Their clearance is
-  checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo at either
-  end (model/printed/test_skin.py).
+  servos' figures are the Skeleton's: weighed, Morty's head takes the tilt servo past its rating (#830). Their
+  clearance is checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo
+  at either end (model/printed/test_skin.py).
 
 ## Hardware
 Inventory and the buy list: [Parts](build/parts.md#parts-to-buy). The one new purchase is the magnets, and the
