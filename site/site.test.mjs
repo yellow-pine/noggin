@@ -274,6 +274,7 @@ test("every picture and GLB the site ships, links or draws is one of the next Me
     for (const v of doc.querySelectorAll('.noggin-viewer')) expect(viewer, f).toContain(`${v.getAttribute('data-stage')}.glb`);
     for (const el of doc.querySelectorAll('[href], [src]')) {
       const url = el.getAttribute('href') ?? el.getAttribute('src');
+      if (new URL(url, SITE).origin !== new URL(SITE).origin) continue; // a research note's external link is not ours (#868)
       if (mech.test(url.split(/[?#]/)[0]) || url.includes(`${HOME}/images/`)) expect(ours, `${f}: ${url}`).toContain(name(url));
     }
   }
