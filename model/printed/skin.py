@@ -212,12 +212,16 @@ def hair():
 
 
 def mouth_cover():
-    """The mouth cover (face), his chin and lower lip: a block under the jaw's chin in the face's mouth opening, which
-    the jaw swings down; down off the jaw's Seat."""
+    """The mouth cover (face), his lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
+    inside the face, and the chin under the face's foot, flush with its front, which the jaw swings down; up off its
+    Seat once the face is off."""
     (seat,) = (s for s in sk.SEATS if s.shell == "next morty mouth cover")
-    top = seat.at[2] - sk.GAP
-    out = box((-22, 22), (sk.MUZZLE_Y + 1, -28), (top - 6, top)).edges("not >Z").fillet(2.0)
-    return _finish("next morty mouth cover", out)
+    _, y, z = seat.at
+    bottom, foot, inner = sk.HEAD_Z[0] - 6.0, sk.HEAD_Z[0] - 0.5, sk.MUZZLE_Y + sk.WALL + 0.6
+    plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
+    wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
+    chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, foot)).edges("not >Z").fillet(2.0)
+    return _finish("next morty mouth cover", plate.union(wall).union(chin))
 
 
 SHIRT_SPLIT = 8.5  # the halves part across the neck's pan axis (model/neck.py AXIS)

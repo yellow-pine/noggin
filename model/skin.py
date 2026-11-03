@@ -114,12 +114,13 @@ SEATS = [
         )
         for x in (-45.0, 45.0)
     ],
-    # the mouth cover down off the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z)
+    # the mouth cover up off the jaw's chin bar's top (model/neck.py CHIN_Y, JAW_ARM_Z), under the head mount's flange:
+    # under the chin a pad would make the head taller (#708's gate)
     Seat(
         "next morty mouth cover",
         "next jaw",
-        (0.0, nk.CHIN_Y + 2.0, nk.JAW_ARM_Z[0] - 3.0),
-        (0.0, 0.0, -1.0),
+        (0.0, nk.CHIN_Y + 4.0, nk.JAW_ARM_Z[1] + 3.0),
+        (0.0, 0.0, 1.0),
         4.0,
         0.0,
         1,
