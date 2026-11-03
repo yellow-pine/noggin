@@ -291,7 +291,7 @@ def next_skull():
     """next-skull: the realistic Skeleton's skull (#838, model/printed/skull.py) as a Skin wears it (g.WORN), its bones
     drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame,
     the mandible on the jaw, the atlas and the axis on the pan yoke."""
-    return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in map(g.WORN.get, g.SKULL, g.SKULL)}, {})
+    return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
 def next_morty():

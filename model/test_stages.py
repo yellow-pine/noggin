@@ -74,7 +74,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
         "next jaw bar:1",
         "next mouth servo:1",
         "next mouth horn:1",
-    } | {n + ":1" for n in [*skin.DRAWN, *map(g.WORN.get, g.SKULL, g.SKULL)]}
+    } | {n + ":1" for n in [*skin.DRAWN, *(g.WORN.get(s, s) for s in g.SKULL)]}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 
