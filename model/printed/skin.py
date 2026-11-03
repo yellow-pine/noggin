@@ -229,7 +229,8 @@ def shirt(half):
     rim over its walls' top and the collar rising round the neck; each half off its Torso wall's Seats, the front
     forward, the back backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
-    off = 5.0 - 1.0 + sk.GAP  # the pads' faces, 4 mm out of the walls, and the Seat's gap
+    front = next(s for s in sk.SEATS if s.shell == "next morty shirt front")
+    off = y0 - front.at[1] + sk.GAP  # the pads' faces out of the walls, and the Seat's gap
     inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5))
     outer = box(
         (x0 - off - sk.WALL, x1 + off + sk.WALL),

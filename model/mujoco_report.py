@@ -131,14 +131,13 @@ def _motions(doc, model, plate, names):
     stage = stages.STAGES[doc]
     seated = {n: p for n, p in stage.parts.items() if stages.stem(p.file) in {s.shell for s in skin.SEATS}}
     centroids = {n: trimesh.load(p.file, force="mesh").centroid / 1000 for n, p in seated.items()}  # m, its frame
+    ids = [model.body(n).id for n in centroids]
     outline, floor, g = (
         (None, None, None) if plate is None else (footprint(plate), plate[:, 2].min(), -model.opt.gravity[2])
     )
 
     def read(data):
-        shells = [
-            data.xpos[model.body(n).id] + data.xmat[model.body(n).id].reshape(3, 3) @ c for n, c in centroids.items()
-        ]
+        shells = [data.xpos[i] + data.xmat[i].reshape(3, 3) @ c for i, c in zip(ids, centroids.values())]
         held = torques(model, data, moving=False), torques(model, data)
         return *held, data.subtree_com[0] * 1000, np.reshape(shells, (-1, 3)) * 1000  # mm, as just posed
 

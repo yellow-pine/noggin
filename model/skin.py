@@ -39,7 +39,7 @@ _OVER = max(
 )
 UPPER_COVER = (gm.LID_REST + _OVER + 1.0, gm.LID_REST + gm.LID_SPAN)  # deg from forward toward up, as the lid at rest
 LOWER_COVER = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-COVER_X = (-25.9, 21.0)  # the L lids' main shell (printed/gimbal.py _lid: the ears' slab to the upper boss's), mm
+COVER_X = (-gm.LID_X["ear"][0], gm.LID_X["upper boss"][1])  # the L lids' main shell (printed/gimbal.py _lid)
 
 
 def _on_lid(r, deg, side):
