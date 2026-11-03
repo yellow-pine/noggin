@@ -7,26 +7,23 @@ export const title = (s) => s[0].toUpperCase() + s.slice(1);
 // what plays, and the Claude Code event that plays it; the Tour (no gesture) plays every gesture in turn
 export const caption = (gesture) => (gesture ? `${title(gesture)}: ${moments[gesture]}` : "Tour: every gesture in turn");
 
-// a GLB's name splits into its Stage's (realistic, as Bones) and its Skeleton's suffix (#704, #805: "-mechanical"),
-// the Skeletons' as macros.py stage_switch has them
-const SUFFIXES = published.stages.skeletons.map((s) => s.suffix).filter(Boolean);
-export const skeleton = (stage) => SUFFIXES.find((s) => stage.endsWith(s)) ?? "";
-export const bony = (stage) => stage.slice(0, stage.length - skeleton(stage).length);
+// a Stage's GLB in a Skeleton (the header's bar's, #806): its name as Bones and the Skeleton's suffix (#704, #805:
+// "-mechanical"), as macros.py stage_switch has them
+export const glb = (stage, skeleton) => stage + (published.stages.skeletons[skeleton] ?? "");
 
-// a deep link, ?stage=<n>&skeleton=mechanical&gesture=<g>&explode=1: the page's nth Stage button's Stage (else
-// `fallback`, the viewer's own) in its Skeleton, its gesture, and exploded only where the Stage comes apart
+// a deep link, ?stage=<n>&gesture=<g>&explode=1: the page's nth Stage button's Stage (else `fallback`, the viewer's
+// own), its gesture, and exploded only where the Stage comes apart; its Skeleton is the Theme's (src/theme.mjs)
 export function opened(search, stages, fallback) {
-  const link = new URLSearchParams(search), base = stages[link.get("stage") - 1];
-  const stage = base ? base + (SUFFIXES.find((s) => s === `-${link.get("skeleton")}`) ?? "") : fallback;
+  const link = new URLSearchParams(search), stage = stages[link.get("stage") - 1] ?? fallback;
   return { stage, gesture: link.get("gesture"), exploded: link.get("explode") === "1" && stage in explode };
 }
 
-// the deep link to what plays: the Stage by its button (where the page has them) and its Skeleton, the gesture,
-// exploded
-export function address(stages, stage, gesture, exploded) {
-  const n = stages.indexOf(bony(stage)) + 1, link = new URLSearchParams();
+// the deep link to what plays: the Stage by its button (where the page has them), the gesture, exploded; the rest of
+// the address (the Theme) kept
+export function address(stages, stage, gesture, exploded, search = "") {
+  const n = stages.indexOf(stage) + 1, link = new URLSearchParams(search);
+  for (const k of ["stage", "gesture", "explode"]) link.delete(k);
   if (n) link.set("stage", n);
-  if (n && skeleton(stage)) link.set("skeleton", skeleton(stage).slice(1));
   if (gesture) link.set("gesture", gesture);
   if (exploded) link.set("explode", 1);
   return link.size ? `?${link}` : "";

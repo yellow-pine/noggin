@@ -31,6 +31,15 @@ range, filament is Bambu's PLA and PETG lines the Themes name.
   PETG HF's figures as the worst case, PLA Basic and Matte for the Skins. Owned: PLA Pure in Milky Pink, Pure White,
   Absolute Black and Apricot (docs/research/2026-10-31-filament.md) and black PETG, which prints the Mounts.
 
+The filaments of the Theme picked in the header, each Colour group's:
+
+<!--{{ filaments }}-->
+
+<!--{# GitHub shows the line below; the site drops it for the list, which it builds from the code -->
+The list for the Theme you pick is [on the site](https://yellowpine.com/noggin/docs/build/parts/#parts-to-buy);
+every Theme's filaments are in the table on [Themes](../face-design.md).
+<!-- #}-->
+
 ## On the Mac
 
 macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it) and Claude Code. `uv` manages

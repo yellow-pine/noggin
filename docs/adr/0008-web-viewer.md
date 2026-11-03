@@ -40,6 +40,8 @@
 > `next-mech-back-plain.glb`), a button each.
 > Amended 2026-11-03 (#805, ADR 0022): the look switch is the Skeleton switch, Realistic and Mechanical
 > (`next-mech-back-mechanical.glb`), each GLB in its Theme's colours.
+> Amended 2026-11-03 (#806, ADR 0022): the header's Theme bar picks the Skeleton for every page, the viewer's
+> GLB too, in place of the viewer's own Skeleton switch.
 > Amended 2026-11-03 (#795): Checks' `Deploy` job deploys the site, in place of Site Deploy.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
