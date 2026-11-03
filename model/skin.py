@@ -59,17 +59,32 @@ def _lid_seats(side, polarity):
     return out
 
 
-# Morty's head (#665), in the head's frame (model/neck.py): the face comes off forward, the hair up
-# outside: half-width, front (over the eyes) to back (past the head mount's tilt lever, #838), z
-HEAD_X, HEAD_Y, HEAD_Z = 68.0, (-24.0, 95.0), (-80.0, 81.0)
-ROUND = (16.0, 10.0)  # the head's edges rounded, over the eyes and the muzzle
-NECK = (
-    nk.AXIS[0] - 20.0,
-    nk.AXIS[1] - 1.0,
-)  # (y, z): the head open behind y and under z, where the neck comes in (#838)
-MUZZLE_Y, MUZZLE_Z = -49.0, -36.0  # the face's front under the eyes, over the jaw and the head mount, up to here
+# Morty's head (#665, #844: his model sheet's round head), in the head's frame (model/neck.py): the face comes off
+# forward, the hair up. The head is what lies inside three outlines, each the hull of (u, v, r) circles: from the front
+# (x, z) a round cranium over the cheeks; from the side (y, z) the face
+# flat over the eyes, the cranium round behind it, and the muzzle over the jaw and the head mount (two hulls, the corner
+# between them rounded SIDE_ROUND); from above (x, y), square to the mouth servo's corners. Every size is inferred.
+FRONT = ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
+SIDE = (
+    ((1.0, 25.7, 25.0), (-4.0, -12.0, 20.0), (30.0, 10.0, 58.0), (68.0, -60.0, 20.0)),
+    ((-29.0, -50.0, 20.0), (-42.0, -73.0, 7.0), (40.0, -60.0, 20.0)),
+)
+SIDE_ROUND = 25.0
+TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
+# outside: half-width, front (the muzzle's) to back, z
+HEAD_X = max(u + r for u, _, r in FRONT)
+HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
+HEAD_Z = (min(v - r for _, v, r in FRONT + SIDE[1]), max(v + r for _, v, r in FRONT))
+MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
-HAIRLINE = (50.0, 20.0)  # (z, y): the hair over z at the front, back to y, then down to the back's foot
+# The hairline (his model sheet's): the hair is the head inside a circle along x, (y, z, r), from over the forehead down
+# behind the ears, and all behind NAPE, so the hair comes off upward and the face forward; it stands HAIR proud of the face
+HAIRLINE = (99.4, 67.4, 111.5)
+NAPE = 78.0
+HAIR = 1.5
+NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
+BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
+# in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
 _PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge (its bar to the lids'), mid height
 _BACK = (31.0, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo (#838)
@@ -103,22 +118,14 @@ SEATS = [
         for x in (-45.0, 45.0)
     ],
     # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-    # the face's top corners under the hairline
+    # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
     *[
         Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
         for x in (-_BACK[0], _BACK[0])
     ],
     *[
-        Seat(
-            "next morty hair",
-            "next morty face",
-            (x, -15.0, 44.0),
-            (0.0, 0.0, 1.0),
-            6.0,
-            HEAD_Z[1] - WALL - 44.0 - GAP + 1.0,
-            1,
-        )
-        for x in (-45.0, 45.0)
+        Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
+        for x in (-40.0, 40.0)
     ],
     # the mouth cover up off the jaw's chin bar's top (model/neck.py CHIN_Y, JAW_ARM_Z), under the head mount's flange:
     # under the chin a pad would make the head taller (#708's gate)

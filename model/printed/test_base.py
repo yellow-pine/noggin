@@ -82,8 +82,9 @@ def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(he
 def test_the_pedestal_as_bones_rounds_its_corners_sinks_its_plaque_and_prints_its_two_parts_as_drawn():
     """#708, #838: as Bones, carved from the mechanical parts, the pedestal's corners round, its plaque sunk in front
     and its lid's border down round the panel: just inside each mechanical corner, in the plaque's middle and on the
-    border lies nothing, the panel inside it stands. Both lids have the post's hole and its slot back. The Torso prints
-    upright, the lid flat, no overhang past 45 deg."""
+    border lies nothing, the panel inside it stands. Both lids have the post's hole and its slot back, and sit inside
+    the walls, flush with their top, so they never slide off. The Torso prints upright, the lid flat, no overhang past
+    45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     torso, plain = printed_base.torso().val(), printed_base.torso(mechanical=True).val()
     lid, flat = printed_base.lid().val(), printed_base.lid(mechanical=True).val()
@@ -94,5 +95,7 @@ def test_the_pedestal_as_bones_rounds_its_corners_sinks_its_plaque_and_prints_it
     assert plain.isInside(cq.Vector((px0 + px1) / 2, y0 + 0.5, (pz0 + pz1) / 2))
     assert not lid.isInside(cq.Vector(0, y0 + 5, z1 - 0.5)) and lid.isInside(cq.Vector(30, y0 + 20, z1 - 0.5))
     for look in (lid, flat):
+        bb = look.BoundingBox()
+        assert x0 + printed_base.WALL < bb.xmin and bb.xmax < x1 - printed_base.WALL and bb.zmax == pytest.approx(z1)
         assert not look.isInside(cq.Vector(0, nk.AXIS[0], z1 - 1)) and not look.isInside(cq.Vector(0, y1 - 1, z1 - 1))
     assert bone.overhang_deg(torso) <= 45 and bone.overhang_deg(lid) <= 45
