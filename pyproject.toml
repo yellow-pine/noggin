@@ -31,6 +31,7 @@ dev = [
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
     "rust-just>=1.59.0",  # just runs the recipes (justfile, docs/adr/0016)
+    "pytest-timeout>=2.4.0",  # CI's 15 s a test (--timeout, checks.yml and pr-gate.yml, #808)
 ]
 
 [tool.uv]
@@ -42,9 +43,11 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 [tool.pytest.ini_options]
 testpaths = [".claude/hooks", "ci", "eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py", "test_workflows.py"]
 markers = [
-    "model: MuJoCo and the slowest mesh sweeps; CI runs them in its Model job (-m model) beside the rest",
-    "build: reads our parts' STLs (model/build/ours, just ours); just check-light leaves them out",
+    "model: MuJoCo, our parts' STLs (just ours) and the CadQuery sweeps; CI runs them in its Model shards (-m model), just check-light leaves them out",
 ]
+# CI's --timeout (15 s, #808) times the test itself: the parts a module's tests share are built once a worker, in a
+# fixture, whose seconds the slowest-20 list still shows as setup
+timeout_func_only = true
 
 [tool.ruff]
 line-length = 120

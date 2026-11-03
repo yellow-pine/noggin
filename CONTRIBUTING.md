@@ -122,7 +122,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - `just lint` (ruff and pyright) is every change's local check, which the pre-push hook `just venv` turns on runs (#714).
   A change to model/ (parts, geometry, MuJoCo) also passes `just linux-test <its tests>` before its push: `just ours`
   and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
-  `just check-light` is the PR gate's `Code` job: `just lint` and the tests marked neither `model` nor `build`.
+  `just check-light` is the PR gate's `Code` job: `just lint` and the tests not marked `model` (every test that builds
+  or reads our parts is, and runs in the `Model` shards, #808).
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
@@ -159,7 +160,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Actions cache carries them between jobs. The sim's reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- Each job's slowest tests are in its run summary.
+- Each job's slowest tests are in its run summary. On CI a test gets 15 s (pytest-timeout's `--timeout`, in `Code` and
+  the `Model` shards' tests; just mech's live checks wait on the Core's real timers and get none), its fixtures aside
+  (`timeout_func_only`): the parts a module's tests share are built once a worker in a fixture, whose seconds show as
+  setup. A slower test is made fast or split (parametrized: by part, member, motion or a chunk of pairs) before it
+  merges (#808).
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the

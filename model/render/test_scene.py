@@ -9,7 +9,7 @@ from model.render import scene
 DOC = stages.STAGES[next(iter(geometry.NEXT))]
 
 
-@pytest.mark.build
+@pytest.mark.model
 def test_export_writes_each_part_in_metres_with_its_spool_or_grey(tmp_path):
     manifest = scene.export(DOC, tmp_path)
     assert set(manifest) == set(DOC.parts)

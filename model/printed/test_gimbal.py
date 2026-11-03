@@ -18,32 +18,40 @@ from model.printed import bone, gimbal
 ON_SPLINE = {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in gm.drives()}
 
 
-def _overlaps(a, b):
-    ba, bb = a.BoundingBox(), b.BoundingBox()
-    apart = any(
-        getattr(ba, f"{k}max") < getattr(bb, f"{k}min") or getattr(bb, f"{k}max") < getattr(ba, f"{k}min")
-        for k in "xyz"
-    )
-    return 0.0 if apart else a.intersect(b).Volume()
+GROW_MM = 0.1  # a box read off the tessellation can fall short of a curved face: grown, it misses no touching pair
 
 
-@pytest.mark.build
-@pytest.mark.parametrize("plain", [False, True])
-def test_no_two_parts_overlap_at_rest(plain):
-    shapes = gimbal.at_rest(plain)
-    hits = [
+def _overlaps(shapes, pairs):
+    """[a / b: mm3] for each pair of `shapes` (names) among `pairs` overlapping past 0.01 mm3: only a pair whose grown
+    bounding boxes touch is intersected (#808)."""
+    box = {n: s.BoundingBox() for n, s in shapes.items()}
+    lo = {n: np.array([b.xmin, b.ymin, b.zmin]) - GROW_MM for n, b in box.items()}
+    hi = {n: np.array([b.xmax, b.ymax, b.zmax]) + GROW_MM for n, b in box.items()}
+    return [
         f"{a} / {b}: {v:.2f} mm3"
-        for a, b in itertools.combinations(shapes, 2)
-        if frozenset((a, b)) not in ON_SPLINE and (v := _overlaps(shapes[a], shapes[b])) > 0.01
+        for a, b in pairs
+        if (lo[a] <= hi[b]).all() and (lo[b] <= hi[a]).all() and (v := shapes[a].intersect(shapes[b]).Volume()) > 0.01
     ]
-    assert hits == []
 
 
-@pytest.mark.build
-def test_the_block_fits_the_compact_head():
+@pytest.fixture(scope="module", params=[False, True], ids=["bones", "plain"])
+def rest(request):
+    """{part: its solid at rest} (gimbal.at_rest), built once a module and style: CI's 15 s times the test alone."""
+    return gimbal.at_rest(request.param)
+
+
+@pytest.mark.model
+def test_no_two_parts_overlap_at_rest(rest):
+    pairs = [(a, b) for a, b in itertools.combinations(rest, 2) if frozenset((a, b)) not in ON_SPLINE]
+    assert _overlaps(rest, pairs) == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("rest", [False], ids=["bones"], indirect=True)
+def test_the_block_fits_the_compact_head(rest):
     """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
-    assert all(b <= h for b, h in zip(gimbal.bounds(), gm.HEAD_MM))
+    assert all(b <= h for b, h in zip(gimbal.bounds(rest), gm.HEAD_MM))
 
 
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
@@ -55,12 +63,18 @@ def test_the_pupil_seat_sits_toward_the_other_eye(side, inward):
     assert not cap.isInside(cq.Vector(inward * 6.6, y, 0)) and cap.isInside(cq.Vector(-inward * 6.6, y, 0))
 
 
-@pytest.mark.build
-def test_the_skeleton_moves_every_part_as_the_gimbal_does():
+@pytest.fixture(scope="module")
+def skeleton(rest):
+    return gimbal.skeleton(rest)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("rest", [False], ids=["bones"], indirect=True)
+def test_the_skeleton_moves_every_part_as_the_gimbal_does(skeleton):
     """The hinges gates.certify reads (#655): at each (lid, pitch) row every part sits where gimbal.moved() puts it, the
     parts that turn alike about one line on one hinge."""
     poses = [(-36, -12), (-20, 0), (10, 14)]
-    model, rows = gimbal.skeleton(gimbal.at_rest())
+    model, rows = skeleton
     data = mujoco.MjData(model)
     for (lid, pitch), q in zip(poses, rows(poses)):
         data.qpos[:] = q
@@ -208,15 +222,24 @@ def _bending_sf(solid, a, b, force, d, lever, ts=(0.0, 0.25, 0.5, 0.75)):
     return min(out)
 
 
-def test_the_yokes_crank_and_the_bails_arms_hold_the_servos_at_stall():
+F, (BY, BZ) = beams.stall_force_n(), gm.BAIL
+# (part, a, b, force, its axis, lever) per member: split, so each test holds CI's 15 s (#808)
+MEMBERS = {
+    "crank": (gimbal.yoke, (0, 0, -25.5), (0, gm.CRANK, -25.5), F, "x", gm.CRANK),
+    **{
+        f"arm at x {x:+.1f}": (gimbal.bail, (x, BY, BZ + 4), (x, BY, BZ + 11), F * gm.BAIL_IN / z, "y", z - 4)
+        for x, _, z in BALLS
+    },
+    "input arm": (gimbal.bail, (0, BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
+}
+
+
+@pytest.mark.parametrize("member", MEMBERS)
+def test_the_yokes_crank_and_the_bails_arms_hold_the_servos_at_stall(member):
     """SF 2 (beams.MIN_SF) in bending: the crank under the yaw servo's stall at its pin; each bail arm under the pitch
     servo's at its ball (one arm taking it all, the bail's ratio on); the input arm under it at the pitch bar's pin."""
-    f, (by, bz) = beams.stall_force_n(), gm.BAIL
-    assert _bending_sf(gimbal.yoke().val(), (0, 0, -25.5), (0, gm.CRANK, -25.5), f, "x", gm.CRANK) >= beams.MIN_SF
-    for x, _, z in BALLS:
-        arm = _bending_sf(gimbal.bail().val(), (x, by, bz + 4), (x, by, bz + 11), f * gm.BAIL_IN / z, "y", z - 4)
-        assert arm >= beams.MIN_SF
-    assert _bending_sf(gimbal.bail().val(), (0, by + 5, bz), TIP, f, "z", gm.BAIL_IN - 5) >= beams.MIN_SF
+    part, *beam = MEMBERS[member]
+    assert _bending_sf(part().val(), *beam) >= beams.MIN_SF
 
 
 def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
