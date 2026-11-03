@@ -70,7 +70,7 @@ THEMES = {
         "anatomical": {
             "Bones": ("PETG Basic", "Dark Beige", "30403", "#DBC8B6"),
             "Joints": ("PETG Matte", "White", "35100", "#FFFFFF"),
-            "Linkages": ("PETG Basic", "Red", "30201", "#D6001C"),
+            "Linkages": ("PETG Basic", "Dark Brown", "30800", "#4F2C1D"),  # Cansin, 2026-11-03: red lids read badly
             "Mounts": _BLACK,
         },
         "robot": {
