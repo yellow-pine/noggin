@@ -86,6 +86,9 @@ TOUCH = {
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
             ("next torso:1", "next neck mount:1"),
+            ("next torso:1", "next torso lid:1"),
+            # the yoke's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838)
+            ("next torso lid:1", "next pan yoke:1"),
             ("next torso:1", "next pack:1"),
             ("next torso:1", "next switch board:1"),
         ]

@@ -33,6 +33,7 @@ PARTS = {
     "next jaw bar": neck.jaw_bar,
     # the next Mech's Torso (#685), which carries the Cores (#838)
     "next torso": base.torso,
+    "next torso lid": base.lid,
     # the next Mech's Stage 1 (#720)
     "next test stand": base.stand,
 }
@@ -44,7 +45,7 @@ STYLED = {
     **{f"next {s} {lid}": PARTS[f"next {s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
     **{stem: PARTS[stem] for stem in ("next neck mount", "next pan yoke", "next head mount", "next jaw")},
     **{stem: PARTS[stem] for stem in ("next pan bar", "next tilt bar", "next jaw bar")},
-    **{stem: PARTS[stem] for stem in ("next torso", "next test stand")},
+    **{stem: PARTS[stem] for stem in ("next torso", "next torso lid", "next test stand")},
 }
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {"next eyeball core": "the eyeball's ball under its cap: none"}

@@ -304,7 +304,7 @@ def shirt(half):
     collar = box(
         (x0 + 2.0 - sk.WALL, x1 - 2.0 + sk.WALL),
         (y0 + 2.0 - sk.WALL, y1 - 2.0 + sk.WALL),
-        (z1, z1 + 0.5 + sk.WALL + SHIRT_TOP),
+        (z1 + 0.5, z1 + 0.5 + sk.WALL + SHIRT_TOP),  # clear of the Torso's lid (#838)
     )
     collar = collar.edges("|Z").fillet(neck + sk.WALL).edges(">Z").fillet(sk.WALL / 2)
     out = outer.cut(inner).union(collar).cut(hole)

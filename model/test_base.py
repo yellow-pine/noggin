@@ -68,17 +68,17 @@ def _box(mesh, m):
 
 
 def test_the_cores_lie_in_the_torso_in_front_of_the_neck_and_the_switch_board_beside_the_pack():
-    """#838: each Core under its Shield lies flat on the Torso's floor (z -144), Core 1 at -x, Core 2 its mirror image,
+    """#838: each Core under its Shield lies flat on the Torso's floor (nk.MOUNT_Z), Core 1 at -x, Core 2 its mirror image,
     3 mm apart, 5 mm in front of the neck mount's foot (22 in front of the pan axis), the Core's USB-C end forward;
     the switch board flat on the floor beside the pack's lead end (-x), within the Torso's walls."""
     boards, (y_axis, _), ((x0, _), (y0, y1), _) = base.boards(), nk.AXIS, base.TORSO
     shield, core = (_box(*boards[f"next {n} 1"]) for n in ("Shield", "Core"))
-    assert core[0][2] == pytest.approx(-144.0) and shield[1][2] - core[0][2] == pytest.approx(21.46, abs=0.01)
+    assert core[0][2] == pytest.approx(nk.MOUNT_Z[0]) and shield[1][2] - core[0][2] == pytest.approx(21.46, abs=0.01)
     assert shield[0][0] == pytest.approx(-30.5) and shield[1][0] == pytest.approx(-1.5)
     assert shield[1][1] == pytest.approx(y_axis - 22.0 - 5.0) and core[0][1] < shield[0][1] + 2  # its USB-C end
     assert _box(*boards["next Shield 2"]) == ([-shield[1][0], *shield[0][1:]], [-shield[0][0], *shield[1][1:]])
     lo, hi = _box(*base.switch_board()["next switch board"])
-    assert lo[2] == pytest.approx(-144.0) and hi[0] < -base.PACK[0] / 2 - 2.5
+    assert lo[2] == pytest.approx(nk.MOUNT_Z[0]) and hi[0] < -base.PACK[0] / 2 - 2.5
     assert x0 + 2 < lo[0] and y0 + 2 < min(lo[1], shield[0][1]) and hi[1] < y1 - 2
 
 

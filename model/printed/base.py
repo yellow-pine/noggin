@@ -1,8 +1,6 @@
 """The next Mech's Torso (#685), which carries the Cores (#838), and Stage 1's test stand (#720) as CadQuery parts,
 every size from model/base.py, each drawn where it sits at rest in the head's frame (model/neck.py)."""
 
-import math
-
 import cadquery as cq
 
 from model import base as nb
@@ -15,7 +13,10 @@ from model.printed.gimbal import cyl
 WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's height, 0.5 mm clear round the pack
 ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third of it
 CORNER = 4.0  # as Bones: the Torso's upright corners round
-WINDOW, POST = 8.0, 4.0  # its windows' width and the posts' between them
+# the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
+# 1 mm down, BORDER in from its edge
+PLAQUE, BORDER = ((-16.0, 16.0), (-156.0, -146.0)), 9.0  # between the Cores' USB-C slots and the shirt's Seats
+LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 
 def _box(x, y, z, r=0.0, edges="|Z"):
@@ -26,45 +27,59 @@ def _box(x, y, z, r=0.0, edges="|Z"):
 
 @bone.carved
 def torso(mechanical=False):
-    """The Torso (printed upright): its floor (the foot; the neck mount stands on it), its walls round it, and the pack's
-    cradle on the floor behind the neck mount. As Bones (#708), carved from it (#809): its upright corners round and a
-    row of lancet windows through each wall, a post between each two under a rim along the top, each window's head
-    pointed so it prints without support."""
+    """The Torso (printed upright), the realistic skull's box pedestal (#838): its floor (the foot; the neck mount stands
+    on it), its walls round it, a slot in front at each Core's USB-C, a ledge inside their top for its lid (the pack in
+    and out under it); the pack's cradle on the floor behind the neck mount. As Bones (#708), carved
+    from it (#809): its upright corners round and a plaque sunk in its front, as the picture Cansin gave."""
     (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
-    floor = nk.MOUNT_Z[0]
+    floor, top = nk.MOUNT_Z[0], z1 - nb.LID_T
     out = _box((x0, x1), (y0, y1), (z0, z1), 0.0 if mechanical else CORNER)
     out = out.cut(_box((x0 + WALL, x1 - WALL), (y0 + WALL, y1 - WALL), (floor, z1 + 1)))
+    out = out.union(_ledge(top))
+    for x in nb.CORES_AT[0]:  # each Core's USB-C, its plug in from the front, its head pointed to print
+        door = [(x - 6, floor), (x + 6, floor), (x + 6, floor + 9), (x, floor + 15), (x - 6, floor + 9)]
+        out = out.cut(cq.Workplane("XZ", origin=(0, y0 + WALL + 1, 0)).polyline(door).close().extrude(WALL + 2))
     if not mechanical:
-        for axis, (lo, hi), across in (("x", (x0, x1), (y0, y1)), ("y", (y0, y1), (x0, x1))):
-            for c in _windows(lo + CORNER, hi - CORNER):
-                for wall in (across[0] + WALL / 2, across[1] - WALL / 2):  # each wall's middle
-                    out = out.cut(_lancet(axis, c, wall, floor + 1.5, z1 - nb.TRAY_T))
+        (px0, px1), (pz0, pz1) = PLAQUE  # sunk 1 mm, its top at 45 deg so it prints upright
+        sunk = [(y0 - 1, pz0), (y0 + 1, pz0), (y0 + 1, pz1 - 2), (y0 - 1, pz1)]
+        out = out.cut(cq.Workplane("YZ", origin=(px0, 0, 0)).polyline(sunk).close().extrude(px1 - px0))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
     ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
     return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
 
 
-def _windows(lo, hi):
-    """The windows' middles along a wall from lo to hi, WINDOW wide with a post POST wide between each two."""
-    n = int((hi - lo + POST) // (WINDOW + POST))
-    start = (lo + hi) / 2 - (n - 1) * (WINDOW + POST) / 2
-    return [start + i * (WINDOW + POST) for i in range(n)]
+def _ledge(top):
+    """A ledge round inside the walls' top, LEDGE wide, its underside 45 deg (it prints upright): the lid lies on it."""
+    (x0, x1), (y0, y1), _ = nb.TORSO
+    xi, yi = (x0 + WALL, x1 - WALL), (y0 + WALL, y1 - WALL)
+    (cx, cy), (w, d) = ((sum(xi) / 2, sum(yi) / 2)), (xi[1] - xi[0], yi[1] - yi[0])
+    under = (
+        cq.Workplane("XY", origin=(cx, cy, top - LEDGE))
+        .rect(w, d)
+        .workplane(offset=LEDGE)
+        .rect(w - 2 * LEDGE, d - 2 * LEDGE)
+        .loft()
+    )
+    return box(xi, yi, (top - LEDGE, top)).cut(under)
 
 
-def _lancet(axis, c, wall, z0, z1):
-    """A window through the wall whose middle is on the plane (y or x) `wall`, centred at c along `axis`, its sill on
-    z0, its sides upright and its head pointed at 50 deg up to z1."""
-    peak = WINDOW / 2 * math.tan(math.radians(50))
-    outline = [
-        (c - WINDOW / 2, z0),
-        (c + WINDOW / 2, z0),
-        (c + WINDOW / 2, z1 - peak),
-        (c, z1),
-        (c - WINDOW / 2, z1 - peak),
-    ]
-    plane = "XZ" if axis == "x" else "YZ"
-    origin = (0, wall, 0) if axis == "x" else (wall, 0, 0)
-    return cq.Workplane(plane, origin=origin).polyline(outline).close().extrude(WALL, both=True)
+@bone.carved
+def lid(mechanical=False):
+    """The Torso's lid (printed flat), inside the walls' top on their ledge over the pan, so it lifts out but never
+    slides: the yoke's post up through a hole in its middle, slotted to the back so it slides on over the walls and
+    drops in, and a hole over the switch board's lever. As Bones, carved from it: a border 1 mm down round its panel,
+    as the picture."""
+    (x0, x1), (y0, y1), (_, z1) = nb.TORSO
+    y_axis, hole = nk.AXIS[0], nk.POST_R + nb.POST_GAP
+    a = WALL + FIT
+    out = box((x0 + a, x1 - a), (y0 + a, y1 - a), (z1 - nb.LID_T, z1))
+    out = out.cut(cyl("z", (0, y_axis, 0), hole, (z1 - nb.LID_T - 1, z1 + 1)))
+    out = out.cut(box((-hole, hole), (y_axis, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
+    out = out.cut(cyl("z", (*nb.SWITCH_AT, 0), 6.0, (z1 - nb.LID_T - 1, z1 + 1)))  # a finger down to the switch's lever
+    if not mechanical:
+        inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))
+        out = out.cut(box((x0 + 3, x1 - 3), (y0 + 3, y1 - 3), (z1 - 1, z1 + 1)).cut(inner))
+    return out
 
 
 @bone.carved
