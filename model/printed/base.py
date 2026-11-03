@@ -55,8 +55,8 @@ def _windows(lo, hi):
 
 
 def _lancet(axis, c, wall, z0, z1):
-    """A window through the wall whose middle is on the plane (y or x) `wall`, centred at c along `axis`, its sill on z0, its sides
-    upright and its head pointed at 50 deg up to z1."""
+    """A window through the wall whose middle is on the plane (y or x) `wall`, centred at c along `axis`, its sill on
+    z0, its sides upright and its head pointed at 50 deg up to z1."""
     peak = WINDOW / 2 * math.tan(math.radians(50))
     outline = [
         (c - WINDOW / 2, z0),

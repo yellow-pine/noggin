@@ -71,9 +71,9 @@ def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(he
 
 
 def test_the_torso_and_the_rack_as_bones_open_the_mechanical_ones_walls_and_shelf_and_the_torso_prints_upright():
-    """#708: as Bones, carved from the mechanical parts, the Torso's corners round and its walls windowed, the rack's shelf two
-    Bones under the boards: just inside each mechanical corner, half way up a window's middle, and in the middle of the mechanical
-    shelf lies nothing. The Torso prints upright, no overhang past 45 deg."""
+    """#708: as Bones, carved from the mechanical parts, the Torso's corners round and its walls windowed, the rack's
+    shelf two Bones under the boards: just inside each mechanical corner, half way up a window's middle, and in the
+    middle of the mechanical shelf lies nothing. The Torso prints upright, no overhang past 45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     torso, rack = printed_base.torso().val(), printed_base.rack().val()
     for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):

@@ -39,17 +39,11 @@ FINE_MM = {"horn": 0.08} | {
     for style in ("", g.MECHANICAL)
 }
 # The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
-LINKS = (
-    "next tie-bar",
-    "next push-rod",
-    "next yaw yoke",
-    "next bail",
-    "next board rack",
-    "next lid bar",
-    "next lid link",
-)
-MAX_PIECES = dict.fromkeys((*LINKS, "next pitch bar", "next pan bar", "next tilt bar", "next jaw bar", "next jaw"), 12)
-MAX_PIECES["next torso"] = 20  # its windowed walls and the cradle
+MAX_PIECES = dict.fromkeys(
+    ("next tie-bar", "next push-rod", "next yaw yoke", "next bail", "next board rack", "next lid bar", "next lid link")
+    + ("next pitch bar", "next pan bar", "next tilt bar", "next jaw bar", "next jaw"),
+    12,
+) | {"next torso": 20}  # its windowed walls and the cradle
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)

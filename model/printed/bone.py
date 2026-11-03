@@ -61,6 +61,8 @@ def chain(points, head, waist, z=0.0, down=False, swell=SWELL):
     if z:
         return cq.Workplane().add(chain(points, head, waist, swell=swell).val().moved(cq.Location(cq.Vector(0, 0, z))))
 
+    # shortcut: retries each span at 4 sizes x 2 ways for OCCT's union bugs (#708); drop the retries once OCCT unites
+    # them first time on macOS and Linux
     def span(a, b, k, onto=None):
         """The span a-b at k of the sizes, fused onto `onto`: OCCT can fail to fuse a head to a span one way, or leave
         it or the union invalid (or drop a span), at one size and not at a hair under it."""

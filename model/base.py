@@ -107,8 +107,8 @@ def rank(reports):
     """The head variants ranked from their sim reports ({doc: model/build/reports/<doc>-sim.json}): the gates first (a
     variant whose boards or their carriers meet another part anywhere in the sweep or along a motion, whose head is
     past gimbal.HEAD_MM, or whose eyes sit higher up it than EYES_UP, is out), then #51's marks in its order (each
-    servo holds at most its rated torque and peaks at most half its stall, the lowest mode at least MODE_HZ, the moving centre of mass inside the footprint), then its
-    figures in that order, the first that differs deciding: simplicity (the printed parts beside the neck and gimbal),
+    servo holds at most its rated torque and peaks at most half its stall, the lowest mode at least MODE_HZ, the moving
+    centre of mass inside the footprint), then its figures in that order, the first that differs deciding: simplicity (the printed parts beside the neck and gimbal),
     servo torque (worst hold, then peak), gravity torque at rest (the tilt servo's), the lowest mode (the servos'
     loops), the head's fit (its least room left, mm), the leads crossing pan and tilt, the tip-over
     margin. Pack access is no criterion here: the pack lies in the same Torso in each. Each variant's `fails` names the
