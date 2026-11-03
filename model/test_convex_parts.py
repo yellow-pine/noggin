@@ -19,7 +19,9 @@ def test_a_part_is_stale_until_its_pieces_are_cut(tmp_path, monkeypatch):
     assert convex_parts.stale(meshes) == ["box"]
 
 
-def test_parts_holds_every_documents_meshes():
+def test_parts_holds_the_meshes_physics_runs_on():
+    """#809: the mechanical documents' parts alone; the Bones collide nowhere."""
     meshes = convex_parts.parts()
-    assert {"next L upper lid", "servo", "next torso"} <= set(meshes)
+    assert {"next L upper lid mechanical", "servo", "next torso mechanical"} <= set(meshes)
+    assert "next L upper lid" not in meshes and "next torso" not in meshes
     assert meshes["servo"][1]  # its leads clipped, as model/mjcf.py's spec() cuts it
