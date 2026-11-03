@@ -39,8 +39,9 @@ FINE_MM = {"horn": 0.08} | {
     for style in ("", g.MECHANICAL)
 }
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
-# pieces, so each one's capped and the sim stays fast
-MAX_PIECES = dict.fromkeys((f"next {p}{g.MECHANICAL}" for p in ("tie-bar", "yaw yoke", "bail")), 12)
+# pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
+# the core 1.6 mm deep in it
+MAX_PIECES = dict.fromkeys((f"next {p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
