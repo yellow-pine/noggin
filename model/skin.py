@@ -5,11 +5,12 @@ model/test_report.py holds it to hold_n().
 
 A Seat is the same for every Skin (#51 Skeleton and shells): on the carrier, a magnet in a flush pocket and three V-grooves
 round it; on the Shell, its magnet and three balls that rest in the grooves, which take the shear and hold the magnets
-GAP apart, so the magnets only preload it (a Maxwell coupling). Where the carrier is too thin for the pocket and the
-grooves, the Seat stands on a pad (`pad` mm long, back into the carrier); where the Shell is too far from it, on a boss
-(`boss` mm long, out into the Shell). Each Seat is drawn in its carrier's frame, which is its Shell's too. One polarity
-rule: the carrier's magnet shows N to its Shell, reversed (polarity -1) on the R Seat of an L/R pair, so a Shell on the
-other side's Seat is pushed off. Every size is ours and inferred (no build settles one yet)."""
+GAP apart, so the magnets only preload it (a Maxwell coupling). Every Seat is flush in its carrier's surface, so a bare
+Skeleton shows at most its pocket's and grooves' small circle (#852): where the carrier is too thin for the pocket and
+the grooves, it is thickened behind the Seat from inside (`pad` mm deep, a disc back into it); where the Shell is too
+far from it, the Seat stands on a boss (`boss` mm long, out into the Shell). Each Seat is drawn in its carrier's frame,
+which is its Shell's too. One polarity rule: the carrier's magnet shows N to its Shell, reversed (polarity -1) on the R
+Seat of an L/R pair, so a Shell on the other side's Seat is pushed off. Every size is ours and inferred (no build settles one yet)."""
 
 import functools
 import math
@@ -27,7 +28,7 @@ FIT = 0.1  # the pocket's play round the magnet, per side
 BALL_R, GROOVE_D = 1.0, 1.2  # each ball, and its 90 deg V-groove's depth
 GAP = math.sqrt(2) * BALL_R - GROOVE_D  # between the Seat's faces (and so its magnets), the balls in their grooves
 RING, GROOVE = 4.5, 1.5  # the balls' circle round the magnet; each groove's half-length along its radius
-PAD_R = RING + GROOVE + 1.0  # a pad's or a boss's radius
+PAD_R = RING + GROOVE + 1.0  # a Seat's thickening's or boss's radius
 SF = 2.0  # the magnets hold at least this many times a Shell's weight at its peak acceleration (model/test_report.py)
 COVER = 2.6  # a lid cover's or a cap's thickness behind its magnet: the pocket and 0.6 mm of skin
 
@@ -86,8 +87,8 @@ NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within th
 BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
 # in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
-_PLATE = (gm.PLATE_Y[0], sum(gm.PLATE_Z) / 2)  # the gimbal frame plate's front edge (its bar to the lids'), mid height
-_BACK = (31.0, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo (#838)
+_PLATE = (gm.PLATE_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
+_BACK = (32.5, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo, clear of its collar (#838)
 SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
     *[
@@ -104,15 +105,16 @@ SEATS = [
     ],
     *_lid_seats("L", 1),
     *_lid_seats("R", -1),
-    # the face forward off the gimbal frame plate's bar to the lids' uprights (#838); its top held by the hair
+    # the face forward off the front of the gimbal frame's beam, its bar to the lids' uprights (#838, #852); its top
+    # held by the hair
     *[
         Seat(
             "next morty face",
             "next gimbal frame",
-            (x, _PLATE[0] - 4.0, _PLATE[1]),
+            (x, _PLATE[0], _PLATE[1]),
             (0.0, -1.0, 0.0),
-            4.0,  # on the plate's front edge, not into it: Stage 1's stand stands under the plate
-            _PLATE[0] - 4.0 - GAP - (MUZZLE_Y + WALL) + 1.0,
+            0.0,
+            _PLATE[0] - GAP - (MUZZLE_Y + WALL) + 1.0,
             1,
         )
         for x in (-45.0, 45.0)
@@ -127,24 +129,25 @@ SEATS = [
         Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
         for x in (-40.0, 40.0)
     ],
-    # the mouth cover up off the jaw's chin bar's top (model/neck.py CHIN_Y, JAW_ARM_Z), under the head mount's flange:
-    # under the chin a pad would make the head taller (#708's gate)
+    # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
+    # (inside the jaw's U), flush with its front: under the chin it would make the head taller (#708's gate)
     Seat(
         "next morty mouth cover",
         "next jaw",
-        (0.0, nk.CHIN_Y + 4.0, nk.JAW_ARM_Z[1] + 3.0),
+        (0.0, nk.CHIN_Y + PAD_R, nk.JAW_ARM_Z[1]),
         (0.0, 0.0, 1.0),
-        4.0,
+        nk.JAW_ARM_Z[1] - nk.JAW_ARM_Z[0],
         0.0,
         1,
     ),
-    # the shirt's halves off the Torso's front and back walls
+    # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
+    # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
     *[
-        Seat("next morty shirt front", "next torso", (x, TORSO[0] - 4.0, -137.5), (0.0, -1.0, 0.0), 5.0, 0.0, 1)
+        Seat("next morty shirt front", "next torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, 4.0, 1)
         for x in (-24.0, 24.0)
     ],
     *[
-        Seat("next morty shirt back", "next torso", (x, TORSO[1] + 4.0, -137.5), (0.0, 1.0, 0.0), 5.0, 0.0, 1)
+        Seat("next morty shirt back", "next torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, 4.0, 1)
         for x in (-24.0, 24.0)
     ],
 ]

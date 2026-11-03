@@ -279,9 +279,10 @@ def lower_lid(side, mechanical=False):
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with the yaw bearings under the yokes' stems, the bail's and the lids' uprights with
-    the shanks' bores (the lids' on a bar out in front of the coronoids), the jaw's lugs on risers at the condyles
-    (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each servo at its tab plate (the yaw and the
-    mouth servo hanging under the plate, through it where they pass), and the holes the head mount
+    the shanks' bores (the lids' on a beam out in front of the coronoids, the face's Seats flush in its front, #852), the
+    jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
+    servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
+    holes the head mount
     (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
     waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
@@ -293,7 +294,7 @@ def frame(mechanical=False):
     jy, jz = neck.JAW
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
-    out = out.union(box((-edge, edge), gm.CHEEK_Y, gm.PLATE_Z))
+    out = out.union(box((-edge, edge), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852)
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])

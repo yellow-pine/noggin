@@ -88,7 +88,7 @@ def stand(mechanical=False):
     to the plate's underside round the hanging yaw servo, its top behind that, with the holes under the head mount's
     (nk.HEAD_SCREWS), the eyes Core against its back face; as Bones (#704) its upright edges round."""
     x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if mechanical else ROUND / 3
-    y = gm.PLATE_Y
+    y = (gm.CHEEK_Y[1], gm.PLATE_Y[1])  # its front behind the frame's beam (#852)
     out = _box((-x, x), y, (nb.STAND_Z, top), r)
     out = out.cut(_box((-x + WALL, x - WALL), (y[0] + WALL, y[1] - WALL), (nb.STAND_Z, top), r and r - WALL))
     out = out.union(box((-x + WALL, x - WALL), (nb.STAND_TOP_Y, y[1] - WALL), (top - nb.TRAY_T, top)))
