@@ -31,10 +31,12 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 ## Assembly, as the model places it
 
-1. **Torso**: the foot the Mech stands on, the pack lying low in it, the switch board lying flat beside the pack's lead
-   end, its lever reached from the open back, both Cores lying flat on their Shields in front, USB-C forward, and the
-   **neck mount** with the pan servo on top.
-2. **Pan yoke** turning on the neck mount; the **pan bar** joins it to the pan servo's horn.
+1. **Torso**: the box pedestal the Mech stands on, the pack lying low in it, the switch board lying flat beside the
+   pack's lead end, its lever reached through a hole in the lid, both Cores lying flat on their Shields in front, USB-C
+   forward through the front wall, and the **neck mount** with the pan servo, under the lid.
+2. **Pan yoke** turning on the neck mount, its post rising through the **torso lid** to the tilt servo under the head;
+   the **pan bar** joins it to the pan servo's horn. The yoke goes in through the lid's slot from behind, then the
+   lid drops onto its ledge.
 3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the skull's base behind the head's centre of mass,
    a torsion spring on its shank holding the head's weight (the balance spring); the **tilt bar** joins it to the tilt
    servo's horn.

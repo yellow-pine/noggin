@@ -11,6 +11,7 @@ import pytest
 from model import base, skin, stages
 from model import geometry as g
 from model import gimbal as gm
+from model import neck as nk
 from model.printed import base as printed_base
 from model.printed import bone
 from model.printed.base import WALL
@@ -73,15 +74,20 @@ def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(he
     assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP
 
 
-def test_the_torso_as_bones_opens_the_mechanical_ones_walls_and_prints_upright():
-    """#708: as Bones, carved from the mechanical part, the Torso's corners round and its walls windowed: just inside
-    each mechanical corner and half way up a window's middle lies nothing. It prints upright, no overhang past 45 deg."""
+def test_the_pedestal_as_bones_rounds_its_corners_sinks_its_plaque_and_prints_its_two_parts_as_drawn():
+    """#708, #838: as Bones, carved from the mechanical parts, the pedestal's corners round, its plaque sunk in front
+    and its lid's border down round the panel: just inside each mechanical corner, in the plaque's middle and on the
+    border lies nothing, the panel inside it stands. Both lids have the post's hole and its slot back. The Torso prints
+    upright, the lid flat, no overhang past 45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
-    torso = printed_base.torso().val()
+    torso, plain = printed_base.torso().val(), printed_base.torso(mechanical=True).val()
+    lid, flat = printed_base.lid().val(), printed_base.lid(mechanical=True).val()
     for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):
         assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
-    c = printed_base.CORNER
-    wx, wy = printed_base._windows(x0 + c, x1 - c)[0], printed_base._windows(y0 + c, y1 - c)[0]  # a window's middle
-    for x, y in ((wx, y0 + 1), (wx, y1 - 1), (x0 + 1, wy), (x1 - 1, wy)):
-        assert not torso.isInside(cq.Vector(x, y, (z0 + z1) / 2))
-    assert bone.overhang_deg(torso) <= 45
+    (px0, px1), (pz0, pz1) = printed_base.PLAQUE
+    assert not torso.isInside(cq.Vector((px0 + px1) / 2, y0 + 0.5, (pz0 + pz1) / 2))
+    assert plain.isInside(cq.Vector((px0 + px1) / 2, y0 + 0.5, (pz0 + pz1) / 2))
+    assert not lid.isInside(cq.Vector(0, y0 + 5, z1 - 0.5)) and lid.isInside(cq.Vector(30, y0 + 20, z1 - 0.5))
+    for look in (lid, flat):
+        assert not look.isInside(cq.Vector(0, nk.AXIS[0], z1 - 1)) and not look.isInside(cq.Vector(0, y1 - 1, z1 - 1))
+    assert bone.overhang_deg(torso) <= 45 and bone.overhang_deg(lid) <= 45

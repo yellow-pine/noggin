@@ -42,11 +42,15 @@ HEAD_SCREWS = (
     (-16.0, 83.0),
 )  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
-DISC_R, DISC_Z = 15.0, (-104.0, -100.0)  # the yoke's disc on the mount's thrust face, its floor at the same depth
-MOUNT_Z = (-144.0, -141.0)  # the neck mount's foot: the base (#642) carries it
-PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-107.0, -104.0)  # the yoke's lever back along +y; the bar along x under it
-# the head's lever back along +y; the bar down to the horn, its servo under the Skin's foot (#838)
-TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 49.0, (1.5, 4.5)
+# The neck as a spine (#838): the pan in the Torso, under its lid, the yoke's post rising from its disc there through
+# the lid to its top floor, on which the tilt servo stands under the head, the cheeks up from it to the tilt axis
+DISC_R, DISC_Z = 15.0, (-134.0, -130.0)  # the yoke's disc on the mount's thrust face, under the Torso's lid
+POST_R, TOP_Z = 5.0, (-80.0, -76.0)  # the yoke's post, and its top floor under the tilt servo
+MOUNT_Z = (-174.0, -171.0)  # the neck mount's foot: the base (#642) carries it
+PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-137.0, -134.0)  # the yoke's lever back along +y; the bar along x under it
+# the head's lever back along +y; the bar down to the horn, its servo on the yoke's top floor, clear of the Skin's back
+# as the head tilts (#838)
+TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
 JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
 # the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
@@ -58,7 +62,7 @@ JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L ar
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 LEAD_OD = 1.4  # the thickest lead that crosses, the pack's pair (inferred: 24 AWG)
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
-PAN_SPAN = (18.0, (-132.0, -102.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
+PAN_SPAN = (18.0, (-162.0, -132.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
 # its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
 TILT_SPAN = (22.0, 45.0)
 LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug

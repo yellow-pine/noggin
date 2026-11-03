@@ -66,35 +66,41 @@ def strut(a, b, head, waist):
 
 @bone.carved
 def yoke(mechanical=False):
-    """The pan yoke (printed upright): a disc on the column (the pan shank's bore) and a floor back under the tilt
-    servo (the pan lever's pin; a pocket through it where the tilt horn and bar swing), the cheeks up to the tilt axis
-    (the tilt shanks' tapping holes), the tilt servo's collar, the pan span's upper clamp in front and the tilt span's
-    clamp on a post outside the R cheek. As Bones (#708): each cheek, the post and the clamp's arm Bones."""
-    out = cyl("z", (0, Y, 0), nk.DISC_R, nk.DISC_Z).union(box((nk.LOOP_X[0], 38), (Y, Y + FLOOR_D), nk.DISC_Z))
+    """The pan yoke (printed upright), a spine (#838): a disc on the column under the Torso's lid (the pan shank's bore)
+    with the pan lever back from it and the pan span's upper clamp in front; the post up from it through the lid to the
+    top floor under the tilt servo (a pocket through it where the tilt horn and bar swing); the cheeks up from that to
+    the tilt axis (the tilt shanks' tapping holes), the tilt servo's collar and the tilt span's clamp on a post outside
+    the R cheek. As Bones (#708): the post a strut, each cheek, the clamp's post and its arm Bones."""
+    lever = Y + nk.PAN_LEVER
+    out = cyl("z", (0, Y, 0), nk.DISC_R, nk.DISC_Z).union(box((-3, 3), (Y, lever), nk.DISC_Z))
+    out = out.union(cyl("z", (0, lever, 0), 3.0, nk.DISC_Z))
+    out = out.union(box((nk.LOOP_X[0], 38), (Y - nk.BOSS_R - 1, Y + FLOOR_D), nk.TOP_Z))
     r, (_, z1) = nk.PAN_SPAN
     rho, _ = nk.TILT_SPAN
     cy, cz = Y + rho * 0.7071, Z - rho * 0.7071  # the clamp 45 deg down behind the axis
     if mechanical:
+        out = out.union(cyl("z", (0, Y, 0), nk.POST_R, (nk.DISC_Z[1], nk.TOP_Z[0])))
         out = out.union(box((-3, 3), (Y - r - 3, Y - nk.DISC_R + 1), nk.DISC_Z))
         for s in (-1, 1):
-            out = out.union(box(sorted(s * c for c in nk.CHEEK_X), (Y - nk.BOSS_R, Y + nk.BOSS_R), (nk.DISC_Z[1], Z)))
-        out = out.union(box(nk.LOOP_X, (cy - 2, cy + 2), (nk.DISC_Z[1], cz - 2)))
+            out = out.union(box(sorted(s * c for c in nk.CHEEK_X), (Y - nk.BOSS_R, Y + nk.BOSS_R), (nk.TOP_Z[1], Z)))
+        out = out.union(box(nk.LOOP_X, (cy - 2, cy + 2), (nk.TOP_Z[1], cz - 2)))
     else:
+        out = out.union(strut((0, Y, nk.DISC_Z[1] - 1), (0, Y, nk.TOP_Z[0] + 1), (nk.POST_R, nk.POST_R), (4.0, 4.0)))
         arm = bone.bone((0, Y - nk.DISC_R + 3, nk.DISC_Z[0]), (0, Y - r, nk.DISC_Z[0]), (3.0, 3.9), (2.2, 3.0))
         out = out.union(arm).union(box((-3, 3), (Y - r - 3, Y - r + 3), nk.DISC_Z))
         cheek = (nk.BOSS_R, 3.5), (nk.BOSS_R - 1, 3.0)  # within the cheek's 4 mm, its boss the head's size
         for s in (-1, 1):
             xs = tuple(sorted(s * c for c in nk.CHEEK_X))
-            out = out.union(lid_bone([(Y, nk.DISC_Z[1] - 0.5), (Y, Z)], xs, cheek))
-        out = out.union(lid_bone([(cy, nk.DISC_Z[1] - 0.5), (cy, cz - 2)], nk.LOOP_X, ((2.5, 3.5), (2.0, 3.0))))
+            out = out.union(lid_bone([(Y, nk.TOP_Z[1] - 0.5), (Y, Z)], xs, cheek))
+        out = out.union(lid_bone([(cy, nk.TOP_Z[1] - 0.5), (cy, cz - 2)], nk.LOOP_X, ((2.5, 3.5), (2.0, 3.0))))
     out = out.cut(box((-3, 3), (Y - r - 2, Y - r + 2), (z1 - 0.75, z1 + 0.75)))
     for s in (-1, 1):
         xs = sorted(s * c for c in nk.CHEEK_X)
         out = out.union(cyl("x", (0, Y, Z), nk.BOSS_R, xs)).cut(cyl("x", (0, Y, Z), TAP_R, xs))
     out = out.union(tie(sum(nk.LOOP_X) / 2, cy, cz))
-    out = out.union(collar(_servo("tilt"), nk.DISC_Z[1]))
-    out = out.cut(cyl("z", (0, Y, 0), gm.PIN_R, nk.DISC_Z)).cut(box(*POCKET, nk.DISC_Z))
-    return out.cut(cyl("z", (0, Y + nk.PAN_LEVER, 0), TAP_R, nk.DISC_Z))
+    out = out.union(collar(_servo("tilt"), nk.TOP_Z[1]))
+    out = out.cut(cyl("z", (0, Y, 0), gm.PIN_R, nk.DISC_Z)).cut(box(*POCKET, nk.TOP_Z))
+    return out.cut(cyl("z", (0, lever, 0), TAP_R, nk.DISC_Z))
 
 
 @bone.carved

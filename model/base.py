@@ -20,10 +20,12 @@ import numpy as np
 
 from model import gimbal, neck
 
-# the Torso's outside: x, y, and z from its foot to its walls' top (over the Cores on their Shields, 21.5 mm up), round
-# the Cores in front of the neck mount's foot (x -14..42, 22 in front of the pan axis to 16 behind it), the pack in its
-# cradle behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan axis (#838)
-TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 26))
+# the Torso's outside, the realistic skull's box pedestal (#838): x, y, and z from its foot to its lid's top, round the
+# Cores in front of the neck mount's foot (x -14..42, 22 in front of the pan axis to 16 behind it), the pack in its
+# cradle behind it, the switch board beside the pack and the pan servo under the lid; its front reaches on to 62 in
+# front of the pan axis
+TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.DISC_Z[1] + 5.0))
+LID_T, POST_GAP = 3.0, 1.0  # the Torso's lid (2 mm over the yoke's disc), the post's room in its hole
 PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates

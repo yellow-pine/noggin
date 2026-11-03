@@ -99,6 +99,7 @@ def next_base():
     pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
+        "next torso lid:1": part(stl("next torso lid"), None, printed("next torso lid")),
         "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
     boards = candidates.switch_board() | candidates.boards()

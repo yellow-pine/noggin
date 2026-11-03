@@ -243,7 +243,7 @@ def shirt(half):
     collar = box(
         (x0 + 2.0 - sk.WALL, x1 - 2.0 + sk.WALL),
         (y0 + 2.0 - sk.WALL, y1 - 2.0 + sk.WALL),
-        (z1, z1 + 0.5 + sk.WALL + SHIRT_TOP),
+        (z1 + 0.5, z1 + 0.5 + sk.WALL + SHIRT_TOP),  # clear of the Torso's lid (#838)
     )
     out = outer.cut(inner).union(collar).cut(hole).edges("|Z").fillet(1.0)
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)

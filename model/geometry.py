@@ -172,7 +172,7 @@ _SKELETON = {
         "next tilt bar",
         "next jaw bar",
     ),
-    "Mounts": ("next torso",),  # the realistic skull's black box pedestal (#838)
+    "Mounts": ("next torso", "next torso lid"),  # the realistic skull's black box pedestal (#838)
 }
 PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
@@ -197,7 +197,7 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
 # head variant (#686, model/base.py) with the sub-assemblies that carry its boards, all in the head's frame, the Torso's
 # foot on z 0 (base.TORSO, model/test_neck.py).
-_HEAD = ((0, -150, 147), X, Z)
+_HEAD = ((0, -150, 177), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
     for v, carriers in (("back", ["next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's

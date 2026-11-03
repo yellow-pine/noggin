@@ -35,8 +35,9 @@ the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The next Mech's base: the Skeleton's compact body in the shirt and collar under the neck, holding the pack lying low,
-the two Cores and the switch board, and the neck mount with the pan servo; its bottom is the foot the Mech stands on.
+The next Mech's base, a box pedestal under its lid: holding the pack lying low, the two Cores and the switch board, and
+the neck mount with the pan servo under the lid, the neck's post rising through it; its bottom is the foot the Mech
+stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
@@ -296,7 +297,8 @@ A part we print, by our name (model/printed); the Skeleton's:
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
   off the lid bar;
 - test stand: the Test stand;
-- torso: the Torso; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan; pan bar: the pan
+- torso: the Torso; torso lid: its lid; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan,
+  its post up through the lid to the cheeks; pan bar: the pan
   Horn to the yoke;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
