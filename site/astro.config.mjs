@@ -68,6 +68,7 @@ export default defineConfig({
         SiteTitle: './src/components/SiteTitle.astro',
         PageTitle: './src/components/PageTitle.astro',
         SocialIcons: './src/components/SocialIcons.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro', // the Theme bar before it (#806)
         Footer: './src/components/Footer.astro',
       },
       plugins: [starlightGitHubAlerts()],

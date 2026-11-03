@@ -1,0 +1,72 @@
+---
+// The header's Theme bar (#806, docs/adr/0022), then Starlight's colour scheme select: a labelled select per Theme
+// category, its values the model's (src/theme.mjs, from model/geometry.py THEMES), so a new category or value needs no
+// edit here. The pick goes on <html> as data-<category>, into the address (?skeleton=realistic&skin=morty) and local
+// storage, and to the viewer (a noggin-theme event); css() shows each page's pictures and text in it alone. In the
+// header and in the mobile menu: both bars stay in step.
+import Default from '@astrojs/starlight/components/ThemeSelect.astro';
+import { THEMES, css } from '../theme.mjs';
+
+const title = (s: string) => s[0].toUpperCase() + s.slice(1);
+---
+
+<div class="noggin-theme" role="group" aria-label="Theme">
+  {
+    Object.entries(THEMES).map(([category, values]) => (
+      <label>
+        <span>{title(category)}</span>
+        <select data-category={category} autocomplete="off">
+          {values.map((v) => <option value={v}>{title(v)}</option>)}
+        </select>
+      </label>
+    ))
+  }
+</div>
+<Default />
+
+<Fragment set:html={`<style>${css()}</style>`} />
+
+<script>
+  import { chosen } from '../theme.mjs';
+
+  // shortcut: the Theme applies once this module runs, so a page in a picked Theme draws the default's for a moment;
+  // an is:inline script in the head would hide it if it shows
+  const KEY = 'noggin-theme', root = document.documentElement;
+  const selects = document.querySelectorAll<HTMLSelectElement>('.noggin-theme select');
+  const stored = () => {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) ?? 'null');
+    } catch {
+      return null; // no storage (a private window, blocked site data) or a bad entry: the default
+    }
+  };
+
+  function apply(theme: Record<string, string>) {
+    const link = new URLSearchParams(location.search);
+    for (const [c, v] of Object.entries(theme)) (root.dataset[c] = v), link.set(c, v);
+    for (const s of selects) s.value = theme[s.dataset.category!];
+    history.replaceState(history.state, '', `${location.pathname}?${link}${location.hash}`);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(theme));
+    } catch {
+      // the pick holds on this page and in its address alone
+    }
+  }
+
+  apply(chosen(location.search, stored()));
+  for (const s of selects)
+    s.addEventListener('change', () => {
+      apply({ ...chosen(location.search, null), [s.dataset.category!]: s.value });
+      document.dispatchEvent(new Event('noggin-theme'));
+    });
+</script>
+
+<style>
+  .noggin-theme { display: flex; gap: 0.75rem; align-items: center; }
+  .noggin-theme label { display: flex; gap: 0.35rem; align-items: center; color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
+  .noggin-theme select {
+    font: inherit; color: var(--sl-color-white); background: var(--sl-color-black); cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem; padding: 0.15rem 0.35rem;
+  }
+  .noggin-theme select:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 1px; }
+</style>

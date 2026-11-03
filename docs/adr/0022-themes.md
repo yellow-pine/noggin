@@ -2,6 +2,9 @@
 
 > Decided by Cansin on 2026-11-03, #805, in grilling. Amends ADR 0020 (its two styles are the Skeleton's values,
 > plain renamed mechanical), ADR 0008 (the viewer's Skeleton switch) and ADR 0019 (the `-mechanical` documents).
+> Amended 2026-11-03 (#806): the site's header has a Theme bar, a select per category, its values read from `THEMES`;
+> the pick, kept in the address (`?skeleton=realistic&skin=morty`) and the reader's local storage, chooses the viewer's
+> GLB and every page's pictures and filaments, each drawn in every Skeleton; the README shows the default.
 
 The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

@@ -179,6 +179,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   boards' rack with both Cores and the switch board; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
-  what it fails) and a Skeleton switch (Realistic, Mechanical, #805); Pictures shows each Stage's panels in every Skeleton.
+  what it fails), its Skeleton the one the header's Theme bar picks (#805, #806), as on Pictures, whose panels,
+  front doors, motions and parts are drawn in every Skeleton and shown in the one picked.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.

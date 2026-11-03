@@ -94,12 +94,14 @@ THEMES = {
     },
 }
 THEME = {category: next(iter(values)) for category, values in THEMES.items()}  # realistic and morty
+# a document's name in each Skeleton: its name as Bones, the default's, then this (-mechanical)
+SKELETON_SUFFIX = {v: "" if v == THEME["Skeleton"] else f"-{v}" for v in THEMES["Skeleton"]}
 
 
 def theme(doc):
     """A document's Theme: the Skeleton its name ends in (-mechanical), else the default's, and the default Skin (one
     per Skin waits on its Shells, #665)."""
-    skeleton = next((v for v in THEMES["Skeleton"] if doc.endswith("-" + v)), THEME["Skeleton"])
+    skeleton = next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEME["Skeleton"])
     return THEME | {"Skeleton": skeleton}
 
 
@@ -165,5 +167,5 @@ STAGES = {
     **dict([next(iter(NEXT.items()))]),
 }
 # each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical
-NEXT |= {f"{doc}-{v}": subs for doc, subs in NEXT.items() for v in THEMES["Skeleton"] if v != THEME["Skeleton"]}
-STAGES |= {f"{doc}-{v}": subs for doc, subs in STAGES.items() for v in THEMES["Skeleton"] if v != THEME["Skeleton"]}
+NEXT |= {doc + s: subs for doc, subs in NEXT.items() for s in SKELETON_SUFFIX.values() if s}
+STAGES |= {doc + s: subs for doc, subs in STAGES.items() for s in SKELETON_SUFFIX.values() if s}
