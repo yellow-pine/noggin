@@ -19,7 +19,6 @@ from model import neck as nk
 from model import skin as sk
 from model import stages
 
-SOURCES = os.path.join(stages.REPO, "model", "skull")
 CRANIUM, MANDIBLE = "model/skull/3demon/cranium.stl", "model/skull/3demon/mandible.stl"
 ATLAS, AXIS = "model/skull/atlas-axis/atlas.stl", "model/skull/atlas-axis/axis.stl"
 # the source skull's orbits, in its units turned to the head's axes (measured on its front depth map, #838's prototype;
