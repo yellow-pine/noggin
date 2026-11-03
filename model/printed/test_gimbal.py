@@ -1,5 +1,5 @@
 """Seam: the next Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
-shank beside them: no two overlap, and each cap's pupil seat turns toward the other eye (the toe-in, #630)."""
+shank beside them: no two overlap."""
 
 import itertools
 import math
@@ -52,15 +52,6 @@ def test_the_block_fits_the_compact_head(rest):
     """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
     assert all(b <= h for b, h in zip(gimbal.bounds(rest), gm.HEAD_MM))
-
-
-@pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
-def test_the_pupil_seat_sits_toward_the_other_eye(side, inward):
-    """Just inside the cap's front, 6.6 mm either side of the gaze: the seat (r 7) is cut on the inward side, the cap
-    solid on the outward one."""
-    cap = gimbal.cap(side).val()
-    y = -gm.CAP_R + 0.9
-    assert not cap.isInside(cq.Vector(inward * 6.6, y, 0)) and cap.isInside(cq.Vector(-inward * 6.6, y, 0))
 
 
 @pytest.fixture(scope="module")

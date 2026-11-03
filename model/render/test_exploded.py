@@ -30,6 +30,12 @@ def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
         for n in sub().parts:
             assert np.allclose(apart[n][:3, 3] - rest[n][:3, 3], offset), n
             assert np.allclose(apart[n][:3, :3], rest[n][:3, :3]), n
+    for shell, carrier in [  # a Shell with what carries it (#665)
+        ("next morty face:1", "next gimbal frame:1"),
+        ("next morty mouth cover:1", "next jaw:1"),
+        ("next morty shirt front:1", "next torso:1"),
+    ]:
+        assert np.allclose(apart[shell][:3, 3] - rest[shell][:3, 3], apart[carrier][:3, 3] - rest[carrier][:3, 3])
 
 
 def _apart(doc, level):
@@ -67,6 +73,8 @@ def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_
         "next R lid bar:1": (-1, 0, 0),
         "next pan servo:1": g.Z,
         "next pan horn:1": g.Z,
+        "next morty face:1": (0, -1, 0),  # forward off its Seats (#665)
+        "next morty hair:1": g.Z,
     }.items():
         assert np.allclose(unit[n], d), (n, out[n])
     assert out["next pan horn:1"][2] > out["next pan servo:1"][2]

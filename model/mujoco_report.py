@@ -17,9 +17,10 @@ from importlib.metadata import version
 
 import mujoco
 import numpy as np
+import trimesh
 from scipy.spatial import ConvexHull
 
-from model import electrical, fits, gates, mjcf, sim, stages, traces, trajectories
+from model import electrical, fits, gates, mjcf, sim, skin, stages, traces, trajectories
 
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
 KGF_CM = 0.0980665  # N.m
@@ -123,19 +124,33 @@ def _motions(doc, model, plate, names):
     """Each motion of `names` played through the servos' dynamics (trajectories.play), read every ms: per servo the most
     it holds against gravity and turns its load with (torques()) and where, and its hold at Rest (every gesture starts
     there); with the base's vertices (mm), the worst margin of the centre of mass shifted by its acceleration
-    (shifted())."""
+    (shifted()); per Shell on Seats (model/skin.py) its grams and the most its magnets hold it against, its centroid's
+    acceleration less gravity, and where (#665)."""
     assert trajectories.motions(doc)[0] in traces.GESTURES  # the first starts from Rest
-    servos, moving = {}, None
+    servos, moving, peaks = {}, None, {}
+    stage = stages.STAGES[doc]
+    seated = {n: p for n, p in stage.parts.items() if stages.stem(p.file) in {s.shell for s in skin.SEATS}}
+    centroids = {n: trimesh.load(p.file, force="mesh").centroid / 1000 for n, p in seated.items()}  # m, its frame
+    ids = [model.body(n).id for n in centroids]
     outline, floor, g = (
         (None, None, None) if plate is None else (footprint(plate), plate[:, 2].min(), -model.opt.gravity[2])
     )
 
     def read(data):
-        return torques(model, data, moving=False), torques(model, data), data.subtree_com[0] * 1000  # mm, as just posed
+        shells = [data.xpos[i] + data.xmat[i].reshape(3, 3) @ c for i, c in zip(ids, centroids.values())]
+        held = torques(model, data, moving=False), torques(model, data)
+        return *held, data.subtree_com[0] * 1000, np.reshape(shells, (-1, 3)) * 1000  # mm, as just posed
 
     for name in names:
         writes, times = trajectories.commands(doc, name)
-        hold, turn, com = (np.array(r) for r in zip(*trajectories.play(model, writes, range(times[-1] + 1), read)))
+        played = trajectories.play(model, writes, range(times[-1] + 1), read)
+        hold, turn, com, shells = (np.array(r) for r in zip(*played))
+        # every ms, mm/ms2 to m/s2, less gravity: what the Seats' magnets hold each Shell against
+        load = np.linalg.norm((shells[2:] - 2 * shells[1:-1] + shells[:-2]) * 1000 - model.opt.gravity, axis=-1)
+        for k, n in enumerate(seated):
+            ms = int(load[:, k].argmax())
+            if load[ms, k] > peaks.get(n, {}).get("peak_m_s2", -1):
+                peaks[n] = {"peak_m_s2": round(float(load[ms, k]), 2), "at": {"motion": name, "ms": ms + 1}}
         for k in range(model.nu):
             h = model.actuator(k).name
             s = servos.setdefault(h, {"rest_kgf_cm": round(abs(hold[0, k]) / KGF_CM, 3)})
@@ -154,7 +169,9 @@ def _motions(doc, model, plate, names):
                     moving = {"margin_mm": round(mm, 1), "at": {"motion": name, "ms": ms}, "shift_mm": round(shift, 1)}
     stall = round(mjcf.STALL_NM / KGF_CM, 3)
     out = {h: {**s, "rated_kgf_cm": sim.RATED_KGF_CM, "stall_kgf_cm": stall} for h, s in servos.items()}
-    return {"names": names, "servos": out}, moving
+    grams = {n: mjcf.mass(trimesh.load(p.file, force="mesh"), p.material) for n, p in seated.items()}
+    shells = {n: {"g": grams[n], **peaks[n]} for n in peaks}
+    return {"names": names, "servos": out, "shells": shells}, moving
 
 
 def vibration(doc, model, data, slow):
@@ -298,7 +315,12 @@ def merge(parts):
             for key, at in (("hold_kgf_cm", "hold_at"), ("peak_kgf_cm", "peak_at")):
                 if s[key] > best[key]:
                     best[key], best[at] = s[key], s[at]
-    out["motions"] = {"names": names, "servos": servos}
+    shells = {}
+    for m in parts:
+        for n, s in m["motions"]["shells"].items():
+            if s["peak_m_s2"] > shells.get(n, {}).get("peak_m_s2", -1):
+                shells[n] = s
+    out["motions"] = {"names": names, "servos": servos, "shells": shells}
     if "tip_over" in out:
         tip, moving = None, None
         for m in parts:

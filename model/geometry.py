@@ -179,6 +179,15 @@ PRINTED = {
     "next L eyeball cap": ("eye whites", "PLA Pure"),
     "next R eyeball cap": ("eye whites", "PLA Pure"),
 }
+# Morty's Shells (#665, model/skin.py) by Colour group, the eyeball caps above his too: each Skin's in its own
+_MORTY = {
+    "face": ("next morty face", "next morty mouth cover")
+    + tuple(f"next morty {s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower")),
+    "hair": ("next morty hair",),
+    "pupils": ("next morty L pupil", "next morty R pupil"),
+    "clothes": ("next morty shirt front", "next morty shirt back"),
+}
+PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for name in names}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
@@ -191,7 +200,8 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 _HEAD = ((0, -150, 147), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
-    for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
+    for v, carriers in (("back", ["next-back", "next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's
+    # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso, the neck, the head mount and the boards' rack

@@ -654,6 +654,21 @@ wheels = [
 ]
 
 [[package]]
+name = "magpylib"
+version = "6.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "plotly" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fc/46/be1037b6b813afed1dd6dbf33b56bb7dea076e2e97f07b41aaebaf3d6864/magpylib-6.0.0.tar.gz", hash = "sha256:fe225bb61dc545f70b6545f0a0bcda12d2c8de2133406a7008f010af77898fd8", size = 16220216, upload-time = "2026-10-19T20:57:29.483Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/30/04c8097ac0fd8ddbf0dc2c515918f91c004bc6b3e4a2079b8b4118a13f77/magpylib-6.0.0-py3-none-any.whl", hash = "sha256:e0ef07b3eeda0769355a59def80fe0eb4cb511db23ff99c00826bcae627cda56", size = 281419, upload-time = "2026-10-19T20:57:27.259Z" },
+]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1078,6 +1093,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "cadquery" },
     { name = "coacd" },
+    { name = "magpylib" },
     { name = "mujoco", extra = ["sysid"] },
     { name = "numpy" },
     { name = "opencv-python-headless" },
@@ -1110,6 +1126,7 @@ dev = [
 requires-dist = [
     { name = "cadquery", specifier = ">=2.8.0" },
     { name = "coacd", specifier = ">=1.0.14" },
+    { name = "magpylib", specifier = ">=6.0.0" },
     { name = "mujoco", extras = ["sysid"], specifier = ">=3.17.0" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "opencv-python-headless", specifier = ">=5.0.0.93" },
