@@ -5,6 +5,7 @@ each variant's carriers and boards overlap nothing."""
 import itertools
 
 import cadquery as cq
+import numpy as np
 import pytest
 
 from model import base, stages
@@ -62,12 +63,14 @@ def head(request):
 
 @pytest.mark.model
 def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(head):
-    """#708, a hard gate in both Skeletons: the parts the tilt turns, at rest, fit gimbal.HEAD_MM (W x D x H), the eye
-    centres at most base.EYES_UP of the way up them (the sim report reads the same off the MJCF: model/candidates.py)."""
+    """#708, a hard gate in both Skeletons: the parts the tilt turns, at rest, under the head's shell (#828,
+    base.shelled), fit gimbal.HEAD_MM (W x D x H), the eye centres at most base.EYES_UP of the way up them (the sim
+    report reads the same off the MJCF: model/candidates.py)."""
     doc, b = head
-    assert all(s <= h for s, h in zip((b.xlen, b.ylen, b.zlen), gm.HEAD_MM))
-    eyes = stages.DOCS[doc]["next-eyes"][0][2]
-    assert (eyes - b.zmin) / b.zlen <= base.EYES_UP
+    eyes = np.array(stages.DOCS[doc]["next-eyes"][0])
+    lo, hi = base.shelled(np.array((b.xmin, b.ymin, b.zmin)) - eyes, np.array((b.xmax, b.ymax, b.zmax)) - eyes)
+    assert all(s <= h for s, h in zip(hi - lo, gm.HEAD_MM))
+    assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP
 
 
 def test_the_torso_and_the_rack_as_bones_open_the_mechanical_ones_walls_and_shelf_and_the_torso_prints_upright():

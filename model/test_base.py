@@ -60,6 +60,15 @@ def test_the_boards_stand_in_a_row_from_their_envelopes_extents():
     assert placed["next switch board"] == pytest.approx((28.0, 14.6, -90.0))
 
 
+def test_the_heads_box_takes_in_the_skull_dome_over_the_parts():
+    """#828: the gates measure the head's shell. The stand-in dome (until #824 draws it) rises to 75.25 over the eyes
+    and reaches 62 each side, so parts packed 52 over the eyes and 74.5 under them make a head 149.75 tall, the eyes
+    0.497 up it; a part out past the dome still counts."""
+    lo, hi = base.shelled(np.array((-50.0, -40.0, -74.5)), np.array((50.0, 80.0, 52.0)))
+    assert lo == pytest.approx((-62.0, -42.6, -74.5)) and hi == pytest.approx((62.0, 80.0, 75.25))
+    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.4975, abs=1e-4)
+
+
 def test_stage_1s_test_stand_stands_on_the_desk():
     """#720: geometry's copy of the stand's height (ADR 0011): Stage 1's frame puts the stand's foot (base.STAND_Z, the
     gimbal frame plate's underside less STAND_H) on z 0, the eye block on it."""

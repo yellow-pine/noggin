@@ -28,7 +28,11 @@ PACK_Y = 41.5  # the pack's middle, lying across x behind the neck mount's foot;
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
-EYES_UP = 0.5  # the eye centres at most this far up what rides the head, 0 its bottom: cartoon proportions (#708)
+EYES_UP = 0.5  # the eye centres at most this far up the head's box (shelled()), 0 its bottom: cartoon proportions (#708)
+# the skull dome's box in the head's frame (the eyes' middle at the origin) until #824 draws it: a stand-in, a
+# half-ellipsoid whose open rim is at the brow just over the upper lids' sweep and whose top is where a cartoon cranium
+# rises, at the head gate (#828; inferred)
+DOME = ((-62.0, 62.0), (-42.6, 74.4), (27.0, 75.25))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the rack's posts' front face, on the gimbal frame plate's back edge
 BACK_Z = 58.8  # Back: the row's middle, candidates.optimise()'s
@@ -98,6 +102,13 @@ def leads(stage):
     ends += [(rides(n), switch) for n, p in stage.parts.items() if os.path.basename(p.file) == "battery.stl"]
     ends.append((switch, shield))
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}
+
+
+def shelled(lo, hi):
+    """The head's box, (lo, hi) in the head's frame: what rides the tilt (lo to hi) with the head's shell over it, which
+    the head and eyes gates measure (#828): the skull dome supplies the height over the eyes (DOME, a stand-in)."""
+    dome = np.array(DOME).T
+    return np.minimum(lo, dome[0]), np.maximum(hi, dome[1])
 
 
 AXES = ("width", "depth", "height")  # gimbal.HEAD_MM's order

@@ -24,12 +24,12 @@ def _drawn(model, data, names):
 
 
 def head(doc, model):
-    """What rides the head (the tilt's parts) at rest: its box, mm, as gimbal.HEAD_MM (width, depth, height), and how
-    far up the box the eye centres sit (0 its bottom, 1 its top)."""
-    v = _drawn(model, _rest(model), stages.STAGES[doc].horns["tilt horn"].loops[0].rockers)
-    lo, hi = v.min(axis=0), v.max(axis=0)
-    eyes = stages.DOCS[doc]["next-eyes"][0][2]
-    return [round(float(s), 1) for s in hi - lo], round(float((eyes - lo[2]) / (hi[2] - lo[2])), 2)
+    """The head at rest, what rides it (the tilt's parts) under its shell (base.shelled): its box, mm, as
+    gimbal.HEAD_MM (width, depth, height), and how far up the box the eye centres sit (0 its bottom, 1 its top)."""
+    eyes = np.array(stages.DOCS[doc]["next-eyes"][0])
+    v = _drawn(model, _rest(model), stages.STAGES[doc].horns["tilt horn"].loops[0].rockers) - eyes
+    lo, hi = base.shelled(v.min(axis=0), v.max(axis=0))
+    return [round(float(s), 1) for s in hi - lo], round(float(-lo[2] / (hi[2] - lo[2])), 2)
 
 
 def report(doc, model):
