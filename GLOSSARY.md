@@ -57,6 +57,11 @@ One cosmetic part a Skin puts on the Skeleton (the head, an eyeball cap, a pupil
 held on by magnets.
 _Avoid_: cover, cosmetic
 
+**Seat**:
+Where a Shell sits on what carries it, the same for every Skin: a magnet pair that holds it on and three balls in
+V-grooves that take the shear.
+_Avoid_: mount, socket, pad
+
 **Skin**:
 Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: its Shape and
 its Palette each morty, bart or cansin.

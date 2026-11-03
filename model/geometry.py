@@ -179,6 +179,14 @@ PRINTED = {
     "next L eyeball cap": ("eye whites", "PLA Pure"),
     "next R eyeball cap": ("eye whites", "PLA Pure"),
 }
+# Morty's Shells (#665, model/skin.py) by Colour group, the eyeball caps above his too: each Skin's in its own
+_MORTY = {
+    "face": ("next morty face", "next morty mouth cover")
+    + tuple(f"next morty {s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower")),
+    "hair and pupils": ("next morty hair", "next morty L pupil", "next morty R pupil"),
+    "shirt and collar": ("next morty shirt front", "next morty shirt back"),
+}
+PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for name in names}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
