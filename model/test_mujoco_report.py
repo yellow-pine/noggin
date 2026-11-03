@@ -125,3 +125,26 @@ def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
     assert m["motions"]["shells"]["face:1"] == {"g": 80.0, "peak_m_s2": 6.0, "at": {"pose": 2}}  # a Shell's peak (#665)
     assert (m["tip_over"]["margin_mm"], m["tip_over"]["moving"]["margin_mm"]) == (5.0, 3.0)
     assert (m["full_speed"], m["vibration"], m["tip_over"]["footprint_mm"]) == (speed, {}, [90, 90])
+
+
+# The Torso's mesh, mm in metres: a 92 x 93.5 foot 2 mm thick and, 4 mm off the table, a pad standing 4 mm out of its
+# front wall, as a Seat's (model/skin.py, #665)
+FOOT, PAD = (
+    [(x, y, z) for x in (0, 92) for y in (0, 93.5) for z in (0, 2)],
+    [(x, y, z) for x in (40, 54) for y in (-4, 0) for z in (4, 18)],
+)
+TORSO = f"""
+<mujoco>
+  <asset><mesh name="torso" scale="0.001 0.001 0.001" vertex="{" ".join(f"{c}" for p in FOOT + PAD for c in p)}"/></asset>
+  <worldbody><body name="next torso:1"><geom type="mesh" mesh="torso" group="{mujoco_report.mjcf.VISUAL}"/></body></worldbody>
+</mujoco>"""
+
+
+def test_the_footprint_is_the_torsos_foot_not_what_stands_off_the_table():
+    """#665: a Seat's pad on the Torso's wall is no part of what stands on the table."""
+    model = mujoco.MjModel.from_xml_string(TORSO)
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    plate = mujoco_report._plate(model, data)
+    assert plate[:, :2].min(axis=0) == pytest.approx((0, 0), abs=1e-3)
+    assert plate[:, :2].max(axis=0) == pytest.approx((92, 93.5), abs=1e-3)

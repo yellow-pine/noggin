@@ -23,6 +23,7 @@ from scipy.spatial import ConvexHull
 from model import electrical, fits, gates, mjcf, sim, skin, stages, traces, trajectories
 
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
+FOOT_MM = 0.5  # how high off the table a vertex of the Torso still stands on it
 KGF_CM = 0.0980665  # N.m
 PAN, TILT = "pan horn", "tilt horn"
 PENETRATION_MM, LOOP_MM, TURN_DEG = 0.05, 0.05, 1.0  # thresholds (model/test_report.py)
@@ -79,9 +80,11 @@ def vertices(model, data, body):
 
 
 def _plate(model, data):
-    """The base's (the Torso's) drawn mesh's vertices in MuJoCo's world (mm), where they are: its outline is the
-    footprint."""
-    return vertices(model, data, model.body("next torso:1").id)
+    """The base's (the Torso's) foot: its drawn mesh's vertices in MuJoCo's world (mm), where they are, within FOOT_MM
+    of its lowest: its outline is the footprint, what stands on the table (the Seats' pads on its walls stand off it,
+    #665)."""
+    v = vertices(model, data, model.body("next torso:1").id)
+    return v[v[:, 2] <= v[:, 2].min() + FOOT_MM]
 
 
 def footprint(points):
