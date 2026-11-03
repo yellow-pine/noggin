@@ -65,7 +65,8 @@ def optimise(doc):
     stage, still = stages.STAGES[doc], _rest(model)
     _, boards = CARRIER[doc]
     group = [model.body(f"{b}:1").id for b in boards()]  # the boards alone: the carrier is redrawn round them
-    rest = [n for n in stage.horns["tilt horn"].loops[0].rockers if model.body(n).id not in group]
+    rides = stage.horns["tilt horn"].loops[0].rockers
+    rest = [n for n in rides if model.body(n).id not in group and n.removesuffix(":1") not in skin.DRAWN]  # Skeleton
     lo, hi = stage.horns["tilt horn"].limits
     tilts = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
     pos0, turn = model.body_pos[group].copy(), still.xmat[model.body("next head mount:1").id].reshape(3, 3)
