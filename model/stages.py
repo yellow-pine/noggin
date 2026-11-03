@@ -94,22 +94,27 @@ def rocker_loop(joint, o2, a0, o4, b0, axis, coupler, rockers):
 
 def next_base():
     """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
-    -x, the switch board lying beside the lead's end (#828) and the power-path board in front of the neck (#858), the
-    same in every head variant."""
-    pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
+    -x, the switch board lying beside the lead's end (#828) and the spare pack in front of the neck, its lead to the
+    kit's charger dongle (#858), the same in every head variant."""
+
+    def pack(y):
+        at = align((candidates.PACK[0] / 2, y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
+        return part(stl("battery"), at, BOARD, ("y", g.BATTERY_STEP["lead_y"]))
+
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
         "next torso lid:1": part(stl("next torso lid"), None, printed("next torso lid")),
-        "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
+        "next pack:1": pack(candidates.PACK_Y),
+        "next spare pack:1": pack(candidates.SPARE_Y),
     }
-    boards = candidates.switch_board() | candidates.power_board()
+    boards = candidates.switch_board() | candidates.dongle()
     parts |= {f"{name}:1": part(stl(mesh), at, BOARD) for name, (mesh, at) in boards.items()}
     return Sub(parts, {})
 
 
 def next_cranium():
     """next-cranium: the boards in the next Mech's head (#858, model/base.py): the cranium tray on the gimbal frame's
-    plate, both Cores lying on it, each under its Shield, and the hub on its riser; it rides the head (RIDES)."""
+    plate, both Cores lying on it, each under its Shield; it rides the head (RIDES)."""
     return _boards("next cranium tray", candidates.cranium())
 
 

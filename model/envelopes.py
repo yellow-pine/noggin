@@ -1,8 +1,8 @@
 """Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield, Core, switch
-board, battery, USB-C hub, power-path board, bulk capacitor) so the model and the renders need no vendor file. Each is
-drawn in its STEP file's own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft,
-connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of
-the STEP's outer faces; inner detail is dropped."""
+board, battery, the charger dongle) so the model and the renders need no vendor file. Each is drawn in its STEP file's
+own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft, connectors) are the STEP's
+numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of the STEP's outer faces; inner
+detail is dropped."""
 
 import cadquery as cq
 import numpy as np
@@ -211,34 +211,14 @@ def battery():
     return hull("XZ", BATTERY["cells"], -BATTERY["length"])
 
 
-# USB-C hub (#858: a CH334F 4-port breakout, 31.6 x 20.4 x 4.8 mm overall, its maker's figures; inferred until one is
-# measured): PCB x 0..31.6 by y +-10.2, z 0..1.6; on top the upstream USB-C socket (x +-4.47 as the Core's) at its +x
-# end, its mouth on the PCB's edge, up to z 4.8.
-HUB = {"pcb": ((0.0, 31.6), (-10.2, 10.2), (0.0, 1.6)), "usb": ((24.2, 31.6), (-4.47, 4.47), (1.6, 4.8))}
+# The kit's USB charger dongle (#858: the pack off the Mech charges on it, in the Torso): a stick, its XH2.54 socket at
+# one end and its USB lead out of the other, 45 x 18 x 9 mm, its underside z 0, along +x (inferred: unmeasured).
+DONGLE = ((0.0, 45.0), (-9.0, 9.0), (0.0, 9.0))
 
 
-def hub():
-    return boxes([HUB["pcb"], HUB["usb"]])
-
-
-# Power-path board (#858: a BQ25886 2S charger board, its 18650 holder snapped off): its listing gives 105 x 90 x 25
-# mm with the holder, so the charger half a box 105 x 40 x 15 mm, its underside z 0 (inferred until one is measured).
-POWER = ((-52.5, 52.5), (-20.0, 20.0), (0.0, 15.0))
-
-
-def power():
-    return box(*POWER)
-
-
-# Bulk capacitor (#858: 470 uF 16 V low-ESR electrolytic across the Y lead at the Shields): a can 8 mm across, 11.5
-# tall, its leads' end z 0 (a common size for the rating, inferred).
-CAPACITOR = (4.0, 11.5)
-
-
-def capacitor():
-    r, h = CAPACITOR
-    return cq.Workplane("XY").circle(r).extrude(h)
+def dongle():
+    return box(*DONGLE)
 
 
 ENVELOPES = {"servo": servo, "horn": horn, "receiver": shield, "core": core, "switch": switch, "battery": battery}
-ENVELOPES |= {"hub": hub, "power": power, "capacitor": capacitor}
+ENVELOPES["dongle"] = dongle

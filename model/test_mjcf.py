@@ -82,8 +82,6 @@ TOUCH = {
                 for p in (
                     "next Core 1:1",
                     "next Core 2:1",
-                    "next hub:1",
-                    "next bulk capacitor:1",
                     "next gimbal frame:1",
                 )
             ),
@@ -100,7 +98,8 @@ TOUCH = {
             ("next torso lid:1", "next neck mount:1"),
             ("next torso:1", "next pack:1"),
             ("next torso:1", "next switch board:1"),
-            ("next torso:1", "next power-path board:1"),
+            ("next torso:1", "next spare pack:1"),
+            ("next torso:1", "next charger dongle:1"),
         ]
     },
 }

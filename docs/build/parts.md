@@ -23,14 +23,10 @@ range, filament is Bambu's PLA and PETG lines the Themes name.
   servos, M3x10, M2x12, M2 nuts (20 each); ordered 2026-10-31 from the Bambu EU store: X11 Receiver Shield XA004 x1,
   servo PG001 x3, battery PC003 x1.
 - The Mech uses: 2 Cores, 2 Shields, 1 switch board, 1 pack with a Y lead to both Shields, 7 PG001 servos (4 on the
-  eyes Core, 3 on the neck Core); the kit's spare M3 screws as the busy pivots' shanks. Spare: a pack on charge (the
-  charger, off the Mech), a switch board. The 360 servo turns continuously, so it is not used.
-- To buy: the magnets, 4x2 mm N52 discs; for the next Mech (#858, docs/research/2026-11-03-usb-c-power.md 7): in the
-  head a USB-C hub, Adafruit's CH334F Mini 4-Port USB Hub Breakout #5997 (31.6 x 20.4 x 4.8 mm), its upstream port the
-  head's, and a 470 uF 16 V low-ESR electrolytic across the Y lead at the Shields; in the Torso the power-path board,
-  nomo's BQ25886 2S charge board on Tindie (105 x 90 x 25 mm with its 18650 holder, which snaps off; ICHGSET swapped to
-  2.87 kohm for 0.75 A), the switch board after its output; up the post four 24 AWG conductors. Still to confirm before
-  buying the board: its load-output breakout, its size and its US shipping.
+  eyes Core, 3 on the neck Core); the kit's spare M3 screws as the busy pivots' shanks; the next Mech also holds the
+  spare pack on the kit's charger dongle in its Torso (#858). Spare: a switch board. The 360 servo turns continuously,
+  so it is not used.
+- To buy: the magnets, 4x2 mm N52 discs, the one new purchase.
 - Filament: each Preset's Bambu filaments, by line, name and code ([Themes](../face-design.md), from the model; the
   picks: docs/research/2026-11-03-bambu-theme-colours.md): PETG Basic and Matte for the Skeleton, the model taking
   PETG HF's figures as the worst case, PLA Basic and Matte for the Morty and Bart Skins. Owned: PLA Pure in Milky Pink, Pure White,

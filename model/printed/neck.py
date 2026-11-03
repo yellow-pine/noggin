@@ -15,7 +15,7 @@ from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 NECK_R = 5.0  # the post's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
-# the post's bore for the neck cable (#858: its four 24 AWG conductors, inferred), up to under the pan shank's tapping
+# the post's bore for the pack's Y lead (#858: its pair and its plug, inferred), up to under the pan shank's tapping
 # hole, and its window out over the pan servo's shelf, under the pan span's lower clamp
 BORE_R, BORE_TOP, WINDOW_Z = 3.0, -106.0, (-120.0, -115.0)
 # (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
@@ -43,7 +43,7 @@ def tie(x, y, z):
 def mount(mechanical=False):
     """The neck mount (static, printed upright): a foot for the base, the post up from it through the Torso's lid, its
     top the yoke's thrust face under the head (#858; the pan shank's tapping hole down its axis, narrowed where the pan
-    bar swings past), hollow below that for the neck cable (a window in its front over the foot and one over the lid),
+    bar swings past), hollow below that for the pack's Y lead (a window in its front over the foot and one over the lid),
     the shelf the pan servo's collar stands on over the lid and the pan span's lower clamp in front. As Bones (#708):
     the post waisted, the clamp's arm a strut."""
     out = box((-16, 16), (Y - 16, Y + 16), nk.MOUNT_Z)

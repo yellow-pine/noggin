@@ -17,10 +17,7 @@ BOXES = {  # the STEP's box as the model uses it (servo and battery leads cut, m
     "core": ((-11.6, -10.68, -13.39), (11.6, -2.3, 14.5)),
     "switch": ((-7.25, -4.6, -16.0), (13.25, 15.16, 16.0)),
     "battery": ((-14.18, 0.0, -8.15), (14.18, 51.2, 8.15)),
-    # no STEP yet (#858): the hub's maker's overall size, the power-path board's and the capacitor's guesses
-    "hub": ((0.0, -10.2, 0.0), (31.6, 10.2, 4.8)),
-    "power": ((-52.5, -20.0, 0.0), (52.5, 20.0, 15.0)),
-    "capacitor": ((-4.0, -4.0, 0.0), (4.0, 4.0, 11.5)),
+    "dongle": ((0.0, -9.0, 0.0), (45.0, 9.0, 9.0)),  # no STEP: a guess (#858)
 }
 
 

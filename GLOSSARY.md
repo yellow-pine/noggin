@@ -35,16 +35,16 @@ the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The next Mech's base, a box pedestal under its lid: holding the pack lying low, the switch board and the power-path
-board, and nothing else (#858); the neck mount stands on its floor, its hollow post rising through the lid to the pan
-under the head, the neck cable up inside it; its bottom is the foot the Mech stands on.
+The next Mech's base, a box pedestal under its lid: holding both packs lying low, the one on the Mech through the
+switch board and the spare on the kit's charger dongle, with an opening in its wall where the two swap (#858); the neck
+mount stands on its floor, its hollow post rising through the lid to the pan under the head, the pack's Y lead up
+inside it; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
 One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
-shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores and
-the hub ride the head in the realistic skull's cranium, the pack, the switch board and the power-path board lie low in
-the Torso.
+shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores ride
+the head in the realistic skull's cranium, the packs and the switch board lie low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -110,21 +110,6 @@ _Avoid_: board, receiver, controller, ESP
 **Shield**:
 The expansion board the Core sits on; carries the servo ports and the power input; one per Core.
 _Avoid_: receiver, receiver shield, product codes
-
-**Hub**:
-The USB-C hub in the next Mech's head (#858): its upstream port is the head's one USB-C port, at the back of the skull
-base, and it feeds both Cores data and power, so a laptop cable flashes and commands both directly.
-_Avoid_: splitter, dock
-
-**Power-path board**:
-The board in the Torso that charges the pack from the head's USB-C and feeds the Shields through the switch board,
-switching over between the two seamlessly (#858), so the pack charges with the Mech switched off.
-_Avoid_: charger, UPS (for the board)
-
-**Neck cable**:
-The one cable up the next Mech's hollow post between the power-path board and the head: USB 5 V down, the pack's
-supply up (#858); the pan's range limits its twist, no slip ring.
-_Avoid_: link (the Link is the noggin service's), lead (a servo's or the pack's)
 
 **Pack cut**:
 The battery pack's protection switching the pack off under a load it can no longer carry (near empty), so every Core
@@ -316,8 +301,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - torso: the Torso; torso lid: its lid; neck mount: on the Torso, its hollow post up through the lid, the pan servo on
   it; pan yoke: turns on the post's top for pan, the tilt servo on it, its cheeks up to the head; pan bar: the pan
   Horn to the yoke;
-- cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it and the hub
-  on its riser at the back of the skull base;
+- cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their

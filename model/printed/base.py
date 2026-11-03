@@ -29,8 +29,9 @@ def _box(x, y, z, r=0.0, edges="|Z"):
 @bone.carved
 def torso(mechanical=False):
     """The Torso (printed upright), the realistic skull's box pedestal (#838): its floor (the foot; the neck mount stands
-    on it), its walls round it, a ledge inside their top for its lid (the pack in and out under it); the pack's cradle
-    on the floor behind the neck mount. As Bones (#708), carved
+    on it), its walls round it, an opening in the -x wall over the charger dongle and the switch board (#858), a ledge
+    inside their top for its lid (the pack in and out under it); a cradle on the floor for each pack, behind the neck
+    mount and in front of it. As Bones (#708), carved
     from it (#809): its upright corners round and a plaque sunk in its front, as the picture Cansin gave."""
     (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
     floor, top = nk.MOUNT_Z[0], z1 - nb.LID_T
@@ -41,9 +42,20 @@ def torso(mechanical=False):
         (px0, px1), (pz0, pz1) = PLAQUE  # sunk 1 mm, its top at 45 deg so it prints upright
         sunk = [(y0 - 1, pz0), (y0 + 1, pz0), (y0 + 1, pz1 - 2), (y0 - 1, pz1)]
         out = out.cut(cq.Workplane("YZ", origin=(px0, 0, 0)).polyline(sunk).close().extrude(px1 - px0))
+    (oy0, oy1), (oz0, oz1) = nb.OPENING  # its roof's peak (oy1 - oy0) / 2 over its sides
+    door = [
+        (oy0, floor + oz0),
+        (oy1, floor + oz0),
+        (oy1, floor + oz1),
+        ((oy0 + oy1) / 2, floor + oz1 + (oy1 - oy0) / 2),
+    ]
+    door.append((oy0, floor + oz1))
+    out = out.cut(cq.Workplane("YZ", origin=(x0 - 1, 0, 0)).polyline(door).close().extrude(WALL + 2))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
-    ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
-    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    for y in (nb.PACK_Y, nb.SPARE_Y):
+        ring = _box((-w - WALL, w + WALL), (y - d - WALL, y + d + WALL), (floor, floor + RIM))
+        out = out.union(ring.cut(box((-w, w), (y - d, y + d), (floor, floor + RIM))))
+    return out
 
 
 def _ledge(top):
@@ -82,16 +94,16 @@ def lid(mechanical=False):
 
 def tray(mechanical=False):
     """The cranium tray (#858; printed on its plate's top, upside down), hidden in the realistic skull's cranium in every
-    Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, a leg down
-    from each back corner behind the bail to its foot on the gimbal frame's plate, and the hub's riser on the plate from
-    the R foot forward, a hole in it round the head mount's rear L screw's nut."""
+    Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, notched behind
+    each for its USB-C plug (nb.openings), and two legs down from its back behind the pitch bar to their feet on the
+    gimbal frame's plate."""
     (x0, x1), (y0, y1) = nb.LEG_X, nb.LEG_Y
-    out = box((-x1 - 6, x1 + 6), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
+    out = box((-30.5, 30.5), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
     for s in (-1, 1):
         out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
-    riser = box((-x1, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
-    sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
-    return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
+    for lo, hi in nb.openings().values():
+        out = out.cut(box(*zip(lo, hi)))
+    return out
 
 
 @bone.carved
