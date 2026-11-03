@@ -10,6 +10,7 @@ import cadquery as cq
 from model import base
 from model import geometry as g
 from model import gimbal as gm
+from model import neck as nk
 from model import skin as sk
 from model.envelopes import box
 from model.printed.gimbal import ball, cyl
@@ -173,8 +174,10 @@ def _hair(lift):
 
 
 def _skull():
-    """The head's shell (WALL thick, open underneath), its eyes' openings cut."""
-    return _head(0.0).cut(_head(sk.WALL)).cut(_eyes()).intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
+    """The head's shell (WALL thick, open underneath and at the back under the head mount, for the neck: #838), its eyes'
+    openings cut."""
+    out = _head(0.0).cut(_head(sk.WALL)).cut(_eyes()).intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
+    return out.cut(box((-100, 100), (sk.NECK[0], 200), (sk.HEAD_Z[0] - 1, sk.NECK[1])))
 
 
 def face():
@@ -182,7 +185,8 @@ def face():
     mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its top."""
     out = _skull().cut(_hair(-0.1))
     # spheres and cylinders alone: a scaled sphere is a B-spline that Linux's OCCT writes into an invalid STEP (#833)
-    out = out.union(ball(6.0, (0, sk.HEAD_Y[0], -22)).cut(box((-10, 10), (sk.HEAD_Y[0] + sk.WALL, 0), (-40, 0))))
+    # the nose under the lower lids, which the eyes 52 mm apart bring in over it (#838)
+    out = out.union(ball(5.0, (0, sk.HEAD_Y[0], -27)).cut(box((-10, 10), (sk.HEAD_Y[0] + sk.WALL, 0), (-40, 0))))
     for s in (-1, 1):
         x = sorted(s * c for c in (sk.HEAD_X - sk.WALL, sk.HEAD_X + 6.0))
         ear = cyl("x", (0, 8, -2), 13.0, x).faces(">X" if s > 0 else "<X").edges().fillet(2.0)
@@ -195,10 +199,10 @@ def face():
 
 
 def hair():
-    """Morty's hair (hair): the head's shell over the hairline, its bangs jagged; down onto the
-    board rack's cradles' roofs (#828), each Seat's boss on a web from its back wall, and onto the face's top."""
+    """Morty's hair (hair): the head's shell over the hairline, its bangs jagged; down onto the gimbal frame plate's
+    back (#838), each Seat's boss on a web from its back wall, and onto the face's top."""
     out = _skull().intersect(_hair(0.1))
-    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next board rack"):
+    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
         out = out.union(web.intersect(_head(0.0)))
@@ -218,7 +222,7 @@ def mouth_cover():
     return _finish("next morty mouth cover", plate.union(wall).union(chin))
 
 
-SHIRT_SPLIT = 8.5  # the halves part across the neck's pan axis (model/neck.py AXIS)
+SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
 SHIRT_TOP = 6.0  # the collar's rise over the shirt's top, round the neck
 
 

@@ -45,22 +45,22 @@ PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
-# the neck (or Stage 1's stand), the boards off what carries them: the rack back with the head it rides, the jaw forward
+# the neck (or Stage 1's stand), the jaw forward
 EXPLODE = {
     "next-base": (0, 0, 0),
     "next-stand": (0, 0, 0),
     "next-neck": (0, 0, 45),
     "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
-    "next-back": (0, 60, 95),
     "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
-# Shield back out of its cradle (model/base.py back_boards) or off the test stand's face, the switch board and the pack
-# up off the Torso's floor (stages.next_base)
+# Shield off its pins' side (BOARDS: up off the Torso's floor, #838, or off the test stand's face), the switch board and
+# the pack up off the Torso's floor (stages.next_base)
 GAP = 5.0
-SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Z, "battery": g.Z} | skin.DIRECTIONS  # a Shell off its Seats
+SEATS = {"switch": g.Z, "battery": g.Z} | skin.DIRECTIONS  # a Shell off its Seats
+BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
 # the front doors (#739: the README's top, the site's home), side by side in this order, in each Preset (#806, #819),
 # the default's first: Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
 # from the side, exploded (EXPLODE); each (DRAWN's name, eye direction, exploded), framed tight on its own at the
@@ -138,7 +138,7 @@ def directions(doc):
     """{part: its Assembly direction's axis, world}: a servo and its Horn out along the shaft (stages.mounted), a seated
     part off its seat (SEATS), any other the axis of the innermost joint that turns it in its own sub-assembly (of the
     Pivots and rod joints it is on, the one with fewest parts), signed later (offsets). What no joint turns (the Torso,
-    the mounts, the frames, the rack) has none: the rest is assembled on it."""
+    the mounts, the frames) has none: the rest is assembled on it."""
     joints = []  # (the parts a joint turns, its world axis)
     for sub, frame in stages.DOCS[doc].items():
         turn = stages.align(*frame)[:3, :3]
@@ -153,6 +153,8 @@ def directions(doc):
         s = stages.stem(p.file)
         if s in ("servo", "horn"):
             out[n] = (-p.matrix[:3, 2], True)  # its local z is the shaft's reverse (stages.mounted)
+        elif s in BOARDS:
+            out[n] = (p.matrix[:3, 1], True)
         elif s in SEATS:
             out[n] = (np.array(SEATS[s], float), True)
         elif on := [(len(parts), axis) for parts, axis in joints if n in parts]:
@@ -183,7 +185,7 @@ def offsets(doc, level):
             if not signed and np.dot((lo + hi) / 2 - middle, d) < -0.5:  # a part on the middle goes the axis' way
                 d = -d
             out[n] = out[n] + _clear(lo, hi, d, [(lo, hi), *placed]) * d
-        elif any(d := EXPLODE[sub[n]]):  # one the rest goes on, among another's (the rack, #817): on out
+        elif any(d := EXPLODE[sub[n]]):  # one the rest goes on, among another's (#817): on out
             d = np.divide(d, np.linalg.norm(d))  # along its sub-assembly's offset until clear of what is placed
             out[n] = out[n] + _clear(lo, hi, d, placed) * d
         lo, hi = box[n][0] + out[n], box[n][1] + out[n]

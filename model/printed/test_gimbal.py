@@ -168,7 +168,7 @@ def test_the_yoke_keeps_its_bores():
 def test_the_bail_keeps_its_bores_and_balls():
     """The shanks' bores in the rod's ends and the pitch bar's pin bore in the input arm's tip, each with wall round
     it; a ball on its neck behind each eye."""
-    bail, r, (by, bz), end = gimbal.bail().val(), gm.PIN_R, gm.BAIL, gm.EYE["L"][0] + 8.0
+    bail, r, (by, bz), end = gimbal.bail().val(), gm.PIN_R, gm.BAIL, gm.EYE["L"][0] + gm.BAIL_END
     for dy, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
         for x, y, z in [(s * (end - 4), by, bz) for s in (-1, 1)] + [TIP]:
             assert not bail.isInside(cq.Vector(x, y + dy * (r - 0.05), z + dz * (r - 0.05)))
@@ -242,7 +242,7 @@ def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
 # The lid drives' Bones (#698, #704): each lies on its slab's face, its pins along x; (part, its joints in turn)
 LID_HORN_PIN = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
 LID_BONES = {
-    "lid bar": (gimbal.lid_bar, [gm.LID_PIN, gm.LINK_PIN, gm.LID_BEND, LID_HORN_PIN]),
+    "lid bar": (gimbal.lid_bar, [gm.LID_PIN, gm.LINK_PIN, LID_HORN_PIN]),
     "lid link": (gimbal.lid_link, [gm.LINK_PIN, gm.LOWER_PIN]),
 }
 

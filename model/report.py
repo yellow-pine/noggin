@@ -18,7 +18,6 @@ import sys
 import time
 
 import mujoco
-import numpy as np
 
 from model import base, candidates, convex_parts, electrical, gimbal, mjcf, mujoco_report, neck, stages
 from model import geometry as g
@@ -49,22 +48,11 @@ def report(doc, part=(0, 1)):
     # the MuJoCo half, measured on the MJCF written beside the report
     model = mujoco.MjModel.from_xml_path(mjcf.write(doc, folder(part)))
     if "next-neck" in stages.DOCS[doc] and first:  # the next Mech's neck moves by its own kinematics (#641)
-        out["neck"] = neck.report(head(doc, model))
+        out["neck"] = neck.report(mjcf.head(doc, model))
     if doc in g.NEXT and first:  # its head variant's figures for the ranking (#686)
         out["variant"] = candidates.report(doc, model)
     out["mujoco"] = mujoco_report.measure(doc, model, part)
     return out
-
-
-def head(doc, model):
-    """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
-    and the carrier with the boards riding the head mount), as the MJCF weighs and places them."""
-    data = mujoco.MjData(model)
-    mujoco.mj_kinematics(model, data)
-    ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]
-    kg = model.body_mass[ids]
-    com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
-    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["next-neck"][0]))
 
 
 def _dump(path, data):

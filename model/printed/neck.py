@@ -2,17 +2,22 @@
 drawn where it sits at rest. Turning bores take the busy pivots' M3 shanks (model/gimbal.py PIN_R); the part a shank
 is fixed in has a tapping hole instead. A tie slot through a tab clamps each end of a flexing span."""
 
-from model import envelopes
+import math
+
+import cadquery as cq
+import numpy as np
+
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box
 from model.printed import bone
-from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link, post
+from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 COLUMN_R = 10.0  # the neck mount's column: its top is the yoke's thrust face, inside the pan bar's sweep
 NECK_R = 5.0  # the column's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
-POCKET = ((0.5, 10.0), (27.0, 41.0))  # (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
+# (x, y) through the yoke's floor: the tilt horn and bar swing into it at tilt -20
+POCKET = ((0.5, 10.0), (nk.AXIS[0] + 18.5, nk.AXIS[0] + 32.5))
 Y, Z = nk.AXIS
 FLOOR_D = 35.0  # the yoke's floor, back from the pan axis under the tilt servo
 JAW_BONE = ((2.0, 3.9), (1.6, 3.0))  # the jaw's Bones (head, waist): within its arms' 4 mm
@@ -94,31 +99,22 @@ def yoke(mechanical=False):
 
 @bone.carved
 def head_mount(mechanical=False):
-    """The head mount (printed on its side, its bores along Z): a flange screwed under the gimbal frame's plate, the
-    tilt lugs outside the cheeks (the tilt shanks turn in them; the cheeks' bosses rise into slots in the flange), the
-    tilt lever behind, the jaw's lugs (its shanks' tapping holes; its bosses in notches in the flange), the mouth
-    servo's collar on the plate, a riser in front of the plate down to the flange, and the tilt span's head clamp
-    straight behind the tilt axis, under the flange (#708). As Bones (#708): the flange a frame of Bones flat on the
-    plate from screw to screw, the lever and the arm out to the mouth's riser Bones, the riser a strut."""
+    """The head mount (printed on its side, its bores along Z): a flange screwed under the gimbal frame's plate's back,
+    behind the mouth servo, the tilt lugs outside the cheeks (the tilt shanks turn in them; the cheeks' bosses rise into
+    slots in the flange), the tilt lever behind, and the tilt span's head clamp straight behind the tilt axis, under the
+    flange (#708, #838). As Bones (#708): the flange a frame of Bones flat on the plate from screw to screw round the
+    back, the lever a Bone."""
     f0, top = nk.FLANGE_Z
     rho, _ = nk.TILT_SPAN
-    jy, jz = nk.JAW
     ly = Y + nk.TILT_LEVER
-    m = _servo("mouth")
-    lo, hi = min((post(m, h) for h in envelopes.SERVO["tab_holes"]), key=lambda p: p[0][1])  # the mouth's front post
-    riser = ((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2)
+    (x0, y0), (x1, y1) = (nk.HEAD_SCREWS[1], nk.HEAD_SCREWS[2])
     if mechanical:
-        out = box((nk.LOOP_X[0], 45), (-27, ly + 3), nk.FLANGE_Z)
-        out = out.union(box((lo[0], hi[0]), (lo[1], gm.PLATE_Y[0] - 0.5), (f0, gm.PLATE_Z[1])))
+        out = box((nk.LOOP_X[0], -nk.LOOP_X[0]), (y0 - 2.5, ly + 3), nk.FLANGE_Z)
         hang = f0
     else:  # the Bones flat on the plate's underside, domed down within the flange's 3 mm
-        (x0, y0), (x1, y1) = (nk.HEAD_SCREWS[1], nk.HEAD_SCREWS[2])
         flat = dict(z=top, down=True)
-        # screw to screw round the back, then out behind the jaw bar to the riser (OCCT fuses no ring of them)
-        ahead = [(30.0, y0), (riser[0], gm.PLATE_Y[0] + 2), riser]  # behind the jaw bar, then down the riser's foot
-        out = bone.chain([(x0, y0), (x0, y1), (x1, y1), (x1, y0), *ahead], *FLANGE_BONE, **flat)
+        out = bone.chain([(x0, y0), (x0, y1), (x1, y1), (x1, y0)], *FLANGE_BONE, **flat)  # OCCT fuses no ring of them
         out = out.union(bone.chain([(0.0, y1), (0.0, ly)], *FLANGE_BONE, **flat))
-        out = out.union(strut((*riser, top - 1), (*riser, gm.PLATE_Z[1] + 0.5), (2.4, 2.4), (2.0, 2.0)))
         hang = top - 1  # the lugs and the lever up into the Bones
     for x, y in nk.HEAD_SCREWS:
         out = out.cut(cyl("z", (x, y, 0), 1.7, nk.FLANGE_Z))
@@ -126,27 +122,17 @@ def head_mount(mechanical=False):
         xs = sorted(s * c for c in nk.LUG_X)
         out = out.union(box(xs, (Y - nk.BOSS_R, Y + nk.BOSS_R), (Z, hang))).union(cyl("x", (0, Y, Z), nk.BOSS_R, xs))
         out = out.cut(cyl("x", (0, Y, Z), gm.PIN_R, xs))
-        js = sorted(s * c for c in (nk.LUG_X[0] + 1, nk.JAW_X[0]))
-        out = out.union(box(js, (jy - nk.BOSS_R, jy + nk.BOSS_R), (jz, hang)))
-        out = out.union(cyl("x", (0, jy, jz), nk.BOSS_R, js)).cut(cyl("x", (0, jy, jz), TAP_R, js))
     out = out.union(box((-1.5, 1.5), (ly - 3, ly + 3), (Z, hang))).union(cyl("x", (0, ly, Z), 3.0, (-1.5, 1.5)))
     out = out.cut(cyl("x", (0, ly, Z), TAP_R, (-1.5, 1.5))).cut(_clear())
-    return out.union(tie(sum(nk.LOOP_X) / 2, Y + rho, Z)).union(collar(m, gm.PLATE_Z[1]))
+    return out.union(tie(sum(nk.LOOP_X) / 2, Y + rho, Z))
 
 
 def _clear():
-    """What the flange leaves open: a slot round each cheek's boss, a notch round each jaw boss, one round the tilt
-    bar's top end and the front corner where the jaw bar swings."""
+    """What the flange leaves open: a slot round each cheek's boss and one round the tilt bar's top end."""
     x0, x1 = nk.TILT_BAR_X
     out = box((x0, x1 + 0.5), _around(Y + nk.TILT_LEVER), nk.FLANGE_Z)
-    # the flange's front corner off where the jaw bar swings, wide and deep enough that the head mount's convex pieces
-    # (CoACD) leave it open too: a 4 mm slot they filled met the bar 0.4 mm deep in the hero (#708)
-    x0, _ = nk.JAW_BAR_X
-    out = out.union(box((x0 - 0.5, 38.0), (nk.CHIN_Y, nk.JAW[0] - nk.JAW_LEVER + 11), nk.FLANGE_Z))
     for s in (-1, 1):
-        cheek = box(sorted(s * c for c in (nk.CHEEK_X[0] - 0.5, nk.CHEEK_X[1])), (Y - 6, Y + 6), nk.FLANGE_Z)
-        jaw = box(sorted(s * c for c in (nk.JAW_X[0], nk.JAW_X[1] + 0.5)), _around(nk.JAW[0]), nk.FLANGE_Z)
-        out = out.union(cheek).union(jaw)
+        out = out.union(box(sorted(s * c for c in (nk.CHEEK_X[0] - 0.5, nk.CHEEK_X[1])), (Y - 6, Y + 6), nk.FLANGE_Z))
     return out
 
 
@@ -156,25 +142,40 @@ def _around(y, r=nk.BOSS_R + 0.5):
 
 @bone.carved
 def jaw(mechanical=False):
-    """The jaw (printed on its side): a boss outside each lug (the jaw shanks turn in them), an arm forward from each to
-    the chin bar under the head mount's flange, and a boss on the L arm round the jaw bar's pin. As Bones (#708): the
-    arms and the chin one chain of Bones flat on the arms' underside."""
+    """The jaw (printed on its side): a boss outside each of the frame's lugs at the condyles (the jaw shanks turn in
+    them), an arm down from each (the mandible's ramus) to the body, which runs forward round to the chin as the
+    mandible's (#838), and a boss down the L arm round the jaw bar's pin. As Bones (#708): each arm a strut, the body
+    and the chin one chain of Bones flat on its underside."""
     jy, jz = nk.JAW
     x0, x1 = nk.JAW_X
-    pin = jy - nk.JAW_LEVER
+    x, (z0, _) = (x0 + x1) / 2, nk.JAW_ARM_Z
+    half = [(x, jy), *nk.JAW_BODY]
+    points = [*half, (0.0, nk.CHIN_Y + 2.0), *((-px, py) for px, py in reversed(half))]
     if mechanical:
-        out = box((-x1, x1), (nk.CHIN_Y, nk.CHIN_Y + 4), nk.JAW_ARM_Z)
+        out = _flat(points, x1 - x0, nk.JAW_ARM_Z)
         for s in (-1, 1):
-            out = out.union(box(sorted((s * x0, s * x1)), (nk.CHIN_Y, jy), nk.JAW_ARM_Z))
+            out = out.union(box(sorted((s * x0, s * x1)), (jy - nk.BOSS_R, jy + nk.BOSS_R), (z0, jz)))
     else:
-        x, y = (x0 + x1) / 2, nk.CHIN_Y + JAW_BONE[0][0]
-        points = [(x, jy - nk.BOSS_R), (x, y), (-x, y), (-x, jy - nk.BOSS_R)]
-        out = bone.chain(points, *JAW_BONE, z=nk.JAW_ARM_Z[0])
-    out = out.union(cyl("x", (0, pin, jz), 3.0, (x0, x1)))
+        out = bone.chain(points, *JAW_BONE, z=z0)
+        for s in (-1, 1):  # from inside the body's Bones up into the boss, inside its faces
+            out = out.union(strut((s * x, jy, z0 + 1), (s * x, jy, jz - 1), (3.0, 1.8), (2.4, 1.5)))
+    pin = (0, jy, jz - nk.JAW_LEVER)
+    out = out.union(cyl("x", pin, 3.0, (x0, x1)))
     for s in (-1, 1):
         xs = sorted((s * x0, s * x1))
         out = out.union(cyl("x", (0, jy, jz), nk.BOSS_R, xs)).cut(cyl("x", (0, jy, jz), gm.PIN_R, xs))
-    return out.cut(cyl("x", (0, pin, jz), TAP_R, (x0, x1)))
+    return out.cut(cyl("x", pin, TAP_R, (x0, x1)))
+
+
+def _flat(points, w, zs):
+    """Flat bars `w` wide through the (x, y) `points` in turn, from zs[0] to zs[1], round at every joint."""
+    out = cyl("z", (*points[0], 0), w / 2, zs)
+    for a, b in zip(points, points[1:]):
+        side = np.array([a[1] - b[1], b[0] - a[0]]) * w / 2 / math.dist(a, b)
+        outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
+        bar = cq.Workplane("XY", origin=(0, 0, zs[0])).polyline(outline).close().extrude(zs[1] - zs[0])
+        out = out.union(bar).union(cyl("z", (*b, 0), w / 2, zs))
+    return out
 
 
 @bone.carved
@@ -200,5 +201,7 @@ def tilt_bar(mechanical=False):
 
 @bone.carved
 def jaw_bar(mechanical=False):
-    y = nk.JAW[0] - nk.JAW_LEVER
-    return link((y, nk.JAW_HORN_Z), (y, nk.JAW[1]), nk.JAW_BAR_X, mechanical, BAR_BONE)
+    """The jaw bar: the jaw's lever pin back to the mouth horn's (#838)."""
+    jy, jz = nk.JAW
+    hy, hz = nk.MOUTH_HORN
+    return link((jy, jz - nk.JAW_LEVER), (hy, hz + nk.CRANK), nk.JAW_BAR_X, mechanical, BAR_BONE)

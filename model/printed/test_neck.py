@@ -60,7 +60,7 @@ _solid = functools.cache(lambda build: build().val())
     [  # (the turning part, the fixed one, a point on the axis inside each, a direction across the axis)
         (neck.yoke, neck.mount, ((0, Y, nk.DISC_Z[0] + 2), (0, Y, nk.DISC_Z[0] - 2)), (1, 0, 0)),
         (neck.head_mount, neck.yoke, ((15, Y, Z), (11, Y, Z)), (0, 1, 0)),
-        (neck.jaw, neck.head_mount, ((20, JY, JZ), (16, JY, JZ)), (0, 1, 0)),
+        (neck.jaw, gimbal.frame, ((34, JY, JZ), (29.5, JY, JZ)), (0, 1, 0)),  # the frame's lugs (#838)
     ],
 )
 def test_each_shank_turns_in_one_part_and_is_threaded_into_the_other(pivot, at, across):

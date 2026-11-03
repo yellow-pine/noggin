@@ -13,8 +13,8 @@ anatomical, its own Skin). The model, the [viewer](https://yellowpine.com/noggin
 next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
-- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso, the
-  board rack. It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
+- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (with
+  both Cores since #838). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
   realistic, every part drawn as Bones, and mechanical, every part in boxes and cylinders (docs/adr/0020); its
   Palettes: anatomical, robot and black (PETG Basic Black throughout).
 - Skin, PLA: the head shell with hair, the ears, the nose, the eyeball caps, separate pupils, the lid covers, the mouth
@@ -54,10 +54,9 @@ In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it:
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Where the carrier is too thin
-  for the pocket the Seat stands on a pad: the gimbal frame plate's front corners (the face), the jaw's chin (the
-  mouth cover), the Torso's front and back walls (the shirt); the face carries the hair's front Seats. The cores, the
-  lids and the board rack's flat cradle roofs in the cheeks (the hair's back Seats, #828) take theirs in their own
-  faces.
+  for the pocket the Seat stands on a pad: the gimbal frame plate's bar out to the lids' uprights (the face), the jaw's
+  chin (the mouth cover), the Torso's front and back walls (the shirt); the face carries the hair's front Seats. The
+  cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in their own faces.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
   covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap

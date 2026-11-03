@@ -1,8 +1,6 @@
 """Seam: model/neck.py, the next Mech's neck and jaw (#641): what the servos turn the head and jaw through, the servo
 angles each range needs, and the report's numbers against #641's gates."""
 
-import math
-
 import numpy as np
 import pytest
 
@@ -40,13 +38,18 @@ def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
         assert neck.transmission(drive, 0.0) == pytest.approx(90.0, abs=1e-6)
 
 
-def test_the_tilt_servo_holds_the_heads_weight_through_the_linkage(report):
-    """Straight over the axis the head weighs nothing at rest; tilted 20 deg its 40 mm lever arm is 40 sin 20 = 13.7
-    mm, 300 g x 13.7 mm = 0.41 kgf.cm at the head, and the servo holds that times the linkage's speed ratio there."""
+def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report):
+    """#838: the tilt axis behind the head's centre of mass, a torsion spring on its shank holds the head. A head of
+    300 g 40 mm in front of the axis and 30 over it turns itself face down with 300 g x 40 mm = 1.2 kgf.cm at rest, so
+    the spring turns it back as much, and its rate is the weight's lever's change, 300 g x 30 mm = 0.9 kgf.cm a radian;
+    tilted 20 deg the spring's line misses the weight's turn by 0.08 kgf.cm, the servo holding that through the linkage.
+    Straight over the axis the spring takes the 40 mm's change alone: nothing at rest."""
+    ahead = neck.report((300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0)))["tilt"]
+    assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
+    assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
+    assert 0.25 * 0.079 < ahead["hold_kgf_cm"] < 0.079
     tilt = report["tilt"]
-    assert tilt["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
-    at_head = 0.3 * 40 * math.sin(math.radians(20)) / 10
-    assert 0.25 * at_head < tilt["hold_kgf_cm"] < at_head
+    assert tilt["spring"] == {"rest_kgf_cm": 0.0, "rate_kgf_cm_rad": 1.2} and tilt["rest_kgf_cm"] == pytest.approx(0.0)
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}
 
 

@@ -8,7 +8,7 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, skin, stages
+from model import gimbal, mjcf, neck, skin, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -45,7 +45,7 @@ TOUCH = {
     # the next Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
     **{
         frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on their collar"
-        for d, mount in (("pan", "next neck mount:1"), ("tilt", "next pan yoke:1"), ("mouth", "next head mount:1"))
+        for d, mount in (("pan", "next neck mount:1"), ("tilt", "next pan yoke:1"), ("mouth", "next gimbal frame:1"))
         for p in (f"next {d} horn:1", mount)
     },
     **{
@@ -62,19 +62,15 @@ TOUCH = {
             ("next tilt bar:1", "next head mount:1"),
             ("next jaw bar:1", "next mouth horn:1"),
             ("next jaw bar:1", "next jaw:1"),
-            ("next jaw:1", "next head mount:1"),
+            ("next jaw:1", "next gimbal frame:1"),  # its lugs at the condyles (#838)
         ]
     },
-    # the Torso (#685) and Back's board rack (#686, #712): the same
+    # the Torso (#685), the Cores in it (#838): the same
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            *(
-                ("next board rack:1", f"{b}:1")
-                for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")
-            ),
-            ("next board rack:1", "next gimbal frame:1"),
+            *(("next torso:1", f"next Core {n}:1") for n in (1, 2)),
             # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
             *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
         ]
@@ -162,8 +158,8 @@ def test_the_viewer_look_stays_as_cansin_kept_it():
 
     theme = g.theme(DOC)
     for part, group in (
-        ("next torso:1", "Bones"),
-        ("next board rack:1", "Mounts"),
+        ("next torso:1", "Mounts"),
+        ("next gimbal frame:1", "Bones"),
         ("next L eyeball cap:1", "eye whites"),
     ):
         hexc = g.filament(group, theme)[3]
@@ -239,6 +235,16 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
         drawn = stages.stem(part.file) in skin.DRAWN
         grams = 0.0 if drawn else mjcf.mass(mjcf._mesh(part.file, part.clip), part.material)
         assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
+
+
+def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
+    """#838: the tilt pivot's stiffness and springref are neck.balance's rate and its torque at rest for the head this
+    MJCF weighs (N.m), so the head's weight's turn at rest cancels."""
+    model = built(DOC)
+    rest, rate = neck.balance(mjcf.head(DOC, model))
+    joint = model.joint("tilt pivot")
+    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM)
+    assert model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0] == pytest.approx(rest * mjcf.KGF_CM)
 
 
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))

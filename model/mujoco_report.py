@@ -24,7 +24,7 @@ from model import electrical, fits, gates, mjcf, sim, skin, stages, traces, traj
 
 STEP_DEG, CLEARANCE_MM = 10, 0.1  # below 0.1 mm the parts touch
 FOOT_MM = 0.5  # how high off the table a vertex of the Torso still stands on it
-KGF_CM = 0.0980665  # N.m
+KGF_CM = mjcf.KGF_CM  # N.m
 PAN, TILT = "pan horn", "tilt horn"
 PENETRATION_MM, LOOP_MM, TURN_DEG = 0.05, 0.05, 1.0  # thresholds (model/test_report.py)
 RATED_DEG_S = electrical.servo.rate(electrical.SERVO_MIN_V)  # 60 deg in 0.14 s at 4.8 V
@@ -99,7 +99,7 @@ def margin(outline, xy):
 
 def torques(model, data, moving=True):
     """N.m each actuator's servo turns its load with at data's pose, by MuJoCo's inverse dynamics (mj_rne, which leaves
-    out the servo's own rotor, its armature) with the four-bars rigid: the servos' torques and the rocker pins' forces
+    out the servo's own rotor, its armature) less the balance spring's turn, with the four-bars rigid: the servos' torques and the rocker pins' forces
     that balance it, by least squares. moving: at data's speed and acceleration; else held, against gravity alone."""
     mujoco.mj_kinematics(model, data)
     mujoco.mj_comPos(model, data)
@@ -107,6 +107,8 @@ def torques(model, data, moving=True):
     if not moving:
         data.qvel[:] = 0
     mujoco.mj_rne(model, data, int(moving), need)
+    mujoco.mj_passive(model, data)  # the balance spring's share (mjcf.balance), not the dampers'
+    need -= data.qfrc_spring
     data.qvel[:] = qvel
     cols = [np.eye(model.nv)[:, model.jnt_dofadr[model.actuator_trnid[:, 0]]]]
     for i in range(model.neq):  # each connect: its two sites' Jacobians apart (mjcf.spec's closures)

@@ -30,9 +30,10 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the head mount's lugs; it turns down to open the mouth.
-2. **Jaw servo** in the head mount's collar, lying on the gimbal frame's plate beside the mouth; the **jaw bar** joins
-   its horn to the jaw.
+1. **Jaw** on the gimbal frame's lugs, its hinge where the realistic skull's condyles are; it turns down to open the
+   mouth.
+2. **Jaw servo** in the gimbal frame's collar, hanging under its plate behind the jaw; the **jaw bar** joins its horn
+   to the jaw's lever.
 
 The jaw rides the head mount, so it pans and tilts with the head.
 

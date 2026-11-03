@@ -120,11 +120,16 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
   points; and the gimbal's bounding box, servos and horns included, "block_mm", against the compact head's `HEAD_MM`),
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
-  servo under the tie-bar, the pitch servo beside the pitch bar, each lid servo under and behind its eye (low and
-  forward, so the head's centre of mass stays near the tilt axis), its horn between the eyes (#698). Each eye has an
+  servo under the tie-bar, hanging under the frame's plate, the pitch servo beside the pitch bar, each lid servo upright
+  behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
+  Since #838 the eyes are 52 mm apart, in the realistic skull's orbits: each eye's inboard drives (bar, link, ears)
+  within 25.5 mm of it, the two eyes' 1 mm apart about their shared axis, the upper lid's shell 1.5 mm; the frame's
+  plate is up under the tie-bar, between the skull's coronoids and condyles, its bar in front of the coronoids out to
+  the lids' uprights. Each eye has an
   upper and a lower lid on that one servo, as today's Mech: the upper lid's crank through the lid bar (a
   parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
-  four-bar turning it against the upper about 0.8x (`gimbal.lower`); shut they meet 4 deg below the eye's middle,
+  four-bar turning it against the upper about 0.8x (`gimbal.lower`; #838 turned it about the eye with the crank, every
+  angle kept); shut they meet 4 deg below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
   shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
   the face is as wide as the lids' frame (119 mm, 138 before), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`'s width was that and a 3 mm shell wall (140 since #828). The pitch push-rod's Hooke coupling is undone by the command map
@@ -139,8 +144,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
-  it prints upright), the rack's posts struts under its rails and a Bone across under each edge of the boards; the
-  core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
+  it prints upright); the core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
   model/printed/bone.py carved(): the Bones cut to within it, so they add nothing and its interfaces and clearances
   are the mechanical part's; the push-rod's mechanical rod a flat bar round the Bone's waist), or, where a Bone that
   prints as drawn cannot fit inside (the tie-bar, the yaw yoke and the bail), the mechanical part takes it in
@@ -164,10 +168,15 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   gestures' gaze is level, so the tilt carries none.
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
-  tilt, under the head's centre of mass at rest, the jaw on the head mount's lugs), each servo drives through
+  tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, its
+  servo hanging under the frame's plate behind it), each servo drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the next Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
-  weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. Since #642 it moves in
+  weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The tilt axis lies 40 mm or
+  so behind the head's centre of mass since #838, more than the 9 g servo's 0.4 kgf.cm holds, so a torsion spring on
+  its shank balances it (`neck.balance`, `tilt.spring` in the report: wound to the head's weight's turn at rest, its
+  rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
+  and the servo holds only what the spring's straight line misses. Since #642 it moves in
   MuJoCo (its horns named pan, tilt and jaw horn, so the sim report's neck figures, tip-over and the Core's servo
   names apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
   motion that turns it, certified for clearance with the gestures (model/test_trajectories.py); since #663 the gimbal
@@ -175,15 +184,15 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The head variants (#686, model/base.py, the parts in model/printed/base.py, GLOSSARY), in place of #642's two Base
   candidates: one document each (geometry.NEXT), all on one Torso (#685: the
   shirt is the base, a compact open box whose floor is the foot, the neck mount with the pan servo on it, the pack
-  lying across behind and, since #828, the switch board lying flat in front of the pack's lead end; its footprint in
-  the sim report's tip_over, footprint_mm). Back: since #828 a Core on edge in each cheek, behind the eyes and low, in
-  the board rack's cradles on the gimbal frame's plate, slid in from behind, USB-C back (#708 stood the boards upright
+  lying across behind, the switch board lying flat beside the pack's lead end (#828) and, since #838, both Cores lying
+  flat on their Shields in front of the neck, USB-C forward; its footprint in the sim report's tip_over, footprint_mm).
+  Back (#828 stood a Core on edge in each cheek, #838 moved them down into the Torso; #708 stood the boards upright
   over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
   (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
-  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cheeks have
+  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the Torso has
   room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
   (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
-  against `gimbal.HEAD_MM` (140 x 120 x 150 since #828, so the skull dome rounds over the 119 mm face) and how far up
+  against `gimbal.HEAD_MM` (140 x 140 x 150 since #838, so the realistic skull keeps its length) and how far up
   it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.5: cartoon proportions), both hard gates in each look
   (model/test_report.py, model/printed/test_base.py), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
@@ -200,8 +209,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The Stages (#720, geometry.STAGES), for ease of build, each a document in every Skeleton shape: Stage 1 the eye block (the
   gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
   stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
-  `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, the
-  boards' rack with both Cores and the switch board in the Torso; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
+  `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, both
+  Cores and the switch board in the Torso; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
   what it fails), its Shapes and Palettes the Preset's the header's Theme bar picks or its own mix (#805, #806, #819);
