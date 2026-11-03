@@ -61,19 +61,15 @@ EXPLODE = {
 # up off the Torso's floor (stages.next_base)
 GAP = 5.0
 SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Z, "battery": g.Z} | skin.DIRECTIONS  # a Shell off its Seats
-# the front doors (#739: the README's top, the site's home), side by side in this order, in each Preset (#806, #819),
-# the default's first: Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
-# from the side, exploded (EXPLODE); each (DRAWN's name, eye direction, exploded), framed tight on its own at the
-# panels' size
+# the front doors (#739: the README's top, the site's home), side by side in this order, in the default Preset alone,
+# its mechanism without a Skin (bare) until a finished Skin exists (#843): Stage 1 from the front, its eyes facing
+# the camera; Stage 3 isometric; Stage 3 from the side, exploded (EXPLODE); each (DRAWN's name, eye direction,
+# exploded), framed tight on its own at the panels' size
 STAGE1, STAGE3 = BONY[0], next(iter(g.NEXT))
 FRONT = {
-    f: how
-    for s in SUFFIX.values()
-    for f, how in {
-        f"{STAGE1}{s}-front.webp": (STAGE1 + s, (0, -1, 0), False),
-        f"{STAGE3}{s}-isometric.webp": None,
-        f"{STAGE3}{s}-side-exploded.webp": (STAGE3 + s, VIEWS["side"][0], True),
-    }.items()
+    f"{STAGE1}-front.webp": (STAGE1, (0, -1, 0), False),
+    f"{STAGE3}-bare-isometric.webp": (STAGE3, VIEWS["isometric"][0], False),
+    f"{STAGE3}-side-exploded.webp": (STAGE3, VIEWS["side"][0], True),
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # what the site publishes (#649, docs/adr/0019): the next Mech's panels and a picture of each of its parts, alone at
@@ -104,11 +100,15 @@ def next_parts():
 
 
 def published():
-    """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), each Stage at the
-    Parts level (#811), each in each Preset (#806, #819), then its parts'; stills alone (#839)."""
-    front = [f for f, how in FRONT.items() if how]
+    """Every picture the site serves (#649): the next Mech's panels and each Stage at the Parts level (#811), each in
+    each Preset (#806, #819), the front doors (#739), then its parts'; stills alone (#839)."""
     apart = map(parts_exploded, DRAWN)
-    return [*(picture(*p) for p in PANELS), *front, *apart, *next_parts()]
+    return [*(picture(*p) for p in PANELS), *FRONT, *apart, *next_parts()]
+
+
+def bare(doc, mats):
+    """mats ({part: world 4x4}) without the document's Shells (skin.SHELLS): its mechanism alone (#843)."""
+    return {n: m for n, m in mats.items() if stages.stem(stages.STAGES[doc].parts[n].file) not in skin.SHELLS}
 
 
 def exploded(doc, mats, level=1):
@@ -289,8 +289,8 @@ def views(mine):
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
     for name, (manifest, hull, mats, pts) in plans.items():
         shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
-        for f, (_, eye, apart) in ((f, how) for f, how in FRONT.items() if how and how[0] == name):
-            pose = exploded(DRAWN[name][0], mats) if apart else mats
+        for f, (_, eye, apart) in ((f, how) for f, how in FRONT.items() if how[0] == name):
+            pose = bare(DRAWN[name][0], exploded(DRAWN[name][0], mats) if apart else mats)
             cam = camera.fit(points(hull, pose), eye, g.Z, size[0] / size[1], None, MARGIN)
             shots.append(shot(f.removesuffix(".webp"), size, cam, [pose]))
         pose = exploded(DRAWN[name][0], mats, 2)

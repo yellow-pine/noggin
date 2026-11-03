@@ -373,12 +373,12 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per Stage, each at the Parts level (#811), the front doors' own two (#739), each per Preset
-    # (#819), and a picture per part; no motion (#839)
-    assert len(published) == 3 * (3 * 3) + 3 * 2 + len(stems) == len(set(published))
+    # side and isometric per Stage, each at the Parts level (#811), each per Preset (#819), the front doors' three
+    # (#739, #843), and a picture per part; no motion (#839)
+    assert len(published) == 3 * (3 * 3) + 3 + len(stems) == len(set(published))
     assert {"next-stage1-isometric.webp", "next-test-stand.webp"} <= {*published}
-    assert {"next-stage1-front.webp", "next-mech-back-side-exploded.webp"} <= {*published}
-    assert {"next-stage1-morty-front.webp"} <= {*published}
+    assert {"next-stage1-front.webp", "next-mech-back-bare-isometric.webp"} <= {*published}
+    assert "next-stage1-morty-front.webp" not in published and "next-mech-back-side-exploded.webp" in published
     assert not [f for f in published if f.startswith("next-eyes")]
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
     assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS}
@@ -386,32 +386,19 @@ def test_the_site_publishes_the_next_mech_alone():
     assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
 
 
-# #739: the front doors' three, in order, in the default Preset, Cansin's build (#819): (picture, caption, link), each
-# its Stage in the viewer (#839)
+# #739: the front doors' three, in order, in the default Preset, Cansin's build (#819), bare of its Skin (#843):
+# (picture, caption, link), each its Stage in the viewer (#839)
 FRONT = [
     ("next-stage1-front.webp", "Stage 1, from the front", "viewer/?stage=1"),
-    ("next-mech-back-isometric.webp", "Stage 3", "viewer/?stage=3"),
+    ("next-mech-back-bare-isometric.webp", "Stage 3", "viewer/?stage=3"),
     ("next-mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
 ]
 
 
-def front(look, preset):
-    """The same three in another Preset (#806, #819), its own in the viewer."""
-    return [
-        (f"next-stage1{look}-front.webp", "Stage 1, from the front", f"viewer/?stage=1&amp;preset={preset}"),
-        (f"next-mech-back{look}-isometric.webp", "Stage 3", f"viewer/?stage=3&amp;preset={preset}"),
-        (
-            f"next-mech-back{look}-side-exploded.webp",
-            "Stage 3, exploded",
-            f"viewer/?stage=3&amp;preset={preset}&amp;explode=1",
-        ),
-    ]
-
-
 def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
     """#739: the site's home shows Stage 1 from the front, Stage 3 isometric and Stage 3 from the side exploded, side
-    by side in that order, each under its caption and linking to its Stage in the viewer (#839); no motion. #806,
-    #819: the three in each Preset, each shown in its own alone."""
+    by side in that order, each under its caption and linking to its Stage in the viewer (#839); no motion. #843: the
+    one three, whichever Preset is picked."""
     import macros  # here, not at the top: it imports the model
 
     site = "https://yellowpine.com/noggin/"
@@ -419,14 +406,10 @@ def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
     assert "<!--{{ front }}-->" in home and "next-eyes-sweep" not in home
     assert 'class="noggin-front not-content"' in grid
     cells = re.findall(
-        r'<figure data-presets="([\w-]+)"><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>',
+        r'<figure><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>',
         grid,
     )
-    assert cells == [
-        (s, f"{site}{link}", f"{site}images/{f}", caption)
-        for s, doors in zip(PRESETS, (FRONT, front("-morty", "morty"), front("-bart", "bart")), strict=True)
-        for f, caption, link in doors
-    ]
+    assert cells == [(f"{site}{link}", f"{site}images/{f}", caption) for f, caption, link in FRONT]
 
 
 def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_one_centred_row():

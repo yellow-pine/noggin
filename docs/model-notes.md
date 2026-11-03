@@ -48,9 +48,10 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   VIEWS, PANELS); Pictures shows them in one grid (macros.py next_panels): a column per Stage, a row per view, each
   linking to its file; on a phone stacked by document.
 - The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, in the
-  default Preset, Cansin's build (#819):
-  Stage 1 from the front, Stage 3's isometric panel and Stage 3 from the side, exploded by the viewer's offsets
-  (pictures.py FRONT, EXPLODE), the two new ones each framed tight on its own at the panels' size and also on Pictures.
+  default Preset, Cansin's build (#819), whichever Preset is picked, its mechanism bare of every Shell until a finished
+  Skin exists (Cansin, 2026-11-03, #843: pictures.py bare): Stage 1 from the front, Stage 3 isometric and Stage 3 from
+  the side, exploded by the viewer's offsets (pictures.py FRONT, EXPLODE), each framed tight on its own at the panels'
+  size and also on Pictures.
 - Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Preset isometric with every
   part apart, framed tight on its own at the panels' size (pictures.py parts_exploded): each part on its sub-assembly's
   offset (EXPLODE) slid out along its Assembly direction (pictures.py directions: a servo and its horn along the shaft,
@@ -205,7 +206,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
   what it fails), its Shapes and Palettes the Preset's the header's Theme bar picks or its own mix (#805, #806, #819);
-  Pictures' panels and front doors are drawn in every Preset and shown in the one picked, each part in its
+  Pictures' panels are drawn in every Preset and shown in the one picked, each part in its
   Shape's first Preset.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.
