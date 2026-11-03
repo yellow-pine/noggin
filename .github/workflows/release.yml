@@ -63,7 +63,6 @@ jobs:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write   # the tag and the release, nothing else: no comments or labels (release.config.mjs)
-          permission-workflows: write   # the manual run's branch: a ref at a commit with workflow files (#802)
       - name: Check out the commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -79,16 +78,30 @@ jobs:
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
       # semantic-release releases a branch's head alone: on main's tip the manual run releases main as a push does;
       # once main moved past the commit it checked, a branch of its own there, named for the steps after
+      - name: Check whether main moved on
+        id: tip
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |   # its own assignment, so a failing git fails the step
+          main=$(git ls-remote --exit-code origin refs/heads/main)
+          [ "${main%%[[:space:]]*}" = "$SHA" ] || echo "branch=release-$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"
+      # its own short-lived token: a ref at a commit with workflow files takes the Workflows permission (#802), which
+      # semantic-release's token never holds
+      - name: Mint the branch's token
+        id: branch-app
+        if: ${{ steps.tip.outputs.branch != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
       - name: Open the release branch
         id: branch
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-          [ "$main" = "$SHA" ] && exit 0
-          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/release-$GITHUB_RUN_ID" -f sha="$SHA" --silent
-          echo "name=release-$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"
+        if: ${{ steps.tip.outputs.branch != '' }}
+        run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$SHA" --silent
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ steps.branch-app.outputs.token }}
+          BRANCH: ${{ steps.tip.outputs.branch }}
       - name: Run semantic-release
         run: |
           set -o pipefail   # a step with no `shell:` runs `bash -e`: semantic-release's failure, not tee's success
@@ -107,10 +120,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
           RELEASE_BUMP: ${{ inputs.bump }}   # empty on main's push: the commits decide
-          BRANCH: ${{ steps.branch.outputs.name }}   # empty on main's push, and on main's tip
+          BRANCH: ${{ steps.tip.outputs.branch }}   # empty on main's push, and on main's tip
       - name: Delete the release branch
-        if: ${{ always() && steps.branch.outputs.name != '' }}
+        if: ${{ always() && steps.branch.outcome == 'success' }}
         run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" --silent
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          BRANCH: ${{ steps.branch.outputs.name }}
+          GH_TOKEN: ${{ steps.branch-app.outputs.token }}
+          BRANCH: ${{ steps.tip.outputs.branch }}

@@ -22,9 +22,9 @@ and stale merge refs (#543), on a repo where every PR already auto-merges on gre
   all on main's tip at dispatch: the full Checks (`checks.yml` called with `workflow_call`, its Deploy on), then the tag
   and release of that same commit once they pass; a red commit never tags. While that commit is still main's tip it
   releases main, as a push does. When main moved on during the run, it tags the commit it checked anyway:
-  semantic-release releases a temporary branch at that commit (`release-<run id>`, deleted after; the App's token
-  needs Workflows write to create it), so the version math and the notes stay its own and the tag sits on a commit
-  in main's history.
+  semantic-release releases a temporary branch at that commit (`release-<run id>`, deleted after, by an App token
+  of its own with Workflows write; semantic-release's holds contents alone), so the version math and the notes stay
+  its own and the tag sits on a commit in main's history.
   semantic-release has no force option by design, so the bump is config: `release.config.mjs` reads it from
   `RELEASE_BUMP` and puts a rule matching every commit at that bump ahead of the others. commit-analyzer takes a
   commit's highest match, so a forced bump is the least it releases (a forced patch over a break is still the minor);

@@ -492,40 +492,50 @@ def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed(
     asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
     assert asked.items() <= checks["permissions"].items()
     steps = {s["name"]: s for s in release["steps"]}
-    assert steps["Open the release branch"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
-    assert steps["Delete the release branch"]["if"] == "${{ always() && steps.branch.outputs.name != '' }}"
-    named = "${{ steps.branch.outputs.name }}"
-    assert steps["Run semantic-release"]["env"] == {**steps["Run semantic-release"]["env"], "BRANCH": named}
-    assert steps["Delete the release branch"]["env"]["BRANCH"] == named
+    assert steps["Check whether main moved on"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
+    moved = "${{ steps.tip.outputs.branch != '' }}"
+    assert steps["Open the release branch"]["if"] == steps["Mint the branch's token"]["if"] == moved
+    assert steps["Delete the release branch"]["if"] == "${{ always() && steps.branch.outcome == 'success' }}"
+    for name in ("Open the release branch", "Run semantic-release", "Delete the release branch"):
+        assert steps[name]["env"]["BRANCH"] == "${{ steps.tip.outputs.branch }}", name
     assert steps["Run semantic-release"]["env"]["RELEASE_BUMP"] == "${{ inputs.bump }}"
-    # creating a ref at a commit with workflow files takes the Workflows permission (run 41579675814's 403)
-    app = next(s for s in release["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@"))
-    assert {app["with"]["permission-contents"], app["with"]["permission-workflows"]} == {"write"}
+    # a ref at a commit with workflow files takes the Workflows permission (run 41579675814's 403), in a token of the
+    # branch's own: semantic-release's holds contents alone (#842's security review)
+    tokens = {s["id"]: s for s in release["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@")}
+    perms = {i: {k: v for k, v in s["with"].items() if k.startswith("permission-")} for i, s in tokens.items()}
+    assert perms == {
+        "app": {"permission-contents": "write"},
+        "branch-app": {"permission-contents": "write", "permission-workflows": "write"},
+    }
+    token = "${{{{ steps.{}.outputs.token }}}}".format
+    assert steps["Run semantic-release"]["env"]["GITHUB_TOKEN"] == token("app")
+    for name in ("Open the release branch", "Delete the release branch"):
+        assert steps[name]["env"]["GH_TOKEN"] == token("branch-app"), name
 
 
 @pytest.mark.parametrize(("tip", "opened"), [("abc1234def5678", False), ("fff0000aaa1111", True)])
 def test_a_manual_release_opens_its_branch_only_when_main_moved_past_its_commit(tmp_path, tip, opened):
     """#802: on main's tip the manual run releases main as a push does, with no branch; once main moved past the
-    commit it checked, it opens release-<run id> there and names it for the steps after. gh faked: main's tip is
-    `tip`, and every other call is logged."""
+    commit it checked, it names release-<run id> for the steps after, which open it there. git faked: `git ls-remote`
+    prints main's tip `tip` as git does."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
-    step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Open the release branch")
-    (tmp_path / "gh").write_text(
-        f'#!/bin/sh\ncase "$*" in *git/ref/heads/main*) echo {tip} ;; *) echo "$*" >> "{tmp_path}/calls" ;; esac\n'
-    )
-    (tmp_path / "gh").chmod(0o755)
+    step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Check whether main moved on")
+    (tmp_path / "git").write_text(f'#!/bin/sh\nprintf "{tip}\\trefs/heads/main\\n"\n')
+    (tmp_path / "git").chmod(0o755)
     out = tmp_path / "output"
-    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "GITHUB_OUTPUT": str(out), "GITHUB_REPOSITORY": "o/r"}
     done = subprocess.run(
         ["bash", "-e", "-c", step["run"]],
-        env=env | {"SHA": "abc1234def5678", "GITHUB_RUN_ID": "42"},
+        env={
+            "PATH": f"{tmp_path}:/usr/bin:/bin",
+            "GITHUB_OUTPUT": str(out),
+            "SHA": "abc1234def5678",
+            "GITHUB_RUN_ID": "42",
+        },
         capture_output=True,
         text=True,
     )
     assert done.returncode == 0, done.stderr
-    calls = (tmp_path / "calls").read_text() if (tmp_path / "calls").exists() else ""
-    assert ("ref=refs/heads/release-42" in calls and "sha=abc1234def5678" in calls) == opened
-    assert (out.read_text() if out.exists() else "") == ("name=release-42\n" if opened else "")
+    assert (out.read_text() if out.exists() else "") == ("branch=release-42\n" if opened else "")
 
 
 @pytest.mark.parametrize(
