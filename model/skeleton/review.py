@@ -25,8 +25,19 @@ BUILD = os.path.dirname(os.path.abspath(TARGETS))
 ST = json.load(open(os.path.join(BUILD, "stage3.json")))
 MAX_RSS = 5e9  # bytes: stop before the laptop swaps (it crashed under load, 2026-11-03)
 CLEAR, BED = 1.6, 256.0
-BOUGHT = ("servo", "horn", "Core", "Shield", "pack", "switch board", "dongle")
-BOUGHT_G = {"servo": 9.0, "horn": 1.0, "Core": 6.0, "Shield": 8.0, "pack": 45.0, "switch board": 5.0, "dongle": 10.0}
+BOUGHT = ("servo", "horn", "Core", "Shield", "pack", "switch board", "dongle", "bearing", "spring")
+BOUGHT_G = {
+    "tilt servo": 55.0,
+    "bearing": 4.0,
+    "spring": 3.0,
+    "servo": 9.0,
+    "horn": 1.0,
+    "Core": 6.0,
+    "Shield": 8.0,
+    "pack": 45.0,
+    "switch board": 5.0,
+    "dongle": 10.0,
+}
 SHELL_MM, INFILL = 1.2, 0.15  # printed: three 0.4 mm perimeters, 15 % infill (inferred)
 review = {"voxel_mm": VOXEL}
 
@@ -87,7 +98,8 @@ for t in bpy.data.collections["Landmarks"].objects:
     name = t.name.removeprefix("LM ").removesuffix(" target")
     if t.name.endswith(" target") and "anchor" not in name and name not in ("L orbit", "R orbit"):
         held[name] = round(min(tr.find_nearest(t.matrix_world.translation)[3] for tr in trees), 2)
-review["landmarks_over_1mm"] = {k: v for k, v in held.items() if v > 1.0}
+# within 1 mm, the orbit floors 4 (Cansin: carved where the lids sweep)
+review["landmarks_over_limit"] = {k: v for k, v in held.items() if v > (4.0 if "rim down" in k else 1.0)}
 allv = np.vstack([p[0] for p in pieces.values() if len(p[0])])
 sample = allv[:: max(1, len(allv) // 3000)]
 vol_tree = world(bpy.data.objects["Morty volume"], dg)[1]
@@ -134,32 +146,51 @@ def total(items):
 
 head = [part(o) for o in bpy.data.collections["Mech Skull"].objects]
 head += [(pieces[n][2], pieces[n][3]) for n in ("Calvaria", "Face and skull base", "Mandible")]
-head_g, head_com = total(head)
-neck = [part(o) for o in bpy.data.collections["Mech Mechanism"].objects]
-neck += [(pieces[n][2], pieces[n][3]) for n in ("C1", "C2", "C3", "C4", "C7") if n in pieces]
+head_g, head_com = total(head)  # what the pan turns
+riders = [part(o) for o in bpy.data.collections["Mech Mechanism"].objects]  # the nod plate and what rides it
+nod_g, nod_com = total(head + riders)  # what the tilt turns
+neck = [(pieces[n][2], pieces[n][3]) for n in ("C1", "C2", "C3", "C4", "C5", "C6", "C7") if n in pieces]
 base = [part(o) for o in bpy.data.collections["Mech Pedestal"].objects] + [
     (pieces["Pedestal"][2], pieces["Pedestal"][3])
 ]
-all_g, all_com = total(head + neck + base)
+all_g, all_com = total(head + riders + neck + base)
 tilt = np.array(ST["tilt"])
-arm = head_com - tilt
-rest = head_g / 1000 * abs(arm[1]) / 10
-worst = head_g / 1000 * np.linalg.norm(arm[1:]) / 10
+arm = nod_com - tilt
+r_arm, phi = np.linalg.norm(arm[1:]), math.atan2(-arm[1], arm[2])  # its reach, and its lean forward of upright
+
+
+def moment(deg):
+    """kgf.cm gravity turns the nod by, tilted deg forward."""
+    return nod_g / 1000 * r_arm / 10 * math.sin(phi + math.radians(deg))
+
+
+rest = moment(0.0)
+slope = (moment(1.0) - moment(-1.0)) / 2  # the balance spring: its preload the rest moment, its rate the slope there
+worst = max(abs(moment(d)) for d in range(-20, 21))
+residual = max(abs(moment(d) - rest - slope * d) for d in range(-20, 21))
+STD_KGF_CM = 10.0  # the standard metal-gear tilt servo at 5 V (Cansin: about 10)
 rated, stall = T["servo_kgf_cm"]["rated_kgfcm"], T["servo_kgf_cm"]["stall_kgfcm"]
+pan_off = math.hypot(head_com[0], head_com[1] - ST["pan_axis_y"])
+pan_worst = head_g / 1000 * pan_off / 10 * math.sin(math.radians(20))  # gravity about the pan axis, the head tilted
 x0, y0, x1, y1 = ST["foot"]
 margin = []
 for tilt_deg in (-20.0, 20.0):
     for pan_deg in (-45.0, 0.0, 45.0):
         rot = Matrix.Rotation(math.radians(pan_deg), 3, "Z") @ Matrix.Rotation(math.radians(tilt_deg), 3, "X")
         moved = np.array(rot @ Vector(arm)) + tilt
-        com = (all_com * all_g - head_com * head_g + moved * head_g) / all_g
+        com = (all_com * all_g - nod_com * nod_g + moved * nod_g) / all_g
         margin.append(min(com[0] - (x0 - 2), (x1 + 2) - com[0], com[1] - (y0 - 2), (y1 + 2) - com[1]))
 review["weights"] = {
     "head_g": round(head_g),
-    "head_com_from_tilt_axis_mm": np.round(arm, 1).tolist(),
-    "tilt_hold_rest_kgf_cm": round(rest, 2),
-    "tilt_hold_worst_kgf_cm": round(worst, 2),
-    "servo_5v_rated_stall_kgf_cm": [rated, stall],
+    "tilting_g": round(nod_g),
+    "tilting_com_from_tilt_axis_mm": np.round(arm, 1).tolist(),
+    "tilt_moment_rest_kgf_cm": round(rest, 2),
+    "tilt_moment_worst_kgf_cm": round(worst, 2),
+    "tilt_with_spring_residual_kgf_cm": round(residual, 2),
+    "tilt_servo_kgf_cm": STD_KGF_CM,
+    "pan_com_off_axis_mm": round(pan_off, 1),
+    "pan_gravity_worst_kgf_cm": round(pan_worst, 2),
+    "pan_servo_5v_rated_stall_kgf_cm": [rated, stall],
     "bust_g": round(all_g),
     "foot_mm": [round(x1 - x0 + 4), round(y1 - y0 + 4)],
     "com_margin_to_foot_edge_mm": round(min(margin), 1),

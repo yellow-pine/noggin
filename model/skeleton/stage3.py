@@ -33,12 +33,23 @@ T = json.load(open(TARGETS))
 BUILD = os.path.dirname(os.path.abspath(TARGETS))
 scene = bpy.context.scene
 report = json.loads(scene["report"])
-BOUGHT = ("servo", "horn", "Core", "Shield", "pack", "switch board", "dongle")
+BOUGHT = ("servo", "horn", "Core", "Shield", "pack", "switch board", "dongle", "bearing", "spring")
 CLEAR, WALL, GAP = 1.6, 2.0, 2.0
-LOWER_LID_R = 33.5  # the lower lid's outside (gimbal.LOWER_R)
+CAP_R, UPPER_LID_R, LOWER_LID_R = 27.0, (28.5, 30.0), (31.5, 33.5)  # gimbal.CAP_R, LID_R, LOWER_R
 H_NEED = 42.0  # the stacked packs (2 x 16.3) and their gap, on the floor plate, with room (inferred)
 BED = 256.0  # Bambu's bed, each axis (inferred)
-BOUGHT_G = {"servo": 9.0, "horn": 1.0, "Core": 6.0, "Shield": 8.0, "pack": 45.0, "switch board": 5.0, "dongle": 10.0}
+BOUGHT_G = {
+    "tilt servo": 55.0,
+    "bearing": 4.0,
+    "spring": 3.0,
+    "servo": 9.0,
+    "horn": 1.0,
+    "Core": 6.0,
+    "Shield": 8.0,
+    "pack": 45.0,
+    "switch board": 5.0,
+    "dongle": 10.0,
+}
 SHELL_MM, INFILL = 1.2, 0.15  # printed: three 0.4 mm perimeters, 15 % infill (inferred)
 changes, review = [], {}
 
@@ -156,11 +167,17 @@ eyes = {s: centre(mech[f"next {s} eyeball core"]) for s in "LR"}
 mid = (eyes["L"] + eyes["R"]) / 2
 r_morty = report["morty_eye_r"]
 k_x = np.linalg.norm(eyes["L"] - eyes["R"]) / np.linalg.norm(np.subtract(T["eyes"]["L"], T["eyes"]["R"]))
-k_ball = r_morty / LOWER_LID_R
-EYE = ("eyeball core", "eyeball cap", "upper lid", "lower lid", "yaw yoke", "push-rod", "lid bar", "lid link",
-       "lid servo", "lid horn")  # fmt: skip
-for s in "LR":
-    scale_about([f"next {s} {p}" for p in EYE if f"next {s} {p}" in mech], eyes[s], k_ball)
+# round 2 (Cansin): the eye from Morty's own: the eyeball's cap his eye's sphere, the lids 1 mm off it, their rest
+# edges where his outline is (build.py measured it every 30 deg)
+k_ball = r_morty / CAP_R
+outline = report["morty_eye_outline_mm"]
+BALL = ("eyeball core", "eyeball cap", "yaw yoke", "push-rod", "lid bar", "lid link", "lid servo", "lid horn")
+for s_ in "LR":
+    scale_about([f"next {s_} {p}" for p in BALL if f"next {s_} {p}" in mech], eyes[s_], k_ball)
+    for lid, inner_r in (("upper lid", UPPER_LID_R[0]), ("lower lid", LOWER_LID_R[0])):
+        scale_about([f"next {s_} {lid}"], eyes[s_], (r_morty + 1.0) / inner_r)
+edges = {s_: (math.degrees(math.asin(min(outline[s_][3] / r_morty, 1))),
+              math.degrees(math.asin(min(outline[s_][9] / r_morty, 1)))) for s_ in "LR"}  # fmt: skip
 S = Matrix.Diagonal((k_x, k_ball, k_ball, 1.0))
 FRAME = ("next gimbal frame", "next bail", "next tie-bar", "next pitch bar", "next pitch horn", "next pitch servo",
          "next yaw horn", "next yaw servo", "next cranium tray", "next Core 1", "next Core 2", "next Shield 1",
@@ -184,10 +201,14 @@ for n in ("keep USB-C next Core 1", "keep USB-C next Core 2", "keep next Core 1:
     keep[n].location += stretch_point(c) - c
 update()
 changes.append(
-    f"Eyes: each eye assembly (eyeball core and cap, both lids, yaw yoke, push-rod, lid bar and link) x{k_ball:.2f} "
-    f"about its centre, on Morty's pupil ({np.linalg.norm(eyes['L'] - eyes['R']):.1f} mm apart, was 52): the cap "
-    f"{27 * k_ball:.1f} mm round, the lower lid {LOWER_LID_R * k_ball:.1f}, inside his eye ({r_morty:.1f}); the lid "
-    f"servos and horns keep their size"
+    f"Eyes, from Morty's own (his sculpt at x{report['morty_scale']}): his eye a {r_morty:.1f} mm sphere, its outline "
+    f"{min(outline['L']):.0f}-{max(outline['L']):.0f} mm round about its centre (every 30 deg: {outline['L']}), his "
+    f"pupil a flat about 8.5 mm round at its apex (his sculpt's depth, inferred); each eyeball core, cap, yaw yoke, push-rod, lid bar and link "
+    f"x{k_ball:.2f} about its centre so the cap is his eye's sphere ({r_morty:.1f}); each lid scaled to ride 1 mm off "
+    f"it (upper x{(r_morty + 1) / UPPER_LID_R[0]:.2f}, lower x{(r_morty + 1) / LOWER_LID_R[0]:.2f}), their rest edges "
+    f"set where his outline is: the upper {edges['L'][0]:.0f} deg over the gaze, the lower {edges['L'][1]:.0f} under "
+    f"(the lid drive's rest angles follow, in model/gimbal.py); the eyes on his pupils "
+    f"({np.linalg.norm(eyes['L'] - eyes['R']):.1f} mm apart, was 52); the lid servos and horns keep their size"
 )
 changes.append(
     f"Gimbal frame, bail, tie-bar, pitch bar and cranium tray: x{k_x:.2f} across (to the pupils), x{k_ball:.2f} front "
@@ -268,72 +289,123 @@ changes.append(
     f"Tilt at C0/C1: the head mount moved {np.round(d_tilt, 1)} mm, its tilt axis under the occipital condyles "
     f"(y {tilt[1]:.1f}, z {tilt[2]:.1f}); it bears on C1's lateral masses (C1 carries the tilt lugs)"
 )
-for n in ("next neck mount", "next pan yoke", "next pan horn", "next pan bar", "next pan servo"):
+# round 2 (Cansin): the neck all anatomical, C1-C7; both servos in the skull base. The order: neck, then tilt at C0/C1
+# (the real joint: the occipital condyles sit on C1's facets, no height under them for a pan stage), then pan above it
+# inside the skull, its axis tilting with the head (Cansin: acceptable) and set through the head's centre of mass, so
+# gravity never turns it however the head tilts
+for n in ("next neck mount", "next pan yoke", "next pan horn", "next pan bar", "next pan servo", "next tilt servo",
+          "next tilt horn", "next tilt bar"):  # fmt: skip
     relink(mech.pop(n), retired, keep=())
-for n in ("C5", "C6"):  # the pan servo stands in their place
-    c = bpy.data.collections[n]
-    for parent in [x for x in bpy.data.collections if c.name in x.children]:
-        parent.children.unlink(c)
-    retired.children.link(c)
-    f = bpy.data.objects.get(f"finished {n}")
-    if f:
-        bpy.data.objects.remove(f)
+
+
+def grams_of(o):
+    ev = o.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    b = bmesh.new()
+    b.from_mesh(ev.data)
+    b.transform(o.matrix_world)
+    area, vol = sum(f.calc_area() for f in b.faces), abs(b.calc_volume())
+    com = np.mean([v.co[:] for v in b.verts], axis=0)
+    b.free()
+    if bought(o.name):
+        return next((g for k, g in BOUGHT_G.items() if k in o.name), 5.0), com
+    shell = min(area * 1.2, vol)
+    return T["petg_g_cm3"] * (shell + 0.15 * (vol - shell)) / 1000.0, com
+
+
+head_objs = [o for n, o in mech.items() if "eyeball cap" not in n]
+head_objs += list(bpy.data.collections["Skull"].objects) + list(bpy.data.collections["Mandible"].objects)
+ms = [grams_of(o) for o in head_objs]
+head_com = sum(m * c for m, c in ms) / sum(m for m, _ in ms)
+c1v = pts(ob("C1"))
+c1_top = c1v[:, 2].max()
+pan_axis = np.array((0.0, head_com[1], 0.0))  # x 0, under the head's centre of mass
+PLATE = (56.0, 5.0)  # the nod plate's width across, its thickness (inferred)
+pz0 = max(c1_top, tilt[2] + 6.0) + 1.0  # its underside, clear of C1's top
+y0p, y1p = min(tilt[1], pan_axis[1]) - 12.0, max(tilt[1], pan_axis[1]) + 12.0
+
+
+def nod_plate(bm):
+    box_mesh(bm, (-PLATE[0] / 2, y0p, pz0), (PLATE[0] / 2, y1p, pz0 + PLATE[1]))
+    for sx_ in (-1, 1):  # its knuckles down onto the tilt axis, beside C1's lateral masses
+        x = sx_ * 22.0
+        box_mesh(bm, (x - 4, tilt[1] - 5, tilt[2]), (x + 4, tilt[1] + 5, pz0))
+        cylinder_mesh(bm, (x - 4, tilt[1], tilt[2]), (x + 4, tilt[1], tilt[2]), 5.0)
+
+
+plate = new_part("next nod plate", nod_plate, bpy.data.collections["Mech"])
+BEARING = (8.0, 16.0, 5.0)  # F8-16M thrust bearing: bore, outside, height (its maker's catalogue)
+bz = pz0 + PLATE[1]
+bearing = new_part("next F8-16M thrust bearing", lambda bm: cylinder_mesh(bm, (0, pan_axis[1], bz),
+                   (0, pan_axis[1], bz + BEARING[2]), BEARING[1] / 2), bpy.data.collections["Mech"])  # fmt: skip
+d_head = Vector((0.0, pan_axis[1], bz + BEARING[2])) - Vector(centre(mech["next head mount"]))
+d_head.z += np.ptp(pts(mech["next head mount"])[:, 2]) / 2
+mech["next head mount"].location += d_head
 s = T["servo"]
 sx, sy = s["shaft"]
-case_mid = (np.mean(s["case"][0]), np.mean(s["case"][1]), np.mean(s["case"][2]))
-pan_axis = (canal["C5"] + canal["C6"]) / 2
-pan_z = (vc["C5"] + vc["C6"]) / 2
-# upright, its spline up: a half turn about x; its spline on the canals' line, its case centred where C5-C6 were
-flip = Matrix.Rotation(math.pi, 4, "X")
-spline_at = flip @ Vector((sx, sy, 0.0))
-case_at = flip @ Vector(case_mid)
-m_pan = Matrix.Translation((pan_axis[0] - spline_at.x, pan_axis[1] - spline_at.y, pan_z - case_at.z)) @ flip
+flip = Matrix.Rotation(math.pi, 4, "X")  # the 9 g pan servo upright on the plate, its spline up into the head mount
+spline_at = flip @ Vector((sx, sy, s["tip_z"]))
+case_bottom = (flip @ Vector((0, 0, s["case"][2][1]))).z
+m_pan = Matrix.Translation((-spline_at.x, pan_axis[1] - spline_at.y, bz - case_bottom)) @ flip
 pan_servo = new_part("next pan servo", lambda bm: servo_mesh(bm, m_pan), bpy.data.collections["Mech"])
-carve_parts.objects.link(pan_servo)
-mech["next pan servo"] = pan_servo
-tip = m_pan @ Vector((sx, sy, s["tip_z"]))
-shaft_top = Vector((canal["C1"][0], canal["C1"][1], vc["C1"]))
-SHAFT_R = 2.5  # a 5 mm shaft (inferred), through canals ~14 mm wide
-shaft = new_part("next pan shaft", lambda bm: cylinder_mesh(bm, tip, shaft_top, SHAFT_R), bpy.data.collections["Mech"])
-hub = new_part("next C1 hub", lambda bm: cylinder_mesh(bm, shaft_top - Vector((0, 0, 3)), shaft_top + Vector((0, 0, 3)),
-                                                       7.0), bpy.data.collections["Mech"])  # fmt: skip
-pv = pts(pan_servo)
-lo, hi = pv.min(axis=0), pv.max(axis=0)
-c7_top, c4_low = vz["C7"].max(), vz["C4"].min()
+# the tilt servo: a standard-size metal-gear servo (~10 kgf.cm at 5 V, e.g. the MG996R class; its envelope inferred:
+# case 40.7 x 19.7 x 37, tabs to 54.5, the spline 10 mm in from one end), on the plate's +x end, its spline on the
+# tilt axis into a lever on C1's lateral mass: it nods the plate and the head about C0/C1
+STD = {"case": (40.7, 19.7, 37.0), "tabs": (54.5, 2.5, 27.0), "spline": (10.0, 3.0, 4.0)}
 
 
-def cradle(bm):
-    box_mesh(bm, (lo[0] - 2, lo[1] - 2, min(lo[2], c7_top) - 3), (hi[0] + 2, hi[1] + 2, min(lo[2], c7_top)))
-    box_mesh(bm, (lo[0] - 2, lo[1] - 2, hi[2] - 1), (hi[0] + 2, hi[1] + 2, hi[2] + 2))
-    for x in (lo[0] - 2, hi[0]):
-        box_mesh(bm, (x, lo[1] - 2, min(lo[2], c7_top) - 3), (x + 2, hi[1] + 2, max(hi[2] + 2, c4_low)))
+def std_servo(bm, m):
+    sub = bmesh.new()
+    L, W, H = STD["case"]
+    box_mesh(sub, (0, 0, 0), (L, W, H))
+    box_mesh(sub, ((L - STD["tabs"][0]) / 2, 0, STD["tabs"][2]), ((L + STD["tabs"][0]) / 2, W, STD["tabs"][2] + 2.5))
+    cylinder_mesh(sub, (STD["spline"][0], W / 2, H), (STD["spline"][0], W / 2, H + STD["spline"][2]), STD["spline"][1])
+    bmesh.ops.transform(sub, matrix=m, verts=sub.verts[:])
+    tmp = bpy.data.meshes.new("tmp")
+    sub.to_mesh(tmp)
+    sub.free()
+    bm.from_mesh(tmp)
+    bpy.data.meshes.remove(tmp)
 
 
-cr = new_part("next pan cradle", cradle, bpy.data.collections["Mech"])
-for o in (shaft, hub, cr):
+# its spline along -x onto the tilt axis at x +26, the case outboard, lying with its length along y and its width
+# upright, so it stays inside the skull base (stood on end it hung below the occiput beside C1)
+m_tilt = (
+    Matrix.Translation((26.0, tilt[1], tilt[2]))
+    @ Matrix.Rotation(-math.pi / 2, 4, "X")  # its length back from the spline, clear of the L condyle in front
+    @ Matrix.Rotation(-math.pi / 2, 4, "Y")
+    @ Matrix.Translation((-STD["spline"][0], -STD["case"][1] / 2, -(STD["case"][2] + STD["spline"][2])))
+)
+tilt_servo = new_part("next tilt servo", lambda bm: std_servo(bm, m_tilt), bpy.data.collections["Mech"])
+spring = new_part("next tilt balance spring", lambda bm: cylinder_mesh(bm, (-34, tilt[1], tilt[2]),
+                  (-26, tilt[1], tilt[2]), 8.0), bpy.data.collections["Mech"])  # fmt: skip
+for o in (plate, bearing, pan_servo, tilt_servo, spring):
     carve_parts.objects.link(o)
     mech[o.name] = o
-changes.append(
-    f"Pan at C1/C2: a bare 9 g servo (model/envelopes.py SERVO) upright where C5-C6 were (z {lo[2]:.0f}..{hi[2]:.0f}, "
-    f"C5 and C6 dropped), its spline up on the canals' line; a {2 * SHAFT_R:.0f} mm shaft "
-    f"{(Vector(shaft_top) - tip).length:.0f} mm up through C4, C3 and C2's canals to a hub in C1, which it turns with "
-    f"the head; C2-C4 and C7 stay anatomical and still; a printed cradle (Mounts) holds the servo between C7 and C4. "
-    f"The neck mount, the pan yoke and its post, the pan horn and bar go"
-)
-old_tilt = centre(mech["next tilt servo"])
-relink(mech.pop("next tilt servo"), retired, keep=())
-c1_top = vz["C1"].max()
-m_tilt = Matrix.Translation((6.0, tilt[1] + 10.0, c1_top + 2.0 + 6.9)) @ Matrix.Rotation(math.pi / 2, 4, "Y")
-tilt_servo = new_part("next tilt servo", lambda bm: servo_mesh(bm, m_tilt), bpy.data.collections["Mech"])
-carve_parts.objects.link(tilt_servo)
-mech["next tilt servo"] = tilt_servo
-d = centre(tilt_servo) - old_tilt
-for n in ("next tilt horn", "next tilt bar"):
-    mech[n].location += Vector(d)
 update()
 changes.append(
-    f"Tilt servo: rides C1 (pans with it), lying on C1's top (z {c1_top:.0f}) up inside the skull base behind the "
-    f"tilt axis, its spline along x; its horn and bar moved with it ({np.round(d, 0)} mm) to the head mount's lever"
+    "Neck: all anatomical, C1-C7, real vertebrae, no servo or post in the column; the neck mount, the pan yoke and its "
+    "post, the pan horn and bar, and the tilt horn and bar go. The pack's lead climbs the cervical canal"
+)
+changes.append(
+    f"Order: neck, then tilt at C0/C1, then pan inside the skull. The occipital condyles sit on C1's facets, with no "
+    f"height under them for a pan stage, so the tilt is the real C0/C1 joint; the pan rides above it and its axis "
+    f"tilts with the head (Cansin: acceptable), set through the head's centre of mass (y {pan_axis[1]:.0f}, "
+    f"{abs(pan_axis[1] - tilt[1]):.0f} mm in front of the tilt axis), so gravity never turns it"
+)
+changes.append(
+    f"Nod plate (Joints, printed): {PLATE[0]:.0f} x {y1p - y0p:.0f} x {PLATE[1]:.0f} mm in the skull base over C1, its "
+    f"two knuckles hinged on the tilt axis beside C1's lateral masses (y {tilt[1]:.1f}, z {tilt[2]:.1f}); the head "
+    f"bears on it through an F8-16M thrust bearing (new, bought) on the pan axis; the head mount moved onto the bearing"
+)
+changes.append(
+    "Pan servo: the 9 g servo upright on the nod plate, its spline up the pan axis into the head mount: it turns the "
+    "head on the bearing"
+)
+changes.append(
+    "Tilt servo: a standard-size metal-gear servo, about 10 kgf.cm at 5 V (new, bought; the MG996R class, envelope "
+    "inferred), on the nod plate's +x end lying along y inside the skull base, its spline on the tilt axis into a "
+    "lever fixed to C1's lateral mass; a "
+    "torsion balance spring (new, bought) on the -x knuckle holds the head's resting moment"
 )
 
 # ------------------------------------------------------------------------- 5. the base: T1..Tn, the least n that fits
@@ -580,8 +652,7 @@ def group(name):
     for cand in (base, base.replace(" L ", " ").replace(" R ", " ")):
         if cand in T["groups"]:
             return T["groups"][cand]
-    return {"next gimbal frame beam": "Bones", "next pan shaft": "Linkages", "next C1 hub": "Joints",
-            "next pan cradle": "Mounts", "next floor plate": "Mounts"}.get(base)  # fmt: skip
+    return {"next gimbal frame beam": "Bones", "next nod plate": "Joints", "next floor plate": "Mounts"}.get(base)
 
 
 def paint_obj(o, m):
@@ -593,8 +664,8 @@ def paint_obj(o, m):
 layers = {k: bpy.data.collections[k] for k in ("Mech", "Skeleton", "Morty")}
 subs = {(layer, part): coll(f"{layer} {part}", layers[layer]) for layer in layers for part in
         ("Skull", "Mechanism", "Pedestal")}  # fmt: skip
-NECK_PARTS = ("next pan servo", "next pan shaft", "next C1 hub", "next pan cradle", "next tilt servo",
-              "next tilt horn", "next tilt bar")  # fmt: skip
+NECK_PARTS = ("next nod plate", "next F8-16M thrust bearing", "next pan servo", "next tilt servo",
+              "next tilt balance spring")  # fmt: skip
 BASE_PARTS = ("next pack", "next spare pack", "next switch board", "next charger dongle", "next floor plate")
 for name, o in mech.items():
     if o.name not in bpy.data.objects or "eyeball cap" in name:
@@ -605,7 +676,8 @@ for name, o in mech.items():
     paint_obj(o, mats[(grp, 1.0)] if grp in pal else grey)
 sk = layers["Skeleton"]
 for child, part in (("Skull", "Skull"), ("Mandible", "Skull"), ("C1", "Mechanism"), ("C2", "Mechanism"),
-                    ("C3", "Mechanism"), ("C4", "Mechanism"), ("C7", "Mechanism"), ("Ribcage", "Pedestal")):  # fmt: skip
+                    ("C3", "Mechanism"), ("C4", "Mechanism"), ("C5", "Mechanism"), ("C6", "Mechanism"),
+                    ("C7", "Mechanism"), ("Ribcage", "Pedestal")):  # fmt: skip
     c = bpy.data.collections[child]
     for parent in [x for x in bpy.data.collections if child in x.children]:
         parent.children.unlink(c)
@@ -651,7 +723,8 @@ print("stage3: open carving parts (boundary edges):", open_parts, flush=True)
 txt = bpy.data.texts.get("Mech changes") or bpy.data.texts.new("Mech changes")
 txt.from_string("\n".join(f"{i + 1}. {c}" for i, c in enumerate(changes)))
 txt.use_fake_user = True
-json.dump({"changes": changes, "report": report, "base_n": n, "tilt": tilt.tolist(), "foot": [x0, y0, x1, y1]},
+json.dump({"changes": changes, "report": report, "base_n": n, "tilt": tilt.tolist(), "foot": [x0, y0, x1, y1],
+           "pan_axis_y": float(pan_axis[1])},
           open(os.path.join(BUILD, "stage3.json"), "w"), indent=1)  # fmt: skip
 bpy.data.orphans_purge(do_recursive=True)
 tmp = DESKTOP + ".tmp.blend"

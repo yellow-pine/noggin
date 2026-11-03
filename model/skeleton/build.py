@@ -446,6 +446,38 @@ head_v = mv[mv[:, 2] > neck_z]
 c_h = (head_v.min(axis=0) + head_v.max(axis=0)) / 2
 c_h[0] = 0.0
 ez = eye["L"][2]
+
+
+def eye_outline(e):
+    """Morty's eye as his sculpt draws it, at his scale: (its outline's radius every 30 deg about its centre in the
+    face's plane, 0 toward +x, counter-clockwise seen from the front; None), met by rays from the front:
+    the outline where his skin stops rising toward the eye as its sphere does (his dome is a little flatter than the
+    sphere, so the slopes are compared, not the depths)."""
+    out = []
+    for a in range(0, 360, 30):
+        c, s_ = math.cos(math.radians(a)), math.sin(math.radians(a))
+        depth = [
+            through((e[0] + rho * c, -9999, e[2] + rho * s_), (0, 1, 0), mbvh)[1]
+            for rho in np.arange(0, 1.3 * r_eye, 0.5)
+        ]
+        sphere = [e[1] - math.sqrt(max(r_eye**2 - rho**2, 0.0)) for rho in np.arange(0, 1.3 * r_eye, 0.5)]
+        edge = r_eye
+        for i in range(8, len(depth)):  # over 2 mm steps, from 4 mm out
+            rho = i * 0.5
+            if rho >= r_eye or (depth[i] - depth[i - 4]) < 0.5 * (sphere[i] - sphere[i - 4]):
+                edge = rho
+                break
+        out.append(round(edge, 1))
+    return out, None
+
+
+OUTLINE = {s: eye_outline(eye[s]) for s in "LR"}
+# his eyes mirror each other: where one side's ray met the sculpt's pupil or brow detail first (under half its mirror),
+# the other's mirrored reading stands (angle a on L is 180 - a on R)
+for s, o in (("L", "R"), ("R", "L")):
+    mine, theirs = OUTLINE[s][0], OUTLINE[o][0]
+    OUTLINE[s] = ([m if m >= 0.5 * theirs[(6 - i) % 12] else theirs[(6 - i) % 12] for i, m in enumerate(mine)], None)
+LID_OUT = r_eye + 1.0 + 2.6  # the lids ride 1 mm off his eye's sphere, about 2.6 mm thick (round 2: from his eyes)
 t_vertex = inner(c_h, (0, 0, -1))
 t_opis = inner((0, c_h[1], ez + (opisthocranion[2] - c_skull[2])), (0, -1, 0))
 t_glab = inner((0, c_h[1], ez + max(glabella[2] - c_skull[2], r_eye + 8)), (0, 1, 0))
@@ -573,9 +605,10 @@ for s, sx in (("L", 1), ("R", -1)):
     landmark(f"{s} orbit", "skull", sclera[s], eye[s])
     # no medial rim: the walls between the orbits are carved by the eyes (a loop topic, Cansin to confirm); the lateral
     # rim stays inside the cheekbones' life width
-    lateral = min(r_eye + CLEAR, zyg_max - 6.0 - abs(eye[s][0]))
-    for d, r, tag in (((0, 0, 1), r_eye + CLEAR, "up"), ((0, 0, -1), r_eye + CLEAR, "down"),
-                      ((sx, 0, 0), lateral, "lateral")):  # fmt: skip
+    ol = OUTLINE[s][0]  # his outline every 30 deg: up 90, down 270, lateral 0 (L) or 180 (R)
+    up, down = max(ol[3], LID_OUT) + CLEAR, max(ol[9], LID_OUT) + CLEAR
+    lateral = min(max(ol[0 if sx > 0 else 6], LID_OUT) + CLEAR, zyg_max - 6.0 - abs(eye[s][0]))
+    for d, r, tag in (((0, 0, 1), up, "up"), ((0, 0, -1), down, "down"), ((sx, 0, 0), lateral, "lateral")):
         hit = bvh.ray_cast(Vector(sclera[s]), Vector(d))[0]
         if hit is None:
             continue
@@ -662,6 +695,8 @@ REPORT = {
     "morty_shoulder_z": round(float(tz[1]), 1),
     "morty_torso_half": round(float(MORTY_TORSO_HALF * MORTY_SCALE), 1),
     "morty_eye_r": round(float(r_eye), 1),
+    "morty_eye_outline_mm": {s: o for s, (o, _) in OUTLINE.items()},
+    "morty_eye_mm": {s: np.round(eye[s], 1).tolist() for s in "LR"},
     "changes": CHANGES,
 }  # fmt: skip
 scene["report"] = json.dumps(REPORT)
