@@ -64,6 +64,7 @@ def core():
     return out
 
 
+@bone.grown
 def yoke(mechanical=False):
     """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis
     with its crank (back) on the tie-bar. As Bones (#704): the U a cradle round the core, its underside flaring at 45
