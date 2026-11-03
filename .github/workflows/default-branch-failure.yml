@@ -8,7 +8,7 @@ name: Default Branch Failure
 # step cancelled (cancel-on-failure, #769); anything else (a pass, a cancelled run superseded) says nothing (#745). It
 # acts only for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named
 # main).
-run-name: "${{ startsWith(github.event.workflow_run.display_title, format('{0}: ', github.event.workflow_run.name)) && format('Default Branch Failure: {0}', github.event.workflow_run.display_title) || format('Default Branch Failure: {0}: {1}', github.event.workflow_run.name, github.event.workflow_run.display_title) }}"
+run-name: "${{ github.event.workflow_run.display_title }}"
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's runs on main, checks out nothing
     workflows: ["Checks", "CI Images"]   # by their names (test_workflows.py)

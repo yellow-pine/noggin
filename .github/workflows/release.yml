@@ -12,8 +12,8 @@ name: Release
 # version and notes stay semantic-release's.
 # Its bump: auto lets the commits decide; patch, minor or major releases at least that bump (release.config.mjs).
 run-name: >-
-  ${{ github.event_name == 'workflow_dispatch' && format('Release: manual by {0}', github.actor)
-  || format('Release: {0}', github.event.workflow_run.display_title) }}
+  ${{ github.event_name == 'workflow_dispatch' && format('ci(ci): manual Release run by {0}', github.actor)
+  || github.event.workflow_run.display_title }}
 on:
   workflow_run:   # zizmor: ignore[dangerous-triggers] the job acts only on this repo's green push to main
     workflows: ["Checks"]

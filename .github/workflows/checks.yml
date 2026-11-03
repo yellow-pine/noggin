@@ -19,7 +19,7 @@ name: Checks
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it; `Deploy`, after the gate on
 # main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render in our Blender image; the
 # others on the bare runner.
-run-name: "${{ github.event_name == 'schedule' && 'Checks: weekly full run' || github.event_name == 'workflow_dispatch' && format('Checks: manual by {0}', github.actor) || '' }}"
+run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Checks full run' || github.event_name == 'workflow_dispatch' && format('ci(ci): manual Checks run by {0}', github.actor) || '' }}"
 on:
   push:
     branches: [main]
@@ -86,7 +86,7 @@ jobs:
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
             model: ["model/**", "eyes/**", "web/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
-            release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
+            release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json", ".github/workflows/*.yml"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
       # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB
       # from the render code, the parts' make (model/ours.py) and Blender's pin; the sim reports from the sim, its
@@ -185,8 +185,8 @@ jobs:
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # release.config.mjs's rules through semantic-release's own commit-analyzer (docs/adr/0017), and a PR title's
-      # through commitlint's CLI (docs/adr/0010), when they, their tests or the packages changed ("false" alone skips:
-      # the weekly run's filter is empty)
+      # and the workflows' run-names (#866) through commitlint's CLI (docs/adr/0010), when they, their tests, the
+      # packages or a workflow changed ("false" alone skips: the weekly run's filter is empty)
       - name: Test the release and title rules
         if: ${{ needs.changes.outputs.release != 'false' }}
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund && node --test ci/release.test.mjs ci/commitlint.test.mjs

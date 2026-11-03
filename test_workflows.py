@@ -46,25 +46,24 @@ def test_every_workflow_is_title_case_in_its_kebab_case_file():
 
 
 def test_every_run_has_a_descriptive_title():
-    """#773: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
-    dispatched or workflow_run run by the workflow's name alone. Those set `run-name`: '<Workflow>: weekly <what>',
-    '<Workflow>: manual by <actor>', '<Workflow>: <triggering run's title>' (a push's: its commit's first line;
-    Default Branch Failure names the workflow it reports unless that title does); an empty result keeps GitHub's title
-    for the other events."""
+    """#773, #866: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
+    dispatched or workflow_run run by the workflow's name alone. Those set `run-name`, a Conventional Commit
+    (ci/commitlint.test.mjs lints it): 'ci(ci): weekly <Workflow> <what>', 'ci(ci): manual <Workflow> run by <actor>',
+    or the triggering run's title as-is; an empty result keeps GitHub's title for the other events."""
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
         on, name, title = flow[True], flow["name"], flow.get("run-name", "")
         on = set(on) if isinstance(on, (dict, list)) else {on}
         want = {
-            "schedule": f"'{name}: weekly ",
-            "workflow_dispatch": f"format('{name}: manual by {{0}}', github.actor)",
+            "schedule": f"'ci(ci): weekly {name} ",
+            "workflow_dispatch": f"format('ci(ci): manual {name} run by {{0}}', github.actor)",
             "workflow_run": "github.event.workflow_run.display_title",
         }
         parts = [w for e, w in want.items() if e in on]
         if parts and on - set(want) and not title.endswith(" || '' }}"):
             wrong.append((f.name, "keeps GitHub's title"))
-        if not all(p in title for p in parts) or bool(parts) != bool(title) or (title and f"'{name}: " not in title):
+        if not all(p in title for p in parts) or bool(parts) != bool(title):
             wrong.append((f.name, title))
     assert wrong == []
 

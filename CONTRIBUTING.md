@@ -103,8 +103,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`) under a kebab-case id,
   every step a short sentence-case imperative like its `Set up job`, every workflow a Title Case name in its kebab-case
-  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
-  weekly <what>`, `<Workflow>: manual by <actor>`, `<Workflow>: <triggering run's title>` (#773, `test_workflows.py`). After renaming a required check, rename it in
+  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`, a Conventional
+  Commit like every title: `ci(ci): weekly <Workflow> <what>`, `ci(ci): manual <Workflow> run by <actor>`, or a
+  `workflow_run`'s triggering run's title as-is, since GitHub shows the workflow's name beside every run (#773, #866;
+  `test_workflows.py`, `ci/commitlint.test.mjs`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: its `Check the required checks`
   step, yq and comm) and run `gh pr update-branch` on every open PR so it reports the new name. A required check names
   a gate job, one without a matrix (today `PR`, `Checks`, `Fetch Skills`, `Review`), never a matrix job (#570).

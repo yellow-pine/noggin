@@ -12,7 +12,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Never a paid service or paid tier (plugins, early access, hosted search); free and open-source only.
 - Install nothing into ~/.claude or launchd without an explicit go.
 - Feature-first layout, never function-first; tests beside the code.
-- Every title, a PR's or an issue's, whoever or whatever writes it, is a Conventional Commit (CONTRIBUTING.md, #767).
+- Every title, a PR's, an issue's or a workflow run's, whoever or whatever writes it, is a Conventional Commit (CONTRIBUTING.md, #767).
 - Names say "default branch" (GitHub's term), never "main red"; our labels take GitHub's default style, lowercase with spaces (#791).
 - Keep it minimal (ponytail is active): the smallest thing that works.
 - The process is "noggin" or "the noggin service", never "daemon".
