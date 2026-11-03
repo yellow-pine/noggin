@@ -13,7 +13,6 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
-from scipy.spatial import Delaunay
 
 OUT = sys.argv[sys.argv.index("--") + 1]
 VOXEL = float(sys.argv[sys.argv.index("--") + 2]) if len(sys.argv) > sys.argv.index("--") + 2 else 1.0
@@ -77,9 +76,7 @@ dg = bpy.context.evaluated_depsgraph_get()
 # --- pictures: the scene's cameras, viewport-rendered (no second evaluation of the finish)
 scene = bpy.context.scene
 scene.display.shading.color_type = "OBJECT"
-shells = [o for o in bpy.data.collections["Morty Shells (reference)"].objects] + [
-    o for o in bpy.data.objects if "eyeball cap" in o.name
-]
+shells = list(bpy.data.collections["Morty"].objects)
 pictures = []
 c = view3d()
 for show_shells, names in ((False, ("front", "side", "3-4")), (True, ("3-4",))):
@@ -115,12 +112,12 @@ for t in bpy.data.collections["Landmarks"].objects:
 review["landmark_to_surface_mm"] = held
 review["landmarks_over_1mm"] = {k: v for k, v in held.items() if v > 1.0}
 
-# inside Morty's Shells: no finished vertex inside a Shell's wall, none outside their hull
+# inside Morty: no finished vertex outside him, none nearer his skin than his wall and the gap (less a voxel)
 sample = allv[:: max(1, len(allv) // 20000)]
-shell_pts = np.vstack([world_mesh(o, dg)[0] for o in shells if "eyeball cap" not in o.name])
-review["outside_shells_hull"] = int((Delaunay(shell_pts).find_simplex(sample) < 0).sum())
-walls = [bvh(o, dg) for o in shells]
-review["inside_a_shell_wall"] = int(sum(any(inside(w, p) for w in walls if w) for p in sample[::4]))
+skin = bvh(shells[0], dg)
+review["outside_morty"] = int(sum(not inside(skin, p) for p in sample[::4]))
+inset = finished[0].modifiers["Finish"].node_group.interface.items_tree["Inset"].default_value
+review["nearer_skin_than_inset"] = int(sum(skin.find_nearest(Vector(p))[3] < inset - VOXEL for p in sample))
 
 # #865's electronics carved round: no finished vertex within the clearance of a board, a pack, the dongle or a keep-out
 elec = [o for o in bpy.data.objects if o.name.startswith(ELECTRONICS) and o.type == "MESH"]
