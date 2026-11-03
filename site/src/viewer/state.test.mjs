@@ -29,6 +29,13 @@ test("the viewer's mix is the Preset's Shapes and Palettes, each axis the addres
   expect(mix).toEqual({ "skeleton-shape": "realistic", "skeleton-palette": "black", "skin-shape": "morty", "skin-palette": "morty" });
 });
 
+test("with no Preset picked, the viewer opens on the bare anatomical Skeleton, its Skin Morty once on (#883)", () => {
+  expect(mixed("", undefined)).toEqual({
+    "skeleton-shape": "realistic", "skeleton-palette": "anatomical", "skin-shape": "none", "skin-palette": "morty",
+  });
+  expect(mixed("?skin-shape=bart", undefined)["skin-shape"]).toBe("bart");  // the address still names any
+});
+
 test("a mix paints each Colour group in its Palette's hex, black as Blender draws it (#819)", () => {
   const colours = paint(mixed("?skeleton-palette=anatomical", "cansins-build"));
   expect(colours.Bones).toBe("#DBC8B6");  // PETG Basic Dark Beige

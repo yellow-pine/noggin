@@ -58,6 +58,9 @@
 > Stage's isometric panel) in its place until then, and of those on screen the three that came into view or were
 > touched last animate, the rest holding their last frame. The README's and the home's stills link to the viewer
 > deep-linked to their Stage, Explode level and Preset. The poster's camera of #597 is gone.
+> Amended 2026-11-03 (#883): the /viewer page's viewer alone has the bar (Stage, gestures, Explode, the mix); one in
+> a page shows its Stage and motion with no control. With no Preset picked, every viewer opens on the bare realistic
+> Skeleton in the anatomical Palette (ADR 0022).
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

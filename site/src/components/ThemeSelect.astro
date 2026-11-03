@@ -1,9 +1,9 @@
 ---
 // The header's Theme bar (#806, #819, docs/adr/0022), then Starlight's colour scheme select: one labelled select of the
-// model's Presets (src/theme.mjs, from model/geometry.py PRESETS), so a new Preset needs no edit here. The pick goes on
-// <html> as data-preset, into the address (?preset=cansins-build) and local storage, and to the viewer (a noggin-theme
-// event); css() shows each page's pictures and text for it alone. In the header and in the mobile menu: both bars stay
-// in step.
+// model's Presets (src/theme.mjs, from model/geometry.py PRESETS), so a new Preset needs no edit here. A pick (the
+// address's or the reader's last; none by default, #883) goes on <html> as data-preset, into the address
+// (?preset=cansins-build) and local storage, and to the viewer (a noggin-theme event); css() shows each page's
+// pictures and text for it alone. In the header and in the mobile menu: both bars stay in step.
 import Default from '@astrojs/starlight/components/ThemeSelect.astro';
 import { PRESETS, css } from '../theme.mjs';
 ---
@@ -21,7 +21,7 @@ import { PRESETS, css } from '../theme.mjs';
 <Fragment set:html={`<style>${css()}</style>`} />
 
 <script>
-  import { chosen } from '../theme.mjs';
+  import { picked } from '../theme.mjs';
 
   // shortcut: the Preset applies once this module runs, so a page in a picked Preset draws the default's for a moment;
   // an is:inline script in the head would hide it if it shows
@@ -48,7 +48,8 @@ import { PRESETS, css } from '../theme.mjs';
     }
   }
 
-  apply(chosen(location.search, stored()));
+  const first = picked(location.search, stored()); // none picked: the default's pages, the viewer's own mix (#883)
+  if (first) apply(first);
   for (const s of selects)
     s.addEventListener('change', () => {
       apply(s.value);
