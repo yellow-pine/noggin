@@ -623,7 +623,11 @@ jobs:
   deploy:
     name: Deploy
     needs: checks
-    if: ${{ (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main' }}
+    # the gate's success by name, past a job skipped before it (a warm Convex, a cached Blender): an `if` with no status
+    # function is success() && ..., false once any job before it was skipped (#802's first manual run)
+    if: >-
+      ${{ !cancelled() && needs.checks.result == 'success' && (github.event_name == 'push' || inputs.deploy)
+      && github.ref == 'refs/heads/main' }}
     # one deploy at a time, never cancelled mid-way (a newer one waiting replaces an older waiting one)
     concurrency:
       group: site-deploy
