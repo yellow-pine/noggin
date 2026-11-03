@@ -157,10 +157,10 @@ licence field is the uploader's claim, so provenance is weaker.
 ### 7. Wikimedia Commons: skull only, share-alike
 
 From Commons' API ([search](https://commons.wikimedia.org/w/index.php?search=skull+stl&ns6=1)):
-[`High quality skull.stl`](https://commons.wikimedia.org/wiki/File:High_quality_skull.stl), CC BY-SA 4.0, 43 MB, a
+[`High quality skull.stl`](https://commons.wikimedia.org/w/index.php?title=File:High_quality_skull.stl), CC BY-SA 4.0, 43 MB, a
 thesis skull "decomposable ... in 54 anatomically correct elements";
-[`BodyParts3D Skull.stl`](https://commons.wikimedia.org/wiki/File:BodyParts3D_Skull.stl), CC BY-SA 2.1 JP;
-[`Skull 3D SR File Nevit Dilmen.stl`](https://commons.wikimedia.org/wiki/File:Skull_3D_SR_File_Nevit_Dilmen.stl),
+[`BodyParts3D Skull.stl`](https://commons.wikimedia.org/w/index.php?title=File:BodyParts3D_Skull.stl), CC BY-SA 2.1 JP;
+[`Skull 3D SR File Nevit Dilmen.stl`](https://commons.wikimedia.org/w/index.php?title=File:Skull_3D_SR_File_Nevit_Dilmen.stl),
 CC BY-SA 3.0, "Skull with deformity". All share-alike, skull only.
 
 ### Not usable, or not found

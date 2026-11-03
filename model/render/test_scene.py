@@ -16,15 +16,16 @@ def test_export_writes_each_part_in_metres_in_its_themes_colour_or_grey(tmp_path
     manifest = scene.export(DOC, tmp_path)
     assert set(manifest) == set(stages.STAGES[DOC].parts)
     assert manifest["next L eyeball cap:1"]["colour"] == "#FFFFFF"  # morty's eye whites, PLA Basic Jade White
-    assert manifest["next torso:1"]["colour"] == "#DBC8B6"  # anatomical Bones, PETG Basic Dark Beige
+    assert manifest["next gimbal frame:1"]["colour"] == "#DBC8B6"  # anatomical Bones, PETG Basic Dark Beige
+    assert manifest["next torso:1"]["colour"] == "#000000"  # Mounts, black in every Palette (#838)
     assert manifest["next yaw servo:1"]["colour"] in scene.GREYS.values()
-    assert [manifest[n]["group"] for n in ("next torso:1", "next L eyeball cap:1", "next yaw servo:1")] == [
+    assert [manifest[n]["group"] for n in ("next gimbal frame:1", "next L eyeball cap:1", "next yaw servo:1")] == [
         "Bones", "eye whites", "servo"
     ]  # fmt: skip
     torso = trimesh.load(tmp_path / manifest["next torso:1"]["ply"])
     assert 0.05 < torso.extents.max() < 0.2  # the 92 x 93.5 mm Torso, in metres
     black = scene.export(DOC, tmp_path, geometry.PRESETS["Cansin's build"])
-    assert black["next torso:1"]["colour"] == "#000000"
+    assert black["next gimbal frame:1"]["colour"] == "#000000"
 
 
 def test_a_part_is_coloured_by_its_themes_palette():
