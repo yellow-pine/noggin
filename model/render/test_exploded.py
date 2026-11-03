@@ -38,6 +38,17 @@ def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
         assert np.allclose(apart[shell][:3, 3] - rest[shell][:3, 3], apart[carrier][:3, 3] - rest[carrier][:3, 3])
 
 
+def test_the_front_doors_show_the_mechanism_bare_of_every_shell():
+    """#843: the front doors' Stage 3 drops the Skin's Shells, every Morty one and the eyeball caps, and keeps the
+    rest."""
+    doc = pictures.DRAWN[pictures.STAGE3][0]
+    rest = {n: p.matrix for n, p in stages.STAGES[doc].parts.items()}
+    bare = pictures.bare(doc, rest)
+    caps = {"next L eyeball cap:1", "next R eyeball cap:1"}
+    assert set(rest) - set(bare) == {n for n in rest if n.startswith("next morty ")} | caps
+    assert "next gimbal frame:1" in bare and all(bare[n] is rest[n] for n in bare)
+
+
 def _apart(doc, level):
     """{part: its mm offset at the level} (pictures.offsets) and {part: its world box at rest, mm}."""
     return pictures.offsets(doc, level), pictures.boxes(doc)
