@@ -177,7 +177,9 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   so behind the head's centre of mass since #838, more than the 9 g servo's 0.4 kgf.cm holds, so a torsion spring on
   its shank balances it (`neck.balance`, `tilt.spring` in the report: wound to the head's weight's turn at rest, its
   rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
-  and the servo holds only what the spring's straight line misses. The neck is a spine since #838: the pan under the
+  and the servo holds only what the spring's straight line misses. One spring holds the head in its Skin and bare
+  (#830): wound halfway between the two heads' springs, it misses each by half the Skin's turn, which the servo holds
+  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838: the pan under the
   Torso's lid, the yoke's post (10 mm) rising through it, bare for 45 mm, to its top floor and the tilt servo under
   the head, the cheeks short from there; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture
   Cansin gave (a plaque in front, a border round the lid's panel, as Bones). Since #642 it moves in

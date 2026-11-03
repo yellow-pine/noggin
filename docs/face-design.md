@@ -70,8 +70,8 @@ size inferred):
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
   (about 4.6 N a pair) at least twice its weight times the peak acceleration the sim reads at its centroid along
   every motion.
-- The sim weighs and collides the Skeleton and the eyeball caps alone: the other Shells are drawn, weightless, so the
-  servos' figures are the Skeleton's: weighed, Morty's head takes the tilt servo past its rating (#830). Their
+- The sim weighs every Shell (#830), but collides the Skeleton and the eyeball caps alone: the other Shells are drawn
+  whole, so the servos carry the Skin, and the balance spring holds Morty's head and the bare head alike. Their
   clearance is checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo
   at either end (model/printed/test_skin.py).
 

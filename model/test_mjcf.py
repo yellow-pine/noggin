@@ -8,7 +8,7 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, neck, skin, stages
+from model import gimbal, mjcf, neck, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -238,20 +238,19 @@ def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
 
 
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
-    """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume; a Skin's drawn Shells weigh
-    nothing (model/skin.py DRAWN)."""
+    """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume; a Skin's drawn Shells (model/skin.py
+    DRAWN) weigh theirs on their drawn mesh (#830)."""
     model, stage = built(DOC), stages.STAGES[DOC]
     for name, part in stage.parts.items():
-        drawn = stages.stem(part.file) in skin.DRAWN
-        grams = 0.0 if drawn else mjcf.mass(mjcf._mesh(part.file, part.clip), part.material)
+        grams = mjcf.mass(mjcf._mesh(part.file, part.clip), part.material)
         assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
 
 
 def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
     """#838: the tilt pivot's stiffness and springref are neck.balance's rate and its torque at rest for the head this
-    MJCF weighs (N.m), so the head's weight's turn at rest cancels."""
+    MJCF weighs (N.m), in its Skin and bare (#830), so the turns of their weights at rest split their miss."""
     model = built(DOC)
-    rest, rate = neck.balance(mjcf.head(DOC, model))
+    rest, rate = neck.balance(mjcf.head(DOC, model), mjcf.head(DOC, model, bare=True))
     joint = model.joint("tilt pivot")
     # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
     assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)

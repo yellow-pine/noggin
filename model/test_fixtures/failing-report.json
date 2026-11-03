@@ -20,7 +20,7 @@
                       "overlaps": [{"pair": ["next L lid bar:1", "next gimbal frame:1"], "at": {"lid_deg": 15.0, "pitch_deg": -15.0}}]}},
  "neck": {"pan": {"range_deg": [-45.0, 45.0], "servo_deg": [-60.0, 95.0], "transmission_deg": 35.0, "gain": 0.85},
           "tilt": {"range_deg": [-20.0, 20.0], "servo_deg": [-47.7, 50.1], "transmission_deg": 61.7, "gain": 0.455,
-                   "rest_kgf_cm": 0.1, "hold_kgf_cm": 0.45},
+                   "rest_kgf_cm": 0.1, "hold_kgf_cm": 0.45, "bare": {"rest_kgf_cm": 0.1, "hold_kgf_cm": 0.42}},
           "jaw": {"range_deg": [0.0, 25.0], "servo_deg": [0.0, 41.9], "transmission_deg": 59.3, "gain": 0.637},
           "head": {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 5.0},
           "spans": {"pan": {"bend_mm": 19.78}, "tilt": {"bend_mm": 12.0}, "floor_mm": 14.0}},

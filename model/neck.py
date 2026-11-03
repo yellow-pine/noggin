@@ -139,20 +139,26 @@ def _weight(head, deg):
     return -grams * (dy * math.cos(a) - dz * math.sin(a)) / 1e4
 
 
-def balance(head):
+def balance(head, bare=None):
     """The balance spring on the tilt shank (#838), for a head of (grams, centre of mass in this frame, mm): (kgf.cm it
     turns the head with at rest, its rate in kgf.cm a radian), a torsion spring wound against the weight's turn, so that
     turn and its change as the head tilts cancel at rest. Its torque at `deg` is rest - rate x rad, right-handed about +x;
-    model/mjcf.py sets it on the tilt pivot (stiffness and springref)."""
-    rate = (_weight(head, 0.5) - _weight(head, -0.5)) / math.radians(1.0)
-    assert rate > 0, "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
-    return -_weight(head, 0.0), rate
+    model/mjcf.py sets it on the tilt pivot (stiffness and springref). With the head's `bare` one too (its Skin off,
+    #830): one spring for both, wound halfway between theirs, so each misses by half the Skin's turn."""
+    springs = [
+        (-_weight(h, 0.0), (_weight(h, 0.5) - _weight(h, -0.5)) / math.radians(1.0)) for h in (head, bare or head)
+    ]
+    assert all(r > 0 for _, r in springs), (
+        "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
+    )
+    rest, rate = np.mean(springs, axis=0).tolist()
+    return rest, rate
 
 
-def _hold(head, deg, gain):
+def _hold(head, spring, deg, gain):
     """kgf.cm the tilt servo holds the head with at `deg`, through the linkage's speed ratio `gain` there: the head's
     weight's turn less the balance spring's."""
-    rest, rate = balance(head)
+    rest, rate = spring
     return abs((_weight(head, deg) + rest - rate * math.radians(deg)) * gain)
 
 
@@ -168,11 +174,11 @@ def _spans():
     return {"pan": {"bend_mm": round(pan, 2)}, "tilt": {"bend_mm": round(tilt, 2)}, "floor_mm": BEND_X * LEAD_OD}
 
 
-def report(head):
-    """The neck's numbers against #641's gates, for a head of (grams, centre of mass in this frame, mm): per drive its
-    output range, the servo angles that reach it, the bar's worst transmission angle on the way and the gain at rest;
-    for tilt the head's hold at rest and at worst; where the head's centre of mass sits from the tilt axis; and the
-    flexing spans' tightest bends against their floor."""
+def report(head, bare=None):
+    """The neck's numbers against #641's gates, for a head of (grams, centre of mass in this frame, mm), and its `bare`
+    one (its Skin off, #830) on the same balance spring: per drive its output range, the servo angles that reach it, the
+    bar's worst transmission angle on the way and the gain at rest; for tilt each head's hold at rest and at worst; where
+    the head's centre of mass sits from the tilt axis; and the flexing spans' tightest bends against their floor."""
     out = {}
     for drive, solve in LINKAGES.items():
         sweep = _sweep(drive)
@@ -184,12 +190,16 @@ def report(head):
         }
     sweep = _sweep("tilt")
     solve = LINKAGES["tilt"]
-    holds = [_hold(head, solve(s)[0], (solve(s + 0.5)[0] - solve(s - 0.5)[0])) for s in sweep]
-    rest, rate = balance(head)
+    spring = balance(head, bare)
+
+    def holds(h):
+        at = [_hold(h, spring, solve(s)[0], (solve(s + 0.5)[0] - solve(s - 0.5)[0])) for s in sweep]
+        return {"rest_kgf_cm": round(_hold(h, spring, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
+
     out["tilt"] |= {
-        "rest_kgf_cm": round(_hold(head, 0.0, out["tilt"]["gain"]), 3),
-        "hold_kgf_cm": round(max(holds), 3),
-        "spring": {"rest_kgf_cm": round(rest, 3), "rate_kgf_cm_rad": round(rate, 3)},
+        **holds(head),
+        "bare": holds(bare or head),
+        "spring": {"rest_kgf_cm": round(spring[0], 3), "rate_kgf_cm_rad": round(spring[1], 3)},
     }
     grams, (_, cy, cz) = head
     out["head"] = {

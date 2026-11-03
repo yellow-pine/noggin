@@ -36,7 +36,8 @@ KNOWN_FULL_SPEED = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
-    " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
+    " 20 ms command step saturates the servo (~0.66 kgf.cm, the tilt's 1.1 with the head in its Skin (#830), Stage 3's"
+    " 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
     for doc in g.SIMULATED
     if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
@@ -118,7 +119,8 @@ def gimbal_problems(report):
 
 def neck_problems(report):
     """The next Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
-    travel, the tilt servo's hold against the rated torque, the flexing spans' bends against their floor."""
+    travel, the tilt servo's hold of the head in its Skin and bare against the rated torque, the flexing spans' bends
+    against their floor."""
     m, out = report.get("neck"), []
     if not m:
         return out
@@ -131,8 +133,9 @@ def neck_problems(report):
         out += [
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
-    if m["tilt"]["hold_kgf_cm"] > sim.RATED_KGF_CM:
-        out.append(f"neck tilt: holds the head with {m['tilt']['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+    for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
+        if t["hold_kgf_cm"] > sim.RATED_KGF_CM:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
@@ -279,6 +282,7 @@ FIXTURE_PROBLEMS = {
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
         "neck pan servo: 95.0 deg past its 90.0",
         "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.4",
+        "neck tilt: holds the bare head (its Skin off) with 0.42 kgf.cm > the rated 0.4",
         "neck tilt span: bends to 12.0 mm < 14.0",
         "variant head: 120.0 x 141.5 x 149.0 mm (W x D x H) past the compact head's 140.0 x 140.0 x 150.0",
         "variant eyes: 0.62 of the head's height up > 0.55",
