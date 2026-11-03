@@ -8,17 +8,12 @@ An animatronic eye mech on a desk that reacts when Claude Code finishes a respon
 
 **Mech**:
 The physical animatronic, our own design (#51), being designed and not built yet: two linked eyes with an upper and a
-lower lid each, the pan-and-tilt neck and the mouth, seven servos on two Cores, a Skeleton that wears a Skin.
-Today's Mech, the one on Cansin's desk built from another designer's parts, runs the eye program until it is built.
-_Avoid_: robot, head, beast, eye mech
-
-**Next Mech**:
-The Mech, by the name the Model, the pictures and the Web viewer give it (`next-`) while today's Mech still stands on
-the desk.
-_Avoid_: Mech 2, new Mech
+lower lid each, the pan-and-tilt neck and the mouth, seven servos on two Cores, a Skeleton that wears a Skin. There is
+one Mech: the project begins at its Stage 1 (docs/adr/0024).
+_Avoid_: robot, head, beast, eye mech, next Mech, today's Mech, Mech 2, new Mech
 
 **Skeleton**:
-The next Mech's structural parts, the same under every Skin: the eye gimbal, the jaw, the neck, the Torso and the
+The Mech's structural parts, the same under every Skin: the eye gimbal, the jaw, the neck, the Torso and the
 electronics mount, in PETG. A Theme category: its Shape realistic, every part drawn as Bones, or mechanical, every
 part in boxes and cylinders; its Palette anatomical, robot or black (docs/adr/0022).
 _Avoid_: frame, chassis, core
@@ -30,19 +25,19 @@ carved from its mechanical part, so they differ only in look (docs/adr/0020).
 _Avoid_: strut, organic bar
 
 **Test stand**:
-The box the Next Mech's eye block stands on in Stage 1, screwed under the gimbal frame where the head mount goes later,
+The box the Mech's eye block stands on in Stage 1, screwed under the gimbal frame where the head mount goes later,
 the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The next Mech's base, a box pedestal under its lid: holding both packs lying low, the one on the Mech through the
+The Mech's base, a box pedestal under its lid: holding both packs lying low, the one on the Mech through the
 switch board and the spare on the kit's charger dongle, with an opening in its wall where the two swap (#858); the neck
 mount stands on its floor, its hollow post rising through the lid to the pan under the head, the pack's Y lead up
 inside it; its bottom is the foot the Mech stands on.
-_Avoid_: base plate (today's Mech's part), body, stand
+_Avoid_: base plate, body, stand
 
 **Head variant**:
-One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
+One way to place the Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
 shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores ride
 the head in the realistic skull's cranium, the packs and the switch board lie low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
@@ -66,16 +61,17 @@ _Avoid_: mount, socket, pad
 
 **Skin**:
 Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: its Shape and
-its Palette each morty, bart or cansin, its Shape none too: the Skeleton bare, its full bones on.
+its Shape morty, bart or cansin, or none: the Skeleton bare, its full bones on; its Palette morty, bart or Default.
 _Avoid_: shell set, character shells, kit, costume
 
 **Character**:
-Who the next Mech looks like, Morty or Bart: its Skin and its gaze speed, picked in the noggin service's settings.
+Who the Mech looks like, Morty or Bart: its Skin and its gaze speed, picked in the noggin service's settings.
 _Avoid_: persona, theme
 
 **Theme**:
-A Shape and a Palette for each Theme category, today the Skeleton and the Skin, which together choose the next Mech's
-look in the Model, the Web viewer and every picture; Cansin's build unless another Preset is picked (docs/adr/0022).
+A Shape and a Palette for each Theme category, today the Skeleton and the Skin, which together choose the Mech's
+look in the Model, the Web viewer and every picture; the Default build unless another Preset is picked
+(docs/adr/0022).
 _Avoid_: look (Blender's style B is the look), style
 
 **Shape**:
@@ -85,13 +81,20 @@ _Avoid_: style, model (the Model is the digital Mech)
 
 **Palette**:
 The filament each Colour group of one Theme category prints in: the Skeleton's anatomical, robot or black, a Skin's
-morty, bart or cansin.
+morty, bart or Default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure; ~~cansin~~ *default (#895)* in
+the Model).
 _Avoid_: colour scheme, theme (for one category's colours)
 
 **Preset**:
-A named Theme, what the site's Theme bar picks: Cansin's build (mechanical, black, cansin, cansin), Morty (realistic,
-anatomical, morty, morty) or Bart (realistic, anatomical, bart, bart).
+A named Theme, what the site's Theme bar picks: the Default build, Morty (realistic, anatomical, morty, morty) or Bart
+(realistic, anatomical, bart, bart).
 _Avoid_: theme (for the named set), skin (for the whole look)
+
+**Default build**:
+The first Preset, the look every picture, viewer and page opens on until another is picked: the mechanical Skeleton in
+black, no Skin, the Default Skin palette (mechanical, black, none, Default). ~~Cansin's build (mechanical, black,
+cansin, cansin)~~ *Default build (#895)* in the Model.
+_Avoid_: Cansin's build, default look, default theme
 
 **Colour group**:
 The parts of one Theme category printed in one filament: the Skeleton's Bones, Joints, Linkages and Mounts, a Skin's
@@ -119,8 +122,7 @@ _Avoid_: brownout (the Core's own reset, which a pack cut comes before), power l
 
 **Servo**:
 One of the seven actuators, named by what it moves: yaw (both eyes left and right), pitch (both eyes up and down), left
-lid, right lid (eyes Core); tilt, mouth, pan (neck Core). Today's Mech's eye program drives its own four: left lid,
-left eye, right lid, right eye.
+lid, right lid (eyes Core); tilt, mouth, pan (neck Core).
 _Avoid_: channel, PWM, actuator, motor
 
 **Link**:
@@ -205,9 +207,9 @@ _Avoid_: program, image, OS
 ### Model
 
 **Model**:
-The Next Mech as code: our CadQuery parts (model/printed) and hardware Envelopes (model/envelopes.py), placed into
+The Mech as code: our CadQuery parts (model/printed) and hardware Envelopes (model/envelopes.py), placed into
 documents by model/stages.py; MuJoCo simulates them from one MJCF per document (model/mjcf.py, docs/adr/0007), and
-Blender renders the pictures from MuJoCo's Trajectories. Today's Mech left it (#720); its git history keeps it.
+Blender renders the pictures from MuJoCo's Trajectories.
 _Avoid_: twin, digital twin, CAD, simulation
 
 **Stage**:
@@ -226,8 +228,8 @@ _Avoid_: twin viewer, web app, demo
 **Site**:
 The project's public web site, built by Astro Starlight from the repo's Markdown where it stands (the `site/` package,
 docs/adr/0013): a landing page at its root, the build guide, how to use the Mech, the Model and the reference docs
-(docs/adr/0009); pictures and the Web viewer of the Next Mech alone, never of today's (docs/adr/0019). The README is
-for contributors and stays on GitHub.
+(docs/adr/0009), each page marking what an open issue will change (docs/adr/0024). The README is for contributors
+and stays on GitHub.
 _Avoid_: docs site, homepage, Pages (the host)
 
 **Numbers from the code**:
@@ -285,7 +287,7 @@ _Avoid_: rod, linkage
 The lever on a turning part that a Bar drives: the yaw yoke's, each upper lid's.
 
 **Balance spring**:
-The torsion spring on the next Mech's tilt pivot that holds the head's weight, which hangs in front of the pivot under
+The torsion spring on the Mech's tilt pivot that holds the head's weight, which hangs in front of the pivot under
 the skull's base, so the tilt servo moves the head without holding it up.
 _Avoid_: counterweight, gas spring, return spring
 
@@ -308,7 +310,7 @@ A part we print, by our name (model/printed); the Skeleton's:
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
   post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
   round a Skin's Shells too, printed to wear a Skin; bare, the Skeleton shows the full ones.
-_Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
+_Avoid_: the designer's file names, version suffixes, earlier part names (git history)
 
 **Coupon**:
 A test piece we print to find a fit on our printer and filament before a Printed part relies on it, such as the
@@ -335,7 +337,7 @@ A named point on a connector where a cable plugs in.
 _Avoid_: socket, header
 
 **Flexing span**:
-The stretch of the next Mech's leads that crosses a moving Pivot (pan or tilt), clamped at its two ends only and bent
+The stretch of the Mech's leads that crosses a moving Pivot (pan or tilt), clamped at its two ends only and bent
 no tighter than ten times the thickest lead's diameter.
 _Avoid_: service loop, cable loop, slack
 

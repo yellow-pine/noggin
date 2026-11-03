@@ -31,6 +31,9 @@
 > eight `Render` shards, each picture dealt by its measured Blender seconds (model/shards.py), and Release's manual
 > run looks up the pictures and sim reports cached for the same inputs as a push's run does; the weekly run still
 > renders everything.
+> Superseded in part 2026-11-04 (#894, ADR 0024): its publishing rules go with today's Mech (the `next-` names and
+> guard, today's Mech shown nowhere); the licence rule stays, restated there: never the designer's geometry or
+> dimensions.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

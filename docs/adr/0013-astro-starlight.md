@@ -29,6 +29,10 @@
 > their titles) and the `Footer`'s "by Yellow Pine" credit. The icon is the Mech's eye, rendered by Blender
 > (model/render/pictures.py FAVICON) and served at /images like every picture. /reports/ is an Astro page that
 > `scripts/site_reports.sh` lists the sim's reports on.
+>
+> Amended 2026-11-04 (#894, ADR 0024): every viewer embed carries a plain link to its deep link, which GitHub shows
+> where it cannot draw the viewer; the pages mark what is upcoming in plain Markdown (`~~is~~ *will be (#N)*`,
+> `*Upcoming (#N): …*`, a `> [!NOTE]` for a section), which the Markdown plugin collects into the Roadmap page.
 
 Material for MkDocs reaches end of life on 2027-05-05, and MkDocs 1.x is frozen while 2.0 drops plugins. The site
 moves to [Astro Starlight](https://starlight.astro.build) with its default look: a maintained, widely used tool that
