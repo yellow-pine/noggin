@@ -548,8 +548,13 @@ def test_checks_deploys_the_site_it_built_as_its_last_job_on_mains_push():
     flow = yaml.safe_load((wf / "checks.yml").read_text())
     job = flow["jobs"]["deploy"]
     assert list(flow["jobs"])[-1] == "deploy" and job["needs"] == "checks"
-    # main's push, or Release's manual run (#802)
-    assert job["if"] == "${{ (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main' }}"
+    # main's push, or Release's manual run (#802). Past a job skipped further up (a warm Convex, a cached Blender): an
+    # `if` with no status function is `success() && ...`, false when any job before it was skipped, its need passed or
+    # not, which skipped the first manual run's Deploy (#802); so the gate's success by name, as Model does Convex's
+    assert job["if"] == (
+        "${{ !cancelled() && needs.checks.result == 'success' && (github.event_name == 'push' || inputs.deploy) "
+        "&& github.ref == 'refs/heads/main' }}"
+    )
     assert job["environment"]["name"] == "github-pages"
     assert job["concurrency"]["cancel-in-progress"] is False
     pages = {"pages": "write", "id-token": "write"}
