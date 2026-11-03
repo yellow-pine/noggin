@@ -231,7 +231,8 @@ def lid_link(mechanical=False):
     """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698).
     Mechanical or as Bones (#704)."""
     w, pins = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2, (gm.LINK_PIN, gm.LOWER_PIN)
-    return holes(lid_arms(pins, (-w, w), mechanical), pins, (-w, w))
+    # its heads 0.2 mm lower than LID_BONE's: a crown 0.1 mm under the slab's face fused invalid on aarch64's OCCT (#890)
+    return holes(lid_arms(pins, (-w, w), mechanical, ((4.0, 2.7), LID_BONE[1])), pins, (-w, w))
 
 
 def _lid(radii, span, spokes, boss, pin, mechanical):
