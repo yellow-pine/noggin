@@ -73,7 +73,8 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
     """#805, #819: a Colour group's filament in a Theme's Palette, its hex the slicer's; every Palette of a category
     paints its every Colour group, in at most four filaments."""
     assert g.filament("Bones", MORTY) == ("PETG Basic", "Dark Beige", "30403", "#DBC8B6")
-    assert g.filament("Linkages", MORTY) == ("PETG Basic", "Dark Brown", "30800", "#4F2C1D")  # Cansin: red lids read badly
+    # Cansin, 2026-11-03: the red lids read badly
+    assert g.filament("Linkages", MORTY) == ("PETG Basic", "Dark Brown", "30800", "#4F2C1D")
     assert g.filament("Bones", MORTY | {"Skeleton palette": "robot"}) == ("PETG Matte", "Gray", "35102", "#7F7E83")
     assert g.filament("Joints", CANSINS_BUILD) == ("PETG Basic", "Black", "30105", "#000000")
     assert g.filament("eye whites", MORTY) == ("PLA Basic", "Jade White", "10100", "#FFFFFF")
