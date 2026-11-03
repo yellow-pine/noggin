@@ -34,9 +34,9 @@ def _overlaps(shapes, pairs):
     ]
 
 
-@pytest.fixture(scope="module", params=[False, True], ids=["bones", "plain"])
+@pytest.fixture(scope="module", params=[False, True], ids=["bones", "mechanical"])
 def rest(request):
-    """{part: its solid at rest} (gimbal.at_rest), built once a module and style: CI's 15 s times the test alone."""
+    """{part: its solid at rest} (gimbal.at_rest), built once a module and Skeleton: CI's 15 s times the test alone."""
     return gimbal.at_rest(request.param)
 
 
@@ -280,14 +280,14 @@ def _slice(solid, a, b, t, eps=0.01):
     return cut.Volume() / eps, float(np.linalg.eigvalsh(basis @ inertia @ basis.T).min()), float(inertia[0, 0]), half
 
 
-@pytest.mark.parametrize("style", ["bone", "plain"])  # both looks stay (#704)
+@pytest.mark.parametrize("style", ["bone", "mechanical"])  # both looks stay (#704)
 @pytest.mark.parametrize("part", LID_BONES)
 def test_each_lid_bone_holds_its_lid_servo_at_stall(part, style):
     """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
     between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
     half-width), and the straight link against Euler buckling."""
     make, joints = LID_BONES[part]
-    solid, mat = make(plain=style == "plain").val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    solid, mat = make(mechanical=style == "mechanical").val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):

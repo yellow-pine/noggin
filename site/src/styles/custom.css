@@ -1,6 +1,6 @@
 /* The site's look (#603, Cansin's pick from the prototype's three: "Googly"): Yellow Pine's brand v2.2 as the base (ink,
    paper, surfaces, links, an azure focus; yellow-pine/.github brand/), the Mech's filament colours as the accents
-   (Milky Pink and Apricot as big flat fields, model/geometry.py SPOOLS), Rubik 700 headings from @fontsource/rubik and
+   (Milky Pink and Apricot as big flat fields, PLA Pure's), Rubik 700 headings from @fontsource/rubik and
    the system font for the body. The Mech's face is the identity: the wordmark's o is one of its eyes
    (src/components/Wordmark.astro). Type scale: 18 body, 24 / 36 / 60 headings, the landing page's wordmark 144. */
 
@@ -174,7 +174,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-stages a:hover strong { text-decoration: underline; }
 
 /* ---------- the web viewer's chrome (src/viewer/viewer.mjs): one bar under it, chunky pills, pressed Apricot; the
-   Stage and look switches rows of pills; Explode a toggle at the right (on their row where there is one, the chips then on
+   Stage and Skeleton switches rows of pills; Explode a toggle at the right (on their row where there is one, the chips then on
    a row of their own); the line on what plays under it ---------- */
 .noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
 .noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 1rem; }

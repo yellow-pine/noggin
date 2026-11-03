@@ -1,16 +1,17 @@
 ---
 // The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro), which
 // draws the next Mech's GLBs beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) and moves these
-// switches into its bar: a button per Stage and per look (macros.py stage_switch, from model/geometry.py STAGES, #720).
+// switches into its bar: a button per Stage and per Skeleton (macros.py stage_switch, from model/geometry.py STAGES and
+// THEMES, #720, #805).
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { published } from '../macros.json';
 
-const { buttons, looks } = published.stages;
+const { buttons, skeletons } = published.stages;
 ---
 
 <StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
   <p>
-    The next Mech as its model has it so far, Stage by Stage, its Skeleton as Bones or plain: Stage 1 the eye block on
+    The next Mech as its model has it so far, Stage by Stage, its Skeleton realistic (as Bones) or mechanical: Stage 1 the eye block on
     its test stand, Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw. Drag to turn it, scroll or pinch
     to zoom, play each gesture and take it apart.
   </p>
@@ -19,9 +20,9 @@ const { buttons, looks } = published.stages;
       <span>Stage</span>
       {buttons.map((b) => <button data-stage={b.glb}>{b.label}</button>)}
     </nav>
-    <nav aria-label="Look">
-      <span>Look</span>
-      {looks.map((l) => <button data-look={l.suffix}>{l.label}</button>)}
+    <nav aria-label="Skeleton">
+      <span>Skeleton</span>
+      {skeletons.map((s) => <button data-skeleton={s.suffix}>{s.label}</button>)}
     </nav>
   </div>
 </StarlightPage>

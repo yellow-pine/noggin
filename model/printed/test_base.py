@@ -52,8 +52,8 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
 
 
 def test_the_torso_and_the_rack_as_bones_round_their_corners_and_print_as_they_lie():
-    """#704: just inside each of the plain Torso's outside corners and the rack's top corners lies nothing; the Torso
-    prints upright and the rack on its back (its back face, the boards', on the bed), no overhang past 45 deg."""
+    """#704: just inside each of the mechanical Torso's outside corners and the rack's top corners lies nothing; the
+    Torso prints upright and the rack on its back (its back face, the boards', on the bed), no overhang past 45 deg."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     torso, rack = printed_base.torso().val(), printed_base.rack().val()
     for x, y in itertools.product((x0 + 1, x1 - 1), (y0 + 1, y1 - 1)):

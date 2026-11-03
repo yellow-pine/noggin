@@ -46,19 +46,36 @@ def test_a_round_bone_stands_on_any_axis_elliptical_all_round():
 
 
 @pytest.mark.parametrize("stem", sorted(printed.STYLED))
-def test_a_styled_skeleton_part_builds_plain_and_as_bones(stem):
+def test_a_styled_skeleton_part_builds_mechanical_and_as_bones(stem):
     """#704: one valid solid in each style, the two not the same."""
-    bones, plain = (printed.PARTS[s]().val() for s in (stem, stem + g.PLAIN))
-    for shape in (bones, plain):
+    bones, mechanical = (printed.PARTS[s]().val() for s in (stem, stem + g.MECHANICAL))
+    for shape in (bones, mechanical):
         assert shape.isValid() and len(shape.Solids()) == 1
-    assert bones.Volume() != pytest.approx(plain.Volume(), rel=1e-3)
+    assert bones.Volume() != pytest.approx(mechanical.Volume(), rel=1e-3)
 
 
 def test_every_skeleton_part_has_both_styles_or_names_the_ticket_drawing_its_bones():
     """The Skeleton: the next Mech's parts in PETG (geometry.PRINTED). Each is STYLED, or UNSTYLED with its reason."""
-    skeleton = {k for k, (_, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m and g.PLAIN not in k}
+    skeleton = {k for k, (_, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m and g.MECHANICAL not in k}
     assert set(printed.STYLED) | set(printed.UNSTYLED) == skeleton
     assert not set(printed.STYLED) & set(printed.UNSTYLED) and all(printed.UNSTYLED.values())
-    assert (
-        printed.styled("next bail", plain=True) == "next bail plain" and printed.styled("next jaw", True) == "next jaw"
-    )
+    assert printed.styled("next bail", mechanical=True) == "next bail mechanical"
+    assert printed.styled("next jaw", True) == "next jaw"
+
+
+# each Skeleton part's Colour group as Cansin set them (#805)
+GROUPS = {
+    "Bones": ["torso", "gimbal frame", "head mount", "neck mount", "jaw", "test stand"],
+    "Joints": ["yaw yoke", "pan yoke", "eyeball core", "bail"],
+    "Linkages": ["tie-bar", "push-rod", "pitch bar", "lid bar", "lid link", "pan bar", "tilt bar", "jaw bar"]
+    + [f"{s} {lid}" for s in "LR" for lid in ("upper lid", "lower lid")],
+    "Mounts": ["board rack"],
+}
+
+
+def test_every_skeleton_part_carries_its_skeleton_colour_group():
+    """#805: each Skeleton part, in both styles, carries its Colour group, one every Skeleton value prints."""
+    skeleton = {k: group for k, (group, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m}
+    want = {f"next {part}": group for group, parts in GROUPS.items() for part in parts}
+    assert {k.removesuffix(g.MECHANICAL): group for k, group in skeleton.items()} == want
+    assert all(set(v) == set(GROUPS) for v in g.THEMES["Skeleton"].values())

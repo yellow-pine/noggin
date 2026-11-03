@@ -84,7 +84,7 @@ export default defineConfig({
             'docs/build/calibration',
             'docs/build/live-check',
             'docs/build/tests',
-            { label: 'Shells (planned)', slug: 'docs/face-design' },
+            { label: 'Themes', slug: 'docs/face-design' },
           ],
         },
         {

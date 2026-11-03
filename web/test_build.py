@@ -13,9 +13,9 @@ import pytest
 from model import stages, trajectories
 from web import build
 
-# each Stage (#720; Stage 3 the head variant's, Back since #712) as Bones and plain (#704)
+# each Stage (#720; Stage 3 the head variant's, Back since #712) in each Skeleton, realistic and mechanical (#704, #805)
 STAGES = {
-    f"{d}{look}": f"{d}{look}.glb" for look in ("", "-plain") for d in ("next-stage1", "next-stage2", "next-mech-back")
+    f"{d}{s}": f"{d}{s}.glb" for s in ("", "-mechanical") for d in ("next-stage1", "next-stage2", "next-mech-back")
 }
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 

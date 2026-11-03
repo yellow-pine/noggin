@@ -75,14 +75,14 @@ def cap(side):
     return out.cut(seat)
 
 
-def yoke(plain=False):
+def yoke(mechanical=False):
     """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis
     with its crank (back) on the tie-bar. As Bones (#704): the U a cradle round the core, its underside flaring at 45
     deg into the stem, the crank a Bone in its slab; printed as drawn, on the stem and the crank."""
     y = gm.YOKE
     x0, x1, h = y["inner"], y["inner"] + y["wall"], y["half_y"]
     z = gm.YAW_CRANK_Z
-    if not plain:
+    if not mechanical:
         r = math.hypot(x1, h)  # round the bosses' corners
         # the cone tangent to the cradle 40 deg under its equator: the overhang no more than that on either
         rt, zt = r * math.cos(math.radians(40)), -r * math.sin(math.radians(40))
@@ -105,12 +105,13 @@ def yoke(plain=False):
     return out.cut(cyl("z", (0, 0, 0), gm.PIN_R, (y["stem_z"], y["stem_z"] + 8)))
 
 
-def tie_bar(plain=False):
-    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Plain: a bar across
-    both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone (model/printed/bone.py) from
-    each eye's pin back to the yaw horn's, flat on top within its slab where the cranks ride on it."""
+def tie_bar(mechanical=False):
+    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Mechanical: a
+    bar across both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone
+    (model/printed/bone.py) from each eye's pin back to the yaw horn's, flat on top within its slab where the cranks
+    ride on it."""
     c, horn = gm.EYE["L"][0], (0.0, gm.YAW_Y + gm.CRANK, gm.TIE_Z[0])
-    if plain:
+    if mechanical:
         out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
         out = out.union(box((-ARM / 2, ARM / 2), (gm.CRANK, horn[1]), gm.TIE_Z))
         out = out.union(cyl("z", (0, horn[1], 0), ARM / 2, gm.TIE_Z))
@@ -125,13 +126,13 @@ def tie_bar(plain=False):
     return out
 
 
-def bail(plain=False):
+def bail(mechanical=False):
     """The bail: its rod on an x axis behind the eyes, an arm up to a ball behind each eye, the input arm back to the
     pitch bar's pin, the shanks' bores in its ends. As Bones (#704): the rod and the input arm flat on the bed under
     the rod, each arm a round strut; printed as drawn (its bores across the layers)."""
     by, bz = gm.BAIL
     end, top, tip = gm.EYE["L"][0] + 8.0, gm.LEVER - gm.BALL_R - 1.2, by + gm.BAIL_IN
-    if not plain:
+    if not mechanical:
         bed = bz - 3
         out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
         out = out.union(bone.bone((0, by, bed), (0, tip, bed), *BAIL_INPUT).intersect(box((-2, 2), (0, 99), (bed, 99))))
@@ -141,7 +142,7 @@ def bail(plain=False):
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
         if (
-            not plain
+            not mechanical
         ):  # its foot's head inside the rod, clear of its bed and its bore's end (#704: flush, Linux's fuse fails)
             arm = bone.bone((x, by, bz + 0.5), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
             out = out.union(arm).union(ball_on(top - BAIL_ARM[0][0], (x, by, gm.LEVER)))
@@ -152,11 +153,11 @@ def bail(plain=False):
     return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (-2, 2)))
 
 
-def push_rod(plain=False):
-    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball. Plain:
-    an r 2 cylinder; as a Bone (#703), on its cups' rims."""
+def push_rod(mechanical=False):
+    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball.
+    Mechanical: an r 2 cylinder; as a Bone (#703), on its cups' rims."""
     z, back = gm.LEVER, gm.BAIL[0]
-    out = cyl("y", (0, 0, z), 2.0, (0, back)) if plain else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
+    out = cyl("y", (0, 0, z), 2.0, (0, back)) if mechanical else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
     for y in (0.0, back):
         out = out.union(ball(CUP_R, (0, y, z)).cut(box((-CUP_R, CUP_R), (y - CUP_R, y + CUP_R), (z - CUP_R, z - 2))))
     for y in (0.0, back):
@@ -166,7 +167,7 @@ def push_rod(plain=False):
 
 def link(a, b, x):
     """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    return holes(lid_plain([a, b], x), (a, b), x)
+    return holes(lid_mechanical([a, b], x), (a, b), x)
 
 
 def holes(out, pins, x):
@@ -178,13 +179,14 @@ def holes(out, pins, x):
     return out
 
 
-def lid_arms(points, x, plain=False):
-    """The lid drives' bars, links and spokes through the (y, z) `points` in turn, in the slab `x`: plain or as Bones."""
-    return (lid_plain if plain else lid_bone)(points, x)
+def lid_arms(points, x, mechanical=False):
+    """The lid drives' bars, links and spokes through the (y, z) `points` in turn, in the slab `x`: mechanical or
+    as Bones."""
+    return (lid_mechanical if mechanical else lid_bone)(points, x)
 
 
-def lid_plain(points, x):
-    """Plain flat arms ARM wide through the (y, z) `points` in turn, filling the slab `x`, round at every joint."""
+def lid_mechanical(points, x):
+    """Mechanical flat arms ARM wide through the (y, z) `points` in turn, filling the slab `x`, round at every joint."""
     out = cyl("x", (0, *points[0]), ARM / 2, x)
     for a, b in zip(points, points[1:]):
         side = np.array([a[1] - b[1], b[0] - a[0]]) * ARM / 2 / math.dist(a, b)
@@ -225,28 +227,28 @@ def _slab(name, side=1):
     return tuple(sorted(side * u for u in gm.LID_X[name]))
 
 
-def lid_bar(plain=False):
+def lid_bar(mechanical=False):
     """One lid's bar (drawn centred on x 0): the upper lid's crank pin back to the bend, behind the tie-bar, then down to
-    its horn's; the link's pin between the first two (#698). Plain or as Bones (#704)."""
+    its horn's; the link's pin between the first two (#698). Mechanical or as Bones (#704)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
     horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
-    out = lid_arms([gm.LID_PIN, gm.LINK_PIN, gm.LID_BEND, horn], (-w, w), plain)
+    out = lid_arms([gm.LID_PIN, gm.LINK_PIN, gm.LID_BEND, horn], (-w, w), mechanical)
     return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
 
 
-def lid_link(plain=False):
+def lid_link(mechanical=False):
     """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698).
-    Plain or as Bones (#704)."""
+    Mechanical or as Bones (#704)."""
     w, pins = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2, (gm.LINK_PIN, gm.LOWER_PIN)
-    return holes(lid_arms(pins, (-w, w), plain), pins, (-w, w))
+    return holes(lid_arms(pins, (-w, w), mechanical), pins, (-w, w))
 
 
-def _lid(radii, span, spokes, boss, pin, plain):
+def _lid(radii, span, spokes, boss, pin, mechanical):
     """An L lid: its shell wedge about x from `span` (deg from forward toward up) between the caps' sides, and in two
     slabs a spoke out to the shell at `spokes` deg (outboard, inboard), the shell reaching round to it there: outboard
-    from the `boss` on the frame's shank, inboard from its crank `pin` (#698), `plain` or as Bones (#704). The outboard
-    spoke stays behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is past the
-    cap's reach. Everything within the outer radius."""
+    from the `boss` on the frame's shank, inboard from its crank `pin` (#698), `mechanical` or as Bones (#704). The
+    outboard spoke stays behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is
+    past the cap's reach. Everything within the outer radius."""
     ri, ro = radii
 
     def wedge(a, b, x):
@@ -261,24 +263,24 @@ def _lid(radii, span, spokes, boss, pin, plain):
         r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
         end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
         out = out.union(shell.intersect(wedge(*reach, x))).union(
-            lid_arms([pin if x == inner else (0, 0), end], x, plain)
+            lid_arms([pin if x == inner else (0, 0), end], x, mechanical)
         )
     out = out.union(cyl("x", (0, 0, 0), 4.0, outer)).intersect(ball(ro))
     return holes(out, [pin], inner).cut(cyl("x", (0, 0, 0), gm.PIN_R, outer))
 
 
-def upper_lid(side, plain=False):
+def upper_lid(side, mechanical=False):
     """The `side` upper lid (drawn for L, the R its mirror): its edge at LID_REST, LID_SPAN up; its boss on the shank
     nearer the eye, its crank pin LID_PIN on the lid bar."""
-    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), (112.0, 60.0), "upper boss", gm.LID_PIN, plain)
+    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), (112.0, 60.0), "upper boss", gm.LID_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
-def lower_lid(side, plain=False):
+def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    out = _lid(gm.LOWER_R, span, (-112.0, -68.0), "lower boss", gm.LOWER_PIN, plain)
+    out = _lid(gm.LOWER_R, span, (-112.0, -68.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -332,15 +334,15 @@ def _moved(shape, m):
     return cq.Workplane().add(shape.val().transformGeometry(t))
 
 
-def at_rest(plain=False):
+def at_rest(mechanical=False):
     """{next-eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
-    shank from the frame's upright through the lid's boss); `plain`: the Skeleton plain (#704)."""
+    shank from the frame's upright through the lid's boss); `mechanical`: the Skeleton mechanical (#704)."""
     from model import stages
     from model.printed import PARTS, styled  # here: model.printed imports this module
 
     out = {}
     for name, p in stages.next_eyes().parts.items():
-        stem = styled(stages.stem(p.file), plain)
+        stem = styled(stages.stem(p.file), mechanical)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
     for s, sign in (("L", 1), ("R", -1)):
         x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["upper boss"][0] + 2, gm.LID_X["upright"][1]))
@@ -416,16 +418,16 @@ def _path(segments, step):
     return np.round(rows, 6)  # a value shared by two lines reads the same
 
 
-def sweep(plain=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650), the Skeleton `plain` or as Bones (#704): each lid, its bar, its horn and its shank
-    against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+def sweep(mechanical=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
+    """The lid drives' sweep (#650), the Skeleton `mechanical` or as Bones (#704): each lid, its bar, its horn and its
+    shank against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
     Every pair at least LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is
     reported. Every pair closer at rest (a pin, a face sliding on a face, the boss on its shank) is checked for overlap
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
-    rest = at_rest(plain)
+    rest = at_rest(mechanical)
     names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1", "lid shank")
     drives = [f"next {s} {n}" for s in "LR" for n in names]
     spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline

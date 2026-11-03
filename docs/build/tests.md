@@ -22,7 +22,7 @@ Clearance is per side: a hole is its pin plus twice its clearance across.
 1. `just stl` writes `model/build/stl/clearance coupon.stl`. Slice it as it lies, flat, no supports, with the 0.4 mm
    nozzle and the filament's standard profile. Leave the slicer's hole compensation (X-Y hole compensation) as it is
    and note its value: the fit we pick holds only at that setting.
-2. Print it twice: once in black PETG (the skeleton's), once in PLA Pure (the shells').
+2. Print it twice: once in PETG (the Skeleton's), once in PLA (the Shells').
 3. Let each cool. From the notch, turn each pin with a small flat screwdriver in its slot, and write down for each:
    **free** (turns with no effort; it also pushes out from below), **stiff** (turns once broken loose) or **fused**
    (will not turn).
