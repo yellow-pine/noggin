@@ -90,7 +90,7 @@ SEATS = [
             "next gimbal frame",
             (x, _PLATE[0] - 4.0, _PLATE[1]),
             (0.0, -1.0, 0.0),
-            5.0,
+            4.0,  # on the plate's front edge, not into it: Stage 1's stand stands under the plate
             _PLATE[0] - 4.0 - GAP - (MUZZLE_Y + WALL) + 1.0,
             1,
         )
