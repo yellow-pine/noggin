@@ -181,23 +181,17 @@ def face():
     """Morty's face (face): the head's shell under the hairline, the nose between the eyes, an ear each side and the
     mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its top."""
     out = _skull().cut(_hair(-0.1))
-    out = out.union(
-        _ellipsoid((0, sk.HEAD_Y[0], -22), (7, 8, 6)).cut(box((-10, 10), (sk.HEAD_Y[0] + sk.WALL, 0), (-40, 0)))
-    )
+    # spheres and cylinders alone: a scaled sphere is a B-spline that Linux's OCCT writes into an invalid STEP (#833)
+    out = out.union(ball(6.0, (0, sk.HEAD_Y[0], -22)).cut(box((-10, 10), (sk.HEAD_Y[0] + sk.WALL, 0), (-40, 0))))
     for s in (-1, 1):
-        ear = _ellipsoid((s * sk.HEAD_X, 8, -2), (7, 11, 16)).cut(_ellipsoid((s * (sk.HEAD_X + 4), 8, -2), (3, 7, 11)))
-        out = out.union(ear.cut(box(sorted((s * (sk.HEAD_X - sk.WALL), 0)), (-50, 50), (-50, 50))))
+        x = sorted(s * c for c in (sk.HEAD_X - sk.WALL, sk.HEAD_X + 6.0))
+        ear = cyl("x", (0, 8, -2), 13.0, x).faces(">X" if s > 0 else "<X").edges().fillet(2.0)
+        out = out.union(ear.cut(cyl("x", (0, 8, -2), 8.0, sorted(s * c for c in (sk.HEAD_X + 3.0, sk.HEAD_X + 7.0)))))
     out = out.cut(box((-24, 24), (-60, -40), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
     for seat in (s for s in sk.SEATS if s.carrier == "next morty face"):  # each a pad on a web from the front wall
         x, y, z = seat.at
         out = out.union(box((x - 3, x + 3), (sk.HEAD_Y[0] + 1, y), (z - seat.pad, z)))
     return _finish("next morty face", out, _head(0.0))
-
-
-def _ellipsoid(at, radii):
-    sphere = cq.Solid.makeSphere(1.0, angleDegrees1=-90, angleDegrees2=90)
-    m = cq.Matrix([[radii[0], 0, 0, at[0]], [0, radii[1], 0, at[1]], [0, 0, radii[2], at[2]]])
-    return cq.Workplane().add(sphere.transformGeometry(m))
 
 
 def hair():
