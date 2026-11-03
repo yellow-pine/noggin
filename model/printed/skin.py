@@ -3,9 +3,12 @@ ears) and hair, the eyeball caps with their jagged pupils keyed in, a cover on e
 the shirt's two halves on the Torso. seated() cuts each Seat into what carries it. Each Shell is drawn in its carrier's
 frame: the head's, an eye's (the L one's, the R its mirror) or the Torso's."""
 
+import functools
 import math
 
 import cadquery as cq
+import numpy as np
+from scipy.spatial import ConvexHull
 
 from model import base
 from model import geometry as g
@@ -136,17 +139,53 @@ def pupil(side):
     return _pupil_prism(side, gm.PUPIL_FIT).intersect(ball(gm.CAP_R))
 
 
-def _rounded(x, y, z, r):
-    """A box (spans) its top and upright edges rounded r."""
-    return box(x, y, z).edges(">Z or |Z").fillet(r)
+def _hull(circles):
+    """The outline of the convex hull of (u, v, r) circles, counter-clockwise, as lines and arcs: [(circle, in, out)],
+    each circle on it with the angles its tangents meet it at."""
+    t = np.linspace(0, 2 * np.pi, 720, endpoint=False)
+    pts = np.concatenate([np.c_[u + r * np.cos(t), v + r * np.sin(t)] for u, v, r in circles])
+    seq = [int(i) // len(t) for i in ConvexHull(pts).vertices]
+    order = [c for k, c in enumerate(seq) if c != seq[k - 1]]
+    normals = []  # each tangent's outward normal, from one circle to the next
+    for a, b in zip(order, order[1:] + order[:1]):
+        (au, av, ar), (bu, bv, br) = circles[a], circles[b]
+        normals.append(math.atan2(bv - av, bu - au) - math.acos((ar - br) / math.dist((au, av), (bu, bv))))
+    return [(circles[c], normals[k - 1], normals[k]) for k, c in enumerate(order)]
 
 
+def _outline(plane, circles):
+    """The hull of the circles (_hull) on `plane` as a face."""
+    at = lambda c, a: (c[0] + c[2] * math.cos(a), c[1] + c[2] * math.sin(a))  # noqa: E731
+    pieces = _hull(circles)
+    w = cq.Workplane(plane).moveTo(*at(*pieces[0][:2]))
+    for k, (c, a_in, a_out) in enumerate(pieces):
+        a_out += 2 * math.pi * (a_out <= a_in)
+        w = w.threePointArc(at(c, (a_in + a_out) / 2), at(c, a_out))
+        if k + 1 < len(pieces):
+            w = w.lineTo(*at(*pieces[k + 1][:2]))
+    return cq.Face.makeFromWires(w.close().wires().val())
+
+
+def _profile(plane, hulls, t, rounded=0.0):
+    """The hulls' outlines on `plane` as one, its inside corners rounded `rounded`, `t` in from its outside, through
+    everything along the plane's normal."""
+    face = _outline(plane, hulls[0])
+    for h in hulls[1:]:
+        face = face.fuse(_outline(plane, h)).clean().Faces()[0]
+    wire = face.outerWire()
+    if rounded:
+        wire = wire.offset2D(rounded, "arc")[0].offset2D(-rounded, "arc")[0]
+    wire = wire.offset2D(-t, "arc")[0] if t else wire
+    n = cq.Plane.named(plane).zDir
+    return cq.Workplane().add(cq.Solid.extrudeLinear(cq.Face.makeFromWires(wire), n * 400).translate(n * -200))
+
+
+@functools.cache  # every Shell cuts and clips by the same few
 def _head(t):
-    """The head's solid (Morty's, the face's eye band over the muzzle) `t` in from its outside."""
-    x, (y0, y1), (z0, z1) = sk.HEAD_X - t, sk.HEAD_Y, sk.HEAD_Z
-    upper = _rounded((-x, x), (y0 + t, y1 - t), (z0 - 30, z1 - t), sk.ROUND[0] - t)
-    muzzle = _rounded((-x, x), (sk.MUZZLE_Y + t, y1 - t), (z0 - 30, sk.MUZZLE_Z - t), sk.ROUND[1] - t)
-    return upper.union(muzzle)
+    """Morty's head (model/skin.py FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
+    swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833)."""
+    side = _profile("YZ", sk.SIDE, t, sk.SIDE_ROUND)
+    return _profile("XZ", [sk.FRONT], t).intersect(side).intersect(_profile("XY", [sk.TOP], t))
 
 
 def _eyes():
@@ -159,49 +198,62 @@ def _eyes():
     return out
 
 
-def _hair(lift):
-    """The hair's region, `lift` mm up: over the hairline at the front back to its y, then down to the back's foot, with
-    the bangs' points down to 8 mm under it at the front (between the face's Seats)."""
-    z, y = sk.HAIRLINE
-    foot = sk.HEAD_Z[0] - 2
-    back = y + (z - foot) / (z - sk.HEAD_Z[0]) * (sk.HEAD_Y[1] - y)
-    side = [(-100, z), (y, z), (back, foot), (200, foot), (200, 200), (-100, 200)]
-    out = cq.Workplane("YZ", origin=(-100, 0, 0)).polyline(side).close().extrude(200)
-    for c in (-15.0, 0.0, 15.0):
-        bang = cq.Workplane("XZ", origin=(0, -10, 0)).polyline([(c - 7, z), (c + 7, z), (c, z - 8)]).close()
-        out = out.union(bang.extrude(40))  # XZ's normal is -y: from y -10 forward through the front
-    return out.translate((0, 0, lift))
+def _hair(grow):
+    """The hair's region (model/skin.py HAIRLINE, NAPE), `grow` mm out of it."""
+    y, z, r = sk.HAIRLINE
+    return cyl("x", (0, y, z), r + grow, (-100, 100)).union(box((-100, 100), (sk.NAPE - grow, 200), (-200, 200)))
 
 
-def _skull():
-    """The head's shell (WALL thick, open underneath and at the back under the head mount, for the neck: #838), its eyes'
-    openings cut."""
-    out = _head(0.0).cut(_head(sk.WALL)).cut(_eyes()).intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
-    return out.cut(box((-100, 100), (sk.NECK[0], 200), (sk.HEAD_Z[0] - 1, sk.NECK[1])))
+def _skull(t):
+    """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
+    floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
+    x, up = sk.NECK
+    neck = box((-x, x), (-100, 200), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
+    back = box((-100, 100), (sk.BACK_OPEN[0], 200), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
+    out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck).cut(back)
+    return out.intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
+
+
+FACE_Y = min(u - r for u, _, r in sk.SIDE[0])  # the face's front over the eyes
+NOSE = (7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
+EAR = (18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
+
+
+def _ear(s):
+    """The `s` (1 L, -1 R) ear: a dome out of the cheek, its hollow (the concha) open forward, so it reads as his C."""
+    y, z, r, out = EAR
+    x = sk.HEAD_X + out - r
+
+    def on_x(
+        radius, at
+    ):  # a ball its poles on x, its seam off the cheek's cut: OCCT cuts a ball across its seam to nothing
+        return cq.Workplane().add(cq.Solid.makeSphere(radius, cq.Vector(*at), cq.Vector(1, 0, 0), -90, 90))
+
+    ear = on_x(r, (x, y, z)).cut(box((0, sk.HEAD_X - 6.0), (-100, 100), (-100, 100)))
+    ear = ear.cut(on_x(r - 4.0, (x + 6.0, y - 4.0, z)))
+    return ear if s > 0 else ear.mirror("YZ")
 
 
 def face():
     """Morty's face (face): the head's shell under the hairline, the nose between the eyes, an ear each side and the
-    mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its top."""
-    out = _skull().cut(_hair(-0.1))
-    # spheres and cylinders alone: a scaled sphere is a B-spline that Linux's OCCT writes into an invalid STEP (#833)
-    # the nose under the lower lids, which the eyes 52 mm apart bring in over it (#838)
-    out = out.union(ball(5.0, (0, sk.HEAD_Y[0], -27)).cut(box((-10, 10), (sk.HEAD_Y[0] + sk.WALL, 0), (-40, 0))))
+    mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its temples."""
+    out = _skull(0.0).cut(_hair(0.1))
+    r, z = NOSE
+    out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-10, 10), (FACE_Y + sk.WALL, 0), (-40, 0))))
     for s in (-1, 1):
-        x = sorted(s * c for c in (sk.HEAD_X - sk.WALL, sk.HEAD_X + 6.0))
-        ear = cyl("x", (0, 8, -2), 13.0, x).faces(">X" if s > 0 else "<X").edges().fillet(2.0)
-        out = out.union(ear.cut(cyl("x", (0, 8, -2), 8.0, sorted(s * c for c in (sk.HEAD_X + 3.0, sk.HEAD_X + 7.0)))))
-    out = out.cut(box((-24, 24), (-60, -40), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
-    for seat in (s for s in sk.SEATS if s.carrier == "next morty face"):  # each a pad on a web from the front wall
+        out = out.union(_ear(s).cut(_head(sk.WALL)))
+    y0 = sk.HEAD_Y[0]
+    out = out.cut(box((-24, 24), (y0 - 11, y0 + 9), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
+    for seat in (s for s in sk.SEATS if s.carrier == "next morty face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
-        out = out.union(box((x - 3, x + 3), (sk.HEAD_Y[0] + 1, y), (z - seat.pad, z)))
+        out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0)))
     return _finish("next morty face", out, _head(0.0))
 
 
 def hair():
-    """Morty's hair (hair): the head's shell over the hairline, its bangs jagged; down onto the gimbal frame plate's
-    back (#838), each Seat's boss on a web from its back wall, and onto the face's top."""
-    out = _skull().intersect(_hair(0.1))
+    """Morty's hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto
+    the gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples."""
+    out = _skull(-sk.HAIR).intersect(_hair(-0.1))
     for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
@@ -211,40 +263,44 @@ def hair():
 
 def mouth_cover():
     """The mouth cover (face), his lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
-    inside the face, and the chin under the face's foot, flush with its front, which the jaw swings down; up off its
-    Seat once the face is off."""
+    inside the face, and the chin under the jaw in the face's mouth opening, rounded as the head is, which the jaw
+    swings down; up off its Seat once the face is off."""
     (seat,) = (s for s in sk.SEATS if s.shell == "next morty mouth cover")
     _, y, z = seat.at
-    bottom, foot, inner = sk.HEAD_Z[0] - 6.0, sk.HEAD_Z[0] - 0.5, sk.MUZZLE_Y + sk.WALL + 0.6
+    bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
     plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
     wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
-    chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, foot)).edges("not >Z").fillet(2.0)
+    chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
     return _finish("next morty mouth cover", plate.union(wall).union(chin))
 
 
 SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
 SHIRT_TOP = 6.0  # the collar's rise over the shirt's top, round the neck
+SHIRT_ROUND = (10.0, 3.0, 25.0)  # his T-shirt's rounding: its sides, its shoulders, and the crew neck's corners
 
 
 def shirt(half):
-    """The shirt's `half` (front, back) (shirt and collar): a sleeve round the Torso GAP outside its Seats' pads, a
-    rim over its walls' top and the collar rising round the neck; each half off its Torso wall's Seats, the front
-    forward, the back backward."""
+    """The shirt's `half` (front, back) (shirt and collar), his T-shirt: a sleeve round the Torso GAP outside its Seats'
+    pads, its sides and shoulders rounded, a rim over its walls' top and the round crew neck's collar rising round the
+    neck; each half off its Torso wall's Seats, the front forward, the back backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
+    sides, shoulders, neck = SHIRT_ROUND
     front = next(s for s in sk.SEATS if s.shell == "next morty shirt front")
     off = y0 - front.at[1] + sk.GAP  # the pads' faces out of the walls, and the Seat's gap
-    inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5))
+    inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5)).edges("|Z").fillet(sides - sk.WALL)
     outer = box(
         (x0 - off - sk.WALL, x1 + off + sk.WALL),
         (y0 - off - sk.WALL, y1 + off + sk.WALL),
         (z0 + 0.5, z1 + 0.5 + sk.WALL),
     )
-    hole = box((x0 + 2.0, x1 - 2.0), (y0 + 2.0, y1 - 2.0), (z0, z1 + 20))
+    outer = outer.edges("|Z").fillet(sides).edges(">Z").fillet(shoulders)
+    hole = box((x0 + 2.0, x1 - 2.0), (y0 + 2.0, y1 - 2.0), (z0, z1 + 20)).edges("|Z").fillet(neck)
     collar = box(
         (x0 + 2.0 - sk.WALL, x1 - 2.0 + sk.WALL),
         (y0 + 2.0 - sk.WALL, y1 - 2.0 + sk.WALL),
         (z1, z1 + 0.5 + sk.WALL + SHIRT_TOP),
     )
-    out = outer.cut(inner).union(collar).cut(hole).edges("|Z").fillet(1.0)
+    collar = collar.edges("|Z").fillet(neck + sk.WALL).edges(">Z").fillet(sk.WALL / 2)
+    out = outer.cut(inner).union(collar).cut(hole)
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)
     return _finish(f"next morty shirt {half}", out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30))))

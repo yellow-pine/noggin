@@ -15,16 +15,43 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
 from model import stages
-from model.printed import PARTS, gimbal
+from model.printed import PARTS, gimbal, skin
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
 DOC = next(d for d in g.NEXT if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
 
 
-@pytest.mark.parametrize("stem", [s for s in sk.SHELLS if "face" not in s and "hair" not in s])
-def test_a_shell_is_one_valid_solid(stem):
-    shape = PARTS[stem]().val()
+@pytest.fixture(scope="module")
+def head():
+    """{face, hair, mouth cover: its shape}, built once (CI times a test, not its fixtures: #808)."""
+    return {s: PARTS[f"next morty {s}"]().val() for s in ("face", "hair", "mouth cover")}
+
+
+@pytest.mark.parametrize("stem", sk.SHELLS)
+def test_a_shell_is_one_valid_solid(stem, head):
+    shape = head.get(stem.removeprefix("next morty ")) or PARTS[stem]().val()
     assert shape.isValid() and len(shape.Solids()) == 1
+
+
+HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the ears outside its width (#844)
+
+
+def test_mortys_head_fits_the_head_limit_but_for_his_ears(head):
+    """His face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm; only his ears stand out of its sides."""
+    head = list(head.values())
+    lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
+    hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head) for a in "xyz"]
+    _, depth, height = np.subtract(hi, lo)
+    assert depth <= HEAD_LIMIT[1] and height <= HEAD_LIMIT[2]
+    y, z, r, _ = skin.EAR
+    earless = cq.Workplane().add(head).cut(gimbal.cyl("x", (0, y, z), r + 0.1, (-100, 100))).val().BoundingBox()
+    assert earless.xlen <= HEAD_LIMIT[0] + 1e-3 < max(h.BoundingBox().xlen for h in head)
+
+
+def test_mortys_face_and_hair_meet_without_overlapping(head):
+    """Printed apart and pressed together on the face's Seats: the hair's bosses and walls clear the face's, but for
+    its balls touching the face's grooves (the clearance test skips a Shell's carrier)."""
+    assert head["face"].intersect(head["hair"]).Volume() < 0.1
 
 
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])

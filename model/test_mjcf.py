@@ -65,6 +65,13 @@ TOUCH = {
             ("next jaw:1", "next gimbal frame:1"),  # its lugs at the condyles (#838)
         ]
     },
+    # gaps under a millimetre the frame's and the yoke's coarse pieces fill (#838), each pair one MuJoCo filters (a body
+    # and its weld body's parent): their exact solids clear (model/printed/test_gimbal.py, test_neck.py)
+    **{
+        frozenset((f"next {s} lower lid:1", "next gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright"
+        for s in "LR"
+    },
+    frozenset(("next gimbal frame:1", "next pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
     # the Torso (#685), the Cores in it (#838): the same
     **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
@@ -243,8 +250,10 @@ def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
     model = built(DOC)
     rest, rate = neck.balance(mjcf.head(DOC, model))
     joint = model.joint("tilt pivot")
-    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM)
-    assert model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0] == pytest.approx(rest * mjcf.KGF_CM)
+    # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
+    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)
+    spring = model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0]
+    assert spring == pytest.approx(rest * mjcf.KGF_CM, rel=1e-4)
 
 
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))
