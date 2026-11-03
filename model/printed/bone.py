@@ -2,6 +2,7 @@
 It lies on the print bed (the joints' z), so its pins stand along Z: flat underneath and domed on top, every face
 within 45 deg of upright or facing up (overhang_deg reads it)."""
 
+import functools
 import itertools
 import math
 
@@ -94,6 +95,29 @@ def _headed(shape, a, b, reach):
     along = np.subtract(b, a) / math.dist(a, b)
     ends = (np.subtract(a, along * reach / 2), np.add(b, along * reach / 2))
     return all(shape.isInside(cq.Vector(*map(float, e), 0.1)) for e in ends)
+
+
+def carved(build, grow=False):
+    """A Skeleton part's builder (its switch `mechanical`) whose Bones lie within its mechanical part (#809), so the
+    physics run on the mechanical one holds for both: drawn, then cut to lie within it; or, `grow` (a Bone whose
+    layout or print as drawn cannot fit inside), the mechanical part takes the Bones in, its interfaces unchanged."""
+
+    @functools.wraps(build)
+    def styled(*args, mechanical=False):
+        if grow:
+            bones = build(*args, mechanical=False)
+            return build(*args, mechanical=True).union(bones) if mechanical else bones
+        out = build(*args, mechanical=True)
+        if mechanical:
+            return out
+        out = build(*args, mechanical=False).intersect(out)
+        assert out.val().isValid() and len(out.val().Solids()) == 1, build  # OCCT's intersect can split or break it
+        return out
+
+    return styled
+
+
+grown = functools.partial(carved, grow=True)
 
 
 def overhang_deg(shape, keep=lambda centre: True):

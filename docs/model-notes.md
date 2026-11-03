@@ -134,19 +134,23 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   `next-mech-back-mechanical`). As Bones the tie-bar and push-rods (#703, the
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
-  are not along Z (the yoke's pitch axle, the bail's three), holds its servo's stall at SF 2 (axial and buckling for the
-  tie-bar and push-rods, bending for the crank and the bail's arms; model/printed/test_gimbal.py), its CoACD pieces
-  capped (mjcf.MAX_PIECES); so are the lid bars, links and the lids' spokes (#698, each lying in its 3 mm slab, the
-  bent lid bar for its bending too). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
+  are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
+  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
   jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
   it prints upright), the rack's posts struts under its rails and a Bone across under each edge of the boards; the
-  core, a ball under its cap, has none (model/printed UNSTYLED). Each of these is carved from its mechanical part (#809,
-  model/printed carved()): the Bones cut to within it, so they add nothing and its interfaces and clearances are the
-  mechanical part's. OCCT fuses Bones unevenly, so model/printed/bone.py chain() draws each on the bed domed up and moves
-  it, swells their heads 2% over the spans' ends, and retries a span a hair smaller or the other way round until it
-  and its union are valid and keep both heads.
+  core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
+  model/printed/bone.py carved(): the Bones cut to within it, so they add nothing and its interfaces and clearances
+  are the mechanical part's; the push-rod's mechanical rod a flat bar round the Bone's waist), or, where a Bone that
+  prints as drawn cannot fit inside (the tie-bar, the yaw yoke and the bail), the mechanical part takes it in
+  (grown(), its CoACD pieces capped, mjcf.MAX_PIECES). So physics runs on the mechanical documents alone
+  (geometry.SIMULATED: the whole Mech and Stage 1): the mechanical parts hold their servo's stall at SF 2 (axial and
+  buckling for the tie-bar and push-rods, bending for the crank, the bail's arms and the lid bars;
+  model/printed/test_gimbal.py), and the overlap tests, the sweep, the sim and its gates read them; realistic is drawn
+  only, its figures the mechanical one's. OCCT fuses Bones unevenly, so model/printed/bone.py chain() draws each on the
+  bed domed up and moves it, swells their heads 2% over the spans' ends, and retries a span a hair smaller or the
+  other way round until it and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the

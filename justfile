@@ -76,10 +76,15 @@ check: check-light
 check-all: check
     {{HEAVY}} {{PY}} -m pytest -q -m model
 
-# simulate every document, or the ones named (stages.DOCS), on our geometry into model/build/reports: the eye gimbal, the neck, the head variant, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009)
+# simulate every document physics runs on (geometry.SIMULATED, the mechanical ones: #809), or the ones named, on our geometry into model/build/reports: the eye gimbal, the neck, the head variant, electrical and MuJoCo (model/report.py) with each MJCF, then threshold the reports (CI builds them, the site publishes main's: docs/adr/0009); SIM_PART=i/n measures part i of n into model/build/sim-part-<i>-of-<n> instead, which just sim-merge joins
 [group('heavy')]
 sim *docs: venv ours
     {{HEAVY}} {{PY}} -m model.report {{docs}}
+    {{PY}} -m pytest -q model/test_report.py
+
+# the sim's parts (SIM_PART, model/build/sim-part-*) merged into model/build/reports, then thresholded as just sim does (Checks' Sim job, #809)
+sim-merge: venv
+    {{PY}} -m model.report --merge
     {{PY}} -m pytest -q model/test_report.py
 
 # our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
@@ -184,9 +189,9 @@ restore-stock: interrupt
     cd eyes/stock-backup && for f in *; do {{MPR}} resume cp -r $f : || exit 1; done
     {{PY}} eyes/interrupt.py reset
 
-# a document (default next-mech-back; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
+# a document (default next-mech-back-mechanical, which physics runs on: #809; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 [group('heavy')]
-view doc="next-mech-back": venv ours
+view doc="next-mech-back-mechanical": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 

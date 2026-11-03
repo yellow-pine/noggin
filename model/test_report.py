@@ -1,6 +1,6 @@
 """Seam: the JSON reports `just sim` writes (model/report.py, model/build/reports/<doc>-sim.json): build outputs, never
-committed (docs/adr/0009). Right after just sim (CI's sim shard) every built report must have no problems; a document
-not built here is skipped. The fixture test checks the checker itself."""
+committed (docs/adr/0009). Right after just sim (CI's Sim job) every built report must have no problems; a document
+not built here is skipped. Physics runs on the mechanical documents alone (geometry.SIMULATED, #809). The fixture test checks the checker itself."""
 
 import json
 import math
@@ -38,7 +38,7 @@ KNOWN_PEAKS = {
     (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
     " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
-    for doc in stages.DOCS
+    for doc in g.SIMULATED
     if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
     for horn in ("pan horn", "tilt horn")
 }
@@ -216,25 +216,25 @@ def built(doc):
 
 
 def test_reports_are_build_outputs_git_ignores():
-    path = os.path.join(report.OUT, f"{next(iter(g.NEXT))}-sim.json")
+    path = report.path(g.SIMULATED[0])
     assert subprocess.run(["git", "check-ignore", "-q", path], cwd=stages.REPO).returncode == 0
 
 
-@pytest.mark.parametrize("doc", sorted(stages.DOCS))
+@pytest.mark.parametrize("doc", sorted(g.SIMULATED))
 def test_built_report_is_clean(doc):
     """The leading head variant (Cansin's pick to be, #51) passes every gate. Another head variant may
     open a four-bar the ranking carries (#705: ranked last, its Viewer button saying so), and only that: whatever else
     it fails, or a loop the ranking misses, fails here."""
     r = built(doc)
-    if doc in g.NEXT:
-        ranked = base.rank({d: built(d) for d in g.NEXT})
+    if doc in report.RANKED:
+        ranked = base.rank({d: built(d) for d in report.RANKED})
         if doc != ranked["order"][0]:
             for loop in ranked["variants"][doc]["gates"]["loops"]:
                 del r["mujoco"]["residuals"][loop]
     assert problems(r) == []
 
 
-@pytest.mark.parametrize("doc", sorted(g.NEXT))
+@pytest.mark.parametrize("doc", sorted(report.RANKED))
 def test_the_next_mechs_footprint_is_reported_and_is_its_torsos(doc):
     """#685: the shirt is the base, so the footprint the tip-over gate reads is the Torso's foot, x by y mm."""
     (x0, x1), (y0, y1), _ = base.TORSO
@@ -287,7 +287,7 @@ def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
     swing lands, or a KNOWN_PEAKS servo peaks under the mark, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
     going, swings, low, peaks = set(), set(), set(), set()
-    for doc in stages.DOCS:
+    for doc in g.SIMULATED:
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}

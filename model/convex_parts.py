@@ -6,6 +6,7 @@ import json
 import sys
 from unittest import mock
 
+from model import geometry as g
 from model import mjcf, stages
 
 
@@ -18,8 +19,9 @@ def _refuse(*_, **__):
 
 
 def parts():
-    """{part: (mesh file, clip)} over every document, as model/mjcf.py's spec() decomposes them."""
-    return {stages.stem(p.file): (p.file, p.clip) for doc in stages.DOCS for p in stages.STAGES[doc].parts.values()}
+    """{part: (mesh file, clip)} over every document physics runs on (geometry.SIMULATED, #809), as model/mjcf.py's
+    spec() decomposes them."""
+    return {stages.stem(p.file): (p.file, p.clip) for doc in g.SIMULATED for p in stages.STAGES[doc].parts.values()}
 
 
 def stale(meshes):

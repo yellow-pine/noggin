@@ -32,6 +32,7 @@ def tie(x, y, z):
     )
 
 
+@bone.carved
 def mount(mechanical=False):
     """The neck mount (static, printed upright): a foot for the base, a column whose top the yoke turns on (the pan
     shank's tapping hole down its axis; narrowed where the pan bar swings past), the pan servo's collar and the pan
@@ -58,6 +59,7 @@ def strut(a, b, head, waist):
     return bone.bone(a, b, head, waist, up=up, round=True, heads=False)
 
 
+@bone.carved
 def yoke(mechanical=False):
     """The pan yoke (printed upright): a disc on the column (the pan shank's bore) and a floor back under the tilt
     servo (the pan lever's pin; a pocket through it where the tilt horn and bar swing), the cheeks up to the tilt axis
@@ -90,6 +92,7 @@ def yoke(mechanical=False):
     return out.cut(cyl("z", (0, Y + nk.PAN_LEVER, 0), TAP_R, nk.DISC_Z))
 
 
+@bone.carved
 def head_mount(mechanical=False):
     """The head mount (printed on its side, its bores along Z): a flange screwed under the gimbal frame's plate, the
     tilt lugs outside the cheeks (the tilt shanks turn in them; the cheeks' bosses rise into slots in the flange), the
@@ -149,6 +152,7 @@ def _around(y, r=nk.BOSS_R + 0.5):
     return (y - r, y + r)
 
 
+@bone.carved
 def jaw(mechanical=False):
     """The jaw (printed on its side): a boss outside each lug (the jaw shanks turn in them), an arm forward from each to
     the chin bar under the head mount's flange, and a boss on the L arm round the jaw bar's pin. As Bones (#708): the
@@ -171,6 +175,7 @@ def jaw(mechanical=False):
     return out.cut(cyl("x", (0, pin, jz), TAP_R, (x0, x1)))
 
 
+@bone.carved
 def pan_bar(mechanical=False):
     """The pan bar, flat under the yoke's floor: the yoke's lever pin to the pan horn's; mechanical or a Bone (#708)."""
     y = Y + nk.PAN_LEVER
@@ -185,11 +190,13 @@ def pan_bar(mechanical=False):
     return out
 
 
+@bone.carved
 def tilt_bar(mechanical=False):
     y = Y + nk.TILT_LEVER
     return link((y, Z - nk.TILT_BAR), (y, Z), nk.TILT_BAR_X, mechanical, BAR_BONE)
 
 
+@bone.carved
 def jaw_bar(mechanical=False):
     y = nk.JAW[0] - nk.JAW_LEVER
     return link((y, nk.JAW_HORN_Z), (y, nk.JAW[1]), nk.JAW_BAR_X, mechanical, BAR_BONE)
