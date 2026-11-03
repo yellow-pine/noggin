@@ -150,13 +150,25 @@ def test_no_two_parts_overlap_at_rest_unless_they_touch_by_design(doc):
 # the viewer's tests on the worker that builds DOC for its own tests (CI's --dist loadgroup): one build, not three
 @pytest.mark.xdist_group(DOC)
 def test_the_viewer_look_stays_as_cansin_kept_it():
-    """just view's settings, frozen 2026-11-01: the headlight that keeps colours, black and white pulled in."""
+    """just view's settings, frozen 2026-11-01: the headlight that keeps colours, black and white pulled in; each part
+    in its Colour group's filament in the document's Theme (geometry.THEMES, #805)."""
     model, _ = forward(DOC)
     light = model.vis.headlight
     assert (list(light.ambient), list(light.diffuse), list(light.specular)) == ([0.5] * 3, [0.5] * 3, [0.0] * 3)
     drawn = {model.body(model.geom_bodyid[i]).name: model.geom_rgba[i] for i in np.flatnonzero(model.geom_group == 2)}
-    assert np.allclose(drawn["next torso:1"], [0x5A / 255, 0x5A / 255, 0x60 / 255, 1])  # Absolute Black
-    assert np.allclose(drawn["next L eyeball cap:1"], [0xE8 / 255] * 3 + [1])  # Pure White
+
+    def rgba(hexc):
+        return [*trimesh.visual.color.hex_to_rgba(hexc)[:3] / 255, 1]
+
+    theme = g.theme(DOC)
+    for part, group in (
+        ("next torso:1", "Bones"),
+        ("next board rack:1", "Mounts"),
+        ("next L eyeball cap:1", "eye whites"),
+    ):
+        hexc = g.filament(group, theme)[3]
+        assert np.allclose(drawn[part], rgba(mjcf.VIEW.get(hexc, hexc))), part
+    assert mjcf.VIEW == {"#000000": "#5A5A60", "#FFFFFF": "#E8E8E8"}  # black and white pulled in
 
 
 @pytest.mark.xdist_group(DOC)
