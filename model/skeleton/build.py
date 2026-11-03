@@ -66,8 +66,9 @@ CLEAR = 1.6  # each landmark target's room off what it clears: the carve's clear
 # the three layers Cansin toggles, innermost first, and their opacity (Cansin, 2026-11-03)
 MECH_RGBA, BONE_RGBA, MORTY_RGBA = (0.30, 0.32, 0.36, 1.0), (0.86, 0.80, 0.68, 0.69), (1.0, 0.72, 0.55, 0.33)
 INSET = 1.6 + 1.6  # inside Morty: his wall, then the gap (inferred)
-CUT_ABOVE_BROW = 12.0
-CRANIUM_FIT, LIFE_MAX = 0.97, 1.05  # the cranium's length in Morty's head, of life; any width at most this of life  # the calvaria's cut, level, this far over the glabella (inferred)
+CUT_ABOVE_BROW = 12.0  # the calvaria's cut, level, this far over the glabella (inferred)
+# the cranium's length in Morty's head, of life; any width at most this of life; its height at most this of life
+CRANIUM_FIT, LIFE_MAX, CRANIUM_H_MAX = 0.97, 1.05, 1.08
 # the real Morty's sculpt, measured on its front depth map (#872; raw mm, z up, -y forward): each eye's centre (its
 # pupil's apex, its dome's radius behind it), the neck's top, the ribcage's span (his shoulders down to his ribs'
 # end over his hips), his torso's half-width inside his arms (inferred from the front view)
@@ -87,7 +88,7 @@ def show(msg, objs=None, view="3/4"):
     """Print a step and draw it in the live window: solid, front or 3/4, framed on objs (all visible if None)."""
     print("build:", msg, flush=True)
     c = view3d()
-    if not c:
+    if not c or bpy.app.background:
         return
     sp = c["area"].spaces.active
     sp.shading.type, sp.clip_start, sp.clip_end = "SOLID", 0.5, 20000.0
@@ -196,6 +197,7 @@ for ob in list(scene.objects):
     if ob.type != "MESH":
         bpy.data.objects.remove(ob)
         continue
+    ob.animation_data_clear()  # the GLB's baked poses (#863) would put every moved part back on evaluation
     if ob.data.users > 1:
         ob.data = ob.data.copy()
     ob.data.transform(Matrix.Scale(1000.0, 4) @ ob.matrix_world)
@@ -304,7 +306,9 @@ def load(name, fj, coll):
 
 skull_c, mandible_c = collection("Skull", skeleton), collection("Mandible", skeleton)
 neck_c, ribcage_c = collection("Neck", skeleton), collection("Ribcage", skeleton)
-groups["skull"] = [load(n, f, skull_c) for n, f in SKULL.items()] + [load(n, f, mandible_c) for n, f in MANDIBLE.items()]
+groups["skull"] = [load(n, f, skull_c) for n, f in SKULL.items()] + [
+    load(n, f, mandible_c) for n, f in MANDIBLE.items()
+]
 for n, f in NECK.items():
     groups[n] = [load(n, f, collection(n, neck_c))]
 groups["ribcage"] = [load(n, f, ribcage_c) for n, f in RIBCAGE.items()]
@@ -404,9 +408,14 @@ def through(origin, d, tree):
 MORTY_SCALE = 6.0
 for _ in range(4):
     zb = mid_raw[2] + (glabella[2] - c_skull[2]) / MORTY_SCALE
-    depth = through((mid_raw[0], 9999, zb), (0, -1, 0), raw_bvh)[1] - through((mid_raw[0], -9999, zb), (0, 1, 0), raw_bvh)[1]
+    depth = (
+        through((mid_raw[0], 9999, zb), (0, -1, 0), raw_bvh)[1]
+        - through((mid_raw[0], -9999, zb), (0, 1, 0), raw_bvh)[1]
+    )
     MORTY_SCALE = (CRANIUM_FIT * (opisthocranion[1] - glabella[1]) + 2 * INSET) / depth
-full.data.transform(Matrix.Translation(Vector(mid)) @ Matrix.Scale(MORTY_SCALE, 4) @ Matrix.Translation(Vector(-mid_raw)))
+full.data.transform(
+    Matrix.Translation(Vector(mid)) @ Matrix.Scale(MORTY_SCALE, 4) @ Matrix.Translation(Vector(-mid_raw))
+)
 full.data.update()
 eye = {s: (c - mid_raw) * MORTY_SCALE + mid for s, c in eyes_raw.items()}
 r_eye = MORTY_EYE_R * MORTY_SCALE
@@ -417,8 +426,10 @@ morty.color, morty.hide_render = MORTY_RGBA, True
 full.hide_set(True)
 full.hide_render = True
 mv = corners([morty])
-print(f"build: Morty x{MORTY_SCALE}: {np.ptp(mv[:, 2]):.0f} mm tall; eyes {np.linalg.norm(eye['L'] - eye['R']):.1f} apart, "
-      f"r {r_eye:.1f}")
+print(
+    f"build: Morty x{MORTY_SCALE}: {np.ptp(mv[:, 2]):.0f} mm tall; eyes {np.linalg.norm(eye['L'] - eye['R']):.1f} apart, "
+    f"r {r_eye:.1f}"
+)
 show("the real Morty, scaled", [morty])
 mbvh = BVHTree.FromPolygons([Vector(p) for p in mv], [list(p.vertices) for p in morty.data.polygons])
 
@@ -467,7 +478,7 @@ hinge_yz = np.array((ears["L"][1] + ears["R"][1], ears["L"][2] + ears["R"][2])) 
 
 # --- the Mech's first moves (#872 step 3, stand-ins only): its eyes out onto Morty's pupils, its jaw onto his jawline
 CHANGES = []
-for s, sx in (("L", 1), ("R", -1)):
+for s in "LR":
     d = eye[s] - np.array(T["eyes"][s])
     for o in mech.objects:
         if o.name.startswith(f"next {s} "):
@@ -614,15 +625,29 @@ for i, c in enumerate(np.array(np.meshgrid([-500, 500], [-600, 400], [-600, 700]
 bpy.context.view_layer.update()
 
 # --- the warp
+VAULT = ("frontal bone", "L parietal bone", "R parietal bone", "occipital bone", "L temporal bone", "R temporal bone")
+raw_vault = np.vstack([raw[n] for n in VAULT])
+
+
+def warped_vault():
+    dg = bpy.context.evaluated_depsgraph_get()
+    out = []
+    for n in VAULT:
+        o = bpy.data.objects[n].evaluated_get(dg)
+        out.append(np.array([o.matrix_world @ v.co for v in o.data.vertices]))
+    return np.vstack(out)
+
+
 det, err = rewarp.rewarp()
-dg = bpy.context.evaluated_depsgraph_get()
-vault = []
-for n in ("frontal bone", "L parietal bone", "R parietal bone", "occipital bone", "L temporal bone", "R temporal bone"):
-    o = bpy.data.objects[n].evaluated_get(dg)
-    vault.append(np.array([o.matrix_world @ v.co for v in o.data.vertices]))
-vault = np.vstack(vault)
-raw_vault = np.vstack([raw[n] for n in ("frontal bone", "L parietal bone", "R parietal bone", "occipital bone",
-                                        "L temporal bone", "R temporal bone")])  # fmt: skip
+# the cranium's height held within life's +-10% (Cansin): the vertex's target lowered by any excess, re-warped
+for _ in range(3):
+    excess = np.ptp(warped_vault()[:, 2]) - CRANIUM_H_MAX * np.ptp(raw_vault[:, 2])
+    if excess <= 0:
+        break
+    bpy.data.objects["LM vertex target"].location.z -= excess
+    bpy.context.view_layer.update()
+    det, err = rewarp.rewarp()
+vault = warped_vault()
 REPORT = {
     "morty_scale": round(float(MORTY_SCALE), 3),
     "morty_height_mm": round(float(np.ptp(mv[:, 2])), 1),
@@ -633,6 +658,10 @@ REPORT = {
                   "Mech": round(float(np.ptp([corners([bpy.data.objects[f"next {s} eyeball core:1"]]).mean(axis=0)[0]
                                               for s in "LR"])), 1)},
     "jawline_yz": np.round(hinge_yz, 1).tolist(),
+    "morty_neck_z": round(float(neck_z), 1),  # his head's underside
+    "morty_shoulder_z": round(float(tz[1]), 1),
+    "morty_torso_half": round(float(MORTY_TORSO_HALF * MORTY_SCALE), 1),
+    "morty_eye_r": round(float(r_eye), 1),
     "changes": CHANGES,
 }  # fmt: skip
 scene["report"] = json.dumps(REPORT)
