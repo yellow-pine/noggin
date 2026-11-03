@@ -21,6 +21,9 @@ _program := shell('$1 -m noggin.core', PY)
 PROGRAM := if _program == "" { error("noggin/core.py listed no eye program") } else { _program }
 # a Core on USB (the noggin service's PORT_GLOB)
 PORTS := "/dev/cu.usbmodem*"
+# just gx10's ssh host and the paths it copies back (space-separated, repo-relative)
+GX10 := "gx10"
+FETCH := ""
 # which way just flash goes: Wi-Fi while the eyes Core's beacon is fresh or no Core is on USB, else USB
 FLASH_VIA := shell('if ls $1 >/dev/null 2>&1 && ! $2 status 2>/dev/null | grep -q "^eyes wifi "; then echo usb; else echo wifi; fi', PORTS, NOGGIN)
 # the Core's MicroPython (pyproject [tool.noggin]): flash-usb's hmac and the stand-in build from it, CI caches
@@ -60,6 +63,19 @@ check-light: venv lint
 [positional-arguments]
 linux-test +args:
     docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-base:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+
+# the command given, on Cansin's GX10 (ssh host gx10, #888) for a heavy Python job (sim, CoACD, every test; not Blender: no Linux ARM64 build): pushes this branch's commits, checks them out in ~/noggin there (cloned on first use), uv syncs, streams the output, then scps FETCH's paths back (just FETCH="model/build/reports" gx10 uv run just sim)
+[positional-arguments]
+gx10 +args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ssh -o ConnectTimeout=5 -o BatchMode=yes {{GX10}} true 2>/dev/null || { echo "gx10: {{GX10}} is unreachable; run light checks here and leave the rest to CI" >&2; exit 1; }
+    branch=$(git branch --show-current)
+    [ -n "$branch" ] || { echo "gx10: check out a branch first (it runs what is pushed)" >&2; exit 1; }
+    git push -q origin "$branch"
+    # flock: one run at a time holds the one clone, so a parallel agent's checkout never swaps the files under a running job
+    ssh {{GX10}} "set -e; export PATH=\$HOME/.local/bin:\$PATH; exec 9>noggin.lock; flock -n 9 || { echo 'gx10: another run holds the GX10, waiting' >&2; flock 9; };[ -d noggin ] || git clone -q https://github.com/yellow-pine/noggin.git; cd noggin; git fetch -q origin $(printf %q "$branch"); git checkout -qf --detach FETCH_HEAD; uv sync -q; $(printf '%q ' "$@")"
+    for f in {{FETCH}}; do mkdir -p "$(dirname "$f")"; scp -rq "{{GX10}}:noggin/$f" "$(dirname "$f")/"; done
 
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
