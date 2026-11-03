@@ -18,6 +18,9 @@ GREYS = {
     "receiver": "#55595E",
     "switch": "#55595E",
     "battery": "#9A9EA3",
+    "hub": "#3A3D42",
+    "power": "#55595E",
+    "capacitor": "#7E8287",
 }  # the hardware envelopes (by file name): neutral greys, darker for the boards
 
 
