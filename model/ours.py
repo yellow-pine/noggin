@@ -65,7 +65,7 @@ if __name__ == "__main__":
         write(stages.OURS, list(SHAPES), ".stl")
         for stem, mesh in skull.carved().items():  # carved round the parts just written (#838)
             mesh.export(stages.stl(stem))
-        print(f"{len(geometry.SKULL)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
+        print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
     elif what == "stl":
         write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
     elif what == "step":

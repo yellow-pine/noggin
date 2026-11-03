@@ -107,8 +107,11 @@ def published():
 
 
 def bare(doc, mats):
-    """mats ({part: world 4x4}) without the document's Shells (skin.SHELLS): its mechanism alone (#843)."""
-    return {n: m for n, m in mats.items() if stages.stem(stages.STAGES[doc].parts[n].file) not in skin.SHELLS}
+    """mats ({part: world 4x4}) without the document's Shells (skin.SHELLS): its mechanism alone (#843), the skull's
+    bones as they show bare (g.SKULL) where a Skin's worn ones sit (g.WORN, #838; prepare adds them)."""
+    full = {f"{w}:1": f"{s}:1" for s, w in g.WORN.items()}
+    stage = stages.STAGES[doc]
+    return {full.get(n, n): m for n, m in mats.items() if stages.stem(stage.parts[n].file) not in skin.SHELLS}
 
 
 def exploded(doc, mats, level=1):
@@ -228,6 +231,11 @@ def prepare(name, doc=None):
     manifest = scene.export(doc, folder, g.PRESETS.get(preset))
     for p in manifest.values():
         p["ply"] = os.path.join(folder, p["ply"])
+    for full, worn in g.WORN.items():  # the bare look's bones (bare), coloured as the worn ones they stand in for
+        if f"{worn}:1" in manifest:
+            ply = os.path.join(folder, f"{full}.ply")
+            trimesh.load(stages.stl(full), force="mesh").apply_scale(0.001).export(ply)
+            manifest[f"{full}:1"] = {**manifest[f"{worn}:1"], "ply": ply}
     return stage, manifest, hulls(manifest)
 
 

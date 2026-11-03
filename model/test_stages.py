@@ -19,7 +19,7 @@ def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
     assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7 + ["horn"] * 7)
-    assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS) | set(g.SKULL)  # the skull: meshes
+    assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"next {d} horn" for d in gimbal.drives())}
 
@@ -41,7 +41,7 @@ def test_each_next_mech_variant_is_built_mechanical_too_from_the_same_layout():
     them, each Skeleton part with a mechanical style (model/printed STYLED) drawn mechanical, every other the same; the
     realistic skull's bones on the realistic one alone (#838)."""
     bones, mechanical = stages.STAGES["next-mech-back"], stages.STAGES["next-mech-back-mechanical"]
-    skull = [f"{s}:1" for s in g.SKULL]
+    skull = [f"{g.WORN.get(s, s)}:1" for s in g.SKULL]
     assert list(mechanical.parts) == [n for n in bones.parts if n not in skull] and set(mechanical.horns) == set(
         bones.horns
     )
@@ -74,7 +74,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
         "next jaw bar:1",
         "next mouth servo:1",
         "next mouth horn:1",
-    } | {n + ":1" for n in [*skin.DRAWN, *g.SKULL]}
+    } | {n + ":1" for n in [*skin.DRAWN, *map(g.WORN.get, g.SKULL, g.SKULL)]}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 

@@ -193,9 +193,13 @@ PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for nam
 MECHANICAL = " mechanical"
 PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
 # The realistic Skeleton's skull (#838, model/printed/skull.py): meshes under their sources' licences (docs/adr/0023), on
-# the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none
+# the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none. Its bones as they show bare (SKULL), and
+# the skull and mandible carved round every Skin's Shells too (WORN), printed to wear a Skin (Cansin, 2026-11-03): the
+# documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones
 SKULL = ("next skull", "next mandible", "next atlas", "next axis")
-PRINTED |= dict.fromkeys(SKULL, ("Bones", "PETG HF"))
+WORN = {"next skull": "next worn skull", "next mandible": "next worn mandible"}
+BONES = (*SKULL, *WORN.values())
+PRINTED |= dict.fromkeys(BONES, ("Bones", "PETG HF"))
 SKULL_SUB = "next-skull"
 
 # The next Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own

@@ -16,6 +16,7 @@ from skimage.measure import marching_cubes
 from model import geometry as g
 from model import gimbal as gm
 from model import neck as nk
+from model import skin as sk
 from model import stages
 
 SOURCES = os.path.join(stages.REPO, "model", "skull")
@@ -126,13 +127,14 @@ class Grid:
         return out
 
 
-def _kept(occ):
-    """The voxels' pieces of at least KEEP of the largest one's volume: the crumbs carving leaves dropped."""
+def _kept(occ, keep=KEEP):
+    """The voxels' pieces of at least `keep` of the largest one's volume: the crumbs carving leaves dropped (keep 1:
+    the largest alone)."""
     label, n = ndimage.label(occ)
     if n < 2:
         return occ
     sizes = ndimage.sum(occ, label, range(1, n + 1))
-    return np.isin(label, 1 + np.flatnonzero(sizes >= KEEP * sizes.max()))
+    return np.isin(label, 1 + np.flatnonzero(sizes >= keep * sizes.max()))
 
 
 def poses(stage):
@@ -146,14 +148,14 @@ def poses(stage):
 
 
 def carved():
-    """{bone: its mesh, carved and remeshed}, in the head's frame at rest."""
+    """{bone: its mesh, carved and remeshed}, in the head's frame at rest: each of g.SKULL as it shows bare, and the
+    skull and mandible as a Skin wears them (g.WORN), carved CLEAR_MM round its Shells too."""
     stage = stages.STAGES[DOC]
     rest = {n: p.matrix for n, p in stage.parts.items()}
     cutters = {
-        n: trimesh.load(p.file, force="mesh")
-        for n, p in stage.parts.items()
-        if not stages.stem(p.file).startswith("next morty ") and stages.stem(p.file) not in g.SKULL
+        n: trimesh.load(p.file, force="mesh") for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES
     }
+    shells = {n for n, p in stage.parts.items() if stages.stem(p.file) in sk.SHELLS}
     clouds = {n: surface(m) for n, m in cutters.items()}
     frame = np.array(stages.DOCS[DOC]["next-eyes"][0], float)  # the head's frame in the document's
     out = {}
@@ -174,7 +176,7 @@ def carved():
                 places = seen.setdefault(n, [])
                 if not any(np.allclose(at, q, atol=1e-6) for q in places):
                     places.append(at)
-        rigid, moving = np.zeros(grid.shape, bool), np.zeros(grid.shape, bool)
+        rigid, moving, skins = (np.zeros(grid.shape, bool) for _ in range(3))
         for n, places in seen.items():
             for at in places:
                 at = at.copy()
@@ -183,10 +185,15 @@ def carved():
                 if (box.max(axis=0) > grid.lo).all() and (
                     box.min(axis=0) < grid.lo + np.multiply(grid.shape, PITCH)
                 ).all():
-                    target = rigid if len(places) == 1 else moving
+                    target = skins if n in shells else rigid if len(places) == 1 else moving
                     target |= grid.solid(clouds[n], at)
         # what rides with the bone it lies on (the voxel Grid.solid grew it by taken back); what moves, CLEAR_MM off
         occ &= ~ndimage.binary_erosion(rigid)
-        occ &= ~ndimage.binary_dilation(moving, iterations=max(1, round(CLEAR_MM / PITCH) - 1))
+        room = max(1, round(CLEAR_MM / PITCH) - 1)
+        occ &= ~ndimage.binary_dilation(moving, iterations=room)
         out[bone] = grid.mesh(ndimage.binary_fill_holes(_kept(occ)))  # no void sealed inside
+        if bone in g.WORN:  # what a Skin's Shells take, CLEAR_MM round them, wherever they sit or move; what lay
+            # outside a Shell, cut off by its wall, goes with it: the largest piece is the one inside
+            worn = occ & ~ndimage.binary_dilation(skins, iterations=room)
+            out[g.WORN[bone]] = grid.mesh(ndimage.binary_fill_holes(_kept(worn, keep=1.0)))
     return out

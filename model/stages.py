@@ -288,10 +288,10 @@ def next_stand():
 
 
 def next_skull():
-    """next-skull: the realistic Skeleton's skull (#838, model/printed/skull.py), its bones drawn where they sit at
-    rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame, the mandible on the jaw,
-    the atlas and the axis on the pan yoke."""
-    return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in g.SKULL}, {})
+    """next-skull: the realistic Skeleton's skull (#838, model/printed/skull.py) as a Skin wears it (g.WORN), its bones
+    drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame,
+    the mandible on the jaw, the atlas and the axis on the pan yoke."""
+    return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in map(g.WORN.get, g.SKULL, g.SKULL)}, {})
 
 
 def next_morty():
@@ -329,6 +329,8 @@ RIDES = {
     # the realistic skull's bones (#838), each lying on its carrier
     "next skull:1": "next gimbal frame:1",
     "next mandible:1": "next jaw:1",
+    "next worn skull:1": "next gimbal frame:1",
+    "next worn mandible:1": "next jaw:1",
     "next atlas:1": "next pan yoke:1",
     "next axis:1": "next pan yoke:1",
 }  # clamped to that part (a sub-assembly's every part, or one part)

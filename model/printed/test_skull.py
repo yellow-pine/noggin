@@ -57,7 +57,7 @@ def test_each_source_sits_under_its_own_licence(source):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("stem", g.SKULL)
+@pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_carved_into_one_piece_within_the_head(stem):
     """just ours: one piece (but crumbs of a voxel or two), inside the head's box."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")

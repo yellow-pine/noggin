@@ -3,7 +3,7 @@
 import functools
 
 from model import skin as sk
-from model.geometry import MECHANICAL, SKULL
+from model.geometry import BONES, MECHANICAL
 from model.printed import base, coupon, gimbal, neck, skin
 
 PARTS = {
@@ -49,7 +49,7 @@ STYLED = {
 }
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {"next eyeball core": "the eyeball's ball under its cap: none"} | dict.fromkeys(
-    SKULL, "the realistic Skeleton's skull, a mesh (model/printed/skull.py): the mechanical Skeleton has none (#838)"
+    BONES, "the realistic Skeleton's skull, a mesh (model/printed/skull.py): the mechanical Skeleton has none (#838)"
 )
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
 # Morty's Skin (#665): his Shells, each Seat cut into what carries it in every style (model/skin.py)

@@ -115,9 +115,9 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose):
 @pytest.mark.model
 @pytest.mark.parametrize("pose", list(_poses(REAL)))
 def test_every_shell_clears_the_realistic_skulls_bones(pose):
-    """The Skins fit the realistic Skeleton too (#838): each Shell CLEAR_MM off the skull's bones, which the
-    mechanical document has none of."""
-    assert _near(REAL, pose, only=set(g.SKULL)) == []
+    """The Skins fit the realistic Skeleton too (#838): each Shell CLEAR_MM off the skull's bones as a Skin wears them
+    (g.WORN), which the mechanical document has none of."""
+    assert _near(REAL, pose, only=set(g.BONES)) == []
 
 
 def _near(doc, pose, only=None):

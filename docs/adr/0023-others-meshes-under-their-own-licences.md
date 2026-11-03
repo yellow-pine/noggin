@@ -9,9 +9,10 @@ reads as one only when it is one, and no clean-room drawing of ours would. Each 
 `model/skull/`, decimated for git, with a `LICENSE.md` naming its author, its page, its licence, that it is not under
 the repo's PolyForm Noncommercial licence, and our changes; docs/credits.md credits both. The model adapts them
 (`model/printed/skull.py`: scaled to the head, the orbits opened, carved for the mechanism and remeshed), and every
-adaptation, the carved STLs, pictures and GLBs drawn from them, is shared under its source's licence, ShareAlike. They
-ride the realistic documents alone; the mechanical Skeleton, where physics runs, has none. A further third-party mesh
-joins the same way, after its licence is checked (CLAUDE.md).
+adaptation, the carved STLs, pictures and GLBs drawn from them, is shared under its source's licence, ShareAlike.
+The skull and mandible print twice, bare and worn (carved round a Skin's Shells too). They ride the realistic
+documents alone; the mechanical Skeleton, where physics runs, has none. A further third-party mesh joins the same way,
+after its licence is checked (CLAUDE.md).
 
 ## Considered Options
 

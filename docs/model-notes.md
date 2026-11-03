@@ -209,7 +209,10 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` carves
   them on a 0.8 mm voxel grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
-  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
+  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each.
+  Morty cannot be worn over the full skull (its back 18 mm past his, its brow 10 mm ahead of his face), so the skull and
+  mandible are also carved 1.6 mm round every Skin's Shells (`geometry.WORN`, Cansin's pick): the documents, which wear
+  a Skin, carry the worn copies, the pictures' bare look the full ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
   0.497; #708's was 118.6 x 115.8 x 149.3, before it 120 x 134.5 x 129.5, eyes_up 0.78): the stack
   under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'
   bosses up into the head mount's flange and the whole neck 6 mm shorter, the jaw hinged beside the tilt lugs with its
