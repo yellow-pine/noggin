@@ -44,7 +44,7 @@ VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces sta
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
 SKY = "#F7F4EE"  # a flat sky
-VIEW = {g.SPOOLS["Absolute Black"]: "#5A5A60", g.SPOOLS["Pure White"]: "#E8E8E8"}
+VIEW = {"#000000": "#5A5A60", "#FFFFFF": "#E8E8E8"}
 TIMESTEP, SETTLE_S = 0.0005, 0.5
 # A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.99 (the
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
@@ -241,7 +241,7 @@ def spec(doc, collide=True):
         file, clip = stage.parts[name].file, stage.parts[name].clip
         stem = stages.stem(file)
         # just view only has to tell the parts apart: the part's colour, black and white pulled in (VIEW)
-        colour = scene.colour(file)
+        colour = scene.colour(file, g.theme(doc))
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh touches nothing and carries no mass where the pieces do both, the part's mass spread by volume
         kg = mass(_mesh(file, clip), stage.parts[name].material) / 1000

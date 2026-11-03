@@ -18,11 +18,11 @@ def _box(x, y, z, r=0.0, edges="|Z"):
     return out.edges(edges).fillet(r) if r else out
 
 
-def torso(plain=False):
+def torso(mechanical=False):
     """The Torso (printed upright): its floor (the foot; the neck mount stands on it), its walls round it, and the pack's
     cradle on the floor behind the neck mount. As Bones (#704) round in plan, its walls' thickness kept."""
     (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
-    floor, r = nk.MOUNT_Z[0], 0.0 if plain else ROUND
+    floor, r = nk.MOUNT_Z[0], 0.0 if mechanical else ROUND
     out = _box((x0, x1), (y0, y1), (z0, z1), r)
     out = out.cut(_box((x0 + WALL, x1 - WALL), (y0 + WALL, y1 - WALL), (floor, z1 + 1), r and r - WALL))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
@@ -38,18 +38,18 @@ def _flange(w, top, r=0.0):
     return flange.union(_box((-w, w), (y, y + nb.TRAY_T), (under - 3, top), r, "|Y and >Z"))
 
 
-def rack(plain=False):
+def rack(mechanical=False):
     """Back's board rack (printed on its back): the flange and the wall up to the row's top, the boards on its back
     face; as Bones (#704) its corners round."""
     # the row no lower than the plate (BACK_Z)
-    return _flange(nb.width() / 2 + 3, nb.BACK_Z + nb.BOARD_H / 2, 0.0 if plain else ROUND / 3)
+    return _flange(nb.width() / 2 + 3, nb.BACK_Z + nb.BOARD_H / 2, 0.0 if mechanical else ROUND / 3)
 
 
-def stand(plain=False):
+def stand(mechanical=False):
     """Stage 1's test stand (printed upside down, on its top): an open box under the gimbal frame's plate, from the desk
     to the plate's underside, its top's holes under the head mount's (nk.HEAD_SCREWS), the eyes Core against its back
     face; as Bones (#704) its upright edges round."""
-    x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if plain else ROUND / 3
+    x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if mechanical else ROUND / 3
     y = gm.PLATE_Y
     out = _box((-x, x), y, (nb.STAND_Z, top), r)
     out = out.cut(

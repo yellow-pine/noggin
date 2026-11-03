@@ -297,7 +297,7 @@ SUBS = {
     "next-stand": next_stand,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
-# geometry.align_rows: the next Mech's Stages in both looks, the last of them the head variant's (geometry.NEXT)
+# geometry.align_rows: the next Mech's Stages in every Skeleton, the last of them the head variant's (geometry.NEXT)
 DOCS = g.STAGES | g.NEXT
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
@@ -318,10 +318,10 @@ def assemble(doc, frames):
             parts[pname] = Part(p.file, f @ p.matrix, p.material, p.clip)
             owner[pname] = name
         horns.update({h: horn._replace(frame=f) for h, horn in sub.horns.items()})
-    if doc.endswith("-plain"):  # the Skeleton plain (#704): each part that has a plain style drawn in it
+    if doc.endswith("-mechanical"):  # the Skeleton mechanical (#704): each part that has a mechanical style drawn in it
         from model.printed import styled  # here: model.printed imports what imports this module
 
-        parts = {n: p._replace(file=stl(styled(stem(p.file), plain=True))) for n, p in parts.items()}
+        parts = {n: p._replace(file=stl(styled(stem(p.file), mechanical=True))) for n, p in parts.items()}
     riders = {}  # carrier part -> parts clamped to it
     for sub, carrier in RIDES.items():
         if sub in frames:

@@ -37,7 +37,7 @@ def printable(stem, path):
 
 def stage_step(doc, path):
     """The document at neutral as one STEP assembly at `path` (returned): every part's shape at its placement (model/stages.py),
-    in its spool's colour (or the hardware's grey)."""
+    in its Theme's colour (or the hardware's grey)."""
     shape = functools.cache(lambda stem: SHAPES[stem]())
     asm = cq.Assembly(name=doc)
     for name, part in stages.STAGES[doc].parts.items():
@@ -45,7 +45,7 @@ def stage_step(doc, path):
         trsf = gp_Trsf()
         trsf.SetValues(*part.matrix[:3].flatten().tolist())
         loc = cq.Location(trsf)
-        asm.add(shape(stem), name=name, loc=loc, color=cq.Color(scene.colour(part.file)))
+        asm.add(shape(stem), name=name, loc=loc, color=cq.Color(scene.colour(part.file, geometry.theme(doc))))
     asm.export(path)
     return path
 

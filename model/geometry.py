@@ -1,6 +1,6 @@
-"""The Mech's shared data (mm, degrees): the bought hardware's vendor STEP frames, the Cores' servos, the spools and
-materials of the printed parts, and the next Mech's documents. Today's Mech left the model (#720): the physical Mech
-still runs on CHANNELS (the noggin service, the eye program). Pure Python, no imports."""
+"""The Mech's shared data (mm, degrees): the bought hardware's vendor STEP frames, the Cores' servos, the Themes, the
+Colour groups and materials of the printed parts, and the next Mech's documents. Today's Mech left the model (#720): the
+physical Mech still runs on CHANNELS (the noggin service, the eye program). Pure Python, no imports."""
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 
@@ -59,9 +59,55 @@ def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1
     return [r[0] + [t[0]], r[1] + [t[1]], r[2] + [t[2]], [0.0, 0.0, 0.0, 1.0]]
 
 
-# Printed parts: spool and material per part (model/mjcf.py mass() reads theirs). The next Mech's Skeleton in black PETG,
-# its Shells in PLA Pure (#51, GLOSSARY).
-SPOOLS = {"Milky Pink": "#F7CED7", "Pure White": "#FFFFFF", "Absolute Black": "#000000", "Apricot": "#FFB673"}
+# Themes (#805, docs/adr/0022): the next Mech's look, one value of each category (the Skeleton: the PETG parts, the
+# Skin: the PLA Shells), the first value each category's default; each value prints each of its Colour groups (at
+# most 4) in one filament: (line, name, code, hex), the hex its slicer's filaments_color_codes.json (the picks'
+# research: ADR 0022)
+THEMES = {
+    "Skeleton": {
+        "realistic": {  # drawn as Bones
+            "Bones": ("PETG Basic", "Dark Beige", "30403", "#DBC8B6"),
+            "Joints": ("PETG Matte", "White", "35100", "#FFFFFF"),
+            "Linkages": ("PETG Basic", "Red", "30201", "#D6001C"),
+            "Mounts": ("PETG Basic", "Black", "30105", "#000000"),
+        },
+        "mechanical": {  # drawn in boxes and cylinders (MECHANICAL)
+            "Bones": ("PETG Matte", "Gray", "35102", "#7F7E83"),
+            "Joints": ("PETG Basic", "Black", "30105", "#000000"),
+            "Linkages": ("PETG Basic", "Gray", "30107", "#7F7E83"),
+            "Mounts": ("PETG Basic", "Black", "30105", "#000000"),
+        },
+    },
+    "Skin": {
+        "morty": {
+            "face": ("PLA Basic", "Beige", "10201", "#F7E6DE"),  # face, ears, nose, lids
+            "hair and pupils": ("PLA Basic", "Cocoa Brown", "10802", "#6F5034"),  # the pupils jagged
+            "shirt and collar": ("PLA Matte", "Lemon Yellow", "11400", "#F7D959"),
+            "eye whites": ("PLA Basic", "Jade White", "10100", "#FFFFFF"),
+        },
+        "bart": {
+            "face": ("PLA Basic", "Sunflower Yellow", "10402", "#FEC600"),  # face, spikes, lids
+            "shirt and collar": ("PLA Matte", "Scarlet Red", "11200", "#DE4343"),
+            "eye whites": ("PLA Matte", "Ivory White", "11100", "#FFFFFF"),
+            "pupils": ("PLA Matte", "Charcoal", "11101", "#000000"),  # dots
+        },
+    },
+}
+THEME = {category: next(iter(values)) for category, values in THEMES.items()}  # realistic and morty
+
+
+def theme(doc):
+    """A document's Theme: the Skeleton its name ends in (-mechanical), else the default's, and the default Skin (one
+    per Skin waits on its Shells, #665)."""
+    skeleton = next((v for v in THEMES["Skeleton"] if doc.endswith("-" + v)), THEME["Skeleton"])
+    return THEME | {"Skeleton": skeleton}
+
+
+def filament(group, theme):
+    """The filament a Colour group is printed in under a Theme: (line, name, code, hex)."""
+    return next(THEMES[c][v][group] for c, v in theme.items() if group in THEMES[c][v])
+
+
 # Each spool variant from its maker's TDS (100% infill, ISO 527 tensile; docs/research/2026-11-02-literature-cams-am.md,
 # 2026-10-31-filament.md), in-layer (xy) and across layers (z, #626). PETG for the next Mech's skeleton (#51): HF is the
 # worst case until the spool's variant is confirmed.
@@ -70,41 +116,35 @@ MATERIALS = {
     "PETG HF": {"density_g_cm3": 1.28, "E_mpa": {"xy": 1810, "z": 1540}, "tensile_mpa": {"xy": 34.0, "z": 23.0}},
     "PETG Basic": {"density_g_cm3": 1.25, "E_mpa": {"xy": 1460, "z": 1120}, "tensile_mpa": {"xy": 48.0, "z": 39.0}},
 }
-PRINTED = {
-    **{
-        name: ("Absolute Black", "PETG HF")
-        for name in (
-            "next eyeball core",
-            "next yaw yoke",
-            "next tie-bar",
-            "next bail",
-            "next push-rod",
-            "next pitch bar",
-            "next lid bar",
-            "next lid link",
-            "next L upper lid",
-            "next R upper lid",
-            "next L lower lid",
-            "next R lower lid",
-            "next gimbal frame",
-            "next neck mount",
-            "next pan yoke",
-            "next head mount",
-            "next jaw",
-            "next pan bar",
-            "next tilt bar",
-            "next jaw bar",
-            "next torso",
-            "next board rack",
-            "next test stand",
-        )
-    },
-    "next L eyeball cap": ("Pure White", "PLA Pure"),
-    "next R eyeball cap": ("Pure White", "PLA Pure"),
+# Printed parts: each one's Colour group (THEMES) and material (model/mjcf.py mass() reads it)
+_SKELETON = {
+    "Bones": ("next gimbal frame", "next neck mount", "next head mount", "next jaw", "next torso", "next test stand"),
+    "Joints": ("next eyeball core", "next yaw yoke", "next bail", "next pan yoke"),
+    "Linkages": (
+        "next tie-bar",
+        "next push-rod",
+        "next pitch bar",
+        "next lid bar",
+        "next lid link",
+        "next L upper lid",
+        "next R upper lid",
+        "next L lower lid",
+        "next R lower lid",
+        "next pan bar",
+        "next tilt bar",
+        "next jaw bar",
+    ),
+    "Mounts": ("next board rack",),
 }
-# Each Skeleton part is drawn in two styles (#704, model/printed): as Bones under its own name, plain under this suffix
-PLAIN = " plain"
-PRINTED |= {name + PLAIN: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
+PRINTED = {
+    **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
+    "next L eyeball cap": ("eye whites", "PLA Pure"),
+    "next R eyeball cap": ("eye whites", "PLA Pure"),
+}
+# Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
+# under this suffix
+MECHANICAL = " mechanical"
+PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
 
 # The next Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
@@ -124,6 +164,6 @@ STAGES = {
     "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base", "next-back")},
     **dict([next(iter(NEXT.items()))]),
 }
-# each document also with its Skeleton plain (#704, PLAIN): the two looks, Bones and plain
-NEXT |= {doc + "-plain": subs for doc, subs in NEXT.items()}
-STAGES |= {doc + "-plain": subs for doc, subs in STAGES.items()}
+# each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical
+NEXT |= {f"{doc}-{v}": subs for doc, subs in NEXT.items() for v in THEMES["Skeleton"] if v != THEME["Skeleton"]}
+STAGES |= {f"{doc}-{v}": subs for doc, subs in STAGES.items() for v in THEMES["Skeleton"] if v != THEME["Skeleton"]}

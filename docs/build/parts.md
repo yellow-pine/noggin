@@ -9,13 +9,14 @@ The Mech grows in three Stages, each complete on the desk: the eye block on its 
 ([Stage 2](stage-2.md)), then with the jaw, the whole Mech ([Stage 3](stage-3.md)). Each Stage's page lists, from the
 model, the parts it adds. This page is the shopping list.
 
-The Skeleton prints in black PETG and the character's Shells in PLA Pure, held on by magnets
-([Skeleton and shells](../face-design.md)). Our printed parts print from `just stl` (model/build/stl, mm).
+The Skeleton prints in PETG and the Skin's Shells in PLA, held on by magnets, each Colour group in its Theme's
+filament ([Themes](../face-design.md)), realistic and morty unless you pick others. Our printed parts print from
+`just stl` (model/build/stl, mm).
 
 ## Parts to buy
 
 The one place the shop's names and codes appear (2026-10-31, grilled; #51). Electronics are Bambu Lab's CyberBrick
-range, filament is Bambu PLA Pure and PETG.
+range, filament is Bambu's PLA and PETG lines the Themes name.
 
 - Owned: Beginner Hardware Kit ZK004 (2 Cores, an X11 receiver shield + a transmitter shield, switch module, 2S pack,
   charger, one 180 and one 360 servo), Battery Upgrade Kit ZL003 (second switch module + second pack), 4 PG001
@@ -25,9 +26,10 @@ range, filament is Bambu PLA Pure and PETG.
   eyes Core, 3 on the neck Core); the kit's spare M3 screws as the busy pivots' shanks. Spare: a pack on charge (the
   charger, off the Mech), a switch board. The 360 servo turns continuously, so it is not used.
 - To buy: the magnets, 4x2 mm N52 discs, the one new purchase.
-- Filament: Bambu PLA Pure in Milky Pink, Pure White, Absolute Black, Apricot, all owned (hex and density:
-  docs/research/2026-10-31-filament.md), for the Shells; black PETG for the Skeleton, the model taking PETG HF's
-  figures until the spool's variant is confirmed.
+- Filament: each Theme's Bambu filaments, by line, name and code ([Themes](../face-design.md), from the model; the
+  picks: docs/research/2026-11-03-bambu-theme-colours.md): PETG Basic and Matte for the Skeleton, the model taking
+  PETG HF's figures as the worst case, PLA Basic and Matte for the Skins. Owned: PLA Pure in Milky Pink, Pure White,
+  Absolute Black and Apricot (docs/research/2026-10-31-filament.md) and black PETG, which prints the Mounts.
 
 ## On the Mac
 

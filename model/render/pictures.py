@@ -149,7 +149,7 @@ def prepare(doc):
     stage = stages.STAGES[doc]
     folder = os.path.join(OUT, "meshes", doc)
     os.makedirs(folder, exist_ok=True)
-    manifest = scene.export(stage, folder)
+    manifest = scene.export(doc, folder)  # in its Theme's colours (#805)
     for p in manifest.values():
         p["ply"] = os.path.join(folder, p["ply"])
     return stage, manifest, hulls(manifest)

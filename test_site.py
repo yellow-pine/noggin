@@ -107,21 +107,39 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     assert list(parts) == list(servos) == ["1", "2", "3"]
     for row in [
         "| Core | 1 | bought |",
-        "| L eyeball cap | 1 | Pure White PLA |",
+        "| L eyeball cap | 1 | eye whites, PLA |",
         "| servo | 4 | bought |",
         "| Shield | 1 | bought |",
-        "| test stand | 1 | Absolute Black PETG |",
+        "| test stand | 1 | Bones, PETG |",
     ]:
         assert row in parts["1"], row
-    assert "| servo | 2 | bought |" in parts["2"] and "| torso | 1 | Absolute Black PETG |" in parts["2"]
+    assert "| servo | 2 | bought |" in parts["2"] and "| torso | 1 | Bones, PETG |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
-    assert "| jaw | 1 | Absolute Black PETG |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
+    assert "| jaw | 1 | Bones, PETG |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
     row = r"^\| (\w+) \| ([\w ]+) \| [\d.]+\.\.[\d.]+ \|$"
     assert [re.findall(row, servos[n], re.M) for n in servos] == [
         [("eyes", "yaw"), ("eyes", "pitch"), ("eyes", "L lid"), ("eyes", "R lid")],
         [("neck", "pan"), ("neck", "tilt")],
         [("neck", "jaw")],
     ]
+
+
+def test_the_themes_table_names_each_colour_groups_bambu_filament_from_the_model():
+    """#805: docs/face-design.md's table of each Theme value's Colour groups and their filaments, from
+    model/geometry.py THEMES."""
+    import macros
+
+    table = macros.themes()
+    for row in [
+        "| Skeleton | mechanical | Mounts | board rack | PETG Basic Black (30105) | #000000 |",
+        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
+        "| Skin | morty | hair and pupils |  | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        "| Skin | bart | face |  | PLA Basic Sunflower Yellow (10402) | #FEC600 |",
+    ]:
+        assert row in table, row
+    assert (
+        "| Skeleton | realistic | Joints | eyeball core, yaw yoke, bail, pan yoke | PETG Matte White (35100) |" in table
+    )
 
 
 def test_the_coupon_table_is_built_from_the_code():
@@ -140,18 +158,19 @@ def test_the_coupon_table_is_built_from_the_code():
 
 
 def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
-    """model/render/pictures.py and blender.py, model/geometry.py SPOOLS, model/mjcf.py VIEW: as Cansin set them."""
+    """model/render/pictures.py and blender.py, model/geometry.py THEMES (#805), model/mjcf.py VIEW: as Cansin set
+    them."""
     import macros  # here, not at the top: it imports the model
 
     notes = macros.picture_numbers()
     assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
         "| panels | 800 wide, as tall as the tallest | WebP |",
-        "| Milky Pink | #F7CED7 | #F7CED7 | #F7CED7 |",
-        "| Absolute Black | #000000 | #2B2B2E | #5A5A60 |",
-        "| Pure White | #FFFFFF | #FFFFFF | #E8E8E8 |",
-        "| lines | | #5F5F5F | |",
-        "| background | | transparent | #F7F4EE |",
+        "| realistic | Bones | PETG Basic Dark Beige (30403) | #DBC8B6 | #DBC8B6 | #DBC8B6 |",
+        "| mechanical | Joints | PETG Basic Black (30105) | #000000 | #2B2B2E | #5A5A60 |",
+        "| morty | eye whites | PLA Basic Jade White (10100) | #FFFFFF | #FFFFFF | #E8E8E8 |",
+        "| lines | | | | #5F5F5F | |",
+        "| background | | | | transparent | #F7F4EE |",
     ]:
         assert row in notes
 
@@ -245,7 +264,7 @@ def test_nothing_public_shows_todays_mech():
 
 
 STAGE_DOCS = ["next-stage1", "next-stage2", "next-mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
-LOOKS = ["", "-plain"]  # its Skeleton as Bones and plain (#704)
+LOOKS = ["", "-mechanical"]  # its Skeleton realistic (as Bones) and mechanical (#704, #805)
 
 
 def test_every_document_has_a_side_and_an_isometric_panel():
@@ -258,11 +277,11 @@ def test_every_document_has_a_side_and_an_isometric_panel():
 
 
 def test_the_next_mech_has_its_own_panels():
-    """#629, #720: Pictures shows each Stage of the next Mech in both looks, framed among themselves."""
+    """#629, #720: Pictures shows each Stage of the next Mech in every Skeleton, framed among themselves."""
     import macros
 
     grid = macros.next_panels()
-    names = [f"Stage {n}{look}" for look in ("", " plain") for n in (1, 2, 3)]
+    names = [f"Stage {n}{look}" for look in ("", " mechanical") for n in (1, 2, 3)]
     assert re.findall(r"<strong>([^<]+)</strong>", grid) == names
     views = re.findall(r'<img src="[^"]+/([^/"]+)"', grid)
     assert views == [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
@@ -329,11 +348,11 @@ def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_o
     assert "next-eyes-sweep" not in top
 
 
-def test_the_viewer_switches_the_stage_and_the_look_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
-    """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and the look switch Bony
-    and Plain, each the GLB's suffix. #705: with just sim's ranking of today's head variants, the Stage that is one is
-    marked with what it fails, unmarked else (a ranking of other documents: main's reports before the variants' first
-    sim)."""
+def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
+    """#720: the viewer's Stage switch has a button per Stage, 1 to 3, each its GLB as Bones, and the Skeleton switch
+    (#805) Realistic and Mechanical, each the GLB's suffix. #705: with just sim's ranking of today's head variants, the
+    Stage that is one is marked with what it fails, unmarked else (a ranking of other documents: main's reports before
+    the variants' first sim)."""
     import json
 
     import macros
@@ -341,8 +360,9 @@ def test_the_viewer_switches_the_stage_and_the_look_and_marks_a_stage_that_fails
     monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
-    assert unranked["looks"] == [{"suffix": "", "label": "Bony"}, {"suffix": "-plain", "label": "Plain"}]
-    fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-plain": []}
+    skeletons = [{"suffix": "", "label": "Realistic"}, {"suffix": "-mechanical", "label": "Mechanical"}]
+    assert unranked["skeletons"] == skeletons
+    fails = {"next-mech-back": ["head size", "tilt loop"], "next-mech-back-mechanical": []}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
     assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]

@@ -13,7 +13,7 @@ import sys
 import tempfile
 
 from model import geometry as g
-from model import stages, trajectories
+from model import trajectories
 from model.render import pictures, scene
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ PUBLIC = {doc: doc + ".glb" for doc in g.STAGES}  # what the site serves: the ne
 def glb(doc, path):
     """Blender writes the document's GLB: every part keyed per frame of each of its motions."""
     with tempfile.TemporaryDirectory() as tmp:
-        parts = scene.export(stages.STAGES[doc], tmp)
+        parts = scene.export(doc, tmp)  # in its Theme's colours (#805)
         for p in parts.values():
             p["ply"] = os.path.join(tmp, p["ply"])
         motions = {

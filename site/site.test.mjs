@@ -253,18 +253,18 @@ test("Pictures shows the next Mech, the front doors' own, it in motion and each 
   for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
 });
 
-test("the viewer's page draws the next Mech, a Stage switch and a look switch, and serves three's Draco decoder", () => {
+test("the viewer's page draws the next Mech, a Stage switch and a Skeleton switch, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
-  const { buttons, looks } = numbers.published.stages;
+  const { buttons, skeletons } = numbers.published.stages;
   const stages = viewers[0].querySelectorAll('nav[aria-label="Stage"] button[data-stage]');
   expect(stages.map((b) => b.getAttribute('data-stage'))).toEqual(buttons.map((b) => b.glb));
   expect(stages.map((b) => b.text.trim())).toEqual(buttons.map((b) => b.label)); // a failing Stage's with its mark (#705)
   expect(stages.map((b) => b.text.split(':')[0].trim())).toEqual(['1', '2', '3']);
-  const switches = viewers[0].querySelectorAll('nav[aria-label="Look"] button[data-look]');
-  expect(switches.map((b) => [b.text.trim(), b.getAttribute('data-look')])).toEqual([['Bony', ''], ['Plain', '-plain']]);
-  // every Stage in every look is a GLB the site serves
-  const glbs = buttons.flatMap((b) => looks.map((l) => `${b.glb}${l.suffix}.glb`));
+  const switches = viewers[0].querySelectorAll('nav[aria-label="Skeleton"] button[data-skeleton]'); // #805
+  expect(switches.map((b) => [b.text.trim(), b.getAttribute('data-skeleton')])).toEqual([['Realistic', ''], ['Mechanical', '-mechanical']]);
+  // every Stage in every Skeleton is a GLB the site serves
+  const glbs = buttons.flatMap((b) => skeletons.map((s) => `${b.glb}${s.suffix}.glb`));
   expect(glbs.sort()).toEqual([...numbers.published.viewer].sort());
   for (const f of ['draco_wasm_wrapper.js', 'draco_decoder.wasm']) {
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);

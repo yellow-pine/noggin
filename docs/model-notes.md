@@ -20,13 +20,14 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   the panels (each document at rest, a trajectory's first frame);
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468); the next Mech's eye gimbal moves in its own (#656).
-- Parts carry their real spool's colour (PLA: model/geometry.py SPOOLS/PRINTED, under Numbers from the code below; Absolute Black
-  drawn a touch lighter so its shading and lines read) and its material (geometry.MATERIALS, from the spool's TDS:
+- Parts carry their Colour group's filament colour in the document's Theme (#805, docs/adr/0022: model/geometry.py
+  THEMES and PRINTED, under Numbers from the code below; black drawn a touch lighter so its shading and lines read)
+  and their material (geometry.MATERIALS, from the spool's TDS:
   density, and the across-layer values the next Mech's links are held to, model/beams.py, #626). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `just view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
-  renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; Absolute Black and Pure White pulled in
-  (model/mjcf.py VIEW), the rest their spool's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
+  renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; black and white pulled in
+  (model/mjcf.py VIEW), the rest their filament's colour; a flat sky in the pictures' background. Added in #150, merged on green: a directional key
   light from the Mech's upper front-left casting shadows (diffuse and specular 0.3) and satin parts (specular 0.3,
   shininess 0.5).
 - Look (Cansin's pick, style B): satin plastic (roughness 0.45, low specular) mixed 45/55 with a two-step toon
@@ -54,7 +55,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 
 ## Numbers from the code
 
-The picture sizes and the colours, as model/render/pictures.py and blender.py, model/geometry.py SPOOLS and
+The picture sizes and the colours, as model/render/pictures.py and blender.py, model/geometry.py THEMES and
 model/mjcf.py VIEW set them.
 
 <!--{{ pictures }}-->
@@ -102,9 +103,9 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The next Mech (#51; the spec lives there) is designed in the model, as its own documents (geometry.NEXT, #629),
   clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
   hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
-  lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a black PETG skeleton (checked
-  as PETG HF, geometry.MATERIALS' worst case, until the spool's variant is confirmed)
-  with magnet-mounted PLA Pure character shells, Morty and Bart ([Skeleton and shells](face-design.md)).
+  lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a PETG Skeleton (checked
+  as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin, Morty or Bart, each in its Theme's
+  filaments ([Themes](face-design.md)).
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the next Mech's documents, moved
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
@@ -122,8 +123,9 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
   the face is as wide as the lids' frame (119 mm, 138 before), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`'s width is that and a 3 mm shell wall. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the next Mech; every size is inferred.
-  Its Skeleton is drawn in two styles (#704, docs/adr/0020), plain and as Bones (GLOSSARY; model/printed/bone.py), and
-  Back is built in each (`next-mech-back`, `next-mech-back-plain`). As Bones the tie-bar and push-rods (#703, the
+  Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
+  as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`next-mech-back`,
+  `next-mech-back-mechanical`). As Bones the tie-bar and push-rods (#703, the
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts), the Torso (round in plan) and the board rack (round corners):
   each prints as drawn (the rack on its back) with no overhang past 45 deg, its bores across the layers where its pins
@@ -131,7 +133,7 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   tie-bar and push-rods, bending for the crank and the bail's arms; model/printed/test_gimbal.py), its CoACD pieces
   capped (mjcf.MAX_PIECES); so are the lid bars, links and the lids' spokes (#698, each lying in its 3 mm slab, the
   bent lid bar for its bending too). The pitch bar and the frame wait on #704, the neck, head mount, jaw and jaw bar on
-  #708 (model/printed UNSTYLED), drawn plain in both until then; the core, a ball under its cap, has none.
+  #708 (model/printed UNSTYLED), drawn mechanical in both until then; the core, a ball under its cap, has none.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
@@ -170,13 +172,13 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   (#705). Today Back does not fit that head: its boards behind the gimbal make it 141.5 deep, since the head mount
   and the jaw already hang 101 mm under the eyes (eyes_up 0.77, not the lower-middle); the head size stays reported,
   not a hard gate, until #708. Every size is inferred.
-- The Stages (#720, geometry.STAGES), for ease of build, each a document in both looks: Stage 1 the eye block (the
+- The Stages (#720, geometry.STAGES), for ease of build, each a document in every Skeleton: Stage 1 the eye block (the
   gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
   stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
   `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, the
   boards' rack with both Cores and the switch board; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
-  what it fails) and a look switch (Bony, Plain); Pictures shows each Stage's panels in both looks.
+  what it fails) and a Skeleton switch (Realistic, Mechanical, #805); Pictures shows each Stage's panels in every Skeleton.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.
