@@ -7,6 +7,7 @@ import itertools
 import cadquery as cq
 import numpy as np
 import pytest
+import trimesh
 
 from model import base, skin, stages
 from model import geometry as g
@@ -59,7 +60,11 @@ def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
     rides = [n for n in stage.horns["tilt horn"].loops[0].rockers if n.removesuffix(":1") not in skin.DRAWN]  # Skeleton
-    return request.param, cq.Compound.makeCompound([_shape(stage.parts[n]) for n in rides]).BoundingBox()
+    solids = [_shape(stage.parts[n]) for n in rides if n.removesuffix(":1") not in g.BONES]
+    for n in (n for n in rides if n.removesuffix(":1") in g.BONES):  # a mesh (#838): its STL's box
+        (x0, y0, z0), (x1, y1, z1) = trimesh.load(stage.parts[n].file).apply_transform(stage.parts[n].matrix).bounds
+        solids.append(cq.Solid.makeBox(x1 - x0, y1 - y0, z1 - z0, cq.Vector(x0, y0, z0)))
+    return request.param, cq.Compound.makeCompound(solids).BoundingBox()
 
 
 @pytest.mark.model

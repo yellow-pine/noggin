@@ -71,4 +71,5 @@ The Mech is our own design on Bambu Lab's CyberBrick electronics; the full credi
 ## Licence
 
 [PolyForm Noncommercial 1.0.0](LICENSE.md), copyright Yellow Pine. You may use, change and share noggin for any
-noncommercial purpose; contact hello@yellowpine.com for commercial licensing.
+noncommercial purpose; contact hello@yellowpine.com for commercial licensing. The realistic skull's meshes in
+`model/skull/` are others' work under their own Creative Commons licences, each in its folder's `LICENSE.md`.

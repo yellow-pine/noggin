@@ -48,6 +48,17 @@ def test_the_front_doors_show_the_mechanism_bare_of_every_shell():
     assert "next gimbal frame:1" in bare and all(bare[n] is rest[n] for n in bare)
 
 
+def test_the_bare_look_shows_the_skull_bare_where_a_skin_wears_its_worn_copy():
+    """#838 (Cansin's B): the realistic document carries the skull and mandible a Skin wears (g.WORN); bare, the
+    bones as they show bare stand in their places, and the atlas and axis stay."""
+    doc = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])
+    rest = {n: p.matrix for n, p in stages.STAGES[doc].parts.items()}
+    bare = pictures.bare(doc, rest)
+    for full, worn in g.WORN.items():
+        assert f"{worn}:1" in rest and f"{worn}:1" not in bare and bare[f"{full}:1"] is rest[f"{worn}:1"]
+    assert {"next atlas:1", "next axis:1"} <= set(bare)
+
+
 def _apart(doc, level):
     """{part: its mm offset at the level} (pictures.offsets) and {part: its world box at rest, mm}."""
     return pictures.offsets(doc, level), pictures.boxes(doc)

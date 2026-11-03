@@ -19,6 +19,7 @@ from model.printed import PARTS, gimbal, skin
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
 DOC = next(d for d in g.NEXT if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
+REAL = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])  # the realistic one: the skull's bones on it
 
 
 @pytest.fixture(scope="module")
@@ -91,8 +92,9 @@ def _tree(stem):
     return cKDTree(_cloud(stem))
 
 
-def _poses():
-    stage = stages.STAGES[DOC]
+@functools.cache
+def _poses(doc=DOC):
+    stage = stages.STAGES[doc]
     out = {"rest": {n: p.matrix for n, p in stage.parts.items()}}
     for horn, h in stage.horns.items():
         out |= {f"{horn} {deg:.0f}": stages.pose(stage, horn, deg).parts for deg in h.limits}
@@ -115,7 +117,20 @@ def _carriers():
 def test_every_shell_clears_every_part_but_what_carries_it(pose):
     """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
     hardware (#51 shell containment)."""
-    stage, mats, carriers, near = stages.STAGES[DOC], _poses()[pose], _carriers(), []
+    assert _near(DOC, pose) == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("pose", list(_poses(REAL)))
+def test_every_shell_clears_the_realistic_skulls_bones(pose):
+    """The Skins fit the realistic Skeleton too (#838): each Shell CLEAR_MM off the skull's bones as a Skin wears them
+    (g.WORN), which the mechanical document has none of."""
+    assert _near(REAL, pose, only=set(g.BONES)) == []
+
+
+def _near(doc, pose, only=None):
+    """[(Shell, part, mm)] closer than CLEAR_MM in `doc` at `pose`: of the parts `only` names, if given."""
+    stage, mats, carriers, near = stages.STAGES[doc], _poses(doc)[pose], _carriers(), []
     for n, p in stage.parts.items():
         stem = stages.stem(p.file)
         if stem not in carriers:
@@ -126,9 +141,11 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose):
             o = stages.stem(q.file).removesuffix(g.MECHANICAL)
             if other == n or o in carriers[stem] or stem in carriers.get(o, ()) or {stem, o} in SEAMS:
                 continue
+            if only is not None and o not in only:
+                continue
             pts = trimesh.transform_points(_cloud(stages.stem(q.file)), into @ mats[other])
             pts = pts[np.all((pts > lo) & (pts < hi), axis=1)]
             d = _tree(stem).query(pts, distance_upper_bound=CLEAR_MM)[0] if len(pts) else [np.inf]
             if np.min(d) < CLEAR_MM:
                 near.append((n, other, round(float(np.min(d)), 2)))
-    assert near == []
+    return near

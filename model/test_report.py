@@ -281,7 +281,7 @@ FIXTURE_PROBLEMS = {
         "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.4",
         "neck tilt span: bends to 12.0 mm < 14.0",
         "variant head: 120.0 x 141.5 x 149.0 mm (W x D x H) past the compact head's 140.0 x 140.0 x 150.0",
-        "variant eyes: 0.62 of the head's height up > 0.5",
+        "variant eyes: 0.62 of the head's height up > 0.55",
     ],
 }
 

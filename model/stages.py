@@ -287,6 +287,13 @@ def next_stand():
     return _boards("next test stand", candidates.stand_boards())
 
 
+def next_skull():
+    """next-skull: the realistic Skeleton's skull (#838, model/printed/skull.py) as a Skin wears it (g.WORN), its bones
+    drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame,
+    the mandible on the jaw, the atlas and the axis on the pan yoke."""
+    return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
+
+
 def next_morty():
     """next-morty: Morty's Skin (#665, model/skin.py), each Shell where it sits on what carries it (RIDES): the face and
     the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on the jaw, the shirt on the Torso."""
@@ -305,6 +312,7 @@ SUBS = {
     "next-base": next_base,
     "next-stand": next_stand,
     "next-morty": next_morty,
+    g.SKULL_SUB: next_skull,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
 # geometry.align_rows: the next Mech's Stages in every Skeleton, the last of them the head variant's (geometry.NEXT)
@@ -318,6 +326,13 @@ RIDES = {
     **{f"next morty {s} pupil:1": f"next {s} eyeball cap:1" for s in "LR"},
     **{f"next morty {s} {lid} lid cover:1": f"next {s} {lid} lid:1" for s in "LR" for lid in ("upper", "lower")},
     "next morty mouth cover:1": "next jaw:1",
+    # the realistic skull's bones (#838), each lying on its carrier
+    "next skull:1": "next gimbal frame:1",
+    "next mandible:1": "next jaw:1",
+    "next worn skull:1": "next gimbal frame:1",
+    "next worn mandible:1": "next jaw:1",
+    "next atlas:1": "next pan yoke:1",
+    "next axis:1": "next pan yoke:1",
 }  # clamped to that part (a sub-assembly's every part, or one part)
 
 
