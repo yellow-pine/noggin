@@ -73,8 +73,9 @@ gx10 +args:
     branch=$(git branch --show-current)
     [ -n "$branch" ] || { echo "gx10: check out a branch first (it runs what is pushed)" >&2; exit 1; }
     git push -q origin "$branch"
-    ssh {{GX10}} "set -e; export PATH=\$HOME/.local/bin:\$PATH; [ -d noggin ] || git clone -q https://github.com/yellow-pine/noggin.git; cd noggin; git fetch -q origin $(printf %q "$branch"); git checkout -q --detach FETCH_HEAD; uv sync -q; $(printf '%q ' "$@")"
-    for f in {{FETCH}}; do scp -rq "{{GX10}}:noggin/$f" "$(dirname "$f")/"; done
+    # flock: one run at a time holds the one clone, so a parallel agent's checkout never swaps the files under a running job
+    ssh {{GX10}} "set -e; export PATH=\$HOME/.local/bin:\$PATH; exec 9>noggin.lock; flock -n 9 || { echo 'gx10: another run holds the GX10, waiting' >&2; flock 9; };[ -d noggin ] || git clone -q https://github.com/yellow-pine/noggin.git; cd noggin; git fetch -q origin $(printf %q "$branch"); git checkout -qf --detach FETCH_HEAD; uv sync -q; $(printf '%q ' "$@")"
+    for f in {{FETCH}}; do mkdir -p "$(dirname "$f")"; scp -rq "{{GX10}}:noggin/$f" "$(dirname "$f")/"; done
 
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
