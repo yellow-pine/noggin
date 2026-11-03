@@ -38,17 +38,22 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 <!-- #}-->
 
 ## Morty's Shells
-In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it:
+In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
+size inferred):
+- the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
+  the head mount, square from above where the mouth servo's corners and the cheeks' Cores need it; 140 x 140 x 150 mm
+  but for the ears (model/printed/test_skin.py);
 - the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
-  reach, the nose, an ear each side, the mouth's opening; it comes off forward;
-- the hair (hair): the head's top and back over the hairline, the bangs jagged; it comes off upward, so it goes on
-  last;
+  reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;
+- the hair (hair): the head's top and back over his hairline, from over the forehead down behind the ears to the
+  nape, standing 1.5 mm proud of the face; it comes off upward, so it goes on last;
 - the eyeball caps (eye whites, each Character's largest) with a jagged pupil (pupils) glued in each, keyed by its
   shape in its seat with 0.15 mm of play a side and turned toward the other eye;
 - a cover on each lid (face): the lower lid's whole, the upper lid's top band alone, since the lower lid passes outside
   the upper one when a shut eye looks down;
 - the mouth cover (face), his chin under the jaw, in the face's mouth opening;
-- the shirt (clothes), a front and a back half round the Torso, each with its half of the collar.
+- the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
+  with its half of the round crew neck's collar.
 
 ## Seats and magnets
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
