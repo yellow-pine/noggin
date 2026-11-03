@@ -1,6 +1,6 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
-// it: the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a chip per gesture, Explode;
+// it: the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a chip per gesture, Explode's levels;
 // under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
 // small one in with
 //   <div class="noggin-viewer" data-stage="stage1"></div>
@@ -8,8 +8,9 @@
 // <figure> inside is its poster until the Stage has loaded (the landing page's hero, #468), and a deep link,
 // ?stage=<n>&gesture=<g>, opens the viewer on its nth Stage button's Stage playing that gesture; each click on a button
 // rewrites the address to the deep link of what it plays. It draws the Stage in the Skeleton of the Theme the header's
-// bar picks (src/theme.mjs, #806: on <html>), and again in the next one the bar picks. Explode moves a Stage's parts apart by the offsets
-// macros.json has for it (the next Mech's, model/render/pictures.py EXPLODE, #482, #664) and back, &explode=1 opens it so. Only a
+// bar picks (src/theme.mjs, #806: on <html>), and again in the next one the bar picks. Explode moves a Stage's parts from level to level,
+// Assembled, Sub-assemblies, Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py
+// offsets, #482, #664, #811), &explode=<level> opens it so. Only a
 // viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -20,7 +21,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
-import { address, caption as captionFor, glb, offsets as offsetsFor, opened, title } from "./state.mjs";
+import { LEVELS, address, between, caption as captionFor, glb, opened, title } from "./state.mjs";
 
 // the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -30,7 +31,7 @@ const FOV = 20;
 // as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
 // 4:3 frame line_at wide, as in the hero GIF (640 x 480)
 const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
-const APART_S = 1;  // the seconds Explode takes to move the parts apart, or back
+const APART_S = 1;  // the seconds each Explode step takes
 const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
@@ -47,12 +48,16 @@ function mount(root) {
   const zoom = "zoom" in root.dataset;
   const how = zoom ? "drag to turn it, scroll or pinch to zoom" : "drag to turn it";
   canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model; ${how}`);
-  // the bar (not-content: no Starlight Markdown spacing in it): the page's Stage buttons, the gestures, Explode
+  // the bar (not-content: no Starlight Markdown spacing in it): the page's Stage buttons, the gestures, Explode's levels
   const tools = root.appendChild(document.createElement("div"));
   tools.className = "noggin-controls not-content";
-  const bar = document.createElement("nav"), toggle = document.createElement("button");
+  const bar = document.createElement("nav"), explode = document.createElement("nav");
   bar.setAttribute("aria-label", "Gesture");
-  tools.append(...root.querySelectorAll(":scope > nav"), toggle, bar);
+  explode.setAttribute("aria-label", "Explode");
+  explode.append(document.createElement("span"), ...LEVELS.map(() => document.createElement("button")));
+  explode.firstChild.textContent = "Explode";
+  tools.append(...root.querySelectorAll(":scope > nav"), explode, bar);
+  const levels = [...explode.querySelectorAll("button")];
   const caption = root.appendChild(document.createElement("p"));
   caption.className = "noggin-caption";
   // see-through: the page's own background behind the Mech, in either theme
@@ -70,12 +75,15 @@ function mount(root) {
   const ambient = new THREE.AmbientLight(0xffffff);
   const outline = { value: new THREE.Vector2() };  // the hull's push in clip units, per pixel of line
   const band = { value: new THREE.Vector2() };  // the highlight: from N.H, amount toward white
-  toggle.textContent = "Explode";
-  toggle.hidden = true;  // until a Stage with offsets loads
-  toggle.addEventListener("click", () => (goal = 1 - goal, press(toggle, goal === 1), share(linked)));
+  explode.hidden = true;  // until a Stage with offsets loads
+  levels.forEach((b, i) => {
+    b.textContent = LEVELS[i];
+    b.addEventListener("click", () => (goal = i, pressLevel(), share(linked)));
+  });
+  const pressLevel = () => levels.forEach((b, i) => press(b, i === goal));
   let scene, sphere, reach, refPx, mixer, clips, tour, step, creases, look, current, file, loading = 0;
-  // how far apart the parts are (0 together, 1 apart), where they are headed, each part's group with its offset, the
-  // camera's framing together and apart, and the gesture in the address
+  // how far apart the parts are (0 together, 1 each sub-assembly apart, 2 each part), the level they are headed to,
+  // each part's group with its offset at each level, the camera's framing at each level, and the gesture in the address
   let apart = 0, goal = 0, parts = [], framings, linked = link.gesture;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
@@ -153,55 +161,57 @@ function mount(root) {
     else run(tour[step = (step + 1) % tour.length]);
   }
 
-  // the parts `apart` of the way out, eased, and the camera framing them as the hero GIF does: on load from its view,
-  // later moved with the framing from `before`, the last eased step, so the reader's turn and zoom stay
+  // the parts `apart` of the way through the levels, eased, and the camera framing them as the hero GIF does: on load
+  // from its view, later moved with the framing from `before`, the last step, so the reader's turn and zoom stay
   function spread(before) {
-    const ease = (x) => THREE.MathUtils.smootherstep(x, 0, 1), e = ease(apart), [a, b] = framings;
-    const aim = (x) => new THREE.Vector3(...a.target).lerp(new THREE.Vector3(...b.target), x).add(sphere.center);
-    const distance = (x) => a.distance + (b.distance - a.distance) * x;
-    for (const [group, offset] of parts) group.position.copy(offset).multiplyScalar(e);
+    const aim = (x) => new THREE.Vector3(...between(framings.map((f) => f.target), x)).add(sphere.center);
+    const distance = (x) => between(framings.map((f) => [f.distance]), x)[0];
+    for (const [group, offsets] of parts) group.position.fromArray(between(offsets, apart));
     if (before === undefined) {
-      controls.target.copy(aim(e));
-      camera.position.copy(controls.target).addScaledVector(VIEW, distance(e));
+      controls.target.copy(aim(apart));
+      camera.position.copy(controls.target).addScaledVector(VIEW, distance(apart));
       return;
     }
-    const back = camera.position.clone().sub(controls.target).multiplyScalar(distance(e) / distance(ease(before)));
-    camera.position.copy(controls.target.add(aim(e).sub(aim(ease(before))))).add(back);
+    const back = camera.position.clone().sub(controls.target).multiplyScalar(distance(apart) / distance(before));
+    camera.position.copy(controls.target.add(aim(apart).sub(aim(before)))).add(back);
   }
 
   // the address as the deep link to the Stage (by its button, where the page has them) and the gesture playing
   function share(gesture) {
     linked = gesture;
-    const link = address(names, current, gesture, goal === 1, location.search);
+    const link = address(names, current, gesture, goal, location.search);
     history.replaceState(null, "", `${location.pathname}${link}${location.hash}`);
   }
 
-  async function load(stage, gesture, exploded) {
+  async function load(stage, gesture, level = 0) {
     const mine = ++loading;
     current = stage;
     file = glb(stage, document.documentElement.dataset.skeleton);
-    const offsets = offsetsFor(file);
-    goal = exploded ? 1 : 0;  // a Stage switch puts it back together
+    goal = level;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
-    for (const b of [...bar.children, toggle]) b.disabled = true;
+    for (const b of [...bar.children, ...levels]) b.disabled = true;
     root.setAttribute("aria-busy", true);
     const gltf = await loader.loadAsync(here(`${file}.glb`));
     if (mine !== loading) return;  // a later Stage click won
     poster?.replaceWith(canvas);  // sized before the framing reads it, drawn before the page paints again
     stylise(gltf.scene);
+    // each part's offsets, assembled and at each level past it, from its node's extras (none: it stays)
+    const home = [0, 0, 0], carried = (o, i) => o.userData.explode?.slice(3 * i, 3 * i + 3) ?? home;
+    const offsetsOf = (o) => [home, ...LEVELS.slice(1).map((_, i) => carried(o, i))];
     const named = [];
-    gltf.scene.traverse((o) => o.userData.name in offsets && named.push(o));
+    gltf.scene.traverse((o) => o.userData.explode && named.push(o));
     parts = named.map((o) => {  // each part in a group that moves it apart, so the clips still pose it
       const group = new THREE.Group();
       o.parent.add(group);
       group.add(o);
-      return [group, new THREE.Vector3(...offsets[o.userData.name])];
+      return [group, offsetsOf(o)];
     });
+    if (!parts.length) goal = 0;  // a Stage that does not come apart
     scene?.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });  // the last Stage's GPU buffers
     scene = new THREE.Scene();
     scene.add(gltf.scene, camera, key, key.target, ambient);
     sphere = new THREE.Box3().setFromObject(gltf.scene).getBoundingSphere(new THREE.Sphere());
-    reach = sphere.radius + Math.max(0, ...parts.map(([, d]) => d.length()));  // the Stage's radius, apart too
+    reach = sphere.radius + Math.max(0, ...parts.flatMap(([, ds]) => ds.map((d) => Math.hypot(...d))));  // apart too
     const box = key.shadow.camera;  // the shadow map covers the Stage, seen from the key light 2 radii out
     [box.left, box.right, box.bottom, box.top, box.near, box.far] = [-1, 1, -1, 1, 1, 3].map((x) => x * reach);
     box.updateProjectionMatrix();
@@ -209,21 +219,21 @@ function mount(root) {
     key.target.position.copy(sphere.center);
     // shortcut: fits the Stage at rest, not every pose of its hero loop as the GIF does; fit the clips' frames if a
     // pose leaves the view
-    const v = new THREE.Vector3(), points = [], away = [];  // every vertex of the Stage at rest, from its centre; apart
+    const v = new THREE.Vector3(), at = LEVELS.map(() => []);  // every vertex of the Stage from its centre, at each level
     gltf.scene.traverse((o) => {
       if (!o.material?.isMeshToonMaterial) return;  // the parts, not their hulls and lines
-      const p = o.geometry.attributes.position, d = new THREE.Vector3(...(offsets[o.userData.name] ?? [0, 0, 0]));
+      const p = o.geometry.attributes.position, ds = offsetsOf(o);
       for (let i = 0; i < p.count; i++) {
-        points.push(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).sub(sphere.center).toArray());
-        away.push(v.add(d).toArray());
+        const x = v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).sub(sphere.center).toArray();
+        ds.forEach((d, k) => at[k].push(x.map((c, j) => c + d[j])));
       }
     });
     // a poster's viewer starts from the poster picture's camera (web/glb.py exports the hero's), its lens too (#597)
     const shot = poster && gltf.cameras[0];
     camera.fov = shot?.fov ?? FOV;
-    const frame = (aspect, at = points) => fit(at, VIEW.toArray(), [0, 1, 0], camera.fov, aspect, MARGIN);
+    const frame = (aspect, points = at[0]) => fit(points, VIEW.toArray(), [0, 1, 0], camera.fov, aspect, MARGIN);
     const aspect = canvas.clientWidth / canvas.clientHeight, gif = frame(GIF_ASPECT);
-    framings = [frame(aspect), frame(aspect, away)];
+    framings = at.map((points) => frame(aspect, points));
     apart = goal;
     spread();
     if (shot) {  // turning about the point of its view line nearest the Stage's centre
@@ -247,9 +257,9 @@ function mount(root) {
       b.addEventListener("click", () => (play(clip || undefined), share(clip || undefined)));
       return b;
     }));
-    toggle.hidden = !parts.length;
-    toggle.disabled = false;
-    press(toggle, goal === 1);
+    explode.hidden = !parts.length;
+    for (const b of levels) b.disabled = false;
+    pressLevel();
     bar.hidden = caption.hidden = !tour.length;  // a GLB without clips plays nothing
     if (tour.length) play(gestures.includes(gesture) ? gesture : undefined);  // the link's, if the Stage has it
     root.setAttribute("aria-busy", false);
@@ -268,7 +278,7 @@ function mount(root) {
     mixer.update(dt);
     if (apart !== goal) {
       const before = apart;
-      apart = goal ? Math.min(apart + dt / APART_S, 1) : Math.max(apart - dt / APART_S, 0);
+      apart = goal > apart ? Math.min(apart + dt / APART_S, goal) : Math.max(apart - dt / APART_S, goal);
       spread(before);
     }
     controls.update();
@@ -277,7 +287,7 @@ function mount(root) {
     key.position.multiplyScalar(2 * reach).add(sphere.center);
     renderer.render(scene, camera);
   });
-  load(link.stage, link.gesture, link.exploded);
+  load(link.stage, link.gesture, link.explode);
 }
 
 document.querySelectorAll(".noggin-viewer").forEach(mount);

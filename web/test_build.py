@@ -70,3 +70,24 @@ def test_each_clip_has_its_trajectorys_frames_at_its_rate_on_every_part_it_moves
         moved = {g["nodes"][c["target"]["node"]]["name"] for c in a["channels"]}
         still = {n for n in poses[0] if all(np.allclose(p[n], poses[0][n], atol=5e-4) for p in poses)}
         assert set(stages.STAGES[doc].parts) - still <= moved <= set(stages.STAGES[doc].parts), name
+
+
+def test_each_part_carries_its_explode_offsets_the_page_moves_it_by(glb):
+    """#811: each part's node carries its offsets at Explode's levels past assembled (build.explode)."""
+    doc, g = glb
+    extras = {n["name"]: n.get("extras", {}).get("explode") for n in g["nodes"] if "mesh" in n}
+    want = build.explode(doc)
+    assert extras.keys() == want.keys()
+    for n, offsets in want.items():
+        assert extras[n] == pytest.approx(offsets, abs=1e-6), n
+
+
+@pytest.mark.model
+def test_explode_gives_each_part_its_offsets_in_gltfs_metres_and_y_up():
+    """#482, #664: the Sub-assemblies level by model/render/pictures.py EXPLODE, as glTF's (x, z, -y) in metres: the
+    Torso stays, the rack lifts with the head and goes back; then the Parts level's (#811)."""
+    explode = build.explode("next-mech-back")
+    assert explode.keys() == stages.STAGES["next-mech-back"].parts.keys()
+    assert explode["next torso:1"] == [0, 0, 0, 0, 0, 0]
+    assert explode["next board rack:1"][:3] == pytest.approx([0, 0.095, -0.06])
+    assert explode["next pack:1"][3:] != pytest.approx([0, 0, 0])

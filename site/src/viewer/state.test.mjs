@@ -1,6 +1,6 @@
-// The viewer's state: its deep link, picker address, caption and explode offsets, from the site's macros.json (npm test)
+// The viewer's state: its deep link, picker address, caption and Explode's steps, from the site's macros.json (npm test)
 import { expect, test } from "vitest";
-import { address, caption, glb, offsets, opened } from "./state.mjs";
+import { address, between, caption, glb, opened } from "./state.mjs";
 
 const stages = ["next-stage1", "next-stage2", "next-mech-back"];  // the viewer page's Stage buttons (#720)
 
@@ -14,35 +14,37 @@ test("a GLB's name is its Stage's as Bones and the Theme's Skeleton's suffix (#8
   expect(glb("next-stage2", "realistic")).toBe("next-stage2");
 });
 
-test("a deep link opens its nth Stage, its gesture, and exploded only a document that comes apart", () => {
-  expect(opened("?stage=1&gesture=wink", stages, "x")).toEqual({ stage: "next-stage1", gesture: "wink", exploded: false });
+test("a deep link opens its nth Stage, its gesture, and its Explode level", () => {
+  expect(opened("?stage=1&gesture=wink", stages, "x")).toEqual({ stage: "next-stage1", gesture: "wink", explode: 0 });
   expect(opened("?skeleton=mechanical&stage=3&explode=1", stages, "x")).toEqual({
-    stage: "next-mech-back", gesture: null, exploded: true,
+    stage: "next-mech-back", gesture: null, explode: 1,
   });
-  expect(opened("?stage=1&explode=1", ["stage1"], "stage1").exploded).toBe(false);  // one without offsets stays together
+  expect(opened("?stage=3&explode=2", stages, "x").explode).toBe(2);  // the Parts level (#811)
+  for (const [link, level] of [["9", 2], ["-1", 0], ["parts", 0]]) expect(opened(`?explode=${link}`, stages, "x").explode).toBe(level);
 });
 
 test("with no link, or a Stage the page has no button for, the viewer opens its own Stage", () => {
-  expect(opened("", stages, "next-mech-back")).toEqual({ stage: "next-mech-back", gesture: null, exploded: false });
+  expect(opened("", stages, "next-mech-back")).toEqual({ stage: "next-mech-back", gesture: null, explode: 0 });
   expect(opened("?stage=7", stages, "next-mech-back").stage).toBe("next-mech-back");
   expect(opened("?stage=1", [], "next-mech-back").stage).toBe("next-mech-back");  // a page with no buttons
 });
 
 test("the switches keep the address the deep link to what plays, so it can be shared, the Theme's kept", () => {
-  expect(address(stages, "next-stage1", "eureka", false)).toBe("?stage=1&gesture=eureka");
+  expect(address(stages, "next-stage1", "eureka", 0)).toBe("?stage=1&gesture=eureka");
   const themed = "?skeleton=mechanical&skin=morty&stage=1&gesture=wink";  // the header's bar's Theme (#806)
-  expect(address(stages, "next-stage2", undefined, false, themed)).toBe("?skeleton=mechanical&skin=morty&stage=2");
-  expect(address(stages, "next-mech-back", undefined, true)).toBe("?stage=3&explode=1");  // the Tour is the default
-  expect(address(stages, "stage3", undefined, false)).toBe("");  // a Stage the page has no button for
-  expect(address([], "next-mech-back", undefined, false, "?skin=bart")).toBe("?skin=bart");  // a page with no buttons
+  expect(address(stages, "next-stage2", undefined, 0, themed)).toBe("?skeleton=mechanical&skin=morty&stage=2");
+  expect(address(stages, "next-mech-back", undefined, 1)).toBe("?stage=3&explode=1");  // the Tour is the default
+  expect(address(stages, "next-mech-back", "wink", 2)).toBe("?stage=3&gesture=wink&explode=2");
+  expect(address(stages, "stage3", undefined, 0)).toBe("");  // a Stage the page has no button for
+  expect(address([], "next-mech-back", undefined, 0, "?skin=bart")).toBe("?skin=bart");  // a page with no buttons
 });
 
-test("Explode moves every Stage's parts apart in every Skeleton, each by a 3D offset (#664, #720)", () => {
-  for (const [stage, part] of [["next-stage1", "next test stand:1"], ["next-mech-back-mechanical", "next board rack:1"]]) {
-    const apart = offsets(stage);  // by its GLB
-    expect(Object.keys(apart)).toEqual(expect.arrayContaining(["next gimbal frame:1", part]));
-    for (const d of Object.values(apart)) expect(d).toHaveLength(3);
-    expect(Object.values(apart).some((d) => d.some((x) => x !== 0))).toBe(true);
-  }
-  expect(offsets("stage3")).toEqual({});
+test("each Explode step moves from one level to the next, still at both ends, half way at its middle (#811)", () => {
+  const levels = [[0, 0, 0], [0, 2, 0], [0, 2, 4]];
+  expect(between(levels, 0)).toEqual([0, 0, 0]);
+  expect(between(levels, 0.5)).toEqual([0, 1, 0]);
+  expect(between(levels, 1)).toEqual([0, 2, 0]);
+  expect(between(levels, 1.5)).toEqual([0, 2, 2]);
+  expect(between(levels, 2)).toEqual([0, 2, 4]);
+  expect(between(levels, 0.01)[1]).toBeLessThan(0.0001);  // eased: it starts still
 });

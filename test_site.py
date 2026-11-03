@@ -322,6 +322,22 @@ def test_the_next_mech_has_its_own_panels():
     ]
 
 
+def test_pictures_shows_each_stage_at_explodes_parts_level():
+    """#811: Pictures has each Stage with every part apart under its name, in each Skeleton, shown in it alone."""
+    import macros
+
+    grid = macros.next_exploded()
+    names = [f"Stage {n}, its parts apart" for n in (1, 2, 3)] * 2
+    assert re.findall(r"<figcaption>([^<]+)</figcaption>", grid) == names
+    cells = re.findall(r'<figure data-skeleton="(\w+)"><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
+    assert cells == [
+        (skeleton, f"{d}{look}-parts-exploded.webp")
+        for skeleton, look in zip(("realistic", "mechanical"), LOOKS, strict=True)
+        for d in STAGE_DOCS
+    ]
+    assert "<!--{{ next_exploded }}-->" in (ROOT / "docs" / "pictures.md").read_text()
+
+
 def test_the_site_publishes_the_next_mech_alone():
     """#649 (docs/adr/0019): the site's pictures are the next Mech's panels, its motions (#656, #663) and one per part,
     its viewer the next Mech's GLBs, a Stage each in each look (#720), every name starting next-."""
@@ -332,12 +348,13 @@ def test_the_site_publishes_the_next_mech_alone():
 
     stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
-    # side and isometric per document, the front doors' own two (#739), the sweep (#656) and the 7 it plays (#663), each
-    # per Skeleton (#806), and a picture per part
-    assert len(published) == 2 * len(g.STAGES) + 2 * (2 + 1 + 7) + len(stems) == len(set(published))
+    # side and isometric per document, each at the Parts level (#811), the front doors' own two (#739), the sweep (#656)
+    # and the 7 it plays (#663), each per Skeleton (#806), and a picture per part
+    assert len(published) == 3 * len(g.STAGES) + 2 * (2 + 1 + 7) + len(stems) == len(set(published))
     assert {"next-stage1-isometric.webp", "next-eyes-rest.webp", "next-test-stand.webp"} <= {*published}
     assert {"next-stage1-front.webp", "next-mech-back-side-exploded.webp"} <= {*published}
     assert {"next-stage1-mechanical-front.webp", "next-eyes-mechanical-sweep.webp"} <= {*published}
+    assert {"next-stage1-parts-exploded.webp", "next-mech-back-mechanical-parts-exploded.webp"} <= {*published}
     assert build.PUBLIC == {f"{d}{look}": f"{d}{look}.glb" for look in LOOKS for d in STAGE_DOCS}
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} <= set(build.PUBLIC) == set(g.STAGES)
@@ -418,24 +435,6 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]
     macros.RANKING.write_text(json.dumps({"order": ["next-mech-a"], "variants": {"next-mech-a": {"fails": []}}}))
     assert macros.stage_switch() == unranked
-
-
-def test_the_viewer_explodes_the_next_mech_by_the_renders_offsets():
-    """Cansin (#482, #664): the viewer's Explode moves each part of the next Mech, every Stage in each look, by its
-    sub-assembly's offset in model/render/pictures.py EXPLODE, read from there (macros.json), in glTF's metres and Y-up
-    (x, z, -y), none of today's parts (#649), and no picture of it is rendered."""
-    import macros  # here, not at the top: it imports the model
-    from model import stages
-    from model.render import pictures
-    from web import build
-
-    explode = macros.explode()
-    assert [f"{doc}.glb" for doc in explode] == list(build.PUBLIC.values())
-    for doc, apart in explode.items():
-        assert set(apart) == set(stages.STAGES[doc].parts)
-    assert explode["next-mech-back"]["next torso:1"] == [0, 0, 0]
-    assert explode["next-mech-back"]["next board rack:1"] == pytest.approx([0, 0.095, -0.06])  # up with the head, back
-    assert "exploded.jpg" not in pictures.published()
 
 
 @pytest.mark.parametrize(

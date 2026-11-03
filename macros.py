@@ -7,7 +7,8 @@ pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures
 mjcf.py). themes: docs/face-design.md's Themes, each Colour group's filament (geometry.py THEMES, #805).
 next_panels: the next Mech's panels' grid, each of its Stages in every Skeleton (model/render/pictures.py PANELS,
 geometry.py STAGES, #629, #720), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of each of its
-parts, on docs/pictures.md (#649), and next_front: the front doors' own two there.
+parts, on docs/pictures.md (#649), next_front: the front doors' own two there and next_exploded: each Stage with every
+part apart (#811).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeletons (#805).
@@ -20,7 +21,6 @@ eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py n
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
-explode: the viewer's exploded next Mech (site/src/viewer/viewer.mjs), each part's offset (render/pictures.py EXPLODE).
 build, released: every page's footer and /version.json (site/src/components/Footer.astro, pages/version.json.js)."""
 
 import ast
@@ -256,6 +256,14 @@ def next_front():
     return figures(own, "views", skeletons=front_skeletons())
 
 
+def next_exploded():
+    """Each Stage in every Skeleton at Explode's Parts level (model/render/pictures.py parts_exploded, #811), each shown
+    in its Skeleton alone (#806)."""
+    labels = {pictures.parts_exploded(doc): f"{stage(doc)}, its parts apart" for doc in g.STAGES}
+    skeletons = {pictures.parts_exploded(doc): g.theme(doc)["Skeleton"] for doc in g.STAGES}
+    return figures(labels, "views", skeletons=skeletons)
+
+
 def next_motions():
     """The next Mech's eye gimbal in motion (model/render/pictures.py NEXT_MOTIONS, #656), in each Skeleton (#806)."""
     moving = {(m, s): pictures.next_motion(m, s) for s in g.SKELETON_SUFFIX for m in pictures.NEXT_MOTIONS}
@@ -346,14 +354,6 @@ def coupon():
     return "\n".join(rows)
 
 
-def explode():
-    """Each part of the next Mech's documents by its sub-assembly's EXPLODE offset, in glTF's metres and Y-up, by its
-    GLB node's name, under the document's GLB name (web/build.py PUBLIC)."""
-    glb = {doc: f.removesuffix(".glb") for doc, f in viewer.PUBLIC.items()}
-    xyz = {sub: [x / 1000, z / 1000, -y / 1000] for sub, (x, y, z) in pictures.EXPLODE.items()}
-    return {glb[doc]: {n: xyz[sub] for sub in subs for n in stages.SUBS[sub]().parts} for doc, subs in g.STAGES.items()}
-
-
 RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # just sim's (model/report.py, base.rank)
 
 
@@ -396,6 +396,7 @@ def numbers():
         "theme": {c.lower(): list(values) for c, values in g.THEMES.items()},  # the header's bar (#806)
         "next_panels": next_panels(),
         "next_front": next_front(),
+        "next_exploded": next_exploded(),
         "front": front(),
         "next_motions": next_motions(),
         "next_parts": next_parts(),
@@ -406,7 +407,6 @@ def numbers():
         "coupon": coupon(),
         "workflows": workflows(),
         "moments": moments(),
-        "explode": explode(),
         "build": (b := build()),
         "released": released(b["version"]),
     }

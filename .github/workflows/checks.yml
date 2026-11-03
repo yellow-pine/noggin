@@ -83,7 +83,7 @@ jobs:
           base: ${{ steps.checked.outputs.sha }}
           filters: |
             mech: ["eyes/**", "noggin/**", "reactions/**", "mech/**", "model/geometry.py", "justfile", "pyproject.toml", ".github/workflows/checks.yml"]
-            model: ["model/**", "eyes/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
+            model: ["model/**", "eyes/**", "web/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
             release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
       # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB

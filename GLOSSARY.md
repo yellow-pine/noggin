@@ -237,6 +237,11 @@ _Avoid_: hero (for the viewer's default), demo, autoplay
 An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base, boards' carrier and Test
 stand) and is placed into a document at a frame (model/stages.py).
 
+**Assembly direction**:
+The way a part slides off what holds it: a servo or Horn along its shaft, a part on a Pivot along the Pivot's axis, a
+board off its carrier's face, the pack up off its floor; Explode's Parts level moves each part out along it.
+_Avoid_: explode vector, pull direction
+
 **Envelope**:
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
 _Avoid_: proxy, dummy, placeholder
