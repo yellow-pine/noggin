@@ -8,9 +8,10 @@ flat across x as low as it goes; its bottom is the foot the Mech stands on. Only
 lead leave it for the head's side of pan (leads(); #51's wiring rules). The boards (both Shields, each Core plugged in
 under it, and the switch board) go in the compact head, everything riding it within gimbal.HEAD_MM (#51), in one
 variant since Cansin picked it (#712; the ranking stays for the next):
-- Back, next-mech-back: the boards upright in a row on the back face of the board rack, screwed under the gimbal
-  frame's plate at its back edge, behind the eye gimbal. Optimised: the row's height (BACK_Z) within the gimbal's, for
-  the tilt servo's least worst hold over its range (mujoco_report.torques).
+- Back, next-mech-back: the board rack screwed under the gimbal frame's plate at its back edge rises behind the eye
+  gimbal and reaches forward over it, the boards upright in a row on its shelf over the eyes, in the head's crown, so
+  the eyes sit in the head's lower half (#708). Optimised: the row's height (BACK_Z) between the eyes' gate and the
+  head's, for the tilt servo's least worst hold over its range (mujoco_report.torques).
 Every size is ours and inferred (no build settles one yet)."""
 
 import os
@@ -27,9 +28,11 @@ PACK_Y = 41.5  # the pack's middle, lying across x behind the neck mount's foot;
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
+EYES_UP = 0.5  # the eye centres at most this far up what rides the head, 0 its bottom: cartoon proportions (#708)
 GAP = 2.0  # between two boards in a row
-RACK_Y = gimbal.PLATE_Y[1]  # the rack's front face, on the gimbal frame plate's back edge
-BACK_Z = -51.0  # Back: the row's middle, candidates.optimise()'s
+RACK_Y = gimbal.PLATE_Y[1]  # the rack's posts' front face, on the gimbal frame plate's back edge
+BACK_Z = 58.8  # Back: the row's middle, candidates.optimise()'s
+BACK_Y = -2.0  # Back: the row's backs, its middle over the tilt axis (inferred)
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
 # bottom: model/envelopes.py, held to it by model/test_base.py)
 ROW = (
@@ -70,7 +73,7 @@ def standing(back, z, row=ROW):
 
 
 def back_boards():
-    return standing(RACK_Y + TRAY_T, BACK_Z)
+    return standing(BACK_Y, BACK_Z)
 
 
 # Stage 1's test stand (#720): a box under the gimbal frame's plate, screwed up through the head mount's holes, from the
@@ -102,10 +105,10 @@ AXES = ("width", "depth", "height")  # gimbal.HEAD_MM's order
 
 def rank(reports):
     """The head variants ranked from their sim reports ({doc: model/build/reports/<doc>-sim.json}): the gates first (a
-    variant whose boards or their carriers meet another part anywhere in the sweep or along a motion, or whose head
-    is past gimbal.HEAD_MM, is out), then #51's marks in its order (each servo holds at most its rated torque and peaks
-    at most half its stall, the lowest mode at least MODE_HZ, the moving centre of mass inside the footprint), then its
-    figures in that order, the first that differs deciding: simplicity (the printed parts beside the neck and gimbal),
+    variant whose boards or their carriers meet another part anywhere in the sweep or along a motion, whose head is
+    past gimbal.HEAD_MM, or whose eyes sit higher up it than EYES_UP, is out), then #51's marks in its order (each
+    servo holds at most its rated torque and peaks at most half its stall, the lowest mode at least MODE_HZ, the moving
+    centre of mass inside the footprint), then its figures in that order, the first that differs deciding: simplicity (the printed parts beside the neck and gimbal),
     servo torque (worst hold, then peak), gravity torque at rest (the tilt servo's), the lowest mode (the servos'
     loops), the head's fit (its least room left, mm), the leads crossing pan and tilt, the tip-over
     margin. Pack access is no criterion here: the pack lies in the same Torso in each. Each variant's `fails` names the
@@ -139,12 +142,15 @@ def rank(reports):
         gates = {
             "clearance": clear,
             "head": [a for a, s, h in zip(AXES, v["head_mm"], gimbal.HEAD_MM) if s > h],
+            "eyes": v["eyes_up"] > EYES_UP,
             "loops": [n for n, x in m["residuals"].items() if x["max_mm"] > m["loop_mm"]],
         }
         costs = (c["printed"], c["hold_kgf_cm"], c["peak_kgf_cm"], c["rest_kgf_cm"], -c["mode_hz"], -c["head_room_mm"])
         out[doc] = {
             "gates": gates,
-            "fails": [n for n, k in (("clearance", "clearance"), ("head size", "head")) if gates[k]]
+            "fails": [
+                n for n, k in (("clearance", "clearance"), ("head size", "head"), ("eyes up", "eyes")) if gates[k]
+            ]
             + [f"{n.removesuffix(' pivot')} loop" for n in gates["loops"]]
             + [n for n, missed in marks.items() if missed],
             "criteria": c,

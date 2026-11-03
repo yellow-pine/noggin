@@ -152,7 +152,7 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
 # head variant (#686, model/base.py) with the sub-assemblies that carry its boards, all in the head's frame, the Torso's
 # foot on z 0 (base.TORSO, model/test_neck.py).
-_HEAD = ((0, -150, 153), X, Z)
+_HEAD = ((0, -150, 147), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
     for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)

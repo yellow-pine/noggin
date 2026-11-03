@@ -23,5 +23,6 @@
                    "rest_kgf_cm": 0.1, "hold_kgf_cm": 0.45},
           "jaw": {"range_deg": [0.0, 25.0], "servo_deg": [0.0, 41.9], "transmission_deg": 59.3, "gain": 0.637},
           "head": {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 5.0},
-          "spans": {"pan": {"bend_mm": 19.78}, "tilt": {"bend_mm": 12.0}, "floor_mm": 14.0}}
+          "spans": {"pan": {"bend_mm": 19.78}, "tilt": {"bend_mm": 12.0}, "floor_mm": 14.0}},
+ "variant": {"head_mm": [120.0, 121.5, 149.0], "eyes_up": 0.62}
 }

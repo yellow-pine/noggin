@@ -36,8 +36,9 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the head's centre of mass; the **tilt bar** joins
    it to the tilt servo's horn.
 4. **Eye block** from [Stage 1](stage-1.md) on the head mount, in the test stand's place.
-5. **Board rack** under the back edge of the gimbal frame's plate, behind the eyes: both Cores on their Shields and the
-   switch board, upright.
+5. **Board rack** under the back edge of the gimbal frame's plate, its posts rising behind the eyes and its rails
+   reaching forward over them: both Cores on their Shields and the switch board, upright on its shelf in the head's
+   crown.
 
 Each busy pivot is a greased M3 shank turning in a bore printed along the layers' axis.
 

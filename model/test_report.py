@@ -65,7 +65,21 @@ def problems(report):
                     out.append(
                         f"electrical {core}: {v} V on a {e[case]['pack_v']} V pack < the {e['brownout_v']} V brownout"
                     )
-    return out + mujoco_problems(report) + gimbal_problems(report) + neck_problems(report)
+    return out + mujoco_problems(report) + gimbal_problems(report) + neck_problems(report) + variant_problems(report)
+
+
+def variant_problems(report):
+    """The next Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
+    eyes sit in its lower half (base.EYES_UP, #708), in each look: a hard gate."""
+    v, out = report.get("variant"), []
+    if not v:
+        return out
+    if any(s > h for s, h in zip(v["head_mm"], gimbal.HEAD_MM)):
+        size, head = (" x ".join(map(str, x)) for x in (v["head_mm"], gimbal.HEAD_MM))
+        out.append(f"variant head: {size} mm (W x D x H) past the compact head's {head}")
+    if v["eyes_up"] > base.EYES_UP:
+        out.append(f"variant eyes: {v['eyes_up']} of the head's height up > {base.EYES_UP}")
+    return out
 
 
 def gimbal_problems(report):
@@ -257,6 +271,8 @@ FIXTURE_PROBLEMS = {
         "neck pan servo: 95.0 deg past its 90.0",
         "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.4",
         "neck tilt span: bends to 12.0 mm < 14.0",
+        "variant head: 120.0 x 121.5 x 149.0 mm (W x D x H) past the compact head's 124.6 x 120.0 x 150.0",
+        "variant eyes: 0.62 of the head's height up > 0.5",
     ],
 }
 

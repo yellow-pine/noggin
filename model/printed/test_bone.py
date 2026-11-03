@@ -1,5 +1,5 @@
 """Seam: model/printed/bone.py, a Bone between two joints on the print bed: flat on the bed with no overhang past 45
-deg, thick at its joints and waisted mid-span; and the Skeleton's style switch (model/printed: plain or Bones)."""
+deg, thick at its joints and waisted mid-span; and the Skeleton's style switch (model/printed: mechanical or Bones)."""
 
 import cadquery as cq
 import pytest
@@ -60,7 +60,7 @@ def test_every_skeleton_part_has_both_styles_or_names_the_ticket_drawing_its_bon
     assert set(printed.STYLED) | set(printed.UNSTYLED) == skeleton
     assert not set(printed.STYLED) & set(printed.UNSTYLED) and all(printed.UNSTYLED.values())
     assert printed.styled("next bail", mechanical=True) == "next bail mechanical"
-    assert printed.styled("next jaw", True) == "next jaw"
+    assert printed.styled("next eyeball core", True) == "next eyeball core"
 
 
 # each Skeleton part's Colour group as Cansin set them (#805)

@@ -41,8 +41,8 @@ _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
 One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the
-boards upright in the back of the head behind the eye gimbal, and it is the one variant today; the pack lies low in the
-Torso.
+boards upright in the head's crown over the eye gimbal, on a rack rising behind it, the eyes in the head's lower half,
+and it is the one variant today; the pack lies low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -270,7 +270,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - torso: the Torso; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan; pan bar: the pan
   Horn to the yoke;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
-- board rack: both Cores and the switch board, upright behind the eyes;
+- board rack: both Cores and the switch board, upright over the eyes, from posts behind them;
 - jaw: turns on the head mount's lugs; jaw bar: the jaw Horn to the jaw.
 _Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
 

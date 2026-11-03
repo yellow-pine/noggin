@@ -106,10 +106,9 @@ def yoke(mechanical=False):
 
 
 def tie_bar(mechanical=False):
-    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Mechanical: a
-    bar across both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone
-    (model/printed/bone.py) from each eye's pin back to the yaw horn's, flat on top within its slab where the cranks
-    ride on it."""
+    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Mechanical: a bar across
+    both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone (model/printed/bone.py) from
+    each eye's pin back to the yaw horn's, flat on top within its slab where the cranks ride on it."""
     c, horn = gm.EYE["L"][0], (0.0, gm.YAW_Y + gm.CRANK, gm.TIE_Z[0])
     if mechanical:
         out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
@@ -154,8 +153,8 @@ def bail(mechanical=False):
 
 
 def push_rod(mechanical=False):
-    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball.
-    Mechanical: an r 2 cylinder; as a Bone (#703), on its cups' rims."""
+    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's, a cup round each ball. Mechanical:
+    an r 2 cylinder; as a Bone (#703), on its cups' rims."""
     z, back = gm.LEVER, gm.BAIL[0]
     out = cyl("y", (0, 0, z), 2.0, (0, back)) if mechanical else bone.bone((0, 0, z - 2), (0, back, z - 2), *ROD_BONE)
     for y in (0.0, back):
@@ -165,9 +164,10 @@ def push_rod(mechanical=False):
     return out
 
 
-def link(a, b, x):
-    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b."""
-    return holes(lid_mechanical([a, b], x), (a, b), x)
+def link(a, b, x, mechanical=False, sizes=LID_BONE):
+    """A flat bar in the slab `x` with pin holes along x at the (y, z) points a and b: mechanical or a Bone (#704) of
+    `sizes`."""
+    return holes(lid_arms([a, b], x, mechanical, sizes), (a, b), x)
 
 
 def holes(out, pins, x):
@@ -179,10 +179,10 @@ def holes(out, pins, x):
     return out
 
 
-def lid_arms(points, x, mechanical=False):
-    """The lid drives' bars, links and spokes through the (y, z) `points` in turn, in the slab `x`: mechanical or
-    as Bones."""
-    return (lid_mechanical if mechanical else lid_bone)(points, x)
+def lid_arms(points, x, mechanical=False, sizes=LID_BONE):
+    """The lid drives' bars, links and spokes through the (y, z) `points` in turn, in the slab `x`: mechanical or as Bones
+    of `sizes`."""
+    return lid_mechanical(points, x) if mechanical else lid_bone(points, x, sizes)
 
 
 def lid_mechanical(points, x):
@@ -196,30 +196,21 @@ def lid_mechanical(points, x):
     return out
 
 
-def lid_bone(points, x):
+def lid_bone(points, x, sizes=LID_BONE):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
     lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
     where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way."""
-    assert LID_BONE[0][1] < x[1] - x[0]
-
-    def span(a, b, k):
-        size = [tuple(k * v for v in s) for s in LID_BONE]
-        try:
-            return bone.bone((*a, 0), (*b, 0), *size)
-        except ValueError:  # OCCT can fail to fuse a head to a short span one way; a Bone is the same either way
-            return bone.bone((*b, 0), (*a, 0), *size)
-
-    out = span(*points[:2], 0.95)
-    for i, (a, b) in enumerate(zip(points[1:], points[2:])):
-        out = out.union(span(a, b, 1.0 if i % 2 == 0 else 0.95))
+    assert sizes[0][1] < x[1] - x[0]
+    out = bone.chain(points, *sizes, swell=1.0)
     # the bed's z onto x, its x and y onto the gimbal's y and z: a turn about (1, 1, 1), then into the slab
     return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
 
-def pitch_bar():
+def pitch_bar(mechanical=False):
+    """The pitch bar: the pitch horn's pin up to the bail's input arm, mechanical or a Bone (#708)."""
     hy, hz = gm.PITCH_HORN
-    return link((hy + gm.CRANK, hz), (gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1]), gm.PITCH_BAR_X)
+    return link((hy + gm.CRANK, hz), (gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1]), gm.PITCH_BAR_X, mechanical)
 
 
 def _slab(name, side=1):
@@ -246,9 +237,9 @@ def lid_link(mechanical=False):
 def _lid(radii, span, spokes, boss, pin, mechanical):
     """An L lid: its shell wedge about x from `span` (deg from forward toward up) between the caps' sides, and in two
     slabs a spoke out to the shell at `spokes` deg (outboard, inboard), the shell reaching round to it there: outboard
-    from the `boss` on the frame's shank, inboard from its crank `pin` (#698), `mechanical` or as Bones (#704). The
-    outboard spoke stays behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is
-    past the cap's reach. Everything within the outer radius."""
+    from the `boss` on the frame's shank, inboard from its crank `pin` (#698), `mechanical` or as Bones (#704). The outboard
+    spoke stays behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is past the
+    cap's reach. Everything within the outer radius."""
     ri, ro = radii
 
     def wedge(a, b, x):
@@ -284,24 +275,32 @@ def lower_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
-def frame():
+def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under everything, the yaw bearings under the yokes' stems, the bail's and
     the lids' uprights with the shanks' bores, a collar on posts round each servo at its tab plate, and the holes the
-    head mount (model/printed/neck.py) is screwed up through."""
+    head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each
+    upright a waisted strut up from the plate in its slab to a round boss round the shank's bore."""
+    from model.printed.neck import strut  # here: model.printed.neck imports this module
+
     c, top = gm.EYE["L"][0], gm.PLATE_Z[1]
     by, bz = gm.BAIL
-    edge = c + gm.LID_X["upright"][1]
+    edge, stem = c + gm.LID_X["upright"][1], gm.YOKE["stem_z"]
     out = box((-edge, edge), gm.PLATE_Y, gm.PLATE_Z)
     for s in (-1, 1):
-        stem = gm.YOKE["stem_z"]
-        out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem))).cut(
-            cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem))
-        )
         bx = sorted((s * (c + 8), s * (c + 12)))
-        out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).cut(cyl("x", (0, by, bz), gm.PIN_R, bx))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
-        out = out.union(box(ux, (-4, 4), (top, 4)))
-        out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, ux))
+        if mechanical:
+            out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
+            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
+        else:  # from inside the plate, flat on top under the yoke's stem; each upright up its slab's middle
+            out = out.union(strut((s * c, 0, top - 1), (s * c, 0, stem), (5.0, 5.0), (3.5, 3.5)))
+            for xs, y, z in ((bx, by, bz), (ux, 0.0, 0.0)):
+                x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2  # a waisted strut, a round boss at its top (a light mesh)
+                out = out.union(strut((x, y, top - 1), (x, y, z), (4.0, h), (3.0, h))).union(
+                    cyl("x", (0, y, z), 4.0, xs)
+                )
+        out = out.cut(cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem)))
+        out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux)
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     for face, shaft, tab, _ in gm.drives().values():
@@ -321,12 +320,18 @@ def collar(m, floor):
     for hx, hy in s["tab_holes"]:
         local = local.cut(cq.Workplane("XY").circle(s["tab_r"]).extrude(3).translate((hx, hy, 0)))
     out = _moved(local, m)
-    for hx, hy in s["tab_holes"]:
-        corners = [(hx + a, hy + b, z) for a in (-2.4, 2.4) for b in (-2.4, 2.4) for z in (0, 3)]
-        w = (m @ np.c_[corners, np.ones(8)].T)[:3].T
-        lo, hi = w.min(axis=0), w.max(axis=0)
+    for hole in s["tab_holes"]:
+        lo, hi = post(m, hole)
         out = out.union(box((lo[0], hi[0]), (lo[1], hi[1]), (floor, hi[2]) if floor < lo[2] else (lo[2], floor)))
     return out
+
+
+def post(m, hole):
+    """(lo, hi) corners of the box round a servo's tab hole `hole` (its STEP frame) through the collar, placed by m."""
+    hx, hy = hole
+    corners = [(hx + a, hy + b, z) for a in (-2.4, 2.4) for b in (-2.4, 2.4) for z in (0, 3)]
+    w = (m @ np.c_[corners, np.ones(8)].T)[:3].T
+    return w.min(axis=0), w.max(axis=0)
 
 
 def _moved(shape, m):
@@ -419,8 +424,8 @@ def _path(segments, step):
 
 
 def sweep(mechanical=False, n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650), the Skeleton `mechanical` or as Bones (#704): each lid, its bar, its horn and its
-    shank against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+    """The lid drives' sweep (#650), the Skeleton `mechanical` or as Bones (#704): each lid, its bar, its horn and its shank
+    against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
     Every pair at least LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is

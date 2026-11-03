@@ -30,7 +30,10 @@ def test_every_part_of_the_next_mech_is_mounted_on_the_assembly(doc):
     near = {n: set() for n in meshes}
     for a, b in itertools.combinations(meshes, 2):
         (lo_a, hi_a), (lo_b, hi_b) = meshes[a].bounds, meshes[b].bounds
-        if (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all() and trees[b].query(points[a])[0].min() < TOUCH_MM:
+        if not (np.maximum(lo_a - hi_b, lo_b - hi_a) < TOUCH_MM).all():
+            continue
+        close = points[a][((points[a] > lo_b - TOUCH_MM) & (points[a] < hi_b + TOUCH_MM)).all(axis=1)]  # by b alone
+        if len(close) and trees[b].query(close, distance_upper_bound=TOUCH_MM)[0].min() < TOUCH_MM:
             near[a].add(b)
             near[b].add(a)
     reached, todo = set(), ["next torso:1" if "next torso:1" in parts else "next test stand:1"]
@@ -76,7 +79,9 @@ def test_the_leads_that_cross_pan_and_tilt_go_from_each_servo_and_the_pack_to_th
     assert base.leads(stages.STAGES["next-mech-back"]) == {"pan pivot": 2, "tilt pivot": 3}
 
 
-def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, head=None, tilt=0.03):
+def _report(
+    pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, head=None, tilt=0.03, eyes=0.45
+):
     servo = {"hold_kgf_cm": hold, "peak_kgf_cm": peak, "rest_kgf_cm": rest, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}
     return {
         "mujoco": {
@@ -94,6 +99,7 @@ def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
             "head_mm": head or [118.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
+            "eyes_up": eyes,
         },
     }
 
@@ -115,6 +121,17 @@ def test_a_head_past_124_6_w_150_h_120_d_fails_the_head_gate_and_ranks_after_one
     assert ranked["order"] == ["next-mech-later", "next-mech-back"]
     assert ranked["variants"]["next-mech-back"]["gates"]["head"] == ["depth"]
     assert ranked["variants"]["next-mech-back"]["fails"] == ["head size"]
+    assert ranked["variants"]["next-mech-later"]["fails"] == []
+
+
+def test_a_variant_whose_eyes_sit_in_its_heads_upper_half_fails_the_eyes_gate_and_ranks_after_one_that_fits():
+    """#708: the eye centres at most half way up what rides the head (cartoon proportions); 0.51 up ranks after 0.5,
+    though its servo holds less."""
+    ranked = base.rank(
+        {"next-mech-back": _report(hold=0.05, eyes=0.51), "next-mech-later": _report(hold=0.3, eyes=0.5)}
+    )
+    assert ranked["order"] == ["next-mech-later", "next-mech-back"]
+    assert ranked["variants"]["next-mech-back"]["fails"] == ["eyes up"]
     assert ranked["variants"]["next-mech-later"]["fails"] == []
 
 
