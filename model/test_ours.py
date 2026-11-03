@@ -1,6 +1,6 @@
 """Seam: `just stl` and `just step` (model/ours.py): a printed part's STL is watertight in its shape's box, its STEP is a
-valid solid with the same box, and a document's STEP is valid and holds every part model/stages.py places, the Torso's
-foot on z 0."""
+valid solid with the same box, and a document's STEP is valid and holds every part model/stages.py places but the
+skull's mesh bones (geometry.BONES), the Torso's foot on z 0."""
 
 import cadquery as cq
 import pytest
@@ -52,7 +52,7 @@ def test_a_documents_step_holds_every_placed_part_at_neutral(doc_step):
     """Read back, each part is one valid solid, in the order model/stages.py places them, so an invalid one names
     itself (Linux's OCCT reads some B-spline solids back invalid where macOS's does not: #837, #851)."""
     shape = cq.importers.importStep(doc_step).val()
-    names = list(stages.STAGES[DOC].parts)
+    names = [n for n, p in stages.STAGES[DOC].parts.items() if stages.stem(p.file) not in geometry.BONES]  # meshes
     assert len(shape.Solids()) == len(names)
     assert [n for n, s in zip(names, shape.Solids(), strict=True) if not s.isValid()] == []
     assert shape.isValid()

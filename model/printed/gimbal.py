@@ -309,7 +309,9 @@ def frame(mechanical=False):
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
             out = out.union(strut((s * c, 0, top - 1), (s * c, 0, stem), (5.0, 5.0), (3.5, 3.5)))
             for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.BOSS_R)):
-                x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2  # a waisted strut, a round boss at its top (a light mesh)
+                # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
+                # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)
+                x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2 - 0.25
                 out = out.union(strut((x, y, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
                     cyl("x", (0, y, z), r, xs)
                 )

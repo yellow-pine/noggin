@@ -39,11 +39,13 @@ def printable(stem, path):
 
 def stage_step(doc, path):
     """The document at neutral as one STEP assembly at `path` (returned): every part's shape at its placement (model/stages.py),
-    in its Theme's colour (or the hardware's grey)."""
+    in its Theme's colour (or the hardware's grey). The skull's bones are meshes (geometry.BONES): their STLs alone."""
     shape = functools.cache(lambda stem: SHAPES[stem]())
     asm = cq.Assembly(name=doc)
     for name, part in stages.STAGES[doc].parts.items():
         stem = stages.stem(part.file)
+        if stem in geometry.BONES:
+            continue
         trsf = gp_Trsf()
         trsf.SetValues(*part.matrix[:3].flatten().tolist())
         loc = cq.Location(trsf)
