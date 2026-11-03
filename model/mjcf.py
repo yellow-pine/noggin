@@ -32,7 +32,12 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
-FINE_MM = {"horn": 0.08}
+FINE_MM = {"horn": 0.08} | {
+    # each lower lid's shell nests 1 mm outside the upper's (#698): pieces within 0.5 mm of it, not chords across the gap
+    f"next {s} lower lid{style}": 0.5
+    for s in "LR"
+    for style in ("", g.MECHANICAL)
+}
 # The Bones' (model/printed/bone.py) curved sections would cut into many pieces: each part's capped, so the sim stays fast
 MAX_PIECES = dict.fromkeys(
     ("next tie-bar", "next push-rod", "next yaw yoke", "next bail", "next board rack", "next lid bar", "next lid link"),
