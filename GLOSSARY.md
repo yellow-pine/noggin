@@ -40,9 +40,9 @@ the neck mount with the pan servo; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
-One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the
-boards upright in the head's crown over the eye gimbal, on a rack rising behind it, the eyes in the head's lower half,
-and it is the one variant today; the pack lies low in the Torso.
+One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, a Core
+on edge in each cheek behind the eyes, the head's shell rising over them so the eyes sit in its lower half, and it is
+the one variant today; the pack and the switch board lie low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -287,7 +287,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - torso: the Torso; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan; pan bar: the pan
   Horn to the yoke;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
-- board rack: both Cores and the switch board, upright over the eyes, from posts behind them;
+- board rack: a cradle in each cheek holding a Core on edge, joined across the gimbal frame's plate;
 - jaw: turns on the head mount's lugs; jaw bar: the jaw Horn to the jaw.
 _Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
 

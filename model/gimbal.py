@@ -89,9 +89,9 @@ LID_X = {
 }
 PLATE_Z = (-67.0, -64.0)  # the gimbal frame's plate, under the yaw servo
 PLATE_Y = (-25.0, 70.0)  # under the head mount's front screws to past the pitch servo's collar
-SHELL_MM = 3.0  # the head shell's wall beside the frame's uprights (inferred: no shell is drawn yet, #665)
-# the compact head the gimbal fits (#684): width, depth, height; its width the face's, the lids' frame (#698) and shell
-HEAD_MM = (SPACING + 2 * (LID_X["upright"][1] + SHELL_MM), 120.0, 150.0)
+# the compact head the gimbal fits (#684): width, depth, height; 140 wide, past the face's 119 (the lids' frame, #698),
+# so the skull dome rounds over it as a cartoon cranium (Cansin, #828)
+HEAD_MM = (140.0, 120.0, 150.0)
 
 
 def drives():

@@ -56,10 +56,11 @@ EXPLODE = {
     "next-back": (0, 60, 95),
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
-# least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a board off its
-# carrier's face (model/base.py standing, their backs on it), the pack up off the Torso's floor (stages.next_base)
+# least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
+# Shield back out of its cradle (model/base.py back_boards) or off the test stand's face, the switch board and the pack
+# up off the Torso's floor (stages.next_base)
 GAP = 5.0
-SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Y, "battery": g.Z}
+SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Z, "battery": g.Z}
 # the front doors (#739: the README's top, the site's home), side by side in this order, in each Preset (#806, #819),
 # the default's first: Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
 # from the side, exploded (EXPLODE); each (DRAWN's name, eye direction, exploded), framed tight on its own at the
@@ -197,7 +198,7 @@ def offsets(doc, level):
             if not signed and np.dot((lo + hi) / 2 - middle, d) < -0.5:  # a part on the middle goes the axis' way
                 d = -d
             out[n] = out[n] + _clear(lo, hi, d, [(lo, hi), *placed]) * d
-        elif any(d := EXPLODE[sub[n]]):  # one the rest goes on, inside another (the rack over the eyes, #817): on out
+        elif any(d := EXPLODE[sub[n]]):  # one the rest goes on, among another's (the rack, #817): on out
             d = np.divide(d, np.linalg.norm(d))  # along its sub-assembly's offset until clear of what is placed
             out[n] = out[n] + _clear(lo, hi, d, placed) * d
         lo, hi = box[n][0] + out[n], box[n][1] + out[n]

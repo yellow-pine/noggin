@@ -31,19 +31,19 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 ## Assembly, as the model places it
 
-1. **Torso**: the foot the Mech stands on, the pack lying low in it and the **neck mount** with the pan servo on top.
+1. **Torso**: the foot the Mech stands on, the pack lying low in it, the switch board lying flat in front of the
+   pack's lead end, its lever reached from the open back, and the **neck mount** with the pan servo on top.
 2. **Pan yoke** turning on the neck mount; the **pan bar** joins it to the pan servo's horn.
 3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the head's centre of mass; the **tilt bar** joins
    it to the tilt servo's horn.
 4. **Eye block** from [Stage 1](stage-1.md) on the head mount, in the test stand's place.
-5. **Board rack** under the back edge of the gimbal frame's plate, its posts rising behind the eyes and its rails
-   reaching forward over them: both Cores on their Shields and the switch board, upright on its shelf in the head's
-   crown.
+5. **Board rack** on the gimbal frame's plate behind the eyes: a cradle in each cheek, each Core on its Shield slid
+   in on edge from behind, its USB-C port facing back.
 
 Each busy pivot is a greased M3 shank turning in a bore printed along the layers' axis.
 
 ## Wiring
 
-The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)). One pack and one switch board feed both
-Shields through a Y lead, split after the neck joint; the leads that cross the pan and tilt pivots are clamped at both
+The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)). One pack and one switch board in the Torso
+feed both Shields: one power lead runs up the neck from the switch board and splits into the Y lead in the head; the leads that cross the pan and tilt pivots are clamped at both
 ends and bent no tighter than ten times their diameter.

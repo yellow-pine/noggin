@@ -1,16 +1,12 @@
-"""The next Mech's head variants in MuJoCo (#686; their numbers and ranking: model/base.py): each one's parameters
-optimised on its MJCF (optimise(), `python -m model.candidates`, whose numbers model/base.py draws) and its figures for
-the sim report (report(), model/report.py), which rank() orders."""
+"""The next Mech's head variants in MuJoCo (#686; their numbers and ranking: model/base.py): each one's figures for the
+sim report (report(), model/report.py), which rank() orders. Back's boards sit where the cheeks have room (#828): no
+parameter is left to optimise."""
 
 import mujoco
 import numpy as np
-from scipy.optimize import minimize_scalar
 
-from model import base, gimbal, mjcf, mujoco_report, stages
+from model import base, mujoco_report, stages
 from model import geometry as g
-
-# each variant's carrier and the boards on it, which optimise() moves (Back alone since #712)
-CARRIER = {"next-mech-back": ("next board rack", base.back_boards)}
 
 
 def _rest(model):
@@ -35,7 +31,7 @@ def head(doc, model):
 def report(doc, model):
     """The variant's figures for rank() from its document and its MJCF (model/report.py): the parts beside the neck and
     the gimbal (the Torso, the pack, the carriers and the boards) and how many are printed, the leads crossing pan and
-    tilt, the head's box and the eyes' height in it and its parameters."""
+    tilt, the head's box and the eyes' height in it."""
     stage = stages.STAGES[doc]
     parts = [
         n for sub in g.NEXT[doc] if sub not in ("next-neck", "next-jaw", "next-eyes") for n in stages.SUBS[sub]().parts
@@ -47,42 +43,4 @@ def report(doc, model):
         "leads": base.leads(stage),
         "head_mm": size,
         "eyes_up": eyes,
-        "back_z_mm": base.BACK_Z,
     }
-
-
-def optimise(doc):
-    """The variant's parameters at their optimum on its MJCF without collision pieces (derivative-free, scipy): Back
-    {"back_z_mm"}: the row's height, its top from higher over the eyes than the head's bottom is under them (the eyes in
-    the head's lower half, #708) up to the head's height (gimbal.HEAD_MM), 0.25 mm inside each, where the tilt servo's
-    worst hold against gravity over its range is least (MuJoCo's inverse dynamics, mujoco_report.torques, at each pose
-    its sweep settles to). It also gives the hold there and at the drawn place."""
-    model = mjcf.model(doc, collide=False)
-    stage, still = stages.STAGES[doc], _rest(model)
-    _, boards = CARRIER[doc]
-    group = [model.body(f"{b}:1").id for b in boards()]  # the boards alone: the carrier is redrawn round them
-    rest = [n for n in stage.horns["tilt horn"].loops[0].rockers if model.body(n).id not in group]
-    lo, hi = stage.horns["tilt horn"].limits
-    tilts = [mjcf.pose(model, {"tilt horn": d}) for d in np.linspace(lo, hi, 9)]
-    pos0, turn = model.body_pos[group].copy(), still.xmat[model.body("next head mount:1").id].reshape(3, 3)
-    origin = np.array(stages.DOCS[doc]["next-eyes"][0])
-
-    def hold(dy, dz):
-        model.body_pos[group] = pos0 + turn.T @ [0, dy, dz] / 1000
-        for d in tilts:
-            mujoco.mj_kinematics(model, d)
-        k = model.actuator("tilt horn").id
-        return max(abs(mujoco_report.torques(model, d, moving=False)[k]) for d in tilts) / mujoco_report.KGF_CM
-
-    try:
-        low = _drawn(model, still, rest)[:, 2].min() - origin[2]  # the head's bottom, under the eyes
-        span = (-low - base.BOARD_H / 2 + 0.25, low + gimbal.HEAD_MM[2] - base.BOARD_H / 2 - 0.25)  # inside each gate
-        found = minimize_scalar(lambda z: hold(0, z - base.BACK_Z), bounds=span, method="bounded")
-        return {"back_z_mm": round(float(found.x), 1), "hold_kgf_cm": float(found.fun), "drawn_kgf_cm": hold(0, 0)}
-    finally:
-        model.body_pos[group] = pos0
-
-
-if __name__ == "__main__":
-    for doc in CARRIER:
-        print(doc, optimise(doc))

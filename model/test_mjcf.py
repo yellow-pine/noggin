@@ -74,7 +74,6 @@ TOUCH = {
                 ("next board rack:1", f"{b}:1")
                 for b in ("next Core 1", "next Core 2", "next Shield 1", "next Shield 2")
             ),
-            ("next board rack:1", "next switch board:1"),
             ("next board rack:1", "next gimbal frame:1"),
             # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
             *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
@@ -85,6 +84,7 @@ TOUCH = {
         for pair in [
             ("next torso:1", "next neck mount:1"),
             ("next torso:1", "next pack:1"),
+            ("next torso:1", "next switch board:1"),
         ]
     },
 }
