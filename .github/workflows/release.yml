@@ -8,7 +8,8 @@ name: Release
 # Release Assets (release-assets.yml).
 # A manual run (#802, Actions > Release > Run workflow on main) does it all on main's tip at dispatch: the full Checks
 # (checks.yml, whose Deploy deploys), then, once they pass, tags that same commit even when main moved on meanwhile,
-# releasing from a branch of its own at that commit (deleted after), so the version and notes stay semantic-release's.
+# releasing main when that commit is still its tip, else a branch of its own at that commit (deleted after), so the
+# version and notes stay semantic-release's.
 # Its bump: auto lets the commits decide; patch, minor or major releases at least that bump (release.config.mjs).
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch' && format('Release: manual by {0}', github.actor)
@@ -54,7 +55,6 @@ jobs:
     runs-on: ubuntu-26.04
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit Checks passed
-      BRANCH: ${{ github.event_name == 'workflow_dispatch' && format('release-{0}', github.run_id) || '' }}
     steps:
       - name: Mint the bot App's token
         id: app
@@ -76,23 +76,42 @@ jobs:
           package-manager-cache: false   # a release installs without a cache (zizmor cache-poisoning)
       - name: Install semantic-release
         run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
-      # the manual run's own branch at the commit it checked: semantic-release releases a branch's head alone
+      # semantic-release releases a branch's head alone: on main's tip the manual run releases main as a push does;
+      # once main moved past the commit it checked, a branch of its own there, named for the steps after
+      - name: Check whether main moved on
+        id: tip
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |   # its own assignment, so a failing git fails the step
+          main=$(git ls-remote --exit-code origin refs/heads/main)
+          [ "${main%%[[:space:]]*}" = "$SHA" ] || echo "branch=release-$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"
+      # its own short-lived token: a ref at a commit with workflow files takes the Workflows permission (#802), which
+      # semantic-release's token never holds
+      - name: Mint the branch's token
+        id: branch-app
+        if: ${{ steps.tip.outputs.branch != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510   # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
       - name: Open the release branch
         id: branch
-        if: ${{ env.BRANCH != '' }}
+        if: ${{ steps.tip.outputs.branch != '' }}
         run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$SHA" --silent
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ steps.branch-app.outputs.token }}
+          BRANCH: ${{ steps.tip.outputs.branch }}
       - name: Run semantic-release
         run: |
           set -o pipefail   # a step with no `shell:` runs `bash -e`: semantic-release's failure, not tee's success
-          # the manual run releases its branch, which env-ci reads from GITHUB_REF
+          # the manual run releases its branch when it opened one, which env-ci reads from GITHUB_REF
           if [ -n "$BRANCH" ]; then export GITHUB_REF="refs/heads/$BRANCH"; set -- --branches "$BRANCH"; fi
           ci/node_modules/.bin/semantic-release "$@" 2>&1 | tee "$RUNNER_TEMP/release.log"
           # a run that tags nothing exits green, so its summary says why
           if grep -q "is behind the remote one" "$RUNNER_TEMP/release.log"; then
             echo "Not released: main moved past ${SHA:0:7}; the newer commit's run releases both." >> "$GITHUB_STEP_SUMMARY"
-          elif [ -n "$BRANCH" ] && grep -q "There are no relevant changes" "$RUNNER_TEMP/release.log"; then
+          elif [ -n "$RELEASE_BUMP" ] && grep -q "There are no relevant changes" "$RUNNER_TEMP/release.log"; then
             case "$RELEASE_BUMP" in
               patch|minor|major) echo "Not released: no commit since the last tag, so nothing to release at a forced $RELEASE_BUMP." ;;
               *) echo "Not released: no commit since the last tag is a feat, fix, perf, revert or a break." ;;
@@ -101,8 +120,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
           RELEASE_BUMP: ${{ inputs.bump }}   # empty on main's push: the commits decide
+          BRANCH: ${{ steps.tip.outputs.branch }}   # empty on main's push, and on main's tip
       - name: Delete the release branch
         if: ${{ always() && steps.branch.outcome == 'success' }}
         run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" --silent
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ steps.branch-app.outputs.token }}
+          BRANCH: ${{ steps.tip.outputs.branch }}

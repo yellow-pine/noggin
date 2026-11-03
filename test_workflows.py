@@ -476,8 +476,9 @@ def test_main_releases_itself_once_its_checks_pass():
 
 def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed():
     """#802: Release's dispatch on main runs Checks itself (checks.yml's workflow_call, its Deploy on), and tags only
-    once they passed, from a branch of its own at that commit, deleted after, so main moving on stops nothing. Its bump
-    is auto, patch, minor or major (release.config.mjs); main's push run is unchanged."""
+    once they passed, on main when that commit is still main's tip, else from a branch of its own at it, deleted after,
+    so main moving on stops nothing. Its bump is auto, patch, minor or major (release.config.mjs); main's push run is
+    unchanged."""
     wf = WORKFLOWS[0].parent
     flow = yaml.safe_load((wf / "release.yml").read_text())
     bump = flow[True]["workflow_dispatch"]["inputs"]["bump"]
@@ -491,9 +492,50 @@ def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed(
     asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
     assert asked.items() <= checks["permissions"].items()
     steps = {s["name"]: s for s in release["steps"]}
-    assert steps["Open the release branch"]["if"] == "${{ env.BRANCH != '' }}"
+    assert steps["Check whether main moved on"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
+    moved = "${{ steps.tip.outputs.branch != '' }}"
+    assert steps["Open the release branch"]["if"] == steps["Mint the branch's token"]["if"] == moved
     assert steps["Delete the release branch"]["if"] == "${{ always() && steps.branch.outcome == 'success' }}"
+    for name in ("Open the release branch", "Run semantic-release", "Delete the release branch"):
+        assert steps[name]["env"]["BRANCH"] == "${{ steps.tip.outputs.branch }}", name
     assert steps["Run semantic-release"]["env"]["RELEASE_BUMP"] == "${{ inputs.bump }}"
+    # a ref at a commit with workflow files takes the Workflows permission (run 41579675814's 403), in a token of the
+    # branch's own: semantic-release's holds contents alone (#842's security review)
+    tokens = {s["id"]: s for s in release["steps"] if s.get("uses", "").startswith("actions/create-github-app-token@")}
+    perms = {i: {k: v for k, v in s["with"].items() if k.startswith("permission-")} for i, s in tokens.items()}
+    assert perms == {
+        "app": {"permission-contents": "write"},
+        "branch-app": {"permission-contents": "write", "permission-workflows": "write"},
+    }
+    token = "${{{{ steps.{}.outputs.token }}}}".format
+    assert steps["Run semantic-release"]["env"]["GITHUB_TOKEN"] == token("app")
+    for name in ("Open the release branch", "Delete the release branch"):
+        assert steps[name]["env"]["GH_TOKEN"] == token("branch-app"), name
+
+
+@pytest.mark.parametrize(("tip", "opened"), [("abc1234def5678", False), ("fff0000aaa1111", True)])
+def test_a_manual_release_opens_its_branch_only_when_main_moved_past_its_commit(tmp_path, tip, opened):
+    """#802: on main's tip the manual run releases main as a push does, with no branch; once main moved past the
+    commit it checked, it names release-<run id> for the steps after, which open it there. git faked: `git ls-remote`
+    prints main's tip `tip` as git does."""
+    flow = yaml.safe_load((WORKFLOWS[0].parent / "release.yml").read_text())
+    step = next(s for s in flow["jobs"]["release"]["steps"] if s["name"] == "Check whether main moved on")
+    (tmp_path / "git").write_text(f'#!/bin/sh\nprintf "{tip}\\trefs/heads/main\\n"\n')
+    (tmp_path / "git").chmod(0o755)
+    out = tmp_path / "output"
+    done = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        env={
+            "PATH": f"{tmp_path}:/usr/bin:/bin",
+            "GITHUB_OUTPUT": str(out),
+            "SHA": "abc1234def5678",
+            "GITHUB_RUN_ID": "42",
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert done.returncode == 0, done.stderr
+    assert (out.read_text() if out.exists() else "") == ("branch=release-42\n" if opened else "")
 
 
 @pytest.mark.parametrize(
@@ -528,11 +570,13 @@ NO_CHANGES = "There are no relevant changes, so no new version is released."
         ("Published release 1.2.3 on default channel", "patch", ""),
     ],
 )
-def test_a_manual_release_releases_its_own_branch_and_says_why_it_tagged_nothing(tmp_path, says, bump, summary):
-    """#802: the manual run hands semantic-release its branch (`--branches`, and GITHUB_REF, which env-ci reads), and
-    a run that tags nothing says why in its summary."""
-    done, read = release_step(tmp_path, says, 0, {"BRANCH": "release-42", "RELEASE_BUMP": bump})
-    assert done.returncode == 0 and "args: --branches release-42 ref: refs/heads/release-42" in done.stdout
+@pytest.mark.parametrize("branch", ["release-42", ""])
+def test_a_manual_release_releases_its_own_branch_and_says_why_it_tagged_nothing(tmp_path, says, bump, summary, branch):
+    """#802: the manual run hands semantic-release its branch when it opened one (`--branches`, and GITHUB_REF, which
+    env-ci reads), else main as a push does, and a run that tags nothing says why in its summary."""
+    done, read = release_step(tmp_path, says, 0, {"BRANCH": branch, "RELEASE_BUMP": bump})
+    ref = f"args: --branches {branch} ref: refs/heads/{branch}" if branch else "args:  ref: refs/heads/main"
+    assert done.returncode == 0 and ref in done.stdout
     assert read() == summary
 
 
