@@ -99,7 +99,15 @@ def test_the_parts_merge_into_each_figures_worst_the_earlier_on_a_tie():
     heaviest hold and peak, the motions in turn and the first part's own figures (full speed, vibration), that part
     measuring no pose."""
     speed = {"tilt horn": {"off_deg": 0.1}}
-    rest = {"poses": 0, "pairs": [], "residuals": {}, "loops": {}, "actuators": {}, "full_speed": speed, "vibration": {}}
+    rest = {
+        "poses": 0,
+        "pairs": [],
+        "residuals": {},
+        "loops": {},
+        "actuators": {},
+        "full_speed": speed,
+        "vibration": {},
+    }
     rest |= {"motions": {"names": [], "servos": {}}, "tip_over": {"moving": None, "footprint_mm": [90, 90]}}
     one = _part(100, -0.1, 1, 0.02, 3.0, 0.3, 0.5, 5.0, 4.0, full_speed={})
     two = _part(105, -0.1, 2, 0.04, 2.5, 0.3, 0.6, 6.0, 3.0, full_speed={}, vibration={"x": 1})
