@@ -136,11 +136,13 @@ def head_mount(mechanical=False):
 
 def _clear():
     """What the flange leaves open: a slot round each cheek's boss, a notch round each jaw boss, one round the tilt
-    bar's top end and one where the jaw bar swings."""
+    bar's top end and the front corner where the jaw bar swings."""
     x0, x1 = nk.TILT_BAR_X
     out = box((x0, x1 + 0.5), _around(Y + nk.TILT_LEVER), nk.FLANGE_Z)
-    x0, x1 = nk.JAW_BAR_X
-    out = out.union(box((x0 - 0.5, x1 + 0.5), (nk.CHIN_Y, nk.JAW[0] - nk.JAW_LEVER + 8), nk.FLANGE_Z))
+    # the flange's front corner off where the jaw bar swings, wide and deep enough that the head mount's convex pieces
+    # (CoACD) leave it open too: a 4 mm slot they filled met the bar 0.4 mm deep in the hero (#708)
+    x0, _ = nk.JAW_BAR_X
+    out = out.union(box((x0 - 0.5, 38.0), (nk.CHIN_Y, nk.JAW[0] - nk.JAW_LEVER + 11), nk.FLANGE_Z))
     for s in (-1, 1):
         cheek = box(sorted(s * c for c in (nk.CHEEK_X[0] - 0.5, nk.CHEEK_X[1])), (Y - 6, Y + 6), nk.FLANGE_Z)
         jaw = box(sorted(s * c for c in (nk.JAW_X[0], nk.JAW_X[1] + 0.5)), _around(nk.JAW[0]), nk.FLANGE_Z)
