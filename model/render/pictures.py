@@ -2,7 +2,8 @@
 posed from its baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 `views` (`just render`): the panels (each document at rest, a trajectory's first frame, from the side and isometric,
-framed among themselves: PANELS) and the front doors' own (FRONT, #739). `site next` (`just pictures next`, Checks'
+framed among themselves: PANELS), the front doors' own (FRONT, #739) and each Stage at Explode's Parts level
+(parts_exploded, #811). `site next` (`just pictures next`, Checks'
 Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those, the eye gimbal in
 motion (NEXT_MOTIONS: its sweep, #656, and each motion it plays, #663) and a picture per part.
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
@@ -49,6 +50,11 @@ EXPLODE = {
     "next-eyes": (0, 0, 95),
     "next-back": (0, 60, 95),
 }
+# Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
+# least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a board off its
+# carrier's face (model/base.py standing, their backs on it), the pack up off the Torso's floor (stages.next_base)
+GAP = 5.0
+SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Y, "battery": g.Z}
 # the front doors (#739: the README's top, the site's home), side by side in this order, as Bones (#704): Stage 1 from
 # the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3 from the side, exploded (EXPLODE);
 # each (document, eye direction, exploded), framed tight on its own at the panels' size
@@ -80,6 +86,11 @@ def picture(name, view):
     return f"{name}-{view}.webp"
 
 
+def parts_exploded(doc):
+    """A Stage's picture at Explode's Parts level (#811): isometric, framed tight on its own at the panels' size."""
+    return f"{doc}-parts-exploded.webp"
+
+
 @functools.cache
 def next_parts():
     """{picture: (document, part)}: one per part of the next Mech's documents by its mesh, its first instance."""
@@ -96,17 +107,104 @@ def next_motion(motion):
 
 
 def published():
-    """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), its motions (#656),
-    then its parts'."""
+    """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), each Stage at the
+    Parts level (#811), its motions (#656), then its parts'."""
     front = [f for f, how in FRONT.items() if how]
-    return [*(picture(*p) for p in PANELS), *front, *map(next_motion, NEXT_MOTIONS), *next_parts()]
+    apart = map(parts_exploded, g.STAGES)
+    return [*(picture(*p) for p in PANELS), *front, *apart, *map(next_motion, NEXT_MOTIONS), *next_parts()]
 
 
-def exploded(doc, mats):
-    """mats ({part: world 4x4}, metres) with each part moved by its sub-assembly's EXPLODE offset, as the viewer's
-    Explode moves it (macros.py explode)."""
-    sub = {n: s for s in g.STAGES[doc] for n in stages.SUBS[s]().parts}
-    return {n: stages.translate(np.divide(EXPLODE[sub[n]], 1000)) @ m for n, m in mats.items()}
+def exploded(doc, mats, level=1):
+    """mats ({part: world 4x4}, metres) with each part moved by its offset at the level (offsets), as the viewer's
+    Explode moves it (web/build.py)."""
+    apart = offsets(doc, level)
+    return {n: stages.translate(apart[n] / 1000) @ m for n, m in mats.items()}
+
+
+@functools.cache
+def boxes(doc):
+    """{part: (low, high corner)}: each part's world bounding box at rest, mm, its leads cut as the pictures draw it
+    (scene.export)."""
+    out = {}
+    for n, p in stages.STAGES[doc].parts.items():
+        mesh = trimesh.load(p.file, force="mesh")
+        v, f = mesh.vertices, mesh.faces
+        if p.clip:
+            axis, cut = p.clip
+            f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
+        v = trimesh.transform_points(v[f.ravel()], p.matrix)
+        out[n] = (v.min(axis=0), v.max(axis=0))
+    return out
+
+
+def directions(doc):
+    """{part: its Assembly direction's axis, world}: a servo and its Horn out along the shaft (stages.mounted), a seated
+    part off its seat (SEATS), any other the axis of the innermost joint that turns it in its own sub-assembly (of the
+    Pivots and rod joints it is on, the one with fewest parts), signed later (offsets). What no joint turns (the Torso,
+    the mounts, the frames, the rack) has none: the rest is assembled on it."""
+    joints = []  # (the parts a joint turns, its world axis)
+    for sub, frame in stages.DOCS[doc].items():
+        turn = stages.align(*frame)[:3, :3]
+        for horn in stages.SUBS[sub]().horns.values():
+            for loop in horn.loops:
+                axis = turn @ loop.rocker_pivot[1]
+                joints += [([loop.coupler], axis), (loop.rockers, axis)]
+            for rod in horn.rods:
+                joints += [([rod.part], turn @ np.reshape(rod.axes, (-1, 3))[0]), (rod.driven, turn @ rod.hinge[2])]
+    out = {}
+    for n, p in stages.STAGES[doc].parts.items():
+        s = stages.stem(p.file)
+        if s in ("servo", "horn"):
+            out[n] = (-p.matrix[:3, 2], True)  # its local z is the shaft's reverse (stages.mounted)
+        elif s in SEATS:
+            out[n] = (np.array(SEATS[s], float), True)
+        elif on := [(len(parts), axis) for parts, axis in joints if n in parts]:
+            out[n] = (min(on, key=lambda j: j[0])[1], False)
+    return out
+
+
+@functools.cache
+def offsets(doc, level):
+    """{part: its offset, mm} at an Explode level (#811): 0 assembled; 1 its sub-assembly's EXPLODE offset (#482);
+    2 that and on out along its Assembly direction (directions; a joint's axis away from the document's middle) until
+    its bounding box is GAP clear of its own there and of every part placed before it: what the rest is assembled on
+    first, then the largest first, so what sits on a part comes off beyond it."""
+    sub = {n: s for s in stages.DOCS[doc] for n in stages.SUBS[s]().parts}
+    out = {n: np.array(EXPLODE[sub[n]] if level else (0, 0, 0), float) for n in stages.STAGES[doc].parts}
+    if level < 2:
+        return out
+    box, axes = boxes(doc), directions(doc)
+    middle = np.mean([lo + hi for lo, hi in box.values()], axis=0) / 2
+    placed = []
+    for n in sorted(box, key=lambda n: (n in axes, -np.prod(np.subtract(*box[n][::-1])))):
+        lo, hi = box[n][0] + out[n], box[n][1] + out[n]
+        if n in axes:
+            d, signed = axes[n]
+            d = np.round(d / np.linalg.norm(d), 9)
+            if not signed and np.dot((lo + hi) / 2 - middle, d) < -0.5:  # a part on the middle goes the axis' way
+                d = -d
+            out[n] = out[n] + _clear(lo, hi, d, [(lo, hi), *placed]) * d
+            lo, hi = box[n][0] + out[n], box[n][1] + out[n]
+        placed.append((lo, hi))
+    return out
+
+
+def _clear(lo, hi, d, blockers):
+    """The least t >= 0 that moves the box (lo, hi) by t d at least GAP clear of every blocker box."""
+    spans, moving = [], d != 0
+    for blo, bhi in blockers:
+        blo, bhi = blo - GAP, bhi + GAP
+        if not np.all(moving | ((lo < bhi) & (hi > blo))):
+            continue  # apart on an axis it does not move along: never meets it
+        a, b = (blo[moving] - hi[moving]) / d[moving], (bhi[moving] - lo[moving]) / d[moving]
+        t0, t1 = np.max(np.minimum(a, b)), np.min(np.maximum(a, b))
+        if t0 < t1:
+            spans.append((t0, t1))
+    t = 0.0
+    for t0, t1 in sorted(spans):  # each span it would overlap in, by its start: past each it is inside of
+        if t0 < t < t1:
+            t = t1
+    return t
 
 
 def share(frames, i, n):
@@ -219,6 +317,9 @@ def views(mine):
             pose = exploded(doc, mats) if apart else mats
             cam = camera.fit(points(hull, pose), eye, g.Z, size[0] / size[1], None, MARGIN)
             shots.append(shot(f.removesuffix(".webp"), size, cam, [pose]))
+        pose = exploded(name, mats, 2)
+        cam = camera.fit(points(hull, pose), *VIEWS["isometric"], size[0] / size[1], None, MARGIN)
+        shots.append(shot(parts_exploded(name).removesuffix(".webp"), size, cam, [pose]))
         render(name, manifest, shots, mine)
 
 

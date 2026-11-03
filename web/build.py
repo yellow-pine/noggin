@@ -2,7 +2,7 @@
 the site serves at viewer/ beside the viewer's page and its module (site/src/pages/viewer.astro, `just site`,
 docs/adr/0009). Each GLB is Blender's (web/glb.py): the document's parts in the pictures' look, one glTF clip per motion
 of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the next hero
-(#642).
+(#642), and each part's Explode offsets in its node's extras (explode, #811).
 Usage: python -m web.build [out [doc ... | next]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
 
 import json
@@ -33,11 +33,19 @@ def glb(doc, path):
         }
         rest = next(iter(motions.values()))[0]
         spec = {"parts": parts, "motions": motions, "rest": rest, "fps": trajectories.FPS, "out": path}
+        spec["explode"] = explode(doc)
         job = os.path.join(tmp, "job.json")
         json.dump(spec, open(job, "w"))
         r = subprocess.run([pictures.BLENDER, "-b", "-P", SCRIPT, "--", job], capture_output=True, text=True)
     if r.returncode or not os.path.isfile(path):
         sys.exit(f"Blender failed on {doc}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
+
+
+def explode(doc):
+    """{part: its offsets at Explode's levels past assembled (model/render/pictures.py offsets, #811), each in glTF's
+    metres and Y-up, one after another}: what the page moves each part by (its node's extras)."""
+    levels = [pictures.offsets(doc, level) for level in (1, 2)]
+    return {n: [c / 1000 for o in levels for c in (o[n][0], o[n][2], -o[n][1])] for n in levels[0]}
 
 
 def build(out, docs=()):

@@ -51,6 +51,12 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, as Bones:
   Stage 1 from the front, Stage 3's isometric panel and Stage 3 from the side, exploded by the viewer's offsets
   (pictures.py FRONT, EXPLODE), the two new ones each framed tight on its own at the panels' size and also on Pictures.
+- Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Skeleton isometric with every
+  part apart, framed tight on its own at the panels' size (pictures.py parts_exploded): each part on its sub-assembly's
+  offset (EXPLODE) slid out along its Assembly direction (pictures.py directions: a servo and its horn along the shaft,
+  a part on a pivot or rod joint along its axis away from the Stage's middle, a board or the pack off its seat) until
+  its bounding box is GAP clear of its own and of every part placed before it, the largest first (pictures.py offsets,
+  which the viewer's GLBs carry too). The front doors keep the Sub-assemblies level.
 - Real photos of the build are local only (docs/references/build-photos, gitignored): ground truth for the model, never in git, the README or the site (Cansin, 2026-11-01: no staged photos yet).
 
 ## Numbers from the code

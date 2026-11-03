@@ -40,8 +40,12 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   await viewer.getByRole('navigation', { name: 'Skeleton' }).getByRole('button', { name: 'Mechanical' }).click();
   await expect(page).toHaveURL(/\?stage=1&skeleton=mechanical$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
-  await viewer.getByRole('button', { name: 'Explode' }).click();
+  const explode = viewer.getByRole('navigation', { name: 'Explode' }); // Explode's levels (#811)
+  await explode.getByRole('button', { name: 'Sub-assemblies' }).click();
   await expect(page).toHaveURL(/\?stage=1&skeleton=mechanical&explode=1$/);
+  await explode.getByRole('button', { name: 'Parts' }).click();
+  await expect(page).toHaveURL(/\?stage=1&skeleton=mechanical&explode=2$/);
+  await expect(explode.getByRole('button', { name: 'Parts' })).toHaveAttribute('aria-pressed', 'true');
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
   await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));

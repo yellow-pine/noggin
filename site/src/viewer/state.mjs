@@ -1,6 +1,6 @@
-// The viewer's state as plain data (viewer.mjs): the deep link, the caption and the explode offsets; no three.js, so
+// The viewer's state as plain data (viewer.mjs): the deep link, the caption and Explode's levels; no three.js, so
 // Vitest tests them (state.test.mjs) and the browser smoke only loads a Stage (#513)
-import { explode, moments, published } from "../macros.json";
+import { moments, published } from "../macros.json";
 
 export const title = (s) => s[0].toUpperCase() + s.slice(1);
 
@@ -13,25 +13,32 @@ const SUFFIXES = published.stages.skeletons.map((s) => s.suffix).filter(Boolean)
 export const skeleton = (stage) => SUFFIXES.find((s) => stage.endsWith(s)) ?? "";
 export const bony = (stage) => stage.slice(0, stage.length - skeleton(stage).length);
 
-// a deep link, ?stage=<n>&skeleton=mechanical&gesture=<g>&explode=1: the page's nth Stage button's Stage (else
-// `fallback`, the viewer's own) in its Skeleton, its gesture, and exploded only where the Stage comes apart
+// Explode's levels (#811), each a button: every part home, each sub-assembly apart, each part apart
+export const LEVELS = ["Assembled", "Sub-assemblies", "Parts"];
+
+// a deep link, ?stage=<n>&skeleton=mechanical&gesture=<g>&explode=<level>: the page's nth Stage button's Stage (else
+// `fallback`, the viewer's own) in its Skeleton, its gesture, and its Explode level (LEVELS' index, 0 by default)
 export function opened(search, stages, fallback) {
   const link = new URLSearchParams(search), base = stages[link.get("stage") - 1];
   const stage = base ? base + (SUFFIXES.find((s) => s === `-${link.get("skeleton")}`) ?? "") : fallback;
-  return { stage, gesture: link.get("gesture"), exploded: link.get("explode") === "1" && stage in explode };
+  const explode = Math.min(Math.max(parseInt(link.get("explode")) || 0, 0), LEVELS.length - 1);
+  return { stage, gesture: link.get("gesture"), explode };
 }
 
-// the deep link to what plays: the Stage by its button (where the page has them) and its Skeleton, the gesture,
-// exploded
-export function address(stages, stage, gesture, exploded) {
+// the deep link to what plays: the Stage by its button (where the page has them) and its Skeleton, the gesture, the
+// Explode level
+export function address(stages, stage, gesture, explode) {
   const n = stages.indexOf(bony(stage)) + 1, link = new URLSearchParams();
   if (n) link.set("stage", n);
   if (n && skeleton(stage)) link.set("skeleton", skeleton(stage).slice(1));
   if (gesture) link.set("gesture", gesture);
-  if (exploded) link.set("explode", 1);
+  if (explode) link.set("explode", explode);
   return link.size ? `?${link}` : "";
 }
 
-// the offsets Explode moves the Stage's parts apart by, each part by its name (macros.json, model/render/pictures.py
-// EXPLODE): none for a Stage that does not come apart
-export const offsets = (stage) => explode[stage] ?? {};
+// values (one array per level) `x` of the way through the levels, 0 at the first: between the two levels round it,
+// eased so each step starts and stops still
+export function between(values, x) {
+  const i = Math.min(Math.floor(x), values.length - 2), f = x - i, e = f * f * f * (f * (f * 6 - 15) + 10);
+  return values[i].map((v, k) => v + (values[i + 1][k] - v) * e);
+}

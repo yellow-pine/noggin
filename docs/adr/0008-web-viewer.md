@@ -41,6 +41,11 @@
 > Amended 2026-11-03 (#805, ADR 0022): the look switch is the Skeleton switch, Realistic and Mechanical
 > (`next-mech-back-mechanical.glb`), each GLB in its Theme's colours.
 > Amended 2026-11-03 (#795): Checks' `Deploy` job deploys the site, in place of Site Deploy.
+> Amended 2026-11-03 (#811): Explode is a segmented Assembled · Sub-assemblies · Parts, each step animated, and
+> `&explode=<0|1|2>` opens it so (`1` as before); at Parts each part slides out along its Assembly direction on its
+> sub-assembly's offset (model/render/pictures.py offsets, the pictures' one function). Each GLB node carries its
+> offsets in its extras (web/build.py explode), as the look is carried: they need the parts' meshes, which the site's
+> build lacks, so macros.json no longer has them.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
