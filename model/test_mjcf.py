@@ -1,6 +1,7 @@
 import functools
 import itertools
 import math
+import os
 
 import mujoco
 import numpy as np
@@ -113,6 +114,22 @@ def forward(doc):
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     return model, data
+
+
+@functools.cache
+def _faces(file):
+    return len(trimesh.load(file, force="mesh").faces)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", list(g.NEXT))
+def test_mujoco_plays_no_bone_and_loads_every_mesh_within_its_stl_limit(doc):
+    """MuJoCo's STL reader takes at most 200 000 faces, and the realistic skull's are past it (#855): its bones are no
+    body (physics runs on the mechanical documents, #809; model/trajectories.py poses() puts them on their carriers)."""
+    s = mjcf.spec(doc, collide=False)
+    bones = {n for n, p in stages.STAGES[doc].parts.items() if stages.stem(p.file) in g.BONES}
+    assert bones.isdisjoint(b.name for b in s.bodies)
+    assert [m.file for m in s.meshes if _faces(os.path.join(mjcf.BUILD, m.file)) >= 200_000] == []
 
 
 @pytest.mark.parametrize("doc", grouped(g.SIMULATED))

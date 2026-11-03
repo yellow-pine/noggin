@@ -7,6 +7,7 @@ Each horn is a hinge on its servo shaft driven by its servo (drive(): a DC motor
 coupler a hinge on its horn pin and each rocker a hinge on its pivot; the four-bars close by a connect at the coupler's
 rocker pin (#148, research note docs/research/2026-11-01-mujoco-loops.md). pose() puts the Mech at servo commands."""
 
+import collections
 import concurrent.futures
 import glob
 import hashlib
@@ -155,7 +156,7 @@ def _joints(stage):
     each rod (stages.Rod) on its arm, axes (two: a universal joint) on its carrier, and the parts it drives on their hinge;
     {part: the joints that move it}; [(loop joint, coupler, rocker, the rocker pin)] where the four-bars and the
     push-rods close)."""
-    hinges, moves, closures = {}, {n: set() for n in stage.parts}, []
+    hinges, moves, closures = {}, collections.defaultdict(set), []  # a horn drives a bone too, which is no body
     for h, horn in stage.horns.items():
         f = horn.frame  # the chain's points are in its sub-assembly's frame
 
@@ -179,15 +180,18 @@ def _joints(stage):
             for p in rod.driven:
                 moves[p].add(joint)
             closures.append((rod.joint, rod.part, rod.driven[0], at(rod.lever, axis)[0]))
-    return hinges, moves, closures
+    return hinges, {n: moves[n] for n in stage.parts}, closures
 
 
 def spec(doc, collide=True):
     """The document as an MjSpec: a body per part at its placement, its mesh drawn in its colour, its convex pieces
     colliding and weighing the part's mass (mass()); the parts a joint moves hang under it (_joints()). Without collide
     there are no pieces (no CoACD): the drawn mesh weighs the part and nothing collides, enough for what plays with
-    contacts off (model/trajectories.py, #276)."""
+    contacts off (model/trajectories.py, #276). The realistic skull's bones (g.BONES) are none of its bodies: physics runs
+    on the mechanical documents (#809), and their meshes pass MuJoCo's STL limit (model/trajectories.py poses() carries
+    them on their carriers)."""
     stage = stages.STAGES[doc]
+    stage = stage._replace(parts={n: p for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES})
     meshes = {stages.stem(p.file): (p.file, p.clip) for p in stage.parts.values()}
     pieces = {stem: [] for stem in meshes}
     cut = {stem: m for stem, m in meshes.items() if stem not in skin.DRAWN}  # a Skin's Shells are drawn alone
@@ -308,6 +312,7 @@ def head(doc, model, bare=False):
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
     rockers = stages.STAGES[doc].horns["tilt horn"].loops[0].rockers
+    rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)

@@ -144,8 +144,15 @@ def stale(doc):
 
 def poses(doc, motion):
     """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
-    the web viewer's GLBs are baked from (web/build.py)."""
+    the web viewer's GLBs are baked from (web/build.py). Each of the skull's bones, which MuJoCo plays none of
+    (mjcf.spec), rides its carrier (stages.RIDES) as model/stages.py places it on it."""
     parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
+    placed = stages.STAGES[doc].parts
+    rides = {}
+    for name in (n for n, p in placed.items() if stages.stem(p.file) in geometry.BONES):
+        carrier = stages.RIDES[name]
+        rides[name] = (carrier, np.linalg.inv(placed[carrier].matrix) @ placed[name].matrix)
+        rides[name][1][:3, 3] /= 1000  # mm to MuJoCo's metres
     frames = []
     for i in range(len(next(iter(parts.values()))["pos"])):
         frames.append({})
@@ -153,6 +160,8 @@ def poses(doc, motion):
             m = trimesh.transformations.quaternion_matrix(p["quat"][i])  # w x y z, as MuJoCo's
             m[:3, 3] = p["pos"][i]
             frames[-1][name] = m
+        for name, (carrier, rel) in rides.items():
+            frames[-1][name] = frames[-1][carrier] @ rel
     return frames
 
 
