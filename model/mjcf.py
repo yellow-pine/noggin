@@ -23,7 +23,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import electrical, stages
+from model import electrical, skin, stages
 from model import geometry as g
 from model.render import scene
 
@@ -190,9 +190,10 @@ def spec(doc, collide=True):
     stage = stages.STAGES[doc]
     meshes = {stages.stem(p.file): (p.file, p.clip) for p in stage.parts.values()}
     pieces = {stem: [] for stem in meshes}
+    cut = {stem: m for stem, m in meshes.items() if stem not in skin.DRAWN}  # a Skin's Shells are drawn alone
     if collide:  # spawn, not fork: CadQuery's OCCT threads may be running in the caller (model/ours.py)
         with concurrent.futures.ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as pool:
-            pieces = dict(zip(meshes, pool.map(_convex, meshes.values())))
+            pieces |= dict(zip(cut, pool.map(_convex, cut.values())))
     volumes = {stem: [trimesh.load(p).volume for p in ps] for stem, ps in pieces.items()}
     s = mujoco.MjSpec()
     s.modelname = doc
@@ -246,7 +247,7 @@ def spec(doc, collide=True):
         colour = scene.colour(file, g.theme(doc))
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh touches nothing and carries no mass where the pieces do both, the part's mass spread by volume
-        kg = mass(_mesh(file, clip), stage.parts[name].material) / 1000
+        kg = 0.0 if stem in skin.DRAWN else mass(_mesh(file, clip), stage.parts[name].material) / 1000
         weight = {"density": 0} if pieces[stem] else {"mass": kg}
         body.add_geom(
             type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, rgba=rgba, material="satin", **weight

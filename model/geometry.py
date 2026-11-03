@@ -200,7 +200,8 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 _HEAD = ((0, -150, 147), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
-    for v, carriers in (("back", ["next-back"]),)  # Back alone since Cansin picked it (#712)
+    for v, carriers in (("back", ["next-back", "next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's
+    # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso, the neck, the head mount and the boards' rack

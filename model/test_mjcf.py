@@ -8,7 +8,7 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, stages
+from model import gimbal, mjcf, skin, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -232,12 +232,13 @@ def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
 
 
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
-    """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume."""
+    """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume; a Skin's drawn Shells weigh
+    nothing (model/skin.py DRAWN)."""
     model, stage = built(DOC), stages.STAGES[DOC]
     for name, part in stage.parts.items():
-        assert model.body(name).mass[0] * 1000 == pytest.approx(
-            mjcf.mass(mjcf._mesh(part.file, part.clip), part.material), abs=0.01
-        ), name
+        drawn = stages.stem(part.file) in skin.DRAWN
+        grams = 0.0 if drawn else mjcf.mass(mjcf._mesh(part.file, part.clip), part.material)
+        assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
 
 
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))

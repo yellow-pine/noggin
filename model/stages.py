@@ -288,6 +288,17 @@ def next_stand():
     return _boards("next test stand", candidates.stand_boards())
 
 
+def next_morty():
+    """next-morty: Morty's Skin (#665, model/skin.py), each Shell where it sits on what carries it (RIDES): the face and
+    the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on the jaw, the shirt on the Torso."""
+    parts = {}
+    for stem in g.PRINTED:
+        if stem.startswith("next morty "):
+            side = next((s for s in gimbal.EYE if f" {s} " in stem), None)
+            parts[stem + ":1"] = part(stl(stem), side and translate(gimbal.EYE[side]), printed(stem))
+    return Sub(parts, {})
+
+
 SUBS = {
     "next-eyes": next_eyes,
     "next-neck": next_neck,
@@ -295,6 +306,7 @@ SUBS = {
     "next-base": next_base,
     "next-back": next_back,
     "next-stand": next_stand,
+    "next-morty": next_morty,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
 # geometry.align_rows: the next Mech's Stages in every Skeleton, the last of them the head variant's (geometry.NEXT)
@@ -303,7 +315,13 @@ RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
     "next-back": "next head mount:1",  # the rack under the plate
     "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
-}  # clamped to that part
+    # a Skin's Shells, each on its Seats (model/skin.py), the shirt on the Torso, which moves none
+    "next morty face:1": "next gimbal frame:1",
+    "next morty hair:1": "next board rack:1",
+    **{f"next morty {s} pupil:1": f"next {s} eyeball cap:1" for s in "LR"},
+    **{f"next morty {s} {lid} lid cover:1": f"next {s} {lid} lid:1" for s in "LR" for lid in ("upper", "lower")},
+    "next morty mouth cover:1": "next jaw:1",
+}  # clamped to that part (a sub-assembly's every part, or one part)
 
 
 def assemble(doc, frames):
@@ -324,20 +342,20 @@ def assemble(doc, frames):
         parts = {n: p._replace(file=stl(styled(stem(p.file), mechanical=True))) for n, p in parts.items()}
     riders = {}  # carrier part -> parts clamped to it
     for sub, carrier in RIDES.items():
-        if sub in frames:
-            riders.setdefault(carrier, []).extend(n for n in parts if owner[n] == sub)
+        riders.setdefault(carrier, []).extend(n for n in parts if owner[n] == sub or n == sub)
+
+    def carried(names):
+        out, todo = list(names), list(names)
+        while todo:  # transitive: a carried part may carry more
+            for n in riders.get(todo.pop(), []):
+                if n not in out:
+                    out.append(n)
+                    todo.append(n)
+        return [n for n in out if n in parts]  # the Stage's own
+
     for h, horn in horns.items():
-        loops = []
-        for loop in horn.loops:
-            rockers = list(loop.rockers)
-            todo = list(rockers)
-            while todo:  # transitive: a carried part may carry more
-                for n in riders.get(todo.pop(), []):
-                    if n not in rockers:
-                        rockers.append(n)
-                        todo.append(n)
-            loops.append(loop._replace(rockers=[n for n in rockers if n in parts]))  # the Stage's own
-        horns[h] = horn._replace(loops=loops)
+        loops = [loop._replace(rockers=carried(loop.rockers)) for loop in horn.loops]
+        horns[h] = horn._replace(loops=loops, rods=[rod._replace(driven=carried(rod.driven)) for rod in horn.rods])
     return Doc(doc, parts, horns)
 
 

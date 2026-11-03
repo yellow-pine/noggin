@@ -9,7 +9,7 @@ import subprocess
 
 import pytest
 
-from model import base, fits, gimbal, mujoco_report, neck, report, sim, stages
+from model import base, fits, gimbal, mujoco_report, neck, report, sim, skin, stages
 from model import geometry as g
 
 HERE = os.path.dirname(__file__)
@@ -196,6 +196,13 @@ def mujoco_problems(report):
             out.append(
                 f"mujoco {horn}: peaks at {a['peak_kgf_cm']} kgf.cm at {a['peak_at']} > half its stall {a['stall_kgf_cm']}"
             )
+    for shell, s in m.get("motions", {}).get("shells", {}).items():  # #665: one magnet pair a Seat (model/skin.py)
+        holds = skin.hold_n() * sum(seat.shell == shell.removesuffix(":1") for seat in skin.SEATS)
+        if holds < skin.SF * s["g"] / 1000 * s["peak_m_s2"]:
+            out.append(
+                f"mujoco {shell}: its magnets hold {holds:.0f} N < {skin.SF} x its {s['g']} g at {s['peak_m_s2']} m/s2"
+                f" ({s['at']})"
+            )
     tip = m.get("tip_over")
     if tip and tip["margin_mm"] <= 0:
         out.append(f"mujoco tip-over: centre of mass {-tip['margin_mm']} mm outside the base footprint at {tip['at']}")
@@ -257,6 +264,8 @@ FIXTURE_PROBLEMS = {
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
         "mujoco tilt horn: peaks at 0.55 kgf.cm at {'motion': 'hero', 'ms': 410} > half its stall 1.0",
+        "mujoco next morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero',"
+        " 'ms': 410})",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
         "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
         " {'motion': 'hero', 'ms': 410}",

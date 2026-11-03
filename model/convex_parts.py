@@ -7,7 +7,7 @@ import sys
 from unittest import mock
 
 from model import geometry as g
-from model import mjcf, stages
+from model import mjcf, skin, stages
 
 
 class _Stale(Exception):
@@ -21,7 +21,8 @@ def _refuse(*_, **__):
 def parts():
     """{part: (mesh file, clip)} over every document physics runs on (geometry.SIMULATED, #809), as model/mjcf.py's
     spec() decomposes them."""
-    return {stages.stem(p.file): (p.file, p.clip) for doc in g.SIMULATED for p in stages.STAGES[doc].parts.values()}
+    parts = (p for doc in g.SIMULATED for p in stages.STAGES[doc].parts.values())
+    return {stages.stem(p.file): (p.file, p.clip) for p in parts if stages.stem(p.file) not in skin.DRAWN}
 
 
 def stale(meshes):

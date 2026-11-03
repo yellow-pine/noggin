@@ -2,14 +2,15 @@
 
 import functools
 
+from model import skin as sk
 from model.geometry import MECHANICAL
-from model.printed import base, coupon, gimbal, neck
+from model.printed import base, coupon, gimbal, neck, skin
 
 PARTS = {
     # the next Mech's eye gimbal (#630)
     "next eyeball core": gimbal.core,
-    "next L eyeball cap": lambda: gimbal.cap("L"),
-    "next R eyeball cap": lambda: gimbal.cap("R"),
+    "next L eyeball cap": functools.partial(skin.cap, "L"),  # each Character's largest, Morty's (#665)
+    "next R eyeball cap": functools.partial(skin.cap, "R"),
     "next yaw yoke": gimbal.yoke,
     "next tie-bar": gimbal.tie_bar,
     "next bail": gimbal.bail,
@@ -49,6 +50,24 @@ STYLED = {
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {"next eyeball core": "the eyeball's ball under its cap: none"}
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
+# Morty's Skin (#665): his Shells, each Seat cut into what carries it in every style (model/skin.py)
+PARTS |= {
+    "next morty face": skin.face,
+    "next morty hair": skin.hair,
+    **{f"next morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
+    **{
+        f"next morty {s} {lid} lid cover": functools.partial(skin.lid_cover, s, lid)
+        for s in "LR"
+        for lid in ("upper", "lower")
+    },
+    "next morty mouth cover": skin.mouth_cover,
+    **{f"next morty shirt {half}": functools.partial(skin.shirt, half) for half in ("front", "back")},
+}
+PARTS |= {
+    stem: skin.seated(stem, build)
+    for stem, build in PARTS.items()
+    if stem.removesuffix(MECHANICAL) in {s.carrier for s in sk.SEATS} and stem not in sk.SHELLS
+}
 
 
 def styled(stem, mechanical):

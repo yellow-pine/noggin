@@ -145,6 +145,11 @@ SEATS = [
 GLUED = {"next morty L pupil": (0.0, -1.0, 0.0), "next morty R pupil": (0.0, -1.0, 0.0)}  # keyed in the caps' seats
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
 DIRECTIONS = {s.shell: s.normal for s in SEATS} | GLUED  # each Shell's Assembly direction, in its carrier's frame
+# The Shells physics leaves out (#665): drawn, weightless and colliding with nothing, so the sim weighs and collides the
+# Skeleton (and the eyeball caps, the gimbal's own gates read) alone; their hold is checked against the peak acceleration
+# of where they sit (model/mujoco_report.py), their clearance on their own shapes (model/printed/test_skin.py).
+# shortcut: the servos carry the Skeleton's load alone; weigh the Shells once the tilt servo holds a head in its Skin
+DRAWN = [s for s in SHELLS if s.startswith("next morty ")]
 
 
 @functools.cache

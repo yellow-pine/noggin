@@ -34,6 +34,7 @@ SOURCES = [
     "model/geometry.py",
     "model/stages.py",
     "model/gimbal.py",  # the next Mech's (#663)
+    "model/skin.py",  # the Skin's Shells, drawn alone (#665)
     "model/neck.py",  # the next Mech's (#641, #642), which stages.py places from
     "model/linkage.py",
     "model/base.py",

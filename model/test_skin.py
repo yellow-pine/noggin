@@ -1,9 +1,11 @@
 """Seam: the Skin's Seats and magnets (model/skin.py): the pull of one magnet pair at the Seat's gap, which way each
 Shell comes off, and the polarity that keys a Shell to its own Seat."""
 
+import numpy as np
 import pytest
 
 from model import geometry as g
+from model import gimbal as gm
 from model import skin
 
 
@@ -40,3 +42,12 @@ def test_every_shell_is_printed_in_a_skin_colour_group_and_sits_on_a_seat_or_in_
 def test_a_shell_comes_off_along_its_seats_normal():
     for s in skin.SEATS:
         assert skin.DIRECTIONS[s.shell] == s.normal
+
+
+def test_the_upper_lid_cover_stays_above_where_the_lower_lid_passes_over_the_upper():
+    """#698: shut and tracking a look down, the lower lid's edge passes up to ~32 deg over the upper's, outside it; the
+    upper cover (inside the lower lid's radius) takes the band above that alone, over the lid servo's whole range."""
+    for s in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), 181):
+        lower_top = gm.LOWER_REST + gm.lower(s)  # the lower lid's edge, as the upper lid's at LID_REST + s
+        assert lower_top < skin.UPPER_COVER[0] + s - 0.5
+    assert gm.LID_R[1] + skin.GAP + skin.COVER < gm.LOWER_R[1] + skin.GAP  # the lower cover rides outside the upper one
