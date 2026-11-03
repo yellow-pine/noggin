@@ -76,7 +76,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   write and no webhook, its Client ID in the `RELEASE_APP_CLIENT_ID` variable and its private key in the
   `RELEASE_APP_PRIVATE_KEY` secret, set twice like Claude's token: `gh secret set RELEASE_APP_PRIVATE_KEY` and `gh
   secret set RELEASE_APP_PRIVATE_KEY --app dependabot`. Its `<slug>[bot]` must be in claude-review.yml's `allowed_bots`, or
-  its PRs get no review.
+  its PRs get no review. Workflows read and write is what a manual Release needs when main moved on during its run:
+  its temporary branch is a ref at a commit with workflow files, which GitHub refuses (403) without it (the App's
+  settings page on GitHub, Permissions).
 - Skills (mattpocock's cycle and ponytail) are pinned in `skills-lock.json`. Restore them into `.agents/skills`
   (gitignored; the committed `.claude/skills` links there) with `npm ci
   --prefix ci`, then `ci/node_modules/.bin/skills experimental_install`; `node scripts/verify_skills.mjs` checks each
