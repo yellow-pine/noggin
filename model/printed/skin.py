@@ -91,11 +91,18 @@ def _wedge(span, x, r):
 
 
 def lid_cover(side, lid):
-    """The `side` (L, R its mirror) `lid` (upper, lower) lid's cover: a shell COVER thick GAP outside it over the lid's
-    main shell, the upper one over its top band alone (model/skin.py UPPER_COVER)."""
-    r, span = (gm.LID_R[1], sk.UPPER_COVER) if lid == "upper" else (gm.LOWER_R[1], sk.LOWER_COVER)
-    ri = r + sk.GAP
-    out = ball(ri + sk.COVER).cut(ball(ri)).intersect(_wedge(span, sk.COVER_X, ri + sk.COVER + 5))
+    """The `side` (L, R its mirror) `lid` (upper, lower) lid's cover: a shell GAP outside it over the lid's main shell
+    and LIP past its free edge, COVER thick; the upper one that thick over its top band alone (model/skin.py
+    UPPER_COVER), a skin BAND thick over the rest (UPPER_SKIN)."""
+    ri = (gm.LID_R[1] if lid == "upper" else gm.LOWER_R[1]) + sk.GAP
+
+    def band(t, span, x):
+        return ball(ri + t).cut(ball(ri)).intersect(_wedge(span, x, ri + t + 5))
+
+    if lid == "upper":  # the skin under the whole of it, so the two overlap and fuse
+        out = band(sk.COVER, sk.UPPER_COVER, sk.COVER_X).union(band(sk.BAND, sk.UPPER_SKIN, sk.COVER_X))
+    else:
+        out = band(sk.COVER, sk.LOWER_COVER, sk.LOWER_X)
     out = out if side == "L" else out.mirror("YZ")
     return _finish(f"next morty {side} {lid} lid cover", out)
 

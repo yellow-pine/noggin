@@ -35,13 +35,19 @@ COVER = 2.6  # a lid cover's or a cap's thickness behind its magnet: the pocket 
 Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: the carrier's face, normal: out of it
 
 # The upper lid's cover (#698): the lower lid passes outside the upper one when a shut eye looks down, up to this far
-# over its edge, so the cover only takes the band above it (and a degree's clearance)
+# over its edge, so the cover is COVER thick (its magnet's) only in the band above it (and a degree's clearance), and
+# forward of that a skin BAND thick (two 0.375 mm lines), inside the lower lid's path (#881)
 _OVER = max(
     gm.LOWER_REST + gm.lower(s) - gm.LID_REST - s for s in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), 91)
 )
+BAND = 0.75
+LIP = 5.0  # deg each cover reaches past its lid's free edge, which seen from the front peeks out under an edge flush
+# with it (its face and the shell's curve), up to 4.6 deg at the lid's x ends wide open (model/test_skin.py)
 UPPER_COVER = (gm.LID_REST + _OVER + 1.0, gm.LID_REST + gm.LID_SPAN)  # deg from forward toward up, as the lid at rest
-LOWER_COVER = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-COVER_X = (-gm.LID_X["ear"][0], gm.LID_X["upper boss"][1])  # the L lids' main shell (printed/gimbal.py _lid)
+UPPER_SKIN = (gm.LID_REST - LIP, UPPER_COVER[1])
+LOWER_COVER = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST + LIP)
+COVER_X = (-gm.LID_X["ear"][0], gm.LID_X["upper boss"][1])  # the L upper lid's main shell (printed/gimbal.py _lid)
+LOWER_X = (COVER_X[0], gm.LID_X["lower boss"][1])  # the lower lid's, out over its boss's slab
 
 
 def _on_lid(r, deg, side):
@@ -54,8 +60,12 @@ def _on_lid(r, deg, side):
 
 def _lid_seats(side, polarity):
     out = []
-    for lid, r, span in (("upper", gm.LID_R[1], UPPER_COVER), ("lower", gm.LOWER_R[1], LOWER_COVER)):
-        at, n = _on_lid(r, sum(span) / 2, side)
+    # each Seat mid its magnet section: the upper's top band, the whole lower lid
+    for lid, r, deg in (
+        ("upper", gm.LID_R[1], sum(UPPER_COVER) / 2),
+        ("lower", gm.LOWER_R[1], gm.LOWER_REST - gm.LOWER_SPAN / 2),
+    ):
+        at, n = _on_lid(r, deg, side)
         out.append(Seat(f"next morty {side} {lid} lid cover", f"next {side} {lid} lid", at, n, 0.0, 0.0, polarity))
     return out
 

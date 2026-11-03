@@ -49,8 +49,9 @@ size inferred):
   nape, standing 1.5 mm proud of the face; it comes off upward, so it goes on last;
 - the eyeball caps (eye whites, each Character's largest) with a jagged pupil (pupils) glued in each, keyed by its
   shape in its seat with 0.15 mm of play a side and turned toward the other eye;
-- a cover on each lid (face): the lower lid's whole, the upper lid's top band alone, since the lower lid passes outside
-  the upper one when a shut eye looks down;
+- a cover on each lid (face), each over its whole lid and a lip past its free edge, so no lid shows from the front: the
+  upper one its magnet's thickness in its top band alone and a 0.75 mm skin forward of it, since the lower lid passes
+  outside the upper one when a shut eye looks down;
 - the mouth cover (face), his chin under the jaw, in the face's mouth opening;
 - the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
   with its half of the round crew neck's collar.
