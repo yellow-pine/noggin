@@ -111,6 +111,7 @@ LID_X = {
 PLATE_Z = (-38.0, -35.0)
 PLATE_Y = (-10.0, 87.0)  # in front of the coronoids to past the head mount's rear screws (model/neck.py)
 PLATE_X, BACK_X, BACK_Y = 31.0, 42.0, 40.0  # the body's half-width, and behind BACK_Y (the condyles') the back's
+BACK_ROUND = 25.0  # the back's two corners rounded, which Morty's head rounds over (#850)
 CHEEK_Y = (-10.0, -6.0)
 # the bar a beam down its whole width, the face's Seats flush in its front (#852)
 BEAM_Z = (PLATE_Z[0] - 11.0, PLATE_Z[1])

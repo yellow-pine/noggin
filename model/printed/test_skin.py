@@ -54,7 +54,7 @@ def test_mortys_head_fits_the_head_limit_ears_and_all(head):
 
 def test_mortys_head_is_one_smooth_shape_round_from_every_angle():
     """The head every Shell is cut from (skin._head) has no crease: across each edge its two faces meet within 5 deg,
-    so it never reads as a soft box where outlines meet (Cansin, #850)."""
+    so it never reads as a soft box where outlines meet (Cansin, #850); under its floor's opening (NECK) no Shell is."""
     from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
     from OCP.TopExp import TopExp
     from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
@@ -64,7 +64,7 @@ def test_mortys_head_is_one_smooth_shape_round_from_every_angle():
     TopExp.MapShapesAndAncestors_s(shape.wrapped, TopAbs_EDGE, TopAbs_FACE, edges)
     for i in range(1, edges.Extent() + 1):
         e, faces = cq.Edge(edges.FindKey(i)), [cq.Face(f) for f in edges.FindFromIndex(i)]
-        if len(faces) == 2 and e.Length() > 1.0:  # a loft's end caps are sub-mm
+        if len(faces) == 2 and e.Length() > 1.0 and e.BoundingBox().zmax > sk.HEAD_Z[0] + sk.NECK[1]:
             for t in (0.25, 0.5, 0.75):
                 p = e.positionAt(t)
                 if faces[0].normalAt(p).getAngle(faces[1].normalAt(p)) > math.radians(5):

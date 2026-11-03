@@ -60,23 +60,60 @@ def _lid_seats(side, polarity):
     return out
 
 
-# Morty's head (#665, #844: his model sheet's round head), in the head's frame (model/neck.py): the face comes off
-# forward, the hair up. The head is what lies inside three outlines, each the hull of (u, v, r) circles: from the front
-# (x, z) a round cranium over the cheeks; from the side (y, z) the face
-# flat over the eyes, the cranium round behind it, and the muzzle over the jaw and the head mount (two hulls, the corner
-# between them rounded SIDE_ROUND); from above (x, y), square to the mouth servo's corners. Every size is inferred.
-FRONT = ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
-SIDE = (
-    ((1.0, 25.7, 25.0), (-4.0, -12.0, 20.0), (30.0, 10.0, 58.0), (68.0, -60.0, 20.0)),
-    ((-29.0, -50.0, 20.0), (-42.0, -73.0, 7.0), (40.0, -60.0, 20.0)),
+# Morty's head (#665, #850: one smooth sculpted shell, round from every angle), in the head's frame (model/neck.py): the
+# face comes off forward, the hair up. Each section across z is a superellipse of power HEAD_N (by z) round HEAD_C (y),
+# out to the front outline's half-width (HEAD_W: an egg, its half-width at its widest, that height, and its powers over
+# and under) and to the side outline's front and back (a smooth closed curve through PROFILE's (y, z)). Fitted round the
+# mechanism at every pose, the jaw's arms setting its lower half and the eyes' openings the face over them (#850's
+# prototype, branch prototype/850-egg-head); every size is inferred.
+HEAD_Z = (-80.0, 69.0)
+HEAD_W = (64.0, -35.0, 2.2, 2.7)
+HEAD_C = 21.0
+PROFILE = (
+    *((-26.0, -80.0), (-37.0, -74.0), (-39.0, -60.0), (-36.0, -40.0), (-32.0, -20.0), (-30.5, 0.0), (-30.0, 20.0)),
+    *((-25.0, 40.0), (-8.0, 60.0), (21.0, 69.0), (52.0, 63.0), (80.0, 40.0), (92.0, 5.0), (92.0, -30.0), (89.0, -50.0)),
+    *((80.0, -70.0), (58.0, -80.0)),
 )
-SIDE_ROUND = 25.0
-TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
-# outside: half-width, front (the muzzle's) to back, z
-HEAD_X = max(u + r for u, _, r in FRONT)
-HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
-HEAD_Z = (min(v - r for _, v, r in FRONT + SIDE[1]), max(v + r for _, v, r in FRONT))
-MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
+HEAD_N = ((-80.0, 2.7), (-45.0, 2.7), (0.0, 2.3), (69.0, 2.1))
+
+
+@functools.cache
+def _profile():
+    """PROFILE's closed curve, sampled: (y, z) of its front run and of its back run, each by rising z."""
+    from scipy.interpolate import splev, splprep
+
+    y, z = np.array(PROFILE).T
+    tck, _ = splprep([np.r_[y, y[0]], np.r_[z, z[0]]], s=0, per=True)
+    cy, cz = splev(np.linspace(0, 1, 4000, endpoint=False), tck)
+    top, bottom = sorted((int(np.argmax(cz)), int(np.argmin(cz))))
+    runs = [np.r_[top : bottom + 1], np.r_[bottom : len(cz), 0 : top + 1]]
+    runs = [(cy[r][np.argsort(cz[r])], np.sort(cz[r])) for r in runs]
+    return tuple(sorted(runs, key=lambda r: r[0].mean()))
+
+
+def _egg(z, w, widest, over, under):
+    h, p = (HEAD_Z[1] - widest, over) if z > widest else (widest - HEAD_Z[0], under)
+    return w * (1 - min(abs(z - widest) / h, 1.0) ** p) ** (1 / p)
+
+
+def head_section(z, t=0.0):
+    """(half-width, front y, back y, power) of the head's section at height z, `t` in from its outside."""
+    (fy, fz), (by, bz) = _profile()
+    n = float(np.interp(z, *zip(*HEAD_N)))
+    return _egg(z, *HEAD_W) - t, float(np.interp(z, fz, fy)) + t, float(np.interp(z, bz, by)) - t, n
+
+
+def head_x(y, z):
+    """The head's outside half-width at (y, z): where its section's superellipse crosses y."""
+    a, front, back, n = head_section(z)
+    d = (y - HEAD_C) / (HEAD_C - front if y < HEAD_C else back - HEAD_C)
+    return a * max(1 - abs(d) ** n, 0.0) ** (1 / n)
+
+
+# outside: half-width, front to back, z
+HEAD_X = HEAD_W[0]
+HEAD_Y = (float(min(_profile()[0][0])), float(max(_profile()[1][0])))
+MUZZLE_Y = HEAD_Y[0]  # the face's front at its most forward, over the jaw's chin
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # The hairline (his model sheet's): the hair is the head inside a circle along x, (y, z, r), from over the forehead down
 # behind the ears, and all behind NAPE, so the hair comes off upward and the face forward; it stands HAIR proud of the face
@@ -84,8 +121,8 @@ HAIRLINE = (99.4, 67.4, 111.5)
 NAPE = 78.0
 HAIR = 1.5
 NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
-BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
-# in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
+BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z within NECK's width
+# (#838), where the neck's yoke tilts in under the skull's base and out past the head's back; closed either side (#850)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
 _PLATE = (gm.PLATE_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
 _BACK = (32.5, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo, clear of its collar (#838)
@@ -114,7 +151,7 @@ SEATS = [
             (x, _PLATE[0], _PLATE[1]),
             (0.0, -1.0, 0.0),
             0.0,
-            _PLATE[0] - GAP - (MUZZLE_Y + WALL) + 1.0,
+            _PLATE[0] - GAP - (head_section(_PLATE[1])[1] + WALL) + 1.0,
             1,
         )
         for x in (-45.0, 45.0)

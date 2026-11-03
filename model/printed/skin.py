@@ -8,7 +8,6 @@ import math
 
 import cadquery as cq
 import numpy as np
-from scipy.spatial import ConvexHull
 
 from model import base
 from model import geometry as g
@@ -139,59 +138,28 @@ def pupil(side):
     return _pupil_prism(side, gm.PUPIL_FIT).intersect(ball(gm.CAP_R))
 
 
-def _hull(circles):
-    """The outline of the convex hull of (u, v, r) circles, counter-clockwise, as lines and arcs: [(circle, in, out)],
-    each circle on it with the angles its tangents meet it at."""
-    t = np.linspace(0, 2 * np.pi, 720, endpoint=False)
-    pts = np.concatenate([np.c_[u + r * np.cos(t), v + r * np.sin(t)] for u, v, r in circles])
-    seq = [int(i) // len(t) for i in ConvexHull(pts).vertices]
-    order = [c for k, c in enumerate(seq) if c != seq[k - 1]]
-    normals = []  # each tangent's outward normal, from one circle to the next
-    for a, b in zip(order, order[1:] + order[:1]):
-        (au, av, ar), (bu, bv, br) = circles[a], circles[b]
-        normals.append(math.atan2(bv - av, bu - au) - math.acos((ar - br) / math.dist((au, av), (bu, bv))))
-    return [(circles[c], normals[k - 1], normals[k]) for k, c in enumerate(order)]
-
-
-def _outline(plane, circles):
-    """The hull of the circles (_hull) on `plane` as a face."""
-    at = lambda c, a: (c[0] + c[2] * math.cos(a), c[1] + c[2] * math.sin(a))  # noqa: E731
-    pieces = _hull(circles)
-    w = cq.Workplane(plane).moveTo(*at(*pieces[0][:2]))
-    for k, (c, a_in, a_out) in enumerate(pieces):
-        a_out += 2 * math.pi * (a_out <= a_in)
-        w = w.threePointArc(at(c, (a_in + a_out) / 2), at(c, a_out))
-        if k + 1 < len(pieces):
-            w = w.lineTo(*at(*pieces[k + 1][:2]))
-    return cq.Face.makeFromWires(w.close().wires().val())
-
-
-def _profile(plane, hulls, t, rounded=0.0):
-    """The hulls' outlines on `plane` as one, its inside corners rounded `rounded`, `t` in from its outside, through
-    everything along the plane's normal."""
-    face = _outline(plane, hulls[0])
-    for h in hulls[1:]:
-        face = face.fuse(_outline(plane, h)).clean().Faces()[0]
-    wire = face.outerWire()
-    if rounded:
-        wire = wire.offset2D(rounded, "arc")[0].offset2D(-rounded, "arc")[0]
-    wire = wire.offset2D(-t, "arc")[0] if t else wire
-    n = cq.Plane.named(plane).zDir
-    return cq.Workplane().add(cq.Solid.extrudeLinear(cq.Face.makeFromWires(wire), n * 400).translate(n * -200))
-
-
 def _head(t):
-    """Morty's head (model/skin.py FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
-    swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833).
-    Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
-    booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
+    """Morty's head (model/skin.py head_section) `t` in from its outside (out of it, negative): one loft of superelliptic
+    sections, smooth all round (#850). Each call its own copy of the one built: a Shell built again on Linux's OCCT,
+    over shapes an earlier build's booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
     return cq.Workplane().add(_built_head(t).copy())
 
 
 @functools.cache  # every Shell cuts and clips by the same few
-def _built_head(t):
-    side = _profile("YZ", sk.SIDE, t, sk.SIDE_ROUND)
-    return _profile("XZ", [sk.FRONT], t).intersect(side).intersect(_profile("XY", [sk.TOP], t)).val()
+def _built_head(t, sections=40, k=96):
+    lo, hi = sk.HEAD_Z[0] + t, sk.HEAD_Z[1] - t  # the ends a hair's caps, `t` in
+    wires = []
+    for z in lo + (hi - lo) * (1 - np.cos(np.linspace(0.005, math.pi - 0.005, sections))) / 2:
+        a, front, back, n = sk.head_section(z, t)
+        c, s = (
+            np.cos(np.linspace(0, 2 * math.pi, k, endpoint=False)),
+            np.sin(np.linspace(0, 2 * math.pi, k, endpoint=False)),
+        )
+        x = a * np.sign(c) * np.abs(c) ** (2 / n)
+        y = sk.HEAD_C + np.where(s < 0, sk.HEAD_C - front, back - sk.HEAD_C) * np.sign(s) * np.abs(s) ** (2 / n)
+        ring = [cq.Vector(*p) for p in np.c_[x, y, np.full(k, z)]]
+        wires.append(cq.Wire.assembleEdges([cq.Edge.makeSpline(ring, periodic=True)]))
+    return cq.Solid.makeLoft(wires)
 
 
 def _eyes():
@@ -212,30 +180,31 @@ def _hair(grow):
 
 def _skull(t):
     """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
-    floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
+    floor open round the neck and the jaw (NECK) and its back under the head mount within NECK's width (BACK_OPEN, #838),
+    closed either side (#850)."""
     x, up = sk.NECK
     neck = box((-x, x), (-100, 200), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
-    back = box((-100, 100), (sk.BACK_OPEN[0], 200), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
+    back = box((-x, x), (sk.BACK_OPEN[0], 200), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
     out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck).cut(back)
     return out.intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
 
 
-FACE_Y = min(u - r for u, _, r in sk.SIDE[0])  # the face's front over the eyes
-NOSE = (7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
-EAR = (18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
+NOSE = (6.5, -26.0, 2.0)  # his nose: a ball's radius, its centre's height and how far out of the face, under the eyes
+EAR = (12.0, -28.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
 
 
 def _ear(s):
     """The `s` (1 L, -1 R) ear: a dome out of the cheek, its hollow (the concha) open forward, so it reads as his C."""
     y, z, r, out = EAR
-    x = sk.HEAD_X + out - r
+    cheek = sk.head_x(y, z)
+    x = cheek + out - r
 
     def on_x(
         radius, at
     ):  # a ball its poles on x, its seam off the cheek's cut: OCCT cuts a ball across its seam to nothing
         return cq.Workplane().add(cq.Solid.makeSphere(radius, cq.Vector(*at), cq.Vector(1, 0, 0), -90, 90))
 
-    ear = on_x(r, (x, y, z)).cut(box((0, sk.HEAD_X - 6.0), (-100, 100), (-100, 100)))
+    ear = on_x(r, (x, y, z)).cut(box((0, cheek - 6.0), (-100, 100), (-100, 100)))
     ear = ear.cut(on_x(r - 4.0, (x + 6.0, y - 4.0, z)))
     return ear if s > 0 else ear.mirror("YZ")
 
@@ -244,8 +213,8 @@ def face():
     """Morty's face (face): the head's shell under the hairline, the nose between the eyes, an ear each side and the
     mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its temples."""
     out = _skull(0.0).cut(_hair(0.1))
-    r, z = NOSE
-    out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-10, 10), (FACE_Y + sk.WALL, 0), (-40, 0))))
+    r, z, out_of = NOSE
+    out = out.union(ball(r, (0, sk.head_section(z)[1] - out_of, z)).cut(_head(sk.WALL)))
     for s in (-1, 1):
         out = out.union(_ear(s).cut(_head(sk.WALL)))
     y0 = sk.HEAD_Y[0]
@@ -269,13 +238,14 @@ def hair():
 
 def mouth_cover():
     """The mouth cover (face), his lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
-    inside the face, and the chin under the jaw in the face's mouth opening, rounded as the head is, which the jaw
-    swings down; up off its Seat once the face is off."""
+    inside the face, following it 0.6 mm in (#850), and the chin under the jaw in the face's mouth opening, rounded as
+    the head is, which the jaw swings down; up off its Seat once the face is off."""
     (seat,) = (s for s in sk.SEATS if s.shell == "next morty mouth cover")
     _, y, z = seat.at
-    bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
-    plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
-    wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
+    bottom, inside = sk.HEAD_Z[0], _head(sk.WALL + 0.6)
+    top = z + sk.GAP + sk.COVER
+    plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (sk.MUZZLE_Y, y + sk.PAD_R), (z + sk.GAP, top)).intersect(inside)
+    wall = inside.cut(_head(sk.WALL + 0.6 + sk.COVER)).intersect(box((-22, 22), (sk.MUZZLE_Y - 1, -25), (bottom, top)))
     chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
     return _finish("next morty mouth cover", plate.union(wall).union(chin))
 

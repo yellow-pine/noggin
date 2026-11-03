@@ -293,7 +293,7 @@ def frame(mechanical=False):
     (y0, y1), edge, stem = gm.PLATE_Y, c + gm.LID_X["upright"][1], gm.YOKE["stem_z"]
     jy, jz = neck.JAW
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
-    out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
+    out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z).edges("|Z and >Y").fillet(gm.BACK_ROUND))
     out = out.union(box((-edge, edge), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852)
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
