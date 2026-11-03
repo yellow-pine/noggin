@@ -302,6 +302,9 @@ A part we print, by our name (model/printed); the Skeleton's:
   Horn to the yoke;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
+- skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
+  licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
+  post on the pan yoke; the mechanical Skeleton has none.
 _Avoid_: the designer's file names, version suffixes, today's Mech's part names (git history)
 
 **Coupon**:

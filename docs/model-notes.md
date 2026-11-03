@@ -197,14 +197,19 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
   (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
   against `gimbal.HEAD_MM` (140 x 140 x 150 since #838, so the realistic skull keeps its length) and how far up
-  it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.5: cartoon proportions), both hard gates in each look
+  it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.55: the realistic skull's orbits, a hair over half since #838), both hard gates in each look
   (model/test_report.py, model/printed/test_base.py), and `just sim` ranks them into model/build/reports/next-mech-ranking.json (base.rank: the clearance,
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is the skull dome (#824) or the Skin's head shell (#665), whichever is drawn;
-  until then a stand-in, `base.DOME`, a half-ellipsoid's box from the brow (27 over the eyes) to 75.25 over them,
-  136 wide. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
+  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/printed/test_skull.py holds
+  it to the placed skull, to the mm), whose bones ride the realistic documents alone.
+  Since #838 the realistic Skeleton has bones of its own (model/printed/skull.py, docs/adr/0023): 3Demon's cranium and
+  mandible scaled to the head's 150 mm height (2 mm spare for the remesh), its orbits on the eyes with the caps 7 mm
+  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` carves
+  them on a 0.8 mm voxel grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
+  realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
+  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
   0.497; #708's was 118.6 x 115.8 x 149.3, before it 120 x 134.5 x 129.5, eyes_up 0.78): the stack
   under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'
   bosses up into the head mount's flange and the whole neck 6 mm shorter, the jaw hinged beside the tilt lugs with its

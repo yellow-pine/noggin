@@ -82,13 +82,13 @@ def test_the_cores_lie_in_the_torso_in_front_of_the_neck_and_the_switch_board_be
     assert x0 + 2 < lo[0] and y0 + 2 < min(lo[1], shield[0][1]) and hi[1] < y1 - 2
 
 
-def test_the_heads_box_takes_in_the_skull_dome_over_the_parts():
-    """#828: the gates measure the head's shell. The stand-in dome (until #824 draws it) rises to 75.25 over the eyes
-    and reaches 68 each side, so parts reaching 30 over the eyes and 74.5 under them make a head 149.75 tall, the eyes
-    0.497 up it; a part out past the dome still counts."""
+def test_the_heads_box_takes_in_the_skull_over_the_parts():
+    """#828, #838: the gates measure the head's shell, the realistic skull's box: from its chin 78.2 under the eyes to
+    its top 69.8 over them, about 50 each side, so parts within it make a head 148 tall, the eyes 0.528 up it; a part
+    out past it still counts."""
     lo, hi = base.shelled(np.array((-50.0, -40.0, -74.5)), np.array((50.0, 80.0, 30.0)))
-    assert lo == pytest.approx((-68.0, -42.6, -74.5)) and hi == pytest.approx((68.0, 80.0, 75.25))
-    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.4975, abs=1e-4)
+    assert lo == pytest.approx((-50.0, -40.0, -78.2)) and hi == pytest.approx((50.6, 102.3, 69.8))
+    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.5284, abs=1e-4)
 
 
 def test_stage_1s_test_stand_stands_on_the_desk():
@@ -156,10 +156,10 @@ def test_a_head_past_140_w_140_d_150_h_fails_the_head_gate_and_ranks_after_one_t
 
 
 def test_a_variant_whose_eyes_sit_in_its_heads_upper_half_fails_the_eyes_gate_and_ranks_after_one_that_fits():
-    """#708: the eye centres at most half way up what rides the head (cartoon proportions); 0.51 up ranks after 0.5,
-    though its servo holds less."""
+    """#708, #838: the eye centres at most 0.55 of the way up what rides the head (the realistic skull's 0.53); 0.56 up
+    ranks after 0.5, though its servo holds less."""
     ranked = base.rank(
-        {"next-mech-back": _report(hold=0.05, eyes=0.51), "next-mech-later": _report(hold=0.3, eyes=0.5)}
+        {"next-mech-back": _report(hold=0.05, eyes=0.56), "next-mech-later": _report(hold=0.3, eyes=0.5)}
     )
     assert ranked["order"] == ["next-mech-later", "next-mech-back"]
     assert ranked["variants"]["next-mech-back"]["fails"] == ["eyes up"]

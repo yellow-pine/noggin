@@ -19,7 +19,7 @@ def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
     assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery"] + ["servo"] * 7 + ["horn"] * 7)
-    assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS)
+    assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS) | set(g.SKULL)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"next {d} horn" for d in gimbal.drives())}
 
@@ -38,17 +38,22 @@ def test_what_rides_the_head_mount_turns_with_the_tilt_and_the_pan(doc):
 
 def test_each_next_mech_variant_is_built_mechanical_too_from_the_same_layout():
     """#704: next-mech-back-mechanical is next-mech-back part for part, the same names where the same placements put
-    them, each Skeleton part with a mechanical style (model/printed STYLED) drawn mechanical, every other the same."""
+    them, each Skeleton part with a mechanical style (model/printed STYLED) drawn mechanical, every other the same; the
+    realistic skull's bones on the realistic one alone (#838)."""
     bones, mechanical = stages.STAGES["next-mech-back"], stages.STAGES["next-mech-back-mechanical"]
-    assert list(mechanical.parts) == list(bones.parts) and set(mechanical.horns) == set(bones.horns)
-    for name, p in bones.parts.items():
-        q, s = mechanical.parts[name], stages.stem(p.file)
+    skull = [f"{s}:1" for s in g.SKULL]
+    assert list(mechanical.parts) == [n for n in bones.parts if n not in skull] and set(mechanical.horns) == set(
+        bones.horns
+    )
+    assert set(skull) <= set(bones.parts)
+    for name, p in mechanical.parts.items():
+        q, p, s = p, bones.parts[name], stages.stem(bones.parts[name].file)
         assert np.array_equal(q.matrix, p.matrix) and q.material == p.material, name
         assert stages.stem(q.file) == (s + g.MECHANICAL if s in printed.STYLED else s), name
-    assert (
-        "next-mech-back-mechanical" in g.NEXT
-        and stages.DOCS["next-mech-back-mechanical"] == stages.DOCS["next-mech-back"]
-    )
+    assert "next-mech-back-mechanical" in g.NEXT
+    assert stages.DOCS["next-mech-back-mechanical"] == {
+        k: f for k, f in stages.DOCS["next-mech-back"].items() if k != g.SKULL_SUB
+    }
 
 
 def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
@@ -69,7 +74,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
         "next jaw bar:1",
         "next mouth servo:1",
         "next mouth horn:1",
-    } | {n + ":1" for n in skin.DRAWN}
+    } | {n + ":1" for n in [*skin.DRAWN, *g.SKULL]}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 

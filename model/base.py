@@ -30,11 +30,13 @@ PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the nec
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
-EYES_UP = 0.5  # the eye centres at most this far up the head (shelled()), 0 its bottom: cartoon proportions (#708)
-# the skull dome's box in the head's frame (the eyes' middle at the origin) until #824 draws it: a stand-in, a
-# half-ellipsoid whose open rim is at the brow just over the upper lids' sweep and whose top is where a cartoon cranium
-# rises, at the head gate (#828; inferred)
-DOME = ((-68.0, 68.0), (-42.6, 74.4), (27.0, 75.25))
+# the eye centres at most this far up the head (shelled()), 0 its bottom: the realistic skull's are 0.53 up it (#838;
+# cartoon proportions' 0.5 before, #708)
+EYES_UP = 0.55
+# the realistic skull's box in the head's frame (the eyes' middle at the origin), its mandible's chin to its cranium's
+# top (#838, model/printed/skull.py placed(); model/printed/test_skull.py holds it to the bones): what the head's
+# shell covers in every Skeleton
+DOME = ((-49.6, 50.6), (-34.6, 102.3), (-78.2, 69.8))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand's back face
 # the switch board's frame on the Torso's floor: beside the pack's lead end (-x), 5 mm off its cradle; the board lies

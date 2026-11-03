@@ -192,6 +192,11 @@ PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for nam
 # under this suffix
 MECHANICAL = " mechanical"
 PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
+# The realistic Skeleton's skull (#838, model/printed/skull.py): meshes under their sources' licences (docs/adr/0023), on
+# the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none
+SKULL = ("next skull", "next mandible", "next atlas", "next axis")
+PRINTED |= dict.fromkeys(SKULL, ("Bones", "PETG HF"))
+SKULL_SUB = "next-skull"
 
 # The next Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
@@ -200,7 +205,7 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswi
 _HEAD = ((0, -150, 177), X, Z)
 NEXT = {
     f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
-    for v, carriers in (("back", ["next-morty"]),)  # Back alone since Cansin picked it (#712); Morty's
+    for v, carriers in (("back", ["next-morty", SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
     # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
@@ -212,9 +217,20 @@ STAGES = {
     "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base")},
     **dict([next(iter(NEXT.items()))]),
 }
-# each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical
-NEXT |= {doc + s: subs for doc, subs in NEXT.items() for s in SKELETON_SUFFIX.values() if s}
-STAGES |= {doc + s: subs for doc, subs in STAGES.items() for s in SKELETON_SUFFIX.values() if s}
+# each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical, the skull
+# the realistic one's alone
+NEXT |= {
+    doc + s: {k: f for k, f in subs.items() if k != SKULL_SUB}
+    for doc, subs in NEXT.items()
+    for s in SKELETON_SUFFIX.values()
+    if s
+}
+STAGES |= {
+    doc + s: {k: f for k, f in subs.items() if k != SKULL_SUB}
+    for doc, subs in STAGES.items()
+    for s in SKELETON_SUFFIX.values()
+    if s
+}
 # Physics runs on the mechanical documents alone (#809): each Bone is carved from its mechanical part, so clearance,
 # overlap, torque, strength, the sim and its gates measured there hold for realistic too, whose figures are these. The
 # sim takes the whole Mech and Stage 1 (its test stand): Stage 2 moves as the whole Mech less parts
