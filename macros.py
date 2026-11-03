@@ -8,7 +8,7 @@ mjcf.py). themes: docs/face-design.md's Palettes, each Colour group's filament (
 next_panels: the next Mech's panels' grid, each of its Stages in every Preset (model/render/pictures.py PANELS,
 geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a viewer per motion (#839), and
 next_parts: a
-picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' own two there and
+picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' three there and
 next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
@@ -29,7 +29,6 @@ import ast
 import json
 import subprocess
 from collections import Counter
-from itertools import batched
 from pathlib import Path
 
 from model import geometry as g
@@ -245,34 +244,23 @@ def figures(labels, kind="parts", links=None, presets=None):
 
 
 def front():
-    """The front doors' three (model/render/pictures.py FRONT, #739) in each Preset, shown for it alone (#806, #819),
-    side by side under their captions, each linking to its Stage in the viewer in that Preset (#839), the exploded one
-    opened exploded: the site's home (the README's top is a copy of the default's, test_site.py)."""
-    site, links = "https://yellowpine.com/noggin/", {}
-    for (p, s), fs in zip(pictures.SUFFIX.items(), batched(pictures.FRONT, 3, strict=True), strict=True):
-        one, three = (
-            f"{site}viewer/?stage={BONY.index(d) + 1}" + (s and f"&amp;preset={g.slug(p)}")
-            for d in (pictures.STAGE1, pictures.STAGE3)
-        )
-        links |= dict(zip(fs, [one, three, f"{three}&amp;explode=1"], strict=True))
-    return figures(front_labels(), "front", links, front_presets())
+    """The front doors' three (model/render/pictures.py FRONT, #739), the default Preset's mechanism bare (#843), side
+    by side under their captions, each linking to its Stage in the viewer (#839), the exploded one opened exploded: the
+    site's home (the README's top is a copy, test_site.py)."""
+    viewer = "https://yellowpine.com/noggin/viewer/?stage="
+    one, three = (f"{viewer}{BONY.index(d) + 1}" for d in (pictures.STAGE1, pictures.STAGE3))
+    links = dict(zip(pictures.FRONT, [one, three, f"{three}&amp;explode=1"], strict=True))
+    return figures(front_labels(), "front", links)
 
 
 def front_labels():
     one, three = stage(pictures.STAGE1), stage(pictures.STAGE3)
-    labels = [f"{one}, from the front", three, f"{three}, exploded"] * len(g.PRESETS)
-    return dict(zip(pictures.FRONT, labels, strict=True))
-
-
-def front_presets():
-    """{front door's picture: [the Preset it is drawn in]}, FRONT's three per Preset."""
-    return {f: [p] for p, fs in zip(g.PRESETS, batched(pictures.FRONT, 3, strict=True), strict=True) for f in fs}
+    return dict(zip(pictures.FRONT, [f"{one}, from the front", three, f"{three}, exploded"], strict=True))
 
 
 def next_front():
-    """The front doors' own pictures (model/render/pictures.py FRONT, #739), beside the panels on Pictures."""
-    own = {f: label for f, label in front_labels().items() if pictures.FRONT[f]}
-    return figures(own, "views", presets=front_presets())
+    """The front doors' three (model/render/pictures.py FRONT, #739), beside the panels on Pictures."""
+    return figures(front_labels(), "views")
 
 
 def next_exploded():

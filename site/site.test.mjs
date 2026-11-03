@@ -195,10 +195,13 @@ test("every page's header has the Theme bar: one labelled select of the model's 
 
 test("each Preset's pictures and filaments are marked with it, the default's shown with no pick (#806, #819)", () => {
   const home = page(`${HOME}/`), parts = page(route('docs/build/parts.md'));
-  expect(home.querySelectorAll('.noggin-front figure').map((f) => f.getAttribute('data-presets'))).toEqual([
-    'cansins-build', 'cansins-build', 'cansins-build', 'morty', 'morty', 'morty', 'bart', 'bart', 'bart',
+  // #843: the front doors are the default's bare mechanism, one three for every Preset
+  expect(home.querySelectorAll('.noggin-front figure').map((f) => f.hasAttribute('data-presets'))).toEqual([
+    false, false, false,
   ]);
-  expect(home.querySelector('p[data-presets="cansins-build"] em')?.text).toContain("in Morty's Shape");  // the stand-in
+  const pictures = page(route('docs/pictures.md'));
+  expect(home.querySelector('p[data-presets="cansins-build"] em')).toBeNull();  // #843: no Skin on the home
+  expect(pictures.querySelector('p[data-presets="cansins-build"] em')?.text).toContain("in Morty's Shape");  // stand-in
   expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
     "Cansin's build", 'Morty', 'Bart',
   ]);
