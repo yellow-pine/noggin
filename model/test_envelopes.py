@@ -17,6 +17,7 @@ BOXES = {  # the STEP's box as the model uses it (servo and battery leads cut, m
     "core": ((-11.6, -10.68, -13.39), (11.6, -2.3, 14.5)),
     "switch": ((-7.25, -4.6, -16.0), (13.25, 15.16, 16.0)),
     "battery": ((-14.18, 0.0, -8.15), (14.18, 51.2, 8.15)),
+    "dongle": ((0.0, -9.0, 0.0), (45.0, 9.0, 9.0)),  # no STEP: a guess (#858)
 }
 
 

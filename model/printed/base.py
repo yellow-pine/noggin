@@ -1,5 +1,6 @@
-"""The next Mech's Torso (#685), which carries the Cores (#838), and Stage 1's test stand (#720) as CadQuery parts,
-every size from model/base.py, each drawn where it sits at rest in the head's frame (model/neck.py)."""
+"""The next Mech's Torso (#685), the cranium tray that carries the Cores in the head (#858), and Stage 1's test stand
+(#720) as CadQuery parts, every size from model/base.py, each drawn where it sits at rest in the head's frame
+(model/neck.py)."""
 
 import cadquery as cq
 
@@ -15,7 +16,7 @@ ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third
 CORNER = 4.0  # as Bones: the Torso's upright corners round
 # the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
 # 1 mm down, BORDER in from its edge
-PLAQUE, BORDER = ((-16.0, 16.0), (-156.0, -146.0)), 9.0  # between the Cores' USB-C slots and the shirt's Seats
+PLAQUE, BORDER = ((-16.0, 16.0), (-156.0, -146.0)), 9.0  # under the shirt's Seats
 LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 
@@ -28,24 +29,33 @@ def _box(x, y, z, r=0.0, edges="|Z"):
 @bone.carved
 def torso(mechanical=False):
     """The Torso (printed upright), the realistic skull's box pedestal (#838): its floor (the foot; the neck mount stands
-    on it), its walls round it, a slot in front at each Core's USB-C, a ledge inside their top for its lid (the pack in
-    and out under it); the pack's cradle on the floor behind the neck mount. As Bones (#708), carved
+    on it), its walls round it, an opening in the -x wall over the charger dongle and the switch board (#858), a ledge
+    inside their top for its lid (the pack in and out under it); a cradle on the floor for each pack, behind the neck
+    mount and in front of it. As Bones (#708), carved
     from it (#809): its upright corners round and a plaque sunk in its front, as the picture Cansin gave."""
     (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
     floor, top = nk.MOUNT_Z[0], z1 - nb.LID_T
     out = _box((x0, x1), (y0, y1), (z0, z1), 0.0 if mechanical else CORNER)
     out = out.cut(_box((x0 + WALL, x1 - WALL), (y0 + WALL, y1 - WALL), (floor, z1 + 1)))
     out = out.union(_ledge(top))
-    for x in nb.CORES_AT[0]:  # each Core's USB-C, its plug in from the front, its head pointed to print
-        door = [(x - 6, floor), (x + 6, floor), (x + 6, floor + 9), (x, floor + 15), (x - 6, floor + 9)]
-        out = out.cut(cq.Workplane("XZ", origin=(0, y0 + WALL + 1, 0)).polyline(door).close().extrude(WALL + 2))
     if not mechanical:
         (px0, px1), (pz0, pz1) = PLAQUE  # sunk 1 mm, its top at 45 deg so it prints upright
         sunk = [(y0 - 1, pz0), (y0 + 1, pz0), (y0 + 1, pz1 - 2), (y0 - 1, pz1)]
         out = out.cut(cq.Workplane("YZ", origin=(px0, 0, 0)).polyline(sunk).close().extrude(px1 - px0))
+    (oy0, oy1), (oz0, oz1) = nb.OPENING  # its roof's peak (oy1 - oy0) / 2 over its sides
+    door = [
+        (oy0, floor + oz0),
+        (oy1, floor + oz0),
+        (oy1, floor + oz1),
+        ((oy0 + oy1) / 2, floor + oz1 + (oy1 - oy0) / 2),
+    ]
+    door.append((oy0, floor + oz1))
+    out = out.cut(cq.Workplane("YZ", origin=(x0 - 1, 0, 0)).polyline(door).close().extrude(WALL + 2))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
-    ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
-    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    for y in (nb.PACK_Y, nb.SPARE_Y):
+        ring = _box((-w - WALL, w + WALL), (y - d - WALL, y + d + WALL), (floor, floor + RIM))
+        out = out.union(ring.cut(box((-w, w), (y - d, y + d), (floor, floor + RIM))))
+    return out
 
 
 def _ledge(top):
@@ -65,8 +75,8 @@ def _ledge(top):
 
 @bone.carved
 def lid(mechanical=False):
-    """The Torso's lid (printed flat), inside the walls' top on their ledge over the pan, so it lifts out but never
-    slides: the yoke's post up through a hole in its middle, slotted to the back so it slides on over the walls and
+    """The Torso's lid (printed flat), inside the walls' top on their ledge, so it lifts out but never slides: the neck
+    mount's post up through a hole in its middle, slotted to the back so it slides on over the walls and
     drops in, and a hole over the switch board's lever. As Bones, carved from it: a border 1 mm down round its panel,
     as the picture."""
     (x0, x1), (y0, y1), (_, z1) = nb.TORSO
@@ -79,6 +89,20 @@ def lid(mechanical=False):
     if not mechanical:
         inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))
         out = out.cut(box((x0 + 3, x1 - 3), (y0 + 3, y1 - 3), (z1 - 1, z1 + 1)).cut(inner))
+    return out
+
+
+def tray(mechanical=False):
+    """The cranium tray (#858; printed on its plate's top, upside down), hidden in the realistic skull's cranium in every
+    Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, notched behind
+    each for its USB-C plug (nb.openings), and two legs down from its back behind the pitch bar to their feet on the
+    gimbal frame's plate."""
+    (x0, x1), (y0, y1) = nb.LEG_X, nb.LEG_Y
+    out = box((-30.5, 30.5), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
+    for s in (-1, 1):
+        out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
+    for lo, hi in nb.openings().values():
+        out = out.cut(box(*zip(lo, hi)))
     return out
 
 

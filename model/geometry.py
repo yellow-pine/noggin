@@ -172,7 +172,7 @@ _SKELETON = {
         "next tilt bar",
         "next jaw bar",
     ),
-    "Mounts": ("next torso", "next torso lid"),  # the realistic skull's black box pedestal (#838)
+    "Mounts": ("next torso", "next torso lid", "next cranium tray"),  # the realistic skull's black box pedestal (#838)
 }
 PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
@@ -208,7 +208,9 @@ SKULL_SUB = "next-skull"
 # foot on z 0 (base.TORSO, model/test_neck.py).
 _HEAD = ((0, -150, 177), X, Z)
 NEXT = {
-    f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
+    f"next-mech-{v}": {
+        sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-cranium", "next-base", *carriers)
+    }
     for v, carriers in (("back", ["next-morty", SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
     # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
 }
@@ -218,7 +220,7 @@ NEXT = {
 _STAND = ((0, -150, 78), X, Z)
 STAGES = {
     "next-stage1": {"next-eyes": _STAND, "next-stand": _STAND},
-    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base")},
+    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-cranium", "next-base")},
     **dict([next(iter(NEXT.items()))]),
 }
 # each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical, the skull

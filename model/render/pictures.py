@@ -45,21 +45,27 @@ PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
 # the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
-# the neck (or Stage 1's stand), the jaw forward
+# the neck (or Stage 1's stand), the jaw forward, the cranium's boards up out of the head (#858)
 EXPLODE = {
     "next-base": (0, 0, 0),
     "next-stand": (0, 0, 0),
     "next-neck": (0, 0, 45),
     "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
+    "next-cranium": (0, 0, 160),
     "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
-# Shield off its pins' side (BOARDS: up off the Torso's floor, #838, or off the test stand's face), the switch board and
-# the pack up off the Torso's floor (stages.next_base)
+# Shield off its pins' side (BOARDS: up off the cranium tray, #858, or off the test stand's face), the switch board, the
+# charger dongle and the packs up off the Torso's floor (stages.next_base)
 GAP = 5.0
-SEATS = {"switch": g.Z, "battery": g.Z, "next torso lid": g.Z} | skin.DIRECTIONS  # a Shell off its Seats; the lid up
+SEATS = {
+    "switch": g.Z,
+    "battery": g.Z,
+    "dongle": g.Z,
+    "next torso lid": g.Z,
+} | skin.DIRECTIONS  # a Shell off its Seats; the lid up
 # out of the Torso's walls (#838)
 BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
 # the front doors (#739: the README's top, the site's home), side by side in this order, in the default Preset alone,
@@ -182,6 +188,8 @@ def offsets(doc, level):
     middle = np.mean([lo + hi for lo, hi in box.values()], axis=0) / 2
     placed = []
     for n in sorted(box, key=lambda n: (n in axes, -np.prod(np.subtract(*box[n][::-1])))):
+        if (servo := n.replace(" horn:1", " servo:1")) != n and servo in out:  # from where its servo went (#858)
+            out[n] = out[servo].copy()
         lo, hi = box[n][0] + out[n], box[n][1] + out[n]
         if n in axes:
             d, signed = axes[n]

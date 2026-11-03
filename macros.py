@@ -308,6 +308,7 @@ HARDWARE = {
     "switch": "switch board",
     "battery": "battery pack",
     "horn": "servo horn",
+    "dongle": "charger dongle",
 }
 
 

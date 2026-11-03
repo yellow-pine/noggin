@@ -35,15 +35,16 @@ the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The next Mech's base, a box pedestal under its lid: holding the pack lying low, the two Cores and the switch board, and
-the neck mount with the pan servo under the lid, the neck's post rising through it; its bottom is the foot the Mech
-stands on.
+The next Mech's base, a box pedestal under its lid: holding both packs lying low, the one on the Mech through the
+switch board and the spare on the kit's charger dongle, with an opening in its wall where the two swap (#858); the neck
+mount stands on its floor, its hollow post rising through the lid to the pan under the head, the pack's Y lead up
+inside it; its bottom is the foot the Mech stands on.
 _Avoid_: base plate (today's Mech's part), body, stand
 
 **Head variant**:
 One way to place the next Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
-shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #838 the Cores, the
-pack and the switch board all lie low in the Torso.
+shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores ride
+the head in the realistic skull's cranium, the packs and the switch board lie low in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -297,9 +298,10 @@ A part we print, by our name (model/printed); the Skeleton's:
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
   off the lid bar;
 - test stand: the Test stand;
-- torso: the Torso; torso lid: its lid; neck mount: on the Torso, the pan servo on it; pan yoke: turns on it for pan,
-  its post up through the lid to the cheeks; pan bar: the pan
+- torso: the Torso; torso lid: its lid; neck mount: on the Torso, its hollow post up through the lid, the pan servo on
+  it; pan yoke: turns on the post's top for pan, the tilt servo on it, its cheeks up to the head; pan bar: the pan
   Horn to the yoke;
+- cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their

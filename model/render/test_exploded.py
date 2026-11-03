@@ -10,8 +10,8 @@ from model.render import pictures
 
 
 def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
-    """Stage 3 at rest (metres): the eyes lift 95 mm, the neck 45 mm, the jaw 45 mm and 40 mm forward, the base with the
-    Cores stays."""
+    """Stage 3 at rest (metres): the eyes lift 95 mm, the neck 45 mm, the jaw 45 mm and 40 mm forward, the Cores in the
+    cranium 160 mm (#858), the base stays."""
     doc = next(iter(g.NEXT))
     rest = {}
     for n, p in stages.STAGES[doc].parts.items():
@@ -22,6 +22,7 @@ def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
         stages.next_eyes: (0, 0, 0.095),
         stages.next_neck: (0, 0, 0.045),
         stages.next_jaw: (0, -0.04, 0.045),
+        stages.next_cranium: (0, 0, 0.16),
         stages.next_base: (0, 0, 0),
     }
     assert apart.keys() == rest.keys()
@@ -79,7 +80,7 @@ def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
 
 @pytest.mark.model
 def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_offset():
-    """Stage 3 (#811): the pack, the switch board and each Core up off the Torso's floor (#838), each lid
+    """Stage 3 (#811): the pack and the switch board up off the Torso's floor, each Core off the cranium tray (#858), each lid
     bar out along its Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the
     Torso stays."""
     doc = next(iter(g.NEXT))

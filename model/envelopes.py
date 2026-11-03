@@ -1,8 +1,8 @@
-"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield,
-Core, switch board, battery) so the model and the renders need no vendor file. Each is drawn in its STEP file's own
-frame, registered in ENVELOPES by its mesh's name. Interfaces
-(mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
-and circle hulls of the STEP's outer faces; inner detail is dropped."""
+"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield, Core, switch
+board, battery, the charger dongle) so the model and the renders need no vendor file. Each is drawn in its STEP file's
+own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft, connectors) are the STEP's
+numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of the STEP's outer faces; inner
+detail is dropped."""
 
 import cadquery as cq
 import numpy as np
@@ -211,4 +211,14 @@ def battery():
     return hull("XZ", BATTERY["cells"], -BATTERY["length"])
 
 
+# The kit's USB charger dongle (#858: the pack off the Mech charges on it, in the Torso): a stick, its XH2.54 socket at
+# one end and its USB lead out of the other, 45 x 18 x 9 mm, its underside z 0, along +x (inferred: unmeasured).
+DONGLE = ((0.0, 45.0), (-9.0, 9.0), (0.0, 9.0))
+
+
+def dongle():
+    return box(*DONGLE)
+
+
 ENVELOPES = {"servo": servo, "horn": horn, "receiver": shield, "core": core, "switch": switch, "battery": battery}
+ENVELOPES["dongle"] = dongle
