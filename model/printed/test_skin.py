@@ -42,19 +42,34 @@ def test_a_head_shell_built_again_is_the_same(head):
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
-HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the ears outside its width (#844)
+HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838)
 
 
-def test_mortys_head_fits_the_head_limit_but_for_his_ears(head):
-    """His face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm; only his ears stand out of its sides."""
-    head = list(head.values())
-    lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
-    hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head) for a in "xyz"]
-    _, depth, height = np.subtract(hi, lo)
-    assert depth <= HEAD_LIMIT[1] and height <= HEAD_LIMIT[2]
-    y, z, r, _ = skin.EAR
-    earless = cq.Workplane().add(head).cut(gimbal.cyl("x", (0, y, z), r + 0.1, (-100, 100))).val().BoundingBox()
-    assert earless.xlen <= HEAD_LIMIT[0] + 1e-3 < max(h.BoundingBox().xlen for h in head)
+def test_mortys_head_fits_the_head_limit_ears_and_all(head):
+    """His face (its ears and nose on), hair and mouth cover at rest fit 140 W x 140 D x 150 H mm (#850)."""
+    lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head.values()) for a in "xyz"]
+    hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head.values()) for a in "xyz"]
+    assert all(s <= limit + 1e-3 for s, limit in zip(np.subtract(hi, lo), HEAD_LIMIT, strict=True))
+
+
+def test_mortys_head_is_one_smooth_shape_round_from_every_angle():
+    """The head every Shell is cut from (skin._head) has no crease: across each edge its two faces meet within 5 deg,
+    so it never reads as a soft box where outlines meet (Cansin, #850)."""
+    from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
+    from OCP.TopExp import TopExp
+    from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
+
+    shape, creases = skin._head(0.0).val(), []
+    edges = TopTools_IndexedDataMapOfShapeListOfShape()
+    TopExp.MapShapesAndAncestors_s(shape.wrapped, TopAbs_EDGE, TopAbs_FACE, edges)
+    for i in range(1, edges.Extent() + 1):
+        e, faces = cq.Edge(edges.FindKey(i)), [cq.Face(f) for f in edges.FindFromIndex(i)]
+        if len(faces) == 2 and e.Length() > 1.0:  # a loft's end caps are sub-mm
+            for t in (0.25, 0.5, 0.75):
+                p = e.positionAt(t)
+                if faces[0].normalAt(p).getAngle(faces[1].normalAt(p)) > math.radians(5):
+                    creases.append((round(p.x), round(p.y), round(p.z)))
+    assert creases == []
 
 
 def test_mortys_face_and_hair_meet_without_overlapping(head):
