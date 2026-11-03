@@ -1,8 +1,8 @@
 // The built site in Chrome (#513): the diagrams draw, search finds a page, the header names the newest release and an
 // old Docs version's URL lands on the docs (docs/adr/0021), the wordmark's eye looks at the pointer (#603), and nothing
 // breaks the CSP, logs an error or asks another host than api.github.com (the header's release, stars and forks). The viewer loads the next Mech (#649), the only
-// one the site serves (docs/adr/0019), and plays its gestures (#664). The header's Theme bar (#806) shows each page in
-// the Theme picked, kept in the address and across pages, the viewer's Skeleton too.
+// one the site serves (docs/adr/0019), and plays its gestures (#664). The header's Theme bar (#806, #819) shows each page
+// in the Preset picked, kept in the address and across pages, the viewer's Shapes and Palettes too, and its own mix.
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -32,20 +32,25 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   // CI always has the GLBs; a local build has them once just web next ran before just site
   test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   await page.goto('viewer/');
-  const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Skeleton the bar's (#806)
+  const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Shapes the bar's Preset's (#819)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
   await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
-  await expect(page).toHaveURL(/\?skeleton=realistic&skin=morty&stage=1$/);
+  await expect(page).toHaveURL(/\?preset=cansins-build&stage=1$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
-  await page.locator('header').getByRole('combobox', { name: 'Skeleton' }).selectOption('mechanical');
-  await expect(page).toHaveURL(/\?skeleton=mechanical&skin=morty&stage=1$/);
+  const mix = viewer.getByRole('navigation', { name: 'Mix' }); // any Shape in any Palette (#819)
+  await expect(mix.getByRole('combobox', { name: 'Skeleton shape' })).toHaveValue('mechanical');
+  await mix.getByRole('combobox', { name: 'Skeleton palette' }).selectOption('robot'); // a repaint, no load
+  await expect(page).toHaveURL(/\?preset=cansins-build&stage=1&skeleton-palette=robot$/);
+  await page.locator('header').getByRole('combobox', { name: 'Preset' }).selectOption('morty');
+  await expect(page).toHaveURL(/\?preset=morty&stage=1$/); // the Preset's own mix
+  await expect(mix.getByRole('combobox', { name: 'Skeleton shape' })).toHaveValue('realistic');
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   const explode = viewer.getByRole('navigation', { name: 'Explode' }); // Explode's levels (#811)
   await explode.getByRole('button', { name: 'Sub-assemblies' }).click();
-  await expect(page).toHaveURL(/\?skeleton=mechanical&skin=morty&stage=1&explode=1$/);
+  await expect(page).toHaveURL(/\?preset=morty&stage=1&explode=1$/);
   await explode.getByRole('button', { name: 'Parts' }).click();
-  await expect(page).toHaveURL(/\?skeleton=mechanical&skin=morty&stage=1&explode=2$/);
+  await expect(page).toHaveURL(/\?preset=morty&stage=1&explode=2$/);
   await expect(explode.getByRole('button', { name: 'Parts' })).toHaveAttribute('aria-pressed', 'true');
   // see-through, so the Mech sits on the page's own background in either theme
   expect(await page.evaluate(() => document.querySelector('canvas').getContext('webgl2').getContextAttributes().alpha)).toBe(true);
@@ -55,23 +60,23 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   await expect.poll(() => page.evaluate(() => window.zoomed)).toBe(true); // OrbitControls takes it from the page
 });
 
-test("the Theme bar shows the page in the Theme picked, by keyboard too, kept in the address and across pages", async ({ page }) => {
-  await page.goto('docs/build/parts/'); // its buy list's filaments (#806); Pictures' pictures are the live site's
-  await expect(page).toHaveURL(/\?skeleton=realistic&skin=morty$/); // the default
-  const item = (s) => page.locator(`li[data-skeleton="${s}"]`);
-  await expect(item('realistic')).toBeVisible();
-  await expect(item('mechanical')).toBeHidden();
-  await page.locator('header').getByRole('combobox', { name: 'Skeleton' }).focus();
-  await page.keyboard.press('m'); // a closed select picks the value its letter starts
-  await expect(page).toHaveURL(/\?skeleton=mechanical&skin=morty$/);
-  await expect(item('mechanical')).toBeVisible();
-  await expect(item('realistic')).toBeHidden();
+test("the Theme bar shows the page in the Preset picked, by keyboard too, kept in the address and across pages", async ({ page }) => {
+  await page.goto('docs/build/parts/'); // its buy list's filaments (#806, #819); Pictures' pictures are the live site's
+  await expect(page).toHaveURL(/\?preset=cansins-build$/); // the default
+  const item = (p) => page.locator(`li[data-presets="${p}"]`);
+  const bar = page.locator('header').getByRole('combobox', { name: 'Preset' });
+  await expect(item('cansins-build')).toBeVisible();
+  await expect(item('morty')).toBeHidden();
+  await bar.focus();
+  await page.keyboard.press('m'); // a closed select picks the option its letter starts
+  await expect(page).toHaveURL(/\?preset=morty$/);
+  await expect(item('morty')).toBeVisible();
+  await expect(item('cansins-build')).toBeHidden();
   await page.goto('docs/build/stage-1/'); // another page, no address: what was picked last
-  await expect(page.locator('header').getByRole('combobox', { name: 'Skeleton' })).toHaveValue('mechanical');
-  await page.goto('docs/build/parts/?skin=bart'); // the address first
-  await expect(page.locator('li[data-skin="bart"]')).toBeVisible();
-  await expect(page.locator('li[data-skin="morty"]')).toBeHidden();
-  await expect(item('mechanical')).toBeVisible();
+  await expect(bar).toHaveValue('morty');
+  await page.goto('docs/build/parts/?preset=bart'); // the address first
+  await expect(item('bart')).toBeVisible();
+  await expect(item('morty')).toBeHidden();
 });
 
 // the wordmark's o is the Mech's eye (#603): its pupil looks at the pointer, unless the reader asks for less motion
@@ -118,7 +123,7 @@ test('the diagrams draw, search finds a page, the header names the newest releas
 // the Docs versions are gone (docs/adr/0021): an old one's URL lands on its page in the docs, or on the home
 test("an old Docs version's URL lands on the same page, or the home", async ({ page }) => {
   await page.goto('v0.1/docs/how-it-works/');
-  await expect(page).toHaveURL(/\/noggin\/docs\/how-it-works\/\?skeleton=realistic&skin=morty$/); // the bar's Theme (#806)
+  await expect(page).toHaveURL(/\/noggin\/docs\/how-it-works\/\?preset=cansins-build$/); // the bar's Preset (#806, #819)
   // the home stubbed: its pictures are the live site's
   await page.route(/\/noggin\/$/, (r) => r.fulfill({ contentType: 'text/html', body: '<title>home</title>' }));
   await page.goto('v0.2.19/docs/gone/');

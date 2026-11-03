@@ -4,16 +4,17 @@
 behaviour: the table of which event plays what (noggin/install_hooks.py, reactions/director.py, eyes/eyes.py), on the
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
-mjcf.py). themes: docs/face-design.md's Themes, each Colour group's filament (geometry.py THEMES, #805).
-next_panels: the next Mech's panels' grid, each of its Stages in every Skeleton (model/render/pictures.py PANELS,
-geometry.py STAGES, #629, #720), next_motions: its eye gimbal in motion (#656) and next_parts: a picture of each of its
-parts, on docs/pictures.md (#649), next_front: the front doors' own two there and next_exploded: each Stage with every
-part apart (#811).
+mjcf.py). themes: docs/face-design.md's Palettes, each Colour group's filament (geometry.py THEMES, #805, #819).
+next_panels: the next Mech's panels' grid, each of its Stages in every Preset (model/render/pictures.py PANELS,
+geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: its eye gimbal in motion (#656) and next_parts: a
+picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' own two there and
+next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
-src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeletons (#805).
-theme: the header's Theme bar, each category's values (site/src/theme.mjs, #806); filaments: the buy list's, per
-value (docs/build/parts.md), shown, as every themed picture and the Stages' print tables, in the Theme picked.
+src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeleton shapes.
+theme: the header's Theme bar, the Presets, and the viewer's mix of Shapes and Palettes (site/src/theme.mjs, #806,
+#819); filaments: the buy list's, per Preset (docs/build/parts.md), shown, as every Preset's pictures and the Stages'
+print tables, for the Preset picked.
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py STAGES and PRINTED, #721).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
@@ -125,11 +126,11 @@ def picture_numbers():
             f"| the next Mech's parts | {size(*p.PART_SIZE)} | WebP |",
             f"| the next Mech in motion | {size(*p.MOTION_SIZE)} | {p.HERO_FPS} fps, looping |",
             "",
-            "| Theme | Colour group | Filament | Colour | Drawn by Blender | `just view` |",
+            "| Palette | Colour group | Filament | Colour | Drawn by Blender | `just view` |",
             "|---|---|---|---|---|---|",
             *(
                 f"| {value} | {group} | {line} {name} ({code}) | {c} | {lift.get(c, c)} | {mjcf.VIEW.get(c, c)} |"
-                for values in g.THEMES.values()
+                for _, values in palettes()
                 for value, groups in values.items()
                 for group, (line, name, code, c) in groups.items()
             ),
@@ -139,20 +140,30 @@ def picture_numbers():
     )
 
 
-def themed(category, value):
-    """The attribute that shows an element in that Theme value alone, as the header's bar picks it
-    (site/src/theme.mjs, #806)."""
-    return f' data-{category.lower()}="{value}"'
+def palettes():
+    """(category, {Palette: {Colour group: filament}}) per category (geometry.THEMES' palette axes, #819)."""
+    return [(a.removesuffix(" palette"), v) for a, v in g.THEMES.items() if a.endswith(" palette")]
+
+
+def themed(presets):
+    """The attribute that shows an element for those Presets alone, as the header's bar picks one
+    (site/src/theme.mjs, #806, #819)."""
+    return f' data-presets="{" ".join(map(g.slug, presets))}"'
+
+
+def shaped(shape):
+    """The Presets whose Skeleton shape is shape."""
+    return [p for p, t in g.PRESETS.items() if t["Skeleton shape"] == shape]
 
 
 def panels(labels):
     """The documents labelled as a grid of their panels (model/render/pictures.py PANELS), a column per document and a
-    row per view, each picture linking to its file, each document's shown in its Skeleton alone (#806); stacked by
-    document on a phone (site/src/styles/custom.css). Pictures' (#470)."""
+    row per view, each picture linking to its file, each shown for its Preset alone (pictures.DRAWN, #806, #819);
+    stacked by document on a phone (site/src/styles/custom.css). Pictures' (#470)."""
     site, views = "https://yellowpine.com/noggin/images/", list(pictures.VIEWS)
     cells = ["<span></span>", *(f"<span>{v.capitalize()}</span>" for v in views)]
     for doc, label in labels.items():
-        mark = themed("Skeleton", g.theme(doc)["Skeleton"])
+        mark = themed([pictures.DRAWN[doc][1]])
         cells.append(f"<strong{mark}>{label}</strong>")
         for v in views:
             f = f"{site}{pictures.picture(doc, v)}"
@@ -161,14 +172,14 @@ def panels(labels):
 
 
 def themes():
-    """Each Theme value's Colour groups, their parts so far and the filament each is printed in (geometry.THEMES and
-    PRINTED, #805)."""
+    """Each Palette's Colour groups, their parts so far and the filament each is printed in (geometry.THEMES and
+    PRINTED, #805, #819)."""
     parts = {}
     for name, (group, _) in g.PRINTED.items():
         if not name.endswith(g.MECHANICAL):
             parts.setdefault(group, []).append(name.removeprefix("next "))
-    rows = ["| Category | Value | Colour group | Parts | Filament | Hex |", "|---|---|---|---|---|---|"]
-    for category, values in g.THEMES.items():
+    rows = ["| Category | Palette | Colour group | Parts | Filament | Hex |", "|---|---|---|---|---|---|"]
+    for category, values in palettes():
         for value, groups in values.items():
             rows += [
                 f"| {category} | {value} | {k} | {', '.join(parts.get(k, []))} | {line} {name} ({code}) | {c} |"
@@ -178,109 +189,116 @@ def themes():
 
 
 def filament(group):
-    """The filament a Colour group prints in under each value of its Theme category, each shown in that value alone
-    (#806)."""
-    return "".join(
-        f"<span{themed(c, v)}>{f[0]} {f[1]} ({f[2]})</span>"
-        for c, values in g.THEMES.items()
-        for v, groups in values.items()
-        if (f := groups.get(group))
-    )
+    """The filament a Colour group prints in under each Preset, each shown for the Presets that print it alone (#806,
+    #819)."""
+    by = {}
+    for p, theme in g.PRESETS.items():
+        by.setdefault(g.filament(group, theme), []).append(p)
+    return "".join(f"<span{themed(ps)}>{f[0]} {f[1]} ({f[2]})</span>" for f, ps in by.items())
 
 
 def filaments():
-    """The buy list's filaments (docs/build/parts.md): each Theme value's, its Colour groups' by line, name and code,
-    one line per value, shown for the value picked (#806)."""
-    rows = [
-        f"<li{themed(c, v)}>{c} {v}: "
-        + ", ".join(f"{group} {line} {name} ({code})" for group, (line, name, code, _) in groups.items())
-        + "</li>"
-        for c, values in g.THEMES.items()
-        for v, groups in values.items()
-    ]
+    """The buy list's filaments (docs/build/parts.md): each Preset's by line, name and code, with the Colour groups
+    each prints, one line per Preset, shown for the Preset picked (#806, #819)."""
+    rows = []
+    for p, theme in g.PRESETS.items():
+        by = {}
+        for axis, value in theme.items():
+            for group, f in g.THEMES[axis][value].items() if axis.endswith(" palette") else ():
+                by.setdefault(f, []).append(group)
+        items = "; ".join(f"{', '.join(groups)} {f[0]} {f[1]} ({f[2]})" for f, groups in by.items())
+        rows.append(f"<li{themed([p])}>{p}: {items}</li>")
     return f"<ul>{''.join(rows)}</ul>"
 
 
-BONY = [doc for doc in g.STAGES if g.theme(doc) == g.THEME]  # the Stages in order, realistic (as Bones)
+BONY = pictures.BONY  # the Stages in order, as Bones
 
 
 def stage(doc):
-    """A Stage document's name on a page, in any Skeleton: "Stage 2"."""
-    bony = doc.removesuffix(g.SKELETON_SUFFIX[g.theme(doc)["Skeleton"]])
-    return f"Stage {BONY.index(bony) + 1}"
+    """A Stage document's name on a page, in any Shape, or a picture's (pictures.DRAWN) in any Preset: "Stage 2"."""
+    doc = pictures.DRAWN.get(doc, (doc,))[0]
+    return f"Stage {BONY.index(doc.removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
 
 
 def next_panels():
-    """The next Mech's panels (#629), each Stage in every Skeleton (#720, #805), framed among themselves: Pictures'
+    """The next Mech's panels (#629), each Stage in every Preset (#720, #819), framed among themselves: Pictures'
     alone."""
-    return panels({doc: stage(doc) for doc in g.STAGES})
+    return panels({name: stage(name) for name in pictures.DRAWN})
 
 
-def figures(labels, kind="parts", links=None, skeletons=None):
-    """{picture: label} as a grid, each picture under its label, linking to its file or its links entry, one drawn in
-    a Skeleton (skeletons) shown in it alone (site/src/styles/custom.css)."""
+def stand_in():
+    """The line under Cansin's build's pictures, shown for it alone (#819): its Skin's Shape a stand-in."""
+    p = next(iter(g.PRESETS))
+    return f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist (#813).</em></p>"
+
+
+def figures(labels, kind="parts", links=None, presets=None):
+    """{picture: label} as a grid, each picture under its label, linking to its file or its links entry, one for some
+    Presets (presets) shown for them alone (site/src/styles/custom.css)."""
     site, cells = "https://yellowpine.com/noggin/images/", []
     for f, label in labels.items():
         img = f'<img src="{site}{f}" alt="{label}" loading="lazy">'
         href = (links or {}).get(f, site + f)
-        mark = themed("Skeleton", s) if (s := (skeletons or {}).get(f)) else ""
+        mark = themed(ps) if (ps := (presets or {}).get(f)) else ""
         cells.append(f'<figure{mark}><a href="{href}">{img}</a><figcaption>{label}</figcaption></figure>')
     return f'<div class="noggin-{kind} not-content">{"".join(cells)}</div>'
 
 
 def front():
-    """The front doors' three (model/render/pictures.py FRONT, #739) in each Skeleton, shown in it alone (#806), side by
-    side under their captions, Stage 1's linking to Pictures, Stage 3's to it in the viewer in that Skeleton, the
+    """The front doors' three (model/render/pictures.py FRONT, #739) in each Preset, shown for it alone (#806, #819),
+    side by side under their captions, Stage 1's linking to Pictures, Stage 3's to it in the viewer in that Preset, the
     exploded one opened exploded: the site's home (the README's top is a copy of the default's, test_site.py)."""
     site, links = "https://yellowpine.com/noggin/", {}
-    for (skeleton, s), fs in zip(g.SKELETON_SUFFIX.items(), batched(pictures.FRONT, 3, strict=True), strict=True):
-        viewer = f"{site}viewer/?stage={BONY.index(pictures.STAGE3) + 1}" + (s and f"&amp;skeleton={skeleton}")
+    for (p, s), fs in zip(pictures.SUFFIX.items(), batched(pictures.FRONT, 3, strict=True), strict=True):
+        viewer = f"{site}viewer/?stage={BONY.index(pictures.STAGE3) + 1}" + (s and f"&amp;preset={g.slug(p)}")
         links |= dict(zip(fs, [f"{site}docs/pictures/", viewer, f"{viewer}&amp;explode=1"], strict=True))
-    return figures(front_labels(), "front", links, front_skeletons())
+    return figures(front_labels(), "front", links, front_presets())
 
 
 def front_labels():
     one, three = stage(pictures.STAGE1), stage(pictures.STAGE3)
-    labels = [f"{one}, from the front", three, f"{three}, exploded"] * len(g.SKELETON_SUFFIX)
+    labels = [f"{one}, from the front", three, f"{three}, exploded"] * len(g.PRESETS)
     return dict(zip(pictures.FRONT, labels, strict=True))
 
 
-def front_skeletons():
-    """{front door's picture: the Skeleton it is drawn in}, FRONT's three per Skeleton."""
-    return {f: s for s, fs in zip(g.SKELETON_SUFFIX, batched(pictures.FRONT, 3, strict=True), strict=True) for f in fs}
+def front_presets():
+    """{front door's picture: [the Preset it is drawn in]}, FRONT's three per Preset."""
+    return {f: [p] for p, fs in zip(g.PRESETS, batched(pictures.FRONT, 3, strict=True), strict=True) for f in fs}
 
 
 def next_front():
     """The front doors' own pictures (model/render/pictures.py FRONT, #739), beside the panels on Pictures."""
     own = {f: label for f, label in front_labels().items() if pictures.FRONT[f]}
-    return figures(own, "views", skeletons=front_skeletons())
+    return figures(own, "views", presets=front_presets())
 
 
 def next_exploded():
-    """Each Stage in every Skeleton at Explode's Parts level (model/render/pictures.py parts_exploded, #811), each shown
-    in its Skeleton alone (#806)."""
-    labels = {pictures.parts_exploded(doc): f"{stage(doc)}, its parts apart" for doc in g.STAGES}
-    skeletons = {pictures.parts_exploded(doc): g.theme(doc)["Skeleton"] for doc in g.STAGES}
-    return figures(labels, "views", skeletons=skeletons)
+    """Each Stage in every Preset at Explode's Parts level (model/render/pictures.py parts_exploded, #811), each shown
+    for its Preset alone (#806, #819)."""
+    labels = {pictures.parts_exploded(n): f"{stage(n)}, its parts apart" for n in pictures.DRAWN}
+    presets = {pictures.parts_exploded(n): [p] for n, (_, p) in pictures.DRAWN.items()}
+    return figures(labels, "views", presets=presets)
 
 
 def next_motions():
-    """The next Mech's eye gimbal in motion (model/render/pictures.py NEXT_MOTIONS, #656), in each Skeleton (#806)."""
-    moving = {(m, s): pictures.next_motion(m, s) for s in g.SKELETON_SUFFIX for m in pictures.NEXT_MOTIONS}
+    """The next Mech's eye gimbal in motion (model/render/pictures.py NEXT_MOTIONS, #656), in each Preset (#806,
+    #819)."""
+    moving = {(m, p): pictures.next_motion(m, p) for p in g.PRESETS for m in pictures.NEXT_MOTIONS}
     labels = {f: f"Eye gimbal, {m}" for (m, _), f in moving.items()}
-    return figures(labels, "motions", skeletons={f: s for (_, s), f in moving.items()})
+    return figures(labels, "motions", presets={f: [p] for (_, p), f in moving.items()})
 
 
 def next_parts():
     """The next Mech's parts (model/render/pictures.py next_parts), each picture under its name, a Skeleton part's
-    shown in the Skeleton it is drawn in alone (#806)."""
-    labels, skeletons, bones = {}, {}, g.THEMES["Skeleton"][g.THEME["Skeleton"]]
+    drawn in its Shape and shown for the Presets in that Shape alone (#806, #819)."""
+    labels, presets = {}, {}
+    bones = next(iter(g.THEMES["Skeleton palette"].values()))  # the Skeleton's Colour groups
     for f, (doc, name) in pictures.next_parts().items():
         stem = stages.stem(stages.STAGES[doc].parts[name].file)
         labels[f] = HARDWARE.get(stem, stem.removeprefix("next ").removesuffix(g.MECHANICAL))
         if g.PRINTED.get(stem, (None,))[0] in bones:
-            skeletons[f] = g.theme(doc)["Skeleton"]
-    return figures(labels, skeletons=skeletons)
+            presets[f] = shaped(g.shape(doc))
+    return figures(labels, presets=presets)
 
 
 HARDWARE = {
@@ -294,7 +312,7 @@ HARDWARE = {
 
 def stage_guides():
     """Per Stage ("1" to "3", the Bony documents): the parts it adds to the Stage before it (and any it takes off), each
-    printed in its Colour group's filament under each Theme value, shown for the value picked (#806), or bought, and
+    printed in its Colour group's filament under each Preset, shown for the Preset picked (#806, #819), or bought, and
     its new servos with their Core (the eyes Core's are the eye gimbal's horns, model/stages.py next_eyes) and the
     model's range, from neutral 90 as wiring() gives them."""
     made = {name: f"{group}: {filament(group)}" for name, (group, _) in g.PRINTED.items()}
@@ -358,10 +376,10 @@ RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # jus
 
 
 def stage_switch():
-    """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the header's Theme
-    bar's Skeleton adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING
-    (#705), when just sim ranked today's variants: its mechanical document's, the one physics runs on (#809); and the
-    Skeletons (#805), each its GLB's suffix (the header's bar picks one, #806)."""
+    """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the Skeleton shape
+    adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
+    sim ranked today's variants: its mechanical document's, the one physics runs on (#809); and the Skeleton shapes
+    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix)."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
@@ -375,6 +393,23 @@ def stage_switch():
             }
         )
     return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX}
+
+
+def theme():
+    """The header's Theme bar and the viewer's mix (site/src/theme.mjs, #806, #819), by their keys in an address: the
+    Presets by slug, each its label and its value on each axis, the default first; each axis' values; each Palette's
+    hex per Colour group, black lifted as Blender draws it, which the viewer paints a GLB's Colour groups in."""
+    key, lift = (lambda a: a.lower().replace(" ", "-")), {"#000000": constant("model/render/blender.py", "BLACK_LIFT")}
+    return {
+        "presets": {g.slug(p): {"label": p} | {key(a): v for a, v in t.items()} for p, t in g.PRESETS.items()},
+        "axes": {key(a): list(v) for a, v in g.THEMES.items()},
+        "palettes": {
+            key(f"{c} palette"): {
+                v: {k: lift.get(f[3], f[3]) for k, f in groups.items()} for v, groups in values.items()
+            }
+            for c, values in palettes()
+        },
+    }
 
 
 def build():
@@ -394,7 +429,8 @@ def numbers():
         "pictures": picture_numbers(),
         "themes": themes(),
         "filaments": filaments(),
-        "theme": {c.lower(): list(values) for c, values in g.THEMES.items()},  # the header's bar (#806)
+        "theme": theme(),  # the header's bar and the viewer's mix (#806, #819)
+        "stand_in": stand_in(),
         "next_panels": next_panels(),
         "next_front": next_front(),
         "next_exploded": next_exploded(),

@@ -1,5 +1,5 @@
 """Blender side of model/render/pictures.py: runs INSIDE Blender (`Blender -b -P model/render/blender.py -- job.json`).
-The job names each part's mesh (its own frame, metres) and colour, and the shots: output paths, size, camera and every
+The job names each part's mesh (its own frame, metres), Colour group and colour, and the shots: output paths, size, camera and every
 part's world matrix per frame (one: a still; more: one animation, keeping one depsgraph). Look (docs/model-notes.md):
 satin plastic in the filament colours mixed with a two-step toon shadow, one small highlight, ART_PX Line Art lines on
 silhouettes and creases in one mid grey (INK) that reads on the site's light and dark pages, a transparent background
@@ -115,7 +115,9 @@ def setup():
 
 
 def load(parts):
-    objs = {}
+    """The parts' objects, one material per Colour group (a hardware envelope's file name), named by it: what the viewer
+    repaints in a GLB (#819)."""
+    objs, mats = {}, {}
     for name, p in parts.items():
         bpy.ops.wm.ply_import(filepath=p["ply"])
         ob = bpy.context.selected_objects[0]
@@ -127,7 +129,10 @@ def load(parts):
             "pupil" in name
         ):  # the pupil face lies on the eyeball sphere: lifted, it neither z-fights nor dashes its outline
             ob.modifiers.new("lift", "DISPLACE").strength = 0.0003
-        ob.data.materials.append(material(name, BLACK_LIFT if p["colour"] == "#000000" else p["colour"]))
+        group = p.get("group", name)
+        if group not in mats:
+            mats[group] = material(group, BLACK_LIFT if p["colour"] == "#000000" else p["colour"])
+        ob.data.materials.append(mats[group])
         objs[name] = ob
     return objs
 

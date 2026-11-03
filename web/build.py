@@ -1,4 +1,5 @@
-"""The web viewer's GLBs (docs/adr/0008): one per next Mech document (PUBLIC, #649, #642), written into one folder that
+"""The web viewer's GLBs (docs/adr/0008): one per next Mech document, a Stage in a Skeleton shape (PUBLIC, #649, #642,
+#819: per Shape alone, the viewer paints each Palette), written into one folder that
 the site serves at viewer/ beside the viewer's page and its module (site/src/pages/viewer.astro, `just site`,
 docs/adr/0009). Each GLB is Blender's (web/glb.py): the document's parts in the pictures' look, one glTF clip per motion
 of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the next hero
@@ -24,7 +25,7 @@ PUBLIC = {doc: doc + ".glb" for doc in g.STAGES}  # what the site serves: the ne
 def glb(doc, path):
     """Blender writes the document's GLB: every part keyed per frame of each of its motions."""
     with tempfile.TemporaryDirectory() as tmp:
-        parts = scene.export(doc, tmp)  # in its Theme's colours (#805)
+        parts = scene.export(doc, tmp)  # in its Theme's colours, a material per Colour group the viewer repaints (#819)
         for p in parts.values():
             p["ply"] = os.path.join(tmp, p["ply"])
         motions = {

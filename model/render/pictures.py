@@ -1,9 +1,9 @@
 """Every picture the site serves (published()), rendered in Blender (#47; rules in docs/model-notes.md), each document
 posed from its baked trajectories (model/trajectories.py, `just trajectories`): MuJoCo's poses (#150). Each picture is a
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
-`views` (`just render`): the panels (each document at rest, a trajectory's first frame, from the side and isometric,
-framed among themselves: PANELS), the front doors' own (FRONT, #739) and each Stage at Explode's Parts level
-(parts_exploded, #811). `site next` (`just pictures next`, Checks'
+`views` (`just render`): the panels (each Stage in each Preset at rest, #819, a trajectory's first frame, from the
+side and isometric, framed among themselves: PANELS), the front doors' own (FRONT, #739) and each Stage at Explode's
+Parts level (parts_exploded, #811). `site next` (`just pictures next`, Checks'
 Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those, the eye gimbal in
 motion (NEXT_MOTIONS: its sweep, #656, and each motion it plays, #663) and a picture per part.
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
@@ -32,7 +32,12 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the panels (Cansin, #470): each document from its left side and isometric from its front left, by eye direction and
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
-PANELS = [(doc, view) for doc in g.STAGES for view in VIEWS]
+# the pictures per Preset alone (#819): {name: (document, Preset)}, each Stage in the Preset's Skeleton shape painted in
+# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (next-stage1-morty)
+SUFFIX = {p: f"-{g.slug(p)}" if i else "" for i, p in enumerate(g.PRESETS)}
+BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # the Stages in order, as Bones
+DRAWN = {s + SUFFIX[p]: (s + g.SKELETON_SUFFIX[t["Skeleton shape"]], p) for p, t in g.PRESETS.items() for s in BONY}
+PANELS = [(name, view) for name in DRAWN for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 LENS, MARGIN = 90, 1.06  # a long lens: little perspective distortion so close
 # the motions' view (the old README hero's): from 15 deg to the Mech's right (right eye nearest), 15 deg up
@@ -55,14 +60,14 @@ EXPLODE = {
 # carrier's face (model/base.py standing, their backs on it), the pack up off the Torso's floor (stages.next_base)
 GAP = 5.0
 SEATS = {"receiver": g.Y, "core": g.Y, "switch": g.Y, "battery": g.Z}
-# the front doors (#739: the README's top, the site's home), side by side in this order, in each Skeleton (#806), as
-# Bones first (#704): Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
-# from the side, exploded (EXPLODE); each (document, eye direction, exploded), framed tight on its own at the panels'
-# size
-STAGE1, STAGE3 = next(iter(g.STAGES)), next(iter(g.NEXT))
+# the front doors (#739: the README's top, the site's home), side by side in this order, in each Preset (#806, #819),
+# the default's first: Stage 1 from the front, its eyes facing the camera; Stage 3 isometric, its panel (None); Stage 3
+# from the side, exploded (EXPLODE); each (DRAWN's name, eye direction, exploded), framed tight on its own at the
+# panels' size
+STAGE1, STAGE3 = BONY[0], next(iter(g.NEXT))
 FRONT = {
     f: how
-    for s in g.SKELETON_SUFFIX.values()
+    for s in SUFFIX.values()
     for f, how in {
         f"{STAGE1}{s}-front.webp": (STAGE1 + s, (0, -1, 0), False),
         f"{STAGE3}{s}-isometric.webp": None,
@@ -74,7 +79,7 @@ IMAGES = os.path.join(stages.REPO, "model", "build", "images")
 # rest, isometric, framed on its own; every name next-
 NEXT = "next"
 PART_SIZE = (400, 400)
-# the next Mech in motion, next-eyes alone in each Skeleton (#806) through one camera at HERO_FPS: its eye gimbal's
+# the next Mech in motion, next-eyes alone in each Preset (#806, #819) through one camera at HERO_FPS: its eye gimbal's
 # sweep through its whole range (#656), moved by its own kinematics (model/gimbal.py moved), keyed by hand as (seconds, yaw, pitch, L lid, R lid) in
 # degrees, eased from key to key and looping from rest, the lids following the pitch (#51); then each motion it plays,
 # its gestures and Rest (None: as MuJoCo baked it, next_played, #663)
@@ -91,9 +96,10 @@ def picture(name, view):
     return f"{name}-{view}.webp"
 
 
-def parts_exploded(doc):
-    """A Stage's picture at Explode's Parts level (#811): isometric, framed tight on its own at the panels' size."""
-    return f"{doc}-parts-exploded.webp"
+def parts_exploded(name):
+    """A Stage's picture (DRAWN's name) at Explode's Parts level (#811): isometric, framed tight on its own at the
+    panels' size."""
+    return f"{name}-parts-exploded.webp"
 
 
 @functools.cache
@@ -107,16 +113,16 @@ def next_parts():
     return out
 
 
-def next_motion(motion, skeleton=g.THEME["Skeleton"]):
-    return f"next-eyes{g.SKELETON_SUFFIX[skeleton]}-{motion}.webp"
+def next_motion(motion, preset):
+    return f"next-eyes{SUFFIX[preset]}-{motion}.webp"
 
 
 def published():
     """Every picture the site serves (#649): the next Mech's panels, the front doors' own (#739), each Stage at the
-    Parts level (#811), its motions (#656) in each Skeleton (#806), then its parts'."""
+    Parts level (#811), its motions (#656), each in each Preset (#806, #819), then its parts'."""
     front = [f for f, how in FRONT.items() if how]
-    apart = map(parts_exploded, g.STAGES)
-    moving = [next_motion(m, s) for s in g.SKELETON_SUFFIX for m in NEXT_MOTIONS]
+    apart = map(parts_exploded, DRAWN)
+    moving = [next_motion(m, p) for p in g.PRESETS for m in NEXT_MOTIONS]
     return [*(picture(*p) for p in PANELS), *front, *apart, *moving, *next_parts()]
 
 
@@ -246,14 +252,15 @@ def next_motions(rest):
     return out
 
 
-def prepare(doc):
-    """(stage, manifest with absolute PLY paths, hull points per part) for one document's pictures, its parts as
-    model/stages.py assembles them, exported once. Always our geometry (model/build/ours, `just ours`), never the
-    designer's meshes."""
+def prepare(name, doc=None):
+    """(stage, manifest with absolute PLY paths, hull points per part) for one document's pictures under name: DRAWN's,
+    in its Preset's colours (#819), or a document's own in its Theme's (#805), its parts as model/stages.py assembles
+    them, exported once. Always our geometry (model/build/ours, `just ours`), never the designer's meshes."""
+    doc, preset = (doc, None) if doc else DRAWN[name]
     stage = stages.STAGES[doc]
-    folder = os.path.join(OUT, "meshes", doc)
+    folder = os.path.join(OUT, "meshes", name)
     os.makedirs(folder, exist_ok=True)
-    manifest = scene.export(doc, folder)  # in its Theme's colours (#805)
+    manifest = scene.export(doc, folder, g.PRESETS.get(preset))
     for p in manifest.values():
         p["ply"] = os.path.join(folder, p["ply"])
     return stage, manifest, hulls(manifest)
@@ -304,13 +311,13 @@ def render(name, manifest, shots, mine, fps=None):
 
 
 def views(mine):
-    """The panels (PANELS: each document at rest as MuJoCo settles it, where every gesture starts), at one scale and one
-    frame: the largest silhouette among them; those in mine alone are rendered."""
+    """The panels (PANELS: each Stage in each Preset at rest as MuJoCo settles it, where every gesture starts), at one
+    scale and one frame: the largest silhouette among them; those in mine alone are rendered."""
     plans = {}
-    for doc in g.STAGES:
-        _, manifest, hulls = prepare(doc)
+    for name, (doc, _) in DRAWN.items():
+        _, manifest, hulls = prepare(name)
         mats = trajectories.poses(doc, "wink")[0]
-        plans[doc] = (manifest, hulls, mats, points(hulls, mats))
+        plans[name] = (manifest, hulls, mats, points(hulls, mats))
     fits = {(n, v): camera.fit(plans[n][3], *VIEWS[v], 1) for n, v in PANELS}
     # one scale and one frame for every panel: the widest and the tallest silhouette, PAD of the larger round them
     w, h = np.max([[np.ptp(plans[n][3] @ c.matrix[:3, i]) for i in (0, 1)] for (n, _), c in fits.items()], axis=0)
@@ -319,11 +326,11 @@ def views(mine):
     size = (PANEL_WIDTH, 2 * round(PANEL_WIDTH * h / w / 2))
     for name, (manifest, hull, mats, pts) in plans.items():
         shots = [shot(f"{name}-{v}", size, camera.stand(fits[name, v], pts, w, w / h, pad / h), [mats]) for v in VIEWS]
-        for f, (doc, eye, apart) in ((f, how) for f, how in FRONT.items() if how and how[0] == name):
-            pose = exploded(doc, mats) if apart else mats
+        for f, (_, eye, apart) in ((f, how) for f, how in FRONT.items() if how and how[0] == name):
+            pose = exploded(DRAWN[name][0], mats) if apart else mats
             cam = camera.fit(points(hull, pose), eye, g.Z, size[0] / size[1], None, MARGIN)
             shots.append(shot(f.removesuffix(".webp"), size, cam, [pose]))
-        pose = exploded(name, mats, 2)
+        pose = exploded(DRAWN[name][0], mats, 2)
         cam = camera.fit(points(hull, pose), *VIEWS["isometric"], size[0] / size[1], None, MARGIN)
         shots.append(shot(parts_exploded(name).removesuffix(".webp"), size, cam, [pose]))
         render(name, manifest, shots, mine)
@@ -333,7 +340,7 @@ def part_pictures(mine):
     """Each part of the next Mech (next_parts) in mine alone, at rest as MuJoCo settles it, from VIEWS' isometric,
     framed tight on its own."""
     for doc in dict.fromkeys(d for d, _ in next_parts().values()):  # the documents a part is first drawn in
-        _, manifest, hull = prepare(doc)
+        _, manifest, hull = prepare(f"parts-{doc}", doc)  # in its Theme, the first Preset's in its Shape
         mats = trajectories.poses(doc, "wink")[0]
         shots = [
             shot(
@@ -346,7 +353,7 @@ def part_pictures(mine):
             if d == doc
             for pose in [{name: mats[name]}]
         ]
-        render(doc, manifest, shots, mine)
+        render(f"parts-{doc}", manifest, shots, mine)
 
 
 def next_played(doc=STAGE3):
@@ -369,27 +376,25 @@ def motions(doc=STAGE3):
 
 def frames():
     """{picture: its frames} of published(): a still's one, a motion's as many as it plays."""
-    moving = {
-        next_motion(m, s): len(f) for s in g.SKELETON_SUFFIX for m, f in motions(STAGE3 + g.SKELETON_SUFFIX[s]).items()
-    }
+    moving = {next_motion(m, p): len(f) for p in g.PRESETS for m, f in motions(DRAWN[STAGE3 + SUFFIX[p]][0]).items()}
     return dict.fromkeys(published(), 1) | moving
 
 
 def motion_pictures(mine):
-    """The next Mech's motions (motions()) in mine, its eye gimbal alone in each Skeleton, each a looping WebP at
-    HERO_FPS through one camera from the hero's direction (HERO) fitted to every frame of a Skeleton's, so they share
+    """The next Mech's motions (motions()) in mine, its eye gimbal alone in each Preset, each a looping WebP at
+    HERO_FPS through one camera from the hero's direction (HERO) fitted to every frame of a Preset's, so they share
     one framing."""
-    for skeleton, s in g.SKELETON_SUFFIX.items():
-        doc = STAGE3 + s
-        _, manifest, hull = prepare(doc)
+    for preset, s in SUFFIX.items():
+        doc = DRAWN[STAGE3 + s][0]
+        _, manifest, hull = prepare(STAGE3 + s)
         moves = motions(doc)
         pts = np.concatenate([points(hull, f) for frames in moves.values() for f in frames])
         cam = camera.fit(pts, HERO, g.Z, MOTION_SIZE[0] / MOTION_SIZE[1], LENS, MARGIN)
-        names = {m: next_motion(m, skeleton).removesuffix(".webp") for m in moves}
+        names = {m: next_motion(m, preset).removesuffix(".webp") for m in moves}
         for name in names.values():  # a motion keyed shorter leaves no frames of the last render behind
             shutil.rmtree(os.path.join(OUT, "frames", name), ignore_errors=True)
         shots = [shot(names[m], MOTION_SIZE, cam, frames) for m, frames in moves.items()]
-        render(doc, manifest, shots, mine, HERO_FPS)
+        render(STAGE3 + s, manifest, shots, mine, HERO_FPS)
 
 
 def at_fps(frames, fps):

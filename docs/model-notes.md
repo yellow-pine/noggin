@@ -17,11 +17,12 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   `just pictures next`; the neck and the jaw join as their tickets move them.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
-  the panels (each document at rest, a trajectory's first frame);
+  the panels (each Stage in each Preset at rest, a trajectory's first frame, #819);
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468); the next Mech's eye gimbal moves in its own (#656).
-- Parts carry their Colour group's filament colour in the document's Theme (#805, docs/adr/0022: model/geometry.py
-  THEMES and PRINTED, under Numbers from the code below; black drawn a touch lighter so its shading and lines read)
+- Parts carry their Colour group's filament colour in the Preset's Palettes (#805, #819, docs/adr/0022: model/geometry.py
+  THEMES, PRESETS and PRINTED; a GLB in its Shape's first Preset's, each material named by its Colour group, which the
+  viewer repaints; under Numbers from the code below; black drawn a touch lighter so its shading and lines read)
   and their material (geometry.MATERIALS, from the spool's TDS:
   density, and the across-layer values the next Mech's links are held to, model/beams.py, #626). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
@@ -46,12 +47,13 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   she took the darkest). No backdrop, disc or tint behind the Mech.
 - Panels (Cansin, #470): each document from its left side (+X) and isometric from its front left (+X, -Y, +Z),
   orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
-  VIEWS, PANELS); Pictures shows them in one grid (macros.py next_panels): a column per document, a row per view, each
+  VIEWS, PANELS); Pictures shows them in one grid (macros.py next_panels): a column per Stage, a row per view, each
   linking to its file; on a phone stacked by document.
-- The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, as Bones:
+- The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, in the
+  default Preset, Cansin's build (#819):
   Stage 1 from the front, Stage 3's isometric panel and Stage 3 from the side, exploded by the viewer's offsets
   (pictures.py FRONT, EXPLODE), the two new ones each framed tight on its own at the panels' size and also on Pictures.
-- Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Skeleton isometric with every
+- Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Preset isometric with every
   part apart, framed tight on its own at the panels' size (pictures.py parts_exploded): each part on its sub-assembly's
   offset (EXPLODE) slid out along its Assembly direction (pictures.py directions: a servo and its horn along the shaft,
   a part on a pivot or rod joint along its axis away from the Stage's middle, a board or the pack off its seat) until
@@ -110,8 +112,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
   hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
   lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a PETG Skeleton (checked
-  as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin, Morty or Bart, each in its Theme's
-  filaments ([Themes](face-design.md)).
+  as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin, Morty, Bart or cansin, each in its
+  Palette's filaments ([Themes](face-design.md)).
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the next Mech's documents, moved
   by its own kinematics, its numbers in the next Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
@@ -195,14 +197,15 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   arms under the flange, its servo lying on the plate's front beside the mouth, the tilt span's head clamp straight
   behind the axis; the boards went over the eyes, as high over them as the head reaches under. Every size is
   inferred.
-- The Stages (#720, geometry.STAGES), for ease of build, each a document in every Skeleton: Stage 1 the eye block (the
+- The Stages (#720, geometry.STAGES), for ease of build, each a document in every Skeleton shape: Stage 1 the eye block (the
   gimbal, its lids and its four servos) on its test stand with the eyes Core (Shield 1, Core 1) standing against the
   stand's back, the stand an open box under the gimbal frame's plate, screwed up through the head mount's holes,
   `base.STAND_H` (40, inferred) tall; Stage 2 the eye block on the Torso's neck (pan, tilt) under the head mount, the
   boards' rack with both Cores and the switch board; Stage 3 adds the jaw and the mouth servo (stages.next_jaw, riding
   the head mount): the whole Mech, the head variant's document, which the ranking and its marks still read. Each plays
   the gestures and Rest; the next hero where the neck is. The viewer has a Stage switch (1, 2, 3, the third marked with
-  what it fails), its Skeleton the one the header's Theme bar picks (#805, #806), as on Pictures, whose panels,
-  front doors, motions and parts are drawn in every Skeleton and shown in the one picked.
+  what it fails), its Shapes and Palettes the Preset's the header's Theme bar picks or its own mix (#805, #806, #819);
+  Pictures' panels, front doors and motions are drawn in every Preset and shown in the one picked, each part in its
+  Shape's first Preset.
 - Today's Mech's non-original choices (#81: the horns' spline teeth, its lead corridors, its bracket stem's depth, its
   horn limits) and its settled conflicts (#172) left the model with it (#720); git history and docs/research keep them.

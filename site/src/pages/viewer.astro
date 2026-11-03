@@ -1,20 +1,21 @@
 ---
 // The web viewer's page (docs/adr/0008) in the site's theme: the viewer (loaded by src/components/Footer.astro), which
-// draws the next Mech's GLBs beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) in the Skeleton the
-// header's Theme bar picks (#806) and moves this switch into its bar: a button per Stage (macros.py stage_switch, from
-// model/geometry.py STAGES, #720).
+// draws the next Mech's GLBs beside this page at viewer/ (web/build.py PUBLIC, docs/adr/0019, #649) in the Preset the
+// header's Theme bar picks or the viewer's own mix (#806, #819) and moves this switch into its bar: a button per Stage
+// (macros.py stage_switch, from model/geometry.py STAGES, #720); Cansin's build's line on its stand-in Skin (stand_in).
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import { published } from '../macros.json';
+import { published, stand_in } from '../macros.json';
 
 const { buttons } = published.stages;
 ---
 
 <StarlightPage frontmatter={{ title: 'Viewer', tableOfContents: false }}>
   <p>
-    The next Mech as its model has it so far, Stage by Stage, in the Skeleton the Theme bar at the top picks: Stage 1
-    the eye block on its test stand, Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw. Drag to turn it,
-    scroll or pinch to zoom, play each gesture and take it apart.
+    The next Mech as its model has it so far, Stage by Stage, in the Preset the Theme bar at the top picks, or any
+    Shape in any Palette from the selects under it: Stage 1 the eye block on its test stand, Stage 2 adds the Torso, the
+    neck and the boards, Stage 3 the jaw. Drag to turn it, scroll or pinch to zoom, play each gesture and take it apart.
   </p>
+  <Fragment set:html={stand_in} />
   <div class="noggin-viewer" data-stage={buttons.at(-1).glb} data-zoom>
     <nav aria-label="Stage">
       <span>Stage</span>

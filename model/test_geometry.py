@@ -33,19 +33,55 @@ def test_the_horn_seats_on_the_spline_and_pins_its_bar_at_the_second_hole_from_t
     assert g.HORN_STEP["pin"] == 12.75 and g.SERVO_STEP["horn_seat"] == 11.52
 
 
-def test_a_document_is_drawn_in_its_skeleton_and_the_default_skin():
-    """#805: realistic and morty by default; a -mechanical document's Skeleton is mechanical, each Stage in both."""
-    assert g.theme("next-stage1") == {"Skeleton": "realistic", "Skin": "morty"}
-    assert g.theme("next-mech-back-mechanical") == {"Skeleton": "mechanical", "Skin": "morty"}
+CANSINS_BUILD = {
+    "Skeleton shape": "mechanical",
+    "Skeleton palette": "black",
+    "Skin shape": "cansin",
+    "Skin palette": "cansin",
+}
+MORTY = {
+    "Skeleton shape": "realistic",
+    "Skeleton palette": "anatomical",
+    "Skin shape": "morty",
+    "Skin palette": "morty",
+}
+
+
+def test_a_theme_is_four_axes_and_each_preset_names_one_cansins_build_the_default():
+    """#819: a Shape and a Palette per category; the Presets in order, Cansin's build first, the default."""
+    assert {a: list(v) for a, v in g.THEMES.items()} == {
+        "Skeleton shape": ["realistic", "mechanical"],
+        "Skeleton palette": ["anatomical", "robot", "black"],
+        "Skin shape": ["morty", "bart", "cansin"],
+        "Skin palette": ["morty", "bart", "cansin"],
+    }
+    assert list(g.PRESETS) == ["Cansin's build", "Morty", "Bart"]
+    assert g.PRESETS["Cansin's build"] == g.THEME == CANSINS_BUILD and g.PRESETS["Morty"] == MORTY
+    assert g.PRESETS["Bart"] == MORTY | {"Skin shape": "bart", "Skin palette": "bart"}
+    assert [g.slug(p) for p in g.PRESETS] == ["cansins-build", "morty", "bart"]
+
+
+def test_a_document_is_drawn_in_its_skeleton_shape_in_the_first_preset_of_that_shape():
+    """#805, #819: a -mechanical document's Skeleton shape is mechanical, else realistic, each Stage in both; its
+    colours the first Preset's in its Shape (the GLBs', which the viewer repaints)."""
+    assert g.theme("next-stage1") == MORTY
+    assert g.theme("next-mech-back-mechanical") == CANSINS_BUILD
     assert {"next-stage1", "next-stage1-mechanical", "next-mech-back-mechanical"} <= set(g.STAGES)
 
 
-def test_each_colour_group_is_printed_in_its_themes_filament():
-    """#805: a Colour group's filament in a Theme, its hex the slicer's; at most four groups per value."""
-    realistic, mechanical = g.theme("next-stage1"), g.theme("next-stage1-mechanical")
-    assert g.filament("Bones", realistic) == ("PETG Basic", "Dark Beige", "30403", "#DBC8B6")
-    assert g.filament("Bones", mechanical) == ("PETG Matte", "Gray", "35102", "#7F7E83")
-    assert g.filament("eye whites", realistic) == ("PLA Basic", "Jade White", "10100", "#FFFFFF")
-    assert g.filament("pupils", realistic | {"Skin": "bart"}) == ("PLA Matte", "Charcoal", "11101", "#000000")
-    assert all(len(groups) <= 4 for values in g.THEMES.values() for groups in values.values())
-    assert all(g.filament(group, realistic) for group, _ in g.PRINTED.values())  # every part's, by default
+def test_each_colour_group_is_printed_in_its_palettes_filament():
+    """#805, #819: a Colour group's filament in a Theme's Palette, its hex the slicer's; every Palette of a category
+    paints its every Colour group, in at most four filaments."""
+    assert g.filament("Bones", MORTY) == ("PETG Basic", "Dark Beige", "30403", "#DBC8B6")
+    assert g.filament("Bones", MORTY | {"Skeleton palette": "robot"}) == ("PETG Matte", "Gray", "35102", "#7F7E83")
+    assert g.filament("Joints", CANSINS_BUILD) == ("PETG Basic", "Black", "30105", "#000000")
+    assert g.filament("eye whites", MORTY) == ("PLA Basic", "Jade White", "10100", "#FFFFFF")
+    assert g.filament("pupils", g.PRESETS["Bart"]) == ("PLA Matte", "Charcoal", "11101", "#000000")
+    assert g.filament("face", CANSINS_BUILD) == ("PLA Pure", "Milky Pink", "17200", "#F7CED7")
+    assert g.filament("accessories", CANSINS_BUILD) == ("PLA Pure", "Apricot", "17300", "#FFB673")
+    assert g.filament("clothes", CANSINS_BUILD) == g.filament("eye whites", CANSINS_BUILD)
+    for axis in ("Skeleton palette", "Skin palette"):
+        palettes = g.THEMES[axis].values()
+        assert len({tuple(p) for p in palettes}) == 1  # one set of Colour groups
+        assert all(len(set(p.values())) <= 4 for p in palettes)
+    assert all(g.filament(group, t) for t in g.PRESETS.values() for group, _ in g.PRINTED.values())

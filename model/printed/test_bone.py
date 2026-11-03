@@ -89,8 +89,8 @@ GROUPS = {
 
 
 def test_every_skeleton_part_carries_its_skeleton_colour_group():
-    """#805: each Skeleton part, in both styles, carries its Colour group, one every Skeleton value prints."""
+    """#805: each Skeleton part, in both styles, carries its Colour group, one every Skeleton Palette prints."""
     skeleton = {k: group for k, (group, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m}
     want = {f"next {part}": group for group, parts in GROUPS.items() for part in parts}
     assert {k.removesuffix(g.MECHANICAL): group for k, group in skeleton.items()} == want
-    assert all(set(v) == set(GROUPS) for v in g.THEMES["Skeleton"].values())
+    assert all(set(v) == set(GROUPS) for v in g.THEMES["Skeleton palette"].values())
