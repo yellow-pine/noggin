@@ -48,7 +48,7 @@ def report(doc, part=(0, 1)):
     # the MuJoCo half, measured on the MJCF written beside the report
     model = mujoco.MjModel.from_xml_path(mjcf.write(doc, folder(part)))
     if "next-neck" in stages.DOCS[doc] and first:  # the next Mech's neck moves by its own kinematics (#641)
-        out["neck"] = neck.report(mjcf.head(doc, model))
+        out["neck"] = neck.report(mjcf.head(doc, model), mjcf.head(doc, model, bare=True))
     if doc in g.NEXT and first:  # its head variant's figures for the ranking (#686)
         out["variant"] = candidates.report(doc, model)
     out["mujoco"] = mujoco_report.measure(doc, model, part)

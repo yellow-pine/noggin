@@ -53,6 +53,18 @@ def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(re
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}
 
 
+def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bare():
+    """#830: one spring holds the head with its Skin on and off. A bare head of 300 g 40 mm in front of the axis and 30
+    over it wants -1.2 kgf.cm at rest and 0.9 a radian; its Skin doubles it, -2.4 and 1.8. The spring wound between them,
+    -1.8 and 1.35, misses each by 0.6 kgf.cm at rest, which the servo holds through the linkage's gain, alike."""
+    bare = (300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0))
+    tilt = neck.report((600.0, bare[1]), bare)["tilt"]
+    assert tilt["spring"] == {"rest_kgf_cm": -1.8, "rate_kgf_cm_rad": 1.35}
+    assert tilt["rest_kgf_cm"] == pytest.approx(0.6 * tilt["gain"], abs=2e-3)
+    assert tilt["bare"]["rest_kgf_cm"] == tilt["rest_kgf_cm"]
+    assert tilt["bare"]["hold_kgf_cm"] >= tilt["bare"]["rest_kgf_cm"]
+
+
 def test_each_flexing_span_bends_no_tighter_than_ten_lead_diameters(report):
     spans = report["spans"]
     assert spans["floor_mm"] == pytest.approx(10 * neck.LEAD_OD)

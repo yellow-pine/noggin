@@ -247,7 +247,7 @@ def spec(doc, collide=True):
         colour = scene.colour(file, g.theme(doc))
         rgba = [*trimesh.visual.color.hex_to_rgba(VIEW.get(colour, colour))[:3] / 255, 1]
         # the drawn mesh touches nothing and carries no mass where the pieces do both, the part's mass spread by volume
-        kg = 0.0 if stem in skin.DRAWN else mass(_mesh(file, clip), stage.parts[name].material) / 1000
+        kg = mass(_mesh(file, clip), stage.parts[name].material) / 1000
         weight = {"density": 0} if pieces[stem] else {"mass": kg}
         body.add_geom(
             type=mesh, meshname=stem, group=VISUAL, contype=0, conaffinity=0, rgba=rgba, material="satin", **weight
@@ -302,22 +302,25 @@ def spec(doc, collide=True):
 KGF_CM = 0.0980665  # N.m
 
 
-def head(doc, model):
+def head(doc, model, bare=False):
     """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
-    and what rides the head mount), as the MJCF weighs and places them."""
+    and what rides the head mount), as the MJCF weighs and places them; bare: less its Skin's Shells (skin.DRAWN)."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
-    ids = [model.body(n).id for n in stages.STAGES[doc].horns["tilt horn"].loops[0].rockers]
+    rockers = stages.STAGES[doc].horns["tilt horn"].loops[0].rockers
+    ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["next-neck"][0]))
 
 
 def balance(s, doc):
-    """The balance spring on the tilt pivot (#838, neck.balance) for the head as `s` weighs it: its rate as the joint's
-    stiffness, its torque at rest as the angle it is wound from (MuJoCo's passive force -stiffness (q - springref))."""
+    """The balance spring on the tilt pivot (#838, neck.balance) for the head as `s` weighs it, in its Skin and bare
+    (#830): its rate as the joint's stiffness, its torque at rest as the angle it is wound from (MuJoCo's passive force
+    -stiffness (q - springref))."""
     s.modelfiledir, s.meshdir = BUILD, "."  # the meshes' paths are BUILD's (write() puts them beside its MJCF)
-    rest, rate = neck.balance(head(doc, s.compile()))
+    model = s.compile()
+    rest, rate = neck.balance(head(doc, model), head(doc, model, bare=True))
     joint = s.joint("tilt pivot")
     joint.stiffness = [rate * KGF_CM, 0.0, 0.0]
     joint.springref = rest / rate
