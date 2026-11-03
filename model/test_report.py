@@ -36,7 +36,8 @@ KNOWN_FULL_SPEED = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
-    " 20 ms command step saturates the servo (~0.66 kgf.cm, Stage 3's 0.43); its own gestures, minimum jerk under an"
+    " 20 ms command step saturates the servo (~0.66 kgf.cm, the tilt's 1.1 with the head in its Skin (#830), Stage 3's"
+    " 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
     for doc in g.SIMULATED
     if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)

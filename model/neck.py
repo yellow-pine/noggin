@@ -148,8 +148,10 @@ def balance(head, bare=None):
     springs = [
         (-_weight(h, 0.0), (_weight(h, 0.5) - _weight(h, -0.5)) / math.radians(1.0)) for h in (head, bare or head)
     ]
+    assert all(r > 0 for _, r in springs), (
+        "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
+    )
     rest, rate = np.mean(springs, axis=0).tolist()
-    assert rate > 0, "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
     return rest, rate
 
 
