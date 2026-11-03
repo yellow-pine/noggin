@@ -274,8 +274,8 @@ def next_exploded():
 def next_motions():
     """The next Mech in motion (#839): a web viewer of Stage 1, the eye block, per motion it plays
     (model/trajectories.py motions: its gestures and Rest), each repeating it (its data-link,
-    site/src/viewer/viewer.mjs), in the Preset the header's bar picks; its still until it is scrolled into view, the
-    Stage's isometric panel in that Preset."""
+    site/src/viewer/viewer.mjs), with no control (#883), in the Preset the header's bar picks; its still until it is
+    scrolled into view, the Stage's isometric panel in that Preset."""
     doc, site = pictures.STAGE1, "https://yellowpine.com/noggin/images/"
     still = "".join(
         f'<img src="{site}{pictures.picture(doc + s, "isometric")}" alt="{stage(doc)}" loading="lazy"{themed([p])}>'

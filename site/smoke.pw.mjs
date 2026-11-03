@@ -2,7 +2,8 @@
 // old Docs version's URL lands on the docs (docs/adr/0021), the wordmark's eye looks at the pointer (#603), and nothing
 // breaks the CSP, logs an error or asks another host than api.github.com (the header's release, stars and forks). The viewer loads the next Mech (#649), the only
 // one the site serves (docs/adr/0019), and plays its gestures (#664). The header's Theme bar (#806, #819) shows each page
-// in the Preset picked, kept in the address and across pages, the viewer's Shapes and Palettes too, and its own mix.
+// in the Preset picked, kept in the address and across pages, the viewer's Shapes and Palettes too, and its own mix,
+// the bare anatomical Skeleton while none is picked; a viewer in a page has no control (#883).
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
@@ -36,16 +37,19 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Shapes the bar's Preset's (#819)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
-  await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
-  await expect(page).toHaveURL(/\?preset=cansins-build&stage=1$/);
-  await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   const mix = viewer.getByRole('navigation', { name: 'Mix' }); // any Shape in any Palette (#819)
-  await expect(mix.getByRole('combobox', { name: 'Skeleton shape' })).toHaveValue('mechanical');
+  // no Preset picked: its own mix, Stage 3's bare anatomical Skeleton, a Skin switched on Morty's (#883)
+  const own = { 'Skeleton shape': 'realistic', 'Skeleton palette': 'anatomical', 'Skin shape': 'none', 'Skin palette': 'morty' };
+  for (const [axis, value] of Object.entries(own)) await expect(mix.getByRole('combobox', { name: axis })).toHaveValue(value);
+  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['next-mech-back-bare.glb']);
+  await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
+  await expect(page).toHaveURL(/\/viewer\/\?stage=1$/);
+  await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   await mix.getByRole('combobox', { name: 'Skeleton palette' }).selectOption('robot'); // a repaint, no load
-  await expect(page).toHaveURL(/\?preset=cansins-build&stage=1&skeleton-palette=robot$/);
+  await expect(page).toHaveURL(/\/viewer\/\?stage=1&skeleton-palette=robot$/);
   await page.locator('header').getByRole('combobox', { name: 'Preset' }).selectOption('morty');
-  await expect(page).toHaveURL(/\?preset=morty&stage=1$/); // the Preset's own mix
-  await expect(mix.getByRole('combobox', { name: 'Skeleton shape' })).toHaveValue('realistic');
+  await expect(page).toHaveURL(/\?stage=1&preset=morty$/); // the Preset's own mix
+  await expect(mix.getByRole('combobox', { name: 'Skin shape' })).toHaveValue('morty');
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   const explode = viewer.getByRole('navigation', { name: 'Explode' }); // Explode's levels (#811)
   await explode.getByRole('button', { name: 'Sub-assemblies' }).click();
@@ -64,7 +68,7 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
 
 test("the Theme bar shows the page in the Preset picked, by keyboard too, kept in the address and across pages", async ({ page }) => {
   await page.goto('docs/build/parts/'); // its buy list's filaments (#806, #819); Pictures' pictures are the live site's
-  await expect(page).toHaveURL(/\?preset=cansins-build$/); // the default
+  await expect(page).toHaveURL(/\/parts\/$/); // none picked: the default's, the address untouched (#883)
   const item = (p) => page.locator(`li[data-presets="${p}"]`);
   const bar = page.locator('header').getByRole('combobox', { name: 'Preset' });
   await expect(item('cansins-build')).toBeVisible();
@@ -79,6 +83,17 @@ test("the Theme bar shows the page in the Preset picked, by keyboard too, kept i
   await page.goto('docs/build/parts/?preset=bart'); // the address first
   await expect(item('bart')).toBeVisible();
   await expect(item('morty')).toBeHidden();
+});
+
+test('a viewer in a page shows its Mech and its motion, with no control (#883)', async ({ page }) => {
+  // Pictures' stills are the live site's: a blank PNG each, and no request of ours
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  await page.route('https://yellowpine.com/**', (r) => r.fulfill({ contentType: 'image/png', body: Buffer.from(PNG, 'base64') }));
+  await page.goto('docs/pictures/');
+  const viewers = page.locator('.noggin-motions .noggin-viewer'); // one per motion of Stage 1 (#839)
+  await expect(viewers.first().locator('.noggin-caption')).toBeAttached(); // mounted
+  await expect(viewers.locator('button, select, nav')).toHaveCount(0);
+  requests = requests.filter((u) => !u.startsWith('https://yellowpine.com/'));
 });
 
 // the wordmark's o is the Mech's eye (#603): its pupil looks at the pointer, unless the reader asks for less motion
@@ -125,7 +140,7 @@ test('the diagrams draw, search finds a page, the header names the newest releas
 // the Docs versions are gone (docs/adr/0021): an old one's URL lands on its page in the docs, or on the home
 test("an old Docs version's URL lands on the same page, or the home", async ({ page }) => {
   await page.goto('v0.1/docs/how-it-works/');
-  await expect(page).toHaveURL(/\/noggin\/docs\/how-it-works\/\?preset=cansins-build$/); // the bar's Preset (#806, #819)
+  await expect(page).toHaveURL(/\/noggin\/docs\/how-it-works\/$/); // no Preset picked (#883)
   // the home stubbed: its pictures are the live site's
   await page.route(/\/noggin\/$/, (r) => r.fulfill({ contentType: 'text/html', body: '<title>home</title>' }));
   await page.goto('v0.2.19/docs/gone/');

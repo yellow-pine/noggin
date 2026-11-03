@@ -9,10 +9,8 @@ export const AXES = theme.axes; // {axis: [values]}: each category's Shape and P
 export const PALETTES = theme.palettes; // {palette axis: {Palette: {Colour group: hex}}}
 const SLUGS = Object.keys(PRESETS);
 
-// the address's Preset (?preset=morty), else what the reader picked last (stored), else the default
-export function chosen(search, stored) {
-  return [new URLSearchParams(search).get("preset"), stored].find((p) => SLUGS.includes(p)) ?? SLUGS[0];
-}
+// the address's Preset (?preset=morty), else what the reader picked last (stored); none when neither names one (#883)
+export const picked = (search, stored) => [new URLSearchParams(search).get("preset"), stored].find((p) => SLUGS.includes(p));
 
 // one rule hiding every marked picture and text but the page's Preset's
 export function css() {

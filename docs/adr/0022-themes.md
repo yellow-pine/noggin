@@ -21,6 +21,9 @@
 > look has it (#843: its Shells off, the realistic skull's full bones for the worn ones). Blender draws Stage 3 bare in
 > each Skeleton shape (`next-mech-back-bare`, `-mechanical-bare`); Stages 1 and 2 wear no Skin, so none draws them as
 > they are.
+> Amended 2026-11-03 (#883): a Preset is picked only by the address or the reader (stored); until one is, the pages
+> show the default's and the viewer opens in its own mix, Morty's with Skin shape none: the bare anatomical Skeleton,
+> a Skin switched on Morty's Palette.
 
 The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

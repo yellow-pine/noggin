@@ -1,8 +1,8 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
-// Blender's glTF in style B with the look numbers Blender writes into the GLB's extras, and one bar of controls under
-// it: the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a chip per gesture, Explode's levels;
-// under the bar, a line on what plays and the Claude Code event that plays it. Any page, a doc's Markdown too, drops a
-// small one in with
+// Blender's glTF in style B with the look numbers Blender writes into the GLB's extras; the /viewer page's alone has a
+// bar of controls under it (#883): the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a
+// chip per gesture, Explode's levels, the mix; under it, a line on what plays and the Claude Code event that plays it.
+// Any page, a doc's Markdown too, drops a small one in with
 //   <div class="noggin-viewer" data-stage="next-stage1" data-link="gesture=wink&explode=1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // page may hold several (#839): one WebGL renderer draws them all, each into its own canvas, each GLB is loaded once,
@@ -12,8 +12,9 @@
 // opens it on its nth Stage button's Stage playing that gesture, and each click on a button rewrites the address to
 // the deep link of what it plays; any other opens on its own, data-link, its Stage data-stage's, and repeats its
 // gesture. It draws the Stage in the Preset the header's bar picks (src/theme.mjs, #806, #819: on <html>) unless its
-// link names one, and again in the next one the bar picks, or in its own mix of any Shape and Palette (a select per
-// axis, kept in its link: ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
+// link names one, and again in the next one the bar picks; with none picked, in its own mix (state.mjs mixed, #883:
+// the bare anatomical Skeleton); or in any Shape and Palette (a select per axis, kept in its link:
+// ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
 // Colour group's material painted in its Palette's colour (state.mjs paint). Explode moves a Stage's parts from level to level,
 // Assembled, Sub-assemblies, Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py
 // offsets, #482, #664, #811), &explode=<level> opens it so. Only a
@@ -30,7 +31,7 @@ import { fit, lineWidth, radiusPx } from "./frame.mjs";
 import {
   ANIMATING, LEVELS, address, between, caption as captionFor, glb, mixed, opened, paint, title, touched,
 } from "./state.mjs";
-import { AXES, chosen } from "../theme.mjs";
+import { AXES, picked } from "../theme.mjs";
 
 // the GLBs (just site copies web/build there) and the Draco decoder from npm (package.json prebuild) sit at viewer/
 const here = (f) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}/viewer/${f}`;
@@ -87,7 +88,8 @@ function mount(root) {
   const how = zoom ? "drag to turn it, scroll or pinch to zoom" : "drag to turn it";
   canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model; ${how}`);
   // the bar (not-content: no Starlight Markdown spacing in it): the page's Stage buttons, the gestures, Explode's levels
-  const tools = root.appendChild(document.createElement("div"));
+  const tools = document.createElement("div");
+  if (linked) root.append(tools);  // the /viewer page's alone: one in a page shows its Mech and motion, no control (#883)
   tools.className = "noggin-controls not-content";
   const bar = document.createElement("nav"), explode = document.createElement("nav");
   bar.setAttribute("aria-label", "Gesture");
@@ -97,7 +99,7 @@ function mount(root) {
   tools.append(...root.querySelectorAll(":scope > nav"), explode, bar);
   const levels = [...explode.querySelectorAll("button")];
   // the mix (#819): a select per axis, its Preset's values unless the address names others
-  const preset = () => chosen(search(), document.documentElement.dataset.preset);
+  const preset = () => picked(search(), document.documentElement.dataset.preset);  // none: the viewer's own (#883)
   let mix = mixed(search(), preset());
   const mixing = document.createElement("nav");
   mixing.setAttribute("aria-label", "Mix");
