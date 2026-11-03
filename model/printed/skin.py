@@ -3,6 +3,7 @@ ears) and hair, the eyeball caps with their jagged pupils keyed in, a cover on e
 the shirt's two halves on the Torso. seated() cuts each Seat into what carries it. Each Shell is drawn in its carrier's
 frame: the head's, an eye's (the L one's, the R its mirror) or the Torso's."""
 
+import functools
 import math
 
 import cadquery as cq
@@ -179,6 +180,7 @@ def _profile(plane, hulls, t, rounded=0.0):
     return cq.Workplane().add(cq.Solid.extrudeLinear(cq.Face.makeFromWires(wire), n * 400).translate(n * -200))
 
 
+@functools.cache  # every Shell cuts and clips by the same few
 def _head(t):
     """Morty's head (model/skin.py FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
     swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833)."""
