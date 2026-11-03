@@ -33,6 +33,14 @@ def test_a_shell_is_one_valid_solid(stem, head):
     assert shape.isValid() and len(shape.Solids()) == 1
 
 
+def test_a_head_shell_built_again_is_the_same(head):
+    """#838: every Shell shares the head's shapes (skin._head), and on Linux's OCCT a second build over shapes an
+    earlier one's booleans used came out broken; each build starts from its own copy."""
+    for s, shape in head.items():
+        again = PARTS[f"next morty {s}"]().val()
+        assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
+
+
 HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the ears outside its width (#844)
 
 

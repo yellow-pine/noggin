@@ -59,7 +59,8 @@ EXPLODE = {
 # Shield off its pins' side (BOARDS: up off the Torso's floor, #838, or off the test stand's face), the switch board and
 # the pack up off the Torso's floor (stages.next_base)
 GAP = 5.0
-SEATS = {"switch": g.Z, "battery": g.Z} | skin.DIRECTIONS  # a Shell off its Seats
+SEATS = {"switch": g.Z, "battery": g.Z, "next torso lid": g.Z} | skin.DIRECTIONS  # a Shell off its Seats; the lid up
+# out of the Torso's walls (#838)
 BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
 # the front doors (#739: the README's top, the site's home), side by side in this order, in the default Preset alone,
 # its mechanism without a Skin (bare) until a finished Skin exists (#843): Stage 1 from the front, its eyes facing
@@ -155,8 +156,8 @@ def directions(doc):
             out[n] = (-p.matrix[:3, 2], True)  # its local z is the shaft's reverse (stages.mounted)
         elif s in BOARDS:
             out[n] = (p.matrix[:3, 1], True)
-        elif s in SEATS:
-            out[n] = (np.array(SEATS[s], float), True)
+        elif (seat := s.removesuffix(g.MECHANICAL)) in SEATS:
+            out[n] = (np.array(SEATS[seat], float), True)
         elif on := [(len(parts), axis) for parts, axis in joints if n in parts]:
             out[n] = (min(on, key=lambda j: j[0])[1], False)
     return out
