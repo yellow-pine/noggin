@@ -52,7 +52,7 @@ def test_a_theme_is_four_axes_and_each_preset_names_one_cansins_build_the_defaul
     assert {a: list(v) for a, v in g.THEMES.items()} == {
         "Skeleton shape": ["realistic", "mechanical"],
         "Skeleton palette": ["anatomical", "robot", "black"],
-        "Skin shape": ["morty", "bart", "cansin"],
+        "Skin shape": ["none", "morty", "bart", "cansin"],  # none: the Skeleton bare (#876)
         "Skin palette": ["morty", "bart", "cansin"],
     }
     assert list(g.PRESETS) == ["Cansin's build", "Morty", "Bart"]

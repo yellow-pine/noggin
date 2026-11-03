@@ -116,12 +116,13 @@ function mount(root) {
     return s;
   });
   tools.append(mixing);
-  // the mix the address and the Preset give: a new Skeleton shape is another GLB, a new Palette a repaint
+  // the mix the address and the Preset give: a new Skeleton shape is another GLB, Skin shape none too (#876), a new
+  // Palette a repaint
   function remix() {
     mix = mixed(search(), preset());
     for (const s of picks) s.value = mix[s.dataset.axis];
     if (!current) return;  // not scrolled into view yet: it loads in this mix
-    if (glb(current, mix["skeleton-shape"]) !== file) load(current, linked ? undefined : link.gesture), share();
+    if (glb(current, mix["skeleton-shape"], mix["skin-shape"]) !== file) load(current, linked ? undefined : link.gesture), share();
     else repaint();
   }
   const caption = root.appendChild(document.createElement("p"));
@@ -257,7 +258,7 @@ function mount(root) {
   async function load(stage, playing, level = 0) {
     const mine = ++loading;
     current = stage;
-    file = glb(stage, mix["skeleton-shape"]);
+    file = glb(stage, mix["skeleton-shape"], mix["skin-shape"]);
     goal = level;  // a Stage switch puts it back together
     for (const b of stages) press(b, b.dataset.stage === stage);
     for (const b of [...bar.children, ...levels]) b.disabled = true;
