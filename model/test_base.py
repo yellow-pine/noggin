@@ -96,7 +96,8 @@ def test_the_cores_lie_on_the_cranium_tray_and_the_switch_and_power_path_boards_
 def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_back_of_its_base():
     """#858: each Core and Shield, the bulk capacitor and the tray's plate under them, at least the finished skull's WALL inside the cranium's
     hull, so the finish (model/skeleton) leaves its outside whole over them; the hub's port on the back of the
-    skull base, its socket's mouth within 3 mm of the hull and 10 of the gimbal frame's plate."""
+    skull base, its socket's mouth within 4 mm of the hull (1 mm in from #858's 3, so the hub clears the hair, #921)
+    and 10 of the gimbal frame's plate."""
     hull = ConvexHull(trimesh.load(stages.stl("skull"), force="mesh").vertices)
 
     def inside(points):  # mm in from the hull's nearest face
@@ -114,7 +115,7 @@ def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_b
     _, m = boards["hub"]
     (_, x1), ys, zs = envelopes.HUB["usb"]
     mouth = np.array([(x1, y, z) for y in ys for z in zs]) @ m[:3, :3].T + m[:3, 3]
-    assert np.abs(inside(mouth)).max() <= 3.0 and mouth[:, 2].max() < gm.PLATE_Z[1] + 10.0
+    assert np.abs(inside(mouth)).max() <= 4.0 and mouth[:, 2].max() < gm.PLATE_Z[1] + 10.0
 
 
 def test_the_heads_box_takes_in_the_skull_over_the_parts():
