@@ -1,6 +1,14 @@
-"""Numerical fitting of public anatomical meshes; private reference meshes stay outside this module."""
+"""Numerical fitting of public anatomical meshes; private reference meshes stay outside this module.
+
+GX10: python -m model.skeleton.fit <public-bones.npz> <public-bones.json> <out-prefix>
+Blender exports/applies this public exchange; the private reference never travels with it.
+"""
+
+import json
+import sys
 
 import numpy as np
+import trimesh
 from scipy.interpolate import RBFInterpolator
 from shapely.geometry import Polygon
 
@@ -67,3 +75,75 @@ def canal(mesh, normal=(0, 0, 1)):
             z = origin[2] - np.dot(np.asarray(normal)[:2], xy - origin[:2]) / normal[2]
             return np.array((c.x, c.y, z))
     raise ValueError("No enclosed central neural passage for the 6 mm wire path")
+
+
+def refit(arrays, scene, envelope):
+    """Register the true cervical canals in one skull-to-T1 frame and fit the vault to our coarse cage.
+
+    The anatomical corridor is independent of the pan bearing. Its provisional C1 y=-73.4 and original T1 end
+    preserve the accepted head interface while correcting the lateral-hole translations, not the bone order.
+    """
+    canals, moves = {}, {}
+    for bone in scene["bones"]:
+        name, key = bone["name"], bone["key"]
+        if name not in {"C" + str(i) for i in range(1, 8)} | {"T1"}:
+            continue
+        normal = (0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))) if name == "C2" else (0, 0, 1)
+        c = canal(trimesh.Trimesh(arrays[key + "_basis"], arrays[key + "_faces"]), normal)
+        matrix = np.array(bone["matrix"])
+        canals[name] = c @ matrix[:3, :3].T + matrix[:3, 3]
+    top, bottom = canals["C1"], canals["T1"]
+    for name, centre in canals.items():
+        fraction = (centre[2] - bottom[2]) / (top[2] - bottom[2])
+        moves[name] = np.array((-centre[0], bottom[1] + fraction * (-73.4 - bottom[1]) - centre[1], 0))
+    for bone in scene["bones"]:
+        group = bone["group"]
+        move = moves.get("T1" if group == "Ribcage" else group, np.zeros(3))
+        matrix = np.array(bone["matrix"])
+        matrix[:3, 3] += move
+        bone["matrix"] = matrix.tolist()
+    for name, pair in scene["landmarks"].items():
+        group = name.split()[1]
+        move = moves.get("T1" if group == "ribcage" else group)
+        if move is not None:
+            pair["source"] = (np.array(pair["source"]) + move).tolist()
+            pair["target"] = (np.array(pair["target"]) + move).tolist()
+    # Replace the superseded adult-cap vault targets with one declared regional envelope target set.
+    obsolete = {"vertex", "opisthocranion", "euryon", "forehead"}
+    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not obsolete.intersection(n.split())}
+    vault = []
+    for bone in scene["bones"]:
+        if bone["name"] not in {
+            "frontal bone",
+            "L parietal bone",
+            "R parietal bone",
+            "occipital bone",
+            "L temporal bone",
+            "R temporal bone",
+        }:
+            continue
+        matrix, key = np.array(bone["matrix"]), bone["key"]
+        vault.append(trimesh.Trimesh(arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"]))
+    target = []
+    for mark in envelope["landmarks"]:
+        a, e = np.deg2rad((mark["azimuth"], mark["elevation"]))
+        direction = np.array((np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)))
+        target.append(np.array(envelope["origin"]) + direction * (mark["outer_radius_mm"] - envelope["inset_mm"]))
+    nearest = trimesh.proximity.closest_point_naive(trimesh.util.concatenate(vault), np.array(target))[0]
+    for i, (source, dest) in enumerate(zip(nearest, target)):
+        scene["landmarks"][f"LM vault {i}"] = {"source": source.tolist(), "target": dest.tolist()}
+    result, report = warp(arrays, scene)
+    report["registered_canals"] = {n: (c + moves[n]).tolist() for n, c in canals.items()}
+    return result, report
+
+
+if __name__ == "__main__":
+    path, metadata, out = sys.argv[1:]
+    scene = json.load(open(metadata))
+    with open("model/skeleton/envelope.json") as f:
+        envelope = json.load(f)
+    result, report = refit(np.load(path), scene, envelope)
+    np.savez_compressed(out + ".npz", **result)
+    with open(out + ".json", "w") as f:
+        json.dump(scene | {"fit_report": report}, f, indent=2)
+    print(json.dumps(report, indent=2), flush=True)

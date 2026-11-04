@@ -1,0 +1,136 @@
+{
+  "kind": "authored coarse radial cage; no private mesh topology",
+  "origin": [
+    0.0,
+    -75.0,
+    215.0
+  ],
+  "inset_mm": 4.0,
+  "landmarks": [
+    {
+      "azimuth": -180,
+      "elevation": 0,
+      "outer_radius_mm": 102
+    },
+    {
+      "azimuth": -135,
+      "elevation": 0,
+      "outer_radius_mm": 100
+    },
+    {
+      "azimuth": -90,
+      "elevation": 0,
+      "outer_radius_mm": 93
+    },
+    {
+      "azimuth": -45,
+      "elevation": 0,
+      "outer_radius_mm": 103
+    },
+    {
+      "azimuth": 0,
+      "elevation": 0,
+      "outer_radius_mm": 103
+    },
+    {
+      "azimuth": 45,
+      "elevation": 0,
+      "outer_radius_mm": 94
+    },
+    {
+      "azimuth": 90,
+      "elevation": 0,
+      "outer_radius_mm": 90
+    },
+    {
+      "azimuth": 135,
+      "elevation": 0,
+      "outer_radius_mm": 94
+    },
+    {
+      "azimuth": -180,
+      "elevation": 30,
+      "outer_radius_mm": 88
+    },
+    {
+      "azimuth": -135,
+      "elevation": 30,
+      "outer_radius_mm": 91
+    },
+    {
+      "azimuth": -90,
+      "elevation": 30,
+      "outer_radius_mm": 87
+    },
+    {
+      "azimuth": -45,
+      "elevation": 30,
+      "outer_radius_mm": 92
+    },
+    {
+      "azimuth": 0,
+      "elevation": 30,
+      "outer_radius_mm": 89
+    },
+    {
+      "azimuth": 45,
+      "elevation": 30,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": 90,
+      "elevation": 30,
+      "outer_radius_mm": 80
+    },
+    {
+      "azimuth": 135,
+      "elevation": 30,
+      "outer_radius_mm": 84
+    },
+    {
+      "azimuth": -180,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": -135,
+      "elevation": 60,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": -90,
+      "elevation": 60,
+      "outer_radius_mm": 90
+    },
+    {
+      "azimuth": -45,
+      "elevation": 60,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": 0,
+      "elevation": 60,
+      "outer_radius_mm": 82
+    },
+    {
+      "azimuth": 45,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 90,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 135,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 0,
+      "elevation": 90,
+      "outer_radius_mm": 77
+    }
+  ]
+}
