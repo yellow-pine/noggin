@@ -1,6 +1,7 @@
 """Public mesh-fitting seam: a vertebra's main passage, even when a plan projection hides it."""
 
 import cadquery as cq
+import numpy as np
 import pytest
 import trimesh
 
@@ -22,3 +23,18 @@ def vertebra():
 def test_the_central_canal_is_registered_instead_of_a_lateral_hole(vertebra):
     # At the body's halfway plane z=6, its known neural passage is y=0.8*z; lateral holes are x=±17.
     assert fit.canal(vertebra)[:2] == pytest.approx((0, 4.8), abs=0.1)
+
+
+def test_a_shared_bust_warp_preserves_each_bones_authored_sculpt():
+    points = np.array([(x, y, z) for x in (-10, 10) for y in (-10, 10) for z in (-10, 10)], float)
+    shift = np.array((2, -3, 5))
+    arrays = {"bone_basis": points, "bone_warp": points + 1, "bone_sculpt": points + 1.25}
+    scene = {
+        "bones": [{"name": "public bone", "key": "bone", "matrix": np.eye(4).tolist()}],
+        "landmarks": {str(i): {"source": p.tolist(), "target": (p + shift).tolist()} for i, p in enumerate(points)},
+    }
+    result, report = fit.warp(arrays, scene)
+    assert result["bone_warp"] == pytest.approx(points + shift)
+    assert result["bone_sculpt"] == pytest.approx(points + shift + 0.25)
+    assert report["min_jacobian"] == pytest.approx(1)
+    assert report["landmark_error_mm"] < 1e-8
