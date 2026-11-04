@@ -234,15 +234,27 @@ def original_facts(arrays, scene):
     return out
 
 
-def refit(arrays, scene, envelope):
+def refit(arrays, scene, envelope, seed_only=False):
     """Original anatomy, four declared uniform regions, then one bounded residual field.
 
     The similarity sizes are chosen BEFORE shape deformation from fixed eye/C0 anchors and measured Skin room.
     Original cervical curvature is retained; no independent Bone poses or interpolated C2-C7 targets are used.
     """
     import copy
+    import hashlib
 
     historical = copy.deepcopy(scene["landmarks"])
+    arrays = dict(arrays)
+    digest = hashlib.sha256()
+    for bone in scene["bones"]:
+        key = bone["key"]
+        digest.update(bone["name"].encode())
+        digest.update((arrays[key + "_sculpt"] - arrays[key + "_warp"]).tobytes())
+        arrays[key + "_sculpt"] = arrays[key + "_warp"].copy()
+    scene["historical_sculpt_policy"] = {
+        "policy": "Original-anatomy refit starts with zero working Sculpt residual; historical source/Git/exchange remain unchanged",
+        "original_delta_sha256": digest.hexdigest(),
+    }
     facts = original_facts(arrays, scene)
     eye_l, eye_r = (np.array(facts["landmarks"][f"LM {side} orbit"]) for side in ("L", "R"))
     c1, t1 = (np.array(facts["canals"][name]["centre"]) for name in ("C1", "T1"))
@@ -293,7 +305,7 @@ def refit(arrays, scene, envelope):
             ("upper_chest", chest_scale, chest),
         )
     }
-    regional_seed(arrays, scene, regions)
+    seed, seed_report = regional_seed(arrays, scene, regions)
     scene["original_anatomical_landmarks"] = historical
     constraints = {}
 
@@ -323,6 +335,16 @@ def refit(arrays, scene, envelope):
     crown_target[2] = min(crown_target[2], envelope["regional_room"]["head_outer_top_mm"] - envelope["inset_mm"])
     anchor("LM crown containment", crown, "skull", crown_target)
     scene["anatomical_constraints"] = constraints
+    if seed_only:
+        errors = {n: float(np.linalg.norm(np.array(p["source"]) - p["target"])) for n, p in scene["landmarks"].items()}
+        seed_report["scaffold_landmark_error_mm"] = seed_report["landmark_error_mm"]
+        seed_report["landmark_error_mm"] = max(errors.values())
+        seed_report["anatomical_anchor_errors_mm"] = errors
+        seed_report["landmark_scope"] = (
+            "UNACCEPTED uniform regional seed: eye/C0/T1/crown residuals reported, full joints UNVERIFIED"
+        )
+        seed_report["declared_regional_sizes"] = {name: r["scale"] for name, r in regions.items()}
+        return seed, seed_report
     result, report = warp(arrays, scene)
     report["declared_regional_sizes"] = {name: r["scale"] for name, r in regions.items()}
     report["landmark_scope"] = (
@@ -363,14 +385,15 @@ if __name__ == "__main__":
         print(json.dumps(original_facts(np.load(sys.argv[2]), json.load(open(sys.argv[3]))), indent=2))
         sys.exit()
     landmarks = sys.argv[1] == "--landmarks"
-    path, metadata, out = sys.argv[2:] if landmarks else sys.argv[1:]
+    seed_only = sys.argv[1] == "--regional-seed"
+    path, metadata, out = sys.argv[2:] if landmarks or seed_only else sys.argv[1:]
     scene = json.load(open(metadata))
     if landmarks:
         result, report = warp(np.load(path), scene)
     else:
         with open("model/skeleton/envelope.json") as f:
             envelope = json.load(f)
-        result, report = refit(np.load(path), scene, envelope)
+        result, report = refit(np.load(path), scene, envelope, seed_only=seed_only)
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out + ".npz", **result)
     with open(out + ".json", "w") as f:
