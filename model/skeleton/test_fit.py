@@ -29,9 +29,11 @@ def test_a_shared_bust_warp_preserves_each_bones_authored_sculpt():
     points = np.array([(x, y, z) for x in (-10, 10) for y in (-10, 10) for z in (-10, 10)], float)
     shift = np.array((2, -3, 5))
     arrays = {"bone_basis": points, "bone_warp": points + 1, "bone_sculpt": points + 1.25}
+    arrays["bone_faces"] = np.array(((0, 1, 3), (0, 3, 2), (4, 6, 7), (4, 7, 5)))
     scene = {
-        "bones": [{"name": "public bone", "key": "bone", "matrix": np.eye(4).tolist()}],
+        "bones": [{"name": "public bone", "key": "bone", "group": "Skull", "matrix": np.eye(4).tolist()}],
         "landmarks": {str(i): {"source": p.tolist(), "target": (p + shift).tolist()} for i, p in enumerate(points)},
+        "anatomical_regions": {"skull": {"scale": 1.0}},
     }
     result, report = fit.warp(arrays, scene)
     assert result["bone_warp"] == pytest.approx(points + shift)
@@ -54,12 +56,16 @@ def test_regional_fits_keep_a_shared_bone_joint_continuous_in_the_common_frame()
     head = np.array(((-1, -1, 20), (1, -1, 20), (0, 1, 20), (0, 0, 30)), float)
     body = head * (1, 1, -1)
     scene = {"bones": [], "landmarks": {}, "warp_blend": {"normal": [0, 0, 1], "low": -10, "high": 10}}
+    scene["anatomical_regions"] = {"skull": {"scale": 1.0}, "upper_chest": {"scale": 1.0}}
     arrays = {}
     for name, points in (
-        ("head", np.array(((0, 0, 0), (0, 0, 10)), float)),
-        ("body", np.array(((0, 0, -10), (0, 0, 0)), float)),
+        ("head", np.array(((0, 0, 0), (0, 0, 10), (1, 0, 0), (0, 1, 0)), float)),
+        ("body", np.array(((0, 0, -10), (0, 0, 0), (1, 0, 0), (0, 1, 0)), float)),
     ):
-        scene["bones"].append({"name": name, "key": name, "matrix": np.eye(4).tolist()})
+        scene["bones"].append(
+            {"name": name, "key": name, "group": "Skull" if name == "head" else "Ribcage", "matrix": np.eye(4).tolist()}
+        )
+        arrays[name + "_faces"] = np.array(((0, 1, 2), (0, 2, 3), (0, 3, 1), (1, 3, 2)))
         for kind in ("basis", "warp", "sculpt"):
             arrays[f"{name}_{kind}"] = points
     for region, points, shift in (("head", head, np.array((2, 0, 0))), ("body", body, np.zeros(3))):
@@ -70,8 +76,8 @@ def test_regional_fits_keep_a_shared_bone_joint_continuous_in_the_common_frame()
                 "region": region,
             }
     result, report = fit.warp(arrays, scene)
-    assert result["head_warp"] == pytest.approx(np.array(((1, 0, 0), (2, 0, 10))))
-    assert result["body_warp"] == pytest.approx(np.array(((0, 0, -10), (1, 0, 0))))
+    assert result["head_warp"] == pytest.approx(np.array(((1, 0, 0), (2, 0, 10), (2, 0, 0), (1, 1, 0))))
+    assert result["body_warp"] == pytest.approx(np.array(((0, 0, -10), (1, 0, 0), (2, 0, 0), (1, 1, 0))))
     assert report["min_jacobian"] == pytest.approx(1)
 
 

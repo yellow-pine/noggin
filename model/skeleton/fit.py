@@ -13,6 +13,38 @@ import trimesh
 from scipy.interpolate import RBFInterpolator
 from shapely.geometry import Polygon
 
+REGIONS = {"Skull": "skull", "Mandible": "jaw", "Ribcage": "upper_chest"} | {f"C{i}": "cervicals" for i in range(1, 8)}
+
+
+def _stretch_report(lengths, label):
+    if not np.isfinite(lengths).all() or not lengths.size:
+        raise ValueError(f"Invalid {label} measurement")
+    low, high = float(lengths.min()), float(lengths.max())
+    if low < 0.75 - 1e-6 or high > 1.25 + 1e-6:
+        raise ValueError(f"{label} {low:.6f}..{high:.6f} exceeds confirmed 0.75..1.25")
+    return {"minimum": low, "maximum": high}
+
+
+def check_stretch(gradients, regional_scale):
+    """Principal local lengths from ORIGINAL Basis, after only a declared regional UNIFORM resize."""
+    if not np.isfinite(regional_scale) or regional_scale <= 0:
+        raise ValueError("Declare a positive uniform anatomical-region size")
+    if not np.isfinite(gradients).all() or (np.linalg.det(gradients) <= 0).any():
+        raise ValueError("A local stretch mapping folds or has invalid gradients")
+    return _stretch_report(np.linalg.svd(gradients, compute_uv=False) / regional_scale, "local stretch")
+
+
+def check_surface_stretch(basis, final_sculpt, faces, regional_scale):
+    """Exact triangle tangent lengths include every final Sculpt edit; no per-Bone fitted normalization."""
+    source, target = np.asarray(basis)[faces], np.asarray(final_sculpt)[faces]
+    a = np.stack((source[:, 1] - source[:, 0], source[:, 2] - source[:, 0]), axis=2)
+    b = np.stack((target[:, 1] - target[:, 0], target[:, 2] - target[:, 0]), axis=2)
+    _, r = np.linalg.qr(a)
+    if (np.abs(np.linalg.det(r)) < 1e-12).any():
+        raise ValueError("Original anatomical Basis has a degenerate triangle")
+    tangent = b @ np.linalg.inv(r)
+    return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch")
+
 
 def outer_cortex(mesh, targets, origin):
     """Source correspondence on the exterior cortex, even when the new envelope is inside the donor skull.
@@ -39,6 +71,9 @@ def warp(arrays, scene):
     Input/output are the public scene exchange, never a private reference mesh. Blender only applies the result;
     the numerical solve and its non-collapse gate run on GX10.
     """
+    regions = scene.get("anatomical_regions")
+    if not regions:
+        raise ValueError("Declare uniform anatomical_regions from original Basis before warping")
     pairs = list(scene["landmarks"].values())
     source, target = (np.array([p[k] for p in pairs]) for k in ("source", "target"))
     blend = scene.get("warp_blend")
@@ -90,9 +125,26 @@ def warp(arrays, scene):
     error = float(np.linalg.norm(source + field(source) - target, axis=1).max())
     if error > 1.0:
         raise ValueError(f"Bust warp misses an anatomical landmark by {error:.4f} mm")
+    stretch, offset = {}, len(probes) - len(points) - len(source)
+    for bone in scene["bones"]:
+        key, matrix = bone["key"], np.asarray(bone["matrix"])
+        scale = regions[REGIONS[bone["group"]]]["scale"]
+        n = len(arrays[key + "_basis"])
+        gradient = (jac[offset : offset + n] + np.eye(3)) @ matrix[:3, :3]
+        final = result[key + "_sculpt"] @ matrix[:3, :3].T + matrix[:3, 3]
+        stretch[bone["name"]] = {
+            "region": REGIONS[bone["group"]],
+            "declared_uniform_scale": scale,
+            "field": check_stretch(gradient, scale),
+            "surface_including_sculpt": check_surface_stretch(
+                arrays[key + "_basis"], final, arrays[key + "_faces"], scale
+            ),
+        }
+        offset += n
     return result, {
         "min_jacobian": determinant,
         "landmark_error_mm": error,
+        "regional_stretch": stretch,
     }
 
 

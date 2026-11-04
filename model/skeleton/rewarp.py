@@ -27,6 +27,8 @@ def export(prefix):
     arrays, scene = {}, {"bones": [], "landmarks": {}}
     if "warp_blend" in bpy.context.scene:
         scene["warp_blend"] = json.loads(bpy.context.scene["warp_blend"])
+    if "anatomical_regions" in bpy.context.scene:
+        scene["anatomical_regions"] = json.loads(bpy.context.scene["anatomical_regions"])
     groups = {"Skull", "Mandible", "Ribcage"} | {f"C{i}" for i in range(1, 8)}
     for name in inventory:
         o = bpy.data.objects[name]
@@ -57,6 +59,10 @@ def apply(prefix, out):
     assert report["min_jacobian"] > 0.1 and report["landmark_error_mm"] <= 1.0, report
     inventory = json.load(open(os.path.join(os.path.dirname(__file__), "sources.json")))["objects"]
     assert {b["name"] for b in scene["bones"]} == set(inventory)
+    assert set(report["regional_stretch"]) == set(inventory), "Missing confirmed regional/Sculpt deformation proof"
+    for bone in report["regional_stretch"].values():
+        for kind in ("field", "surface_including_sculpt"):
+            assert bone[kind]["minimum"] >= 0.75 - 1e-6 and bone[kind]["maximum"] <= 1.25 + 1e-6
     basis = {}
     for bone in scene["bones"]:
         o = bpy.data.objects[bone["name"]]
@@ -88,6 +94,7 @@ def apply(prefix, out):
         points = coordinates(bpy.data.objects[name].data.shape_keys.key_blocks["Basis"].data)
         assert hashlib.sha256(points.tobytes()).digest() == digest, name
     bpy.context.scene["fit_report"] = json.dumps(report)
+    bpy.context.scene["anatomical_regions"] = json.dumps(scene["anatomical_regions"])
     if "warp_blend" in scene:
         bpy.context.scene["warp_blend"] = json.dumps(scene["warp_blend"])
     elif "warp_blend" in bpy.context.scene:
