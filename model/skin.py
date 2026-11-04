@@ -97,7 +97,7 @@ NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within th
 BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
 # in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
-_PLATE = (gm.PLATE_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
+_PLATE = (gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
 _BACK = (32.5, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo, clear of its collar (#838)
 SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
