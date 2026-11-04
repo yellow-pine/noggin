@@ -104,32 +104,53 @@ def refit(arrays, scene, envelope):
     for name, centre in canals.items():
         fraction = (centre[2] - canals["T1"][2]) / (canals["C1"][2] - canals["T1"][2])
         target[name] = bottom + fraction * (top - bottom)
-    # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
-    for bone in scene["bones"]:
-        bone["matrix"] = common.tolist()
-        if bone["group"] == "Ribcage":
-            # Actual chest points constrain its affine fit; the old full-ribcage box alone left the upper chest loose.
-            p = np.asarray(arrays[bone["key"] + "_basis"]).mean(axis=0)
-            old = original["Ribcage"]
-            scene["landmarks"]["LM chest " + bone["name"]] = {
-                "source": (p @ old[:3, :3].T + old[:3, 3]).tolist(),
-                "target": (p @ old[:3, :3].T + old[:3, 3]).tolist(),
-            }
+    # Keep only authored landmarks; generated poses/anchors are rebuilt from the ORIGINAL connected anatomy.
+    generated = ("LM chest ", "LM canal ", "LM vault ", "LM correction ")
+    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not n.startswith(generated)}
     for name, pair in scene["landmarks"].items():
         group = name.split()[1]
         if group == "frame":
             continue
-        group = "Ribcage" if group in ("ribcage", "chest") else group if group in original else "Skull"
+        group = "Ribcage" if group == "ribcage" else group if group in original else "Skull"
         old = original[group]
         local = (np.array(pair["source"]) - old[:3, 3]) @ np.linalg.inv(old[:3, :3]).T
         pair["source"] = (local @ common[:3, :3].T + common[:3, 3]).tolist()
-    scene["landmarks"] = {
-        n: p
-        for n, p in scene["landmarks"].items()
-        if not n.startswith(tuple("LM C" + str(i) + " anchor" for i in range(1, 8)))
-    }
+    legacy = ("LM ribcage anchor",) + tuple("LM C" + str(i) + " anchor" for i in range(1, 8))
+    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not n.startswith(legacy)}
+    # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
+    chest = np.array(envelope["chest_frame"])
+    chest_points = []
+    for bone in scene["bones"]:
+        bone["matrix"] = common.tolist()
+        if bone["group"] == "Ribcage":
+            p = np.asarray(arrays[bone["key"] + "_basis"])
+            chest_points.append(p)
+            scene["landmarks"]["LM chest " + bone["name"]] = {
+                "source": (p.mean(0) @ common[:3, :3].T + common[:3, 3]).tolist(),
+                "target": (p.mean(0) @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+            }
+    points = np.vstack(chest_points)
+    lo, hi = points.min(0), points.max(0)
+    for i, p in enumerate(
+        (np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2]))
+    ):
+        scene["landmarks"][f"LM chest frame {i}"] = {
+            "source": (p @ common[:3, :3].T + common[:3, 3]).tolist(),
+            "target": (p @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+        }
     for name, source in canals.items():
-        scene["landmarks"]["LM canal " + name] = {"source": source.tolist(), "target": target[name].tolist()}
+        for offset in (-3.0, 0.0, 3.0):
+            normal = (
+                np.array((0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15)))) if name == "C2" else np.array((0, 0, 1))
+            )
+            p = source + offset * normal
+            fraction = (p[2] - canals["T1"][2]) / (canals["C1"][2] - canals["T1"][2])
+            scene["landmarks"][f"LM canal {name} {offset:g}"] = {
+                "source": p.tolist(),
+                "target": (bottom + fraction * (top - bottom)).tolist(),
+            }
+    for side, x in (("L", 36.35), ("R", -36.35)):
+        scene["landmarks"][f"LM {side} orbit"]["target"] = [x, -150.0, 177.0]
     target_canals = target
     # Replace the superseded adult-cap vault targets with one declared regional envelope target set.
     obsolete = {"vertex", "opisthocranion", "euryon", "forehead"}

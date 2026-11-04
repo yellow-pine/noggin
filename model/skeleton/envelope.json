@@ -338,5 +338,32 @@
         70.95526123046875
       ]
     }
-  }
+  },
+  "chest_frame": [
+    [
+      0.34855767488479616,
+      0.0,
+      0.0,
+      -0.003667152626439929
+    ],
+    [
+      0.0,
+      0.5243674516677856,
+      0.0,
+      -26.083236694335938
+    ],
+    [
+      0.0,
+      0.0,
+      0.7338183522224426,
+      -970.868408203125
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "chest_frame_status": "inferred coherent upper-chest affine; 0.9 of prototype width, subject to exact containment and joint/wall gates"
 }
