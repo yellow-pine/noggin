@@ -2,7 +2,7 @@ import pytest
 
 import eyes as mod
 
-RANGES = {mod.L_LID: (75, 139), mod.YAW: (65, 115), mod.R_LID: (41, 105), mod.PITCH: (59.6, 120.4)}  # servo degrees
+RANGES = {mod.L_LID: (75, 147), mod.YAW: (65, 115), mod.R_LID: (33, 105), mod.PITCH: (59.6, 120.4)}  # servo degrees
 
 
 def angle(ns):  # inverse of the stock bbl.servos mapping as a pulse width (10-bit duty / 1023 of 20 ms)
@@ -60,7 +60,7 @@ def test_thinking_drifts_and_rest_stops_it(eyes, pwm_log):
     eyes.handle_line("rest")
     for t in range(30_000, 60_000, 100):
         eyes.tick(t)
-    assert len(pwm_log) < drifts / 4  # rest pose once, then nothing
+    assert len(pwm_log) < drifts / 3  # rest pose once, then its blinks alone (more frames on Morty's long lid stroke, #901)
 
 
 def test_thinking_blinks_occasionally(eyes, pwm_log):
@@ -82,20 +82,20 @@ def test_both_lids_take_the_same_numbers_and_the_left_servo_mirrors_them(eyes):
     assert all(mod.DEFAULT_CAL["l_lid" + k] == mod.DEFAULT_CAL["r_lid" + k] for k in ("_lo", "_rest", "_hi"))
     for f in (0, 0.03, 0.1, 0.28, 0.5, 0.95, 1):
         assert eyes._lid_angle(mod.L_LID, f) == pytest.approx(180 - eyes._lid_angle(mod.R_LID, f))
-    assert eyes.range(mod.L_LID) == (75, 139) and eyes.range(mod.R_LID) == (41, 105)
+    assert eyes.range(mod.L_LID) == (75, 147) and eyes.range(mod.R_LID) == (33, 105)
 
 
 def test_the_lid_map_runs_closed_rest_open_in_two_straight_pieces(eyes):
     """#213: the lid bars make equal servo steps unequal lid steps, so each lid has a third point at lid_rest."""
-    eyes.handle_line("set r_lid_rest 75")  # well off the straight line 41..105 (58.9 at 0.28)
+    eyes.handle_line("set r_lid_rest 75")  # well off the straight line 33..105 (53.2 at 0.28)
     rest = eyes.cal["lid_rest"]
     pos = [eyes._lid_angle(mod.R_LID, i / 100) for i in range(101)]
-    assert eyes._lid_angle(mod.R_LID, 0) == 41 and eyes._lid_angle(mod.R_LID, 1) == 105
+    assert eyes._lid_angle(mod.R_LID, 0) == 33 and eyes._lid_angle(mod.R_LID, 1) == 105
     assert eyes._lid_angle(mod.R_LID, rest) == 75
     assert all(a < b for a, b in zip(pos, pos[1:], strict=False))  # monotonic: never reverses
-    assert eyes._lid_angle(mod.R_LID, rest / 2) == pytest.approx((41 + 75) / 2)  # straight closed..rest
+    assert eyes._lid_angle(mod.R_LID, rest / 2) == pytest.approx((33 + 75) / 2)  # straight closed..rest
     assert eyes._lid_angle(mod.R_LID, (rest + 1) / 2) == pytest.approx((75 + 105) / 2)  # straight rest..open
-    assert eyes._lid_angle(mod.R_LID, -1) == 41 and eyes._lid_angle(mod.R_LID, 2) == 105  # clamped to the ends
+    assert eyes._lid_angle(mod.R_LID, -1) == 33 and eyes._lid_angle(mod.R_LID, 2) == 105  # clamped to the ends
 
 
 def test_set_changes_calibration_live(eyes, pwm_log):

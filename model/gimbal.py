@@ -64,7 +64,7 @@ def _outline(deg):
 # white there is to show (#901: his outline, 68 deg up and 52 down, lies past the cap's 45)
 LID_REST = min(_outline(90), CAP_HALF)
 LOWER_EDGE = -min(_outline(270), CAP_HALF)  # the lower lid's, which its drive sets (LOWER_REST)
-LID_SHUT, LID_GAP = -4.0, 1.5  # shut, the upper lid's edge slightly below the eye's middle, the lower's this far under
+LID_SHUT, LID_GAP = -12.0, 1.5  # shut, the upper lid's edge below the eye's middle, the lower's this far under
 LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: shut, it covers the cap's top
 LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
 # the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
@@ -90,8 +90,8 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # upper about 0.8x. Inferred, searched (#901) for the lower lid's edge from its rest to shut, its link meeting the crank
 # at 55 deg or more, every pin behind the cap's flat back however the eye turns and above the frame's plate, and
 # building on every OCCT CI and the GX10 run
-LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (2.9, -15.0)  # (y, z) of the lower lid's crank pin at rest
+LINK_PIN = (36.9, 0.0)  # (y, z) of the link's pin on the bar at rest
+LOWER_PIN = (10.9, -10.0)  # (y, z) of the lower lid's crank pin at rest
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids

@@ -24,7 +24,7 @@ def horn(writes, name):
 def test_the_mech_points_its_linked_eyes_through_the_gimbals_command_map():
     """#663, #896: the wink's glance, the eye program's 8 deg to the Mech's left, is 8 deg on the one yaw servo (the
     program's range is the gimbal's, its calibration the model's nominals), the pitch servo level; the winking eye's lids shut, meeting
-    below its middle (lid servo -49 from the cap's rim, #901, model/test_gimbal.py) as the other squints, and both come
+    below its middle (lid servo -57 from the cap's rim, #901, model/test_gimbal.py) as the other squints, and both come
     back to rest (0)."""
     writes, times = traces.commands("wink")
     yaw, pitch = (horn(writes, f"{s} horn") for s in ("yaw", "pitch"))
@@ -32,8 +32,8 @@ def test_the_mech_points_its_linked_eyes_through_the_gimbals_command_map():
     assert -1 < min(d for _, d in yaw) and max(d for _, d in yaw) < 9.5  # a real saccade overshoots a little
     assert all(abs(d) < 0.01 for _, d in pitch)
     left, right = (horn(writes, f"{s} lid horn") for s in "LR")
-    assert min(d for _, d in left) == pytest.approx(-49)
-    assert -49 < min(d for _, d in right) < 0
+    assert min(d for _, d in left) == pytest.approx(-57)
+    assert -57 < min(d for _, d in right) < 0
     assert left[0][1] == right[0][1] == left[-1][1] == right[-1][1] == 0
     assert times[-1] > max(t for t, _, _ in writes)
 
@@ -44,7 +44,7 @@ def test_the_mech_rests_with_a_blink_its_lids_following_its_level_gaze():
     writes, _ = traces.commands("rest")
     for s in "LR":
         lid = horn(writes, f"{s} lid horn")
-        shut = [t for t, d in lid if d == pytest.approx(-49)]
+        shut = [t for t, d in lid if d == pytest.approx(-57)]
         assert shut and 3000 <= shut[0] <= 6000 + 200 and lid[-1][1] == 0
     assert set(traces.MOTIONS) == {*traces.GESTURES, "rest"}
 
