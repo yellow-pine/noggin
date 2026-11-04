@@ -11,6 +11,19 @@ from model import geometry as g
 HEAD = (300.0, (0.0, neck.AXIS[0], neck.AXIS[1] + 40.0))
 
 
+def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
+    """#902's functional anchors, from the accepted Stage 3 coordinates; anatomy alignment remains #874's gate."""
+    frame = stages.align(*neck.HEAD_FRAME)
+    assert frame[:3, 3] == pytest.approx((0, -150, 177))
+    for drive, point in (("tilt", (0, -73.4, 128.3)), ("pan", (0, -103.8, 141.8)), ("jaw", (0, -89.5, 134.9))):
+        local, axis = neck.HEAD_AXES[drive]
+        assert (frame @ np.r_[local, 1])[:3] == pytest.approx(point)
+        assert tuple(axis) == (g.Z if drive == "pan" else g.X)
+    assert neck.HEAD_PARENTS == {"tilt": None, "pan": "tilt", "jaw": "pan"}
+    assert neck.HEAD_SERVOS == {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}
+    assert len(set(neck.HEAD_CARRIERS.values())) == 4
+
+
 @pytest.fixture(scope="module")
 def report():
     return neck.report(HEAD)
