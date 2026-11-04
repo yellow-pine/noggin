@@ -167,7 +167,7 @@ def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(
 def test_the_mech_plays_the_wink_on_its_eye_gimbal():
     """#663: the eye program's wink on the Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
     (8 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking eye's upper lid
-    shuts (-21, model/test_gimbal.py) and its lower lid rises on its link to meet it, and the other squints; all come
+    shuts to LID_SHUT and its lower lid rises on its link to meet it, and the other squints 20%; all come
     back to rest."""
     model = built(DOC)
     names = ("L yaw pivot", "R yaw pivot", "L eyeball pitch", "L lid pivot", "R lid pivot")
@@ -177,8 +177,10 @@ def test_the_mech_plays_the_wink_on_its_eye_gimbal():
     left, right, pitch, lid, other, under = frames.T
     assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
     assert abs(left.max() - 8) < 1.5  # its saccade lands, overshooting a little on the way (the gimbal's degrees, #896)
-    assert abs(lid.min() + 21) < SETTLED_DEG and -21 + 5 < other.min() < -2
-    assert abs(under.max() - gimbal.lower(-21)) < SETTLED_DEG
+    shut = gimbal.LID_SHUT - gimbal.LID_REST
+    assert lid.min() == pytest.approx(shut, abs=SETTLED_DEG)
+    assert other.min() == pytest.approx(0.2 * shut, abs=SETTLED_DEG)
+    assert abs(under.max() - gimbal.lower(shut)) < SETTLED_DEG
     assert np.abs(frames[-1]).max() < SETTLED_DEG
 
 
