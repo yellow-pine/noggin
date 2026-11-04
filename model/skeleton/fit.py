@@ -47,10 +47,14 @@ def warp(arrays, scene):
         low, high = blend["low"], blend["high"]
         assert high > low and np.isfinite(normal).all()
         level = source @ normal
-        shared = np.array([p.get("region", "shared") == "shared" for p in pairs]) | ((level >= low) & (level <= high))
+        regions = np.array([p.get("region", "shared") for p in pairs])
+        assert set(regions) <= {"head", "body", "shared"}
+        shared = (
+            (regions == "shared") | ((regions == "body") & (level >= low)) | ((regions == "head") & (level <= high))
+        )
         fields = {}
         for region in ("head", "body"):
-            selected = shared | np.array([p.get("region", "shared") == region for p in pairs])
+            selected = shared | (regions == region)
             fields[region] = RBFInterpolator(source[selected], (target - source)[selected], kernel="thin_plate_spline")
 
         def field(points):
@@ -245,12 +249,12 @@ def refit(arrays, scene, envelope):
         scene["landmarks"][f"LM vault {i}"] = {"source": point.tolist(), "target": dest.tolist(), "region": "head"}
     scene["landmarks"].update(envelope["bone_landmarks"])
     menton = np.asarray(scene["landmarks"]["LM menton"]["source"])
-    # The C1/menton plane keeps the lower jaw with the head; C3 is the body end of the shared joint band.
+    # The C1/menton plane keeps the jaw with the head; the whole cervical chain blends continuously down to T1.
     slope = (canals["C1"][2] - menton[2]) / (canals["C1"][1] - menton[1])
     normal = np.array((0, -slope, 1))
     scene["warp_blend"] = {
         "normal": normal.tolist(),
-        "low": float(canals["C3"] @ normal),
+        "low": float(canals["T1"] @ normal),
         "high": float(canals["C1"] @ normal),
     }
     result, report = warp(arrays, scene)

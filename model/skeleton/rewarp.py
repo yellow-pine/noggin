@@ -90,6 +90,8 @@ def apply(prefix, out):
     bpy.context.scene["fit_report"] = json.dumps(report)
     if "warp_blend" in scene:
         bpy.context.scene["warp_blend"] = json.dumps(scene["warp_blend"])
+    elif "warp_blend" in bpy.context.scene:
+        del bpy.context.scene["warp_blend"]
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(out), compress=True)
     assert os.path.getsize(out) <= 12_000_000, "Skeleton scene exceeds its 12 MB cap"
 
