@@ -308,20 +308,18 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert not [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
 
 
-def test_blender_joins_every_render_shard():
-    """#770: each Render shard saves its share of the pictures, and Blender restores every one of them, so a shard added
-    to the matrix is never left out of the site. #839: eight shards, each uploading its pictures' measured seconds for
-    `just model-durations`."""
+def test_render_builds_the_parts_and_trajectories_once_and_saves_what_site_restores():
+    """#898: six stills no longer need eight shards: one Render job draws the pictures and the GLBs on the parts and
+    trajectories it built once, and saves them under the one key Site restores."""
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-    assert jobs["render"]["strategy"]["matrix"]["shard"] == list(range(8))
-    (up,) = [s for s in jobs["render"]["steps"] if "upload-artifact" in s.get("uses", "")]
-    assert up["with"]["name"].startswith("durations-")
-    saved = [s["with"]["key"] for s in jobs["render"]["steps"] if "cache/save" in s.get("uses", "")]
-    restored = [s["with"]["key"] for s in jobs["blender"]["steps"] if "cache/restore" in s.get("uses", "")]
-    assert saved == ["next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}"]
-    assert restored == [
-        saved[0].replace("${{ matrix.shard }}", str(i)) for i in jobs["render"]["strategy"]["matrix"]["shard"]
-    ]
+    render = jobs["render"]
+    assert "strategy" not in render and "blender" not in jobs
+    drawn = [m[1] for s in render["steps"] for m in BLENDER.finditer(s.get("run", ""))]
+    assert drawn == ["pictures", "web"]
+    (saved,) = [s["with"]["key"] for s in render["steps"] if "cache/save" in s.get("uses", "")]
+    restored = [s["with"]["key"] for s in jobs["site"]["steps"] if "cache/restore" in s.get("uses", "")]
+    assert saved == "next-${{ needs.changes.outputs.next-hash }}" and saved in restored
+    assert "render" in jobs["site"]["needs"]
 
 
 def test_a_job_names_an_environment_only_to_deploy():

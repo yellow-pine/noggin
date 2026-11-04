@@ -281,17 +281,21 @@ test("every picture and GLB the site ships, links or draws is one of the next Me
   }
 });
 
-test("Pictures shows the next Mech, the front doors' own and each of its parts, each linking to its full size", () => {
-  const links = page(route('docs/pictures.md')).querySelectorAll('.noggin-panels a, .noggin-views a, .noggin-parts a');
-  expect(links.map((a) => a.getAttribute('href').split('/').at(-1))).toEqual(numbers.published.images);
-  for (const a of links) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
+test("Pictures shows the front doors' stills at full size and every other picture in the viewer (#898)", () => {
+  const pictures = page(route('docs/pictures.md'));
+  const stills = pictures.querySelectorAll('.noggin-views figure > a');
+  expect(stills.map((a) => a.getAttribute('href').split('/').at(-1))).toEqual(numbers.published.images.slice(0, 3));
+  for (const a of stills) expect(a.querySelector('img').getAttribute('src')).toBe(a.getAttribute('href'));
+  const links = pictures.querySelectorAll('.noggin-views .noggin-viewer').map((v) => v.getAttribute('data-link'));
+  for (const each of ['view=side', 'view=isometric', 'explode=2']) expect(links.filter((l) => l === each)).toHaveLength(3);
+  expect(links.filter((l) => l.startsWith('part=')).length).toBeGreaterThan(40); // each part alone, the rest ghosted
 });
 
-test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's panel its still until then (#839)", () => {
+test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's poster its still until then (#839)", () => {
   const viewers = page(route('docs/pictures.md')).querySelectorAll('.noggin-motions .noggin-viewer');
   const links = viewers.map((v) => v.getAttribute('data-link')).sort();
   expect(links).toEqual([...Object.keys(numbers.moments), 'rest'].map((g) => `gesture=${g}`).sort()); // its gestures and Rest
-  for (const v of viewers) expect(v.querySelectorAll('figure img').length).toBe(Object.keys(numbers.theme.presets).length);
+  for (const v of viewers) expect(v.querySelector('figure img').getAttribute('src')).toMatch(/\/next-stage1-isometric\.webp$/);
 });
 
 test("every viewer in a page holds a plain link to what it plays in the viewer page, which GitHub shows (#889)", () => {

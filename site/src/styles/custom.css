@@ -154,10 +154,6 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 }
 .noggin-viewer.hero + p a:first-child { background: var(--noggin-ink); color: var(--sl-color-black); }
 .noggin-viewer.hero + p a:hover { border-color: var(--noggin-apricot); }
-/* the three Stages after their panels: pink cards */
-.noggin-panels + p + ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
-.noggin-panels + p + ul > li { margin: 0; padding: 1.25rem; border-radius: 1.5rem; background: var(--noggin-wash); }
-.noggin-panels + p + ul > li > strong:first-child { display: block; font-family: var(--noggin-rubik); font-size: 1.5rem; }
 
 /* ---------- a Stage's guide: the Stages as eyes, its own open with an Apricot iris, the others half shut ---------- */
 .noggin-stages {
@@ -218,24 +214,11 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 figure:has(img) { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* the next Mech's parts (macros.py figures): a picture each over its name, its motions (a viewer each, #839) and the
-   front doors' own wider, the home's three (macros.py front, #739) in three columns */
-.noggin-parts, .noggin-motions, .noggin-views, .noggin-row, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
-:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }
+/* Pictures' grids: its viewers (macros.py viewers, #898) and motions (#839) each over its caption, the front doors'
+   stills (macros.py figures), the home's three (macros.py front, #739) in three columns */
+.noggin-motions, .noggin-views, .noggin-row, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+:is(.noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
+:is(.noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }
 .noggin-motions, .noggin-views, .noggin-row { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .noggin-front { grid-template-columns: repeat(3, 1fr); }
 
-/* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
-   stacked by Stage, its views side by side */
-.noggin-panels {
-  display: grid; grid-template: auto repeat(var(--views), auto) / auto; grid-auto-flow: column; grid-auto-columns: 1fr;
-  gap: 0.5rem 1rem; align-items: center; text-align: center; margin-block: 1.5rem;
-}
-.noggin-panels strong { font-family: var(--noggin-rubik); }
-.noggin-panels img { display: block; width: 100%; height: auto; }
-@media (max-width: 50rem) {
-  .noggin-panels { grid-template: none / 1fr 1fr; grid-auto-flow: row; }
-  .noggin-panels > span { display: none; }
-  .noggin-panels > strong { grid-column: 1 / -1; }
-}

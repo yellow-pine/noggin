@@ -204,7 +204,7 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     notes = macros.picture_numbers()
     assert "| gestures |" not in notes  # the viewer plays them (#468)
     for row in [
-        "| panels | 800 wide, as tall as the tallest | WebP |",
+        "| the front doors and the posters | 800 wide, as tall as the tallest | WebP |",
         "| anatomical | Bones | PETG Basic Dark Beige (30403) | #DBC8B6 | #DBC8B6 | #DBC8B6 |",
         "| robot | Joints | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
         "| black | Bones | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
@@ -306,93 +306,62 @@ def test_nothing_public_shows_todays_mech():
 
 STAGE_DOCS = ["next-stage1", "next-stage2", "next-mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
 SHAPES = ["", "-mechanical"]  # each document in its Skeleton shape realistic (as Bones) and mechanical (#704, #805)
-PRESETS = ["cansins-build", "morty", "bart"]  # #819: the pictures per Preset, the default's unsuffixed
-LOOKS = ["", "-morty", "-bart"]
 
 
-def test_every_document_has_a_side_and_an_isometric_panel():
-    """Cansin (#470): the panels come from the next Mech's documents in the code, each Stage in each Preset (#720,
-    #819), from the side and isometric, one WebP each with its lines in one grey for both themes (#489)."""
-    from model.render import pictures
-
-    panels = [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
-    assert [pictures.picture(*p) for p in pictures.PANELS] == panels
-    assert pictures.DRAWN["next-stage1"] == ("next-stage1-mechanical", "Cansin's build")  # the default
-    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back", "Bart")
-
-
-def test_the_next_mech_has_its_own_panels():
-    """#629, #720: Pictures shows each Stage of the next Mech in every Preset, framed among themselves, each Stage's
-    name and pictures shown in its own Preset alone (#806, #819: the header's Theme bar picks it)."""
-    import macros
-
-    grid = macros.next_panels()
-    names = [(s, f"Stage {n}") for s in PRESETS for n in (1, 2, 3)]
-    assert re.findall(r'<strong data-presets="([\w-]+)">([^<]+)</strong>', grid) == names
-    views = re.findall(r'<a href="[^"]+" data-presets="([\w-]+)"><img src="[^"]+/([^/"]+)"', grid)
-    assert views == [
-        (s, f"{d}{look}-{v}.webp")
-        for s, look in zip(PRESETS, LOOKS, strict=True)
-        for d in STAGE_DOCS
-        for v in ("side", "isometric")
-    ]
-
-
-def test_pictures_shows_each_stage_at_explodes_parts_level():
-    """#811: Pictures has each Stage with every part apart under its name, in each Preset, shown in it alone."""
-    import macros
-
-    grid = macros.next_exploded()
-    names = [f"Stage {n}, its parts apart" for n in (1, 2, 3)] * 3
-    assert re.findall(r"<figcaption>([^<]+)</figcaption>", grid) == names
-    cells = re.findall(r'<figure data-presets="([\w-]+)"><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
-    assert cells == [
-        (preset, f"{d}{look}-parts-exploded.webp")
-        for preset, look in zip(PRESETS, LOOKS, strict=True)
-        for d in STAGE_DOCS
-    ]
-    assert "<!--{{ next_exploded }}-->" in (ROOT / "docs" / "pictures.md").read_text()
-
-
-def test_each_part_picture_shows_for_the_presets_in_its_shape():
-    """#806, #819: a Skeleton part's picture is drawn in its Shape, shown for the Presets in that Shape alone; a Skin
-    part's and the hardware's for every Preset."""
-    import macros
-
-    grid = macros.next_parts()
-    marks = dict(
-        (f, m) for m, f in re.findall(r'<figure(?: data-presets="([\w -]+)")?><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
-    )
-    assert marks["next-test-stand.webp"] == "morty bart"
-    assert marks["next-test-stand-mechanical.webp"] == "cansins-build"
-    assert marks["next-l-eyeball-cap.webp"] == marks["next-core.webp"] == ""
-
-
-def test_the_site_publishes_the_next_mech_alone():
-    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part, stills alone (#839: its
-    motion is the viewer's), each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton
-    shape (#720), Stage 3 bare too (#876) and in each other Skin (#813), every name starting next-."""
+def test_render_makes_six_stills_the_readmes_three_and_a_poster_per_stage():
+    """#898: Blender renders the README's three (the front doors, #739) and one poster per Stage, isometric in the
+    default Preset, and nothing else; the viewer stands in for every other picture. The GLBs: a Stage each in each
+    Skeleton shape (#720), Stage 3 bare too (#876)."""
     from model import geometry as g
-    from model import stages
     from model.render import pictures
     from web import build
 
-    stems = {stages.stem(p.file) for doc in [*g.STAGES, *g.DRESSED] for p in stages.STAGES[doc].parts.values()}
-    published = pictures.published()
-    # side and isometric per Stage, each at the Parts level (#811), each per Preset (#819), the front doors' three
-    # (#739, #843), and a picture per part; no motion (#839)
-    assert len(published) == 3 * (3 * 3) + 3 + len(stems) == len(set(published))
-    assert {"next-stage1-isometric.webp", "next-test-stand.webp"} <= {*published}
-    assert {"next-stage1-front.webp", "next-mech-back-bare-isometric.webp"} <= {*published}
-    assert "next-stage1-morty-front.webp" not in published and "next-mech-back-side-exploded.webp" in published
-    assert not [f for f in published if f.startswith("next-eyes")]
-    assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
+    assert pictures.published() == [
+        "next-stage1-front.webp",
+        "next-mech-back-bare-isometric.webp",
+        "next-mech-back-side-exploded.webp",
+        "next-stage1-isometric.webp",
+        "next-stage2-isometric.webp",
+        "next-mech-back-isometric.webp",
+    ]
+    assert pictures.DRAWN["next-stage1"] == ("next-stage1-mechanical", "Cansin's build")  # the default
     bare = {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
     dressed = {f"next-mech-back{s}-cansin": f"next-mech-back{s}-cansin.glb" for s in SHAPES}  # in Cansin's Skin (#813)
     assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | dressed
-    assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
-    docs = set(map(build.document, build.PUBLIC))
-    assert {doc for doc, _ in pictures.next_parts().values()} <= docs == {*g.STAGES, *g.DRESSED}
+    assert set(map(build.document, build.PUBLIC)) == {*g.STAGES, *g.DRESSED}
+
+
+def embeds(html):
+    """(data-stage, data-link, caption) of each viewer embed in a grid of macros.py viewers."""
+    pattern = r'<figure[^>]*><div class="noggin-viewer" data-stage="([^"]+)" data-link="([^"]*)">.*?<figcaption>([^<]+)'
+    return re.findall(pattern, html)
+
+
+def test_pictures_shows_each_stage_from_the_side_isometric_and_apart_in_the_viewer():
+    """#898: the panels and Explode's Parts level (#811) are viewer embeds: each Stage from the side, isometric and
+    with every part apart, in the Preset the header's bar picks (the viewer follows it, #819)."""
+    import macros
+
+    how = (("view=side", ", from the side"), ("view=isometric", ""), ("explode=2", ", its parts apart"))
+    cells = embeds(macros.next_views())
+    assert cells == [(doc, link, f"Stage {n}{label}") for n, doc in enumerate(STAGE_DOCS, 1) for link, label in how]
+    assert "<!--{{ next_views }}-->" in (ROOT / "docs" / "pictures.md").read_text()
+
+
+def test_pictures_shows_each_part_alone_in_the_viewer():
+    """#898: each part's picture is a viewer embed of the first Stage it is in, that part at full look and the rest
+    ghosted (part=), under its name; a part of one Skeleton shape alone (the skull's bones) shown for its Presets."""
+    import macros
+
+    grid = macros.next_parts()
+    cells = {caption: (stage, link) for stage, link, caption in embeds(grid)}
+    assert cells["test stand"] == ("next-stage1", "part=next+test+stand&view=isometric")
+    assert cells["jaw"] == ("next-mech-back", "part=next+jaw&view=isometric")
+    assert cells["Core"] == ("next-stage1", "part=next+Core+1&view=isometric")
+    assert len(cells) == len(re.findall("<figure", grid)) > 40
+    figures = re.findall(r'<figure(?: data-presets="([\w -]+)")?><div[^>]+part=([^&"]+)', grid)
+    marks = {part: mark for mark, part in figures}
+    assert marks["next+atlas"] == "morty bart" and marks["next+jaw"] == marks["next+Core+1"] == ""
 
 
 # #739: the front doors' three, in order, in the default Preset, Cansin's build (#819), bare of its Skin (#843):
