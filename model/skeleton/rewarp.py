@@ -25,6 +25,8 @@ def export(prefix):
     """Only the licensed source inventory's raw Basis/Warp/Sculpt and sparse anatomical Landmarks."""
     inventory = json.load(open(os.path.join(os.path.dirname(__file__), "sources.json")))["objects"]
     arrays, scene = {}, {"bones": [], "landmarks": {}}
+    if "warp_blend" in bpy.context.scene:
+        scene["warp_blend"] = json.loads(bpy.context.scene["warp_blend"])
     groups = {"Skull", "Mandible", "Ribcage"} | {f"C{i}" for i in range(1, 8)}
     for name in inventory:
         o = bpy.data.objects[name]
@@ -41,6 +43,7 @@ def export(prefix):
             scene["landmarks"][o.name] = {
                 "source": list(o.matrix_world.translation),
                 "target": list(target.matrix_world.translation),
+                "region": o.get("warp_region", "shared"),
             }
     np.savez_compressed(prefix + ".npz", **arrays)
     with open(prefix + ".json", "w") as f:
@@ -76,6 +79,7 @@ def apply(prefix, out):
                 o = bpy.data.objects.new(name + suffix, None)
                 landmarks.objects.link(o)
             o.matrix_world.translation = Vector(pair[kind])
+            o["warp_region"] = pair.get("region", "shared")
             o.hide_set(False)
     for o in landmarks.all_objects:
         if not o.name.endswith(" target") and o.name not in scene["landmarks"]:
@@ -84,6 +88,8 @@ def apply(prefix, out):
         points = coordinates(bpy.data.objects[name].data.shape_keys.key_blocks["Basis"].data)
         assert hashlib.sha256(points.tobytes()).digest() == digest, name
     bpy.context.scene["fit_report"] = json.dumps(report)
+    if "warp_blend" in scene:
+        bpy.context.scene["warp_blend"] = json.dumps(scene["warp_blend"])
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(out), compress=True)
     assert os.path.getsize(out) <= 12_000_000, "Skeleton scene exceeds its 12 MB cap"
 

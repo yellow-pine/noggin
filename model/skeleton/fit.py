@@ -41,7 +41,25 @@ def warp(arrays, scene):
     """
     pairs = list(scene["landmarks"].values())
     source, target = (np.array([p[k] for p in pairs]) for k in ("source", "target"))
-    field = RBFInterpolator(source, target - source, kernel="thin_plate_spline")
+    blend = scene.get("warp_blend")
+    if blend:
+        normal = np.asarray(blend["normal"])
+        low, high = blend["low"], blend["high"]
+        assert high > low and np.isfinite(normal).all()
+        level = source @ normal
+        shared = np.array([p.get("region", "shared") == "shared" for p in pairs]) | ((level >= low) & (level <= high))
+        fields = {}
+        for region in ("head", "body"):
+            selected = shared | np.array([p.get("region", "shared") == region for p in pairs])
+            fields[region] = RBFInterpolator(source[selected], (target - source)[selected], kernel="thin_plate_spline")
+
+        def field(points):
+            t = np.clip((points @ normal - low) / (high - low), 0, 1)
+            weight = (t**3 * (t * (6 * t - 15) + 10))[:, None]  # C2-smooth, including both ends
+            return weight * fields["head"](points) + (1 - weight) * fields["body"](points)
+
+    else:
+        field = RBFInterpolator(source, target - source, kernel="thin_plate_spline")
     result, world = {}, []
     for bone in scene["bones"]:
         key, matrix = bone["key"], np.asarray(bone["matrix"])
@@ -148,6 +166,7 @@ def refit(arrays, scene, envelope):
             scene["landmarks"]["LM chest " + bone["name"]] = {
                 "source": (p.mean(0) @ common[:3, :3].T + common[:3, 3]).tolist(),
                 "target": (p.mean(0) @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+                "region": "body",
             }
     points = np.vstack(chest_points)
     lo, hi = points.min(0), points.max(0)
@@ -155,6 +174,7 @@ def refit(arrays, scene, envelope):
         scene["landmarks"][f"LM chest frame {i}"] = {
             "source": (p @ common[:3, :3].T + common[:3, 3]).tolist(),
             "target": (p @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+            "region": "body",
         }
     for name, source in canals.items():
         for offset in (-3.0, 0.0, 3.0):
@@ -214,8 +234,17 @@ def refit(arrays, scene, envelope):
     barycentric = trimesh.triangles.points_to_barycentric(reference.triangles[faces], nearest)
     source = np.einsum("ij,ijk->ik", barycentric, vault.triangles[faces])
     for i, (point, dest) in enumerate(zip(source, target)):
-        scene["landmarks"][f"LM vault {i}"] = {"source": point.tolist(), "target": dest.tolist()}
+        scene["landmarks"][f"LM vault {i}"] = {"source": point.tolist(), "target": dest.tolist(), "region": "head"}
     scene["landmarks"].update(envelope["bone_landmarks"])
+    menton = np.asarray(scene["landmarks"]["LM menton"]["source"])
+    # The C1/menton plane keeps the lower jaw with the head; C3 is the body end of the shared joint band.
+    slope = (canals["C1"][2] - menton[2]) / (canals["C1"][1] - menton[1])
+    normal = np.array((0, -slope, 1))
+    scene["warp_blend"] = {
+        "normal": normal.tolist(),
+        "low": float(canals["C3"] @ normal),
+        "high": float(canals["C1"] @ normal),
+    }
     result, report = warp(arrays, scene)
     report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
     return result, report
