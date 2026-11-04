@@ -32,8 +32,8 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
 import {
-  ANIMATING, LEVELS, address, between, caption as captionFor, glb, looped, mixed, moves, opened, paint, shows, title,
-  touched,
+  ANIMATING, LEVELS, address, between, caption as captionFor, glb, looped, mixed, moves, opened, paint, partOf,
+  shows, title, touched,
 } from "./state.mjs";
 import { AXES, picked } from "../theme.mjs";
 
@@ -198,12 +198,10 @@ function mount(root) {
       const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
       h.computeVertexNormals();
       const lines = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(g, look.crease));
-      if (shows(link.part, part(o))) o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
+      if (shows(link.part, partOf(o))) o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
       else Object.assign(o.material, { transparent: true, opacity: GHOST, depthWrite: false }), o.castShadow = false;
     }
   }
-  // a mesh's part: the name of the GLB node it is, or sits in (Blender's object, web/glb.py)
-  const part = (o) => o.userData.name ?? (o.parent ? part(o.parent) : "");
 
   // each part's Colour group in the mix's Palette (the hardware keeps the GLB's grey)
   function repaint() {

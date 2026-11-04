@@ -1,8 +1,9 @@
 // The viewer's state: its deep link, picker address, caption and Explode's steps, from the site's macros.json (npm test)
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { expect, test } from "vitest";
 import { moments } from "../macros.json";
 import {
-  ANIMATING, VIEW, address, between, caption, glb, looped, mixed, moves, opened, paint, shows, touched,
+  ANIMATING, VIEW, address, between, caption, glb, looped, mixed, moves, opened, paint, partOf, shows, touched,
 } from "./state.mjs";
 import { PRESETS } from "../theme.mjs";
 
@@ -37,6 +38,29 @@ test("a part= shows that part alone, every copy of it, the rest ghosted; none, e
   expect(shows(part, "next L lid horn link:1")).toBe(false);
   expect(shows(part, "next R lid horn:1")).toBe(false);
   expect(shows(opened("", [], "x").part, "next R lid horn:1")).toBe(true);
+});
+
+test("a mesh's part is its glTF node's name as Blender wrote it, which part= picks", async () => {
+  const gltf = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ name: "next jaw:1", mesh: 0, extras: { explode: [0, 0, 0] } }],
+    buffers: [{ byteLength: 36 }],
+    bufferViews: [{ buffer: 0, byteLength: 36 }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3", min: [0, 0, 0], max: [0, 0, 0] }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+  };
+  // a GLB as Blender exports one (web/glb.py): its JSON, padded to 4 bytes, then its binary chunk
+  const json = Buffer.from(JSON.stringify(gltf).padEnd(Math.ceil(JSON.stringify(gltf).length / 4) * 4));
+  const chunk = (type, data) => Buffer.concat([Buffer.from(new Uint32Array([data.length, type]).buffer), data]);
+  const body = Buffer.concat([chunk(0x4e4f534a, json), chunk(0x004e4942, Buffer.alloc(36))]);
+  const glb = Buffer.concat([Buffer.from(new Uint32Array([0x46546c67, 2, 12 + body.length]).buffer), body]);
+  const { scene } = await new GLTFLoader().parseAsync(glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.length), "");
+  const meshes = [];
+  scene.traverse((o) => o.isMesh && meshes.push(o));
+  expect(meshes.map(partOf)).toEqual(["next jaw:1"]);
+  expect(shows("next jaw", partOf(meshes[0]))).toBe(true);
 });
 
 test("view= and part= round-trip through the address the viewer page writes", () => {

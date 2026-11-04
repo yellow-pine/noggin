@@ -60,6 +60,9 @@ export function opened(search, stages, fallback) {
 // whether a GLB's node (its part's name, Blender's copy number after a colon) is drawn at full look: every one, or the
 // part= one's copies alone, the rest ghosted
 export const shows = (part, node) => !part || node.replace(/:\d+$/, "") === part;
+// a mesh's part: the glTF name of the node it is or sits in (Blender's object, web/glb.py), which GLTFLoader keeps in
+// userData.name (its .name is sanitised: "next jaw:1" becomes "next_jaw1")
+export const partOf = (o) => o.userData.name ?? (o.parent ? partOf(o.parent) : "");
 
 // what the reader's drag may do (OrbitControls): an embed only turns, the wheel and a pinch left to scroll the page past
 // it; the /viewer page's zooms and pans too
