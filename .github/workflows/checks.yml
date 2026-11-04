@@ -35,11 +35,6 @@ on:
       deploy:
         type: boolean
         default: false
-concurrency:   # main's runs queue, each running to completion, since each deploys and Release waits for a finished one
-  # (#689; a newer push replaces one still waiting); the weekly run has its own group, so it neither waits behind a
-  # push's run nor holds one up
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: false
 permissions:
   contents: read
 defaults:
@@ -52,7 +47,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      actions: write   # main's last checked commit; cancel-on-failure
+      actions: read   # main's last checked commit
     outputs:
       model: ${{ steps.filter.outputs.model }}
       release: ${{ steps.filter.outputs.release }}
@@ -68,9 +63,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      # a push diffs against main's last commit whose push run here passed, not the one before it: a newer push
-      # cancels the run in progress, and that commit's changes are then checked in the next run (#471). None: the
-      # commit before the push (an empty base)
+      # a push diffs against main's last commit whose push run here passed, not the one before it: a red run's
+      # changes are then checked again in the next run (#471). None: the commit before the push (an empty base)
       - name: Find main's last checked commit
         if: ${{ github.event_name == 'push' }}
         id: checked
@@ -152,10 +146,6 @@ jobs:
           MODEL: ${{ steps.filter.outputs.model }}
           MECH: ${{ steps.filter.outputs.mech }}
           SIM: ${{ steps.sim.outputs.cache-hit != 'true' }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   code:
     name: Code
     needs: changes   # its release filter
@@ -163,7 +153,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     # uv and the synced venv, ngspice (model/electrical.py's SPICE circuit, which spicelib runs in batch mode),
     # shellcheck, gh and yq
     container:
@@ -218,10 +207,6 @@ jobs:
           exit 1
         env:
           GH_TOKEN: ${{ github.token }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # a cold parts cache: from main's latest entry, builds the parts and cuts the stale ones (mjcf's own process pool),
   # then saves the cache the model shards restore. The cache, never an artifact: an artifact of a public repo is
   # anyone's to download, and the parts derive from the designer's models (#640, docs/adr/0019)
@@ -233,7 +218,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     container:   # Blender for just ours's bones (model/skeleton, docs/adr/0025)
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as render's
     steps:
@@ -260,10 +244,6 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ needs.changes.outputs.parts-key }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   model:
     name: Model (${{ matrix.shard }})
     needs: [changes, convex]
@@ -275,9 +255,7 @@ jobs:
     timeout-minutes: 40
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     strategy:
-      fail-fast: true   # a failed shard cancels the others (and cancel-on-failure the run, #769)
       # four, balanced on measured seconds: each document (pytest -k on its parameter id; its tests
       # on one worker, --dist loadgroup), the rest, just sim's parts and just mech (model/shards.py)
       matrix:
@@ -406,10 +384,6 @@ jobs:
             model/build/ours
             model/build/convex
           key: ${{ steps.parts.outputs.cache-primary-key }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # the sim reports (just sim on the mechanical documents, model/build/reports, never committed: ADR 0009, #809), merged
   # from the Model shards' parts and thresholded, when what they are made from changed (Changes hashes it, #732); diffed
   # against main's latest in its summary and saved under that hash for the site, which publishes them at /reports
@@ -421,7 +395,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -461,10 +434,6 @@ jobs:
         with:
           path: model/build/reports
           key: sim-${{ needs.changes.outputs.sim-hash }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # the Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
   # changed: its parts and trajectories built once, then rendered and baked from them on CI's software GL, saved for
   # Site (and later runs). One job (#898): its six stills take Blender ~1 min where the GLBs take ~4, so a shard more
@@ -477,7 +446,6 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
     env:
@@ -509,10 +477,6 @@ jobs:
             model/build/images
             web/build
           key: pictures-${{ needs.changes.outputs.pictures-hash }}
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # the docs (Astro Starlight, just site) with the Mech's pictures and GLB, tested and played in Chrome: main's
   # deploy. After Render, so it builds, tests and plays the site once (#732); a skipped Render (its pictures cached)
   # holds it up for nothing
@@ -525,7 +489,6 @@ jobs:
     permissions:
       contents: read
       issues: read   # the marks' issues are open (docs/adr/0024)
-      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
       options: --ipc=host   # Chrome's shared memory, for mermaid-cli and Playwright (https://playwright.dev/docs/docker)
@@ -595,10 +558,6 @@ jobs:
             echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
           } >> "$GITHUB_STEP_SUMMARY"
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # the gate (#496): every job above passed, or was skipped as its inputs were unchanged (it never skips itself; a
   # failed need fails it)
   checks:
@@ -627,7 +586,8 @@ jobs:
     if: >-
       ${{ !cancelled() && needs.checks.result == 'success' && (github.event_name == 'push' || inputs.deploy)
       && github.ref == 'refs/heads/main' }}
-    # one deploy at a time, never cancelled mid-way (a newer one waiting replaces an older waiting one)
+    # the one group left (#944, docs/adr/0009): one deploy at a time, never cancelled mid-way; a newer commit's
+    # waiting deploy replaces an older waiting one, so an older site never lands after a newer
     concurrency:
       group: site-deploy
       cancel-in-progress: false

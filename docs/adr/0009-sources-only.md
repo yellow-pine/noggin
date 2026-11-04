@@ -54,6 +54,10 @@
 > viewer standing in for every other picture.
 > Amended 2026-11-04 (#873, ADR 0025): the realistic Skeleton's source is a committed, compressed Blender scene under
 > a size cap, holding one derived copy, its Scene Mech, which CI replaces with the Mech it just built before it exports.
+> Amended 2026-11-04 (#944, Cansin): no run or job is cancelled early; only Deploy and Release keep a group. Every run
+> on a PR and on main runs to its end and lists each failure as `failure` (cancel-on-failure, #769, is gone; it showed
+> #937's real failures as `cancelled`). Only Checks' Deploy and Release's Release keep a job-level concurrency group,
+> never cancelling one in progress, so an older site never lands after a newer. Every job has a timeout (#948).
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

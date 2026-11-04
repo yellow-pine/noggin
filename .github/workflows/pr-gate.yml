@@ -7,9 +7,6 @@ name: PR Gate
 on:
   pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
     types: [opened, synchronize, reopened, ready_for_review]
-concurrency:   # one run per PR; a new push cancels the one in progress
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 permissions:
   contents: read
 defaults:
@@ -23,7 +20,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as checks.yml's Code
     steps:
@@ -42,10 +38,6 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      # the rest of the run cancelled at once (#769)
-      - name: Cancel the run on failure
-        if: ${{ failure() }}
-        uses: ./.github/actions/cancel-on-failure
   # the required check (#496): Code passed. A skipped required check passes, so this one never skips; a failed need
   # fails it
   checks:
