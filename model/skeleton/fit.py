@@ -157,6 +157,14 @@ def refit(arrays, scene, envelope):
     scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not n.startswith(legacy)}
     # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
     chest = np.array(envelope["chest_frame"])
+
+    def chest_target(point):
+        at = point @ chest[:3, :3].T + chest[:3, 3]
+        bottom_z, top_z = envelope["chest_forward"]["fade_z_mm"]
+        t = np.clip((at[2] - bottom_z) / (top_z - bottom_z), 0, 1)
+        at[1] -= envelope["chest_forward"]["offset_mm"] * t * t * (3 - 2 * t)
+        return at
+
     chest_points = []
     for bone in scene["bones"]:
         bone["matrix"] = common.tolist()
@@ -165,7 +173,7 @@ def refit(arrays, scene, envelope):
             chest_points.append(p)
             scene["landmarks"]["LM chest " + bone["name"]] = {
                 "source": (p.mean(0) @ common[:3, :3].T + common[:3, 3]).tolist(),
-                "target": (p.mean(0) @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+                "target": chest_target(p.mean(0)).tolist(),
                 "region": "body",
             }
     points = np.vstack(chest_points)
@@ -173,7 +181,7 @@ def refit(arrays, scene, envelope):
     for i, p in enumerate(np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])):
         scene["landmarks"][f"LM chest frame {i}"] = {
             "source": (p @ common[:3, :3].T + common[:3, 3]).tolist(),
-            "target": (p @ chest[:3, :3].T + chest[:3, 3]).tolist(),
+            "target": chest_target(p).tolist(),
             "region": "body",
         }
     for name, source in canals.items():

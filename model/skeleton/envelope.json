@@ -141,7 +141,7 @@
     ],
     "T1": [
       0,
-      -58.326921563016064,
+      -65.32692156301607,
       29.725203238828158
     ]
   },
@@ -328,5 +328,13 @@
       1.0
     ]
   ],
-  "chest_frame_status": "inferred coherent upper-chest affine; 0.9 of prototype width, subject to exact containment and joint/wall gates"
+  "chest_frame_status": "inferred coherent upper-chest affine; 0.9 of prototype width, subject to exact containment and joint/wall gates",
+  "chest_forward": {
+    "offset_mm": 7.0,
+    "fade_z_mm": [
+      -180.0,
+      -80.0
+    ],
+    "status": "inferred coherent upper-chest shear; C0/eyes fixed; lower sternum/floor preserved; all surface/joint/wire gates still required"
+  }
 }
