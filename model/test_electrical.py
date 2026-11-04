@@ -2,7 +2,16 @@
 hand-checkable circuit, the pack by its charge (pack_ohm(), pack_ocv()) and when its protector cuts (cuts()),
 worst_case() (the entry the Mech-wide report merges)."""
 
+import pytest
+
 from model import electrical
+
+
+def test_the_standard_tilt_servo_reaches_the_actual_five_volt_supply_loads():
+    """#902: the larger tilt's published 1.4 A must not inherit the owned micro servo's 0.65 A."""
+    loads = {line.split()[0]: float(line.split()[-1]) for line in electrical.mech(0.5).splitlines() if line.startswith("I")}
+    assert loads["Itilt"] == pytest.approx(1.4)
+    assert loads["Iyaw"] == pytest.approx(0.5666666667)  # owned micro's 0.55..0.65 A interpolated at the regulated 5 V
 
 
 def test_one_resistor_and_one_load_obey_ohms_law():
