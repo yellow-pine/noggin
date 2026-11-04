@@ -180,17 +180,17 @@ def anatomy(spec, stage, bodies):
     """Finished-export mass/COM/inertia on rigid carriers; realistic meshes remain excluded from collisions (ADR0020)."""
     with open(ANATOMY_LOADS) as file:
         loads = json.load(file)
-    required = {"skull": "pan", "calvaria": "pan", "mandible": "jaw", **{f"c{i}": "fixed" for i in range(1, 8)}}
+    required = set(g.SKULL)  # #874 derives this from its one canonical Bone-output registry
     if (
         not isinstance(loads.get("source"), str)
         or not loads["source"].strip()
-        or not required.keys() <= loads.get("parts", {}).keys()
+        or not required <= loads.get("parts", {}).keys()
     ):
         raise ValueError("finished anatomy loads need their export stamp and every head/cervical part")
     head = stage.horns["tilt horn"].frame
     for stem, load in loads["parts"].items():
         role = load["carrier"]
-        if role not in ("pan", "jaw", "fixed") or required.get(stem, role) != role:
+        if role not in neck.BONE_CARRIERS:
             raise ValueError(f"invalid anatomical carrier for {stem}")
         grams, com, tensor = load["mass_g"], np.asarray(load["com_mm"], float), np.asarray(load["inertia_g_mm2"], float)
         if (
@@ -203,7 +203,7 @@ def anatomy(spec, stage, bodies):
             or not np.allclose(tensor, tensor.T)
         ):
             raise ValueError(f"invalid finished mass properties for {stem}")
-        carrier = neck.HEAD_CARRIERS[role]
+        carrier = neck.BONE_CARRIERS[role]
         matrix = np.linalg.inv(stage.parts[carrier].matrix) @ head
         inertia, axes = np.linalg.eigh(matrix[:3, :3] @ tensor @ matrix[:3, :3].T)
         if min(inertia) <= 0 or 2 * max(inertia) > sum(inertia) * (1 + 1e-8):

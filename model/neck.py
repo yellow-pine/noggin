@@ -40,6 +40,7 @@ HEAD_AXES = {
 }
 HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
+BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
 NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-45.3, -40.3)
 BEARING_Z = (-40.3, -35.3)  # top below the cranium tray's underside; the plate clears the gimbal plane
