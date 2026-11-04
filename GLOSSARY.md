@@ -291,6 +291,12 @@ The committed Blender scene that is the realistic Skeleton's bones' one source: 
 Finish for each, and the Scene Mech they are fitted round (docs/adr/0025).
 _Avoid_: skeleton.blend (the file), the prototype, the bust file
 
+**Review file**:
+Cansin's one local Blender file of the Mech (`just review`, model/review): the Skeleton scene fitted to the Stage 3
+document, in Assembled (Mech, Skeleton and Morty layers, a looping motion), Exploded and Print bed scenes. Never
+committed or published.
+_Avoid_: the Desktop file, the preview
+
 **Scene Mech**:
 The light copy of the Stage 3 Mech saved in the Skeleton scene, so it opens fitted; CI deletes it and fits the bones
 to the Mech it just built.

@@ -234,6 +234,10 @@ blender-site: venv
 rewarp: blender-site
     PYTHONPATH=.blender-site {{BLENDER}} -b --python-use-system-env model/skeleton/skeleton.blend -P model/skeleton/rewarp.py
 
+# Cansin's review file (model/review, #915), ~/Desktop/noggin-stage3.blend or $NOGGIN_REVIEW, then its checks: Assembled with its motion, Exploded and Print bed, finished coarse (1.6 mm, default) or medium (0.8 mm), before adding main's bones beside this checkout's; run it in a branch's worktree to review that branch. Local only, never CI's (so not in the heavy group): it waits for the Blender slot (scripts/heavy.py's lock) itself
+review quality="coarse" before="": venv ours
+    @out=$({{PY}} -c 'from model import review; print(review.OUT)') && BLENDER={{BLENDER}} {{PY}} -m model.review {{quality}} {{before}} && NOGGIN_REVIEW="$out" {{PY}} -m pytest -q model/review
+
 # the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
 model-shards-list: venv
     @{{PY}} -m model.shards
