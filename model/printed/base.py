@@ -43,7 +43,10 @@ def torso(mechanical=False):
         out = out.cut(cq.Workplane("YZ", origin=(px0, 0, 0)).polyline(sunk).close().extrude(px1 - px0))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
     ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
-    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    out = out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    for x, y in nk.CARRIER_FEET:
+        out = out.cut(cyl("z", (x, y, 0), 1.7, (z0, floor)))
+    return out
 
 
 def _ledge(top):
@@ -73,6 +76,13 @@ def lid(mechanical=False):
     out = box((x0 + a, x1 - a), (y0 + a, y1 - a), (z1 - nb.LID_T, z1))
     out = out.cut(cyl("z", (0, y_axis, 0), hole, (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(box((-hole, hole), (y_axis, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
+    # Separate lateral rails pass through the lid; rear slots let it lift off without removing the cervical frame.
+    ys, zs = zip(*nk.CERVICAL_PATH)
+    import numpy as np
+
+    rail_y = float(np.interp(z1 - nb.LID_T, zs, ys))
+    for x in (-16, 16):
+        out = out.cut(box((x - 4, x + 4), (rail_y - 5, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(cyl("z", (*nb.SWITCH_AT, 0), 6.0, (z1 - nb.LID_T - 1, z1 + 1)))  # a finger down to the switch's lever
     if not mechanical:
         inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))
