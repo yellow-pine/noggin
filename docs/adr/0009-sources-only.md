@@ -49,6 +49,9 @@
 > Amended 2026-11-03 (#795): Site Deploy is gone; Checks' last job, `Deploy`, deploys its own run's site artifact on
 > main's push once the gate passed (GitHub's Pages starter workflow), so each github-pages Deployment records the
 > commit built.
+> Amended 2026-11-04 (#894, ADR 0024): the parts and the trajectories are built once before `Render`, which every
+> shard restores from the cache; Blender renders about six stills (the README's three and a poster per Stage), the
+> viewer standing in for every other picture.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

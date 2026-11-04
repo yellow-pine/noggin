@@ -24,6 +24,12 @@
 > Amended 2026-11-03 (#883): a Preset is picked only by the address or the reader (stored); until one is, the pages
 > show the default's and the viewer opens in its own mix, Morty's with Skin shape none: the bare anatomical Skeleton,
 > a Skin switched on Morty's Palette.
+> Amended 2026-11-04 (#894, spec #889): the default Preset is the Default build (slug `default-build`, first, in place
+> of Cansin's build): Skeleton shape mechanical, Skeleton palette black, Skin shape none, Skin palette default. The
+> Skin palette cansin is renamed default, its four PLA Pure colours unchanged; the Skin shape cansin (#813's Shells)
+> keeps its name. The README's stills, the posters, the Site's first visit and every viewer with no Preset picked
+> show the Default build, in place of #883's viewer mix; the Themes page says so once, read from the Model. Black
+> parts render as a lifted charcoal (ADR 0008), the filament's hex unchanged.
 
 The next Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

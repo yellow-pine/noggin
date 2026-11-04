@@ -61,6 +61,14 @@
 > Amended 2026-11-03 (#883): the /viewer page's viewer alone has the bar (Stage, gestures, Explode, the mix); one in
 > a page shows its Stage and motion with no control. With no Preset picked, every viewer opens on the bare realistic
 > Skeleton in the anatomical Palette (ADR 0022).
+> Amended 2026-11-04 (#894, ADR 0024): the embed link gains `view=` (front, side, isometric; the default framing
+> without it) and `part=` (that part alone at full look, every other ghosted). Every embed holds a plain link to its
+> deep link ("Open … in the viewer"), which GitHub shows and the viewer replaces. Every viewer opens on the hero loop
+> in the Default build (ADR 0022), unless its link names a gesture; a Stage with no `hero` clip plays Rest. Every
+> viewer but the /viewer page only rotates (no zoom, no pan: the wheel and a pinch scroll the page past it), with one
+> reset icon, labelled for screen readers, that appears once the reader turned it and brings the camera back to the
+> view it opened on; /viewer keeps its bar, zoom and pan. The black Skeleton's lift (a charcoal whose ramp, highlight
+> and lines still read) is one look number Blender writes into the GLB's extras, so the viewer holds none of its own.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and
