@@ -2,7 +2,8 @@
 the nose and ears) and hair, the eyeball caps with their jagged pupils keyed in, a cover on each lid, the mouth cover on
 the jaw and the shirt's two halves on the Torso. Cansin's (#813), in Rick and Morty style on the same head and Seats:
 his short hair tufted on top over higher temples, straight brows, dot pupils in plugs that fill the caps' jagged seats, a
-toothy smile on the mouth cover, an open jacket's lapels over the tee and aviators hooked on its neckline. seated()
+toothy smile on the mouth cover, an open jacket's lapels over the tee and aviators hooked on its neckline. Bart's
+(#807), on the same Seats: Morty's head with a flat crown, nine spikes on it, and Cansin's dot pupils. seated()
 cuts each Seat into what carries it. Each Shell is drawn in its carrier's frame: the head's, an eye's (the L one's, the R
 its mirror) or the Torso's."""
 
@@ -191,18 +192,19 @@ def _profile(plane, hulls, t, rounded=0.0):
     return cq.Workplane().add(cq.Solid.extrudeLinear(cq.Face.makeFromWires(wire), n * 400).translate(n * -200))
 
 
-def _head(t):
-    """Morty's head (model/skin.py FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
-    swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833).
-    Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
+def _head(t, skin="morty"):
+    """The Skin's head (model/skin.py HEADS, else Morty's) `t` in from its outside (out of it, negative): arcs and
+    lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP
+    (#833). Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
     booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
-    return cq.Workplane().add(_built_head(t).copy())
+    return cq.Workplane().add(_built_head(t, skin if skin in sk.HEADS else "morty").copy())
 
 
 @functools.cache  # every Shell cuts and clips by the same few
-def _built_head(t):
-    side = _profile("YZ", sk.SIDE, t, sk.SIDE_ROUND)
-    return _profile("XZ", [sk.FRONT], t).intersect(side).intersect(_profile("XY", [sk.TOP], t)).val()
+def _built_head(t, skin):
+    front, side, top = sk.HEADS[skin]
+    side = _profile("YZ", side, t, sk.SIDE_ROUND)
+    return _profile("XZ", [front], t).intersect(side).intersect(_profile("XY", [top], t)).val()
 
 
 def _eyes():
@@ -240,13 +242,13 @@ def _hair(grow, skin="morty"):
     return out
 
 
-def _skull(t):
+def _skull(t, skin="morty"):
     """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
     floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
     x, up = sk.NECK
     neck = box((-x, x), (-200, 300), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
     back = box((-200, 200), (sk.BACK_OPEN[0], 300), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
-    out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck).cut(back)
+    out = _head(t, skin).cut(_head(sk.WALL, skin)).cut(_eyes()).cut(neck).cut(back)
     return out.intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
 
 
@@ -274,22 +276,22 @@ def face(skin="morty"):
     """The face (face): the head's shell under the hairline, the nose between the eyes, an ear each side and the
     mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its temples.
     Cansin's: his temples higher, a pocket over each eye for his brow."""
-    out = _skull(0.0).cut(_hair(0.1, skin))
+    out = _skull(0.0, skin).cut(_hair(0.1, skin))
     r, z = NOSE
     out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-r, r), (FACE_Y + sk.WALL, 0), (2 * z, 0))))
     for s in (-1, 1):
-        out = out.union(_ear(s).cut(_head(sk.WALL)))
+        out = out.union(_ear(s).cut(_head(sk.WALL, skin)))
     y0 = sk.HEAD_Y[0]
     out = out.cut(
         box((-24 * sk.GROW, 24 * sk.GROW), (y0 - 11, y0 + 9 * sk.GROW), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6 * sk.GROW))
     )
     for seat in (s for s in sk.SEATS if s.carrier == f"{skin} face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
-        out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0)))
+        out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0, skin)))
     if skin == "cansin":
         for s in "LR":
             out = out.cut(_brow(s, gm.PUPIL_FIT, BROW_SUNK + gm.PUPIL_FIT))
-    return _finish(f"{skin} face", out, _head(0.0))
+    return _finish(f"{skin} face", out, _head(0.0, skin))
 
 
 # Cansin's tufts on top (#813): balls (x, y, z, r) over the hairline's front, the head's top 1.5 mm proud at most
@@ -306,11 +308,28 @@ TUFTS = tuple(
 )
 
 
+# Bart's spikes (#807): nine cones round a ring (centre y, half-width, half-depth) inside his flat crown, each (base
+# radius, height) over the crown's top (inferred)
+SPIKES, SPIKE = sk.grown(36.5, 40.0, 22.0), sk.grown(8.0, 18.0)
+
+
+def _spikes():
+    y, a, b = SPIKES
+    r, h = SPIKE
+    top = sk.HEAD_Z[1] - sk.WALL  # each base in the crown's wall, so it fuses with it and stays out of the head
+    at = [cq.Vector(a * math.sin(2 * math.pi * k / 9), y - b * math.cos(2 * math.pi * k / 9), top) for k in range(9)]
+    cones = (cq.Workplane().add(cq.Solid.makeCone(r, 0.0, h + sk.WALL, p, cq.Vector(0, 0, 1))) for p in at)
+    return functools.reduce(lambda u, c: u.union(c), cones)
+
+
 def hair(skin="morty"):
     """The hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto the
     gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples.
-    Cansin's: short, his temples higher, tufted on top (TUFTS)."""
-    out = _skull(-sk.HAIR).intersect(_hair(-0.1, skin))
+    Cansin's: short, his temples higher, tufted on top (TUFTS). Bart's (#807): his crown, flush with his face, its
+    spikes on."""
+    out = _skull(0.0 if skin == "bart" else -sk.HAIR, skin).intersect(_hair(-0.1, skin))
+    if skin == "bart":
+        out = out.union(_spikes())
     if skin == "cansin":
         face = _head(0.0).cut(_hair(-0.1, skin))  # the face's, under the hairline
         top = box((-200, 200), (-200, 200), (-200, sk.HEAD_Z[1] + sk.HAIR))
@@ -319,8 +338,8 @@ def hair(skin="morty"):
     for seat in (s for s in sk.SEATS if s.shell == f"{skin} hair" and s.carrier == "gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
-        out = out.union(web.intersect(_head(0.0)))
-    return _finish(f"{skin} hair", out, _head(0.0))
+        out = out.union(web.intersect(_head(0.0, skin)))
+    return _finish(f"{skin} hair", out, _head(0.0, skin))
 
 
 def mouth_cover(skin="morty"):

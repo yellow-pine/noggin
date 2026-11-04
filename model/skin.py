@@ -96,6 +96,17 @@ SIDE = (
 )
 SIDE_ROUND = 25.0 * GROW
 TOP = tuple(grown(*c) for c in ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0)))
+# Bart's head (#807): Morty's with a flat crown, from the front square at its top corners and from the side level over
+# the cranium, so it holds all of Morty's in the same box (whatever clears his Shells clears Bart's); his spikes stand
+# on the crown (model/printed/skin.py SPIKE). Every other Skin's head is Morty's
+HEADS = {
+    "morty": (FRONT, SIDE, TOP),
+    "bart": (
+        (grown(-48.5, 48.0, 20.0), grown(48.5, 48.0, 20.0), *FRONT[1:]),
+        ((grown(5.0, 48.0, 20.0), grown(68.0, 48.0, 20.0), *SIDE[0]), SIDE[1]),
+        TOP,
+    ),
+}
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
 HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
@@ -189,6 +200,7 @@ SUNGLASSES = (0.0, -131.0)  # (x, z) on the shirt front: Cansin's aviators hooke
 SEATS += [
     *_seats("morty"),
     *_seats("cansin"),
+    *_seats("bart"),
     # the sunglasses' bridge on the shirt front's neckline, the shirt thickened behind it
     Seat(
         "cansin sunglasses",
@@ -207,7 +219,10 @@ GLUED = {f"morty {s} pupil": (f"{s} eyeball cap", _OUT) for s in "LR"} | {
     **{f"cansin {s} pupil": (f"cansin {s} pupil plug", _OUT) for s in "LR"},  # a dot in its plug
     **{f"cansin {s} brow": ("cansin face", _OUT) for s in "LR"},
     "cansin teeth": ("cansin mouth cover", _OUT),
+    **{f"bart {s} pupil plug": (f"{s} eyeball cap", _OUT) for s in "LR"},  # Cansin's plug and dot (#807)
+    **{f"bart {s} pupil": (f"bart {s} pupil plug", _OUT) for s in "LR"},
 }
+DOTTED = ("cansin", "bart")  # the Skins whose pupils are dots in plugs
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
 DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.items()}  # each Shell's Assembly
 # direction, in its carrier's frame

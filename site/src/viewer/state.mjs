@@ -22,14 +22,10 @@ export function glb(stage, shape, skin) {
   return published.viewer.includes(`${bare}.glb`) ? bare : bones;
 }
 
-// the viewer's own mix, where no Preset is picked: the Default build (#889), the first Preset's with Skin shape none
-// (its first), so a Skin switched on is the default Skin palette
-const OWN = { ...Object.values(PRESETS)[0], "skin-shape": AXES["skin-shape"][0] };
-
-// the viewer's mix (#819): the picked Preset's value on each axis (src/theme.mjs), else its own, unless the address
-// names another (?skeleton-palette=black)
+// the viewer's mix (#819): the picked Preset's value on each axis (src/theme.mjs), else the Default build's (#889: no
+// Skin), unless the address names another (?skeleton-palette=black)
 export function mixed(search, preset) {
-  const link = new URLSearchParams(search), from = PRESETS[preset] ?? OWN;
+  const link = new URLSearchParams(search), from = PRESETS[preset] ?? Object.values(PRESETS)[0];
   return Object.fromEntries(
     Object.entries(AXES).map(([a, values]) => [a, values.includes(link.get(a)) ? link.get(a) : from[a]]),
   );

@@ -81,20 +81,21 @@ test("a GLB's name is its Stage's as Bones and its Skeleton shape's suffix (#805
 test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a Skin draws as it is (#876)", () => {
   expect(glb("mech-back", "realistic", "none")).toBe("mech-back-bare");
   expect(glb("mech-back", "mechanical", "none")).toBe("mech-back-mechanical-bare");
-  expect(glb("mech-back", "realistic", "bart")).toBe("mech-back");
+  expect(glb("mech-back", "realistic", "morty")).toBe("mech-back");
   expect(glb("stage2", "mechanical", "none")).toBe("stage2-mechanical");
 });
 
 test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape's suffix (#813)", () => {
   expect(glb("mech-back", "mechanical", "cansin")).toBe("mech-back-mechanical-cansin");
   expect(glb("mech-back", "realistic", "cansin")).toBe("mech-back-cansin");
+  expect(glb("mech-back", "realistic", "bart")).toBe("mech-back-bart");  // #807
   expect(glb("mech-back", "realistic", "morty")).toBe("mech-back");
   expect(glb("stage1", "realistic", "cansin")).toBe("stage1");
 });
 
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {
   expect(mixed("", "default-build")).toEqual({
-    "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "cansin", "skin-palette": "default",
+    "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none", "skin-palette": "default",
   });
   const mix = mixed("?preset=morty&skeleton-palette=black&skin-palette=lisa", "morty");
   expect(mix).toEqual({ "skeleton-shape": "realistic", "skeleton-palette": "black", "skin-shape": "morty", "skin-palette": "morty" });

@@ -36,7 +36,7 @@ def test_the_horn_seats_on_the_spline_and_pins_its_bar_at_the_second_hole_from_t
 DEFAULT_BUILD = {
     "Skeleton shape": "mechanical",
     "Skeleton palette": "black",
-    "Skin shape": "cansin",
+    "Skin shape": "none",  # no Skin (#889, #938)
     "Skin palette": "default",
 }
 MORTY = {
@@ -92,10 +92,11 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
 def test_stage_3_is_drawn_in_each_skin_shape_with_shells_after_its_skeleton_shape():
     """#813: Morty's Shells are the documents' own; each other Skin shape drawn wears its own Shells for his on Stage 3,
     under -<shape> after the Skeleton's suffix, as the viewer names its GLB (site/src/viewer/state.mjs glb)."""
-    assert list(g.DRESSED) == ["mech-back-cansin", "mech-back-mechanical-cansin"]
+    assert sorted(g.DRESSED) == sorted(f"mech-back{s}-{k}" for k in ("bart", "cansin") for s in ("", "-mechanical"))
     assert "cansin" in g.DRESSED["mech-back-cansin"] and "morty" not in g.DRESSED["mech-back-cansin"]
     assert g.shape("mech-back-mechanical-cansin") == "mechanical" and g.shape("mech-back-cansin") == "realistic"
     assert g.undressed("mech-back-mechanical-cansin") == "mech-back-mechanical"
     assert g.dressed("mech-back-mechanical", "cansin") == "mech-back-mechanical-cansin"
-    assert g.dressed("mech-back", "bart") == g.dressed("mech-back", "none") == "mech-back"
+    assert g.dressed("mech-back", "bart") == "mech-back-bart"  # #807
+    assert g.dressed("mech-back", "none") == "mech-back"
     assert g.dressed("stage2", "cansin") == "stage2"  # no Skin before Stage 3

@@ -117,7 +117,7 @@ THEMES = {
 PRESETS = {
     name: dict(zip(THEMES, axes, strict=True))
     for name, axes in {
-        "Default build": ("mechanical", "black", "cansin", "default"),
+        "Default build": ("mechanical", "black", SKINLESS, "default"),  # no Skin, the default Skin palette (#889)
         "Morty": ("realistic", "anatomical", "morty", "morty"),
         "Bart": ("realistic", "anatomical", "bart", "bart"),
     }.items()
@@ -183,8 +183,9 @@ PRINTED = {
     "R eyeball cap": ("eye whites", "PLA Pure"),
 }
 # The Skin shapes drawn so far (model/skin.py, model/printed/skin.py), each its sub-assembly: Morty's (#665) the
-# documents' own, the eyeball caps above his too; Cansin's (#813) on the same Seats. Each one's Shells by Colour group
-SKINS = {"morty": "morty", "cansin": "cansin"}
+# documents' own, the eyeball caps above his too; Cansin's (#813) and Bart's (#807) on the same Seats. Each one's Shells
+# by Colour group
+SKINS = {"morty": "morty", "cansin": "cansin", "bart": "bart"}
 _LIDS = tuple(f"{s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower"))
 _SHELLS = {
     "morty": {
@@ -200,6 +201,13 @@ _SHELLS = {
         "eye whites": ("L pupil plug", "R pupil plug", "teeth"),
         "clothes": ("shirt front", "shirt back"),  # the jacket over the tee, its lapels on the front
         "accessories": ("sunglasses",),  # aviators hooked on the tee's neckline
+    },
+    "bart": {
+        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
+        "hair": ("hair",),  # his crown, the spikes on it
+        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat, as Cansin's
+        "eye whites": ("L pupil plug", "R pupil plug"),
+        "clothes": ("shirt front", "shirt back"),
     },
 }
 PRINTED |= {
