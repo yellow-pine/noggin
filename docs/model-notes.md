@@ -3,9 +3,8 @@
 Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); structure: docs/adr/0004.
 
 ## Rendering rules (2026-10-31, #47)
-- The Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` shards render its two panels
-  and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py part_files,
-  `just pictures all`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
+- The Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` (one job since #898, its
+  parts and trajectories built once) renders its six stills (`just pictures all`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
   document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,
   from main. No PR preview (#673).
 - Stills alone (Cansin, 2026-11-03, #839): Blender renders no motion, no animated WebP or GIF (the eye gimbal's
@@ -14,7 +13,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   Preset.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
-  the panels (each Stage in each Preset at rest, a trajectory's first frame, #819);
+  the six stills (#898: the front doors and a poster per Stage);
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468, #839).
 - Parts carry their Colour group's filament colour in the Preset's Palettes (#805, #819, docs/adr/0022: model/geometry.py
@@ -41,17 +40,17 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Every picture is one WebP with a transparent background, its lines one mid grey (blender.py INK) that reads on the
   site's light and dark pages alike (Cansin, #470, #489: white lines on the dark theme read badly; of three greys
   she took the darkest). No backdrop, disc or tint behind the Mech.
-- Panels (Cansin, #470): each document from its left side (+X) and isometric from its front left (+X, -Y, +Z),
-  orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
-  VIEWS, PANELS); Pictures shows them in one grid (macros.py stage_panels): a column per Stage, a row per view, each
-  linking to its file; on a phone stacked by document.
+- Six stills alone (Cansin, 2026-11-04, #889, #898): the front doors below and a poster per Stage (pictures.py
+  POSTERS: each Stage at rest in the default Preset, isometric from its front left (+X, -Y, +Z), orthographic, the three
+  at one scale on one ground line, framed tight to the largest silhouette, a viewer's still until it loads). Every
+  other picture is a viewer embed (macros.py viewers): Pictures shows each Stage from the side (+X), isometric and at
+  Explode's Parts level (stage_views), and each part alone, the rest ghosted (part_pictures).
 - The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, in the
   default Preset, the Default build (#819), whichever Preset is picked, its mechanism bare of every Shell until a finished
   Skin exists (Cansin, 2026-11-03, #843: pictures.py bare): Stage 1 from the front, Stage 3 isometric and Stage 3 from
-  the side, exploded by the viewer's offsets (pictures.py FRONT, EXPLODE), each framed tight on its own at the panels'
+  the side, exploded by the viewer's offsets (pictures.py FRONT, EXPLODE), each framed tight on its own at the posters'
   size and also on Pictures.
-- Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Preset isometric with every
-  part apart, framed tight on its own at the panels' size (pictures.py parts_exploded): each part on its sub-assembly's
+- Explode's Parts level (Cansin, 2026-11-03, #811): the viewer's `explode=2`, each part on its sub-assembly's
   offset (EXPLODE) slid out along its Assembly direction (pictures.py directions: a servo and its horn along the shaft,
   a part on a pivot or rod joint along its axis away from the Stage's middle, a board or the pack off its seat) until
   its bounding box is GAP clear of its own and of every part placed before it, the largest first (pictures.py offsets,
