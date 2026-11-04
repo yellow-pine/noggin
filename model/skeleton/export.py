@@ -74,7 +74,10 @@ def swap(job, ratio=None):
             meshes[path].name = os.path.basename(path).removesuffix(".stl")
     frame = Matrix.Translation(job["frame"])
     corners = {path: _corners(me) for path, me in meshes.items()}
+    selected = next((b for b, w in job["worn"].items() if w == job.get("only")), job.get("only"))
     for bone, kinds in job["bones"].items():
+        if selected is not None and bone != selected:
+            continue
         if "parts" in job:
             group = bpy.data.collections[job["parts"][bone]["source"]]
             dg = bpy.context.evaluated_depsgraph_get()
@@ -151,6 +154,11 @@ def numbers(job):
         mod = o.modifiers["Finish"]
         for key, value in job["numbers"].items():
             getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
+    if "bone_parts" in bpy.context.scene:
+        import adopt
+
+        bpy.context.scene["bone_finish_numbers"] = json.dumps(job["numbers"])
+        adopt.refresh()  # quality changes also change the cutter's required voxel/filter support
 
 
 def _stl(path, me):
@@ -170,9 +178,17 @@ def _stl(path, me):
 def write(job):
     """Each finished bone's STL in job["out"], moved from the document's frame into the head's."""
     outputs = list(bpy.data.collections[FINISHED].objects)
+    if "only" in job:
+        assert job["only"] in {o.name.removeprefix("finished ") for o in outputs}, "Unknown finished Bone"
     for o in outputs:
         for mod in o.modifiers:
             mod.show_viewport = False
+    if "only" in job:
+        # A single-output worker needs the actual retained cutters, not the
+        # full-resolution rest display or unrelated STL data in its depsgraph.
+        # The authored source keeps its light Scene Mech; this worker is not saved.
+        _empty(collection(MECH))
+        bpy.data.orphans_purge(do_recursive=True)
     back = Matrix.Translation(-Vector(job["frame"]))
     for o in outputs:
         stem = o.name.removeprefix("finished ")
@@ -182,6 +198,8 @@ def write(job):
             mod.show_viewport = True
         dg = bpy.context.evaluated_depsgraph_get()
         me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+        errors = [w.message for w in o.modifiers["Finish"].node_warnings if w.type == "ERROR"]
+        assert not errors, f"{stem}: live Finish errors: {errors}"
         assert len(me.polygons), f"{stem}: live Finish produced an empty mesh"
         me.transform(back @ o.matrix_world)
         _stl(os.path.join(job["out"], stem + ".stl"), me)

@@ -289,7 +289,6 @@ def adopt(job):
     bpy.context.scene["bone_parts"] = json.dumps(parts)
     bpy.context.scene["bone_finish_numbers"] = json.dumps(job["numbers"])
     export.numbers(job)
-    refresh()
     if "rewarp.py" in bpy.data.texts:
         bpy.data.texts.remove(bpy.data.texts["rewarp.py"])
     note = bpy.data.texts.get("Warp workflow") or bpy.data.texts.new("Warp workflow")
