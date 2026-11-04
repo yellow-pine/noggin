@@ -18,7 +18,7 @@ after its licence is checked (CLAUDE.md).
 
 ## Considered Options
 
-- Our own clean-room skull (#51's rule for the rest of the next Mech): no licence of others' in the repo, but no
+- Our own clean-room skull (#51's rule for the rest of the Mech): no licence of others' in the repo, but no
   anatomy we could draw to the standard a printed skull is judged by.
 - Keep the sources local only, like the designer's files (`docs/references/`): CI builds every output from sources in
   git (ADR 0009), so the carved bones could not be built.

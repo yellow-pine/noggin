@@ -3,7 +3,7 @@ posed from its baked trajectories (model/trajectories.py, `just trajectories`): 
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 Six stills alone (#898): the front doors (FRONT, #739: the README's three) and a poster per Stage (POSTERS: each at
 rest, a trajectory's first frame, isometric in the default Preset, framed among themselves); the viewer stands in for
-every other picture (#839, #898). `views` (`just render`) renders them; `site next` (`just pictures next`, Checks'
+every other picture (#839, #898). `views` (`just render`) renders them; `site next` (`just pictures all`, Checks'
 Render) also copies them where the site serves them from, model/build/images (#649).
 Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
 
@@ -29,7 +29,7 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # at one scale on one ground line, framed tight: the largest one's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
 # the pictures per Preset alone (#819): {name: (document, Preset)}, each Stage in the Preset's Skeleton shape painted in
-# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (next-stage1-morty)
+# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (stage1-morty)
 SUFFIX = {p: f"-{g.slug(p)}" if i else "" for i, p in enumerate(g.PRESETS)}
 BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # the Stages in order, as Bones
 DRAWN = {  # each Stage in each Preset's Skeleton shape, Stage 3 in its Skin shape where that is drawn (#813)
@@ -40,21 +40,21 @@ DRAWN = {  # each Stage in each Preset's Skeleton shape, Stage 3 in its Skin sha
 PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
-# the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
+# the web viewer's exploded Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
 # the neck (or Stage 1's stand), the jaw forward, the cranium's boards up out of the head (#858)
 EXPLODE = {
-    "next-base": (0, 0, 0),
-    "next-stand": (0, 0, 0),
-    "next-neck": (0, 0, 45),
-    "next-jaw": (0, -40, 45),
-    "next-eyes": (0, 0, 95),
-    "next-cranium": (0, 0, 160),
+    "base": (0, 0, 0),
+    "stand": (0, 0, 0),
+    "neck": (0, 0, 45),
+    "jaw": (0, -40, 45),
+    "eyes": (0, 0, 95),
+    "cranium": (0, 0, 160),
     **dict.fromkeys(g.SKINS.values(), (0, 0, 0)),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
 # Shield off its pins' side (BOARDS: up off the cranium tray, #858, or off the test stand's face), the hub up off its
-# riser, the switch board, the power-path board and the pack up off the Torso's floor (stages.next_base)
+# riser, the switch board, the power-path board and the pack up off the Torso's floor (stages.base_sub)
 GAP = 5.0
 SEATS = {
     "switch": g.Z,
@@ -62,7 +62,7 @@ SEATS = {
     "power": g.Z,
     "hub": g.Z,
     "capacitor": g.Z,
-    "next torso lid": g.Z,
+    "torso lid": g.Z,
 } | skin.DIRECTIONS  # a Shell off its Seats; the lid up
 # out of the Torso's walls (#838)
 BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
@@ -70,14 +70,14 @@ BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (mo
 # its mechanism without a Skin (bare) until a finished Skin exists (#843): Stage 1 from the front, its eyes facing
 # the camera; Stage 3 isometric; Stage 3 from the side, exploded (EXPLODE); each (DRAWN's name, eye direction,
 # exploded), framed tight on its own at the posters' size
-STAGE1, STAGE3 = BONY[0], next(iter(g.NEXT))
+STAGE1, STAGE3 = BONY[0], next(iter(g.MECH))
 FRONT = {
     f"{STAGE1}-front.webp": (STAGE1, (0, -1, 0), False),
     f"{STAGE3}-bare-isometric.webp": (STAGE3, VIEWS["isometric"][0], False),
     f"{STAGE3}-side-exploded.webp": (STAGE3, VIEWS["side"][0], True),
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
-NEXT = "next"
+ALL = "all"
 
 
 def picture(name, view):
@@ -305,9 +305,10 @@ def main(what, names):
     os.makedirs(OUT, exist_ok=True)
     if what == "views":
         views()
-    elif what == "site" and set(names) <= {NEXT}:
+    elif what == "site" and set(names) <= {ALL}:
         views()
-        os.makedirs(IMAGES, exist_ok=True)
+        shutil.rmtree(IMAGES, ignore_errors=True)  # what an older run left would land on the site's, as web/build.py
+        os.makedirs(IMAGES)
         for f in published():
             shutil.copy(os.path.join(OUT, f), IMAGES)
     else:

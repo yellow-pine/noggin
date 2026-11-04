@@ -1,4 +1,4 @@
-"""The next Mech's eye gimbal (#630) as CadQuery parts, every size from model/gimbal.py (its frame and its design).
+"""The Mech's eye gimbal (#630) as CadQuery parts, every size from model/gimbal.py (its frame and its design).
 Parts at one eye are drawn about the L eye's centre (the R one's mirror where it differs); the rest in the gimbal's
 frame. Bores take the busy pivots' M3 steel shanks; each push-rod's cups close on a ball under its equator."""
 
@@ -393,27 +393,27 @@ def _moved(shape, m):
 
 
 def at_rest(mechanical=False):
-    """{next-eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
+    """{eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
     shank from the frame's upright through the lid's boss); `mechanical`: the Skeleton mechanical (#704)."""
     from model import stages
     from model.printed import PARTS, styled  # here: model.printed imports this module
 
     out = {}
-    for name, p in stages.next_eyes().parts.items():
+    for name, p in stages.eyes_sub().parts.items():
         stem = styled(stages.stem(p.file), mechanical)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
     for s, sign in (("L", 1), ("R", -1)):
         x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["upper boss"][0] + 2, gm.LID_X["upright"][1]))
-        out[f"next {s} lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], x).val()
+        out[f"{s} lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], x).val()
     return out
 
 
 # the parts moved() carries by a pin on another moving part: each turns on that part's pin
 COUPLED = {
-    **{f"next {s} lid bar:1": f"next {s} lid horn:1" for s in "LR"},
-    **{f"next {s} lid link:1": f"next {s} lid bar:1" for s in "LR"},
-    **{f"next {s} push-rod:1": "next bail:1" for s in "LR"},
-    "next pitch bar:1": "next pitch horn:1",
+    **{f"{s} lid bar:1": f"{s} lid horn:1" for s in "LR"},
+    **{f"{s} lid link:1": f"{s} lid bar:1" for s in "LR"},
+    **{f"{s} push-rod:1": "bail:1" for s in "LR"},
+    "pitch bar:1": "pitch horn:1",
 }
 
 
@@ -487,8 +487,8 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     touches."""
     rest = at_rest(mechanical=True)
     names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1", "lid shank")
-    drives = [f"next {s} {n}" for s in "LR" for n in names]
-    spline = {(f"next {s} lid horn:1", f"next {s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
+    drives = [f"{s} {n}" for s in "LR" for n in names]
+    spline = {(f"{s} lid horn:1", f"{s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
     near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < gm.LID_CLEAR_MM > rest[a].distance(rest[b])}
     lids, pitches = (

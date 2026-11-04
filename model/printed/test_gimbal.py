@@ -1,4 +1,4 @@
-"""Seam: the next Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
+"""Seam: the Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
 shank beside them: no two overlap."""
 
 import itertools
@@ -15,7 +15,7 @@ from model import gimbal as gm
 from model.printed import bone, gimbal
 
 # a horn's hub on its servo's spline: the Envelopes overlap there by design
-ON_SPLINE = {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in gm.drives()}
+ON_SPLINE = {frozenset((f"{d} servo:1", f"{d} horn:1")) for d in gm.drives()}
 
 
 GROW_MM = 0.1  # a box read off the tessellation can fall short of a curved face: grown, it misses no touching pair
@@ -135,7 +135,7 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
     """SF 2 (beams.MIN_SF) in PETG across its layers along its waist, pinned at both joints: on its strength and against
     Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809)."""
     solid = (gimbal.tie_bar if part == "tie-bar" else gimbal.push_rod)(mechanical=True).val()
-    mat = g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    mat = g.MATERIALS[g.PRINTED[part][1]]
     force = beams.stall_force_n() * load
     area, least = min(_section(solid, a, b, t) for t in (0.3, 0.4, 0.5, 0.6, 0.7))
     assert mat["tensile_mpa"]["z"] * area / force >= beams.MIN_SF
@@ -278,7 +278,7 @@ def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
     half-width), and the straight link against Euler buckling. On the mechanical part, which its Bone is carved from
     (#809)."""
     make, joints = LID_BONES[part]
-    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[part][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):

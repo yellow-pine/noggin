@@ -5,13 +5,13 @@ behaviour: the table of which event plays what (noggin/install_hooks.py, reactio
 landing page and docs/use/gestures.md.
 pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures.py and blender.py, geometry.py,
 mjcf.py). themes: docs/face-design.md's Palettes, each Colour group's filament (geometry.py THEMES, #805, #819).
-next_views: each of the next Mech's Stages in the viewer, from the side, isometric and apart (#898), next_motions: it
-in motion, a viewer per motion (#839), and next_parts: each of its parts alone in the viewer, on docs/pictures.md
-(#649, #898), next_front: the front doors' three there; stand_in: the line under the pictures of a Preset
+stage_views: each of the Mech's Stages in the viewer, from the side, isometric and apart (#898), motions: it
+in motion, a viewer per motion (#839), and part_pictures: each of its parts alone in the viewer, on docs/pictures.md
+(#649, #898), front_views: the front doors' three there; stand_in: the line under the pictures of a Preset
 whose Skin stands in (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739); hero: its large Stage 3
 viewer on the hero loop (#889).
-published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
+published: the pictures and the GLBs the site serves, the Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeleton shapes.
 theme: the header's Theme bar, the Presets, and the viewer's mix of Shapes and Palettes (site/src/theme.mjs, #806,
 #819); filaments: the buy list's, per Preset (docs/build/parts.md), shown, as every Preset's pictures and the Stages'
@@ -19,7 +19,7 @@ print tables, for the Preset picked.
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
 (model/stages.py, geometry.py STAGES and PRINTED, #721).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
-eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py next_neck).
+eyes/calibration.json, the Mech's neck for the neck Core: model/stages.py neck_sub).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
 workflows: docs/ci-cd.md's table of .github/workflows (scripts/workflow_table.py, #425).
 coupon: docs/build/tests.md's clearance coupon, its fits (model/printed/coupon.py).
@@ -160,7 +160,7 @@ def themes():
     parts = {}
     for name, (group, _) in g.PRINTED.items():
         if not name.endswith(g.MECHANICAL):
-            parts.setdefault(group, []).append(name.removeprefix("next "))
+            parts.setdefault(group, []).append(name)
     rows = ["| Category | Palette | Colour group | Parts | Filament | Hex |", "|---|---|---|---|---|---|"]
     for category, values in palettes():
         for value, groups in values.items():
@@ -213,7 +213,7 @@ def viewers(cells):
     return f'<div class="noggin-views not-content">{figs}</div>'
 
 
-def next_views():
+def stage_views():
     """Each Stage in the viewer (#898, for the panels and Explode's Parts level, #811): from the side, isometric and
     with every part apart."""
     how = (("view=side", ", from the side"), ("view=isometric", ""), ("explode=2", ", its parts apart"))
@@ -256,13 +256,13 @@ def front_labels():
     return dict(zip(pictures.FRONT, [f"{one}, from the front", three, f"{three}, exploded"], strict=True))
 
 
-def next_front():
+def front_views():
     """The front doors' three (model/render/pictures.py FRONT, #739), beside the viewers on Pictures."""
     return figures(front_labels(), "views")
 
 
-def next_motions():
-    """The next Mech in motion (#839): a web viewer of Stage 1, the eye block, per motion it plays
+def motions():
+    """The Mech in motion (#839): a web viewer of Stage 1, the eye block, per motion it plays
     (model/trajectories.py motions: its gestures and Rest), each repeating it (its data-link,
     site/src/viewer/viewer.mjs), with no control (#883), in the Preset the header's bar picks; its still until it is
     scrolled into view, the Stage's poster (model/render/pictures.py POSTERS)."""
@@ -295,8 +295,8 @@ def hero():
     return embed(pictures.STAGE3, "view=isometric", img, "hero").replace(" data-link", " data-tap data-link", 1)
 
 
-def next_parts():
-    """Each part of the next Mech in the viewer (#898): one per mesh, in the first Stage it is in, that part at full
+def part_pictures():
+    """Each part of the Mech in the viewer (#898): one per mesh, in the first Stage it is in, that part at full
     look and the rest ghosted (part=), isometric, under its name; one only some Presets draw (the skull's bones, a
     Skin's Shells, #813) shown for them alone (#806, #819)."""
     cells, seen = [], set()
@@ -312,7 +312,7 @@ def next_parts():
                 seen.add(stem)
                 presets = [ps for ps, dd in drawn.items() if name in stages.STAGES[dd].parts]
                 part = name.rsplit(":", 1)[0].replace(" ", "+")
-                label = HARDWARE.get(stem, stem.removeprefix("next "))
+                label = HARDWARE.get(stem, stem)
                 cells.append((d, f"part={part}&view=isometric", label, presets if len(presets) < len(drawn) else None))
     return viewers(cells)
 
@@ -332,26 +332,24 @@ HARDWARE = {
 def stage_guides():
     """Per Stage ("1" to "3", the Bony documents): the parts it adds to the Stage before it (and any it takes off), each
     printed in its Colour group's filament under each Preset, shown for the Preset picked (#806, #819), or bought, and
-    its new servos with their Core (the eyes Core's are the eye gimbal's horns, model/stages.py next_eyes) and the
+    its new servos with their Core (the eyes Core's are the eye gimbal's horns, model/stages.py eyes_sub) and the
     model's range, from neutral 90 as wiring() gives them."""
     made = {name: f"{group}: {filament(group)}" for name, (group, _) in g.PRINTED.items()}
-    eyes = set(stages.SUBS["next-eyes"]().horns)
+    eyes = set(stages.SUBS["eyes"]().horns)
     parts, servos, before, horns = {}, {}, Counter(), set()
     for n, doc in enumerate(BONY, 1):
         d = stages.STAGES[doc]
         now = Counter(stages.stem(p.file) for p in d.parts.values())
-        added = [
-            (HARDWARE.get(s, s.removeprefix("next ")), k, made.get(s, "bought")) for s, k in (now - before).items()
-        ]
+        added = [(HARDWARE.get(s, s), k, made.get(s, "bought")) for s, k in (now - before).items()]
         rows = ["| Part | Count | Printed in |", "|---|---|---|"]
         rows += [f"| {name} | {k} | {m} |" for name, k, m in sorted(added, key=lambda r: r[0].lower())]
-        gone = sorted(s.removeprefix("next ") for s in before - now)
+        gone = sorted(s for s in before - now)
         parts[str(n)] = "\n".join(rows + ([f"\nIt takes off: {', '.join(gone)}."] if gone else []))
         rows = ["| Core | Servo | The model's range |", "|---|---|---|"]
         for name, horn in d.horns.items():
             if name not in horns:
                 lo, hi = (round(90 + a, 1) for a in horn.limits)
-                servo = name.removeprefix("next ").removesuffix(" horn")
+                servo = name.removesuffix(" horn")
                 rows.append(f"| {'eyes' if name in eyes else 'neck'} | {servo} | {lo:g}..{hi:g} |")
         servos[str(n)], before, horns = "\n".join(rows), now, set(d.horns)
     return parts, servos
@@ -359,10 +357,10 @@ def stage_guides():
 
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
-    shared lid frame, the eyes resting centred between their ends), the neck's the next Mech's neck's limits (its horns
+    shared lid frame, the eyes resting centred between their ends), the neck's the Mech's neck's limits (its horns
     from neutral, 90) and that neutral."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
-    neck = stages.next_neck().horns | stages.next_jaw().horns
+    neck = stages.neck_sub().horns | stages.jaw_sub().horns
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
     for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
         for port, servo in ports.items():
@@ -391,7 +389,7 @@ def coupon():
     return "\n".join(rows)
 
 
-RANKING = ROOT / "model" / "build" / "reports" / "next-mech-ranking.json"  # just sim's (model/report.py, base.rank)
+RANKING = ROOT / "model" / "build" / "reports" / "mech-ranking.json"  # just sim's (model/report.py, base.rank)
 
 
 def stage_switch():
@@ -401,11 +399,11 @@ def stage_switch():
     (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shapes', where a
     Stage has their GLB: none's bare (#876), each other drawn one's dressed (#813)."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
-    ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
+    ranked = set(ranking.get("order", [])) == {d for d in g.MECH if d in g.SIMULATED}
     buttons = []
     for n, doc in enumerate(BONY, 1):
         mechanical = doc + g.SKELETON_SUFFIX["mechanical"]
-        fails = ranking["variants"][mechanical]["fails"] if ranked and mechanical in g.NEXT else []
+        fails = ranking["variants"][mechanical]["fails"] if ranked and mechanical in g.MECH else []
         buttons.append(
             {
                 "glb": viewer.PUBLIC[doc].removesuffix(".glb"),
@@ -453,12 +451,12 @@ def numbers():
         "filaments": filaments(),
         "theme": theme(),  # the header's bar and the viewer's mix (#806, #819)
         "stand_in": stand_in(),
-        "next_views": next_views(),
-        "next_front": next_front(),
+        "stage_views": stage_views(),
+        "front_views": front_views(),
         "front": front(),
-        "next_motions": next_motions(),
+        "motions": motions(),
         "hero": hero(),
-        "next_parts": next_parts(),
+        "part_pictures": part_pictures(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},
         "stage_parts": (guides := stage_guides())[0],
         "stage_servos": guides[1],

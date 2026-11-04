@@ -1,4 +1,4 @@
-# Mechanical engineering for the next Mech: linkages, the neck, flexures, magnets, tip-over
+# Mechanical engineering for the Mech: linkages, the neck, flexures, magnets, tip-over
 
 Researched 2026-11-02. Purpose: test #51's mechanism decisions against the mechanical-engineering literature, inside the fixed limits: seven PG001 servos, two Cores and Shields, one 2S pack, no imported part designs, PLA Pure cosmetics and black PETG skeleton, Morty and Bart as magnet-held shells on one skeleton.
 

@@ -35,7 +35,7 @@
 > land without waiting for a base-image bump (ADR 0012).
 > Amended 2026-11-02 (#547): commands now `just`, ADR 0016.
 > Amended 2026-11-02 (#640, ADR 0019): CI builds no picture or GLB and the site serves none until the clean-room Mech.
-> Amended 2026-11-02 (#649, ADR 0019): CI builds the Next Mech's pictures and GLB, and the site serves them.
+> Amended 2026-11-02 (#649, ADR 0019): CI builds the Mech's pictures and GLB, and the site serves them.
 > Amended 2026-11-02 (#696, Cansin): a PR's Checks run only Code (`just check-light`) and Site (the build and its HTML
 > tests); the model, sim, Blender and Convex and the site's Chrome smoke build on main alone, which fixes forward.
 > Amended 2026-11-02 (#714, Cansin): a PR's Checks run only Code (`just check-light`: ruff, pyright, the fast tests);

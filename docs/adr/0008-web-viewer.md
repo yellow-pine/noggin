@@ -29,17 +29,17 @@
 > Amended 2026-11-02 (#547): "Built in CI" describes the Checks workflow and Site Deploy, not the Pages workflow.
 > Amended 2026-11-02 (#640, ADR 0019): the viewer is off the site and CI bakes no GLB until the clean-room Mech;
 > `just web` bakes them locally.
-> Amended 2026-11-02 (#649, ADR 0019): the viewer is back on the site at /viewer/ for the Next Mech alone
-> (`next-mech.glb`, baked by Checks' `Blender` job); it is still, so its GLB has no clips and the page no gesture bar.
-> Amended 2026-11-02 (#642): a GLB per Base candidate (`next-mech-a.glb`, `next-mech-b.glb`), one viewer each.
-> Amended 2026-11-02 (#686): a GLB per head variant (`next-mech-back.glb`, `-crown`, `-split`) in their place, its
+> Amended 2026-11-02 (#649, ADR 0019): the viewer is back on the site at /viewer/ for the Mech alone
+> (`mech.glb`, baked by Checks' `Blender` job); it is still, so its GLB has no clips and the page no gesture bar.
+> Amended 2026-11-02 (#642): a GLB per Base candidate (`mech-a.glb`, `mech-b.glb`), one viewer each.
+> Amended 2026-11-02 (#686): a GLB per head variant (`mech-back.glb`, `-crown`, `-split`) in their place, its
 > button in the ranking's order, marked with what it fails.
-> Amended 2026-11-02 (#712): Back alone (`next-mech-back.glb`), Cansin's pick; its one button keeps the ranking's
+> Amended 2026-11-02 (#712): Back alone (`mech-back.glb`), Cansin's pick; its one button keeps the ranking's
 > order and marks, so a later variant comes back beside it.
 > Amended 2026-11-02 (#704, ADR 0020): Back twice, its Skeleton as Bones ("Back") and plain ("Back plain",
-> `next-mech-back-plain.glb`), a button each.
+> `mech-back-plain.glb`), a button each.
 > Amended 2026-11-03 (#805, ADR 0022): the look switch is the Skeleton switch, Realistic and Mechanical
-> (`next-mech-back-mechanical.glb`), each GLB in its Theme's colours.
+> (`mech-back-mechanical.glb`), each GLB in its Theme's colours.
 > Amended 2026-11-03 (#806, ADR 0022): the header's Theme bar picks the Skeleton for every page, the viewer's
 > GLB too, in place of the viewer's own Skeleton switch.
 > Amended 2026-11-03 (#819, ADR 0022): the bar picks a Preset; the viewer draws its Skeleton shape's GLB, one per

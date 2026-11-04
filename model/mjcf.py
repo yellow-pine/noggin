@@ -37,17 +37,17 @@ FINE_MM = {
     "horn": 0.08,
     # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces within 1 mm of the
     # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
-    f"next gimbal frame{g.MECHANICAL}": 1.0,
+    f"gimbal frame{g.MECHANICAL}": 1.0,
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698): pieces within 0.5 mm of it, not chords across the gap
-    f"next {s} lower lid{style}": 0.5
+    f"{s} lower lid{style}": 0.5
     for s in "LR"
     for style in ("", g.MECHANICAL)
 }
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
 # the core 1.6 mm deep in it
-MAX_PIECES = dict.fromkeys((f"next {p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
+MAX_PIECES = dict.fromkeys((f"{p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -312,7 +312,7 @@ KGF_CM = 0.0980665  # N.m
 
 
 def head(doc, model, bare=False):
-    """(grams, centre of mass in the head's frame, mm) of what the next Mech's tilt turns (neck.HEAD, the eye gimbal
+    """(grams, centre of mass in the head's frame, mm) of what the Mech's tilt turns (neck.HEAD, the eye gimbal
     and what rides the head mount), as the MJCF weighs and places them; bare: less its Skin's Shells (skin.DRAWN)."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
@@ -321,7 +321,7 @@ def head(doc, model, bare=False):
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
-    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["next-neck"][0]))
+    return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
 
 
 def balance(s, doc):
