@@ -8,6 +8,11 @@ Assembled (Mech, Skeleton and Morty, each in Skull, Mechanism and Pedestal, at A
 horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
 on its largest flat face, packed on BED plates); `before` adds a scene of main's bones beside the branch's. Run it in a
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
+
+The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
+it): an arm-free mesh named Morty, in morty-fixed.stl's raw frame, with painted material slots named by Skin Colour
+group. It stays local and editable; the recipe reads it without changing it, applies the Default Skin palette and
+cuts it at the model's floor. Without this sectioned reference, Morty's layer stays empty, including in a fresh clone.
 """
 
 import fcntl
@@ -29,7 +34,7 @@ OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage
 # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
 SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
-PRESET = g.PRESETS["Morty"]  # the anatomical Skeleton palette and Morty's Skin palette
+PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
 QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
 CEILING_KB = 3_000_000  # a Blender process's RSS past this is killed: the laptop swaps to a crash
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
@@ -60,7 +65,7 @@ def _main_checkout():
 
 
 MORTY = os.environ.get(
-    "NOGGIN_MORTY", os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith/morty-fixed.stl")
+    "NOGGIN_MORTY", os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith/morty-review.blend")
 )
 
 
@@ -183,8 +188,8 @@ def plates(stage):
 
 
 def _morty(stage):
-    """Morty's place, the planes his three regions part at and his colours: his eyes on the Mech's (one pupils' line),
-    scaled to their spacing; Skull above the Mech's head's lowest part, Pedestal below its Pedestal's top."""
+    """Morty's place and section colours: eyes on the Mech's, scaled to their spacing; regions at the head's bottom
+    and Pedestal's top, with one flat cut at the Pedestal's floor."""
     eyes = stages.align(*stages.DOCS[DOC]["eyes"])
     mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
     raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
@@ -199,12 +204,12 @@ def _morty(stage):
     bare = [n for n, p in stage.parts.items() if stages.stem(p.file) not in (*g.BONES, *skin.SHELLS)]
     skull = min(box[n][0][2] for n in bare if region[n] == "Skull")
     pedestal = max(box[n][1][2] for n in bare if region[n] == "Pedestal")
-    face, clothes = (g.filament(k, PRESET)[3] for k in ("face", "clothes"))
     return {
-        "stl": MORTY,
+        "blend": MORTY,
         "at": at.tolist(),
         "planes": [float(pedestal), float(skull)],
-        "colours": [face, face, clothes],
+        "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
+        "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
     }
 
 
