@@ -150,6 +150,17 @@ def test_pose_holds(eyes, pwm_log):
     assert abs(angle(moves[-1]) - 100) < 0.01  # centre 90 + 10
 
 
+@pytest.mark.parametrize("pose", ("pose pitch 100", "pose eyes 95 pitch 100", "pose pitch 100 eyes 95"))
+def test_pose_can_hold_the_pitch_alone_or_with_the_yaw(eyes, pwm_log, pose):
+    eyes.handle_line(pose)
+    assert angle(last_ns(pwm_log, mod.PITCH)) == pytest.approx(100, abs=0.01)
+    if "eyes" in pose:
+        assert angle(last_ns(pwm_log, mod.YAW)) == pytest.approx(95, abs=0.01)
+    pwm_log.clear()
+    eyes.tick(10_000)
+    assert pwm_log == []
+
+
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     eyes.handle_line("exercise 1")
     for t in range(0, 70_000, 50):
