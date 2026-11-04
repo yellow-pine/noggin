@@ -33,7 +33,7 @@ dev = [
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
     "rust-just>=1.59.0",  # just runs the recipes (justfile, docs/adr/0016)
-    "pytest-timeout>=2.4.0",  # CI's 15 s a test (--timeout, checks.yml and pr-gate.yml, #808)
+    "pytest-timeout>=2.4.0",  # CI's 60 s a test (--timeout, checks.yml and pr-gate.yml, #808, #945)
 ]
 
 [tool.uv]
@@ -48,7 +48,7 @@ markers = [
     "model: MuJoCo, our parts' STLs (just ours) and the CadQuery sweeps; CI runs them in its Model shards (-m model), just check-light leaves them out",
     "bones: reads the realistic Skeleton's finished bones (Blender's, just ours): skipped where Blender is missing (#936)",
 ]
-# CI's --timeout (15 s, #808) times the test itself: the parts a module's tests share are built once a worker, in a
+# CI's --timeout (60 s, #808, #945) times the test itself: the parts a module's tests share are built once a worker, in a
 # fixture, whose seconds the slowest-20 list still shows as setup
 timeout_func_only = true
 
