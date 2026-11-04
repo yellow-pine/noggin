@@ -149,6 +149,14 @@ def neck_problems(report):
     return out
 
 
+def test_an_unverified_balance_spring_cannot_make_a_neck_report_acceptable():
+    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1], neck.HEAD_AXES["tilt"][0][2] + 40))
+    assert (
+        "neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)"
+        in neck_problems({"neck": neck.report(head)})
+    )
+
+
 def deeper(pair):
     """mm a pair's pieces go deeper than at rest (their own hull error is in the rest reading)."""
     return round(min(pair["rest_mm"] or 0, 0) - pair["min_mm"], 3)
