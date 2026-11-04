@@ -13,14 +13,14 @@ from model import gimbal, printed, skin, stages
 )
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
-    hardware we own (two Cores and Shields, the switch board, both packs and the kit's charger dongle, #858, seven
-    servos each with its horn on a drive) and its own printed parts, all named "next". Its neck's three servos drive
-    it."""
+    hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
+    buy (the hub, the power-path board and the bulk capacitor, #858), and its own printed parts, all named "next". Its neck's three servos
+    drive it."""
     nxt = stages.STAGES[doc]
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
-    boards = ["core", "receiver"] * 2 + ["switch", "battery", "battery", "dongle"]
-    assert hardware == sorted(boards + ["servo", "horn"] * 7)
+    bought = ["hub", "power", "capacitor"]
+    assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery", *bought] + ["servo", "horn"] * 7)
     assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"next {d} horn" for d in gimbal.drives())}

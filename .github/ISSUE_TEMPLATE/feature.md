@@ -1,7 +1,6 @@
 ---
 name: Feature
 about: A gesture, a reaction, a Stage, a tool
-labels: enhancement
 ---
 
 **What** (use the words in `GLOSSARY.md`)

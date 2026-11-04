@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Slugger from 'github-slugger';
 import { PAGES, REPO, ROOT, route } from './pages.mjs';
 
 /** The page's H1 is its title (src/content.config.ts), which Starlight draws: the H1 itself goes. */
@@ -52,4 +53,48 @@ const macros = {
   },
 };
 
-export const markdown = [h1, links, macros];
+/** A mark's `#N`, in its text node, becomes a link to the issue (GitHub shows the text as written). */
+const linkIssue = (node, n, ctx) => {
+  const [head, tail] = node.value.split(`(#${n})`, 2);
+  const link = { type: 'link', url: `${REPO}/issues/${n}`, children: [{ type: 'text', value: `#${n}` }] };
+  ctx.replaceNode(node, [{ type: 'text', value: `${head}(` }, link, { type: 'text', value: `)${tail}` }]);
+};
+
+/** The marks (docs/adr/0024), each with its kind, issue, text and the heading it sits under, for the Roadmap page
+ * (src/pages/roadmap.astro), which reads them from the page's render; each mark's `#N` links its issue. */
+const marks = {
+  name: 'marks',
+  heading(node, ctx) {
+    if (node.depth === 1) return; // the title, which h1-is-the-title drops
+    ctx.data.slugger ??= new Slugger(); // as Astro's heading-ids, per page
+    ctx.data.heading = { anchor: ctx.data.slugger.slug(ctx.textContent(node)), text: ctx.textContent(node) };
+  },
+  delete(node, ctx) {
+    const siblings = ctx.parent(node).children, i = ctx.indexOf(node);
+    const next = siblings[i + 1]?.type === 'text' && siblings[i + 1].value === ' ' ? siblings[i + 2] : siblings[i + 1];
+    const last = next?.type === 'emphasis' ? next.children.at(-1) : undefined;
+    const n = last?.type === 'text' && last.value.match(/\(#(\d+)\)$/)?.[1];
+    if (!n) return; // not a mark: site.test.mjs fails the build's stray strikethrough
+    const will = ctx.textContent(next).replace(/\s*\(#\d+\)$/, '');
+    collect(ctx, { kind: 'change', issue: Number(n), text: `${ctx.textContent(node)} → ${will}` });
+    linkIssue(last, n, ctx);
+  },
+  emphasis: (node, ctx) => upcoming(node, ctx, 'upcoming'),
+  strong: (node, ctx) => upcoming(node, ctx, 'section'),
+};
+/** `*Upcoming (#N): …*`, or a NOTE's opening `**Upcoming (#N):**` for a whole section. */
+function upcoming(node, ctx, kind) {
+  const first = node.children[0];
+  const n = first?.type === 'text' && first.value.match(/^Upcoming \(#(\d+)\)/)?.[1];
+  if (!n) return;
+  const rest = ctx.textContent(node).replace(/^Upcoming \(#\d+\):?\s*/, '');
+  collect(ctx, { kind, issue: Number(n), text: kind === 'section' ? (ctx.data.heading?.text ?? '') : rest });
+  linkIssue(first, n, ctx);
+}
+const collect = (ctx, mark) => {
+  const { frontmatter } = ctx.data.astro;
+  const anchor = ctx.data.heading?.anchor ?? '';
+  (frontmatter.marks ??= []).push({ ...mark, text: mark.text.replace(/\s+/g, ' '), anchor });
+};
+
+export const markdown = [h1, links, macros, marks];

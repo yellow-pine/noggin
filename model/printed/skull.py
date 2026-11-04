@@ -3,9 +3,8 @@ Alcohol's atlas and axis (model/skull/atlas-axis, CC BY-NC-SA 4.0), each adaptat
 folder's LICENSE.md; docs/adr/0023). Placed in the head's frame: the skull scaled to the head's height, its orbits on
 the eyes, sunk SUNK behind the caps; the vertebrae scaled with it, their canal on the pan axis, the atlas under the
 head's tilt lugs. Then carved for the mechanism: voxelised at PITCH, the cranium shelled to WALL, the orbits opened round
-the lids and the Cores' USB-C openings cut straight back through it (model/base.py openings, #858), every part that
-moves against the bone (over each horn's range) or rides with it cut out CLEAR_MM round, and remeshed smooth for
-printing. Mesh parts, not CadQuery: model/ours.py writes them after the rest, from their STLs."""
+the lids, every part that moves against the bone (over each horn's range) or rides with it cut out CLEAR_MM round, and
+remeshed smooth for printing. Mesh parts, not CadQuery: model/ours.py writes them after the rest, from their STLs."""
 
 import os
 
@@ -14,11 +13,11 @@ import trimesh
 from scipy import ndimage
 from skimage.measure import marching_cubes
 
-from model import base, stages
 from model import geometry as g
 from model import gimbal as gm
 from model import neck as nk
 from model import skin as sk
+from model import stages
 
 CRANIUM, MANDIBLE = "model/skull/3demon/cranium.stl", "model/skull/3demon/mandible.stl"
 ATLAS, AXIS = "model/skull/atlas-axis/atlas.stl", "model/skull/atlas-axis/axis.stl"
@@ -168,8 +167,6 @@ def carved():
             for cx, _, _ in gm.EYE.values():
                 ball = (x - cx) ** 2 + y**2 + z**2 <= (gm.LOWER_R[1] + CLEAR_MM) ** 2
                 occ &= ~(ball & (y <= REACH))
-            for lo, hi in base.openings().values():  # each Core's USB-C straight back out through it (#858)
-                occ &= ~((lo[0] <= x) & (x <= hi[0]) & (lo[1] <= y) & (y <= hi[1]) & (lo[2] <= z) & (z <= hi[2]))
         carrier, seen = stages.RIDES[bone + ":1"], {}  # cutter -> (its places as the bone sees it, distinct)
         for pose in poses(stage):
             back = rest[carrier] @ np.linalg.inv(pose[carrier])  # the document as the bone sees it there
