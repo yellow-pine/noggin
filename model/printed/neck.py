@@ -108,47 +108,51 @@ def yoke(mechanical=False):
     return out.cut(cyl("z", (0, lever, 0), TAP_R, nk.DISC_Z))
 
 
-@bone.carved
-def head_mount(mechanical=False):
-    """The head mount (printed on its side, its bores along Z): a flange screwed under the gimbal frame's plate's back,
-    behind the mouth servo, the tilt lugs outside the cheeks (the tilt shanks turn in them; the cheeks' bosses rise into
-    slots in the flange), the tilt lever behind, and the tilt span's head clamp straight behind the tilt axis, under the
-    flange (#708, #838). As Bones (#708): the flange a frame of Bones flat on the plate from screw to screw round the
-    back, the lever a Bone."""
-    f0, top = nk.FLANGE_Z
-    rho, _ = nk.TILT_SPAN
-    ly = Y + nk.TILT_LEVER
-    (x0, y0), (x1, y1) = (nk.HEAD_SCREWS[1], nk.HEAD_SCREWS[2])
-    if mechanical:
-        out = box((nk.LOOP_X[0], -nk.LOOP_X[0]), (y0 - 2.5, ly + 3), nk.FLANGE_Z)
-        hang = f0
-    else:  # the Bones flat on the plate's underside, domed down within the flange's 3 mm
-        flat = dict(z=top, down=True)
-        out = bone.chain([(x0, y0), (x0, y1), (x1, y1), (x1, y0)], *FLANGE_BONE, **flat)  # OCCT fuses no ring of them
-        out = out.union(bone.chain([(0.0, y1), (0.0, ly)], *FLANGE_BONE, **flat))
-        hang = top - 1  # the lugs and the lever up into the Bones
-    for x, y in nk.HEAD_SCREWS:
-        out = out.cut(cyl("z", (x, y, 0), 1.7, nk.FLANGE_Z))
-    for s in (-1, 1):
-        xs = sorted(s * c for c in nk.LUG_X)
-        out = out.union(box(xs, (Y - nk.BOSS_R, Y + nk.BOSS_R), (Z, hang))).union(cyl("x", (0, Y, Z), nk.BOSS_R, xs))
-        out = out.cut(cyl("x", (0, Y, Z), gm.PIN_R, xs))
-    out = out.union(box((-1.5, 1.5), (ly - 3, ly + 3), (Z, hang))).union(cyl("x", (0, ly, Z), 3.0, (-1.5, 1.5)))
-    out = out.cut(cyl("x", (0, ly, Z), TAP_R, (-1.5, 1.5))).cut(_clear())
-    return out.union(tie(sum(nk.LOOP_X) / 2, Y + rho, Z))
+def cervical_carrier():
+    """Fixed split lateral load path into the Torso; the centre remains open for the anatomical wire canal."""
+    _, y, z = nk.HEAD_AXES["tilt"][0]
+    out = box((-20, 20), (91, 101), nk.MOUNT_Z)
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in (14, 18))
+        rail = box(xs, (y - 3, 97), (nk.MOUNT_Z[1] - 1, nk.MOUNT_Z[1] + 5))
+        rail = rail.union(strut((sign * 16, 94, nk.MOUNT_Z[1]), (sign * 16, y, z), (4, 2), (3, 1.6)))
+        rail = rail.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
+        out = out.union(rail)
+    out = out.union(box((14, 26), (y + 7, y + 11), (z - 5, z + 5)))
+    out = out.union(box((23, 26), (y - 10, y + 11), (z - 10, z + 10)))
+    return out.cut(cyl("x", (0, y, z), 3.1, (22, 27)))
 
 
-def _clear():
-    """What the flange leaves open: a slot round each cheek's boss and one round the tilt bar's top end."""
-    x0, x1 = nk.TILT_BAR_X
-    out = box((x0, x1 + 0.5), _around(Y + nk.TILT_LEVER), nk.FLANGE_Z)
-    for s in (-1, 1):
-        out = out.union(box(sorted(s * c for c in (nk.CHEEK_X[0] - 0.5, nk.CHEEK_X[1])), (Y - 6, Y + 6), nk.FLANGE_Z))
+def nod_plate():
+    """The tilting plate, lateral trunnions and the two servo case seats; no load passes through a spline."""
+    _, y, z = nk.HEAD_AXES["tilt"][0]
+    out = box(nk.NOD_X, nk.NOD_Y, nk.NOD_Z)
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in (18.4, 22.4))
+        out = out.union(box(xs, (y - 5, y + 5), (z, nk.NOD_Z[0] + 1)))
+        out = out.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
+    py = nk.HEAD_AXES["pan"][0][1]
+    out = out.cut(cyl("z", (0, py, 0), 4.2, nk.NOD_Z))
+    face = (0, py, nk.PAN_HORN_Z)
+    matrix = gm.servo_matrix(face, (0, 0, 1), (1, 0, 0))
+    out = out.union(collar(matrix, nk.NOD_Z[0]))
+    out = out.union(box((26, 44), (y - 17, y + 38), (z + 9.85, nk.NOD_Z[0] + 1)))
     return out
 
 
-def _around(y, r=nk.BOSS_R + 0.5):
-    return (y - r, y + r)
+def head_mount():
+    """Upper bearing seat and gimbal bridge, with a torque-only quill and keyed foot on the micro servo's horn."""
+    py = nk.HEAD_AXES["pan"][0][1]
+    bottom = nk.BEARING_Z[1]
+    out = cyl("z", (0, py, 0), 10, (bottom, bottom + 3))
+    for x, y in nk.HEAD_SCREWS:
+        out = out.union(_flat([(0, py), (x, y)], 6, (bottom + 1.3, bottom + 4.3)))
+        out = out.union(cyl("z", (x, y, 0), 3.5, (gm.PLATE_Z[1], bottom + 4.3)))
+        out = out.cut(cyl("z", (x, y, 0), 1.7, (gm.PLATE_Z[1], bottom + 4.3)))
+    out = out.union(cyl("z", (0, py, 0), 3.5, (nk.PAN_HORN_Z, bottom + 1)))
+    out = out.union(_flat([(0, py), (nk.CRANK, py)], 5, (nk.PAN_HORN_Z, nk.PAN_HORN_Z + 1.5)))
+    out = out.cut(cyl("z", (0, py, 0), 1.1, (nk.PAN_HORN_Z, bottom + 3)))
+    return out.cut(cyl("z", (nk.CRANK, py, 0), 0.6, (nk.PAN_HORN_Z, nk.PAN_HORN_Z + 1.5)))
 
 
 @bone.carved
