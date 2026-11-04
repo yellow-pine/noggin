@@ -79,8 +79,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   numbers (model/test_envelopes.py).
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
   (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
-  round them from the Skeleton scene (model/skeleton, docs/adr/0025), so it needs Blender (`just linux-test` runs in
-  CI's Blender image; the GX10 has none). The model always reads those: `just test` and `just sim`
+  round them from the Skeleton scene (model/skeleton, docs/adr/0025) where Blender is (`just linux-test` runs in
+  CI's Blender image); without it (the GX10) the bones are left out and the tests marked `bones` skip (#936). The
+  model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 

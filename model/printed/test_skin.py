@@ -194,6 +194,7 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
 
 
 @pytest.mark.model
+@pytest.mark.bones
 @pytest.mark.parametrize("doc", [g.dressed(REAL, s) for s in g.SKINS])
 @pytest.mark.parametrize("pose", list(_poses(REAL)))
 def test_every_shell_clears_the_realistic_skulls_bones(pose, doc):

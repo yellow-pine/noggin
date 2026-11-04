@@ -9,6 +9,7 @@ and writes each bone's STL in the head's frame (model/build/ours), which model/s
 
 import json
 import os
+import shutil
 import subprocess
 
 import numpy as np
@@ -25,6 +26,12 @@ DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
+
+
+def blender():
+    """Whether the finish can run here: Blender found, or CI, which always has it (a missing one fails there, never
+    skips). The GX10 has none (no Linux ARM64 build, #936): `just ours` leaves the bones out and their tests skip."""
+    return bool(os.environ.get("CI") or shutil.which(BLENDER))
 
 
 def poses(stage):

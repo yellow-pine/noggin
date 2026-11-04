@@ -135,8 +135,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   A heavy Python job an agent needs before CI (the sim, CoACD, every test, the warp maths) runs on Cansin's GX10, never
   the laptop: `just gx10 <command>` (`just gx10 uv run just test`) runs the branch's pushed commits there and streams
   the output; `FETCH` names paths to copy back. Blender stays here and in CI (no Linux ARM64 build). When the GX10 is
-  unreachable the recipe says so at once: run the light checks and leave the rest to CI (#888). Until #890 and #891
-  land, `just ours` and the electrical tests fail there, and with them the `model` tests.
+  unreachable the recipe says so at once: run the light checks and leave the rest to CI (#888). Without Blender,
+  `just ours` there builds every part but the realistic Skeleton's finished bones, and the tests marked `bones` (their
+  clearance among them) skip: those run in CI only (#936).
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs

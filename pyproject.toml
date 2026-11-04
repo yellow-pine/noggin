@@ -46,6 +46,7 @@ micropython = "1.23"  # the Core's firmware (sys.implementation._mpy 774); the s
 testpaths = [".claude/hooks", "ci", "eyes", "reactions", "noggin", "model", "scripts", "web", "test_vocabulary.py", "test_site.py", "test_derived.py", "test_workflows.py"]
 markers = [
     "model: MuJoCo, our parts' STLs (just ours) and the CadQuery sweeps; CI runs them in its Model shards (-m model), just check-light leaves them out",
+    "bones: reads the realistic Skeleton's finished bones (Blender's, just ours): skipped where Blender is missing (#936)",
 ]
 # CI's --timeout (15 s, #808) times the test itself: the parts a module's tests share are built once a worker, in a
 # fixture, whose seconds the slowest-20 list still shows as setup
