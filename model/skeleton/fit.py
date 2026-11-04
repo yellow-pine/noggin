@@ -180,7 +180,7 @@ def regional_seed(arrays, scene, regions):
     return warp(arrays, scene)
 
 
-def canal(mesh, normal=(0, 0, 1)):
+def canal(mesh, normal=(0, 0, 1), details=False):
     """The main neural passage near mid-height in the source's anatomical XYZ frame (mm).
 
     Actual triangle sections preserve an oblique canal which a whole-bone plan projection can close.
@@ -203,11 +203,35 @@ def canal(mesh, normal=(0, 0, 1)):
             p for p in holes if abs(p.centroid.x - mid) < (hi[0] - lo[0]) / 6 and p.contains(p.centroid.buffer(3))
         ]
         if central:
-            c = max(central, key=lambda p: p.area).centroid
+            hole = max(central, key=lambda p: p.area)
+            c = hole.centroid
             xy = np.array((c.x, c.y))
             z = origin[2] - np.dot(np.asarray(normal)[:2], xy - origin[:2]) / normal[2]
-            return np.array((c.x, c.y, z))
+            centre = np.array((c.x, c.y, z))
+            return {"centre": centre.tolist(), "clear_radius_xy_mm": hole.exterior.distance(c)} if details else centre
     raise ValueError("No enclosed central neural passage for the 6 mm wire path")
+
+
+def original_facts(arrays, scene):
+    """Dimensions and actual main canal sections in ORIGINAL BodyParts coordinates, before ANY prototype affine."""
+    points = {}
+    out = {"regions": {}, "canals": {}, "landmarks": {}}
+    for bone in scene["bones"]:
+        p, key = arrays[bone["key"] + "_basis"], bone["key"]
+        points.setdefault(REGIONS[bone["group"]], []).append(p)
+        if bone["name"] in {f"C{i}" for i in range(1, 8)} | {"T1"}:
+            normal = (0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))) if bone["name"] == "C2" else (0, 0, 1)
+            out["canals"][bone["name"]] = canal(trimesh.Trimesh(p, arrays[key + "_faces"]), normal, details=True)
+    for name, members in points.items():
+        p = np.vstack(members)
+        out["regions"][name] = {"bounds": [p.min(0).tolist(), p.max(0).tolist()], "spans": np.ptp(p, axis=0).tolist()}
+    matrices = {b["group"]: np.asarray(b["matrix"]) for b in scene["bones"]}
+    for name in ("LM L orbit", "LM R orbit", "LM L condyle", "LM R condyle", "LM menton"):
+        matrix = matrices["Mandible" if "condyle" in name or "menton" in name else "Skull"]
+        out["landmarks"][name] = (
+            (np.asarray(scene["landmarks"][name]["source"]) - matrix[:3, 3]) @ np.linalg.inv(matrix[:3, :3]).T
+        ).tolist()
+    return out
 
 
 def refit(arrays, scene, envelope):
@@ -347,6 +371,9 @@ def refit(arrays, scene, envelope):
 
 
 if __name__ == "__main__":
+    if sys.argv[1] == "--facts":
+        print(json.dumps(original_facts(np.load(sys.argv[2]), json.load(open(sys.argv[3]))), indent=2))
+        sys.exit()
     landmarks = sys.argv[1] == "--landmarks"
     path, metadata, out = sys.argv[2:] if landmarks else sys.argv[1:]
     scene = json.load(open(metadata))
