@@ -15,35 +15,32 @@ down. Its rows are the eye program's calibration ([Calibration](calibration.md))
 Stage 1 is calibrated (inferred): the lids in the shared lid frame, the right lid servo's degrees (the Core writes
 180 - a to the left, inferred), closed at the low end where the lids meet, open at the high; the yaw and the pitch
 rest centred between their ends. The gestures turn the eyes left and right only, so the pitch holds the gaze level.
-The neck Core has no program yet: its ranges are the neck's in the model and its rest the model's neutral, 90 (the
-jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
+The neck Core runs the same eye program, which drives its pan alone: its rows' ranges are the neck's in the model and
+its rest the model's neutral, 90 (the jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred:
+the same Shield). *Upcoming (#929): the neck Core drives the tilt and the jaw, from a calibration of their own.*
 
 > [!WARNING]
 > **The lids bind at the ends.** Verify a range on the real Mech before pushing past it.
 
 ## Power
 
-- Battery -> switch board -> XH2.54 2-pin lead -> shield power input (a Y lead
-  to both shields, split after the neck joint).
-- Shield spec: 7.4 to 12.6 V. A single 3.7 V cell is below spec; two 14500
-  cells in series (2S) are the minimum. Neither the Core nor the shield
-  charges cells; charge externally.
-- USB-C on the Core powers only the Core, not the servos.
-- What we have: two official 7.4 V 800 mAh 2S packs (two 14500 cells end to
-  end in blue heat-shrink, so each looks like a single cell) and the kit's USB
-  charger dongle with an XH2.54 plug. The dongle is a charger only, never a
-  supply for the board. One pack in the Torso through the switch board, the
-  spare on charge. USB-C to the Mac carries data and powers the Core only.
+- Pack -> power-path board -> switch board -> XH2.54 2-pin lead up the neck -> a Y lead to both Shields' power
+  inputs, a 470 µF capacitor across it where it enters them.
+- Shield spec: 7.4 to 12.6 V. A single 3.7 V cell is below spec; a 2S pack (two 14500 cells in series, 7.4 V
+  800 mAh) is the minimum. Neither the Core nor the Shield charges it: the power-path board in the Torso does, from
+  the head's USB-C (docs/research/2026-11-03-usb-c-power.md 7).
+- USB-C on a Core powers only that Core, not the servos.
 - Servos stay powered at rest: released, the lids and eyes fall under gravity.
 
 ## The neck Core (tilt, mouth, pan)
 
 The neck Core sits on its own Shield in the head, at +x beside the eyes Core: port 1 tilt, 2 mouth, 3 pan. Both
 Cores join the Wi-Fi and are addressed directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md), each
-antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the build allows. In the Mech both lie
-flat in the realistic skull's cranium, their USB-C ends back to the hub, whose port at the back of the skull base takes
-a laptop's cable (power, flashing and the fallback) or a USB-C charger (power alone), which charges the pack through
-the power-path board in the Torso (#858): check the Wi-Fi link there, inside the skull, on the built Mech. Both Shields
+antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the build allows. Both lie flat
+in the cranium, their USB-C ends back to the hub, whose port at the back of the skull base takes a laptop's cable
+(power, flashing, and the USB fallback, which reaches the eyes Core alone) or a USB-C charger (power alone), which
+charges the pack through the power-path board in the Torso: check the Wi-Fi link there, inside the skull, on the
+built Mech. Both Shields
 run off the one pack and switch board through a Y lead
 ([Stage 2](stage-2.md)); the gestures stay inside the pack's 3 A, since two Shields at stall would draw more
 (2 x 2.6 A > 3 A; a pack per Shield was dropped, #51): each Core starts at most two servos at once (the start budget).

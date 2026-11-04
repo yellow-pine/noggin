@@ -16,4 +16,5 @@ within 90 s. Then `noggin/noggin flash eyes` and `noggin/noggin flash neck` send
 Cores play, and reads `noggin.log` for each Core's ack over Wi-Fi: with the cable in, with every cable out, and once
 the Mech was switched off (both Cores offline within 32 s, the beacon's stale window plus 10 s) and on again (both
 back on Wi-Fi within 90 s). Each run appends its results below as a dated table, ok or FAIL per step and Core with
-what `noggin status` and the log said; commit them in a PR.
+what `noggin status` and the log said; commit them in a PR. *Upcoming (#29): the first run on both Cores, once a
+second Core is set up.*

@@ -1,36 +1,45 @@
 # Calibration
 
-The lids, the yaw and the pitch are calibrated per Mech in `eyes/calibration.json`, live with `noggin/noggin set`
-([Tuning](../use/tuning.md)). Until a Stage 1 is calibrated, the file holds the model's nominal ranges, each servo's
-horn about its 90 neutral (inferred, the [Wiring](wiring.md) table).
+Every Mech is calibrated on its own: each servo's horn sits on its spline a tooth either way, and each print fits a
+little differently, so no one else's numbers fit yours. The eyes Core's servos (both lids, the yaw and the pitch) are
+calibrated in `eyes/calibration.json`, live with `noggin/noggin set` ([Tuning](../use/tuning.md)). Until you calibrate
+your own, the file holds the model's nominal ranges, each servo's horn about its 90 neutral (inferred; the
+[Wiring](wiring.md#servo-ports) table shows them). *Upcoming (#929): the neck Core's tilt and jaw get a calibration of
+their own.*
 
-## Servo calibration lessons (2026-10-31)
+## What the numbers are
 
-Learnt on the 9 g servos the Mech uses.
+- `<servo>_lo` and `<servo>_hi`: a servo's two ends, in servo degrees, for each servo in the
+  [Wiring](wiring.md#servo-ports) table's eyes Core rows. For a lid, `_lo` is closed (where the upper and lower lid meet) and `_hi` open.
+- `<lid>_rest`: where each lid servo sits at `lid_rest`, so the two lids can match at rest even when their linkages
+  differ.
+- Both lids are in one shared frame, the right lid servo's degrees: the two lid servos are mirror-mounted, and the Core
+  writes 180 - a to the left one itself, so a matched pair has the same numbers.
+- `lid_rest`, `lid_think`, `lid_closed` and `lid_open`: how open the lids are, 0 closed to 1 open, at rest, while
+  thinking, in a blink and at their widest.
+- `pan_lo`, `pan_hi` and `head_share`: the pan, once the neck is built ([Gestures](../use/gestures.md#the-head-joins-wide-gaze-shifts)).
 
-- The 9 g servos have a slip clutch. Driving a lid into its
-  mechanical stop makes the clutch slip and the calibration drifts, which looks
-  like the horn sliding on the spline. Keep every range end a few degrees
-  inside the stop; the eye program's lid ranges sit 6° inside.
-- Fit horns with all servos held at centre (90): lids half open, eyes straight
-  ahead. Push fully home, then the short screw from the servo pack. A horn that
-  has been refitted several times is worn; use a fresh one.
-- The two lid servos are mirror-mounted (a on one is 180 - a on the other).
-  Since #213 `eyes/calibration.json` gives both lids in one shared frame, the
-  right lid servo's degrees: `<lid>_lo` closed, `<lid>_rest` where it sits at
-  `lid_rest`, `<lid>_hi` open. The Core mirrors the left servo itself, so a
-  matched pair has identical numbers. A file with the old `<lid>_flip` keys
-  still loads, converted.
-- 2026-11-01 (#213): the left lid showed only a slit at rest and thinking while
-  the right showed half its pupil. Raising the left lid's open end until rest
-  matched broke the near-shut wink: the lid bars make equal servo steps unequal
-  lid steps, so a straight line between the ends can't fit. Hence the rest
-  point: tune closed, rest and open per lid, and compare both eyes at a
-  half-open pose, not only at the ends.
-- 2026-11-01 (#255): the lids retuned live in the shared frame. Closed 39 on both (the
-  edges just touch, quiet: the two lids read 38 and 40, the midpoint taken), rest 61.4
-  (left) / 64 (right, which sat a bit more closed in thinking at the same number), open
-  102 (the lid stops opening visibly there; no stop or clutch slip up to 133). At
-  `lid_closed` 0.1 the blinks left a clear gap, so `lid_closed` is now 0: blinks and the
-  wink close at the closed end, and bored's long closure is 1.3 s (with its minimum-jerk
-  ramps it stays under the 2 s stall cap, #619). Eyes unchanged, 58..118.
+## The method
+
+1. **Fit the horns at centre.** With the noggin service running, hold the servos about their centre
+   (`noggin/noggin pose lids 0.5 eyes 90`: lids half open, eyes straight ahead; inferred near each servo's 90), push each horn fully home on its spline, at the tooth nearest
+   its part's centre, then its screw. A horn refitted several times wears; use a fresh one.
+2. **Find each end, then back off.** The 9 g servos have a slip clutch: driven into a mechanical stop, the clutch
+   slips and the calibration drifts, which looks like the horn sliding on its spline. Step a servo towards an end with
+   `noggin/noggin set <servo>_lo <degrees>` (or `_hi`) until its part reaches where you want it or just touches a stop,
+   then keep the end a few degrees inside it.
+3. **Close the lids.** Lower `l_lid_lo` and `r_lid_lo` until the lid edges just touch, quietly, both eyes alike.
+4. **Open the lids.** Raise `_hi` until the lid stops opening visibly, inside any stop.
+5. **Match the rest.** Pose both eyes partly open (`noggin/noggin pose lids 0.3`) and set `l_lid_rest` and
+   `r_lid_rest` until both lids show the same part of the pupil. Compare at a half-open pose, not only at the ends: the
+   lid bars make equal servo steps unequal lid steps, so a straight line between the ends can't fit both.
+6. **The eyes.** Set `yaw_lo`, `yaw_hi`, `pitch_lo` and `pitch_hi` so the eyes reach their widest look with every
+   part clear (the model's nominals are where every part sweeps clear in the model).
+7. **Check it moves.** `just demo` plays every gesture; `just demo bored 2` repeats one. Watch the blinks and the wink
+   close at the closed end, then `just follow`.
+
+Each `set` is saved to `eyes/calibration.json` and resent to the Core. Run `noggin/noggin exercise 10` for a gentle
+run-in once it is fitted.
+
+> [!WARNING]
+> **The lids bind at the ends.** Verify a range on your Mech before pushing past it.

@@ -2,53 +2,84 @@
 
 > [!WARNING]
 > **Being designed, not built yet.** The Mech is our own design (#51), in the model until it is printed; every size in
-> it is inferred until then.
+> it is inferred until then. Read the list, follow the design, and wait to buy for a Stage until its guide says it is
+> built.
 
 The Mech grows in three Stages, each complete on the desk: the eye block on its test stand with the eyes Core
 ([Stage 1](stage-1.md)), then on the neck over the Torso with the boards in the head and the neck Core
-([Stage 2](stage-2.md)), then with the jaw, the whole Mech ([Stage 3](stage-3.md)). Each Stage's page lists, from the
-model, the parts it adds. This page is the shopping list.
-
-The Skeleton prints in PETG and the Skin's Shells in PLA, held on by magnets, each Colour group in its Theme's
-filament ([Themes](../face-design.md)), the Default build unless you pick another Preset. Our printed parts print from
-`just stl` (model/build/stl, mm).
+([Stage 2](stage-2.md)), then with the jaw, the whole Mech ([Stage 3](stage-3.md)). This page is the shopping list;
+each Stage's guide lists, from the model, every part it adds, printed or bought.
 
 ## Parts to buy
 
-The one place the shop's names and codes appear (2026-10-31, grilled; #51). Electronics are Bambu Lab's CyberBrick
-range, filament is Bambu's PLA and PETG lines the Themes name.
+What each Stage adds that you buy, from the model (a Stage buys only its own column):
 
-- Owned: Beginner Hardware Kit ZK004 (2 Cores, an X11 receiver shield + a transmitter shield, switch module, 2S pack,
-  charger, one 180 and one 360 servo), Battery Upgrade Kit ZL003 (second switch module + second pack), 4 PG001
-  servos, M3x10, M2x12, M2 nuts (20 each); ordered 2026-10-31 from the Bambu EU store: X11 Receiver Shield XA004 x1,
-  servo PG001 x3, battery PC003 x1.
-- The Mech uses: 2 Cores, 2 Shields, 1 switch board, 1 pack with a Y lead to both Shields, 7 PG001 servos (4 on the
-  eyes Core, 3 on the neck Core); the kit's spare M3 screws as the busy pivots' shanks. Spare: a pack on charge (the
-  charger, off the Mech), a switch board. The 360 servo turns continuously, so it is not used.
-- To buy: the magnets, 4x2 mm N52 discs; for the Mech (#858, docs/research/2026-11-03-usb-c-power.md 7): in the
-  head a USB-C hub, Adafruit's CH334F Mini 4-Port USB Hub Breakout #5997 (31.6 x 20.4 x 4.8 mm), its upstream port the
-  head's, and a 470 uF 16 V low-ESR electrolytic across the Y lead at the Shields; in the Torso the power-path board,
-  nomo's BQ25886 2S charge board on Tindie (105 x 90 x 25 mm with its 18650 holder, which snaps off; ICHGSET swapped to
-  2.87 kohm for 0.75 A), the switch board after its output; up the neck four 24 AWG conductors (the post's bore today,
-  the cervical canal under #893); a TI TUSB320 on the head's CC pins in GPIO mode, switching the board's input limit
-  to what the source advertises (0.46, 1.27 or 1.68 A; no breakout found, so until one is built the source must
-  advertise 3 A). Still to confirm before buying the board: its load-output breakout, its size and its US shipping.
-- Filament: each Preset's Bambu filaments, by line, name and code ([Themes](../face-design.md), from the model; the
-  picks: docs/research/2026-11-03-bambu-theme-colours.md): PETG Basic and Matte for the Skeleton, the model taking
-  PETG HF's figures as the worst case, PLA Basic and Matte for the Morty and Bart Skins. Owned: PLA Pure in Milky Pink, Pure White,
-  Absolute Black and Apricot (docs/research/2026-10-31-filament.md), the default Skin palette's four, and black PETG, which
-  prints the Default build's whole Skeleton.
+<!--{{ shopping }}-->
 
+<!--{# GitHub shows the line below; the site drops it for the table above, which it builds from the code -->
+The count per Stage is in [the table on the site](https://yellowpine.com/noggin/docs/build/parts/#parts-to-buy), built
+from the model.
+<!-- #}-->
+
+Stage 1 needs Stage 2's pack and switch board too: a Core's USB-C powers the Core alone, never the servos, so they lie
+beside the test stand until the Torso holds them (inferred). Buy both with Stage 1, and a fifth servo if you will
+[film one](tests.md#filming-a-servo). Where to buy each:
+
+| Part | What to buy | Code |
+|---|---|---|
+| Core | Bambu Lab CyberBrick Core | XA003 |
+| Shield | CyberBrick X11 Receiver Shield | XA004 |
+| servo | CyberBrick 9 g servo with clutch protection, the 180° one (the 360° one turns on and on, so it is not used) | PG001 |
+| servo horn | the horns that come with each servo | with the servo |
+| battery pack | CyberBrick 2S battery, 7.4 V 800 mAh | PC003 |
+| switch board | CyberBrick switch module | XA007 |
+| power-path board | nomo's BQ25886 2S charge board on Tindie, its 18650 holder snapped off and ICHGSET swapped to 2.87 kΩ for 0.75 A | BQ25886 |
+| USB-C hub | Adafruit CH334F Mini 4-Port USB Hub Breakout | 5997 |
+| bulk capacitor | a 470 µF 16 V low-ESR electrolytic, across the Y lead where it enters the Shields | 470 µF 16 V |
+
+The CyberBrick Beginner Hardware Kit ZK004 holds both Cores, one Shield (its other shield is the transmitter, which the
+Mech doesn't use), a switch board, a pack, its USB charger and one usable servo; the Battery Upgrade Kit ZL003 adds a
+second pack, to keep one on charge.
+
+Also needed, which the model doesn't count as parts:
+
+- M3 screws, about 10 mm, as the busy pivots' greased shanks, and M2 screws and nuts for the servos and boards
+  (inferred).
+- From Stage 2: a Y lead from the switch board to both Shields, four 24 AWG conductors up the neck from the Torso to
+  the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
+  to the head; inferred).
+- A USB-C charger or laptop port that offers 3 A: the power-path board charges at a fixed input limit.
+- For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
+- *Upcoming (#902): a standard metal-gear servo (about 10 kgf·cm at 5 V) for the tilt and a thrust bearing (an F8-16M,
+  or a 608 in a seat) under the head for the pan, both inside the skull.*
+
+### Filament
+
+The Skeleton prints in PETG and the Skin's Shells in PLA, held on by magnets, each Colour group in its Theme's filament
+([Themes](../face-design.md)): the default Preset's unless you pick another in the header. Bambu's PETG Basic and Matte
+lines for the Skeleton (the model takes PETG HF's figures as the worst case), PLA Basic, Matte and Pure for the Skins.
 The filaments of the Preset picked in the header, with the Colour groups each prints:
 
 <!--{{ filaments }}-->
 
 <!--{# GitHub shows the line below; the site drops it for the list, which it builds from the code -->
-The list for the Preset you pick is [on the site](https://yellowpine.com/noggin/docs/build/parts/#parts-to-buy);
+The list for the Preset you pick is [on the site](https://yellowpine.com/noggin/docs/build/parts/#filament);
 every Palette's filaments are in the table on [Themes](../face-design.md).
 <!-- #}-->
 
+## Printer and tools
+
+- A printer with a 0.4 mm nozzle that prints PETG and PLA; every printed part fits a 256 mm bed (#893). Our parts
+  print from `just stl` (model/build/stl, mm).
+- A small flat screwdriver and a small cross-head one, a ruler, superglue for the magnets and the glued-in Shells, and
+  grease for the pivots (inferred).
+- A soldering iron, for the power-path board's resistor, the capacitor and the leads (inferred).
+- Print the [clearance coupon](tests.md#the-clearance-coupon) first: it finds the fit your printer gives a pivot and a
+  magnet pocket.
+
 ## On the Mac
 
-macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it) and Claude Code. `uv` manages
+macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it), [just](https://just.systems/)
+(`uv tool install rust-just`) and Claude Code, and this repo cloned (`git clone
+https://github.com/yellow-pine/noggin`, then `just venv` in it). `uv` manages
 `.venv` and runs mpremote and pytest; the system Python is 3.9 and is not used.
