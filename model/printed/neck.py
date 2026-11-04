@@ -118,7 +118,7 @@ def cervical_carrier():
         rail = rail.union(strut((sign * 16, 94, nk.MOUNT_Z[1]), (sign * 16, y, z), (4, 2), (3, 1.6)))
         rail = rail.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    out = out.union(box((14, 26), (y + 7, y + 11), (z - 5, z + 5)))
+    out = out.union(box((14, 26), (y + 3, y + 11), (z - 5, z + 5)))
     out = out.union(box((23, 26), (y - 10, y + 11), (z - 10, z + 10)))
     return out.cut(cyl("x", (0, y, z), 3.1, (22, 27)))
 
@@ -136,7 +136,11 @@ def nod_plate():
     face = (0, py, nk.PAN_HORN_Z)
     matrix = gm.servo_matrix(face, (0, 0, 1), (1, 0, 0))
     out = out.union(collar(matrix, nk.NOD_Z[0]))
-    out = out.union(box((26, 44), (y - 17, y + 38), (z + 9.85, nk.NOD_Z[0] + 1)))
+    out = out.union(box((26, 69), (y - 17, y + 38), (z - 12.85, z - 9.85)))
+    for hy in (y - 13.4, y + 34.1):
+        out = out.union(box((26, 39.4), (hy - 2.5, hy + 2.5), (z - 12.85, nk.NOD_Z[0] + 1)))
+        for hz in (z - 5, z + 5):
+            out = out.cut(cyl("x", (0, hy, hz), 2.0, (35, 40)))
     return out
 
 
