@@ -120,6 +120,11 @@ LID_X = {
 # each lid's main shell ends this far inside its boss's slab, so its cover (model/skin.py) stays 0.6 mm off the frame's
 # upright, which the lower lid's cover sweeps past since #901; the boss itself still turns 0.3 mm off the upright
 LID_SHELL_IN = 0.3
+# Main shells and their covers share these ends; the upper's inboard end clears the lower lid's rising hoop.
+LID_SHELL_X = {
+    "upper": (-LID_X["ear"][0] + LID_CLEAR_MM, LID_X["upper boss"][1] - LID_SHELL_IN),
+    "lower": (-LID_X["ear"][0], LID_X["lower boss"][1] - LID_SHELL_IN),
+}
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
 # to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) between those uprights' feet

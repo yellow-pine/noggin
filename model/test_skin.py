@@ -66,8 +66,8 @@ def _hidden(r, x, deg, cover_r, span, xs):
 def test_no_lid_shows_past_its_cover_from_the_front(lid):
     """#881: every point of each lid's main shell (both faces, so its free edge's face too) is behind its cover seen
     from the front, over the lid servo's whole range: the lids turn with their servo alone, which follows the eye's
-    look within LID_EDGES. The lid's x is printed/gimbal.py _lid's main shell, from the inboard ears' slab to its boss's."""
-    xs = np.linspace(-gm.LID_X["ear"][0], gm.LID_X[f"{lid} boss"][1] - gm.LID_SHELL_IN, 47)
+    look within LID_EDGES. LID_SHELL_X bounds the main shell that printed/gimbal.py _lid draws."""
+    xs = np.linspace(*gm.LID_SHELL_X[lid], 47)
     for s in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), 73):
         if lid == "upper":
             radii, span, turn = gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), s
