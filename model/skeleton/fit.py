@@ -71,8 +71,8 @@ def warp(arrays, scene):
     Input/output are the public scene exchange, never a private reference mesh. Blender only applies the result;
     the numerical solve and its non-collapse gate run on GX10.
     """
-    regions = scene.get("anatomical_regions")
-    if not regions:
+    anatomical_regions = scene.get("anatomical_regions")
+    if not anatomical_regions:
         raise ValueError("Declare uniform anatomical_regions from original Basis before warping")
     pairs = list(scene["landmarks"].values())
     source, target = (np.array([p[k] for p in pairs]) for k in ("source", "target"))
@@ -128,7 +128,7 @@ def warp(arrays, scene):
     stretch, offset = {}, len(probes) - len(points) - len(source)
     for bone in scene["bones"]:
         key, matrix = bone["key"], np.asarray(bone["matrix"])
-        scale = regions[REGIONS[bone["group"]]]["scale"]
+        scale = anatomical_regions[REGIONS[bone["group"]]]["scale"]
         n = len(arrays[key + "_basis"])
         gradient = (jac[offset : offset + n] + np.eye(3)) @ matrix[:3, :3]
         final = result[key + "_sculpt"] @ matrix[:3, :3].T + matrix[:3, 3]
