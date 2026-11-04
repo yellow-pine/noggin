@@ -42,8 +42,8 @@ HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
 BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
-NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-45.3, -40.3)
-BEARING_Z = (-40.3, -35.3)  # top below the cranium tray's underside; the plate clears the gimbal plane
+NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-52.0, -47.0)
+BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
 TILT_SHAFT = (-24.4, 60.0, 78.0)  # actual case above the electronics: public CAD + private 6.8 mm stack preflight #978
 TILT_ARM = (46.0, -18.0)  # lower fixed pin clears the nod plate at full tilt; equal moving/fixed arms preserve 1:1
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
@@ -74,6 +74,7 @@ HEAD_SCREWS = (
     (-16.0, 83.0),
 )  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 4.0
+JAW_FIXED_R = 3.3  # M3 tapping bore r1.25 leaves 2.05 mm; clears the upper C0 knuckle through pan
 # The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
 # the neck cable, and the pan at its top under the head (#858): the yoke's disc on it under its top floor, on which the
 # tilt servo stands, the cheeks up from it to the tilt axis; the pan servo hangs on the post over the lid

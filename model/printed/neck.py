@@ -138,8 +138,8 @@ def nod_plate():
     out = hull("XY", [(0, py, 10), (-12.8, y, 6), (12.8, y, 6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (10.8, 14.8))
-        out = out.union(box(xs, (y - 5, y + 5), (z, nk.NOD_Z[0] + 1)))
-        out = out.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
+        out = out.union(box(xs, (y - 5, y + 5), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
+        out = out.union(cyl("x", (0, y, z), 3.6, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
     out = out.cut(cyl("z", (0, py, 0), 4.2, nk.NOD_Z))
     face = (0, py, nk.PAN_HORN_Z)
     matrix = gm.servo_matrix(face, (0, 0, 1), (1, 0, 0))
@@ -219,14 +219,15 @@ def head_mount():
     py = nk.HEAD_AXES["pan"][0][1]
     bottom = nk.BEARING_Z[1]
     out = cyl("z", (0, py, 0), 8, (bottom, gm.PLATE_Z[1] + 0.3))
-    out = out.union(cyl("z", (0, py, 0), 10, (gm.PLATE_Z[1] + 0.3, bottom + 3)))
+    top = gm.PLATE_Z[1] + 3.3
+    out = out.union(cyl("z", (0, py, 0), 10, (gm.PLATE_Z[1] + 0.3, top)))
     for x, y in nk.HEAD_SCREWS:
-        out = out.union(_flat([(0, py), (x, y)], 6, (bottom + 1.3, bottom + 4.3)))
-        out = out.union(cyl("z", (x, y, 0), 3.5, (gm.PLATE_Z[1], bottom + 4.3)))
-        out = out.cut(cyl("z", (x, y, 0), 1.7, (gm.PLATE_Z[1], bottom + 4.3)))
+        out = out.union(_flat([(0, py), (x, y)], 6, (gm.PLATE_Z[1] + 0.3, top)))
+        out = out.union(cyl("z", (x, y, 0), 3.5, (gm.PLATE_Z[1], top)))
+        out = out.cut(cyl("z", (x, y, 0), 1.7, (gm.PLATE_Z[1], top)))
     out = out.union(cyl("z", (0, py, 0), 3.5, (nk.PAN_HORN_Z, bottom + 1)))
     out = out.union(_flat([(0, py), (nk.CRANK, py)], 5.4, (nk.PAN_HORN_Z, nk.PAN_HORN_Z + 1.5)))
-    out = out.cut(cyl("z", (0, py, 0), 1.1, (nk.PAN_HORN_Z, bottom + 3)))
+    out = out.cut(cyl("z", (0, py, 0), 1.1, (nk.PAN_HORN_Z, top)))
     return out.cut(cyl("z", (nk.CRANK, py, 0), 0.6, (nk.PAN_HORN_Z, nk.PAN_HORN_Z + 1.5)))
 
 
