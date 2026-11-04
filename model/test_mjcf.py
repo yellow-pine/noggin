@@ -261,6 +261,14 @@ def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
             assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)
 
 
+@pytest.mark.parametrize("doc", grouped(["mech-back-mechanical"]))
+def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
+    """#937: this sweep point was still ringing a degree off after the old half-second hold."""
+    data = mjcf.pose(built(doc), {"pan horn": -16.0854752692})
+    assert math.degrees(data.joint("pan horn").qpos[0]) == pytest.approx(-16.0854752692, abs=TURN_DEG)
+    assert np.abs(np.degrees(data.qvel)).max() < 0.5  # a static reading, not a frame from the remaining swing
+
+
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
     """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume; a Skin's drawn Shells (model/skin.py
     DRAWN) weigh theirs on their drawn mesh (#830)."""

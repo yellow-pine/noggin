@@ -8,7 +8,7 @@
 
 The eye block on its test stand: both eyes turn together, left and right on one servo and up and down on another, and
 each eye's upper and lower lid close on that eye's own servo. Four servos on the eyes Core, which stands against the
-stand's back. The eyes are Morty's at life size: on his pupils, 72.7 mm apart, each cap his eye's 40.4 mm sphere.
+stand's back. The eyes and their caps follow Morty's pupils and eye outline at life size.
 
 ## Parts it adds, from the model
 
