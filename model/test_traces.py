@@ -22,13 +22,13 @@ def horn(writes, name):
 
 
 def test_the_mech_points_its_linked_eyes_through_the_gimbals_command_map():
-    """#663: the wink's glance, the eye program's 8 deg of its 30 to the Mech's left, is a sixth of a turn over the
-    gimbal's 25 deg range on the one yaw servo (6.67 deg), the pitch servo level; the winking eye's lids shut, meeting
+    """#663, #896: the wink's glance, the eye program's 8 deg to the Mech's left, is 8 deg on the one yaw servo (the
+    program's range is the gimbal's, its calibration the model's nominals), the pitch servo level; the winking eye's lids shut, meeting
     below its middle (lid servo -21, model/test_gimbal.py) as the other squints, and both come back to rest (0)."""
     writes, times = traces.commands("wink")
     yaw, pitch = (horn(writes, f"{s} horn") for s in ("yaw", "pitch"))
-    assert any(d == pytest.approx(8 / 30 * 25, abs=0.01) for _, d in yaw)  # where the saccade lands
-    assert -1 < min(d for _, d in yaw) and max(d for _, d in yaw) < 8  # a real saccade overshoots a little
+    assert any(d == pytest.approx(8, abs=0.01) for _, d in yaw)  # where the saccade lands
+    assert -1 < min(d for _, d in yaw) and max(d for _, d in yaw) < 9.5  # a real saccade overshoots a little
     assert all(abs(d) < 0.01 for _, d in pitch)
     left, right = (horn(writes, f"{s} lid horn") for s in "LR")
     assert min(d for _, d in left) == pytest.approx(-21)
@@ -59,8 +59,8 @@ def held(writes, ms):
 
 
 def test_the_mechs_head_joins_a_wide_gaze_shift_within_its_gaze_error_the_neck_core_late():
-    """#688, #51 Gestures: eureka's 22 deg dart (of the eye program's 30, the gimbal's 25 deg yaw: 18.3 deg) on the
-    Mech: its pan horn turns the head the eyes' way to 0.6 of it (11 deg), the neck Core's writes 40 ms after the eyes
+    """#688, #51 Gestures: eureka's 22 deg dart (the eye program's degrees are the gimbal's yaw, #896) on the Mech:
+    its pan horn turns the head the eyes' way to 0.6 of it (13.2 deg), the neck Core's writes 40 ms after the eyes
     Core's (traces.DELAY_MS); once the gaze, yaw plus the head's pan, reaches the dart, it stays within #51's 2 deg gaze
     error while the head arrives and the eyes counter-rotate, and the head comes back."""
     from model import neck
@@ -73,10 +73,10 @@ def test_the_mechs_head_joins_a_wide_gaze_shift_within_its_gaze_error_the_neck_c
     gaze = [y + p for y, p in zip(held(yaw, ms), held(pan, ms), strict=True)]
     head = held(pan, ms)
     side = 1 if max(gaze) > -min(gaze) else -1
-    assert max(side * h for h in head) == pytest.approx(0.6 * 22 * 25 / 30, abs=0.05)
-    there = next(t for t in ms if side * gaze[t] >= 22 * 25 / 30 - 2)
-    arrived = next(t for t in ms if side * head[t] >= 0.6 * 22 * 25 / 30 - 0.05)
-    assert there < arrived and all(abs(side * gaze[t] - 22 * 25 / 30) <= 2 for t in range(there, arrived))
+    assert max(side * h for h in head) == pytest.approx(0.6 * 22, abs=0.05)
+    there = next(t for t in ms if side * gaze[t] >= 22 - 2)
+    arrived = next(t for t in ms if side * head[t] >= 0.6 * 22 - 0.05)
+    assert there < arrived and all(abs(side * gaze[t] - 22) <= 2 for t in range(there, arrived))
     assert head[-1] == pytest.approx(0, abs=0.01)
 
 

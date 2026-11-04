@@ -21,7 +21,7 @@ def test_align_rows_take_a_local_frame_onto_a_world_frame():
 def test_one_channel_table_maps_each_cores_headers_to_its_servos():
     # docs/build/wiring.md (servo ports) and the designer's config JSON for Core 2
     assert g.CHANNELS == {
-        "core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},
+        "core1": {1: "l_lid", 2: "yaw", 3: "r_lid", 4: "pitch"},
         "core2": {1: "tilt", 2: "mouth", 3: "pan"},
     }
     assert set(g.SERVO_LABEL) == {s for ch in g.CHANNELS.values() for s in ch.values()}

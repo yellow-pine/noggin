@@ -44,7 +44,7 @@ long (a lolly stick, a cut ruler) and ten 2 euro coins (8.50 g each).
 
 1. Set up. Print the marker: `.venv/bin/python -m model.servo_take marker > marker.svg`, opened in a browser and
    printed at 100 % (no "fit to page"): a 12 mm black and white square inside a white margin; check it with the ruler.
-   Cut it out with its white margin. Unplug the right eye servo's lead from the Shield's port 4 and plug the spare servo
+   Cut it out with its white margin. Unplug the yaw servo's lead from the Shield's port 2 and plug the spare servo
    in instead. Tape it to the desk with its shaft pointing straight up, so the horn sweeps flat and gravity does not
    load it. Glue the marker flat on the horn, centred over the shaft (anywhere on the horn works, but there it stays
    in frame). Charge the pack.
@@ -72,7 +72,7 @@ long (a lolly stick, a cut ruler) and ten 2 euro coins (8.50 g each).
    still clear of them, and read the coins' radius from the shaft with the ruler. The load has to be a few times the
    gear train's own inertia: one coin at the horn's tip barely changes how the servo gets going, and the fit then
    cannot tell the gear train from its other values. Run step 3 again into a second clip.
-6. `just follow`, and put the servo back on port 4 when done.
+6. `just follow`, and put the servo back on port 2 when done.
 
 **Where the videos go.** Local only, never git: `docs/references/servo-video/` (docs/references is gitignored). Keep
 the original files at their slow-motion frame rate (AirDrop with Options, All Photos Data, or copy from Photos with

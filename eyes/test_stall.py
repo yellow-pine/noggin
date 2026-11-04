@@ -9,7 +9,10 @@ import pytest
 import replay
 
 CAL = json.load(open(os.path.join(os.path.dirname(__file__), "calibration.json")))
-STOP_MARGIN_DEG, MAX_HOLD_MS = 10, 2000
+# 4 deg: the model's nominal ranges (#896, inferred) are 36 deg (lids) and 50 (yaw) wide where today's hand-tuned lids
+# had 63, so 10 deg from an end held the eureka stare and bored's closures; a few degrees inside each end, as the
+# calibration lessons keep the ends inside the stops (docs/build/calibration.md). Recheck once a Stage 1 is calibrated.
+STOP_MARGIN_DEG, MAX_HOLD_MS = 4, 2000
 
 
 @pytest.mark.parametrize("gesture", replay._eyes().Eyes.GESTURES)

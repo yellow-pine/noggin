@@ -1,5 +1,6 @@
 # noggin eye program for the Core (ESP32-C3, MicroPython).
-# Plays named gestures and background modes (thinking, exercise) on four servos.
+# Plays named gestures and background modes (thinking, exercise) on Stage 1's eye gimbal: a lid servo per eye, one yaw
+# and one pitch servo for both eyes. The gestures turn the gaze about the yaw alone: the pitch holds it level.
 # Servos stay powered: released, the lids and eyes fall under gravity (gravity beats the smooth linkages).
 # Calibration lives in self.cal: defaults below, overridden live by `set key value`
 # lines that the noggin service pushes from eyes/calibration.json.
@@ -56,10 +57,10 @@ def _s8(v):
 
 # shield port 1..4 -> GPIO 3,2,1,0; core.json "ports" (port -> servo name) picks the GPIO per name, defaults below
 PORT_GPIO = {"1": 3, "2": 2, "3": 1, "4": 0}
-L_LID, L_EYE, R_LID, R_EYE = 3, 2, 1, 0
+L_LID, YAW, R_LID, PITCH = 3, 2, 1, 0
 PAN = 4  # the neck Core's pan servo: on no default GPIO, so only a core.json naming "pan" drives it
-NAME = {L_LID: "l_lid", L_EYE: "l_eye", R_LID: "r_lid", R_EYE: "r_eye", PAN: "pan"}
-LIDS, EYES = (L_LID, R_LID), (L_EYE, R_EYE)
+NAME = {L_LID: "l_lid", YAW: "yaw", R_LID: "r_lid", PITCH: "pitch", PAN: "pan"}
+LIDS, EYES = (L_LID, R_LID), (YAW, PITCH)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
 SLEW = 428  # deg/s, the servo's rated slew at 4.8 V (eyes/servo.py, not flashed): no move asks for more
@@ -98,9 +99,10 @@ def servo_map():
         return {name: pin for pin, name in NAME.items() if pin != PAN}
 
 
-# Fallback values (#213's, 2026-11-01); eyes/calibration.json is the source of truth (retuned since, #255).
-# Each servo has exact end angles; everything else derives from them: an eye's straight-ahead is the average
-# of its two ends, lid levels are fractions (0 closed .. 1 open) along a lid's closed, rest and open points.
+# Fallback values, eyes/calibration.json's: the model's nominals (inferred, model/stages.py eyes_sub) until a Stage 1
+# is calibrated (#896). Each servo has exact end angles; everything else derives from them: the yaw's and the pitch's
+# straight-ahead is the average of their two ends, lid levels are fractions (0 closed .. 1 open) along a lid's closed,
+# rest and open points.
 # Lid positions are in one shared frame, the right lid servo's degrees (lo closed, hi open): the lid servos are
 # mounted mirror-image, so the same numbers fit both lids and the Core writes 180 - a to the MIRRORED servo.
 # The lid bars make equal servo steps unequal lid steps, so each lid has a third point, where it sits at
@@ -115,22 +117,22 @@ def mirror(pin, a):
 
 
 DEFAULT_CAL = {
-    "l_lid_lo": 44,
-    "l_lid_rest": 67.8,
-    "l_lid_hi": 129,
-    "r_lid_lo": 44,
-    "r_lid_rest": 67.8,
-    "r_lid_hi": 129,
-    "l_eye_lo": 58,
-    "l_eye_hi": 118,
-    "r_eye_lo": 58,
-    "r_eye_hi": 118,
+    "l_lid_lo": 69,
+    "l_lid_rest": 90,
+    "l_lid_hi": 105,
+    "r_lid_lo": 69,
+    "r_lid_rest": 90,
+    "r_lid_hi": 105,
+    "yaw_lo": 65,
+    "yaw_hi": 115,
+    "pitch_lo": 59.6,
+    "pitch_hi": 120.4,
     "lid_rest": 0.28,
     "lid_think": 0.16,
-    "lid_closed": 0.10,
+    "lid_closed": 0.0,
     "lid_open": 0.95,
     "think_trace": 0,  # 1: replay the GazeBase recording while thinking instead of synthetic drift
-    # the pan servo's degrees that turn the head as far as the L eye turns at its lo and hi ends (lo > hi: reversed)
+    # the pan servo's degrees that turn the head as far as the eyes turn at the yaw's lo and hi ends (lo > hi: reversed)
     "pan_lo": 60,
     "pan_hi": 120,
     "head_share": 0.0,  # how much of a gaze shift past HEAD_FROM the head carries ([AND]); 0: the eyes alone, no pan
@@ -178,19 +180,19 @@ class Eyes:
         return mirror(pin, self._lid_shared(pin, f))
 
     def _eye_angle(self, pin, angle):
-        """Gesture angles are written around EYE_CENTER; the eye's real centre is the average of its ends."""
+        """Gesture angles are written around EYE_CENTER; the servo's real centre is the average of its ends."""
         lo, hi = self.range(pin)
         return (lo + hi) / 2 + (angle - EYE_CENTER)
 
     def _pan_angle(self, head):
-        """The pan servo's degrees for the head at `head` deg from centre, scaled as the L eye's range to pan_lo..hi."""
+        """The pan servo's degrees for the head at `head` deg from centre, scaled as the yaw's range to pan_lo..hi."""
         lo, hi = self.cal["pan_lo"], self.cal["pan_hi"]
-        elo, ehi = self.range(L_EYE)
+        elo, ehi = self.range(YAW)
         return (lo + hi) / 2 + head * (hi - lo) / (ehi - elo)
 
     def _gaze(self):
-        """Where the eyes look, the head's turn included: the L eye's angle (EYE_CENTER straight) plus the head's."""
-        return self.pos.get(L_EYE, self._eye_angle(L_EYE, EYE_CENTER)) - self._eye_angle(L_EYE, 0) + self.head
+        """Where the eyes look, the head's turn included: the yaw's angle (EYE_CENTER straight) plus the head's."""
+        return self.pos.get(YAW, self._eye_angle(YAW, EYE_CENTER)) - self._eye_angle(YAW, 0) + self.head
 
     # --- servo primitives -------------------------------------------------
     def set(self, targets):
@@ -211,10 +213,10 @@ class Eyes:
         """Jump each servo to its target at full slew, drawing stall current until it arrives. Past the start budget
         a jump waits, in whole frames, until another one arrived (2026-11-02-literature-motion-control.md 4)."""
         for p, angle in targets.items():
-            busy = sorted(end for q, end in self.jumps.items() if q != p and end > clock)
-            if len(busy) >= BUDGET:
-                wait(FRAME * math.ceil((busy[-BUDGET] - clock) / FRAME))
             before = self.pos.get(p)
+            busy = sorted(end for q, end in self.jumps.items() if q != p and end > clock)
+            if len(busy) >= BUDGET and before != angle:  # a write that moves nothing draws no stall current
+                wait(FRAME * math.ceil((busy[-BUDGET] - clock) / FRAME))
             self.set({p: angle})
             if before is not None:
                 self.jumps[p] = clock + abs(self.pos[p] - before) * 1000 / SLEW
@@ -248,15 +250,19 @@ class Eyes:
         t = {p: self._lid_angle(p, f) for p in pins}
         self.glide(ms, t) if ms else self.step(t)
 
+    def _level(self):
+        """The pitch servo's degrees where the gaze is level (the model's command map at any yaw, model/gimbal.py)."""
+        return self._eye_angle(PITCH, EYE_CENTER)
+
     def eyes(self, angle, ms=0):
-        """The gaze to `angle`, the head where it is."""
-        t = {p: self._eye_angle(p, angle - self.head) for p in EYES}
+        """The gaze to `angle` on the yaw, level, the head where it is."""
+        t = {YAW: self._eye_angle(YAW, angle - self.head), PITCH: self._level()}
         self.glide(ms, t) if ms else self.step(t)
 
     def turn(self, gaze, ms=0):
         """The gaze to `gaze` with the head (#688): the eyes lead, the head follows HEAD_LAG later to head_share of the
         gaze, both minimum jerk, and the eyes counter-rotate (gaze - head) as it arrives; the eyes the slower the more
-        of the shift the head carries, down to a third ([PE13]). A write a FRAME of the pan and both eyes.
+        of the shift the head carries, down to a third ([PE13]). A write a FRAME of the pan, the yaw and the pitch.
         shortcut: each Core times this from its own eye state, which thinking's tick-driven drift can part, shifting
         the neck Core's head by up to a fixation's timing; sync the Cores per line once the Mech is built."""
         g0, h0 = self._gaze(), self.head
@@ -268,8 +274,7 @@ class Eyes:
             now = i * FRAME
             self.head = h0 + dh * jerkless(min(1.0, max(0.0, (now - HEAD_LAG) / th)))
             g = g0 + d * jerkless(min(1.0, now / te))
-            t = {p: self._eye_angle(p, g - self.head) for p in EYES}
-            t[PAN] = self._pan_angle(self.head)
+            t = {YAW: self._eye_angle(YAW, g - self.head), PAN: self._pan_angle(self.head), PITCH: self._level()}
             self.set(t)
             wait(FRAME)
 
@@ -481,8 +486,8 @@ class Eyes:
             self.rand = (self.rand * 1103515245 + 12345) & 0x7FFFFFFF
             f = 0.15 + 0.70 * (self.rand % 1000) / 1000
             self.lids(f, 600)
-            lo, hi = self.range(L_EYE)
-            self.eyes(lo + (hi - lo) * (0.30 + 0.40 * (self.rand % 997) / 997), 600)  # 30%-70% of the eye range
+            lo, hi = self.range(YAW)
+            self.eyes(lo + (hi - lo) * (0.30 + 0.40 * (self.rand % 997) / 997), 600)  # 30%-70% of the yaw range
             self.next_drift = now_ms + 1500
             return
         if self.mode == "rest":

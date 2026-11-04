@@ -2,7 +2,7 @@ import pytest
 
 import eyes as mod
 
-RANGES = {mod.L_LID: (51, 136), mod.L_EYE: (58, 118), mod.R_LID: (44, 129), mod.R_EYE: (58, 118)}  # servo degrees
+RANGES = {mod.L_LID: (75, 111), mod.YAW: (65, 115), mod.R_LID: (69, 105), mod.PITCH: (59.6, 120.4)}  # servo degrees
 
 
 def angle(ns):  # inverse of the stock bbl.servos mapping as a pulse width (10-bit duty / 1023 of 20 ms)
@@ -82,28 +82,40 @@ def test_both_lids_take_the_same_numbers_and_the_left_servo_mirrors_them(eyes):
     assert all(mod.DEFAULT_CAL["l_lid" + k] == mod.DEFAULT_CAL["r_lid" + k] for k in ("_lo", "_rest", "_hi"))
     for f in (0, 0.03, 0.1, 0.28, 0.5, 0.95, 1):
         assert eyes._lid_angle(mod.L_LID, f) == pytest.approx(180 - eyes._lid_angle(mod.R_LID, f))
-    assert eyes.range(mod.L_LID) == (51, 136) and eyes.range(mod.R_LID) == (44, 129)
+    assert eyes.range(mod.L_LID) == (75, 111) and eyes.range(mod.R_LID) == (69, 105)
 
 
 def test_the_lid_map_runs_closed_rest_open_in_two_straight_pieces(eyes):
     """#213: the lid bars make equal servo steps unequal lid steps, so each lid has a third point at lid_rest."""
-    eyes.handle_line("set r_lid_rest 80")  # well off the straight line 44..129 (67.8 at 0.28)
+    eyes.handle_line("set r_lid_rest 95")  # well off the straight line 69..105 (79.1 at 0.28)
     rest = eyes.cal["lid_rest"]
     pos = [eyes._lid_angle(mod.R_LID, i / 100) for i in range(101)]
-    assert eyes._lid_angle(mod.R_LID, 0) == 44 and eyes._lid_angle(mod.R_LID, 1) == 129
-    assert eyes._lid_angle(mod.R_LID, rest) == 80
+    assert eyes._lid_angle(mod.R_LID, 0) == 69 and eyes._lid_angle(mod.R_LID, 1) == 105
+    assert eyes._lid_angle(mod.R_LID, rest) == 95
     assert all(a < b for a, b in zip(pos, pos[1:], strict=False))  # monotonic: never reverses
-    assert eyes._lid_angle(mod.R_LID, rest / 2) == pytest.approx((44 + 80) / 2)  # straight closed..rest
-    assert eyes._lid_angle(mod.R_LID, (rest + 1) / 2) == pytest.approx((80 + 129) / 2)  # straight rest..open
-    assert eyes._lid_angle(mod.R_LID, -1) == 44 and eyes._lid_angle(mod.R_LID, 2) == 129  # clamped to the ends
+    assert eyes._lid_angle(mod.R_LID, rest / 2) == pytest.approx((69 + 95) / 2)  # straight closed..rest
+    assert eyes._lid_angle(mod.R_LID, (rest + 1) / 2) == pytest.approx((95 + 105) / 2)  # straight rest..open
+    assert eyes._lid_angle(mod.R_LID, -1) == 69 and eyes._lid_angle(mod.R_LID, 2) == 105  # clamped to the ends
 
 
 def test_set_changes_calibration_live(eyes, pwm_log):
-    eyes.handle_line("set l_eye_lo 70")
-    eyes.handle_line("set l_eye_hi 130")  # centre becomes 100
+    eyes.handle_line("set yaw_lo 70")
+    eyes.handle_line("set yaw_hi 130")  # centre becomes 100
     eyes.handle_line("rest")
-    moves = [d for p, d in pwm_log if p == mod.L_EYE and d]
+    moves = [d for p, d in pwm_log if p == mod.YAW and d]
     assert abs(angle(moves[-1]) - 100) < 0.01
+
+
+def test_the_gaze_turns_both_eyes_on_the_yaw_and_holds_them_level_on_the_pitch(eyes, pwm_log):
+    """Stage 1's gimbal (#896): one yaw servo turns both eyes, one pitch servo tilts both; the gestures look left and
+    right only, and at a level gaze the model's command map holds the pitch servo at its centre at any yaw
+    (model/gimbal.py servos)."""
+    for line in ("rest", "eureka 3", "wink 1", "attention 2"):
+        eyes.handle_line(line)
+    yaw = [angle(d) for p, d in pwm_log if p == mod.YAW and d]
+    pitch = {round(angle(d), 6) for p, d in pwm_log if p == mod.PITCH and d}
+    assert max(yaw) - min(yaw) > 40
+    assert pitch == {90}  # the middle of 59.6..120.4
 
 
 def test_set_rejects_unknown_key(eyes, pwm_log):
@@ -126,24 +138,24 @@ def test_blink_glides_to_lid_closed_not_the_stop(eyes, pwm_log):
 def test_release_unpowers_and_next_command_repowers(eyes, pwm_log):
     eyes.handle_line("rest")
     eyes.handle_line("release")
-    assert last_ns(pwm_log, mod.L_EYE) == 0 and last_ns(pwm_log, mod.L_LID) == 0
+    assert last_ns(pwm_log, mod.YAW) == 0 and last_ns(pwm_log, mod.L_LID) == 0
     eyes.handle_line("rest")
-    assert last_ns(pwm_log, mod.L_EYE) != 0
+    assert last_ns(pwm_log, mod.YAW) != 0
 
 
 def test_pose_holds(eyes, pwm_log):
     eyes.handle_line("pose lids 0.4 eyes 100")
-    assert last_ns(pwm_log, mod.L_EYE) != 0 and last_ns(pwm_log, mod.L_LID) != 0
-    moves = [d for p, d in pwm_log if p == mod.R_EYE and d]
-    assert abs(angle(moves[-1]) - 98) < 0.01  # centre 88 + 10
+    assert last_ns(pwm_log, mod.YAW) != 0 and last_ns(pwm_log, mod.L_LID) != 0
+    moves = [d for p, d in pwm_log if p == mod.YAW and d]
+    assert abs(angle(moves[-1]) - 100) < 0.01  # centre 90 + 10
 
 
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     eyes.handle_line("exercise 1")
     for t in range(0, 70_000, 50):
         eyes.tick(t)
-    lo, hi = RANGES[mod.L_EYE]
-    eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
+    lo, hi = RANGES[mod.YAW]
+    eye = [angle(d) for p, d in pwm_log if p == mod.YAW and d]
     assert min(eye) >= lo + (hi - lo) * 0.15 - 0.01 and max(eye) <= lo + (hi - lo) * 0.85 + 0.01
     assert eyes.mode == "rest"
     assert_in_range_and_held(pwm_log)
@@ -157,7 +169,7 @@ def test_think_trace_replays_the_recording_when_enabled(eyes, pwm_log):
     pwm_log.clear()
     for t in range(0, 2000, 10):
         eyes.tick(t)
-    eye = [d for p, d in pwm_log if p == mod.L_EYE and d]
+    eye = [d for p, d in pwm_log if p == mod.YAW and d]
     assert len(eye) >= 2000 * gaze_trace.HZ // 1000 - 2  # at least one eye write per trace sample
 
 
@@ -165,8 +177,8 @@ def test_saccade_follows_the_real_profile(eyes, pwm_log):
     eyes.handle_line("rest")
     pwm_log.clear()
     eyes.saccade(110)
-    eye = [angle(d) for p, d in pwm_log if p == mod.L_EYE and d]
-    assert len(eye) >= 16 and abs(eye[-1] - (88 + 20)) < 0.01  # 16 profile points, lands on target
+    eye = [angle(d) for p, d in pwm_log if p == mod.YAW and d]
+    assert len(eye) >= 16 and abs(eye[-1] - (90 + 20)) < 0.01  # 16 profile points, lands on target
     assert eye[3] < eye[-1] - 3  # still travelling a third of the way in
 
 
@@ -176,15 +188,15 @@ def test_wink_closes_one_lid_and_the_other_only_squints(eyes, pwm_log):
     eyes.handle_line("wink 2")  # mech's right lid
     r = [angle(d) for p, d in pwm_log if p == mod.R_LID and d]
     left = [angle(d) for p, d in pwm_log if p == mod.L_LID and d]
-    assert min(r) == pytest.approx(eyes._lid_angle(mod.R_LID, eyes.cal["lid_closed"]))
-    assert max(left) == pytest.approx(eyes._lid_angle(mod.L_LID, 0.8 * eyes.cal["lid_rest"]))  # mirrored: shut is up
+    assert min(r) == pytest.approx(eyes._lid_angle(mod.R_LID, eyes.cal["lid_closed"]), abs=1e-3)  # the pulse's step
+    assert max(left) == pytest.approx(eyes._lid_angle(mod.L_LID, 0.8 * eyes.cal["lid_rest"]), abs=1e-3)  # mirrored
 
 
 def test_core_json_ports_pick_the_gpio_per_servo_name(tmp_path, monkeypatch, pwm_log):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
     (tmp_path / "core.json").write_text(
-        '{"name": "eyes", "ports": {"1": "r_eye", "2": "r_lid", "3": "l_eye", "4": "l_lid"}}'
+        '{"name": "eyes", "ports": {"1": "pitch", "2": "r_lid", "3": "yaw", "4": "l_lid"}}'
     )
     e = mod.Eyes()
     pwm_log.clear()
@@ -213,10 +225,10 @@ def test_take_writes_each_move_on_time_by_the_core_clock_however_slow_the_link_p
     eyes.handle_line("pose eyes 90")
     pwm_log.clear()
     original, at = eyes.set, []
-    monkeypatch.setattr(eyes, "set", lambda t: (at.extend([wall[0]] * (mod.R_EYE in t)), original(t)))
+    monkeypatch.setattr(eyes, "set", lambda t: (at.extend([wall[0]] * (mod.YAW in t)), original(t)))
     start = wall[0]
     eyes.handle_line("take")
-    moves = [round(angle(d) - 88) for p, d in pwm_log if p == mod.R_EYE]
+    moves = [round(angle(d) - 90) for p, d in pwm_log if p == mod.YAW]
     assert moves == [*range(26), -25, 25, 5, -5, -1, 0]
     late = [
         t - start - want for t, want in zip(at, [*range(0, 520, 20), 1500, 2500, 3500, 4500, 5500, 6500], strict=True)
@@ -231,7 +243,7 @@ def gaze_log(e, move):
 
     def logged(targets):
         put(targets)
-        log.append((mod.clock, e.head, e.pos[mod.L_EYE] - e._eye_angle(mod.L_EYE, mod.EYE_CENTER)))
+        log.append((mod.clock, e.head, e.pos[mod.YAW] - e._eye_angle(mod.YAW, mod.EYE_CENTER)))
 
     e.set = logged
     move()
@@ -239,9 +251,9 @@ def gaze_log(e, move):
     return log
 
 
-def test_todays_calibration_leaves_the_neck_alone(eyes):
-    """#688: head_share 0, as eyes/calibration.json has it: the eyes carry every gaze shift and the pan is never
-    written, so the neck Core stays as it was."""
+def test_the_nominal_calibration_leaves_the_neck_alone(eyes):
+    """#688: head_share 0 until a Mech is calibrated: the eyes carry every gaze shift and the pan is never written, so
+    the neck Core stays as it was."""
     assert mod.DEFAULT_CAL["head_share"] == 0
     for line in ("rest", "eureka 3", "thinking", "attention 2", "rest"):
         eyes.handle_line(line)
@@ -281,7 +293,7 @@ def test_rest_brings_the_head_back(eyes):
     eyes.handle_line("thinking")  # its 18 deg averted look turns the head
     assert eyes.head
     eyes.handle_line("rest")
-    assert eyes.head == 0 and eyes.pos[mod.L_EYE] == eyes._eye_angle(mod.L_EYE, mod.EYE_CENTER)
+    assert eyes.head == 0 and eyes.pos[mod.YAW] == eyes._eye_angle(mod.YAW, mod.EYE_CENTER)
 
 
 def test_the_neck_core_turns_the_head_on_the_eyes_cores_timeline(tmp_path, monkeypatch, pwm_log):
