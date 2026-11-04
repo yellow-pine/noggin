@@ -448,13 +448,16 @@ class Eyes:
             self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
             self.cal[args[0]] = type(DEFAULT_CAL[args[0]])(float(args[1]))
-        elif cmd == "pose" and len(args) in (2, 4):  # pose lids <0-1> | eyes <angle> | both; holds
+        elif cmd == "pose" and len(args) in (2, 4):  # one or two pose pairs; holds
             self.mode = "pose"  # still, no rest blink, while it is tuned
             for key, val in zip(args[::2], args[1::2]):
                 if key == "lids":
                     self.lids(float(val), 150)
                 elif key == "eyes":
                     self.eyes(float(val), 150)
+            for key, val in zip(args[::2], args[1::2]):  # yaw positioning levels pitch, so apply its override last
+                if key == "pitch":
+                    self.glide(150, {PITCH: float(val)})
         elif cmd == "take":  # each move on time by the Core's clock: the Link's polls in the waits never add up
             self.mode = "pose"
             t0 = ticks_ms()
