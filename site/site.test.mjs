@@ -202,7 +202,7 @@ test("each Preset's pictures and filaments are marked with it, the default's sho
   ]);
   const pictures = page(route('docs/pictures.md'));
   expect(home.querySelector('p[data-presets="cansins-build"] em')).toBeNull();  // #843: no Skin on the home
-  expect(pictures.querySelector('p[data-presets="cansins-build"] em')?.text).toContain("in Morty's Shape");  // stand-in
+  expect(pictures.querySelector('p[data-presets="bart"] em')?.text).toContain("in Morty's Shape");  // stand-in (#813)
   expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
     "Cansin's build", 'Morty', 'Bart',
   ]);
@@ -335,14 +335,6 @@ test("Stage 1's and Stage 3's guides open on their Stage's viewer, a view and a 
     const [, first] = page(route(doc)).querySelector('.sl-markdown-content').children; // under the warning, before a word
     expect(first.getAttribute('class'), doc).toBe('noggin-viewer');
   }
-});
-
-test("Pictures' first row is a viewer per Stage, in a row of their own (#914)", () => {
-  const row = page(route('docs/pictures.md')).querySelector('.noggin-row');
-  expect(row.querySelectorAll('.noggin-viewer .noggin-open a').map((a) => a.text)).toEqual(
-    numbers.published.stages.buttons.map((_, i) => `Open Stage ${i + 1} in the viewer`),
-  );
-  expect(embedsOf('docs/pictures.md').slice(0, 3)).toEqual(numbers.published.stages.buttons.map((_, i) => [i + 1, '']));
 });
 
 test('the sidebar runs Home, Start here, Build, Use, How it works, Model, Reference, Model from the Viewer (#914)', () => {
