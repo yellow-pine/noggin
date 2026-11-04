@@ -3,12 +3,13 @@ gimbal in the head's frame: no two overlap, and the shanks' bores and tapping ho
 
 import functools
 import itertools
+import math
 
 import cadquery as cq
 import numpy as np
 import pytest
 
-from model import envelopes, stages
+from model import beams, envelopes, sim, stages
 from model import geometry as g
 from model import neck as nk
 from model.printed import PARTS, gimbal, neck
@@ -74,6 +75,26 @@ def test_the_bearing_carries_the_head_without_loading_a_servo_spline():
     # Independent contact rings, not a hidden solid shaft down the canal or through the bearing bore.
     py = nk.HEAD_AXES["pan"][0][1]
     assert not bearing.isInside(cq.Vector(0, py, sum(nk.BEARING_Z) / 2))
+
+
+@pytest.mark.model
+def test_the_tilt_reaction_bar_holds_the_actual_standard_servo_at_stall():
+    """The bent reaction bar keeps the existing SF2 gate at the standard motor's actual 5 V stall force."""
+    from model.printed.test_gimbal import _slice
+
+    solid, mat = _built("tilt reaction bar"), g.MATERIALS[g.PRINTED["tilt reaction bar"][1]]
+    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
+    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_ARM)
+    force /= math.sin(math.radians(angle))
+    joints = [p[1:] for p in nk.TILT_BAR_PATH]
+    (y0, z0), (y1, z1) = joints[0], joints[-1]
+    for a, b in zip(joints, joints[1:]):
+        for t in (0.3, 0.5, 0.7):
+            area, _, bend, half = _slice(solid, a, b, t)
+            y, z = np.add(a, np.multiply(t, np.subtract(b, a)))
+            off = abs((y - y0) * (z1 - z0) - (z - z0) * (y1 - y0)) / math.dist(joints[0], joints[-1])
+            stress = force / area + force * off * half / bend
+            assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (a, b, t)
 
 
 Y, Z = nk.AXIS
