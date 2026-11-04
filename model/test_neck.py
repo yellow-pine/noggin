@@ -24,6 +24,31 @@ def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
     assert len(set(neck.HEAD_CARRIERS.values())) == 4
 
 
+@pytest.mark.parametrize("sign", (-1, 1))
+def test_a_direct_servo_turns_its_carrier_and_riders_but_not_its_fixed_reaction(sign):
+    """A servo case on the moving plate reacts against a fixed horn; its output sign reverses (#902)."""
+    parts = {
+        name: stages.Part("unused.stl", stages.translate(point), (1.0, "documented"), None)
+        for name, point in (("fixed:1", (0, 0, 0)), ("plate:1", (0, 10, 0)), ("head:1", (0, 20, 0)))
+    }
+    horn = stages.Horn(
+        {"point": (0, 0, 0), "axis": g.X},
+        (-20, 20),
+        "plate:1",
+        [],
+        [],
+        np.eye(4),
+        direct=stages.Direct("tilt pivot", ["plate:1", "head:1"], sign),
+    )
+    pose = stages.pose(stages.Doc("direct", parts, {"tilt horn": horn}), "tilt horn", 20)
+    assert pose.joints["tilt pivot"] == 20 * sign
+    assert np.allclose(pose.parts["fixed:1"], parts["fixed:1"].matrix)
+    for name, radius in (("plate:1", 10), ("head:1", 20)):
+        assert pose.parts[name][:3, 3] == pytest.approx(
+            (0, radius * np.cos(np.deg2rad(20)), sign * radius * np.sin(np.deg2rad(20)))
+        )
+
+
 @pytest.fixture(scope="module")
 def report():
     return neck.report(HEAD)
