@@ -37,7 +37,7 @@ MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literatur
 # cartoon proportions' 0.5 before, #708)
 EYES_UP = 0.55
 # the realistic skull's box in the head's frame (the eyes' middle at the origin), its mandible's chin to its cranium's
-# top (#838, model/printed/skull.py placed(); model/printed/test_skull.py holds it to the bones): what the head's
+# top (#838; model/skeleton/test_skeleton.py holds it to the finished bones): what the head's
 # shell covers in every Skeleton
 DOME = ((-49.6, 50.6), (-34.6, 102.3), (-78.2, 69.8))
 GAP = 2.0  # between two boards in a row
@@ -48,7 +48,7 @@ SWITCH_AT = (-47.0, PACK_Y)
 # the power-path board (#858: charges the pack from the head's USB-C and feeds the Shields through the switch board)
 # lying flat on the Torso's floor in front of the neck mount's foot, 2 mm off it: its middle's (x, y) (inferred)
 POWER_AT = (0.0, neck.AXIS[0] - 38.0)
-# the realistic skull's cranium (#858; model/printed/skull.py): the cranium tray's plate over the eyes' drives (TRAY_Z),
+# the realistic skull's cranium (#858; model/skeleton): the cranium tray's plate over the eyes' drives (TRAY_Z),
 # its legs down to the gimbal frame's plate behind the bail (LEG_X, LEG_Y); on it the Cores lying flat, each under its
 # Shield, their USB-C ends back toward the hub (their middles' x, and y); the hub on the tray's riser on the plate, its
 # upstream port out the back of the skull base (HUB_X, its back end HUB_Y, its underside HUB_Z) beside the pitch bar
