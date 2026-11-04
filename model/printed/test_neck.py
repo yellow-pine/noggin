@@ -1,4 +1,4 @@
-"""Seam: the next Mech's neck and jaw parts (model/printed/neck.py) as model/stages.py places them at rest, under the eye
+"""Seam: the Mech's neck and jaw parts (model/printed/neck.py) as model/stages.py places them at rest, under the eye
 gimbal in the head's frame: no two overlap, and the shanks' bores and tapping holes line up across each pivot."""
 
 import functools
@@ -14,7 +14,7 @@ from model import neck as nk
 from model.printed import PARTS, gimbal, neck
 from model.printed.test_gimbal import ON_SPLINE, _overlaps
 
-ON_SPLINE = ON_SPLINE | {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in nk.drives()}
+ON_SPLINE = ON_SPLINE | {frozenset((f"{d} servo:1", f"{d} horn:1")) for d in nk.drives()}
 
 
 @functools.cache
@@ -31,7 +31,7 @@ def _shape(p):
 @pytest.fixture(scope="module")
 def shapes():
     """{part: its solid at rest}, the neck's and the eye gimbal's, built once a module: CI's 15 s times the test alone."""
-    return {n: _shape(p) for sub in (stages.next_neck(), stages.next_eyes()) for n, p in sub.parts.items()}
+    return {n: _shape(p) for sub in (stages.neck_sub(), stages.eyes_sub()) for n, p in sub.parts.items()}
 
 
 @pytest.mark.model
@@ -77,7 +77,7 @@ def test_each_shank_turns_in_one_part_and_is_threaded_into_the_other(pivot, at, 
 
 ENDS = [(drive, end) for drive in ("tilt", "pan", "jaw") for end in nk.RANGES[drive] if end]
 HORN = {"tilt": "tilt horn", "pan": "pan horn", "jaw": "jaw horn"}
-DOC = next(d for d in g.NEXT if d.endswith(g.MECHANICAL.replace(" ", "-")))  # physics on mechanical alone (#809)
+DOC = next(d for d in g.MECH if d.endswith(g.MECHANICAL.replace(" ", "-")))  # physics on mechanical alone (#809)
 
 
 @pytest.fixture(scope="module", params=ENDS, ids=[f"{d} {e:g}" for d, e in ENDS])
@@ -89,7 +89,7 @@ def posed(request):
     stage = stages.STAGES[DOC]
     mats = stages.pose(stage, HORN[drive], nk.servo_for(drive, end)).parts
     rest = {n: p.matrix for n, p in stage.parts.items()}
-    plugged = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}
+    plugged = {frozenset((f"Core {n}:1", f"Shield {n}:1")) for n in (1, 2)}
     moved = lambda a, b: not np.allclose(np.linalg.inv(rest[a]) @ rest[b], np.linalg.inv(mats[a]) @ mats[b])  # noqa: E731
     pairs = [
         (a, b)

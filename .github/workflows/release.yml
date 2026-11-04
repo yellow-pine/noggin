@@ -37,6 +37,7 @@ jobs:
       deploy: true
     permissions:   # what checks.yml's jobs ask for: cancel-on-failure's actions, Deploy's Pages
       contents: read
+      issues: read   # Site's marks check (docs/adr/0024)
       actions: write
       pages: write
       id-token: write

@@ -4,7 +4,7 @@ them: the cranium shelled to WALL, the orbits opened round the lids, everything
 riding the bone cut out and everything moving against it CLEAR_MM round, crumbs dropped, meshed at PITCH).
 
 finish() hands Blender the scene and the document just built: Blender (model/skeleton/export.py) deletes the Scene
-Mech, puts each part of next-mech-back where the bone sees it, at rest and over each horn's range, runs every finish
+Mech, puts each part of mech-back where the bone sees it, at rest and over each horn's range, runs every finish
 and writes each bone's STL in the head's frame (model/build/ours), which model/stages.py places as before."""
 
 import json
@@ -21,7 +21,7 @@ from model import stages
 
 SCENE, EXPORT = "model/skeleton/skeleton.blend", "model/skeleton/export.py"
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
-DOC = "next-mech-back"  # the realistic document the bones are carved for
+DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
@@ -63,7 +63,7 @@ def job():
             sorted_[kind] += [[n, at.tolist()] for at in places]
         bones[bone] = sorted_
     return {
-        "frame": list(stages.DOCS[DOC]["next-eyes"][0]),
+        "frame": list(stages.DOCS[DOC]["eyes"][0]),
         "files": files,
         "rest": {n: rest[n].tolist() for n in files},
         "bones": bones,

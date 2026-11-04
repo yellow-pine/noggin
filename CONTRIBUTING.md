@@ -162,7 +162,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
-  inputs. `Site` runs after Render unless a job before it failed: it builds the deploy with the next Mech's pictures,
+  inputs. `Site` runs after Render unless a job before it failed: it builds the deploy with the Mech's pictures,
   tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
   (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
 - `Model` runs on eight shards, `just mech` one of their units, balanced by the seconds CI measured in

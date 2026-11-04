@@ -7,9 +7,9 @@ GLBs in the same look (ADR 0008). How they are made: [Model notes](model-notes.m
 
 ## The Mech
 
-<!--{{ next_views }}-->
+<!--{{ stage_views }}-->
 
-<!--{{ next_front }}-->
+<!--{{ front_views }}-->
 
 <!--{{ stand_in }}-->
 
@@ -26,7 +26,7 @@ and Stage 3 from the side, exploded.
 
 ## In motion
 
-<!--{{ next_motions }}-->
+<!--{{ motions }}-->
 
 <!--{# GitHub shows the line below; the site drops it for the viewers, which it builds from the code -->
 Stage 1 playing each gesture and Rest is in [the viewers on the site](https://yellowpine.com/noggin/docs/pictures/#in-motion).
@@ -41,4 +41,4 @@ jaw play in Stages 2 and 3 in [the viewer](https://yellowpine.com/noggin/viewer/
 
 Each part alone at full look in the first Stage it is in, the rest of the Stage ghosted round it.
 
-<!--{{ next_parts }}-->
+<!--{{ part_pictures }}-->

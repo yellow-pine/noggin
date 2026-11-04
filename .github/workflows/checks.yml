@@ -12,10 +12,10 @@ name: Checks
 # the Link's live checks on the Mech stand-in, #222), with just stl and just step; a cold parts cache is built and cut
 # first (`Convex`, #223) and saved, so the shards start warm. Every artifact of a public repo is anyone's, so nothing
 # derived from today's printed parts is rendered or uploaded (#640, docs/adr/0019) and the parts pass between jobs in
-# the Actions cache alone. `Render` renders the next Mech alone (#649), in one job (#898): its parts and trajectories
-# built once, then its six stills (just pictures next) and its viewer GLBs (just web next), when what they are made
+# the Actions cache alone. `Render` renders the Mech alone (#649), in one job (#898): its parts and trajectories
+# built once, then its six stills (just pictures all) and its viewer GLBs (just web all), when what they are made
 # from changed.
-# `Site`, after Render, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
+# `Site`, after Render, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it; `Deploy`, after the gate on
 # main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render
 # and Convex (just ours has Blender finish the realistic Skeleton's bones, docs/adr/0025) in our Blender image; the
@@ -57,8 +57,8 @@ jobs:
       release: ${{ steps.filter.outputs.release }}
       parts: ${{ steps.parts.outputs.cache-hit }}   # warm: convex skips
       parts-key: ${{ steps.parts.outputs.cache-primary-key }}
-      next: ${{ steps.next.outputs.cache-hit }}   # warm: Render skips, Site restores them
-      next-hash: ${{ steps.inputs.outputs.next }}
+      pictures: ${{ steps.pictures.outputs.cache-hit }}   # warm: Render skips, Site restores them
+      pictures-hash: ${{ steps.inputs.outputs.pictures }}
       sim-hash: ${{ steps.inputs.outputs.sim }}
       sim: ${{ steps.sim.outputs.cache-hit }}   # warm: no sim part runs, Sim skips
       shards: ${{ steps.lists.outputs.shards }}
@@ -89,28 +89,28 @@ jobs:
             model: ["model/**", "eyes/**", "web/**", "conftest.py", "scripts/heavy.py", "scripts/inputs.py", "pyproject.toml", "uv.lock", ".python-version", "justfile", ".github/workflows/checks.yml"]
             release: ["release.config.mjs", "ci/release.test.mjs", "ci/commitlint.config.mjs", "ci/commitlint.test.mjs", "ci/package-lock.json", ".github/workflows/*.yml"]
       # a key hashes only what it is made from (#469, #732), with what that imports or names (scripts/inputs.py) and
-      # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the next Mech's pictures and GLB
+      # uv.lock, so a justfile, workflow or test edit renders and simulates nothing: the Mech's pictures and GLB
       # from the render code, the parts' make (model/ours.py) and Blender's pin; the sim reports from the sim, its
       # thresholds and the parts' make. Hashed here alone, on the runner's Python, for every job
       - name: Hash the cached outputs' inputs
         id: inputs
         run: |   # the inputs' sha256
-          next=$(python3 scripts/inputs.py --hash model/render/pictures.py web/build.py model/ours.py ci/blender.Dockerfile uv.lock)
-          echo "next=$next" >> "$GITHUB_OUTPUT"
+          pictures=$(python3 scripts/inputs.py --hash model/render/pictures.py web/build.py model/ours.py ci/blender.Dockerfile uv.lock)
+          echo "pictures=$pictures" >> "$GITHUB_OUTPUT"
           sim=$(python3 scripts/inputs.py --hash model/report.py model/test_report.py model/ours.py uv.lock)
           echo "sim=$sim" >> "$GITHUB_OUTPUT"
-      # whether the next Mech's pictures and GLB made from the same inputs are cached: then Render skips, nor pulls
+      # whether the Mech's pictures and GLB made from the same inputs are cached: then Render skips, nor pulls
       # its image (#386). Release's manual run (inputs.deploy) looks up as a push's does (#839); the weekly and
       # dispatched runs render again
-      - name: Look up the next Mech's pictures
+      - name: Look up the Mech's pictures
         if: ${{ github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.deploy) }}
-        id: next
+        id: pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/images
             web/build
-          key: next-${{ steps.inputs.outputs.next }}
+          key: pictures-${{ steps.inputs.outputs.pictures }}
           lookup-only: true
       # whether main's sim reports for the same inputs are cached: then no sim part runs and Sim skips. Release's
       # manual run looks up as a push's does (#839); the weekly and dispatched runs simulate again
@@ -460,14 +460,14 @@ jobs:
       - name: Cancel the run on failure
         if: ${{ failure() }}
         uses: ./.github/actions/cancel-on-failure
-  # the next Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
+  # the Mech's pictures and viewer GLB, the only ones published (#649, docs/adr/0019), when what they are made from
   # changed: its parts and trajectories built once, then rendered and baked from them on CI's software GL, saved for
   # Site (and later runs). One job (#898): its six stills take Blender ~1 min where the GLBs take ~4, so a shard more
   # would wait as long on the shared parts and trajectories (~3 min) as it saved
   render:
     name: Render
     needs: changes
-    if: ${{ needs.changes.outputs.next != 'true' }}
+    if: ${{ needs.changes.outputs.pictures != 'true' }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -475,7 +475,7 @@ jobs:
     container:
       image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as code's
     env:
-      TRAJ_DOCS: next   # the trajectories just pictures and just web draw from: the next Mech's alone
+      TRAJ_DOCS: all   # the trajectories just pictures and just web draw from: the Mech's alone
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -492,22 +492,22 @@ jobs:
             model/build/convex
           key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-
-      - name: Run just pictures next
-        run: uv run just BLENDER=blender pictures next
-      - name: Run just web next   # on the parts and trajectories just pictures built
-        run: uv run just BLENDER=blender web next
-      - name: Save the next Mech's pictures
+      - name: Run just pictures all
+        run: uv run just BLENDER=blender pictures all
+      - name: Run just web all   # on the parts and trajectories just pictures built
+        run: uv run just BLENDER=blender web all
+      - name: Save the Mech's pictures
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/images
             web/build
-          key: next-${{ needs.changes.outputs.next-hash }}
+          key: pictures-${{ needs.changes.outputs.pictures-hash }}
       # the rest of the run cancelled at once (#769)
       - name: Cancel the run on failure
         if: ${{ failure() }}
         uses: ./.github/actions/cancel-on-failure
-  # the docs (Astro Starlight, just site) with the next Mech's pictures and GLB, tested and played in Chrome: main's
+  # the docs (Astro Starlight, just site) with the Mech's pictures and GLB, tested and played in Chrome: main's
   # deploy. After Render, so it builds, tests and plays the site once (#732); a skipped Render (its pictures cached)
   # holds it up for nothing
   site:
@@ -547,15 +547,14 @@ jobs:
           path: model/build/reports
           key: sim-latest
           restore-keys: sim-
-      # the next Mech's, made from this run's inputs: Render's of this run, or an earlier run's; just site adds the
-      # next-* ones alone (docs/adr/0019)
-      - name: Restore the next Mech's pictures
+      # the Mech's, made from this run's inputs: Render's of this run, or an earlier run's, which just site adds
+      - name: Restore the Mech's pictures
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
           path: |
             model/build/images
             web/build
-          key: next-${{ needs.changes.outputs.next-hash }}
+          key: pictures-${{ needs.changes.outputs.pictures-hash }}
           fail-on-cache-miss: true
       - name: Run just site
         run: uv run just site
@@ -566,7 +565,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: npm --prefix site test
-      # the viewer loads the next Mech, the diagrams draw, search finds a page, the header names the newest release, an
+      # the viewer loads the Mech, the diagrams draw, search finds a page, the header names the newest release, an
       # old docs version's URL lands on the docs, in the image's Chrome, with no CSP violation or console error and no request to another host but api.github.com
       - name: Smoke-test the site in Chrome
         run: npm --prefix site run smoke
@@ -585,7 +584,7 @@ jobs:
           URL: ${{ steps.preview.outputs.artifact-url }}
         run: |
           {
-            echo "Site preview with the next Mech's pictures and viewer: [the site artifact]($URL),"
+            echo "Site preview with the Mech's pictures and viewer: [the site artifact]($URL),"
             echo 'unzip it into a folder named noggin and run `python -m http.server` beside it, then open'
             echo 'http://localhost:8000/noggin/ (the site lives under /noggin/).'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,8 +1,8 @@
-"""The web viewer's GLBs (docs/adr/0008): one per next Mech document, a Stage in a Skeleton shape (PUBLIC, #649, #642,
+"""The web viewer's GLBs (docs/adr/0008): one per Mech document, a Stage in a Skeleton shape (PUBLIC, #649, #642,
 #819: per Shape alone, the viewer paints each Palette), written into one folder that
 the site serves at viewer/ beside the viewer's page and its module (site/src/pages/viewer.astro, `just site`,
 docs/adr/0009). Each GLB is Blender's (web/glb.py): the document's parts in the pictures' look, one glTF clip per motion
-of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the next hero
+of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the hero
 (#642), and each part's Explode offsets in its node's extras (explode, #811). Stage 3 also bare (BARE, #876): the
 viewer's Skin shape none, the stills' bare look (model/render/pictures.py bare); and in each other Skin shape drawn
 (geometry.DRESSED, #813).
@@ -22,8 +22,8 @@ from model.render import pictures, scene
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "glb.py")
 BARE = "-bare"  # a Stage 3 GLB without its Skin, its full bones on (#876): the viewer's Skin shape none
-# what the site serves: the next Mech's Stages (#720, ADR 0019), Stage 3 bare too
-PUBLIC = {doc: doc + ".glb" for doc in g.STAGES} | {doc + BARE: doc + BARE + ".glb" for doc in g.NEXT}
+# what the site serves: the Mech's Stages (#720, ADR 0019), Stage 3 bare too
+PUBLIC = {doc: doc + ".glb" for doc in g.STAGES} | {doc + BARE: doc + BARE + ".glb" for doc in g.MECH}
 PUBLIC |= {doc: doc + ".glb" for doc in g.DRESSED}  # Stage 3 in each other Skin shape drawn (#813)
 
 
@@ -69,8 +69,8 @@ def explode(name):
 
 
 def build(out, docs=()):
-    """The GLBs named (PUBLIC's; every one by default, as "next") in out, emptied first."""
-    names = [d for a in docs for d in (PUBLIC if a == pictures.NEXT else [a])]
+    """The GLBs named (PUBLIC's; every one by default, as "all") in out, emptied first."""
+    names = [d for a in docs for d in (PUBLIC if a == pictures.ALL else [a])]
     shutil.rmtree(out, ignore_errors=True)  # what an older build left would land on the site's
     os.makedirs(out)
     for name in names or PUBLIC:

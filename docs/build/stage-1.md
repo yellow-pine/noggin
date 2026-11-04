@@ -43,7 +43,7 @@ calibration inside them ([Wiring](wiring.md#servo-ports)), and you calibrate you
 4. **Lids**: each eye's upper lid through its **lid bar** from its lid servo, the lower lid through a **lid link** off
    that bar, so the two close against each other. The left upper lid:
 
-   [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&part=next+L+upper+lid)
+   [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&part=L+upper+lid)
 
 5. **Eyeball caps** on the cores, as the eyes look out from the front:
 

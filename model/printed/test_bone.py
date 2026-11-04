@@ -70,12 +70,12 @@ def test_a_bone_is_carved_from_its_mechanical_part(styles):
 
 
 def test_every_skeleton_part_has_both_styles_or_names_the_ticket_drawing_its_bones():
-    """The Skeleton: the next Mech's parts in PETG (geometry.PRINTED). Each is STYLED, or UNSTYLED with its reason."""
-    skeleton = {k for k, (_, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m and g.MECHANICAL not in k}
+    """The Skeleton: the Mech's parts in PETG (geometry.PRINTED). Each is STYLED, or UNSTYLED with its reason."""
+    skeleton = {k for k, (_, m) in g.PRINTED.items() if "PETG" in m and g.MECHANICAL not in k}
     assert set(printed.STYLED) | set(printed.UNSTYLED) == skeleton
     assert not set(printed.STYLED) & set(printed.UNSTYLED) and all(printed.UNSTYLED.values())
-    assert printed.styled("next bail", mechanical=True) == "next bail mechanical"
-    assert printed.styled("next eyeball core", True) == "next eyeball core"
+    assert printed.styled("bail", mechanical=True) == "bail mechanical"
+    assert printed.styled("eyeball core", True) == "eyeball core"
 
 
 # each Skeleton part's Colour group as Cansin set them (#805; the Torso a Mount since #838)
@@ -95,7 +95,7 @@ GROUPS = {
 
 def test_every_skeleton_part_carries_its_skeleton_colour_group():
     """#805: each Skeleton part, in both styles, carries its Colour group, one every Skeleton Palette prints."""
-    skeleton = {k: group for k, (group, m) in g.PRINTED.items() if k.startswith("next ") and "PETG" in m}
-    want = {f"next {part}": group for group, parts in GROUPS.items() for part in parts}
+    skeleton = {k: group for k, (group, m) in g.PRINTED.items() if "PETG" in m}
+    want = {part: group for group, parts in GROUPS.items() for part in parts}
     assert {k.removesuffix(g.MECHANICAL): group for k, group in skeleton.items()} == want
     assert all(set(v) == set(GROUPS) for v in g.THEMES["Skeleton palette"].values())

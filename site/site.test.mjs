@@ -191,7 +191,7 @@ test("every page's header has the Theme bar: one labelled select of the model's 
       const selects = bar.querySelectorAll('label > select');
       expect(selects.map((s) => s.parentNode.querySelector('span').text), f).toEqual(['Preset']);
       expect(selects[0].querySelectorAll('option').map((o) => [o.getAttribute('value'), o.text])).toEqual([
-        ['cansins-build', "Cansin's build"], ['morty', 'Morty'], ['bart', 'Bart'],
+        ['default-build', "Default build"], ['morty', 'Morty'], ['bart', 'Bart'],
       ]);
     }
     expect(doc.toString(), f).toContain(':root[data-preset="morty"] [data-presets]:not([data-presets~="morty"])');
@@ -205,10 +205,10 @@ test("each Preset's pictures and filaments are marked with it, the default's sho
     false, false, false,
   ]);
   const pictures = page(route('docs/pictures.md'));
-  expect(home.querySelector('p[data-presets="cansins-build"] em')).toBeNull();  // #843: no Skin on the home
+  expect(home.querySelector('p[data-presets="default-build"] em')).toBeNull();  // #843: no Skin on the home
   expect(pictures.querySelector('p[data-presets="bart"] em')?.text).toContain("in Morty's Shape");  // stand-in (#813)
   expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
-    "Cansin's build", 'Morty', 'Bart',
+    "Default build", 'Morty', 'Bart',
   ]);
 });
 
@@ -265,9 +265,9 @@ test("each Stage's guide opens with the Stages in order, by their titles, its ow
 });
 
 // #640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so the site ships, links and
-// draws pictures and GLBs of the next Mech alone, the ones the code publishes (macros.py published), and no photo.
+// draws pictures and GLBs of the Mech alone, the ones the code publishes (macros.py published), and no photo.
 // CI's Site job runs it with the pictures and the GLB in (#732)
-test("every picture and GLB the site ships, links or draws is one of the next Mech's it publishes", () => {
+test("every picture and GLB the site ships, links or draws is one of the Mech's it publishes", () => {
   const { images, viewer } = numbers.published, ours = [...images, ...viewer];
   const mech = /\.(jpe?g|heic|webp|gif|glb|stl|step)$/i, name = (url) => path.basename(url.split(/[?#]/)[0]);
   const shipped = globSync('**/*', { cwd: DIST }).filter((f) => mech.test(f) || f.startsWith('images/'));
@@ -299,7 +299,7 @@ test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's 
   const viewers = page(route('docs/pictures.md')).querySelectorAll('.noggin-motions .noggin-viewer');
   const links = viewers.map((v) => v.getAttribute('data-link')).sort();
   expect(links).toEqual([...Object.keys(numbers.moments), 'rest'].map((g) => `gesture=${g}`).sort()); // its gestures and Rest
-  for (const v of viewers) expect(v.querySelector('figure img').getAttribute('src')).toMatch(/\/next-stage1-isometric\.webp$/);
+  for (const v of viewers) expect(v.querySelector('figure img').getAttribute('src')).toMatch(/\/stage1-isometric\.webp$/);
 });
 
 test("every viewer in a page holds a plain link to what it plays in the viewer page, which GitHub shows (#889)", () => {
@@ -333,9 +333,9 @@ const embedsOf = (doc) =>
   ]);
 
 test("each Stage's guide opens on its Stage's viewer, a view or a part of it in its steps (#914, #900)", () => {
-  expect(embedsOf('docs/build/stage-1.md')).toEqual([[1, ''], [1, 'part=next+L+upper+lid'], [1, 'view=front']]);
+  expect(embedsOf('docs/build/stage-1.md')).toEqual([[1, ''], [1, 'part=L+upper+lid'], [1, 'view=front']]);
   expect(embedsOf('docs/build/stage-2.md')).toEqual([[2, ''], [2, 'view=side']]);
-  expect(embedsOf('docs/build/stage-3.md')).toEqual([[3, ''], [3, 'part=next+jaw'], [3, 'explode=1']]);
+  expect(embedsOf('docs/build/stage-3.md')).toEqual([[3, ''], [3, 'part=jaw'], [3, 'explode=1']]);
   for (const doc of ['docs/build/stage-1.md', 'docs/build/stage-2.md', 'docs/build/stage-3.md']) {
     const [, first] = page(route(doc)).querySelector('.sl-markdown-content').children; // under the warning, before a word
     expect(first.getAttribute('class'), doc).toBe('noggin-viewer');
@@ -357,7 +357,7 @@ test("Stage 2's Torso and Stage 1's test stand carry their marks, which the Road
   expect(on(877)).toContain(route('docs/build/stage-1.md'));
 });
 
-test("the viewer's page draws the next Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
+test("the viewer's page draws the Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);
   const { buttons, skeletons, skins } = numbers.published.stages;

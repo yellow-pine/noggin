@@ -3,7 +3,7 @@
 // bar of controls under it (#883): the page's buttons (src/pages/viewer.astro: a Stage switch, #720), a chip per clip,
 // Explode's levels, the mix; under it, a line on what plays (and the Claude Code event that plays a gesture). Any page
 // drops one in with macros.py embed:
-//   <div class="noggin-viewer" data-stage="next-stage1" data-link="gesture=wink&view=front&part=next+jaw">
+//   <div class="noggin-viewer" data-stage="stage1" data-link="gesture=wink&view=front&part=jaw">
 //     <figure>its still</figure><p class="noggin-open"><a href="…/viewer/?stage=1&gesture=wink">Open …</a></p></div>
 // whose link GitHub shows and this replaces; the footer (src/components/Footer.astro) loads this module there, which
 // Vite bundles with three.js from npm. A page may hold several (#839): one WebGL renderer draws them all, each into
@@ -211,8 +211,7 @@ function mount(root) {
     }
     if (!link.part) return;
     if (!shown) console.error(`no part ${link.part} in ${file}`);  // a part= naming none: the smoke test fails on it
-    const part = link.part.replace(/^next /, "");
-    canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model, its ${part} alone; ${how}`);
+    canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model, its ${link.part} alone; ${how}`);
   }
 
   // each part's Colour group in the mix's Palette (the hardware keeps the GLB's grey), black as the GLB's charcoal,
@@ -350,7 +349,7 @@ function mount(root) {
     const others = Object.keys(clips).filter((c) => c !== loop);
     bar.replaceChildren(...[loop, ...others].map((clip) => {  // the loop, then a chip per gesture
       const b = document.createElement("button"), mine = clip === loop ? undefined : clip;
-      b.textContent = title(clip.replace(/^next /, ""));
+      b.textContent = title(clip);
       b.dataset.clip = clip;
       b.addEventListener("click", () => (play(mine), share(mine)));
       return b;
