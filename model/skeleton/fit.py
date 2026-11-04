@@ -14,6 +14,26 @@ from scipy.interpolate import RBFInterpolator
 from shapely.geometry import Polygon
 
 
+def outer_cortex(mesh, targets, origin):
+    """Source correspondence on the exterior cortex, even when the new envelope is inside the donor skull.
+
+    The nearest surface can be the inner wall. Follow that anatomical radial direction through every source
+    triangle and take its outermost positive crossing; never stretch the inner cortex onto the Skin target.
+    """
+    nearest = trimesh.proximity.closest_point(mesh, targets)[0]
+    directions = nearest - origin
+    directions /= np.linalg.norm(directions, axis=1)[:, None]
+    locations, rays, _ = mesh.ray.intersects_location(np.tile(origin, (len(targets), 1)), directions)
+    result = []
+    for i, direction in enumerate(directions):
+        points = locations[rays == i]
+        distances = (points - origin) @ direction
+        if not len(distances) or distances.max() <= 0:
+            raise ValueError(f"No exterior cranial cortex along source ray {i}")
+        result.append(points[distances.argmax()])
+    return np.array(result)
+
+
 def warp(arrays, scene):
     """Fit all public raw bones in one world field, keeping each local Sculpt−Warp delta.
 
@@ -177,10 +197,21 @@ def refit(arrays, scene, envelope):
         a, e = np.deg2rad((mark["azimuth"], mark["elevation"]))
         direction = np.array((np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)))
         target.append(np.array(envelope["origin"]) + direction * (mark["outer_radius_mm"] - envelope["inset_mm"]))
-    nearest = trimesh.proximity.closest_point_naive(trimesh.util.concatenate(vault), np.array(target))[0]
+    vault = trimesh.util.concatenate(vault)
+    nearest = outer_cortex(vault, np.array(target), np.array(envelope["origin"]))
     for i, (source, dest) in enumerate(zip(nearest, target)):
         scene["landmarks"][f"LM vault {i}"] = {"source": source.tolist(), "target": dest.tolist()}
-    scene["landmarks"].update(envelope["bone_landmarks"])
+    corrected = {}
+    regional = []
+    for name, pair in envelope["bone_landmarks"].items():
+        if "ray" in name.split() or any(r in name.split() for r in ("forehead", "crown", "left", "right", "back")):
+            regional.append(name)
+        corrected[name] = dict(pair)
+    points = np.array([corrected[n]["source"] for n in regional])
+    exterior = outer_cortex(vault, points, np.array(envelope["origin"]))
+    for name, point in zip(regional, exterior):
+        corrected[name]["source"] = point.tolist()
+    scene["landmarks"].update(corrected)
     result, report = warp(arrays, scene)
     report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
     return result, report

@@ -47,4 +47,4 @@ def test_a_target_inside_the_donor_skull_still_registers_its_outer_cortex():
     skull = trimesh.util.concatenate((outer, inner))
     # The envelope is smaller than the donor skull: nearest-surface correspondence would select the inner wall.
     points = fit.outer_cortex(skull, np.array(((7, 0, 0), (-7, 0, 0))), np.zeros(3))
-    assert points == pytest.approx(((10, 0, 0), (-10, 0, 0)), abs=0.03)
+    assert points == pytest.approx(np.array(((10, 0, 0), (-10, 0, 0))), abs=0.03)
