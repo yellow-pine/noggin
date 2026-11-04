@@ -40,8 +40,8 @@ antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the bui
 in the cranium, their USB-C ends back to the hub, whose port at the back of the skull base takes a laptop's cable
 (power, flashing, and the USB fallback, which reaches the eyes Core alone) or a USB-C charger (power alone), which
 charges the pack through the power-path board in the Torso: check the Wi-Fi link there, inside the skull, on the
-built Mech. Use a USB-C source advertising 3 A until the proposed input-limit detector is built and checked
-([Stage 2](stage-2.md#wiring)). Both Shields
+built Mech. Use a USB-C source advertising 3 A until the input-limit detector is built and checked.
+*Upcoming (#971): source-following input limits ([Stage 2](stage-2.md#wiring)).* Both Shields
 run off the one pack and switch board through a Y lead
 ([Stage 2](stage-2.md)); the gestures stay inside the pack's 3 A, since two Shields at stall would draw more
 (2 x 2.6 A > 3 A; a pack per Shield was dropped, #51): each Core starts at most two servos at once (the start budget).

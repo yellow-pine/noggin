@@ -64,9 +64,9 @@ pan for wide gaze shifts once it is calibrated ([Gestures](../use/gestures.md#th
 pack from the head's USB-C and feeds both Shields in the head through the switch board and the neck cable's four
 conductors up the post, a 470 µF capacitor across the Y lead where it enters the Shields.
 
-Use a USB-C source advertising 3 A until the proposed TUSB320 input-limit detector is built and checked. No ready-made
-breakout was found. This inferred design would set the limit from the source's advertisement at attach; it would not
-follow later changes (docs/research/2026-11-03-usb-c-power.md 7).
+Use a USB-C source advertising 3 A until the input-limit detector is built and checked.
+*Upcoming (#971): a TUSB320 detector that sets the limit from the source's advertisement at attach, without following
+later changes. No ready-made breakout was found; this design is inferred (docs/research/2026-11-03-usb-c-power.md 7).*
 
 Every servo lead runs to the Shields in the head, and the leads that cross the pan and tilt pivots (the pan servo's,
 the tilt servo's and the neck cable) are clamped at both ends and bent no tighter than ten times their diameter.
