@@ -1,65 +1,98 @@
-"""In Blender, on the Skeleton scene (docs/adr/0025): the Warp re-run. One thin-plate-spline field (scipy's
-RBFInterpolator) from the Landmarks, written into every bone's Warp shape key; the Sculpt key over it, Cansin's hand
-edits, keeps its deltas through a re-warp. `just rewarp` runs it and saves the scene; scipy comes from the repo's
-gitignored .blender-site (`just blender-site`), never from Blender.app.
+"""Blender's public Bone exchange for the GX10 warp; no numerical solve or private mesh export here.
 
-A Landmark is an empty "LM <name>" on the anatomy and its target "LM <name> target"; an "LM frame ..." empty with no
-target is a fixed point (source = target), against folds and extrapolation."""
+blender -b skeleton.blend -P rewarp.py -- export <prefix>
+blender -b skeleton.blend -P rewarp.py -- apply <prefix> <out.blend>
+`just rewarp` coordinates both under the existing Blender and GX10 locks.
+"""
+
+import hashlib
+import json
+import os
+import sys
 
 import bpy
 import numpy as np
-from scipy.interpolate import RBFInterpolator
-
-LANDMARKS, SKULL = "Landmarks", "Skull"
+from mathutils import Matrix, Vector
 
 
-def _pairs():
-    src, dst = [], []
-    for ob in bpy.data.collections[LANDMARKS].all_objects:
-        if not ob.name.endswith(" target"):
-            src.append(ob.matrix_world.translation[:])
-            dst.append(bpy.data.objects.get(ob.name + " target", ob).matrix_world.translation[:])
-    return np.array(src), np.array(dst)
+def coordinates(data):
+    points = np.empty(len(data) * 3)
+    data.foreach_get("co", points)
+    return points.reshape(-1, 3)
 
 
-def _co(key, n):
-    out = np.empty(n * 3)
-    key.data.foreach_get("co", out)
-    return out.reshape(n, 3)
+def export(prefix):
+    """Only the licensed source inventory's raw Basis/Warp/Sculpt and sparse anatomical Landmarks."""
+    inventory = json.load(open(os.path.join(os.path.dirname(__file__), "sources.json")))["objects"]
+    arrays, scene = {}, {"bones": [], "landmarks": {}}
+    groups = {"Skull", "Mandible", "Ribcage"} | {f"C{i}" for i in range(1, 8)}
+    for name in inventory:
+        o = bpy.data.objects[name]
+        key = f"b{len(scene['bones'])}"
+        group = next(c.name for c in o.users_collection if c.name in groups)
+        for kind in ("Basis", "Warp", "Sculpt"):
+            arrays[f"{key}_{kind.lower()}"] = coordinates(o.data.shape_keys.key_blocks[kind].data)
+        o.data.calc_loop_triangles()
+        arrays[key + "_faces"] = np.array([t.vertices[:] for t in o.data.loop_triangles], dtype=np.int32)
+        scene["bones"].append({"name": name, "key": key, "group": group, "matrix": list(map(list, o.matrix_world))})
+    for o in bpy.data.collections["Landmarks"].all_objects:
+        if not o.name.endswith(" target") and not o.hide_get():
+            target = bpy.data.objects.get(o.name + " target", o)
+            scene["landmarks"][o.name] = {
+                "source": list(o.matrix_world.translation),
+                "target": list(target.matrix_world.translation),
+            }
+    np.savez_compressed(prefix + ".npz", **arrays)
+    with open(prefix + ".json", "w") as f:
+        json.dump(scene, f, indent=2)
 
 
-def min_jacobian(rbf, lo, hi, n=14, h=0.5):
-    """The warp's least Jacobian determinant over an n^3 grid in (lo, hi): <= 0 folds, near 0 collapses."""
-    p = np.stack(np.meshgrid(*[np.linspace(a, b, n) for a, b in zip(lo, hi)], indexing="ij"), -1).reshape(-1, 3)
-    jac = np.empty((len(p), 3, 3))
-    for i in range(3):
-        d = np.zeros(3)
-        d[i] = h
-        jac[:, :, i] = (rbf(p + d) - rbf(p - d)) / (2 * h)
-    return float(np.linalg.det(jac + np.eye(3)).min())
-
-
-def rewarp():
-    src, dst = _pairs()
-    rbf = RBFInterpolator(src, dst - src, kernel="thin_plate_spline")
-    lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
-    for ob in bpy.data.collections[SKULL].all_objects:
-        me, n = ob.data, len(ob.data.vertices)
-        keys = me.shape_keys.key_blocks
-        warp, sculpt = keys["Warp"], keys["Sculpt"]
-        delta = _co(sculpt, n) - _co(warp, n)
-        m = np.array(ob.matrix_world)
-        world = _co(keys["Basis"], n) @ m[:3, :3].T + m[:3, 3]
-        lo, hi = np.minimum(lo, world.min(0)), np.maximum(hi, world.max(0))
-        local = (world + rbf(world) - m[:3, 3]) @ np.linalg.inv(m[:3, :3]).T
-        warp.data.foreach_set("co", local.ravel())
-        sculpt.data.foreach_set("co", (local + delta).ravel())
-        me.update()
-    det, err = min_jacobian(rbf, lo, hi), float(np.abs(src + rbf(src) - dst).max())
-    print(f"rewarp: {len(src)} landmarks, residual {err:.2e} mm, least Jacobian {det:.3f}", flush=True)
-    return det, err
+def apply(prefix, out):
+    """Apply a validated public result without altering Basis; the coordinator replaces the source atomically."""
+    scene, arrays = json.load(open(prefix + ".json")), np.load(prefix + ".npz")
+    report = scene["fit_report"]
+    assert report["min_jacobian"] > 0.1 and report["landmark_error_mm"] <= 1.0, report
+    inventory = json.load(open(os.path.join(os.path.dirname(__file__), "sources.json")))["objects"]
+    assert {b["name"] for b in scene["bones"]} == set(inventory)
+    basis = {}
+    for bone in scene["bones"]:
+        o = bpy.data.objects[bone["name"]]
+        keys = o.data.shape_keys.key_blocks
+        basis[o.name] = hashlib.sha256(coordinates(keys["Basis"].data).tobytes()).digest()
+        matrix = np.asarray(bone["matrix"])
+        assert matrix.shape == (4, 4) and np.isfinite(matrix).all()
+        o.matrix_world = Matrix(matrix)
+        for kind in ("Warp", "Sculpt"):
+            points = arrays[f"{bone['key']}_{kind.lower()}"]
+            assert points.shape == (len(o.data.vertices), 3) and np.isfinite(points).all()
+            keys[kind].data.foreach_set("co", points.ravel())
+            keys[kind].value = 1.0
+        o.data.update()
+    landmarks = bpy.data.collections["Landmarks"]
+    for name, pair in scene["landmarks"].items():
+        for suffix, kind in (("", "source"), (" target", "target")):
+            o = bpy.data.objects.get(name + suffix)
+            if o is None:
+                o = bpy.data.objects.new(name + suffix, None)
+                landmarks.objects.link(o)
+            o.matrix_world.translation = Vector(pair[kind])
+            o.hide_set(False)
+    for o in landmarks.all_objects:
+        if not o.name.endswith(" target") and o.name not in scene["landmarks"]:
+            o.hide_set(True)
+    for name, digest in basis.items():
+        points = coordinates(bpy.data.objects[name].data.shape_keys.key_blocks["Basis"].data)
+        assert hashlib.sha256(points.tobytes()).digest() == digest, name
+    bpy.context.scene["fit_report"] = json.dumps(report)
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(out), compress=True)
+    assert os.path.getsize(out) <= 12_000_000, "Skeleton scene exceeds its 12 MB cap"
 
 
 if __name__ == "__main__":
-    rewarp()
-    bpy.ops.wm.save_mainfile(compress=True)
+    action, prefix, *rest = sys.argv[sys.argv.index("--") + 1 :]
+    if action == "export":
+        export(prefix)
+    else:
+        assert action == "apply" and len(rest) == 1
+        apply(prefix, rest[0])
+    print("review: done", flush=True)

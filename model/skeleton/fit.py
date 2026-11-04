@@ -6,6 +6,7 @@ Blender exports/applies this public exchange; the private reference never travel
 
 import json
 import sys
+from pathlib import Path
 
 import numpy as np
 import trimesh
@@ -186,11 +187,16 @@ def refit(arrays, scene, envelope):
 
 
 if __name__ == "__main__":
-    path, metadata, out = sys.argv[1:]
+    landmarks = sys.argv[1] == "--landmarks"
+    path, metadata, out = sys.argv[2:] if landmarks else sys.argv[1:]
     scene = json.load(open(metadata))
-    with open("model/skeleton/envelope.json") as f:
-        envelope = json.load(f)
-    result, report = refit(np.load(path), scene, envelope)
+    if landmarks:
+        result, report = warp(np.load(path), scene)
+    else:
+        with open("model/skeleton/envelope.json") as f:
+            envelope = json.load(f)
+        result, report = refit(np.load(path), scene, envelope)
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out + ".npz", **result)
     with open(out + ".json", "w") as f:
         json.dump(scene | {"fit_report": report}, f, indent=2)
