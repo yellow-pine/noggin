@@ -1,6 +1,6 @@
-"""Seam: each Skin's Shells, Morty's and Bart's (model/printed/skin.py) and the Seats cut into what carries them, as model/stages.py places
-them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part but what carries it, at
-rest and with each servo at either end."""
+"""Seam: each Skin's Shells, Morty's and Bart's (model/printed/skin.py) and the Seats cut into what carries them, as
+model/stages.py places them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part
+but what carries it, at rest and with each servo at either end."""
 
 import functools
 import math

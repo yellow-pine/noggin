@@ -45,7 +45,8 @@ BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0] and g
 def _drawn(stage, theme):
     """The Stage as Bones in a Theme's Shapes: its Skeleton shape's, in its Skin shape where it is drawn in it."""
     doc = stage + g.SKELETON_SUFFIX[theme["Skeleton shape"]]
-    return next((d for d in [doc + g.SKIN_SUFFIX.get(theme["Skin shape"], "")] if d in g.STAGES), doc)
+    skinned = doc + g.SKIN_SUFFIX.get(theme["Skin shape"], "")
+    return skinned if skinned in g.STAGES else doc
 
 
 DRAWN = {s + SUFFIX[p]: (_drawn(s, t), p) for p, t in g.PRESETS.items() for s in BONY}

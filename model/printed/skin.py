@@ -1,7 +1,8 @@
 """The Skins (#665, #807) as CadQuery parts, every Seat and size from model/skin.py, each Skin the same Shells: the
 head's face (with the nose and ears) and hair (Bart's his crown, its spikes on), the pupils keyed in the eyeball caps
-(Morty's jagged, Bart's dots), a cover on each lid, the mouth cover on the jaw and the shirt's two halves on the Torso. seated() cuts each Seat into what carries it. Each Shell is drawn in its carrier's
-frame: the head's, an eye's (the L one's, the R its mirror) or the Torso's."""
+(Morty's jagged, Bart's dots), a cover on each lid, the mouth cover on the jaw and the shirt's two halves on the Torso.
+seated() cuts each Seat into what carries it. Each Shell is drawn in its carrier's frame: the head's, an eye's (the L
+one's, the R its mirror) or the Torso's."""
 
 import functools
 import math
@@ -199,8 +200,9 @@ def _profile(plane, hulls, t, rounded=0.0):
 
 
 def _head(t, skin="morty"):
-    """The Skin's head (model/skin.py HEADS: FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
-    swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833).
+    """The Skin's head (model/skin.py HEADS: FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and
+    lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP
+    (#833).
     Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
     booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
     return cq.Workplane().add(_built_head(t, skin).copy())
