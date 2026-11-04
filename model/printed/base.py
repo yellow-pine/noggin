@@ -82,8 +82,8 @@ def lid(mechanical=False):
 
 def tray(mechanical=False):
     """The cranium tray (#858; printed on its plate's top, upside down), hidden in the realistic skull's cranium in every
-    Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, a leg down
-    from each back corner behind the bail to its foot on the gimbal frame's plate, and the hub's riser on the plate from
+    Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, two legs
+    behind the bail down to the gimbal frame's plate, and the hub's riser on the plate from
     the R foot forward, a hole in it round the head mount's rear L screw's nut."""
     y0, y1 = nb.LEG_Y
     edge = max(abs(x) for leg in nb.LEG_X.values() for x in leg) + 6
