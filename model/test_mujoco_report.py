@@ -1,11 +1,44 @@
 """Seam: model/mujoco_report.py's tip-over margin, on a plan outline drawn by hand, and its servo torques, on a
 parallelogram four-bar written by hand (the report itself: test_report.py)."""
 
+import json
+
 import mujoco
 import numpy as np
 import pytest
 
-from model import mujoco_report
+from model import mjcf, mujoco_report, neck, stages
+
+
+def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collision_meshes(tmp_path, monkeypatch):
+    """The same finished export's head/jaw loads must affect torque even in mechanical-only documents (ADR0020)."""
+    loads = {
+        stem: {"carrier": carrier, "mass_g": grams, "com_mm": [100, 0, 0], "inertia_g_mm2": np.eye(3).tolist()}
+        for stem, carrier, grams in [("skull", "pan", 100), ("calvaria", "pan", 50), ("mandible", "jaw", 10)]
+        + [(f"c{i}", "fixed", 1) for i in range(1, 8)]
+    }
+    path = tmp_path / "loads.json"
+    path.write_text(json.dumps({"source": "synthetic finished mesh fixture", "parts": loads}))
+    monkeypatch.setattr(mjcf, "ANATOMY_LOADS", str(path), raising=False)
+    spec = mujoco.MjSpec.from_string("""<mujoco><worldbody>
+        <body name="head mount:1"><joint name="tilt" axis="0 1 0"/><geom size="0.001" mass="1e-6"/>
+          <body name="jaw:1"><geom size="0.001" mass="1e-6"/></body></body>
+        <body name="cervical carrier:1"><geom size="0.001" mass="1e-6"/></body>
+        </worldbody><actuator><motor joint="tilt"/></actuator></mujoco>""")
+    parts = {
+        n: stages.Part("unused.stl", np.eye(4), None, None) for n in neck.HEAD_CARRIERS.values() if n != "nod plate:1"
+    }
+    horn = stages.Horn({}, (), "", [], [], np.eye(4))
+    stage = stages.Doc("synthetic", parts, {"tilt horn": horn})
+    mjcf.anatomy(spec, stage, {n: spec.body(n) for n in parts})
+    model = spec.compile()
+    assert model.body_subtreemass[model.body("head mount:1").id] == pytest.approx(0.160002)
+    assert model.ngeom == 3  # inertial loads never add collision or visual geometry
+    data = mujoco.MjData(model)
+    assert abs(mujoco_report.torques(model, data, moving=False)[0]) == pytest.approx(0.16 * 9.81 * 0.1)
+    matrix = np.zeros((model.nv, model.nv))
+    mujoco.mj_fullM(model, data, matrix)
+    assert matrix[0, 0] > 0.16 * 0.1**2  # each finished mesh's own COM inertia also survives
 
 
 def test_the_standard_tilt_motor_holds_a_load_the_micro_servo_cannot():
