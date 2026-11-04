@@ -154,6 +154,40 @@ def test_the_standard_servo_saddle_holds_its_actual_stall_reaction(saddle, membe
     assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF
 
 
+@pytest.fixture(scope="module")
+def pan_wire_candidate():
+    return {n: p.val() for n, p in neck.pan_wire_candidate().items()}
+
+
+@pytest.mark.model
+def test_the_c0_pan_bearing_candidate_has_real_retention_and_an_open_wire_path(pan_wire_candidate):
+    """Unaccepted component study: the shaft, caps and bearing leave a full 6 mm cable corridor."""
+    assert set(pan_wire_candidate) == {"spindle", "fixed cap", "bearing", "head carrier", "moving cap"}
+    for solid in pan_wire_candidate.values():
+        assert solid.isValid() and len(solid.Solids()) == 1 and solid.Volume() > 0
+    y, bottom = nk.HEAD_AXES["tilt"][0][1], -36.0
+    cable = gimbal.cyl("z", (0, y, 0), 3, (bottom - 5, bottom + 12)).val()
+    assert all(s.intersect(cable).Volume() < 1e-6 for s in pan_wire_candidate.values())
+    assert _overlaps(pan_wire_candidate, list(itertools.combinations(pan_wire_candidate, 2))) == []
+    for a, b in (
+        ("spindle", "bearing"),
+        ("fixed cap", "bearing"),
+        ("head carrier", "bearing"),
+        ("moving cap", "bearing"),
+    ):
+        assert pan_wire_candidate[a].distance(pan_wire_candidate[b]) < 1e-6
+
+
+@pytest.mark.model
+def test_the_c0_pan_bearing_candidate_survives_step_round_trip(pan_wire_candidate, tmp_path):
+    for name, solid in pan_wire_candidate.items():
+        path = tmp_path / (name + ".step")
+        cq.exporters.export(solid, str(path))
+        restored = cq.importers.importStep(str(path)).val()
+        assert restored.isValid() and len(restored.Solids()) == 1
+        assert restored.Volume() == pytest.approx(solid.Volume(), rel=1e-6)
+
+
 Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
