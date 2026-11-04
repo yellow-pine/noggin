@@ -272,13 +272,13 @@ def upper_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
-@bone.grown  # carved, Linux's OCCT broke its Bones' intersect (#901): the mechanical lid takes them in
+@bone.carved
 def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # its outboard spoke forward of the yoke's bearing under the eye over the lid's whole range (#901)
-    out = _lid(gm.LOWER_R, span, (-65.0, -90.0), "lower boss", gm.LOWER_PIN, mechanical)
+    # its spokes where every OCCT CI and the GX10 run builds the lid and carves its Bones (#901)
+    out = _lid(gm.LOWER_R, span, (-62.0, -75.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
