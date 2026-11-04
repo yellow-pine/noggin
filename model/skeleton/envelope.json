@@ -145,5 +145,16 @@
       29.725203238828158
     ]
   },
-  "canal_ends_status": "inferred provisional anatomical endpoints, independent of head pan bearing; final corridor/joins require mesh proof"
+  "canal_ends_status": "inferred provisional anatomical endpoints, independent of head pan bearing; final corridor/joins require mesh proof",
+  "excluded_openings": [
+    {
+      "azimuths": [
+        -135,
+        -90,
+        -45
+      ],
+      "elevation": 0,
+      "reason": "orbital/brow opening below the glabella; this is not a cranial vault surface"
+    }
+  ]
 }

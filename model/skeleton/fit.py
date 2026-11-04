@@ -138,6 +138,11 @@ def refit(arrays, scene, envelope):
         vault.append(trimesh.Trimesh(arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"]))
     target = []
     for mark in envelope["landmarks"]:
+        if any(
+            mark["elevation"] == x["elevation"] and mark["azimuth"] in x["azimuths"]
+            for x in envelope["excluded_openings"]
+        ):
+            continue
         a, e = np.deg2rad((mark["azimuth"], mark["elevation"]))
         direction = np.array((np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)))
         target.append(np.array(envelope["origin"]) + direction * (mark["outer_radius_mm"] - envelope["inset_mm"]))
