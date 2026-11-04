@@ -151,7 +151,7 @@ def nod_plate():
     for start, x in (((-21, py + 6), -23), ((11, py + 6), 23)):
         out = out.union(_flat([start, (x, 72)], 4, (floor, floor + 3)).cut(passes(matrix)))
         out = out.union(box((x - 1.5, x + 1.5), (69.5, 74.5), (floor, nk.NOD_Z[0] + 1)))
-        out = out.union(_flat([(x, 72), (math.copysign(12.8, x), y)], 4, (nk.NOD_Z[0], nk.NOD_Z[0] + 3)))
+        out = out.union(_flat([(x, 72), (math.copysign(8, x), 66)], 4, (nk.NOD_Z[0], nk.NOD_Z[0] + 3)))
     # Upper-head saddle on the actual standard-servo tabs; rear posts clear the complete tray/PCB pan sweep.
     sx, sy, sz = nk.TILT_SHAFT
     tab_x = (sx + 10.4, sx + 13.4)
@@ -181,8 +181,8 @@ def nod_plate():
     out = out.cut(box((-3.2, 3.2), (95, 116), nk.NOD_Z))  # the reaction bar crosses the rear edge at full tilt
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
     for xs, radius in (
-        ((5.5, 10.5), 5.1),
-        ((-10.5, -5.5), 5.1),
+        ((5.5, 10.5), 8.5),
+        ((-10.5, -5.5), 8.5),
         ((-34.2, -25.8), 8.5),
     ):
         out = out.cut(cyl("x", (0, y, z), radius, xs))
