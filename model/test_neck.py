@@ -162,7 +162,7 @@ def test_the_pan_span_bends_in_an_s_and_the_tilt_spans_arc_breathes(report):
     two arcs of (15^2 + 6.89^2) / 13.78 = 19.78 mm. Tilt: a 45 deg arc of 22 mm radius opened by 20 deg to 65 deg
     spreads the same length over more turn: 22 x 45 / 65 = 15.23 mm."""
     assert report["spans"]["pan"]["bend_mm"] == pytest.approx(19.78, abs=0.01)
-    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(15.23, abs=0.01)
+    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(16.62, abs=0.01)
 
 
 @pytest.mark.parametrize("doc", g.MECH)

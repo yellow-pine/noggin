@@ -116,10 +116,10 @@ def cervical_carrier():
         xs = sorted(sign * x for x in (14, 18))
         rail = box(xs, (y - 3, 97), (nk.MOUNT_Z[1] - 1, nk.MOUNT_Z[1] + 5))
         rail = rail.union(strut((sign * 16, 94, nk.MOUNT_Z[1]), (sign * 16, y, z), (4, 2), (3, 1.6)))
-        rail = rail.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
+        rail = rail.union(cyl("x", (0, y, z), 8, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    out = out.union(box((14, 26), (y + 3, y + 11), (z - 5, z + 5)))
-    out = out.union(box((23, 26), (y - 10, y + 11), (z - 10, z + 10)))
+    out = out.union(box((14, 26), (y - 3, y + 3), (z - 9, z - 5)))
+    out = out.union(cyl("x", (0, y, z), 12, (23, 26)))
     return out.cut(cyl("x", (0, y, z), 3.1, (22, 27)))
 
 
@@ -135,12 +135,22 @@ def nod_plate():
     out = out.cut(cyl("z", (0, py, 0), 4.2, nk.NOD_Z))
     face = (0, py, nk.PAN_HORN_Z)
     matrix = gm.servo_matrix(face, (0, 0, 1), (1, 0, 0))
-    out = out.union(collar(matrix, nk.NOD_Z[0]))
+    floor = nk.PAN_HORN_Z - 19
+    out = out.union(collar(matrix, floor))
+    pad = box((-26, 26), (py - 9, py + 9), (floor, floor + 3))
+    from model.printed.gimbal import passes
+
+    out = out.union(pad.cut(passes(matrix)))
+    for x in (-25, 25):
+        out = out.union(box((x - 1.5, x + 1.5), (py - 3, py + 3), (floor, nk.NOD_Z[0] + 1)))
     out = out.union(box((26, 69), (y - 17, y + 38), (z - 12.85, z - 9.85)))
     for hy in (y - 13.4, y + 34.1):
         out = out.union(box((26, 39.4), (hy - 2.5, hy + 2.5), (z - 12.85, nk.NOD_Z[0] + 1)))
         for hz in (z - 5, z + 5):
             out = out.cut(cyl("x", (0, hy, hz), 2.0, (35, 40)))
+    # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
+    for xs, radius in (((13.7, 18.3), 8.5), ((-18.3, -13.7), 8.5), ((22.6, 30), 13), ((-34.2, -25.8), 8.5)):
+        out = out.cut(cyl("x", (0, y, z), radius, xs))
     return out
 
 
