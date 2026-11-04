@@ -9,8 +9,8 @@ their own.*
 
 ## What the numbers are
 
-- `<servo>_lo` and `<servo>_hi`: a servo's two ends, in servo degrees, for `l_lid`, `r_lid`, `yaw` and `pitch`. For
-  a lid, `_lo` is closed (where the upper and lower lid meet) and `_hi` open.
+- `<servo>_lo` and `<servo>_hi`: a servo's two ends, in servo degrees, for each servo in the
+  [Wiring](wiring.md#servo-ports) table's eyes Core rows. For a lid, `_lo` is closed (where the upper and lower lid meet) and `_hi` open.
 - `<lid>_rest`: where each lid servo sits at `lid_rest`, so the two lids can match at rest even when their linkages
   differ.
 - Both lids are in one shared frame, the right lid servo's degrees: the two lid servos are mirror-mounted, and the Core
