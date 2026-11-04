@@ -1,24 +1,27 @@
 // The web viewer (docs/adr/0008): every element of class noggin-viewer on a page draws one Stage, data-stage, from
 // Blender's glTF in style B with the look numbers Blender writes into the GLB's extras; the /viewer page's alone has a
-// bar of controls under it (#883): the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a
-// chip per gesture, Explode's levels, the mix; under it, a line on what plays and the Claude Code event that plays it.
-// Any page, a doc's Markdown too, drops a small one in with
-//   <div class="noggin-viewer" data-stage="stage1" data-link="gesture=wink&explode=1"></div>
-// and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
-// page may hold several (#839): one WebGL renderer draws them all, each into its own canvas, each GLB is loaded once,
-// and a viewer loads its Stage only once scrolled into view, a <figure> inside its still until then; of those on
-// screen the three that came into view or were touched last animate (state.mjs touched), the rest hold their last
-// frame. The viewer with Stage buttons (the /viewer page) keeps the address its deep link: ?stage=<n>&gesture=<g>
-// opens it on its nth Stage button's Stage playing that gesture, and each click on a button rewrites the address to
-// the deep link of what it plays; any other opens on its own, data-link, its Stage data-stage's, and repeats its
-// gesture. It draws the Stage in the Preset the header's bar picks (src/theme.mjs, #806, #819: on <html>) unless its
-// link names one, and again in the next one the bar picks; with none picked, in its own mix (state.mjs mixed, #883:
-// the bare anatomical Skeleton); or in any Shape and Palette (a select per axis, kept in its link:
-// ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each
-// Colour group's material painted in its Palette's colour (state.mjs paint). Explode moves a Stage's parts from level to level,
-// Assembled, Sub-assemblies, Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py
-// offsets, #482, #664, #811), &explode=<level> opens it so. Only a
-// viewer with data-zoom (the /viewer page) zooms; one in a page turns, and the wheel scrolls past it (#598).
+// bar of controls under it (#883): the page's buttons (src/pages/viewer.astro: a Stage switch, #720), a chip per clip,
+// Explode's levels, the mix; under it, a line on what plays (and the Claude Code event that plays a gesture). Any page
+// drops one in with macros.py embed:
+//   <div class="noggin-viewer" data-stage="stage1" data-link="gesture=wink&view=front&part=jaw">
+//     <figure>its still</figure><p class="noggin-open"><a href="…/viewer/?stage=1&gesture=wink">Open …</a></p></div>
+// whose link GitHub shows and this replaces; the footer (src/components/Footer.astro) loads this module there, which
+// Vite bundles with three.js from npm. A page may hold several (#839): one WebGL renderer draws them all, each into
+// its own canvas, each GLB is loaded once, and a viewer loads its Stage only once scrolled into view (the home's on a
+// phone, data-tap, once tapped), its still until then; of those on screen the three that came into view or were
+// touched last animate (state.mjs touched), the rest hold their last frame. Every viewer plays its Stage's hero loop
+// (state.mjs looped: Rest where there is none, #889) unless its link names a gesture, which it repeats; it opens from
+// its link's view= (front, side, isometric; else the default framing) and, with part=, shows that part alone at full
+// look, the rest ghosted. The viewer with Stage buttons (the /viewer page) keeps the address its deep link:
+// ?stage=<n>&gesture=<g> opens it on its nth Stage button's Stage playing that gesture once, and each click rewrites
+// the address to the deep link of what it plays. It draws the Stage in the Preset the header's bar picks
+// (src/theme.mjs, #806, #819: on <html>) unless its link names one, and again in the next one the bar picks; with none
+// picked, in the Default build (state.mjs mixed, #889); or in any Shape and Palette (a select per axis, kept in its
+// link: ?skeleton-palette=black): Blender's GLB of the Skeleton shape, each Colour group's material painted in its
+// Palette's colour (state.mjs paint). Explode moves a Stage's parts from level to level, Assembled, Sub-assemblies,
+// Parts, by the offsets each part's node carries (web/build.py explode, model/render/pictures.py offsets, #482, #664,
+// #811), &explode=<level> opens it so. Only the /viewer page's (data-zoom) zooms and pans; every other only turns, the
+// wheel and a pinch left to the page (state.mjs moves, #598, #889), and once turned shows its one control, a reset.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -29,7 +32,8 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { fit, lineWidth, radiusPx } from "./frame.mjs";
 import {
-  ANIMATING, LEVELS, address, between, caption as captionFor, glb, mixed, opened, paint, title, touched,
+  ANIMATING, LEVELS, address, between, caption as captionFor, glb, looped, mixed, moves, opened, paint, partOf,
+  shows, title, touched,
 } from "./state.mjs";
 import { AXES, picked } from "../theme.mjs";
 
@@ -67,20 +71,20 @@ function draw(canvas, scene, camera) {
   out.drawImage(from, 0, from.height - H, W, H, 0, 0, W, H);
 }
 const FOV = 20;
-// the old hero GIF's view: 15 deg to the Mech's right, 15 deg up, in glTF's Y-up; framed
-// as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and lines line_px wide when the Stage fills a
-// 4:3 frame line_at wide, as in the hero GIF (640 x 480)
-const VIEW = new THREE.Vector3(-0.25, 0.259, 0.933), MARGIN = 1.06, GIF_ASPECT = 4 / 3;
+// framed from its view (state.mjs VIEWS) as the GIFs are on load and Stage switch (MARGIN x the tightest fit), and
+// lines line_px wide when the Stage fills a 4:3 frame line_at wide, as in the hero GIF (640 x 480)
+const MARGIN = 1.06, GIF_ASPECT = 4 / 3, GHOST = 0.12;  // GHOST: a ghosted part's opacity (part=)
 const APART_S = 1;  // the seconds each Explode step takes
 const press = (b, on) => b.setAttribute("aria-pressed", on);
 
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]");
-  const poster = root.querySelector("figure");
+  root.querySelector(":scope > .noggin-open")?.remove();  // the link GitHub shows in the viewer's place
+  const poster = root.querySelector(":scope > figure");
   const names = [...stages].map((b) => b.dataset.stage), linked = names.length > 0;
   let own = root.dataset.link ?? "";  // a viewer in a page: its link, its mix kept in it
   const search = () => (linked ? location.search : `?${own}`);
-  const link = opened(search(), names, root.dataset.stage);
+  const link = opened(search(), names, root.dataset.stage), VIEW = new THREE.Vector3(...link.view).normalize();
   const canvas = document.createElement("canvas");
   if (!poster) root.appendChild(canvas);
   canvas.setAttribute("role", "img");
@@ -130,8 +134,15 @@ function mount(root) {
   const caption = root.appendChild(document.createElement("p"));
   caption.className = "noggin-caption";
   const camera = new THREE.PerspectiveCamera(FOV);
-  const controls = new OrbitControls(camera, canvas);
-  controls.enableZoom = zoom;
+  const controls = Object.assign(new OrbitControls(camera, canvas), moves(zoom));
+  // the one control an embed carries: once the reader turned it, a reset back to the view it opened on
+  const reset = root.appendChild(document.createElement("button"));
+  reset.className = "noggin-reset";
+  reset.setAttribute("aria-label", "Reset the view");
+  reset.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></svg>';
+  reset.hidden = true;
+  controls.addEventListener("start", () => (reset.hidden = false));
+  reset.addEventListener("click", () => (scene && spread(), reset.hidden = true));  // a drag may beat the load
   // the key light rides at the camera's upper right and casts shadows; intensity PI makes a part colour x ramp (RE_Direct_Toon
   // divides by PI) and the ambient is the ramp's floor, so a shadowed point gets the N.L <= 0 light as in Eevee
   const key = new THREE.DirectionalLight(0xffffff, Math.PI);
@@ -146,7 +157,7 @@ function mount(root) {
     b.addEventListener("click", () => (goal = i, pressLevel(), share(gesture)));
   });
   const pressLevel = () => levels.forEach((b, i) => press(b, i === goal));
-  let scene, sphere, reach, refPx, mixer, clips, tour, step, creases, look, current, file, loading = 0;
+  let scene, sphere, reach, refPx, mixer, clips, loop, creases, look, current, file, loading = 0;
   // how far apart the parts are (0 together, 1 each sub-assembly apart, 2 each part), the level they are headed to,
   // each part's group with its offset at each level, the camera's framing at each level, and the gesture in the address
   let apart = 0, goal = 0, parts = [], framings, gesture = link.gesture;
@@ -187,7 +198,8 @@ function mount(root) {
       const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
       h.computeVertexNormals();
       const lines = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(g, look.crease));
-      o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
+      if (shows(link.part, partOf(o))) o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
+      else Object.assign(o.material, { transparent: true, opacity: GHOST, depthWrite: false }), o.castShadow = false;
     }
   }
 
@@ -213,12 +225,12 @@ function mount(root) {
   }
 
   // a gesture (a clip's name) plays once, then the viewer's own goes on: its link's gesture again (a viewer in a
-  // page), else the Tour (none): every clip in turn, round and round
+  // page), else (none) the Stage's loop (state.mjs looped: the hero, else Rest), round and round
   function play(name) {
-    step = name ? -1 : 0;
-    run(name ?? tour[0]);
-    for (const b of bar.children) press(b, b.dataset.clip === (name ?? ""));
-    caption.textContent = captionFor(name);
+    const clip = name ?? loop;
+    run(clip);
+    for (const b of bar.children) press(b, b.dataset.clip === clip);
+    caption.textContent = captionFor(clip);
   }
 
   function run(clip) {
@@ -228,10 +240,7 @@ function mount(root) {
     a.play();
   }
 
-  function next() {
-    if (step < 0) play(linked || !clips[link.gesture] ? undefined : link.gesture);
-    else run(tour[step = (step + 1) % tour.length]);
-  }
+  const next = () => play(linked || !clips[link.gesture] ? undefined : link.gesture);
 
   // the parts `apart` of the way through the levels, eased, and the camera framing them as the hero GIF does: on load
   // from its view, later moved with the framing from `before`, the last step, so the reader's turn and zoom stay
@@ -318,20 +327,20 @@ function mount(root) {
     clips = Object.fromEntries(gltf.animations.map((c) => [c.name, c]));
     mixer = new THREE.AnimationMixer(model);
     mixer.addEventListener("finished", next);
-    tour = Object.keys(clips).sort((a, b) => (b === "hero") - (a === "hero"));  // the hero first, where there is one
-    const gestures = tour.filter((c) => c !== "hero");
-    bar.replaceChildren(...["", ...gestures].map((clip) => {  // the Tour, then a chip per gesture
-      const b = document.createElement("button");
-      b.textContent = clip ? title(clip) : "Tour";
+    loop = looped(Object.keys(clips));
+    const others = Object.keys(clips).filter((c) => c !== loop);
+    bar.replaceChildren(...[loop, ...others].map((clip) => {  // the loop, then a chip per gesture
+      const b = document.createElement("button"), mine = clip === loop ? undefined : clip;
+      b.textContent = title(clip);
       b.dataset.clip = clip;
-      b.addEventListener("click", () => (play(clip || undefined), share(clip || undefined)));
+      b.addEventListener("click", () => (play(mine), share(mine)));
       return b;
     }));
     explode.hidden = !parts.length;
     for (const b of levels) b.disabled = false;
     pressLevel();
-    bar.hidden = caption.hidden = !tour.length;  // a GLB without clips plays nothing
-    if (tour.length) play(gestures.includes(playing) ? playing : undefined);  // the link's, if the Stage has it
+    bar.hidden = caption.hidden = !clips[loop];  // a GLB without clips plays nothing
+    if (clips[loop]) play(clips[playing] ? playing : undefined);  // the link's, if the Stage has it
     frame(0);  // its first frame, though it may not animate
     root.setAttribute("aria-busy", false);
   }
@@ -363,7 +372,10 @@ function mount(root) {
   addEventListener("resize", () => scene && (resize(), frame(0)));
   canvas.addEventListener("pointerdown", () => seen.includes(root) && (seen = touched(seen, root, true)));
   frames.set(root, frame);
-  root.addEventListener("noggin-seen", () => load(link.stage, link.gesture, link.explode), { once: true });
+  const start = () => load(link.stage, link.gesture, link.explode);
+  // the home's on a phone (data-tap): its still until a tap, so it costs no GLB on mobile data unasked
+  if ("tap" in root.dataset && matchMedia("(pointer: coarse)").matches) root.addEventListener("click", start, { once: true });
+  else root.addEventListener("noggin-seen", start, { once: true });
   watch.observe(root);
 }
 

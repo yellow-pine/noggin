@@ -57,13 +57,15 @@ EXPLODE = {
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
-# Shield off its pins' side (BOARDS: up off the cranium tray, #858, or off the test stand's face), the switch board, the
-# charger dongle and the packs up off the Torso's floor (stages.base_sub)
+# Shield off its pins' side (BOARDS: up off the cranium tray, #858, or off the test stand's face), the hub up off its
+# riser, the switch board, the power-path board and the pack up off the Torso's floor (stages.base_sub)
 GAP = 5.0
 SEATS = {
     "switch": g.Z,
     "battery": g.Z,
-    "dongle": g.Z,
+    "power": g.Z,
+    "hub": g.Z,
+    "capacitor": g.Z,
     "torso lid": g.Z,
 } | skin.DIRECTIONS  # a Shell off its Seats; the lid up
 # out of the Torso's walls (#838)

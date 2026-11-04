@@ -294,6 +294,28 @@ test("Pictures plays each motion of Stage 1 in a viewer of its own, the Stage's 
   for (const v of viewers) expect(v.querySelectorAll('figure img').length).toBe(Object.keys(numbers.theme.presets).length);
 });
 
+test("every viewer in a page holds a plain link to what it plays in the viewer page, which GitHub shows (#889)", () => {
+  const stages = numbers.published.stages.buttons.map((b) => b.glb);
+  for (const f of html) {
+    for (const v of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('.noggin-viewer:not([data-zoom])')) {
+      const link = v.querySelector('.noggin-open a'), stage = stages.indexOf(v.getAttribute('data-stage')) + 1;
+      const own = v.getAttribute('data-link');
+      expect(link?.getAttribute('href'), f).toBe(`https://yellowpine.com/noggin/viewer/?stage=${stage}${own ? `&${own}` : ''}`);
+      expect(link.text, f).toBe(`Open Stage ${stage} in the viewer`);
+    }
+  }
+});
+
+test("the home opens on a large Stage 3 viewer on its hero loop, from the view of its poster, the Stage 3 still", () => {
+  const hero = page(`${HOME}/`).querySelector('.sl-markdown-content > .noggin-viewer.hero');
+  expect(hero.getAttribute('data-stage')).toBe(numbers.published.stages.buttons.at(-1).glb);
+  expect(hero.getAttribute('data-link')).toBe('view=isometric'); // no gesture: the hero loop
+  expect(hero.hasAttribute('data-tap')).toBe(true); // a phone loads it on a tap
+  const still = hero.querySelector('figure img').getAttribute('src').split('/').at(-1);
+  expect(numbers.published.images).toContain(still);
+  expect(still).toMatch(/-isometric\.webp$/);
+});
+
 test("the viewer's page draws the Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);

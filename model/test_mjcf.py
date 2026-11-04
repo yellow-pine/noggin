@@ -80,6 +80,8 @@ TOUCH = {
                 for p in (
                     "Core 1:1",
                     "Core 2:1",
+                    "hub:1",
+                    "bulk capacitor:1",
                     "gimbal frame:1",
                 )
             ),
@@ -96,8 +98,7 @@ TOUCH = {
             ("torso lid:1", "neck mount:1"),
             ("torso:1", "pack:1"),
             ("torso:1", "switch board:1"),
-            ("torso:1", "spare pack:1"),
-            ("torso:1", "charger dongle:1"),
+            ("torso:1", "power-path board:1"),
         ]
     },
 }

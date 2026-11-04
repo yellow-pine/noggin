@@ -4,6 +4,8 @@ An animatronic Mech on the desk that reacts to Claude Code. It winks when a sess
 thinks, lights up when a response lands, scans the room when Claude needs you and gets bored when you walk away.
 Claude Code hooks feed a small Mac service, the noggin service, which tells the Mech's two Cores what to play.
 
+<!--{{ hero }}-->
+
 [Build one](build/parts.md) · [Use it](use/noggin-service.md)
 
 ## The Mech, in progress
