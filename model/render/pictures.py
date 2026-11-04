@@ -39,7 +39,11 @@ VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
 # its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (next-stage1-morty)
 SUFFIX = {p: f"-{g.slug(p)}" if i else "" for i, p in enumerate(g.PRESETS)}
 BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # the Stages in order, as Bones
-DRAWN = {s + SUFFIX[p]: (s + g.SKELETON_SUFFIX[t["Skeleton shape"]], p) for p, t in g.PRESETS.items() for s in BONY}
+DRAWN = {  # each Stage in each Preset's Skeleton shape, Stage 3 in its Skin shape where that is drawn (#813)
+    s + SUFFIX[p]: (g.dressed(s + g.SKELETON_SUFFIX[t["Skeleton shape"]], t["Skin shape"]), p)
+    for p, t in g.PRESETS.items()
+    for s in BONY
+}
 PANELS = [(name, view) for name in DRAWN for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
@@ -53,7 +57,7 @@ EXPLODE = {
     "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
     "next-cranium": (0, 0, 160),
-    "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
+    **dict.fromkeys(g.SKINS.values(), (0, 0, 0)),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
@@ -99,9 +103,10 @@ def parts_exploded(name):
 
 @functools.cache
 def next_parts():
-    """{picture: (document, part)}: one per part of the next Mech's documents by its mesh, its first instance."""
+    """{picture: (document, part)}: one per part of the next Mech's documents, Stage 3 in each Skin too (#813), by its
+    mesh, its first instance."""
     out = {}
-    for doc in g.STAGES:
+    for doc in [*g.STAGES, *g.DRESSED]:
         for name, p in stages.STAGES[doc].parts.items():
             stem = stages.stem(p.file).removeprefix("next ")
             out.setdefault(f"next-{stem.lower().replace(' ', '-')}.webp", (doc, name))

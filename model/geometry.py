@@ -113,7 +113,7 @@ THEMES = {
     },
 }
 # Presets (#819): a named Theme, its value on each axis in THEMES' order; the first the default, which the README, the
-# site's first visit and the default pictures show. Cansin's build's Skin is Morty's Shape until #813's Shells exist.
+# site's first visit and the default pictures show. A Skin shape without its own Shells yet (SKINS) wears Morty's.
 PRESETS = {
     name: dict(zip(THEMES, axes, strict=True))
     for name, axes in {
@@ -133,7 +133,9 @@ def slug(preset):
 
 
 def shape(doc):
-    """A document's Skeleton shape: the one its name ends in (-mechanical), else the first."""
+    """A document's Skeleton shape: the one its name, less its Skin's (undressed), ends in (-mechanical), else the
+    first."""
+    doc = undressed(doc)
     return next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEMES["Skeleton shape"][0])
 
 
@@ -180,15 +182,32 @@ PRINTED = {
     "next L eyeball cap": ("eye whites", "PLA Pure"),
     "next R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# Morty's Shells (#665, model/skin.py) by Colour group, the eyeball caps above his too: each Skin's in its own
-_MORTY = {
-    "face": ("next morty face", "next morty mouth cover")
-    + tuple(f"next morty {s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower")),
-    "hair": ("next morty hair",),
-    "pupils": ("next morty L pupil", "next morty R pupil"),
-    "clothes": ("next morty shirt front", "next morty shirt back"),
+# The Skin shapes drawn so far (model/skin.py, model/printed/skin.py), each its sub-assembly: Morty's (#665) the
+# documents' own, the eyeball caps above his too; Cansin's (#813) on the same Seats. Each one's Shells by Colour group
+SKINS = {"morty": "next-morty", "cansin": "next-cansin"}
+_LIDS = tuple(f"{s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower"))
+_SHELLS = {
+    "morty": {
+        "face": ("face", "mouth cover", *_LIDS),  # the face with his nose and ears
+        "hair": ("hair",),
+        "pupils": ("L pupil", "R pupil"),  # jagged
+        "clothes": ("shirt front", "shirt back"),
+    },
+    "cansin": {
+        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
+        "hair": ("hair", "L brow", "R brow"),  # the hair tufted on top
+        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat
+        "eye whites": ("L pupil plug", "R pupil plug", "teeth"),
+        "clothes": ("shirt front", "shirt back"),  # the jacket over the tee, its lapels on the front
+        "accessories": ("sunglasses",),  # aviators hooked on the tee's neckline
+    },
 }
-PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for name in names}
+PRINTED |= {
+    f"next {skin} {name}": (group, "PLA Pure")
+    for skin, groups in _SHELLS.items()
+    for group, names in groups.items()
+    for name in names
+}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
@@ -212,8 +231,8 @@ NEXT = {
     f"next-mech-{v}": {
         sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-cranium", "next-base", *carriers)
     }
-    for v, carriers in (("back", ["next-morty", SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
-    # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
+    for v, carriers in (("back", [SKINS["morty"], SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
+    # Skin on it (#665), the other Skins on DRESSED's
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
@@ -238,6 +257,26 @@ STAGES |= {
     for s in SKELETON_SUFFIX.values()
     if s
 }
+# Stage 3 in each other Skin shape drawn (#813): each document of NEXT under -<shape> after its Skeleton's suffix (the
+# viewer's GLB names, site/src/viewer/state.mjs), that Skin's Shells for Morty's; not simulated: Cansin's sit on
+# Morty's Seats, which his document's sim holds
+DRESSED = {
+    f"{doc}-{skin}": {(sub if sub != SKINS["morty"] else SKINS[skin]): f for sub, f in subs.items()}
+    for doc, subs in NEXT.items()
+    for skin in list(SKINS)[1:]
+}
+
+
+def undressed(doc):
+    """The document a DRESSED one wears its Skin on (its name less -<shape>), else itself."""
+    return next((doc.removesuffix(f"-{s}") for s in list(SKINS)[1:] if doc.endswith(f"-{s}")), doc)
+
+
+def dressed(doc, skin):
+    """The document in the Skin shape `skin`: its DRESSED one where that Skin is drawn on it, else itself."""
+    return f"{doc}-{skin}" if f"{doc}-{skin}" in DRESSED else doc
+
+
 # Physics runs on the mechanical documents alone (#809): each Bone is carved from its mechanical part, so clearance,
 # overlap, torque, strength, the sim and its gates measured there hold for realistic too, whose figures are these. The
 # sim takes the whole Mech and Stage 1 (its test stand): Stage 2 moves as the whole Mech less parts

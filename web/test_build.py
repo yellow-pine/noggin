@@ -19,6 +19,8 @@ STAGES = {
 }
 # and Stage 3 bare in each (#876): the viewer's Skin shape none, its Shells off and the realistic one's full skull on
 STAGES |= {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in ("", "-mechanical")}
+# and Stage 3 in Cansin's Skin in each (#813): the viewer's Skin shape cansin, after the Skeleton's suffix
+STAGES |= {f"next-mech-back{s}-cansin": f"next-mech-back{s}-cansin.glb" for s in ("", "-mechanical")}
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 

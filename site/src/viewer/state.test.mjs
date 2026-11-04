@@ -86,6 +86,13 @@ test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a 
   expect(glb("next-stage2", "mechanical", "none")).toBe("next-stage2-mechanical");
 });
 
+test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape's suffix (#813)", () => {
+  expect(glb("next-mech-back", "mechanical", "cansin")).toBe("next-mech-back-mechanical-cansin");
+  expect(glb("next-mech-back", "realistic", "cansin")).toBe("next-mech-back-cansin");
+  expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
+  expect(glb("next-stage1", "realistic", "cansin")).toBe("next-stage1");
+});
+
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {
   expect(mixed("", "cansins-build")).toEqual({
     "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "cansin", "skin-palette": "cansin",
