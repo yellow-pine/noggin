@@ -178,8 +178,8 @@ jobs:
       # no parts: the tests that build or read them are marked model and run in the Model shards (#808)
       - name: Run just check
         run: uv run just check | tee "$RUNNER_TEMP/pytest.txt"
-        env:   # --timeout: 15 s a test, its fixtures aside (pyproject's timeout_func_only): a slower one is made fast or split (#808)
-          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20 --timeout=15
+        env:   # --timeout: 60 s a test, its fixtures aside (pyproject's timeout_func_only): at least 2x the slowest CI measured (#945, #808)
+          PYTEST_ADDOPTS: -m "not model" -n auto --durations=20 --timeout=60
           OMP_NUM_THREADS: 1   # one BLAS/OpenMP thread per xdist worker: 4 workers x 4 spinning threads starve each other
       - name: List the slowest tests
         if: always()
@@ -326,7 +326,7 @@ jobs:
         run: mkdir -p "$RUNNER_TEMP/durations" && uv run just test | tee -a "$RUNNER_TEMP/pytest.txt"
         env:
           PYTEST_ADDOPTS: >-
-            -m model -n auto --dist loadgroup --durations=20 --timeout=15 --store-durations
+            -m model -n auto --dist loadgroup --durations=20 --timeout=60 --store-durations
             --durations-path ${{ runner.temp }}/durations/tests.json ${{ matrix.tests }}
           OMP_NUM_THREADS: 1   # as in code
           MUJOCO_GL: egl   # no display here (https://mujoco.readthedocs.io/en/stable/python.html#rendering)

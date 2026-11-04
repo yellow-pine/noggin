@@ -176,11 +176,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   among the shards' units (`SIM_PART`), which `Sim` merges and thresholds (`just sim-merge`, #809). Its reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- Each job's slowest tests are in its run summary. On CI a test gets 15 s (pytest-timeout's `--timeout`, in `Code` and
+- Each job's slowest tests are in its run summary. On CI a test gets 60 s (pytest-timeout's `--timeout`, in `Code` and
   the `Model` shards' tests; just mech's live checks wait on the Core's real timers and get none), its fixtures aside
   (`timeout_func_only`): the parts a module's tests share are built once a worker in a fixture, whose seconds show as
-  setup. A slower test is made fast or split (parametrized: by part, member, motion or a chunk of pairs) before it
-  merges (#808).
+  setup. The limit is at least twice the slowest test CI measured, rounded up (Cansin, 2026-11-04, #945: a Skin
+  clearance check's first pose took 15 s); one near it is made fast or split (parametrized: by part, member, motion or
+  a chunk of pairs) before it merges (#808).
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the
