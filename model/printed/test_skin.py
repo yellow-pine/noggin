@@ -99,9 +99,9 @@ def test_barts_pupil_is_a_dot_over_the_caps_jagged_seat_clear_of_the_lid(side):
     box = pupil.BoundingBox()
     r = gm.CAP_R * math.sin(math.radians(gm.PUPIL_DEG)) + skin.DOT[0]
     assert box.xlen == pytest.approx(2 * r, abs=0.01) and box.zlen == pytest.approx(2 * r, abs=0.01)  # round
-    star = skin._pupil_prism(side).intersect(gimbal.ball(gm.CAP_R + 0.2).cut(gimbal.ball(gm.CAP_R - 0.2))).val()
-    seat = star.cut(cap).cut(pupil)  # the seat's opening on the dome, less what the cap and the dot fill
-    assert seat.Volume() < 0.02 * star.Volume()
+    over = gimbal.ball(gm.CAP_R + skin.DOT[1]).cut(gimbal.ball(gm.CAP_R))  # the dot's layer on the dome
+    star = skin._pupil_prism(side).intersect(over).val()  # over the seat's opening
+    assert star.cut(pupil).Volume() < 1e-3 * star.Volume()  # the dot covers it whole
     far = max(np.linalg.norm(v.toTuple()) for v in pupil.Vertices())
     assert far == pytest.approx(gm.CAP_R + skin.DOT[1], abs=0.01) and far + CLEAR_MM <= gm.LID_R[0]
 
