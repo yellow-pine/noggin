@@ -2,7 +2,7 @@
 // The header's Theme bar (#806, #819, docs/adr/0022), then Starlight's colour scheme select: one labelled select of the
 // model's Presets (src/theme.mjs, from model/geometry.py PRESETS), so a new Preset needs no edit here. A pick (the
 // address's or the reader's last; none by default, #883) goes on <html> as data-preset, into the address
-// (?preset=cansins-build) and local storage, and to the viewer (a noggin-theme event); css() shows each page's
+// (?preset=default-build) and local storage, and to the viewer (a noggin-theme event); css() shows each page's
 // pictures and text for it alone. In the header and in the mobile menu: both bars stay in step.
 import Default from '@astrojs/starlight/components/ThemeSelect.astro';
 import { PRESETS, css } from '../theme.mjs';

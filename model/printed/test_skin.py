@@ -18,19 +18,19 @@ from model import stages
 from model.printed import PARTS, gimbal, skin
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
-DOC = next(d for d in g.NEXT if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
-REAL = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])  # the realistic one: the skull's bones on it
+DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
+REAL = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])  # the realistic one: the skull's bones on it
 HEADS = ("face", "hair", "mouth cover")
 
 
 @pytest.fixture(scope="module")
 def heads():
     """{Skin: {face, hair, mouth cover: its shape}}, built once (CI times a test, not its fixtures: #808)."""
-    return {skin: {s: PARTS[f"next {skin} {s}"]().val() for s in HEADS} for skin in g.SKINS}
+    return {skin: {s: PARTS[f"{skin} {s}"]().val() for s in HEADS} for skin in g.SKINS}
 
 
 def _built(stem, heads):
-    skin_shape, _, rest = stem.removeprefix("next ").partition(" ")
+    skin_shape, _, rest = stem.partition(" ")
     return heads.get(skin_shape, {}).get(rest) or PARTS[stem]().val()
 
 
@@ -45,7 +45,7 @@ def test_a_head_shell_built_again_is_the_same(skin_shape, heads):
     """#838: every Shell shares the head's shapes (skin._head), and on Linux's OCCT a second build over shapes an
     earlier one's booleans used came out broken; each build starts from its own copy."""
     for s, shape in heads[skin_shape].items():
-        again = PARTS[f"next {skin_shape} {s}"]().val()
+        again = PARTS[f"{skin_shape} {s}"]().val()
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
@@ -73,14 +73,14 @@ def test_the_face_and_hair_meet_without_overlapping(skin_shape, heads):
     assert heads[skin_shape]["face"].intersect(heads[skin_shape]["hair"]).Volume() < 0.1
 
 
-@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.startswith("next cansin ")])
+@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.startswith("cansin ")])
 def test_cansins_glued_shells_fill_their_pockets_without_overlapping(glued):
     """#813: his brows in the face, his teeth in the mouth cover, each pupil plug in its cap's jagged seat and its dot
     in the plug: each in its pocket, within its fit of what carries it and sharing no volume with it."""
     carrier = sk.GLUED[glued][0]
     shape, held = PARTS[glued]().val(), PARTS[carrier]().val()
     if "brow" in glued:  # drawn in its eye's frame, its pocket in the head's
-        shape = shape.translate(cq.Vector(*gm.EYE[glued.split()[2]]))
+        shape = shape.translate(cq.Vector(*gm.EYE[glued.split()[1]]))
     assert shape.intersect(held).Volume() < 1e-3
     assert shape.distance(held) <= gm.PUPIL_FIT + 1e-3
 
@@ -89,7 +89,7 @@ def test_cansins_glued_shells_fill_their_pockets_without_overlapping(glued):
 def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     """The pupil fills its jagged seat to PUPIL_FIT a side, which keys it, and the seat turns TOE_IN toward the other
     eye (#630)."""
-    pupil, cap = PARTS[f"next morty {side} pupil"]().val(), PARTS[f"next {side} eyeball cap"]().val()
+    pupil, cap = PARTS[f"morty {side} pupil"]().val(), PARTS[f"{side} eyeball cap"]().val()
     assert pupil.intersect(cap).Volume() < 1e-6
     assert pupil.Center().x == pytest.approx(inward * gm.CAP_R * math.sin(math.radians(gm.TOE_IN)), abs=0.1)
     seat = cq.Workplane().add(cap).union(cq.Workplane().add(pupil)).val()
@@ -124,7 +124,7 @@ def test_a_shell_meets_what_carries_it_only_where_its_balls_touch(pair):
 
 
 SPACING = 0.4  # mm between the points sampled on each surface
-SEAMS = {frozenset((f"next {s} shirt front", f"next {s} shirt back")) for s in g.SKINS}  # meeting 0.2 mm apart
+SEAMS = {frozenset((f"{s} shirt front", f"{s} shirt back")) for s in g.SKINS}  # meeting 0.2 mm apart
 # shortcut: sampled surfaces read a distance up to SPACING long; OCCT's exact distance took minutes a pose (#665)
 
 

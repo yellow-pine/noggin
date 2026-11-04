@@ -81,8 +81,7 @@ _Avoid_: style, model (the Model is the digital Mech)
 
 **Palette**:
 The filament each Colour group of one Theme category prints in: the Skeleton's anatomical, robot or black, a Skin's
-morty, bart or Default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure; ~~cansin~~ *default (#895)* in
-the Model).
+morty, bart or default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure).
 _Avoid_: colour scheme, theme (for one category's colours)
 
 **Preset**:
@@ -92,8 +91,8 @@ _Avoid_: theme (for the named set), skin (for the whole look)
 
 **Default build**:
 The first Preset, the look every picture, viewer and page opens on until another is picked: the mechanical Skeleton in
-black, no Skin, the Default Skin palette (mechanical, black, none, Default). ~~Cansin's build (mechanical, black,
-cansin, cansin)~~ *Default build (#895)* in the Model.
+black, ~~in the cansin Skin shape~~ *with no Skin (#897)*, the default Skin palette (mechanical, black,
+~~cansin~~ *none (#897)*, default).
 _Avoid_: Cansin's build, default look, default theme
 
 **Colour group**:

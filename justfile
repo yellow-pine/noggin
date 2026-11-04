@@ -205,23 +205,23 @@ restore-stock: interrupt
     cd eyes/stock-backup && for f in *; do {{MPR}} resume cp -r $f : || exit 1; done
     {{PY}} eyes/interrupt.py reset
 
-# a document (default next-mech-back-mechanical, which physics runs on: #809; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
+# a document (default mech-back-mechanical, which physics runs on: #809; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 [group('heavy')]
-view doc="next-mech-back-mechanical": venv ours
+view doc="mech-back-mechanical": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture, Rest and the next hero on each of the next Mech's documents, or on the documents named (next: all of them; or in TRAJ_DOCS): every part's world pose per 100 ms frame in model/build/trajectories (a document whose files carry its stamp is skipped)
+# MuJoCo plays each gesture, Rest and the hero on each of the Mech's documents, or on the documents named (all: all of them; or in TRAJ_DOCS): every part's world pose per 100 ms frame in model/build/trajectories (a document whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
 
-# Blender pictures, the next Mech's six stills from its trajectories (model/build/pictures, #898)
+# Blender pictures, the Mech's six stills from its trajectories (model/build/pictures, #898)
 [group('heavy')]
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: six stills, the front doors' three and a poster per Stage (Checks' Render runs `just pictures next`, #649, #898)
+# the site's pictures (model/render/pictures.py published) in model/build/images: six stills, the front doors' three and a poster per Stage (Checks' Render runs `just pictures all`, #649, #898)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
@@ -246,18 +246,18 @@ model-shards-list: venv
 model-durations run:
     @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^just ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
-# the web viewer's GLBs in web/build, Blender's per next Mech document (or the documents named; next: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
+# the web viewer's GLBs in web/build, Blender's per Mech document (or the documents named; all: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
 web *docs: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build web/build {{docs}}
     {{PY}} -m pytest -q web
 
-# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the next Mech's pictures and GLB (the next-* ones, never today's: docs/adr/0019) go to site/dist/images and viewer once just pictures next and just web made them, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
+# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the Mech's pictures and GLBs go to site/dist/images and viewer once just pictures all and just web made them, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
 site: venv && site-reports
     {{PY}} -m macros
     cd site && npm ci --ignore-scripts --no-audit --no-fund && npm run build
-    ! ls model/build/images/next-* >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/next-* site/dist/images/; }
-    ! ls web/build/next-*.glb >/dev/null 2>&1 || cp web/build/next-*.glb site/dist/viewer/
+    ! ls model/build/images/*.webp >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/*.webp site/dist/images/; }
+    ! ls web/build/*.glb >/dev/null 2>&1 || cp web/build/*.glb site/dist/viewer/
 
 # the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Checks' Deploy reruns it on main's site with the reports Checks saved
 site-reports:

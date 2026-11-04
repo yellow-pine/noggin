@@ -148,7 +148,7 @@ FOOT, PAD = (
 TORSO = f"""
 <mujoco>
   <asset><mesh name="torso" scale="0.001 0.001 0.001" vertex="{" ".join(f"{c}" for p in FOOT + PAD for c in p)}"/></asset>
-  <worldbody><body name="next torso:1"><geom type="mesh" mesh="torso" group="{mujoco_report.mjcf.VISUAL}"/></body></worldbody>
+  <worldbody><body name="torso:1"><geom type="mesh" mesh="torso" group="{mujoco_report.mjcf.VISUAL}"/></body></worldbody>
 </mujoco>"""
 
 

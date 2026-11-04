@@ -15,93 +15,90 @@ pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
 # Pairs that touch by design.
 TOUCH = {
-    # the next Mech's eye gimbal (#630): its exact solids overlap nowhere but the horns' splines
+    # the Mech's eye gimbal (#630): its exact solids overlap nowhere but the horns' splines
     # (model/printed/test_gimbal.py); the convex pieces fill its cups, bores and windows where parts meet
     **{
-        frozenset((f"next {s} push-rod:1", p)): "the push-rod's cup round the ball"
+        frozenset((f"{s} push-rod:1", p)): "the push-rod's cup round the ball"
         for s in "LR"
-        for p in (f"next {s} eyeball core:1", "next bail:1")
+        for p in (f"{s} eyeball core:1", "bail:1")
     },
     **{
-        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on the frame's collar"
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on the frame's collar"
         for d in gimbal.drives()
-        for p in (f"next {d} horn:1", "next gimbal frame:1")
+        for p in (f"{d} horn:1", "gimbal frame:1")
     },
     **{
         frozenset(pair): "a horn on its bar, pin-joined faces, the cap on its seat (0.0 mm, designed contacts)"
         for pair in [
-            ("next yaw horn:1", "next tie-bar:1"),
-            ("next pitch horn:1", "next pitch bar:1"),
-            ("next pitch bar:1", "next bail:1"),
-            ("next bail:1", "next gimbal frame:1"),
-            *[(f"next {s} lid horn:1", f"next {s} lid bar:1") for s in "LR"],
-            *[(f"next {s} upper lid:1", f"next {s} lid bar:1") for s in "LR"],
-            *[(f"next {s} lid bar:1", f"next {s} lid link:1") for s in "LR"],
-            *[(f"next {s} lid link:1", f"next {s} lower lid:1") for s in "LR"],
-            *[(f"next {s} upper lid:1", f"next {s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
-            *[(f"next {s} yaw yoke:1", p) for s in "LR" for p in ("next tie-bar:1", "next gimbal frame:1")],
-            *[(f"next {s} eyeball cap:1", f"next {s} eyeball core:1") for s in "LR"],
+            ("yaw horn:1", "tie-bar:1"),
+            ("pitch horn:1", "pitch bar:1"),
+            ("pitch bar:1", "bail:1"),
+            ("bail:1", "gimbal frame:1"),
+            *[(f"{s} lid horn:1", f"{s} lid bar:1") for s in "LR"],
+            *[(f"{s} upper lid:1", f"{s} lid bar:1") for s in "LR"],
+            *[(f"{s} lid bar:1", f"{s} lid link:1") for s in "LR"],
+            *[(f"{s} lid link:1", f"{s} lower lid:1") for s in "LR"],
+            *[(f"{s} upper lid:1", f"{s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
+            *[(f"{s} yaw yoke:1", p) for s in "LR" for p in ("tie-bar:1", "gimbal frame:1")],
+            *[(f"{s} eyeball cap:1", f"{s} eyeball core:1") for s in "LR"],
         ]
     },
-    # the next Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
+    # the Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
     **{
-        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on their collar"
-        for d, mount in (("pan", "next neck mount:1"), ("tilt", "next pan yoke:1"), ("mouth", "next gimbal frame:1"))
-        for p in (f"next {d} horn:1", mount)
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their collar"
+        for d, mount in (("pan", "neck mount:1"), ("tilt", "pan yoke:1"), ("mouth", "gimbal frame:1"))
+        for p in (f"{d} horn:1", mount)
     },
     **{
         frozenset(
             pair
         ): "screwed faces, the yoke on the mount's thrust face, pin-joined faces (0.0 mm, designed contacts)"
         for pair in [
-            ("next head mount:1", "next gimbal frame:1"),
-            ("next head mount:1", "next pan yoke:1"),
-            ("next pan yoke:1", "next neck mount:1"),
-            ("next pan bar:1", "next pan yoke:1"),
-            ("next pan bar:1", "next pan horn:1"),
-            ("next tilt bar:1", "next tilt horn:1"),
-            ("next tilt bar:1", "next head mount:1"),
-            ("next jaw bar:1", "next mouth horn:1"),
-            ("next jaw bar:1", "next jaw:1"),
-            ("next jaw:1", "next gimbal frame:1"),  # its lugs at the condyles (#838)
+            ("head mount:1", "gimbal frame:1"),
+            ("head mount:1", "pan yoke:1"),
+            ("pan yoke:1", "neck mount:1"),
+            ("pan bar:1", "pan yoke:1"),
+            ("pan bar:1", "pan horn:1"),
+            ("tilt bar:1", "tilt horn:1"),
+            ("tilt bar:1", "head mount:1"),
+            ("jaw bar:1", "mouth horn:1"),
+            ("jaw bar:1", "jaw:1"),
+            ("jaw:1", "gimbal frame:1"),  # its lugs at the condyles (#838)
         ]
     },
     # gaps under a millimetre the frame's and the yoke's coarse pieces fill (#838), each pair one MuJoCo filters (a body
     # and its weld body's parent): their exact solids clear (model/printed/test_gimbal.py, test_neck.py)
-    **{
-        frozenset((f"next {s} lower lid:1", "next gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright"
-        for s in "LR"
-    },
-    frozenset(("next gimbal frame:1", "next pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
+    **{frozenset((f"{s} lower lid:1", "gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright" for s in "LR"},
+    frozenset(("gimbal frame:1", "pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
     # the Cores on the cranium tray (#858): the same
-    **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
+    **{frozenset((f"Core {n}:1", f"Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
             *(
-                ("next cranium tray:1", p)
+                ("cranium tray:1", p)
                 for p in (
-                    "next Core 1:1",
-                    "next Core 2:1",
-                    "next hub:1",
-                    "next bulk capacitor:1",
-                    "next gimbal frame:1",
+                    "Core 1:1",
+                    "Core 2:1",
+                    "hub:1",
+                    "bulk capacitor:1",
+                    "gimbal frame:1",
                 )
             ),
             # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
-            *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
+            *(("test stand:1", p) for p in ("gimbal frame:1", "Core 1:1", "Shield 1:1")),
         ]
     },
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("next torso:1", "next neck mount:1"),
-            ("next torso:1", "next torso lid:1"),
+            ("torso:1", "neck mount:1"),
+            ("torso:1", "torso lid:1"),
             # the neck mount's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838, #858)
-            ("next torso lid:1", "next neck mount:1"),
-            ("next torso:1", "next pack:1"),
-            ("next torso:1", "next switch board:1"),
-            ("next torso:1", "next power-path board:1"),
+            ("torso lid:1", "neck mount:1"),
+            ("torso:1", "pack:1"),
+            ("torso:1", "switch board:1"),
+            ("torso:1", "power-path board:1"),
         ]
     },
 }
@@ -132,7 +129,7 @@ def _faces(file):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("doc", list(g.NEXT))
+@pytest.mark.parametrize("doc", list(g.MECH))
 def test_mujoco_plays_no_bone_and_loads_every_mesh_within_its_stl_limit(doc):
     """MuJoCo's STL reader takes at most 200 000 faces, and the realistic skull's are past it (#855): its bones are no
     body (physics runs on the mechanical documents, #809; model/trajectories.py poses() puts them on their carriers)."""
@@ -195,9 +192,9 @@ def test_the_viewer_look_stays_as_cansin_kept_it():
 
     theme = g.theme(DOC)
     for part, group in (
-        ("next torso:1", "Mounts"),
-        ("next gimbal frame:1", "Bones"),
-        ("next L eyeball cap:1", "eye whites"),
+        ("torso:1", "Mounts"),
+        ("gimbal frame:1", "Bones"),
+        ("L eyeball cap:1", "eye whites"),
     ):
         hexc = g.filament(group, theme)[3]
         assert np.allclose(drawn[part], rgba(mjcf.VIEW.get(hexc, hexc))), part
