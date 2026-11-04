@@ -7,8 +7,7 @@ pictures: docs/model-notes.md's picture sizes and colours (model/render/pictures
 mjcf.py). themes: docs/face-design.md's Palettes, each Colour group's filament (geometry.py THEMES, #805, #819).
 stage_views: each of the Mech's Stages in the viewer, from the side, isometric and apart (#898), motions: it
 in motion, a viewer per motion (#839), and part_pictures: each of its parts alone in the viewer, on docs/pictures.md
-(#649, #898), front_views: the front doors' three there; stand_in: the line under the pictures of a Preset
-whose Skin stands in (#819).
+(#649, #898), front_views: the front doors' three there.
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739); hero: its large Stage 3
 viewer on the hero loop (#889).
 published: the pictures and the GLBs the site serves, the Mech's alone (site/site.test.mjs,
@@ -219,16 +218,6 @@ def stage_views():
     with every part apart."""
     how = (("view=side", ", from the side"), ("view=isometric", ""), ("explode=2", ", its parts apart"))
     return viewers([(d, link, stage(d) + label, None) for d in BONY for link, label in how])
-
-
-def stand_in():
-    """The line under the pictures of each Preset whose Skin shape has no Shells yet (geometry.SKINS), shown for it
-    alone (#819, #813): Morty's stand in."""
-    shapes = {g.SKINLESS, *g.SKINS}
-    lines = [p for p, t in g.PRESETS.items() if t["Skin shape"] not in shapes]
-    return "".join(
-        f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist.</em></p>" for p in lines
-    )
 
 
 def figures(labels, kind, links=None):
@@ -470,7 +459,6 @@ def numbers():
         "themes": themes(),
         "filaments": filaments(),
         "theme": theme(),  # the header's bar and the viewer's mix (#806, #819)
-        "stand_in": stand_in(),
         "stage_views": stage_views(),
         "front_views": front_views(),
         "front": front(),
