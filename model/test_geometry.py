@@ -92,7 +92,9 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
 def test_stage_3_is_drawn_in_each_skin_shape_with_shells_after_its_skeleton_shape():
     """#813: Morty's Shells are the documents' own; each other Skin shape drawn wears its own Shells for his on Stage 3,
     under -<shape> after the Skeleton's suffix, as the viewer names its GLB (site/src/viewer/state.mjs glb)."""
-    assert list(g.DRESSED) == ["next-mech-back-cansin", "next-mech-back-mechanical-cansin"]
+    assert sorted(g.DRESSED) == sorted(
+        f"next-mech-back{s}-{k}" for k in ("bart", "cansin") for s in ("", "-mechanical")
+    )
     assert (
         "next-cansin" in g.DRESSED["next-mech-back-cansin"] and "next-morty" not in g.DRESSED["next-mech-back-cansin"]
     )
@@ -101,5 +103,6 @@ def test_stage_3_is_drawn_in_each_skin_shape_with_shells_after_its_skeleton_shap
     )
     assert g.undressed("next-mech-back-mechanical-cansin") == "next-mech-back-mechanical"
     assert g.dressed("next-mech-back-mechanical", "cansin") == "next-mech-back-mechanical-cansin"
-    assert g.dressed("next-mech-back", "bart") == g.dressed("next-mech-back", "none") == "next-mech-back"
+    assert g.dressed("next-mech-back", "bart") == "next-mech-back-bart"  # #807
+    assert g.dressed("next-mech-back", "none") == "next-mech-back"
     assert g.dressed("next-stage2", "cansin") == "next-stage2"  # no Skin before Stage 3

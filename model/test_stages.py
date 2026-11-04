@@ -76,6 +76,22 @@ def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys(
         assert {"next cansin hair:1", "next cansin L brow:1", "next cansin R pupil:1"} <= tilt
 
 
+def test_stage_3_in_barts_skin_wears_his_shells_on_mortys_seats():
+    """#807: Bart's Shells in place of Morty's, the same set on the same Seats, each riding what Morty's rides; his
+    pupils dots in plugs, as Cansin's."""
+    swap = lambda n: n.replace("next morty ", "next bart ")  # noqa: E731
+    assert sorted((swap(s.shell), swap(s.carrier), s.at) for s in skin.SEATS if "next morty " in s.shell) == sorted(
+        (s.shell, s.carrier, s.at) for s in skin.SEATS if "next bart " in s.shell
+    )
+    assert skin.GLUED["next bart L pupil"][0] == "next bart L pupil plug"
+    for doc in g.NEXT:
+        three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "bart")]
+        morty, bart = ({n + ":1" for n in _drawn(s)} for s in ("morty", "bart"))
+        assert set(dressed.parts) == set(three.parts) - morty | bart
+        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        assert {"next bart face:1", "next bart hair:1", "next bart R pupil:1"} <= tilt
+
+
 def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
     eye block on the Torso's neck (pan, tilt) under the head mount, the neck Core beside the eyes' in the Torso (#838);

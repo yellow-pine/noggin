@@ -1,16 +1,15 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Upcoming (#51):** being designed, not built yet. Morty's Shells (#665) and Cansin's (#813) are in the model; Bart's
-> (#807) follow.
+> **Upcoming (#51):** being designed, not built yet. Morty's (#665), Cansin's (#813) and Bart's Shells are in the
+> model, fitted to today's head; Bart's refit to the life-size head is #913.
 > #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our own design;
 nothing comes from other people's designs. A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
 Palette painting any Shape of its category (docs/adr/0022). A Preset names one: Cansin's build (mechanical in black,
-the cansin Skin), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
-Shells until they exist, #807). The model, the [viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
+the cansin Skin), Morty and Bart (each realistic in anatomical, its own Skin). The model, the [viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
 next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin

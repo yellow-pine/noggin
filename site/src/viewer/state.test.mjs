@@ -82,13 +82,14 @@ test("a GLB's name is its Stage's as Bones and its Skeleton shape's suffix (#805
 test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a Skin draws as it is (#876)", () => {
   expect(glb("next-mech-back", "realistic", "none")).toBe("next-mech-back-bare");
   expect(glb("next-mech-back", "mechanical", "none")).toBe("next-mech-back-mechanical-bare");
-  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back");
+  expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
   expect(glb("next-stage2", "mechanical", "none")).toBe("next-stage2-mechanical");
 });
 
 test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape's suffix (#813)", () => {
   expect(glb("next-mech-back", "mechanical", "cansin")).toBe("next-mech-back-mechanical-cansin");
   expect(glb("next-mech-back", "realistic", "cansin")).toBe("next-mech-back-cansin");
+  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back-bart");  // #807
   expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
   expect(glb("next-stage1", "realistic", "cansin")).toBe("next-stage1");
 });
