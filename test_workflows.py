@@ -130,10 +130,10 @@ def test_no_run_or_job_is_cancelled_early():
     assert all(g["cancel-in-progress"] is False and "${{" not in g["group"] for g in groups.values()), groups
 
 
-def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
-    """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
-    job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
-    `!cancelled()`) unless it needs that one's success. Dependabot's auto-merge acts only on its own PRs, not drafts."""
+def test_pr_workflows_skip_drafts_except_the_blocking_required_gates():
+    """#414, #972: drafts skip substantive work. Required PR and Checks instead run tiny failing guards, since a
+    skipped required job satisfies GitHub's gate. Marking ready starts the actual work; neither draft guard passed."""
+    blocking = {("pr-checks.yml", "pr"), ("pr-gate.yml", "checks")}
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
@@ -144,6 +144,8 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
         if "ready_for_review" not in (pr or {}).get("types", []):
             wrong.append((f.name, "types"))
         for id_, job in flow["jobs"].items():
+            if (f.name, id_) in blocking:
+                continue  # the executable guard tests below hold these two exceptions to fail closed
             cond = str(job.get("if", ""))
             past_skips = any(f in cond for f in ("cancelled()", "always()", "failure()")) and "== 'success'" not in cond
             starts = not job.get("needs") or past_skips
@@ -270,6 +272,33 @@ def test_a_pr_runs_the_slim_gate_alone():
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
     assert [s["name"] for s in jobs["checks"]["steps"]] == ["Check every job passed"]  # no CI budget (#732)
+
+
+@pytest.mark.parametrize("result", ("skipped", "failure", "cancelled", "", "pending", "success"))
+def test_the_required_pr_gate_blocks_until_code_actually_succeeds(result):
+    """#972: run the workflow's real guard; GitHub accepts a skipped required job as passing."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())["jobs"]["checks"]
+    assert job["needs"] == ["code"]  # a ready run waits for Code; no pending result can reach the gate
+    assert job["if"] == "${{ always() }}"  # report failure even when Code was skipped on a draft or cancelled
+    (step,) = job["steps"]
+    env = {key: result for key, value in step["env"].items() if value == "${{ needs.code.result }}"}
+    assert env  # exercise the actual dependency binding, not a test-only input
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (result == "success"), done
+
+
+@pytest.mark.parametrize("draft", ("true", "false", "", "unknown"))
+def test_required_pr_validation_blocks_drafts_before_doing_any_work(draft):
+    """#972: the other required check must not leave an accepted skipped result behind on a draft."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-checks.yml").read_text())["jobs"]["pr"]
+    assert not job.get("if")  # report a failing guard instead of skipping the required job
+    step = job["steps"][0]
+    env = {key: draft for key, value in step["env"].items() if value == "${{ github.event.pull_request.draft }}"}
+    assert env
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (draft == "false"), done
+    # Only the body and dependency checks run past a failed step; they must also stay off drafts.
+    assert all("!github.event.pull_request.draft" in s["if"] for s in job["steps"][1:] if "if" in s)
 
 
 def test_a_pr_lists_no_job_every_pr_skips():

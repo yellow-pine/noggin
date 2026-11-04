@@ -2,7 +2,7 @@ name: PR Checks
 # Checks the PR's title is a Conventional Commit, its body links its issue, and it adds no vulnerable dependency.
 # Main's copy of each script checks it (a PR can't loosen its own check). Required check `PR` (the job name, which the
 # ruleset matches; one job since #496, its own workflow since it runs on edited, which Checks never does); editing the
-# title or body re-runs it.
+# title or body re-runs it. Drafts run only a blocking readiness guard, so a skipped required check cannot pass (#972).
 # The title is its squash commit, which semantic-release reads (docs/adr/0010, 0017): a Conventional Commit,
 # `type(scope)[!]: subject`, which commitlint checks against @commitlint/config-conventional's types and rules, with
 # one scope derived from the repo (ci/commitlint.config.mjs).
@@ -18,13 +18,16 @@ permissions:
 jobs:
   pr:
     name: PR
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: write   # dependency review's summary comment on a failing PR
     steps:
+      - name: Check the PR is ready
+        env:
+          DRAFT: ${{ github.event.pull_request.draft }}
+        run: test "$DRAFT" = false
       - name: Check out the scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -50,12 +53,12 @@ jobs:
           PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}   # a bot's title is its own: no length or case limit
         run: ci/node_modules/.bin/commitlint --config ci/commitlint.config.mjs <<<"$TITLE"
       - name: Check the body links an issue
-        if: ${{ !cancelled() && github.event.pull_request.user.type != 'Bot' }}   # past a failed title check too
+        if: ${{ !cancelled() && !github.event.pull_request.draft && github.event.pull_request.user.type != 'Bot' }}   # past a failed title check too
         env:
           BODY: ${{ github.event.pull_request.body }}   # via env, never inlined into the script
         run: python3 scripts/pr_issue.py <<<"$BODY"
       - name: Review the dependencies
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && !github.event.pull_request.draft }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294   # v5.0.0
         with:
           fail-on-severity: low   # the action's default: any known vulnerability fails
