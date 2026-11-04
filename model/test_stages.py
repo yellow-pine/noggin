@@ -18,7 +18,12 @@ def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if m not in g.PRINTED)
     bought = ["hub", "power", "capacitor"]
-    assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery", *bought] + ["servo", "horn"] * 7)
+    assert hardware == sorted(
+        ["core"] * 2
+        + ["receiver"] * 2
+        + ["switch", "battery", *bought, "standard servo", "standard horn", "pan bearing", "balance spring"]
+        + ["servo", "horn"] * 6
+    )
     assert {m for m in meshes if m in g.PRINTED} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"{d} horn" for d in gimbal.drives())}
@@ -70,7 +75,7 @@ def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys(
         assert set(dressed.horns) == set(three.horns)
         jaw = {n for loop in dressed.horns["jaw horn"].loops for n in loop.rockers}
         assert {"cansin mouth cover:1", "cansin teeth:1"} <= jaw
-        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        tilt = set(dressed.horns["tilt horn"].direct.driven)
         assert {"cansin hair:1", "cansin L brow:1", "cansin R pupil:1"} <= tilt
 
 
@@ -86,7 +91,7 @@ def test_stage_3_in_barts_skin_wears_his_shells_on_mortys_seats():
         three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "bart")]
         morty, bart = ({n + ":1" for n in _drawn(s)} for s in ("morty", "bart"))
         assert set(dressed.parts) == set(three.parts) - morty | bart
-        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        tilt = set(dressed.horns["tilt horn"].direct.driven)
         assert {"bart face:1", "bart hair:1", "bart R pupil:1"} <= tilt
 
 
