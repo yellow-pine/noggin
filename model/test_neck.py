@@ -40,6 +40,13 @@ def test_the_real_neck_uses_a_fixed_cervical_carrier_then_nod_plate_then_pan_bea
     assert "head mount:1" in pan.direct.driven and "pan servo:1" not in pan.direct.driven
 
 
+def test_the_physical_jaw_hinge_meets_the_actual_fitted_condylar_patches():
+    """#968: measured public #874 v7 patch centres, not the obsolete gimbal hinge or target empties."""
+    pivot = stages.jaw_sub().horns["jaw horn"].loops[0].rocker_pivot[0]
+    for condyle in ((42.17778, 60.06154, -41.61859), (-42.43407, 60.05559, -41.59603)):
+        assert np.linalg.norm(np.subtract(condyle[1:], pivot[1:])) < 0.05
+
+
 @pytest.mark.parametrize("sign", (-1, 1))
 def test_a_direct_servo_turns_its_carrier_and_riders_but_not_its_fixed_reaction(sign):
     """A servo case on the moving plate reacts against a fixed horn; its output sign reverses (#902)."""
