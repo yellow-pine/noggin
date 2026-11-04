@@ -41,10 +41,18 @@ HEAD_AXES = {
 HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
-NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-43.3, -38.3)
-BEARING_Z = (-38.3, -33.3)  # axial stack lowered: nod plate clears the fixed-height gimbal plate by 0.3 mm
+NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-45.3, -40.3)
+BEARING_Z = (-40.3, -35.3)  # top below the cranium tray's underside; the plate clears the gimbal plane
+TILT_SPLINE_X = 35.0  # axial offset clears the actual condylar pan arc; private Skin preflight documented in #902
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
+CERVICAL_PATH = (
+    (64.0, -171.0),
+    (76.0, -154.0),
+    (91.6, -146.0),
+    (76.6, -48.7),
+)  # (y,z), over the pack into the true canal
+CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not the whole nod plate's swept disc
 
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub

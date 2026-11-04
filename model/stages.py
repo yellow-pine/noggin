@@ -283,8 +283,10 @@ def neck_sub():
         if role != "jaw"
     }
     tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
-    parts["tilt servo:1"] = part(stl("standard servo"), align((26, *tilt[1:]), g.Y, (-1, 0, 0)), (55, "documented"))
-    parts["tilt horn:1"] = part(stl("standard horn"), align((23, *tilt[1:]), g.Y, g.X), BOARD)
+    parts["tilt servo:1"] = part(
+        stl("standard servo"), align((neck.TILT_SPLINE_X, *tilt[1:]), g.Y, (-1, 0, 0)), (55, "documented")
+    )
+    parts["tilt horn:1"] = part(stl("standard horn"), align((neck.TILT_SPLINE_X, *tilt[1:]), g.Y, g.X), BOARD)
     parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.BEARING_Z[0])), (7.85, "steel"))
     parts["tilt balance spring:1"] = part(stl("balance spring"), translate((-34, *tilt[1:])), (7.85, "steel"))
     # Spline up below the plate, torque through the head mount's quill; the bearing takes axial head load.

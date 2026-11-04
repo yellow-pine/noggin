@@ -49,6 +49,22 @@ def test_each_head_carrier_is_one_valid_solid(stem):
 
 
 @pytest.mark.model
+def test_the_fixed_cervical_support_clears_the_pack_and_lid_and_bolts_to_the_floor():
+    from model.printed import base
+
+    carrier = _built("cervical carrier")
+    parts = stages.base_sub().parts
+    shapes = {"carrier": carrier, **{n: _shape(p) for n, p in parts.items()}}
+    overlaps = _overlaps(shapes, [("carrier", n) for n in parts])
+    assert overlaps == [], "\n".join(overlaps)
+    lid, torso = base.lid(mechanical=True).val(), base.torso(mechanical=True).val()
+    assert carrier.intersect(lid).Volume() < 0.01
+    for x, y in nk.CARRIER_FEET:
+        assert not carrier.isInside(cq.Vector(x, y, sum(nk.MOUNT_Z) / 2))
+        assert not torso.isInside(cq.Vector(x, y, nk.MOUNT_Z[0] - 1))
+
+
+@pytest.mark.model
 def test_the_bearing_carries_the_head_without_loading_a_servo_spline():
     sub = stages.neck_sub()
     plate, bearing, mount = (_shape(sub.parts[n]) for n in ("nod plate:1", "pan bearing:1", "head mount:1"))

@@ -9,7 +9,7 @@ import numpy as np
 
 from model import gimbal as gm
 from model import neck as nk
-from model.envelopes import box
+from model.envelopes import box, hull
 from model.printed import bone
 from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
 
@@ -111,45 +111,54 @@ def yoke(mechanical=False):
 def cervical_carrier():
     """Fixed split lateral load path into the Torso; the centre remains open for the anatomical wire canal."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
-    out = box((-20, 20), (91, 101), nk.MOUNT_Z)
+    out = box((-20, 20), (56, 72), nk.MOUNT_Z)
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (14, 18))
-        rail = box(xs, (y - 3, 97), (nk.MOUNT_Z[1] - 1, nk.MOUNT_Z[1] + 5))
-        rail = rail.union(strut((sign * 16, 94, nk.MOUNT_Z[1]), (sign * 16, y, z), (4, 2), (3, 1.6)))
+        rail = box(xs, (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
+        for a, b in zip(nk.CERVICAL_PATH, nk.CERVICAL_PATH[1:]):
+            rail = rail.union(strut((sign * 16, *a), (sign * 16, *b), (4, 2), (3, 1.6)))
         rail = rail.union(cyl("x", (0, y, z), 8, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    out = out.union(box((14, 26), (y - 3, y + 3), (z - 9, z - 5)))
-    out = out.union(cyl("x", (0, y, z), 12, (23, 26)))
-    return out.cut(cyl("x", (0, y, z), 3.1, (22, 27)))
+    out = out.union(box((14, nk.TILT_SPLINE_X), (y - 3, y + 3), (z - 9, z - 5)))
+    out = out.union(cyl("x", (0, y, z), 9.5, (nk.TILT_SPLINE_X - 3, nk.TILT_SPLINE_X)))
+    out = out.cut(cyl("x", (0, y, z), 3.1, (nk.TILT_SPLINE_X - 4, nk.TILT_SPLINE_X + 1)))
+    for x, fy in nk.CARRIER_FEET:
+        out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
+    return out
 
 
 def nod_plate():
     """The tilting plate, lateral trunnions and the two servo case seats; no load passes through a spline."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
-    out = box(nk.NOD_X, nk.NOD_Y, nk.NOD_Z)
+    py = nk.HEAD_AXES["pan"][0][1]
+    out = hull("XY", [(0, py, 10), (-20.4, y, 6), (20.4, y, 6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (18.4, 22.4))
         out = out.union(box(xs, (y - 5, y + 5), (z, nk.NOD_Z[0] + 1)))
         out = out.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
-    py = nk.HEAD_AXES["pan"][0][1]
     out = out.cut(cyl("z", (0, py, 0), 4.2, nk.NOD_Z))
     face = (0, py, nk.PAN_HORN_Z)
     matrix = gm.servo_matrix(face, (0, 0, 1), (1, 0, 0))
     floor = nk.PAN_HORN_Z - 19
     out = out.union(collar(matrix, floor))
-    pad = box((-26, 26), (py - 9, py + 9), (floor, floor + 3))
+    pad = box((-26, 26), (py, py + 15), (floor, floor + 3))
     from model.printed.gimbal import passes
 
     out = out.union(pad.cut(passes(matrix)))
     for x in (-25, 25):
-        out = out.union(box((x - 1.5, x + 1.5), (py - 3, py + 3), (floor, nk.NOD_Z[0] + 1)))
-    out = out.union(box((26, 69), (y - 17, y + 38), (z - 12.85, z - 9.85)))
+        out = out.union(box((x - 1.5, x + 1.5), (py + 9, py + 15), (floor, nk.NOD_Z[0] + 1)))
+    out = out.union(box((26, nk.TILT_SPLINE_X + 43), (y - 17, y + 38), (z - 12.85, z - 9.85)))
     for hy in (y - 13.4, y + 34.1):
-        out = out.union(box((26, 39.4), (hy - 2.5, hy + 2.5), (z - 12.85, nk.NOD_Z[0] + 1)))
+        out = out.union(box((26, nk.TILT_SPLINE_X + 13.4), (hy - 2.5, hy + 2.5), (z - 12.85, nk.NOD_Z[0] + 1)))
         for hz in (z - 5, z + 5):
-            out = out.cut(cyl("x", (0, hy, hz), 2.0, (35, 40)))
+            out = out.cut(cyl("x", (0, hy, hz), 2.0, (nk.TILT_SPLINE_X + 9, nk.TILT_SPLINE_X + 14)))
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
-    for xs, radius in (((13.7, 18.3), 8.5), ((-18.3, -13.7), 8.5), ((22.6, 30), 13), ((-34.2, -25.8), 8.5)):
+    for xs, radius in (
+        ((13.7, 18.3), 8.5),
+        ((-18.3, -13.7), 8.5),
+        ((22.6, nk.TILT_SPLINE_X + 0.2), 11),
+        ((-34.2, -25.8), 8.5),
+    ):
         out = out.cut(cyl("x", (0, y, z), radius, xs))
     return out
 
