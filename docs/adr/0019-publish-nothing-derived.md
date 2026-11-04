@@ -34,6 +34,8 @@
 > Superseded in part 2026-11-04 (#894, ADR 0024): its publishing rules go with today's Mech (the `next-` names and
 > guard, today's Mech shown nowhere); the licence rule stays, restated there: never the designer's geometry or
 > dimensions.
+> Amended 2026-11-04 (#873, ADR 0025): the Skeleton scene's Scene Mech is never published; what CI exports from the
+> scene is published as the bones were before.
 
 Today's printed parts follow the designer's three models, whose licence forbids sharing or hosting "any other
 derivative work of this object in its digital or physical format". So nothing public shows or carries their geometry

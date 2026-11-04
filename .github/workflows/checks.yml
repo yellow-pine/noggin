@@ -17,7 +17,8 @@ name: Checks
 # (just web next), when what they are made from changed; `Blender` joins the shards.
 # `Site`, after Blender, builds the docs (just site, docs/adr/0013) with main's latest sim reports and the next Mech's
 # pictures and GLB, tests the built HTML, plays it in Chrome (Playwright) and uploads it; `Deploy`, after the gate on
-# main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render in our Blender image; the
+# main's push or in Release's manual run (#802), puts it on GitHub Pages (#795). Code and Site run in our base image, Render
+# and Convex (just ours has Blender finish the realistic Skeleton's bones, docs/adr/0025) in our Blender image; the
 # others on the bare runner.
 run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Checks full run' || github.event_name == 'workflow_dispatch' && format('ci(ci): manual Checks run by {0}', github.actor) || '' }}"
 on:
@@ -133,7 +134,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/skull/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/skin.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/skeleton/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/skin.py', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
@@ -230,17 +231,15 @@ jobs:
     permissions:
       contents: read
       actions: write   # cancel-on-failure
+    container:   # Blender for just ours's bones (model/skeleton, docs/adr/0025)
+      image: ghcr.io/yellow-pine/noggin-ci-blender:main   # as render's
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           persist-credentials: false   # nothing here pushes
-      # no uv cache: pruned (the default) it held ~1 KB, unpruned 448 MB that restore in ~7 s, where uv sync downloads
-      # every wheel in ~3 s (docs/research/2026-11-01-ci-budget.md)
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
-        with:
-          enable-cache: false
+      - name: Link the image's venv   # as code's
+        run: if [ -d /opt/uv/venv ]; then ln -s /opt/uv/venv .venv; fi
       - name: Restore main's latest parts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:
@@ -250,7 +249,7 @@ jobs:
           key: ${{ needs.changes.outputs.parts-key }}
           restore-keys: ours-convex-   # as in code
       - name: Build and cut the parts
-        run: uv run just ours && .venv/bin/python -m model.mjcf
+        run: uv run just BLENDER=blender ours && .venv/bin/python -m model.mjcf
       - name: Save the parts cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
         with:

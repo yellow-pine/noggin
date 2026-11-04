@@ -9,11 +9,10 @@ import pytest
 import trimesh
 from scipy.spatial import ConvexHull, cKDTree
 
-from model import base, envelopes, stages
+from model import base, envelopes, skeleton, stages
 from model import geometry as g
 from model import neck as nk
 from model.printed import base as printed_base
-from model.printed import skull
 from model.test_envelopes import BOXES, solid
 
 TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
@@ -90,12 +89,13 @@ def test_the_cores_lie_on_the_cranium_tray_and_the_switch_board_the_dongle_and_b
     assert envelopes.CORE["parts"][2] == base.USB  # its copy of the Envelope's USB-C (ADR 0011)
 
 
+@pytest.mark.model
 def test_the_cores_lie_inside_the_realistic_skull_each_usb_c_opening_straight_back_out_of_it():
-    """#858: each Core and Shield, and the tray's plate under them, at least the carved skull's WALL inside the
-    cranium's hull, so the carving (model/printed/skull.py) leaves its outside whole over them but for each Core's
+    """#858: each Core and Shield, and the tray's plate under them, at least the finished skull's WALL inside the
+    cranium's hull, so the finish (model/skeleton) leaves its outside whole over them but for each Core's
     USB-C opening: a plug's box from its socket's mouth straight back, side by side, out past the hull, clear of the
     tray."""
-    hull = ConvexHull(skull.placed()["next skull"].vertices)
+    hull = ConvexHull(trimesh.load(stages.stl("next skull"), force="mesh").vertices)
 
     def inside(points):  # mm in from the hull's nearest face
         return -(hull.equations[:, :3] @ np.transpose(points) + hull.equations[:, 3:]).max(axis=0)
@@ -104,11 +104,11 @@ def test_the_cores_lie_inside_the_realistic_skull_each_usb_c_opening_straight_ba
     for name in ("next Core 1", "next Shield 1", "next Core 2", "next Shield 2"):
         mesh, m = boards[name]
         points = np.array([v.toTuple() for v in solid(mesh).tessellate(0.5)[0]]) @ m[:3, :3].T + m[:3, 3]
-        assert inside(points).min() >= skull.WALL, name
+        assert inside(points).min() >= skeleton.WALL, name
     plate = [
         (x, y, z) for x in (-30.5, 30.5) for y in (base.CORES_AT[1] - 15, base.CORES_AT[1] + 15) for z in base.TRAY_Z
     ]
-    assert inside(plate).min() >= skull.WALL
+    assert inside(plate).min() >= skeleton.WALL
     tray = printed_base.tray().val()
     for name, (lo, hi) in openings.items():
         socket = _box("core", boards[name][1])
