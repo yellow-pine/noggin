@@ -8,8 +8,9 @@ import os
 import subprocess
 
 import pytest
+import trimesh
 
-from model import base, fits, gimbal, mujoco_report, neck, report, sim, skin, stages
+from model import base, fits, gimbal, mjcf, mujoco_report, neck, report, sim, skin, stages
 from model import geometry as g
 
 HERE = os.path.dirname(__file__)
@@ -242,6 +243,32 @@ def test_built_report_is_clean(doc):
             for loop in ranked["variants"][doc]["gates"]["loops"]:
                 del r["mujoco"]["residuals"][loop]
     assert problems(r) == []
+
+
+@pytest.mark.parametrize("doc", [d for d in g.DRESSED if g.undressed(d) in g.SIMULATED])
+def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(doc):
+    """#813: physics runs on Morty's Skin alone (geometry.DRESSED); every other Skin sits on his Seats (model/skin.py),
+    so each of its Shells, what is glued in it too, is held at the peak acceleration the sim measured his there (or
+    what carries it, where he has none: Cansin's sunglasses on the shirt)."""
+    peaks = built(g.undressed(doc))["mujoco"]["motions"]["shells"]
+    stage, theirs = stages.STAGES[doc], f"next {doc.rsplit('-', 1)[1]} "
+
+    def grams(stem):
+        p = stage.parts[f"{stem}:1"]
+        glued = [s for s, (carrier, _) in skin.GLUED.items() if carrier == stem]
+        return mjcf.mass(trimesh.load(p.file, force="mesh"), p.material) + sum(map(grams, glued))
+
+    weak = []
+    for seat in {s.shell: s for s in skin.SEATS if s.shell.startswith(theirs)}.values():
+        his = next(
+            f"{n.replace(theirs, 'next morty ')}:1"
+            for n in (seat.shell, seat.carrier)
+            if f"{n.replace(theirs, 'next morty ')}:1" in peaks
+        )
+        holds = skin.hold_n() * sum(s.shell == seat.shell for s in skin.SEATS)
+        if holds < skin.SF * grams(seat.shell) / 1000 * peaks[his]["peak_m_s2"]:
+            weak.append((seat.shell, round(holds), round(grams(seat.shell), 1), peaks[his]))
+    assert weak == []
 
 
 @pytest.mark.parametrize("doc", sorted(report.RANKED))

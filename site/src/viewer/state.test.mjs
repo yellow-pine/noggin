@@ -82,14 +82,15 @@ test("a GLB's name is its Stage's as Bones and its Skeleton shape's suffix (#805
 test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a Skin draws as it is (#876)", () => {
   expect(glb("next-mech-back", "realistic", "none")).toBe("next-mech-back-bare");
   expect(glb("next-mech-back", "mechanical", "none")).toBe("next-mech-back-mechanical-bare");
-  expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
+  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back");
   expect(glb("next-stage2", "mechanical", "none")).toBe("next-stage2-mechanical");
 });
 
-test("Skin shape bart draws Stage 3 in Bart's Shells, in either Skeleton; a Stage without a Skin as it is (#807)", () => {
-  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back-bart");
-  expect(glb("next-mech-back", "mechanical", "bart")).toBe("next-mech-back-mechanical-bart");
-  expect(glb("next-stage1", "realistic", "bart")).toBe("next-stage1");
+test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape's suffix (#813)", () => {
+  expect(glb("next-mech-back", "mechanical", "cansin")).toBe("next-mech-back-mechanical-cansin");
+  expect(glb("next-mech-back", "realistic", "cansin")).toBe("next-mech-back-cansin");
+  expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
+  expect(glb("next-stage1", "realistic", "cansin")).toBe("next-stage1");
 });
 
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {
@@ -107,10 +108,10 @@ test("with no Preset picked, the viewer opens on the Default build: mechanical, 
   expect(mixed("?skin-shape=bart", undefined)["skin-shape"]).toBe("bart");  // the address still names any
 });
 
-test("a mix paints each Colour group in its Palette's hex, black as Blender draws it (#819)", () => {
-  const colours = paint(mixed("?skeleton-palette=anatomical", "cansins-build"));
+test("a mix paints each Colour group in its Palette's hex, black as the GLB's look draws it (#819, #914)", () => {
+  const colours = paint(mixed("?skeleton-palette=anatomical", "cansins-build"), "#3A3A3C");
   expect(colours.Bones).toBe("#DBC8B6");  // PETG Basic Dark Beige
-  expect(colours.Mounts).toBe("#2B2B2E");  // PETG Basic Black, lifted
+  expect(colours.Mounts).toBe("#3A3A3C");  // PETG Basic Black, lifted to the GLB's black
   expect(colours.face).toBe("#F7CED7");  // PLA Pure Milky Pink
   expect(colours.servo).toBeUndefined();  // the hardware keeps its grey
 });

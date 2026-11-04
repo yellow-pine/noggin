@@ -316,6 +316,46 @@ test("the home opens on a large Stage 3 viewer on its hero loop, from the view o
   expect(still).toMatch(/-isometric\.webp$/);
 });
 
+// a page's embeds (a paragraph of nothing but "Open Stage N in the viewer" links, src/markdown.mjs): each one's Stage
+// number and link
+const embedsOf = (doc) =>
+  page(route(doc)).querySelectorAll('.sl-markdown-content .noggin-viewer').map((v) => [
+    numbers.published.stages.buttons.findIndex((b) => b.glb === v.getAttribute('data-stage')) + 1,
+    v.getAttribute('data-link'),
+  ]);
+
+test("Stage 1's and Stage 3's guides open on their Stage's viewer, a view and a part of it in their steps (#914)", () => {
+  expect(embedsOf('docs/build/stage-1.md')).toEqual([[1, ''], [1, 'part=next+L+upper+lid'], [1, 'view=front']]);
+  expect(embedsOf('docs/build/stage-3.md')).toEqual([[3, ''], [3, 'part=next+jaw'], [3, 'explode=1']]);
+  for (const doc of ['docs/build/stage-1.md', 'docs/build/stage-3.md']) {
+    const [, first] = page(route(doc)).querySelector('.sl-markdown-content').children; // under the warning, before a word
+    expect(first.getAttribute('class'), doc).toBe('noggin-viewer');
+  }
+});
+
+test("Pictures' first row is a viewer per Stage, in a row of their own (#914)", () => {
+  const row = page(route('docs/pictures.md')).querySelector('.noggin-row');
+  expect(row.querySelectorAll('.noggin-viewer .noggin-open a').map((a) => a.text)).toEqual(
+    numbers.published.stages.buttons.map((_, i) => `Open Stage ${i + 1} in the viewer`),
+  );
+  expect(embedsOf('docs/pictures.md').slice(0, 3)).toEqual(numbers.published.stages.buttons.map((_, i) => [i + 1, '']));
+});
+
+test('the sidebar runs Home, Start here, Build, Use, How it works, Model, Reference, Model from the Viewer (#914)', () => {
+  const nav = page(route('docs/build/parts.md')).querySelector('#starlight__sidebar');
+  const top = nav.querySelectorAll(':scope ul.top-level > li').map((li) => plain(li.querySelector('a, summary').text).trim());
+  expect(top).toEqual(['Home', 'Start here', 'Build', 'Use', 'How it works', 'Model', 'Reference']);
+  const model = nav.querySelectorAll(':scope ul.top-level > li').find((li) => li.querySelector('summary')?.text.includes('Model'));
+  expect(model.querySelectorAll('a').map((a) => plain(a.text).trim())).toEqual(['Viewer', 'Pictures', 'Roadmap', 'Reports', 'Notes']);
+  expect(nav.querySelector('a[href$="/docs/start-here/"]')).not.toBeNull();
+});
+
+test("Stage 2's Torso and Stage 1's test stand carry their marks, which the Roadmap lists (#914)", () => {
+  const on = (n) => roadmap().filter(([i]) => i === String(n)).map(([, href]) => href.split('#')[0]);
+  expect(on(879)).toContain(route('docs/build/stage-2.md'));
+  expect(on(877)).toContain(route('docs/build/stage-1.md'));
+});
+
 test("the viewer's page draws the next Mech and a Stage switch, the Preset its Shapes, and serves three's Draco decoder", () => {
   const viewers = page(`${HOME}/viewer/`).querySelectorAll('.noggin-viewer'); // one, its buttons switching (#664, #720)
   expect(viewers).toHaveLength(1);

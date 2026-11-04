@@ -1,16 +1,16 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Upcoming (#51):** being designed, not built yet. Morty's and Bart's Shells are in the model (#665), Bart's on
-> Morty's Seats and fitted to today's head (his refit to the life-size head: #913); Cansin's (#813) follows.
+> **Upcoming (#51):** being designed, not built yet. Morty's Shells (#665) and Cansin's (#813) are in the model; Bart's
+> (#807) follow.
 > #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our own design;
 nothing comes from other people's designs. A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
 Palette painting any Shape of its category (docs/adr/0022). A Preset names one: Cansin's build (mechanical in black,
-the cansin Skin; Morty's Shape stands in for its Shells until they exist, #813), Morty and Bart (each realistic in
-anatomical, its own Skin). The model, the [viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
+the cansin Skin), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
+Shells until they exist, #807). The model, the [viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
 next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
@@ -57,6 +57,23 @@ size inferred):
 - the mouth cover (face), his chin under the jaw, in the face's mouth opening;
 - the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
   with its half of the round crew neck's collar.
+
+## Cansin's Shells
+Cansin in Rick and Morty style (#813), in the four PLA Pure colours he owns, on Morty's head and his Seats: the same
+Shells, but for these (model/printed/skin.py; every size inferred; his reference photo stays local, never in git):
+- the hair (hair, Absolute Black): short, the temples higher, so the face (Milky Pink) takes the sides of the
+  forehead, and tufted on top, a short quiff standing out of the head's forward slope within its 150 mm height;
+- the brows (hair): straight bars over the eyes, each glued in a pocket in the face and standing 1.5 mm proud;
+- the pupils (pupils): small round dots, each glued in a plug (eye whites, Pure White) that fills the cap's jagged
+  seat, so every Skin shares the caps;
+- the teeth (eye whites): his toothy smile, a band glued in the chin's top front on the mouth cover, which the jaw
+  swings down;
+- the shirt (clothes, Pure White): his open-collared jacket over a tee as one look, the front half with the jacket's
+  lapels in a V down from the shoulders;
+- the sunglasses (accessories, Apricot): aviators hooked on the tee's neckline, a small part on its own Seat on the
+  shirt front.
+No stubble. Physics runs on Morty's Skin alone: Cansin's Shells sit on his Seats, so each, with what is glued in it, is
+held at the peak acceleration the sim reads for Morty's there (model/test_report.py).
 
 ## Seats and magnets
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc

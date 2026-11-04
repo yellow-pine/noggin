@@ -9,7 +9,8 @@ next_panels: the next Mech's panels' grid, each of its Stages in every Preset (m
 geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a viewer per motion (#839), and
 next_parts: a
 picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' three there and
-next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
+next_exploded: each Stage with every part apart (#811); stand_in: the line under the pictures of a Preset
+whose Skin stands in (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739); hero: its large Stage 3
 viewer on the hero loop (#889).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
@@ -216,8 +217,8 @@ BONY = pictures.BONY  # the Stages in order, as Bones
 
 def stage(doc):
     """A Stage document's name on a page, in any Shape, or a picture's (pictures.DRAWN) in any Preset: "Stage 2"."""
-    doc = pictures.DRAWN.get(doc, (doc,))[0]
-    return f"Stage {BONY.index(g.skinless(doc).removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
+    doc = g.undressed(pictures.DRAWN.get(doc, (doc,))[0])
+    return f"Stage {BONY.index(doc.removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
 
 
 def next_panels():
@@ -227,9 +228,13 @@ def next_panels():
 
 
 def stand_in():
-    """The line under Cansin's build's pictures, shown for it alone (#819): its Skin's Shape a stand-in."""
-    p = next(iter(g.PRESETS))
-    return f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist (#813).</em></p>"
+    """The line under the pictures of each Preset whose Skin shape has no Shells yet (geometry.SKINS), shown for it
+    alone (#819, #813): Morty's stand in."""
+    shapes = {g.SKINLESS, *g.SKINS}
+    lines = [p for p, t in g.PRESETS.items() if t["Skin shape"] not in shapes]
+    return "".join(
+        f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist.</em></p>" for p in lines
+    )
 
 
 def figures(labels, kind="parts", links=None, presets=None):
@@ -403,8 +408,8 @@ def stage_switch():
     """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the Skeleton shape
     adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
     sim ranked today's variants: its mechanical document's, the one physics runs on (#809); the Skeleton shapes
-    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shape none's (#876),
-    where a Stage has a bare GLB, and each other Skin shape drawn (#807), where it has its own."""
+    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shapes', where a
+    Stage has their GLB: none's bare (#876), each other drawn one's dressed (#813)."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
@@ -417,22 +422,23 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    skins = {g.SKINLESS: viewer.BARE} | {k: s for k, s in g.SKIN_SUFFIX.items() if s}  # Bart's Stage 3 (#807)
+    skins = {g.SKINLESS: viewer.BARE} | {s: f"-{s}" for s in list(g.SKINS)[1:]}  # Morty's the documents' own (#813)
     return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": skins}
 
 
 def theme():
     """The header's Theme bar and the viewer's mix (site/src/theme.mjs, #806, #819), by their keys in an address: the
     Presets by slug, each its label and its value on each axis, the default first; each axis' values; each Palette's
-    hex per Colour group, black lifted as Blender draws it, which the viewer paints a GLB's Colour groups in."""
-    key, lift = (lambda a: a.lower().replace(" ", "-")), {"#000000": constant("model/render/blender.py", "BLACK_LIFT")}
+    filament hex per Colour group, which the viewer paints a GLB's Colour groups in, black as the GLB's look has it."""
+
+    def key(a):
+        return a.lower().replace(" ", "-")
+
     return {
         "presets": {g.slug(p): {"label": p} | {key(a): v for a, v in t.items()} for p, t in g.PRESETS.items()},
         "axes": {key(a): list(v) for a, v in g.THEMES.items()},
         "palettes": {
-            key(f"{c} palette"): {
-                v: {k: lift.get(f[3], f[3]) for k, f in groups.items()} for v, groups in values.items()
-            }
+            key(f"{c} palette"): {v: {k: f[3] for k, f in groups.items()} for v, groups in values.items()}
             for c, values in palettes()
         },
     }

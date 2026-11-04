@@ -101,6 +101,20 @@ test('a viewer in a page shows its Mech and its motion, with no control (#883)',
   requests = requests.filter((u) => !u.startsWith('https://yellowpine.com/'));
 });
 
+test("Stage 1's and Stage 3's guides load each of their viewers, a part= one finding its part (#914)", async ({ page }) => {
+  test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.slow(); // up to two GLB loads a page in CI's software GL
+  for (const guide of ['docs/build/stage-1/', 'docs/build/stage-3/']) {
+    await page.goto(guide);
+    for (const v of await page.locator('.noggin-viewer').all()) {
+      await v.scrollIntoViewIfNeeded(); // each loads once in view (Footer.astro)
+      await expect(v).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+    }
+    // a part= one names its part, which is in its GLB: none would log an error (viewer.mjs stylise)
+    await expect(page.locator('.noggin-viewer[data-link^="part="] canvas')).toHaveAttribute('aria-label', /alone/);
+  }
+});
+
 test("the home opens on Stage 3's hero loop, only turns, and its reset takes it back to the view it opened on", async ({ page }) => {
   test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   // its poster is the live site's: a blank PNG, and no request of ours

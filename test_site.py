@@ -79,18 +79,18 @@ def test_the_readme_is_for_contributors():
 
 
 def test_the_wiring_table_is_built_from_the_code():
-    """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
-    calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
-    centred) and the next Mech's neck's limits and its 90 neutral (model/stages.py next_neck; the neck Core has no
-    program yet)."""
+    """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eye gimbal's
+    calibrated ranges and rests (eyes/calibration.json, the model's nominals until a Stage 1 is calibrated, #896: lids
+    closed 69, rest 90, open 105; yaw 65..115 and pitch 59.6..120.4, centred) and the next Mech's neck's limits and its
+    90 neutral (model/stages.py next_neck; the neck Core has no program yet)."""
     import macros  # here, not at the top: it imports the model
 
     table = macros.wiring()
     for row in [
-        "| 1 (eyes) | 1 | 3 | L lid | 39..102 | 61.4 |",
-        "| 1 (eyes) | 2 | 2 | L eye | 58..118 | 88 |",
-        "| 1 (eyes) | 3 | 1 | R lid | 39..102 | 64 |",
-        "| 1 (eyes) | 4 | 0 | R eye | 58..118 | 88 |",
+        "| 1 (eyes) | 1 | 3 | L lid | 69..105 | 90 |",
+        "| 1 (eyes) | 2 | 2 | yaw | 65..115 | 90 |",
+        "| 1 (eyes) | 3 | 1 | R lid | 69..105 | 90 |",
+        "| 1 (eyes) | 4 | 0 | pitch | 59.6..120.4 | 90 |",
     ]:
         assert row in table, row
     neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| 90 \|$", table, re.M)
@@ -165,10 +165,14 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
     for row in [
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
-        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
-        "| Skin | morty | hair | morty hair, bart hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",  # #807
-        "| Skin | bart | clothes | morty shirt front, morty shirt back, bart shirt front, bart shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",  # noqa: E501
-        "| Skin | cansin | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
+        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap, cansin L pupil plug, cansin R pupil plug, cansin"
+        " teeth | PLA Basic Jade White (10100) | #FFFFFF |",
+        # Morty's Shells (#665), Cansin's (#813)
+        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow | PLA Basic Cocoa Brown"
+        " (10802) | #6F5034 |",
+        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back | PLA"
+        " Matte Scarlet Red (11200) | #DE4343 |",
+        "| Skin | cansin | accessories | cansin sunglasses | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
     assert (
@@ -202,8 +206,8 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     for row in [
         "| panels | 800 wide, as tall as the tallest | WebP |",
         "| anatomical | Bones | PETG Basic Dark Beige (30403) | #DBC8B6 | #DBC8B6 | #DBC8B6 |",
-        "| robot | Joints | PETG Basic Black (30105) | #000000 | #2B2B2E | #5A5A60 |",
-        "| black | Bones | PETG Basic Black (30105) | #000000 | #2B2B2E | #5A5A60 |",
+        "| robot | Joints | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
+        "| black | Bones | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
         "| morty | eye whites | PLA Basic Jade White (10100) | #FFFFFF | #FFFFFF | #E8E8E8 |",
         "| lines | | | | #5F5F5F | |",
         "| background | | | | transparent | #F7F4EE |",
@@ -314,8 +318,7 @@ def test_every_document_has_a_side_and_an_isometric_panel():
     panels = [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
     assert [pictures.picture(*p) for p in pictures.PANELS] == panels
     assert pictures.DRAWN["next-stage1"] == ("next-stage1-mechanical", "Cansin's build")  # the default
-    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back-bart", "Bart")  # in his own Skin (#807)
-    assert pictures.DRAWN["next-stage2-bart"] == ("next-stage2", "Bart")
+    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back", "Bart")
 
 
 def test_the_next_mech_has_its_own_panels():
@@ -368,13 +371,13 @@ def test_each_part_picture_shows_for_the_presets_in_its_shape():
 def test_the_site_publishes_the_next_mech_alone():
     """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part, stills alone (#839: its
     motion is the viewer's), each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton
-    shape (#720), Stage 3 bare too (#876), every name starting next-."""
+    shape (#720), Stage 3 bare too (#876) and in each other Skin (#813), every name starting next-."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
     from web import build
 
-    stems = {stages.stem(p.file) for doc in g.STAGES for p in stages.STAGES[doc].parts.values()}
+    stems = {stages.stem(p.file) for doc in [*g.STAGES, *g.DRESSED] for p in stages.STAGES[doc].parts.values()}
     published = pictures.published()
     # side and isometric per Stage, each at the Parts level (#811), each per Preset (#819), the front doors' three
     # (#739, #843), and a picture per part; no motion (#839)
@@ -385,10 +388,11 @@ def test_the_site_publishes_the_next_mech_alone():
     assert not [f for f in published if f.startswith("next-eyes")]
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
     bare = {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
-    bart = {f"next-mech-back{s}-bart": f"next-mech-back{s}-bart.glb" for s in SHAPES}  # in Bart's Skin (#807)
-    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | bart
+    dressed = {f"next-mech-back{s}-cansin": f"next-mech-back{s}-cansin.glb" for s in SHAPES}  # in Cansin's Skin (#813)
+    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | dressed
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
-    assert {doc for doc, _ in pictures.next_parts().values()} <= set(map(build.document, build.PUBLIC)) == set(g.STAGES)
+    docs = set(map(build.document, build.PUBLIC))
+    assert {doc for doc, _ in pictures.next_parts().values()} <= docs == {*g.STAGES, *g.DRESSED}
 
 
 # #739: the front doors' three, in order, in the default Preset, Cansin's build (#819), bare of its Skin (#843):
@@ -450,6 +454,7 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
+    assert unranked["skins"] == {"none": "-bare", "cansin": "-cansin"}  # #876, #813: where Stage 3 has its GLB
     fails = {"next-mech-back-mechanical": ["head size", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))

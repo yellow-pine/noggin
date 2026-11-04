@@ -59,7 +59,7 @@ def _on_lid(r, deg, side):
     return tuple(round(c, 4) for c in at), tuple(round(c / r, 6) for c in at)
 
 
-def _lid_seats(side, polarity):
+def _lid_seats(skin, side, polarity):
     out = []
     # each Seat mid its magnet section: the upper's top band, the whole lower lid
     for lid, r, deg in (
@@ -67,7 +67,7 @@ def _lid_seats(side, polarity):
         ("lower", gm.LOWER_R[1], gm.LOWER_REST - gm.LOWER_SPAN / 2),
     ):
         at, n = _on_lid(r, deg, side)
-        out.append(Seat(f"next morty {side} {lid} lid cover", f"next {side} {lid} lid", at, n, 0.0, 0.0, polarity))
+        out.append(Seat(f"next {skin} {side} {lid} lid cover", f"next {side} {lid} lid", at, n, 0.0, 0.0, polarity))
     return out
 
 
@@ -83,17 +83,6 @@ SIDE = (
 )
 SIDE_ROUND = 25.0
 TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
-# Bart's head (#807): Morty's with a flat crown, from the front square at its top corners and from the side flat over
-# the cranium, so it holds all of Morty's (whatever clears his clears Bart's, the worn skull's carving too) in the same
-# box; the spikes (model/printed/skin.py SPIKES) stand on the crown, past the head's top (inferred)
-HEADS = {
-    "morty": (FRONT, SIDE, TOP),
-    "bart": (
-        ((-48.5, 48.0, 20.0), (48.5, 48.0, 20.0), *FRONT[1:]),
-        (((5.0, 48.0, 20.0), (68.0, 48.0, 20.0), *SIDE[0]), SIDE[1]),
-        TOP,
-    ),
-}
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
 HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
@@ -111,8 +100,10 @@ BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behin
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
 _PLATE = (gm.PLATE_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
 _BACK = (32.5, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo, clear of its collar (#838)
+SHIRT_BOSS = 4.0  # each shirt half's bosses out to its sleeve
+SHIRT_FRONT = TORSO[0] - GAP - SHIRT_BOSS - WALL  # the shirt front's outside, flat across its middle
+# The eyeball caps on the cores' seat faces, along the gaze: every Skin's (#665)
 SEATS = [
-    # the eyeball caps on the cores' seat faces, along the gaze
     *[
         Seat(
             f"next {s} eyeball cap",
@@ -125,73 +116,93 @@ SEATS = [
         )
         for s, p in (("L", 1), ("R", -1))
     ],
-    *_lid_seats("L", 1),
-    *_lid_seats("R", -1),
-    # the face forward off the front of the gimbal frame's beam, its bar to the lids' uprights (#838, #852); its top
-    # held by the hair
-    *[
+]
+
+
+def _seats(skin):
+    """The Skin's Seats, the same for every Skin (#51, #813): its Shells on the Skeleton's, the hair on the face."""
+    return [
+        *_lid_seats(skin, "L", 1),
+        *_lid_seats(skin, "R", -1),
+        # the face forward off the front of the gimbal frame's beam, its bar to the lids' uprights (#838, #852); its top
+        # held by the hair
+        *[
+            Seat(
+                f"next {skin} face",
+                "next gimbal frame",
+                (x, _PLATE[0], _PLATE[1]),
+                (0.0, -1.0, 0.0),
+                0.0,
+                _PLATE[0] - GAP - (MUZZLE_Y + WALL) + 1.0,
+                1,
+            )
+            for x in (-45.0, 45.0)
+        ],
+        # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
+        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
+        *[
+            Seat(f"next {skin} hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
+            for x in (-_BACK[0], _BACK[0])
+        ],
+        *[
+            Seat(f"next {skin} hair", f"next {skin} face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
+            for x in (-40.0, 40.0)
+        ],
+        # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
+        # (inside the jaw's U), flush with its front: under the chin it would make the head taller (#708's gate)
         Seat(
-            "next morty face",
-            "next gimbal frame",
-            (x, _PLATE[0], _PLATE[1]),
-            (0.0, -1.0, 0.0),
+            f"next {skin} mouth cover",
+            "next jaw",
+            (0.0, nk.CHIN_Y + PAD_R, nk.JAW_ARM_Z[1]),
+            (0.0, 0.0, 1.0),
+            nk.JAW_ARM_Z[1] - nk.JAW_ARM_Z[0],
             0.0,
-            _PLATE[0] - GAP - (MUZZLE_Y + WALL) + 1.0,
             1,
-        )
-        for x in (-45.0, 45.0)
-    ],
-    # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-    # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
-    *[
-        Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
-        for x in (-_BACK[0], _BACK[0])
-    ],
-    *[
-        Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
-        for x in (-40.0, 40.0)
-    ],
-    # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
-    # (inside the jaw's U), flush with its front: under the chin it would make the head taller (#708's gate)
+        ),
+        # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
+        # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
+        *[
+            Seat(f"next {skin} shirt front", "next torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            for x in (-24.0, 24.0)
+        ],
+        *[
+            Seat(f"next {skin} shirt back", "next torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            for x in (-24.0, 24.0)
+        ],
+    ]
+
+
+SUNGLASSES = (0.0, -131.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
+SEATS += [
+    *_seats("morty"),
+    *_seats("cansin"),
+    # the sunglasses' bridge on the shirt front's neckline, the shirt thickened behind it
     Seat(
-        "next morty mouth cover",
-        "next jaw",
-        (0.0, nk.CHIN_Y + PAD_R, nk.JAW_ARM_Z[1]),
-        (0.0, 0.0, 1.0),
-        nk.JAW_ARM_Z[1] - nk.JAW_ARM_Z[0],
+        "next cansin sunglasses",
+        "next cansin shirt front",
+        (SUNGLASSES[0], SHIRT_FRONT, SUNGLASSES[1]),
+        (0.0, -1.0, 0.0),
+        1.0,
         0.0,
         1,
     ),
-    # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
-    # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
-    *[
-        Seat("next morty shirt front", "next torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, 4.0, 1)
-        for x in (-24.0, 24.0)
-    ],
-    *[
-        Seat("next morty shirt back", "next torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, 4.0, 1)
-        for x in (-24.0, 24.0)
-    ],
 ]
-# every Skin's Shells on Morty's Seats (#51: one Seat for every Skin, #807), each named for its Skin
-SKINS = tuple(g.SKIN_SUFFIX)
-assert set(HEADS) == set(SKINS)
-SEATS += [
-    s._replace(
-        shell=s.shell.replace("next morty ", f"next {k} "), carrier=s.carrier.replace("next morty ", f"next {k} ")
-    )
-    for k in SKINS[1:]
-    for s in SEATS
-    if s.shell.startswith("next morty ")
-]
-GLUED = {f"next {k} {s} pupil": (0.0, -1.0, 0.0) for k in SKINS for s in "LR"}  # keyed in the caps' seats
+# {Shell: (what it is glued in, its Assembly direction)}: keyed in its seat (#51: not held by magnets alone)
+_OUT = (0.0, -1.0, 0.0)
+GLUED = {f"next morty {s} pupil": (f"next {s} eyeball cap", _OUT) for s in "LR"} | {
+    **{f"next cansin {s} pupil plug": (f"next {s} eyeball cap", _OUT) for s in "LR"},  # fills the jagged seat
+    **{f"next cansin {s} pupil": (f"next cansin {s} pupil plug", _OUT) for s in "LR"},  # a dot in its plug
+    **{f"next cansin {s} brow": ("next cansin face", _OUT) for s in "LR"},
+    "next cansin teeth": ("next cansin mouth cover", _OUT),
+}
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
-DIRECTIONS = {s.shell: s.normal for s in SEATS} | GLUED  # each Shell's Assembly direction, in its carrier's frame
+DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.items()}  # each Shell's Assembly
+# direction, in its carrier's frame
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
 # their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
-DRAWN = [s for s in SHELLS if s.split()[1] in SKINS]
+DRAWN = [s for s in SHELLS if s.split()[1] in g.SKINS]
 
 
 @functools.cache

@@ -81,7 +81,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
   numbers (model/test_envelopes.py).
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `just test` and `just sim`
+  (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
+  round them from the Skeleton scene (model/skeleton, docs/adr/0025), so it needs Blender (`just linux-test` runs in
+  CI's Blender image; the GX10 has none). The model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 
@@ -141,8 +143,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
-  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
-  jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
+  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
+  bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
   it prints upright); the core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
@@ -158,8 +160,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   other way round until it and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
-  gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
+  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): its yaw, in the gimbal's own
+  degrees since its servos are Stage 1's (#896), through `gimbal.servos`, the gaze level (the program holds the pitch), each lid level to its edge
   (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
@@ -206,14 +208,15 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/printed/test_skull.py holds
-  it to the placed skull, to the mm), whose bones ride the realistic documents alone.
-  Since #838 the realistic Skeleton has bones of its own (model/printed/skull.py, docs/adr/0023): 3Demon's cranium and
+  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/skeleton/test_skeleton.py holds
+  it to the finished bones), whose bones ride the realistic documents alone.
+  Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
+  model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): 3Demon's cranium and
   mandible scaled to the head's 150 mm height (2 mm spare for the remesh), its orbits on the eyes with the caps 7 mm
-  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` carves
-  them on a 0.8 mm voxel grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
+  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` has Blender
+  finish them on a 0.8 mm SDF grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
-  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each.
+  under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
   Morty cannot be worn over the full skull (its back 18 mm past his, its brow 10 mm ahead of his face), so the skull and
   mandible are also carved 1.6 mm round every Skin's Shells (`geometry.WORN`, Cansin's pick): the documents, which wear
   a Skin, carry the worn copies, the pictures' bare look the full ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up

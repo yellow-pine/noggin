@@ -6,7 +6,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 <!--{{ hero }}-->
 
-[Build one](build/parts.md) · [Use it](use/noggin-service.md)
+[Start here](start-here.md) · [Build one](build/parts.md) · [Use it](use/noggin-service.md)
 
 ## The next Mech, in progress
 

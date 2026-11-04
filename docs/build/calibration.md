@@ -1,7 +1,8 @@
 # Calibration
 
-The lids and eyes are calibrated per Mech in `eyes/calibration.json`, live with `noggin/noggin set`
-([Tuning](../use/tuning.md)).
+The lids, the yaw and the pitch are calibrated per Mech in `eyes/calibration.json`, live with `noggin/noggin set`
+([Tuning](../use/tuning.md)). Until a Stage 1 is calibrated, the file holds the model's nominal ranges, each servo's
+horn about its 90 neutral (inferred, the [Wiring](wiring.md) table).
 
 ## Servo calibration lessons (2026-10-31)
 

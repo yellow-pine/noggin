@@ -56,6 +56,8 @@ def main(job):
         "highlight": look.TOON * look.HIGHLIGHT,
         "highlight_from": 0.98,  # N.H where the glossy band sets in, from the probe render
         "key": look.KEY,
+        "black": look.BLACK_LIFT,  # the charcoal a black Colour group is painted in (#914)
+        "ink": look.INK,  # the lines on it, as the pictures draw every line
     }.items():
         sc[k] = v
     bpy.ops.export_scene.gltf(

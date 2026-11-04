@@ -52,6 +52,8 @@
 > Amended 2026-11-04 (#894, ADR 0024): the parts and the trajectories are built once before `Render`, which every
 > shard restores from the cache; Blender renders about six stills (the README's three and a poster per Stage), the
 > viewer standing in for every other picture.
+> Amended 2026-11-04 (#873, ADR 0025): the realistic Skeleton's source is a committed, compressed Blender scene under
+> a size cap, holding one derived copy, its Scene Mech, which CI replaces with the Mech it just built before it exports.
 
 Generated files in git drift from what made them: the README's pictures are copied into docs/images by hand, the sim
 reports need a stamp check to catch a stale one, and the Markdown repeats numbers the code owns. So the repo holds

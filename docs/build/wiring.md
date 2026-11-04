@@ -9,11 +9,12 @@ Each Core's ports, GPIOs, servos and ranges are in [the table on the site](https
 built from the code.
 <!-- #}-->
 
-Ports 1 and 2 are the Shield's left header, 3 and 4 the right. The eyes Core's rows are the eye program's as it runs
-today, on today's Mech's calibration ([Calibration](calibration.md)): a servo per eye and per lid, the lids in the
-shared lid frame, the right lid servo's degrees (the Core writes 180 - a to the left), closed at the low end, open at
-the high; the eyes rest centred between their ends. The Mech's eyes Core drives the eye gimbal instead: left and right,
-up and down, and a lid servo per eye ([Stage 1](stage-1.md)), its ports given when the eye program drives the gimbal.
+Ports 1 and 2 are the Shield's left header, 3 and 4 the right. The eyes Core drives [Stage 1](stage-1.md)'s eye
+gimbal: a lid servo per eye, one yaw servo turning both eyes left and right and one pitch servo turning them up and
+down. Its rows are the eye program's calibration ([Calibration](calibration.md)), the model's nominal ranges until a
+Stage 1 is calibrated (inferred): the lids in the shared lid frame, the right lid servo's degrees (the Core writes
+180 - a to the left, inferred), closed at the low end where the lids meet, open at the high; the yaw and the pitch
+rest centred between their ends. The gestures turn the eyes left and right only, so the pitch holds the gaze level.
 The neck Core has no program yet: its ranges are the neck's in the model and its rest the model's neutral, 90 (the
 jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred: the same Shield).
 
