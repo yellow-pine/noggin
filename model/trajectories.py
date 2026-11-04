@@ -152,7 +152,7 @@ def poses(doc, motion):
     parts = {n: p for n, p in parts.items() if n in placed}
     rides = {}
     for name in (n for n in placed if n not in parts):
-        carrier = stages.RIDES.get(name) if stages.RIDES.get(name) in parts else None
+        carrier = stages.RIDES.get(name)  # one that rides needs its carrier baked
         rides[name] = (carrier, np.linalg.inv(placed[carrier].matrix if carrier else np.eye(4)) @ placed[name].matrix)
         rides[name][1][:3, 3] /= 1000  # mm to MuJoCo's metres
     frames = []

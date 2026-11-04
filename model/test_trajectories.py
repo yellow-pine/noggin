@@ -135,7 +135,7 @@ def test_a_bone_or_shell_mujoco_plays_none_of_rides_its_carrier_in_the_baked_pos
     if skin_shape != "morty":
         bones += [n for n in stage.parts if n.startswith(f"next {skin_shape} ")]
     rest = {}
-    for c in {stages.RIDES[b] for b in bones if b in stages.RIDES}:
+    for c in {c for n, c in stages.RIDES.items() if n in stage.parts and c in stage.parts}:
         m = stage.parts[c].matrix
         rest[c] = {
             "pos": [(m[:3, 3] / 1000).tolist()],

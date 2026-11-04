@@ -313,7 +313,7 @@ def hair(skin="morty"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
         out = out.union(web.intersect(_head(0.0)))
-    return _finish(f"next {skin} hair", out, _head(-sk.HAIR) if skin == "cansin" else _head(0.0))
+    return _finish(f"next {skin} hair", out, _head(0.0))
 
 
 def mouth_cover(skin="morty"):
@@ -361,7 +361,7 @@ def shirt(skin, half):
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)
     out = out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30)))
     if skin == "cansin" and half == "front":  # the open jacket's lapels over the tee, a V down from its shoulders
-        y = front.at[1] - off - sk.WALL
+        y = sk.SHIRT_FRONT
         for s in (-1, 1):
             lapel = [(s * x, z) for x, z in LAPEL]
             out = out.union(cq.Workplane("XZ", origin=(0, y + 0.1, 0)).polyline(lapel).close().extrude(LAPEL_PROUD))
