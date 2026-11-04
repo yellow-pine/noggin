@@ -33,7 +33,7 @@ def test_a_shared_bust_warp_preserves_each_bones_authored_sculpt():
     scene = {
         "bones": [{"name": "public bone", "key": "bone", "group": "Skull", "matrix": np.eye(4).tolist()}],
         "landmarks": {str(i): {"source": p.tolist(), "target": (p + shift).tolist()} for i, p in enumerate(points)},
-        "anatomical_regions": {"skull": {"scale": 1.0}},
+        "anatomical_regions": {"skull": {"scale": 1.0, "matrix": np.eye(4).tolist()}},
     }
     result, report = fit.warp(arrays, scene)
     assert result["bone_warp"] == pytest.approx(points + shift)
@@ -56,7 +56,10 @@ def test_regional_fits_keep_a_shared_bone_joint_continuous_in_the_common_frame()
     head = np.array(((-1, -1, 20), (1, -1, 20), (0, 1, 20), (0, 0, 30)), float)
     body = head * (1, 1, -1)
     scene = {"bones": [], "landmarks": {}, "warp_blend": {"normal": [0, 0, 1], "low": -10, "high": 10}}
-    scene["anatomical_regions"] = {"skull": {"scale": 1.0}, "upper_chest": {"scale": 1.0}}
+    scene["anatomical_regions"] = {
+        "skull": {"scale": 1.0, "matrix": np.eye(4).tolist()},
+        "upper_chest": {"scale": 1.0, "matrix": np.eye(4).tolist()},
+    }
     arrays = {}
     for name, points in (
         ("head", np.array(((0, 0, 0), (0, 0, 10), (1, 0, 0), (0, 1, 0)), float)),
@@ -108,3 +111,42 @@ def test_surface_budget_accepts_rigid_placement_after_declared_regional_resize()
     report = fit.check_surface_stretch(basis, final, np.array(((0, 1, 2),)), 2.0)
     assert report["minimum"] == pytest.approx(1)
     assert report["maximum"] == pytest.approx(1)
+
+
+def test_a_region_cannot_hide_an_inherited_anisotropic_baseline():
+    matrix = np.diag((0.5, 1.0, 2.0, 1.0)).tolist()
+    scene = {
+        "bones": [{"group": "C1", "matrix": matrix}],
+        "anatomical_regions": {"cervicals": {"scale": 1.0, "matrix": matrix}},
+    }
+    with pytest.raises(ValueError, match="uniform"):
+        fit.warp({}, scene)
+
+
+def test_cervical_bones_cannot_be_independently_reposed():
+    scene = {
+        "bones": [{"group": "C1", "matrix": np.diag((2.0, 2.0, 2.0, 1.0)).tolist()}],
+        "anatomical_regions": {"cervicals": {"scale": 1.0, "matrix": np.eye(4).tolist()}},
+    }
+    with pytest.raises(ValueError, match="share"):
+        fit.warp({}, scene)
+
+
+def test_original_cervical_joint_is_preserved_by_one_declared_region_frame():
+    arrays, bones = {}, []
+    for name, group, points in (
+        ("upper", "C1", np.array(((0, 0, 0), (0, 0, 10), (1, 0, 0), (0, 1, 0)), float)),
+        ("lower", "C2", np.array(((0, 0, -10), (0, 0, 0), (1, 0, 0), (0, 1, 0)), float)),
+    ):
+        for kind in ("basis", "warp", "sculpt"):
+            arrays[name + "_" + kind] = points.copy()
+        arrays[name + "_faces"] = np.array(((0, 1, 2), (0, 2, 3), (0, 3, 1), (1, 3, 2)))
+        bones.append({"name": name, "group": group, "key": name, "matrix": np.eye(4).tolist()})
+    matrix = np.eye(4)
+    matrix[:3, :3] *= 0.8
+    matrix[:3, 3] = (4, 5, 6)
+    scene = {"bones": bones, "landmarks": {}}
+    result, report = fit.regional_seed(arrays, scene, {"cervicals": {"scale": 0.8, "matrix": matrix.tolist()}})
+    assert result["upper_sculpt"][0] == pytest.approx(result["lower_sculpt"][1])
+    assert scene["bones"][0]["matrix"] == scene["bones"][1]["matrix"]
+    assert report["regional_stretch"]["upper"]["field"]["minimum"] == pytest.approx(1)

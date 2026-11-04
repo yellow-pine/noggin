@@ -74,6 +74,13 @@ def warp(arrays, scene):
     anatomical_regions = scene.get("anatomical_regions")
     if not anatomical_regions:
         raise ValueError("Declare uniform anatomical_regions from original Basis before warping")
+    for bone in scene["bones"]:
+        declared = anatomical_regions[REGIONS[bone["group"]]]
+        matrix = np.asarray(declared["matrix"])
+        if not np.allclose(np.linalg.svd(matrix[:3, :3], compute_uv=False), declared["scale"], rtol=1e-6):
+            raise ValueError("An anatomical region resize must be uniform, not an inherited anisotropic affine")
+        if not np.allclose(bone["matrix"], matrix, atol=1e-6):
+            raise ValueError("Bones must share their declared anatomical region placement")
     pairs = list(scene["landmarks"].values())
     source, target = (np.array([p[k] for p in pairs]) for k in ("source", "target"))
     blend = scene.get("warp_blend")
@@ -146,6 +153,31 @@ def warp(arrays, scene):
         "landmark_error_mm": error,
         "regional_stretch": stretch,
     }
+
+
+def regional_seed(arrays, scene, regions):
+    """Place ORIGINAL connected Basis with four declared similarities, then the SAME bounded interactive solver.
+
+    This seed has no residual shape field. Subsequent authored landmarks use warp(), with identical limits.
+    Shared regions keep original internal joints; anatomical cross-region joint/containment acceptance is separate.
+    """
+    scene["anatomical_regions"] = regions
+    scene.pop("warp_blend", None)
+    scene["landmarks"] = {}
+    world = []
+    for bone in scene["bones"]:
+        matrix = np.asarray(regions[REGIONS[bone["group"]]]["matrix"])
+        bone["matrix"] = matrix.tolist()
+        world.append(arrays[bone["key"] + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3])
+    points = np.vstack(world)
+    for i, p in enumerate(
+        np.array((x, y, z))
+        for x in (points[:, 0].min(), points[:, 0].max())
+        for y in (points[:, 1].min(), points[:, 1].max())
+        for z in (points[:, 2].min(), points[:, 2].max())
+    ):
+        scene["landmarks"][f"LM regional frame {i}"] = {"source": p.tolist(), "target": p.tolist()}
+    return warp(arrays, scene)
 
 
 def canal(mesh, normal=(0, 0, 1)):
