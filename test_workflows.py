@@ -230,13 +230,13 @@ CACHED = "${{ github.event_name != 'schedule' && (github.event_name != 'workflow
 
 
 def test_release_s_manual_run_renders_and_simulates_only_what_changed():
-    """#839: Release's manual run (workflow_call with deploy, its event the caller's dispatch) looks up the next Mech's
+    """#839: Release's manual run (workflow_call with deploy, its event the caller's dispatch) looks up the Mech's
     pictures and the sim reports cached for the same inputs, as a push's run does; the weekly run and a dispatch on any
     branch still render and simulate everything, the lookups' safety net."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     assert flow[True]["workflow_call"]["inputs"]["deploy"]["default"] is False
     steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
-    assert steps["next"]["if"] == steps["sim"]["if"] == CACHED
+    assert steps["pictures"]["if"] == steps["sim"]["if"] == CACHED
 
 
 def test_a_pr_runs_the_slim_gate_alone():
@@ -279,12 +279,12 @@ DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/
 BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 
 
-def test_ci_draws_uploads_and_serves_the_next_mech_alone():
+def test_ci_draws_uploads_and_serves_the_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
-    workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
-    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and attach none of it to a
-    release (no release's docs since #778, docs/adr/0021). The Actions cache carries the parts between jobs: nobody
-    outside the repo's workflows reads it."""
+    workflows render and bake the Mech alone (just pictures all, just web all), upload only the site, never a
+    part, its cut, a mesh or a frame, put only the pictures and GLBs the Model publishes in the site, and attach none
+    of it to a release (no release's docs since #778, docs/adr/0021). The Actions cache carries the parts between
+    jobs: nobody outside the repo's workflows reads it."""
     from model.render import pictures
 
     steps = [
@@ -292,7 +292,7 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     ]
     runs = [s.get("run", "") for s in steps]
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
-    assert drawn == {("pictures", pictures.NEXT), ("web", pictures.NEXT)}
+    assert drawn == {("pictures", pictures.ALL), ("web", pictures.ALL)}
     assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
     uploaded = {
         line.strip()
@@ -304,24 +304,23 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert uploaded == {"site/dist"}  # #673: no PR preview
     site = re.search(r"(?m)^site:[^\n]*\n((?:    [^\n]*\n)+)", (WORKFLOWS[0].parents[2] / "justfile").read_text())[1]
     into_site = re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", "\n".join([*runs, site]))
-    assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
+    # what just pictures and just web make (pictures.published, build.PUBLIC, test_site.py), nothing else
+    assert into_site == ["model/build/images/*.webp", "web/build/*.glb"]
     assert not [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
 
 
-def test_blender_joins_every_render_shard():
-    """#770: each Render shard saves its share of the pictures, and Blender restores every one of them, so a shard added
-    to the matrix is never left out of the site. #839: eight shards, each uploading its pictures' measured seconds for
-    `just model-durations`."""
+def test_render_builds_the_parts_and_trajectories_once_and_saves_what_site_restores():
+    """#898: six stills no longer need eight shards: one Render job draws the pictures and the GLBs on the parts and
+    trajectories it built once, and saves them under the one key Site restores."""
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-    assert jobs["render"]["strategy"]["matrix"]["shard"] == list(range(8))
-    (up,) = [s for s in jobs["render"]["steps"] if "upload-artifact" in s.get("uses", "")]
-    assert up["with"]["name"].startswith("durations-")
-    saved = [s["with"]["key"] for s in jobs["render"]["steps"] if "cache/save" in s.get("uses", "")]
-    restored = [s["with"]["key"] for s in jobs["blender"]["steps"] if "cache/restore" in s.get("uses", "")]
-    assert saved == ["next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}"]
-    assert restored == [
-        saved[0].replace("${{ matrix.shard }}", str(i)) for i in jobs["render"]["strategy"]["matrix"]["shard"]
-    ]
+    render = jobs["render"]
+    assert "strategy" not in render and "blender" not in jobs
+    drawn = [m[1] for s in render["steps"] for m in BLENDER.finditer(s.get("run", ""))]
+    assert drawn == ["pictures", "web"]
+    (saved,) = [s["with"]["key"] for s in render["steps"] if "cache/save" in s.get("uses", "")]
+    restored = [s["with"]["key"] for s in jobs["site"]["steps"] if "cache/restore" in s.get("uses", "")]
+    assert saved == "pictures-${{ needs.changes.outputs.pictures-hash }}" and saved in restored
+    assert "render" in jobs["site"]["needs"]
 
 
 def test_a_job_names_an_environment_only_to_deploy():
@@ -488,8 +487,10 @@ def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed(
     assert release["needs"] == "checks" and "needs.checks.result == 'success'" in release["if"]
     called = yaml.safe_load((wf / "checks.yml").read_text())
     assert called[True]["workflow_call"]["inputs"]["deploy"] == {"type": "boolean", "default": False}
-    asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
-    assert asked.items() <= checks["permissions"].items()
+    # every scope a called job asks for, granted at least at its level: a nested job asking more makes Release invalid
+    level = {"none": 0, "read": 1, "write": 2}
+    asked = [(k, v) for j in called["jobs"].values() for k, v in j.get("permissions", {}).items()]
+    assert [(k, v) for k, v in asked if level[checks["permissions"].get(k, "none")] < level[v]] == []
     steps = {s["name"]: s for s in release["steps"]}
     assert steps["Check whether main moved on"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
     moved = "${{ steps.tip.outputs.branch != '' }}"

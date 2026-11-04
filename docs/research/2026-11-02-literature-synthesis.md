@@ -1,4 +1,4 @@
-# Literature synthesis for the next Mech (#51)
+# Literature synthesis for the Mech (#51)
 
 Researched 2026-11-02. Purpose: one view of what the eight literature notes of the same date say for #51 (on hold, its cranium layout parked), and the changes they propose to it, inside and outside its fixed limits.
 

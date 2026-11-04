@@ -1,4 +1,4 @@
-"""The next Mech's neck and jaw (#641): our own design, clean-room (#618). Its numbers (one source: model/printed/neck.py
+"""The Mech's neck and jaw (#641): our own design, clean-room (#618). Its numbers (one source: model/printed/neck.py
 draws the parts from them, model/stages.py places them), its kinematics and its report.
 
 Frame: the eye gimbal's (model/gimbal.py), which is the head's: x along the eye line (the L eye at +x), -y forward, z
@@ -75,7 +75,7 @@ PAN_SPAN = (18.0, (-112.0, -82.0))
 TILT_SPAN = (22.0, 45.0)
 LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug
 # the parts the tilt turns with the eye gimbal: model/report.py weighs the head from them
-HEAD = ("next head mount:1", "next jaw:1", "next jaw bar:1", "next mouth servo:1", "next mouth horn:1")
+HEAD = ("head mount:1", "jaw:1", "jaw bar:1", "mouth servo:1", "mouth horn:1")
 
 
 def _four_bar(o4, lever, horn, axis, turn=1):

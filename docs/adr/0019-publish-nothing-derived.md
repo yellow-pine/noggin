@@ -3,36 +3,36 @@
 > Decided with Cansin on 2026-11-02, #640, on #618's licence research (its 2026-11-02 note in docs/research).
 > Amends ADR 0008 (the viewer is off the site) and ADR 0009 (CI
 > builds the pictures and GLBs no more).
-> Amended 2026-11-02 (#649, Cansin): the Next Mech, clean-room, is published as soon as its pieces exist. CI's
-> `Blender` job renders its panels and a picture per part (`just pictures next`) and bakes its GLB (`just web
-> next-mech`) when what they are made from changed; the site serves them at /images and /viewer (Model > Pictures,
+> Amended 2026-11-02 (#649, Cansin): the Mech, clean-room, is published as soon as its pieces exist. CI's
+> `Blender` job renders its panels and a picture per part (`just pictures all`) and bakes its GLB (`just web
+> all`) when what they are made from changed; the site serves them at /images and /viewer (Model > Pictures,
 > Viewer), updated on every merge to main; a PR that changes them gets a before/after panel, the live site's above its
-> own, as the `preview` artifact (`just preview <pr>`). Every name published starts `next-`, and tests hold what is
-> rendered, baked, uploaded and served to the Next Mech's documents, which carry none of today's printed parts
-> (test_workflows.py, test_site.py, site.test.mjs). Today's Mech stays unpublished.
-> Amended 2026-11-02 (#656, Cansin): the Next Mech in motion too, its eye gimbal's sweep, blink and wink as looping
-> WebPs (`next-eyes-<motion>.webp`, `just pictures next`) on Pictures, and a PR's preview stacks each motion it changed,
+> own, as the `preview` artifact (`just preview <pr>`). Tests hold what is rendered, baked, uploaded and served to
+> the Mech's documents, which carry none of the designer's printed parts (test_workflows.py, test_site.py,
+> site.test.mjs), and those stay unpublished.
+> Amended 2026-11-02 (#656, Cansin): the Mech in motion too, its eye gimbal's sweep, blink and wink as looping
+> WebPs (`eyes-<motion>.webp`, `just pictures all`) on Pictures, and a PR's preview stacks each motion it changed,
 > the live one above its own.
 > Amended 2026-11-02 (#673, Cansin): no PR preview any more, it arrived too late to be useful: no before/after, no
 > `preview` artifact or `just preview`, no sticky comment and no `pr-previews` pre-release (deleted). A PR still
-> renders and bakes the next Mech when its inputs changed, for Checks to test the site with; main publishes them.
-> Amended 2026-11-02 (#663, Cansin): the motions the Next Mech plays in MuJoCo, its gestures and Rest, join the sweep
-> as `next-eyes-<motion>.webp` (Rest's blink and the wink gesture in place of the keyed blink and wink) and as clips of
+> renders and bakes the Mech when its inputs changed, for Checks to test the site with; main publishes them.
+> Amended 2026-11-02 (#663, Cansin): the motions the Mech plays in MuJoCo, its gestures and Rest, join the sweep
+> as `eyes-<motion>.webp` (Rest's blink and the wink gesture in place of the keyed blink and wink) and as clips of
 > its GLB.
-> Amended 2026-11-02 (#642): the Next Mech's documents are its two Base candidates, `next-mech-a` and `next-mech-b`
-> (`just web next`), each published as `next-mech` was.
-> Amended 2026-11-02 (#686): its three head variants, `next-mech-back`, `next-mech-crown` and `next-mech-split`, in
+> Amended 2026-11-02 (#642): the Mech's documents are its two Base candidates, `mech-a` and `mech-b`
+> (`just web all`), each published as `mech` was.
+> Amended 2026-11-02 (#686): its three head variants, `mech-back`, `mech-crown` and `mech-split`, in
 > place of the Base candidates.
-> Amended 2026-11-02 (#712): `next-mech-back` alone, Cansin's pick; Crown and Split are gone.
-> Amended 2026-11-02 (#704, ADR 0020): `next-mech-back-plain` beside it, Back with its Skeleton plain.
+> Amended 2026-11-02 (#712): `mech-back` alone, Cansin's pick; Crown and Split are gone.
+> Amended 2026-11-02 (#704, ADR 0020): `mech-back-plain` beside it, Back with its Skeleton plain.
 > Amended 2026-11-03 (#805, ADR 0022): `-plain` renamed `-mechanical`, the Skeleton's value.
-> Amended 2026-11-03 (#839, Cansin): stills alone: no `next-eyes-<motion>.webp` or other motion picture; the Next
+> Amended 2026-11-03 (#839, Cansin): stills alone: no `eyes-<motion>.webp` or other motion picture; the
 > Mech moves in the web viewer alone (ADR 0008), which Pictures embeds per motion. Checks renders the pictures in
 > eight `Render` shards, each picture dealt by its measured Blender seconds (model/shards.py), and Release's manual
 > run looks up the pictures and sim reports cached for the same inputs as a push's run does; the weekly run still
 > renders everything.
-> Superseded in part 2026-11-04 (#894, ADR 0024): its publishing rules go with today's Mech (the `next-` names and
-> guard, today's Mech shown nowhere); the licence rule stays, restated there: never the designer's geometry or
+> Superseded in part 2026-11-04 (#894, ADR 0024): its publishing rules go (the guard on published names, the
+> designer's parts shown nowhere); the licence rule stays, restated there: never the designer's geometry or
 > dimensions.
 > Amended 2026-11-04 (#873, ADR 0025): the Skeleton scene's Scene Mech is never published; what CI exports from the
 > scene is published as the bones were before.

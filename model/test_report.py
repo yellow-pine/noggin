@@ -17,9 +17,7 @@ HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
 # what the exact meshes do (model/test_mjcf.py).
 KNOWN_PAIRS = {
-    frozenset(
-        (f"next {s} push-rod:1", "next bail:1")
-    ): "the push-rod's cup round the bail arm's ball: its convex pieces"
+    frozenset((f"{s} push-rod:1", "bail:1")): "the push-rod's cup round the bail arm's ball: its convex pieces"
     " fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the exact solids"
     " share no volume at pitch -15, 0 and 15 (#663)"
     for s in "LR"
@@ -36,7 +34,7 @@ def known(pair):
 KNOWN_FULL_SPEED = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
-    (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
+    (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
     " 20 ms command step saturates the servo (~0.66 kgf.cm, the tilt's 1.1 with the head in its Skin (#830), Stage 3's"
     " 0.43); its own gestures, minimum jerk under an"
     " acceleration cap (#51), are a later ticket"
@@ -71,7 +69,7 @@ def problems(report):
 
 
 def variant_problems(report):
-    """The next Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
+    """The Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
     eyes sit in its lower half (base.EYES_UP, #708), in each look: a hard gate."""
     v, out = report.get("variant"), []
     if not v:
@@ -85,7 +83,7 @@ def variant_problems(report):
 
 
 def gimbal_problems(report):
-    """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
+    """The Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
     lids' clearance to what moves inside them and to each other, their servo range, its bounding box in the compact
     head (#684), and the lid drives' sweep (#650, model/printed/gimbal.py sweep())."""
     m, out = report.get("gimbal"), []
@@ -119,7 +117,7 @@ def gimbal_problems(report):
 
 
 def neck_problems(report):
-    """The next Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
+    """The Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
     travel, the tilt servo's hold of the head in its Skin and bare against the rated torque, the flexing spans' bends
     against their floor."""
     m, out = report.get("neck"), []
@@ -251,7 +249,7 @@ def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(do
     so each of its Shells, what is glued in it too, is held at the peak acceleration the sim measured his there (or
     what carries it, where he has none: Cansin's sunglasses on the shirt)."""
     peaks = built(g.undressed(doc))["mujoco"]["motions"]["shells"]
-    stage, theirs = stages.STAGES[doc], f"next {doc.rsplit('-', 1)[1]} "
+    stage, theirs = stages.STAGES[doc], f"{doc.rsplit('-', 1)[1]} "
 
     def grams(stem):
         p = stage.parts[f"{stem}:1"]
@@ -261,9 +259,9 @@ def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(do
     weak = []
     for seat in {s.shell: s for s in skin.SEATS if s.shell.startswith(theirs)}.values():
         his = next(
-            f"{n.replace(theirs, 'next morty ')}:1"
+            f"{n.replace(theirs, 'morty ')}:1"
             for n in (seat.shell, seat.carrier)
-            if f"{n.replace(theirs, 'next morty ')}:1" in peaks
+            if f"{n.replace(theirs, 'morty ')}:1" in peaks
         )
         holds = skin.hold_n() * sum(s.shell == seat.shell for s in skin.SEATS)
         if holds < skin.SF * grams(seat.shell) / 1000 * peaks[his]["peak_m_s2"]:
@@ -272,7 +270,7 @@ def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(do
 
 
 @pytest.mark.parametrize("doc", sorted(report.RANKED))
-def test_the_next_mechs_footprint_is_reported_and_is_its_torsos(doc):
+def test_the_mechs_footprint_is_reported_and_is_its_torsos(doc):
     """#685: the shirt is the base, so the footprint the tip-over gate reads is the Torso's foot, x by y mm."""
     (x0, x1), (y0, y1), _ = base.TORSO
     assert built(doc)["mujoco"]["tip_over"]["footprint_mm"] == [x1 - x0, y1 - y0]
@@ -294,8 +292,7 @@ FIXTURE_PROBLEMS = {
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
         "mujoco tilt horn: peaks at 0.55 kgf.cm at {'motion': 'hero', 'ms': 410} > half its stall 1.0",
-        "mujoco next morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero',"
-        " 'ms': 410})",
+        "mujoco morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero', 'ms': 410})",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
         "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
         " {'motion': 'hero', 'ms': 410}",
@@ -304,8 +301,8 @@ FIXTURE_PROBLEMS = {
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
         "gimbal block: 150.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 140.0 x 140.0 x 150.0",
-        "gimbal sweep: next L lid bar:1 / next L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
-        "gimbal sweep: next L lid bar:1 / next gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
+        "gimbal sweep: L lid bar:1 / L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
+        "gimbal sweep: L lid bar:1 / gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
         "neck pan servo: 95.0 deg past its 90.0",
         "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.33",

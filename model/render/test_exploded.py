@@ -12,18 +12,18 @@ from model.render import pictures
 def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
     """Stage 3 at rest (metres): the eyes lift 95 mm, the neck 45 mm, the jaw 45 mm and 40 mm forward, the Cores in the
     cranium 160 mm (#858), the base stays."""
-    doc = next(iter(g.NEXT))
+    doc = next(iter(g.MECH))
     rest = {}
     for n, p in stages.STAGES[doc].parts.items():
         rest[n] = p.matrix.copy()
         rest[n][:3, 3] /= 1000
     apart = pictures.exploded(doc, rest)
     moved = {
-        stages.next_eyes: (0, 0, 0.095),
-        stages.next_neck: (0, 0, 0.045),
-        stages.next_jaw: (0, -0.04, 0.045),
-        stages.next_cranium: (0, 0, 0.16),
-        stages.next_base: (0, 0, 0),
+        stages.eyes_sub: (0, 0, 0.095),
+        stages.neck_sub: (0, 0, 0.045),
+        stages.jaw_sub: (0, -0.04, 0.045),
+        stages.cranium_sub: (0, 0, 0.16),
+        stages.base_sub: (0, 0, 0),
     }
     assert apart.keys() == rest.keys()
     for sub, offset in moved.items():
@@ -31,9 +31,9 @@ def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
             assert np.allclose(apart[n][:3, 3] - rest[n][:3, 3], offset), n
             assert np.allclose(apart[n][:3, :3], rest[n][:3, :3]), n
     for shell, carrier in [  # a Shell with what carries it (#665)
-        ("next morty face:1", "next gimbal frame:1"),
-        ("next morty mouth cover:1", "next jaw:1"),
-        ("next morty shirt front:1", "next torso:1"),
+        ("morty face:1", "gimbal frame:1"),
+        ("morty mouth cover:1", "jaw:1"),
+        ("morty shirt front:1", "torso:1"),
     ]:
         assert np.allclose(apart[shell][:3, 3] - rest[shell][:3, 3], apart[carrier][:3, 3] - rest[carrier][:3, 3])
 
@@ -44,20 +44,20 @@ def test_the_front_doors_show_the_mechanism_bare_of_every_shell():
     doc = pictures.DRAWN[pictures.STAGE3][0]
     rest = {n: p.matrix for n, p in stages.STAGES[doc].parts.items()}
     bare = pictures.bare(doc, rest)
-    caps = {"next L eyeball cap:1", "next R eyeball cap:1"}
-    assert set(rest) - set(bare) == {n for n in rest if n.split()[1] in g.SKINS} | caps
-    assert "next gimbal frame:1" in bare and all(bare[n] is rest[n] for n in bare)
+    caps = {"L eyeball cap:1", "R eyeball cap:1"}
+    assert set(rest) - set(bare) == {n for n in rest if n.split()[0] in g.SKINS} | caps
+    assert "gimbal frame:1" in bare and all(bare[n] is rest[n] for n in bare)
 
 
 def test_the_bare_look_shows_the_skull_bare_where_a_skin_wears_its_worn_copy():
     """#838 (Cansin's B): the realistic document carries the skull and mandible a Skin wears (g.WORN); bare, the
     bones as they show bare stand in their places, and the atlas and axis stay."""
-    doc = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])
+    doc = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])
     rest = {n: p.matrix for n, p in stages.STAGES[doc].parts.items()}
     bare = pictures.bare(doc, rest)
     for full, worn in g.WORN.items():
         assert f"{worn}:1" in rest and f"{worn}:1" not in bare and bare[f"{full}:1"] is rest[f"{worn}:1"]
-    assert {"next atlas:1", "next axis:1"} <= set(bare)
+    assert {"atlas:1", "axis:1"} <= set(bare)
 
 
 def _apart(doc, level):
@@ -83,21 +83,21 @@ def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_
     """Stage 3 (#811): the pack and the switch board up off the Torso's floor, each Core off the cranium tray (#858), each lid
     bar out along its Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the
     Torso stays."""
-    doc = next(iter(g.NEXT))
+    doc = next(iter(g.MECH))
     subs, parts = pictures.offsets(doc, 1), pictures.offsets(doc, 2)
     out = {n: np.subtract(parts[n], subs[n]) for n in parts}
     unit = {n: v / np.linalg.norm(v) for n, v in out.items() if np.linalg.norm(v)}
-    assert np.allclose(out["next torso:1"], 0)
+    assert np.allclose(out["torso:1"], 0)
     for n, d in {
-        "next pack:1": g.Z,
-        "next Core 1:1": g.Z,
-        "next switch board:1": g.Z,  # up off the Torso's floor (#828)
-        "next L lid bar:1": g.X,
-        "next R lid bar:1": (-1, 0, 0),
-        "next pan servo:1": g.Z,
-        "next pan horn:1": g.Z,
-        "next morty face:1": (0, -1, 0),  # forward off its Seats (#665)
-        "next morty hair:1": g.Z,
+        "pack:1": g.Z,
+        "Core 1:1": g.Z,
+        "switch board:1": g.Z,  # up off the Torso's floor (#828)
+        "L lid bar:1": g.X,
+        "R lid bar:1": (-1, 0, 0),
+        "pan servo:1": g.Z,
+        "pan horn:1": g.Z,
+        "morty face:1": (0, -1, 0),  # forward off its Seats (#665)
+        "morty hair:1": g.Z,
     }.items():
         assert np.allclose(unit[n], d), (n, out[n])
-    assert out["next pan horn:1"][2] > out["next pan servo:1"][2]
+    assert out["pan horn:1"][2] > out["pan servo:1"][2]

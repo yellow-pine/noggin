@@ -5,15 +5,14 @@ import { AXES, PALETTES, PRESETS } from "../theme.mjs";
 
 export const title = (s) => s[0].toUpperCase() + s.slice(1);
 
-// what plays: a gesture's Claude Code event, Rest's and the hero loop's own line ("next hero" until #895)
+// what plays: a gesture's Claude Code event, Rest's and the hero loop's own line
 const OWN_LINE = { rest: "the Mech at rest, between gestures", hero: "the demo loop, every move in one" };
 export function caption(clip) {
-  const name = clip.replace(/^next /, "");
-  return `${title(name)}: ${moments[name] ?? OWN_LINE[name]}`;
+  return `${title(clip)}: ${moments[clip] ?? OWN_LINE[clip]}`;
 }
 
 // what a viewer plays with no gesture named, round and round: its Stage's hero loop, else Rest (Stage 1: no neck)
-export const looped = (clips) => clips.find((c) => c.replace(/^next /, "") === "hero") ?? "rest";
+export const looped = (clips) => clips.find((c) => c === "hero") ?? "rest";
 
 // a Stage's GLB in a Skeleton shape and a Skin shape: its name as Bones, the Skeleton shape's suffix (#704, #805:
 // "-mechanical"), then the Skin shape's where the site serves that GLB (#876: none's "-bare", Stage 3's alone), as
@@ -24,7 +23,7 @@ export function glb(stage, shape, skin) {
 }
 
 // the viewer's own mix, where no Preset is picked: the Default build (#889), the first Preset's with Skin shape none
-// (its first; already the Default build's after #895), so a Skin switched on is the Default Skin palette
+// (its first), so a Skin switched on is the default Skin palette
 const OWN = { ...Object.values(PRESETS)[0], "skin-shape": AXES["skin-shape"][0] };
 
 // the viewer's mix (#819): the picked Preset's value on each axis (src/theme.mjs), else its own, unless the address
@@ -67,7 +66,7 @@ export function opened(search, stages, fallback) {
 // part= one's copies alone, the rest ghosted
 export const shows = (part, node) => !part || node.replace(/:\d+$/, "") === part;
 // a mesh's part: the glTF name of the node it is or sits in (Blender's object, web/glb.py), which GLTFLoader keeps in
-// userData.name (its .name is sanitised: "next jaw:1" becomes "next_jaw1")
+// userData.name (its .name is sanitised: "jaw:1" becomes "jaw1")
 export const partOf = (o) => o.userData.name ?? (o.parent ? partOf(o.parent) : "");
 
 // what the reader's drag may do (OrbitControls): an embed only turns, the wheel and a pinch left to scroll the page past

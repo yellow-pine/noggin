@@ -37,7 +37,7 @@ def finish_group(stem, bone):
     shelled to Wall (the skulls), less the openings (the skulls), what rides it, what moves against it grown by the
     Clearance and a Skin's Shells grown by it (the worn copies), averaged once, meshed at its zero level, and every
     piece under Keep of the largest dropped (a worn copy: all but the largest, the piece inside the Shells)."""
-    skull, worn = bone == "next skull", stem in JOB["worn"].values()
+    skull, worn = bone == "skull", stem in JOB["worn"].values()
     g = bpy.data.node_groups.new(f"Finish {stem}", "GeometryNodeTree")
     g.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
     for name, value in JOB["numbers"].items():

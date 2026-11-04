@@ -1,6 +1,6 @@
 # Patents on figure heads: eyes, lids, jaw, neck, swappable shells
 
-Researched 2026-11-02. Purpose: techniques the next Mech (#51) can learn from, and any live patent its design might
+Researched 2026-11-02. Purpose: techniques the Mech (#51) can learn from, and any live patent its design might
 read on. Not legal advice: "reads on" below is a plain claim-by-claim comparison, marked [I].
 
 Read from the patent's own text: Google Patents pages (claims, description, legal events) or the USPTO grant PDF

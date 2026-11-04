@@ -35,7 +35,7 @@ calibrated ([Calibration](calibration.md)).
 1. **Jaw** on the gimbal frame's lugs, its hinge where the realistic skull's condyles are; it turns down to open the
    mouth.
 
-   [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=next+jaw)
+   [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 
 2. **Jaw servo** in the gimbal frame's collar, hanging under its plate behind the jaw; the **jaw bar** joins its horn
    to the jaw's lever.

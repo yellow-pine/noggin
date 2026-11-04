@@ -56,7 +56,7 @@ def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
     """The chin to the cranium's top within the head gate's height; each eye's centre inside the cranium's box, the
     brow ahead of the caps' fronts."""
     bones = _bones()
-    cranium, mandible = bones["next skull"], bones["next mandible"]
+    cranium, mandible = bones["skull"], bones["mandible"]
     assert gm.HEAD_MM[2] - 4.0 <= cranium.bounds[1][2] - mandible.bounds[0][2] <= gm.HEAD_MM[2]
     lo, hi = cranium.bounds
     assert all((lo <= e).all() and (e <= hi).all() for e in map(np.array, gm.EYE.values()))
@@ -92,7 +92,7 @@ def _canal(atlas, b=0.5):
 def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
     """The atlas's canal round the pan axis (the post), its top under the head's tilt lugs, the axis under it."""
     bones = _bones()
-    atlas, axis = bones["next atlas"], bones["next axis"]
+    atlas, axis = bones["atlas"], bones["axis"]
     assert _canal(atlas) == pytest.approx((0.0, nk.AXIS[0]), abs=1.0)
     assert atlas.bounds[1][2] < nk.AXIS[1] - nk.BOSS_R
     assert axis.bounds[0][2] < atlas.bounds[0][2]

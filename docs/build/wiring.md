@@ -40,7 +40,7 @@ jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred:
 
 The neck Core sits on its own Shield in the head, at +x beside the eyes Core: port 1 tilt, 2 mouth, 3 pan. Both
 Cores join the Wi-Fi and are addressed directly (ADR 0005; radio facts in docs/research/2026-10-31-radio.md), each
-antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the build allows. In the next Mech both lie
+antenna 15 mm clear of the Shells, servos, magnets, pack and leads where the build allows. In the Mech both lie
 flat in the realistic skull's cranium, their USB-C ends back to the hub, whose port at the back of the skull base takes
 a laptop's cable (power, flashing and the fallback) or a USB-C charger (power alone), which charges the pack through
 the power-path board in the Torso (#858): check the Wi-Fi link there, inside the skull, on the built Mech. Both Shields

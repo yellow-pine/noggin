@@ -1,4 +1,4 @@
-# USB-C power and data for the next Mech (#51)
+# USB-C power and data for the Mech (#51)
 
 Researched 2026-11-03. Purpose: Cansin's split, with the pack, its switch and a USB-C charger in the base, and in the head
 both Cores, both Shields, the seven PG001 servos and one USB-C port feeding both Cores. Can a USB-C link (5 V, or more

@@ -10,7 +10,7 @@ The Mech grows in three Stages, each complete on the desk: the eye block on its 
 model, the parts it adds. This page is the shopping list.
 
 The Skeleton prints in PETG and the Skin's Shells in PLA, held on by magnets, each Colour group in its Theme's
-filament ([Themes](../face-design.md)), Cansin's build unless you pick another Preset. Our printed parts print from
+filament ([Themes](../face-design.md)), the Default build unless you pick another Preset. Our printed parts print from
 `just stl` (model/build/stl, mm).
 
 ## Parts to buy
@@ -25,7 +25,7 @@ range, filament is Bambu's PLA and PETG lines the Themes name.
 - The Mech uses: 2 Cores, 2 Shields, 1 switch board, 1 pack with a Y lead to both Shields, 7 PG001 servos (4 on the
   eyes Core, 3 on the neck Core); the kit's spare M3 screws as the busy pivots' shanks. Spare: a pack on charge (the
   charger, off the Mech), a switch board. The 360 servo turns continuously, so it is not used.
-- To buy: the magnets, 4x2 mm N52 discs; for the next Mech (#858, docs/research/2026-11-03-usb-c-power.md 7): in the
+- To buy: the magnets, 4x2 mm N52 discs; for the Mech (#858, docs/research/2026-11-03-usb-c-power.md 7): in the
   head a USB-C hub, Adafruit's CH334F Mini 4-Port USB Hub Breakout #5997 (31.6 x 20.4 x 4.8 mm), its upstream port the
   head's, and a 470 uF 16 V low-ESR electrolytic across the Y lead at the Shields; in the Torso the power-path board,
   nomo's BQ25886 2S charge board on Tindie (105 x 90 x 25 mm with its 18650 holder, which snaps off; ICHGSET swapped to
@@ -36,8 +36,8 @@ range, filament is Bambu's PLA and PETG lines the Themes name.
 - Filament: each Preset's Bambu filaments, by line, name and code ([Themes](../face-design.md), from the model; the
   picks: docs/research/2026-11-03-bambu-theme-colours.md): PETG Basic and Matte for the Skeleton, the model taking
   PETG HF's figures as the worst case, PLA Basic and Matte for the Morty and Bart Skins. Owned: PLA Pure in Milky Pink, Pure White,
-  Absolute Black and Apricot (docs/research/2026-10-31-filament.md), the cansin Skin's four, and black PETG, which
-  prints Cansin's build's whole Skeleton.
+  Absolute Black and Apricot (docs/research/2026-10-31-filament.md), the default Skin palette's four, and black PETG, which
+  prints the Default build's whole Skeleton.
 
 The filaments of the Preset picked in the header, with the Colour groups each prints:
 
