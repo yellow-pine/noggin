@@ -161,22 +161,22 @@ def nod_plate():
     # its top leans forward from the hair groove, preserving the continuous skull-wall stack.
     mast = [
         (10, 112, nk.NOD_Z[0]),
-        (24.5, 132, -40),
-        (24.5, 132, -26),
-        (24.5, 112, -14),
-        (24.5, 112, 60),
-        (24.5, rear, ceiling - 4),
+        (26.5, 132, -40),
+        (26.5, 132, -26),
+        (26.5, 112, -14),
+        (26.5, 112, 60),
+        (26.5, rear, ceiling - 6),
     ]
     for a, b in zip(mast, mast[1:]):
-        out = out.union(strut(a, b, (4, 4), (4, 4)))
+        out = out.union(strut(a, b, (6, 6), (6, 6)))
     for point in mast:
-        out = out.union(cq.Workplane().sphere(3.8).translate(point))
-    out = out.union(box((-15, 28.5), (rear - 3, rear + 3), (ceiling - 8, ceiling)))
+        out = out.union(cq.Workplane().sphere(5.8).translate(point))
+    out = out.union(box((-15, 32.5), (rear - 6, rear + 6), (ceiling - 8, ceiling)))
     for hy in (sy - 13.4, sy + 34.1):
         out = out.union(box(tab_x, (hy - 3.2, hy + 3.2), (sz - 10.8, ceiling)))
         for hz in (sz - 5, sz + 5):
             out = out.cut(cyl("x", (0, hy, hz), 1.1, tab_x))
-    out = out.union(box(tab_x, (sy - 16.6, max(rear + 3, sy + 37.3)), (ceiling - 8, ceiling)))
+    out = out.union(box((tab_x[0], tab_x[0] + 10), (sy - 16.6, max(rear + 6, sy + 37.3)), (ceiling - 8, ceiling)))
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R + 0.3, nk.NOD_Z))
     out = out.cut(box((nk.REACTION_BAR_X[0] - 1.6, nk.REACTION_BAR_X[1] + 1.6), (95, 116), nk.NOD_Z))
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
