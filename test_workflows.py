@@ -272,6 +272,19 @@ def test_a_pr_runs_the_slim_gate_alone():
     assert [s["name"] for s in jobs["checks"]["steps"]] == ["Check every job passed"]  # no CI budget (#732)
 
 
+@pytest.mark.parametrize("result", ("skipped", "failure", "cancelled", "", "pending", "success"))
+def test_the_required_pr_gate_blocks_until_code_actually_succeeds(result):
+    """#972: run the workflow's real guard; GitHub accepts a skipped required job as passing."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())["jobs"]["checks"]
+    assert job["needs"] == ["code"]  # a ready run waits for Code; no pending result can reach the gate
+    assert job["if"] == "${{ always() }}"  # report failure even when Code was skipped on a draft or cancelled
+    (step,) = job["steps"]
+    env = {key: result for key, value in step["env"].items() if value == "${{ needs.code.result }}"}
+    assert env  # exercise the actual dependency binding, not a test-only input
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (result == "success"), done
+
+
 def test_a_pr_lists_no_job_every_pr_skips():
     """#722: a job conditioned off pull_request shows as skipped on every PR, so a workflow on pull_request alone
     tests no event at all. Dependabot Auto-merge runs on Dependabot's PRs and Clear Labels on a closed issue: both
