@@ -81,8 +81,8 @@ def test_the_readme_is_for_contributors():
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eye gimbal's
     calibrated ranges and rests (eyes/calibration.json, the model's nominals until a Stage 1 is calibrated, #896: lids
-    closed 41, rest 90, open 105 since Morty's eyes, #901; yaw 65..115 and pitch 59.6..120.4, centred) and the Mech's neck's limits and its
-    90 neutral (model/stages.py neck_sub; the neck Core has no program yet)."""
+    closed 41, rest 90, open 105 since Morty's eyes, #901; yaw 65..115 and pitch 59.6..120.4, centred) and the Mech's
+    neck's limits and its 90 neutral (model/stages.py neck_sub; the neck Core has no program yet)."""
     import macros  # here, not at the top: it imports the model
 
     table = macros.wiring()
