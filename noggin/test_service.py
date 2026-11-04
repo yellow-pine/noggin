@@ -371,15 +371,27 @@ def test_the_frame_is_the_core_programs():
     assert service.FRAME * 1000 == service._replay()._eyes().FRAME
 
 
-def test_flash_names_the_core_and_defaults_to_the_eyes(tmp_path):
+def test_flash_names_the_core_and_defaults_to_the_eyes(tmp_path, monkeypatch):
     """#29: the live check flashes the neck Core over Wi-Fi too; `flash` alone stays the eyes Core's (just flash)."""
     build = tmp_path / "build"
     build.mkdir()
     for f in service.FLASH_FILES:
         (build / f).write_bytes(b"x")
+    connected, proceed = threading.Event(), threading.Event()
+    write = FakeSerial.write
+
+    def connect(fake, data):
+        write(fake, data)
+        connected.set()
+        assert proceed.wait(2)
+
+    monkeypatch.setattr(FakeSerial, "write", connect)
     s, sock, _ = start(tmp_path)
+    assert connected.wait(2)
+    s.wifi.send = lambda name, lines: []  # startup calibration can reach the now-fresh neck before the flash command
     s.wifi.fresh = lambda name, now: True
     s.wifi.flash = lambda name, files: f"flashed {name}: {' '.join(files)}, uptime 1s"
+    proceed.set()
     assert ask(sock, "flash neck\n").startswith("flashed neck: ")
     assert ask(sock, "flash\n").startswith("flashed eyes: ")
     assert ask(sock, "flash nose\n") == "flash failed: no Core nose (eyes, neck)\n"
