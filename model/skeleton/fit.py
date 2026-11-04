@@ -157,6 +157,7 @@ def refit(arrays, scene, envelope):
     nearest = trimesh.proximity.closest_point_naive(trimesh.util.concatenate(vault), np.array(target))[0]
     for i, (source, dest) in enumerate(zip(nearest, target)):
         scene["landmarks"][f"LM vault {i}"] = {"source": source.tolist(), "target": dest.tolist()}
+    scene["landmarks"].update(envelope["bone_landmarks"])
     result, report = warp(arrays, scene)
     report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
     return result, report
