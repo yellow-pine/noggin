@@ -1,8 +1,10 @@
 """claude-review.yml's gate on claude[bot]'s last verdict on the commit its run reviewed (REVIEWED_SHA, #950; the PR's
 head when unset). Claude can give its verdict without its review landing (#247, #389), so:
 - `Check the verdict` (no flag): `Review` passes only when that last verdict is an approval;
-- Claude's PreToolUse hook on StructuredOutput (--hook, the hook's JSON on stdin): the verdict is refused (exit 2, the
-  reason fed back to Claude) until the last review on the head matches it, so the review lands while the session lives.
+- Claude's PreToolUse hook on StructuredOutput (--hook, the hook's JSON on stdin): it posts the verdict as the review
+  (the model has no way to post one, #950: an injected prompt could post anything), with its reasons as the body, and
+  refuses the verdict (exit 2, the reason fed back to Claude) until it is the last review on the commit, so the review
+  lands while the session and its claude[bot] token live.
 No run is cancelled early (#944), so an older push's run can end after a newer push: its review names the commit it
 read (commit_id), and `Check the verdict` fails once the PR's head moved past it (the newer push's run decides).
 On an approval, `Check the verdict` also resolves claude[bot]'s open threads that later pushes outdated (#441), so they
@@ -15,6 +17,12 @@ import subprocess
 import sys
 
 STATES = {"approve": "APPROVED", "request_changes": "CHANGES_REQUESTED"}
+EVENTS = {"approve": "APPROVE", "request_changes": "REQUEST_CHANGES"}  # the review events a verdict may post
+
+
+def new_review(verdict: str, reasons: str, sha: str) -> dict:
+    """The review the hook posts: on the commit the run read, its event from the verdict alone (KeyError otherwise)."""
+    return {"commit_id": sha, "event": EVENTS[verdict], "body": reasons}
 
 
 def last_verdict(reviews: list[dict], head_sha: str) -> str | None:
@@ -32,15 +40,11 @@ def wanted(verdict: str | None) -> str:
     return STATES[verdict] if verdict else "APPROVED"  # `Check the verdict` (no verdict given) wants an approval
 
 
-def refusal(verdict: str | None, got: str | None, pr: int, head: str, repo: str) -> str | None:
-    """What the hook tells Claude when its verdict doesn't match its last review on the reviewed commit yet."""
+def refusal(verdict: str | None, got: str | None, head: str) -> str | None:
+    """What the hook tells Claude when its verdict's review didn't land on the reviewed commit."""
     if not verdict or got == wanted(verdict):
         return None
-    return (
-        f"Your verdict needs your review on {head} first: claude[bot]'s last review on it is {got}. Submit it now (step"
-        f" 4: `gh api repos/{repo}/pulls/{pr}/reviews -f commit_id={head} -f event={verdict.upper()} -F body=@-` with"
-        " the review body on stdin), then give the same verdict again."
-    )
+    return f"Your review didn't land: claude[bot]'s last review on {head} is {got}. Give the same verdict again."
 
 
 def stale(reviewed: str, live: str) -> str | None:
@@ -72,14 +76,25 @@ def gh(path: str, *flags: str):  # a failure exits 1: non-blocking for the hook,
 
 
 if __name__ == "__main__":
-    verdict = json.load(sys.stdin)["tool_input"]["verdict"] if "--hook" in sys.argv else None
+    tool = json.load(sys.stdin)["tool_input"] if "--hook" in sys.argv else {}
+    verdict = tool.get("verdict")
     pr = int(sys.argv[1])
     pr_path = f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls/{pr}"
     live = gh(pr_path)["head"]["sha"]
     head = os.environ.get("REVIEWED_SHA") or live
     reviews = sum(gh(f"{pr_path}/reviews", "--paginate", "--slurp"), [])  # --slurp: one array per page
     got = last_verdict(reviews, head)
-    if message := refusal(verdict, got, pr, head, os.environ["GITHUB_REPOSITORY"]):
+    if verdict and got != wanted(verdict):  # post it, its body as JSON on stdin, never through a shell
+        body = json.dumps(new_review(verdict, tool["reasons"], head))
+        subprocess.run(
+            ["gh", "api", "-X", "POST", f"{pr_path}/reviews", "--input", "-"],
+            input=body,
+            text=True,
+            stdout=subprocess.DEVNULL,
+        )
+        reviews = sum(gh(f"{pr_path}/reviews", "--paginate", "--slurp"), [])
+        got = last_verdict(reviews, head)
+    if message := refusal(verdict, got, head):
         print(message, file=sys.stderr)
         sys.exit(2)
     print(f"{pr_path} at {head}: {got or 'no claude[bot] verdict'}")

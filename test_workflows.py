@@ -93,9 +93,9 @@ def test_every_job_has_a_timeout():
 
 
 def test_claude_reviews_the_commit_its_run_read():
-    """#950: no run is cancelled early (#944), so an older push's Review can end after a newer push. Its review names
-    the commit the run read (commit_id), never `gh pr review`, which lands on the head of the moment; the hook and
-    `Check the verdict` judge that commit, and the gate fails once the PR moved past it (scripts/claude_approved.py)."""
+    """#950: no run is cancelled early (#944), so an older push's Review can end after a newer push. The hook (main's
+    scripts/claude_approved.py) posts the review on the commit the run read, never the model; the hook and `Check the
+    verdict` judge that commit, and the gate fails once the PR moved past it."""
     (job,) = [
         j
         for j in yaml.safe_load((WORKFLOWS[0].parent / "claude-review.yml").read_text())["jobs"].values()
@@ -103,10 +103,8 @@ def test_claude_reviews_the_commit_its_run_read():
     ]
     steps = {s["name"]: s for s in job["steps"]}
     claude, sha = steps["Run Claude's review"]["with"], "${{ github.event.pull_request.head.sha }}"
-    assert f"-f commit_id={sha}" in claude["prompt"] and "gh pr review" not in claude["prompt"]
-    assert "gh pr review" not in claude["claude_args"]
-    reviews = "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews"
-    assert f"Bash(gh api {reviews}:*)" in claude["claude_args"]
+    # the model posts nothing itself: no raw `gh api` (an injected prompt could call any endpoint) nor `gh pr review`
+    assert not re.search(r"gh (api|pr review)", claude["claude_args"] + claude["prompt"])
     assert f"REVIEWED_SHA={sha} python3 -I -S" in claude["settings"]
     assert steps["Check the verdict"]["env"]["REVIEWED_SHA"] == sha
 

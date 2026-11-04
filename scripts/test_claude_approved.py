@@ -1,7 +1,9 @@
 """claude_approved.py: claude-review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
 approval, and Claude's verdict is refused until that last verdict matches it (#389)."""
 
-from scripts.claude_approved import last_verdict, outdated_threads, refusal, stale, wanted
+import pytest
+
+from scripts.claude_approved import last_verdict, new_review, outdated_threads, refusal, stale, wanted
 
 HEAD = "a" * 40
 
@@ -47,15 +49,20 @@ def test_the_hook_wants_the_review_claude_is_about_to_report_and_the_gate_an_app
     assert wanted(None) == "APPROVED"
 
 
+def test_the_hook_posts_the_verdict_on_the_reviewed_commit_with_an_allowed_event_alone():
+    """#950: the hook, not the model, posts the review: on the commit the run read (`gh pr review` would land on the
+    head of the moment, a newer push's), its event from the verdict, the model's reasons only as its body."""
+    assert new_review("approve", "ok", HEAD) == {"commit_id": HEAD, "event": "APPROVE", "body": "ok"}
+    assert new_review("request_changes", "no", HEAD)["event"] == "REQUEST_CHANGES"
+    with pytest.raises(KeyError):
+        new_review("DISMISS", "x", HEAD)
+
+
 def test_the_hook_refuses_a_verdict_until_its_review_is_on_the_reviewed_commit():
-    """#950: the review names the commit it read (commit_id), never `gh pr review`, which lands on the head of the
-    moment, a newer push's the run never read."""
-    api = f"gh api repos/o/r/pulls/378/reviews -f commit_id={HEAD} -f event="
-    assert api + "APPROVE -F body=@-" in (refusal("approve", "CHANGES_REQUESTED", 378, HEAD, "o/r") or "")
-    assert api + "REQUEST_CHANGES -F body=@-" in (refusal("request_changes", None, 378, HEAD, "o/r") or "")
-    assert "gh pr review" not in (refusal("approve", None, 378, HEAD, "o/r") or "")
-    assert refusal("approve", "APPROVED", 378, HEAD, "o/r") is None
-    assert refusal(None, None, 378, HEAD, "o/r") is None  # `Check the verdict` never refuses: it exits 1
+    assert HEAD in (refusal("approve", "CHANGES_REQUESTED", HEAD) or "")
+    assert refusal("request_changes", None, HEAD)
+    assert refusal("approve", "APPROVED", HEAD) is None
+    assert refusal(None, None, HEAD) is None  # `Check the verdict` never refuses: it exits 1
 
 
 def test_the_gate_fails_a_review_of_a_commit_the_pr_moved_past():
