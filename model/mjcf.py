@@ -54,8 +54,8 @@ MM = 0.001
 SKY = "#F7F4EE"  # a flat sky
 VIEW = {"#000000": "#5A5A60", "#FFFFFF": "#E8E8E8"}
 TIMESTEP, SETTLE_S = 0.0005, 0.5
-# A life-size head can still ring after one hold: quasi-static readings wait for quiet, bounded at two seconds.
-SETTLE_MAX_S, SETTLE_DEG_S = 2.0, 0.1
+# A life-size head still rings after two seconds near the pan's end: static readings wait for quiet, bounded at four.
+SETTLE_MAX_S, SETTLE_DEG_S = 4.0, 0.1
 # A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.99 (the
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
@@ -386,7 +386,7 @@ def pose(model, ctrl, deg_s=SLEW_DEG_S):
                 break
         else:
             raise RuntimeError(
-                f"quasi-static pose did not settle in {SETTLE_MAX_S} s: "
+                f"quasi-static pose {ctrl} did not settle in {SETTLE_MAX_S} s: "
                 f"{math.degrees(speed):.3f} deg/s, {math.degrees(error):.3f} deg off command"
             )
     finally:  # the model is the caller's: its contacts come back on
