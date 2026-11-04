@@ -48,3 +48,28 @@ def test_a_target_inside_the_donor_skull_still_registers_its_outer_cortex():
     # The envelope is smaller than the donor skull: nearest-surface correspondence would select the inner wall.
     points = fit.outer_cortex(skull, np.array(((7, 0, 0), (-7, 0, 0))), np.zeros(3))
     assert points == pytest.approx(np.array(((10, 0, 0), (-10, 0, 0))), abs=0.03)
+
+
+def test_regional_fits_keep_a_shared_bone_joint_continuous_in_the_common_frame():
+    head = np.array(((-1, -1, 20), (1, -1, 20), (0, 1, 20), (0, 0, 30)), float)
+    body = head * (1, 1, -1)
+    scene = {"bones": [], "landmarks": {}, "warp_blend": {"normal": [0, 0, 1], "low": -10, "high": 10}}
+    arrays = {}
+    for name, points in (
+        ("head", np.array(((0, 0, 0), (0, 0, 10)), float)),
+        ("body", np.array(((0, 0, -10), (0, 0, 0)), float)),
+    ):
+        scene["bones"].append({"name": name, "key": name, "matrix": np.eye(4).tolist()})
+        for kind in ("basis", "warp", "sculpt"):
+            arrays[f"{name}_{kind}"] = points
+    for region, points, shift in (("head", head, np.array((2, 0, 0))), ("body", body, np.zeros(3))):
+        for i, p in enumerate(points):
+            scene["landmarks"][f"{region}{i}"] = {
+                "source": p.tolist(),
+                "target": (p + shift).tolist(),
+                "region": region,
+            }
+    result, report = fit.warp(arrays, scene)
+    assert result["head_warp"] == pytest.approx(np.array(((1, 0, 0), (2, 0, 10))))
+    assert result["body_warp"] == pytest.approx(np.array(((0, 0, -10), (1, 0, 0))))
+    assert report["min_jacobian"] == pytest.approx(1)
