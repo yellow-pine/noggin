@@ -279,7 +279,7 @@ def lower_lid(side, mechanical=False):
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
     # behind the cap's full yaw/pitch sweep even when the lower lid lifts to meet the upper (#937)
-    out = _lid(gm.LOWER_R, span, (-130.0, -130.0), "lower boss", gm.LOWER_PIN, mechanical)
+    out = _lid(gm.LOWER_R, span, (-131.0, -131.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
