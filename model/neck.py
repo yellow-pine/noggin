@@ -1,26 +1,17 @@
-"""The Mech's neck and jaw (#641): our own design, clean-room (#618). Its numbers (one source: model/printed/neck.py
-draws the parts from them, model/stages.py places them), its kinematics and its report.
+"""The Mech's neck and jaw (#902/#978), clean-room (#618): geometry, kinematics and report in the eye gimbal's
+head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
-Frame: the eye gimbal's (model/gimbal.py), which is the head's: x along the eye line (the L eye at +x), -y forward, z
-up, the origin midway between the eye centres. The head is the gimbal with the head mount screwed under its plate; it
-turns on its own pivots and every servo drives through a bar, so the splines carry torque only:
-- pan: the pan yoke turns on the top of the neck mount's post about a vertical axis, under the head (#858), the pan
-  servo (on the post, over the Torso's lid) driving the yoke's lever;
-- tilt: the head turns on the yoke's cheeks about an x axis under its plate, where the realistic skull's foramen magnum
-  is (AXIS, #838): behind the head's centre of mass, whose weight a balance spring on the tilt shank holds (balance()),
-  the tilt servo (on the yoke) driving the head mount's lever;
-- jaw: the jaw turns on the gimbal frame's lugs about an x axis through the realistic mandible's condyles (#838), the
-  mouth servo (on the frame, behind the jaw) driving it.
-Each drive is a four-bar whose horn and lever lie parallel at rest, the bar square to both (model/linkage.py). Each
-busy pivot is a steel shank (an M3 screw from the kit's spares, greased) turning in a bore printed along Z and threaded
-into the part it is fixed in: the yoke turns on the mount's shank, the head mount (printed on its side) on the cheeks',
-the jaw (on its side) on the frame's, each bar (flat) on its lever's.
-The leads cross pan and tilt in two flexing spans (GLOSSARY): pan's runs up beside the pan axis, so the turn is a twist
-and a gentle S over its free length; tilt's is an arc about the tilt axis whose radius breathes as the head turns. The neck
-cable (#858: up the hollow post from the Torso, out of it over the lid) crosses as pairs and the pan servo's lead with
-it (#51). Angles are degrees: pan positive toward +x's
-left (right-handed about +z), tilt and jaw right-handed about +x (the face down, the jaw open). Every size is ours and
-inferred (no build settles one yet), each chosen against the gates in report()."""
+A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo rides its upper saddle and
+reacts through an equal-arm parallelogram against the fixed carrier, reversing the motor angle. The plate carries
+the pan bearing and micro servo; the head mount transfers head weight to the bearing. The provisional forward pan
+line and solid torque quill still fail combined-jaw/cable acceptance; their replacement is an unaccepted design study.
+The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
+
+Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
+power leads require a real continuous route and flexing spans across both head joints. balance() computes ideal
+spring targets; SPRING_VERIFIED blocks accepted load reports and automatic production balancing until real anchors
+and finished anatomical/Skin loads are certified. The full #902 torque/current/stability proof remains open.
+Angles are degrees, right-handed about +z for pan and +x for tilt and jaw (face down and mouth open)."""
 
 import math
 
