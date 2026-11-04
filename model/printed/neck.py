@@ -122,8 +122,11 @@ def cervical_carrier():
         out = out.union(rail)
     # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
     anchor = nk.TILT_ANCHOR
-    root = (-nk.CERVICAL_X[-2], *nk.CERVICAL_PATH[-2])
-    out = out.union(strut(root, (-6.8, anchor[1], anchor[2]), (4, 3), (3.5, 2.5)))
+    root = (-10.5, *nk.CERVICAL_PATH[-2])
+    elbow = (-10.5, 90.0, -78.0)
+    for a, b in ((root, elbow), (elbow, (-6.8, anchor[1], anchor[2]))):
+        out = out.union(strut(a, b, (4, 3), (3.5, 2.5)))
+    out = out.union(cq.Workplane().sphere(2.8).translate(elbow))
     out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-8.3, -1.8)))
     out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-8.3, -1.8)))
     for x, fy in nk.CARRIER_FEET:
@@ -135,7 +138,7 @@ def nod_plate():
     """The tilting plate, lateral trunnions and the two servo case seats; no load passes through a spline."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
     py = nk.HEAD_AXES["pan"][0][1]
-    out = hull("XY", [(0, py, 10), (-12.8, y, 6), (12.8, y, 6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
+    out = hull("XY", [(0, py, 10), (-12.8, y, 3.6), (12.8, y, 3.6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (10.8, 14.8))
         out = out.union(box(xs, (y - 5, y + 5), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
@@ -166,8 +169,8 @@ def nod_plate():
     ]
     for a, b in zip(mast, mast[1:]):
         out = out.union(strut(a, b, (4, 4), (4, 4)))
-    for fx, fy, fz in mast:
-        out = out.union(cyl("x", (0, fy, fz), 4, (fx - 4, fx + 4)))
+    for point in mast:
+        out = out.union(cq.Workplane().sphere(3.8).translate(point))
     out = out.union(box((-15, 28.5), (rear - 3, rear + 3), (ceiling - 8, ceiling)))
     for hy in (sy - 13.4, sy + 34.1):
         out = out.union(box(tab_x, (hy - 3.2, hy + 3.2), (sz - 10.8, ceiling)))
