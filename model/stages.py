@@ -302,7 +302,7 @@ def skull_sub():
 
 
 def skin_sub(skin):
-    """next-<skin>: a Skin (g.SKINS: Morty's, #665; Cansin's, #813; model/skin.py), each Shell where it sits on what
+    """<skin>: a Skin (g.SKINS: Morty's, #665; Cansin's, #813; model/skin.py), each Shell where it sits on what
     carries it (RIDES): the face and the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on
     the jaw, the shirt on the Torso; an eye's own (side) drawn in its frame."""
     parts = {}
