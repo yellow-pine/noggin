@@ -34,6 +34,7 @@ def warp(arrays, scene):
     probes = np.stack(
         np.meshgrid(*[np.linspace(a, b, 14) for a, b in zip(points.min(0), points.max(0))], indexing="ij"), -1
     ).reshape(-1, 3)
+    probes = np.vstack((probes, points, source))
     jac = np.empty((len(probes), 3, 3))
     for i in range(3):
         step = np.eye(3)[i] * 0.5
@@ -83,31 +84,41 @@ def refit(arrays, scene, envelope):
     The anatomical corridor is independent of the pan bearing. Its provisional C1 y=-73.4 and original T1 end
     preserve the accepted head interface while correcting the lateral-hole translations, not the bone order.
     """
-    canals, moves = {}, {}
+    original = {b["group"]: np.array(b["matrix"]) for b in scene["bones"]}
+    common = original["Skull"]
+    canals, target = {}, {}
     for bone in scene["bones"]:
         name, key = bone["name"], bone["key"]
         if name not in {"C" + str(i) for i in range(1, 8)} | {"T1"}:
             continue
         normal = (0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))) if name == "C2" else (0, 0, 1)
         c = canal(trimesh.Trimesh(arrays[key + "_basis"], arrays[key + "_faces"]), normal)
+        canals[name] = c @ common[:3, :3].T + common[:3, 3]
         matrix = np.array(bone["matrix"])
-        canals[name] = c @ matrix[:3, :3].T + matrix[:3, 3]
-    top, bottom = canals["C1"], canals["T1"]
-    for name, centre in canals.items():
+        target[name] = c @ matrix[:3, :3].T + matrix[:3, 3]
+    top, bottom = target["C1"], target["T1"]
+    for name, centre in target.items():
         fraction = (centre[2] - bottom[2]) / (top[2] - bottom[2])
-        moves[name] = np.array((-centre[0], bottom[1] + fraction * (-73.4 - bottom[1]) - centre[1], 0))
+        centre[0], centre[1] = 0, bottom[1] + fraction * (-73.4 - bottom[1])
+    # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
     for bone in scene["bones"]:
-        group = bone["group"]
-        move = moves.get("T1" if group == "Ribcage" else group, np.zeros(3))
-        matrix = np.array(bone["matrix"])
-        matrix[:3, 3] += move
-        bone["matrix"] = matrix.tolist()
+        bone["matrix"] = common.tolist()
     for name, pair in scene["landmarks"].items():
         group = name.split()[1]
-        move = moves.get("T1" if group == "ribcage" else group)
-        if move is not None:
-            pair["source"] = (np.array(pair["source"]) + move).tolist()
-            pair["target"] = (np.array(pair["target"]) + move).tolist()
+        if group == "frame":
+            continue
+        group = "Ribcage" if group == "ribcage" else group if group in original else "Skull"
+        old = original[group]
+        local = (np.array(pair["source"]) - old[:3, 3]) @ np.linalg.inv(old[:3, :3]).T
+        pair["source"] = (local @ common[:3, :3].T + common[:3, 3]).tolist()
+    scene["landmarks"] = {
+        n: p
+        for n, p in scene["landmarks"].items()
+        if not n.startswith(tuple("LM C" + str(i) + " anchor" for i in range(1, 8)))
+    }
+    for name, source in canals.items():
+        scene["landmarks"]["LM canal " + name] = {"source": source.tolist(), "target": target[name].tolist()}
+    target_canals = target
     # Replace the superseded adult-cap vault targets with one declared regional envelope target set.
     obsolete = {"vertex", "opisthocranion", "euryon", "forehead"}
     scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not obsolete.intersection(n.split())}
@@ -133,7 +144,7 @@ def refit(arrays, scene, envelope):
     for i, (source, dest) in enumerate(zip(nearest, target)):
         scene["landmarks"][f"LM vault {i}"] = {"source": source.tolist(), "target": dest.tolist()}
     result, report = warp(arrays, scene)
-    report["registered_canals"] = {n: (c + moves[n]).tolist() for n, c in canals.items()}
+    report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
     return result, report
 
 
