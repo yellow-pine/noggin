@@ -108,10 +108,10 @@ test("with no Preset picked, the viewer opens on the Default build: mechanical, 
   expect(mixed("?skin-shape=bart", undefined)["skin-shape"]).toBe("bart");  // the address still names any
 });
 
-test("a mix paints each Colour group in its Palette's hex, black as Blender draws it (#819)", () => {
-  const colours = paint(mixed("?skeleton-palette=anatomical", "cansins-build"));
+test("a mix paints each Colour group in its Palette's hex, black as the GLB's look draws it (#819, #914)", () => {
+  const colours = paint(mixed("?skeleton-palette=anatomical", "cansins-build"), "#3A3A3C");
   expect(colours.Bones).toBe("#DBC8B6");  // PETG Basic Dark Beige
-  expect(colours.Mounts).toBe("#2B2B2E");  // PETG Basic Black, lifted
+  expect(colours.Mounts).toBe("#3A3A3C");  // PETG Basic Black, lifted to the GLB's black
   expect(colours.face).toBe("#F7CED7");  // PLA Pure Milky Pink
   expect(colours.servo).toBeUndefined();  // the hardware keeps its grey
 });

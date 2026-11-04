@@ -75,6 +75,7 @@ export default defineConfig({
       customCss: ['@fontsource/rubik/700.css', './src/styles/custom.css'], // #603: the headings' Rubik, the site's own
       sidebar: [
         { label: 'Home', link: '/' },
+        'docs/start-here',
         {
           label: 'Build',
           items: [
@@ -96,11 +97,11 @@ export default defineConfig({
         {
           label: 'Model',
           items: [
-            'docs/pictures',
             { label: 'Viewer', link: '/viewer/' },
+            'docs/pictures',
             { label: 'Roadmap', link: '/roadmap/' },
             { label: 'Reports', link: '/reports/' },
-            'docs/model-notes',
+            { label: 'Notes', slug: 'docs/model-notes' },
           ],
         },
         {

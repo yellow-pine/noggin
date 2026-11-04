@@ -53,6 +53,27 @@ const macros = {
   },
 };
 
+/** A paragraph of nothing but "Open Stage N in the viewer" links (the viewer page's deep links, as GitHub shows them)
+ * becomes their viewers (src/viewer/viewer.mjs, ADR 0008), each holding its link as macros.py embed does; several
+ * stand in a row. */
+const VIEWER = /^https:\/\/yellowpine\.com\/noggin\/viewer\/\?stage=(\d+)(?:&(.*))?$/;
+const attr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const embeds = {
+  name: 'viewer-embeds',
+  paragraph(node, ctx) {
+    const kids = node.children.filter((n) => !(n.type === 'text' && /^[\s·]*$/.test(n.value)));
+    if (!kids.length || !kids.every((n) => n.type === 'link' && VIEWER.test(n.url))) return;
+    numbers ??= JSON.parse(readFileSync(path.join(ROOT, 'site/src/macros.json'), 'utf8'));
+    const views = kids.map((n) => {
+      const [, stage, link = ''] = n.url.match(VIEWER), glb = numbers.published.stages.buttons[stage - 1]?.glb;
+      if (!glb) throw new Error(`${ctx.fileURL}: no Stage ${stage} for ${n.url}`);
+      return `<div class="noggin-viewer" data-stage="${glb}" data-link="${attr(link)}"><p class="noggin-open">` +
+        `<a href="${attr(n.url)}">${attr(ctx.textContent(n))}</a></p></div>`;
+    });
+    ctx.replaceNode(node, { raw: views.length > 1 ? `<div class="noggin-row not-content">${views.join('')}</div>` : views[0] });
+  },
+};
+
 /** A mark's `#N`, in its text node, becomes a link to the issue (GitHub shows the text as written). */
 const linkIssue = (node, n, ctx) => {
   const [head, tail] = node.value.split(`(#${n})`, 2);
@@ -97,4 +118,4 @@ const collect = (ctx, mark) => {
   (frontmatter.marks ??= []).push({ ...mark, text: mark.text.replace(/\s+/g, ' '), anchor });
 };
 
-export const markdown = [h1, links, macros, marks];
+export const markdown = [h1, links, macros, embeds, marks];

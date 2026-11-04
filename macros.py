@@ -429,15 +429,16 @@ def stage_switch():
 def theme():
     """The header's Theme bar and the viewer's mix (site/src/theme.mjs, #806, #819), by their keys in an address: the
     Presets by slug, each its label and its value on each axis, the default first; each axis' values; each Palette's
-    hex per Colour group, black lifted as Blender draws it, which the viewer paints a GLB's Colour groups in."""
-    key, lift = (lambda a: a.lower().replace(" ", "-")), {"#000000": constant("model/render/blender.py", "BLACK_LIFT")}
+    filament hex per Colour group, which the viewer paints a GLB's Colour groups in, black as the GLB's look has it."""
+
+    def key(a):
+        return a.lower().replace(" ", "-")
+
     return {
         "presets": {g.slug(p): {"label": p} | {key(a): v for a, v in t.items()} for p, t in g.PRESETS.items()},
         "axes": {key(a): list(v) for a, v in g.THEMES.items()},
         "palettes": {
-            key(f"{c} palette"): {
-                v: {k: lift.get(f[3], f[3]) for k, f in groups.items()} for v, groups in values.items()
-            }
+            key(f"{c} palette"): {v: {k: f[3] for k, f in groups.items()} for v, groups in values.items()}
             for c, values in palettes()
         },
     }

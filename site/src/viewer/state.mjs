@@ -36,8 +36,14 @@ export function mixed(search, preset) {
   );
 }
 
-// {Colour group: hex} a mix paints a GLB's materials in, each named by its group (web/glb.py): its Palettes'
-export const paint = (mix) => Object.assign({}, ...Object.entries(PALETTES).map(([a, palettes]) => palettes[mix[a]]));
+// {Colour group: hex} a mix paints a GLB's materials in, each named by its group (web/glb.py): its Palettes', black
+// as `black`, the charcoal the GLB's look draws it in (web/glb.py, #914)
+export const paint = (mix, black) =>
+  Object.fromEntries(
+    Object.entries(PALETTES).flatMap(([a, palettes]) =>
+      Object.entries(palettes[mix[a]] ?? {}).map(([group, hex]) => [group, hex === "#000000" ? black : hex]),
+    ),
+  );
 
 // Explode's levels (#811), each a button: every part home, each sub-assembly apart, each part apart
 export const LEVELS = ["Assembled", "Sub-assemblies", "Parts"];

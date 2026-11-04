@@ -4,6 +4,8 @@
 > **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
 > [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
+[Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3)
+
 Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. The Skin's Shells go on after
 it ([Themes](../face-design.md)).
 
@@ -32,10 +34,15 @@ calibrated ([Calibration](calibration.md)).
 
 1. **Jaw** on the gimbal frame's lugs, its hinge where the realistic skull's condyles are; it turns down to open the
    mouth.
+
+   [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=next+jaw)
+
 2. **Jaw servo** in the gimbal frame's collar, hanging under its plate behind the jaw; the **jaw bar** joins its horn
    to the jaw's lever.
 
-The jaw rides the head mount, so it pans and tilts with the head.
+The jaw rides the head mount, so it pans and tilts with the head. Each sub-assembly apart:
+
+[Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&explode=1)
 
 ## Wiring
 
