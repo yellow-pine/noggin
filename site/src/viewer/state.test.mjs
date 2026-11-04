@@ -17,8 +17,14 @@ test("a GLB's name is its Stage's as Bones and its Skeleton shape's suffix (#805
 test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a Skin draws as it is (#876)", () => {
   expect(glb("next-mech-back", "realistic", "none")).toBe("next-mech-back-bare");
   expect(glb("next-mech-back", "mechanical", "none")).toBe("next-mech-back-mechanical-bare");
-  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back");
+  expect(glb("next-mech-back", "realistic", "morty")).toBe("next-mech-back");
   expect(glb("next-stage2", "mechanical", "none")).toBe("next-stage2-mechanical");
+});
+
+test("Skin shape bart draws Stage 3 in Bart's Shells, in either Skeleton; a Stage without a Skin as it is (#807)", () => {
+  expect(glb("next-mech-back", "realistic", "bart")).toBe("next-mech-back-bart");
+  expect(glb("next-mech-back", "mechanical", "bart")).toBe("next-mech-back-mechanical-bart");
+  expect(glb("next-stage1", "realistic", "bart")).toBe("next-stage1");
 });
 
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {

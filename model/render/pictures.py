@@ -35,11 +35,20 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # the panels (Cansin, #470): each document from its left side and isometric from its front left, by eye direction and
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
-# the pictures per Preset alone (#819): {name: (document, Preset)}, each Stage in the Preset's Skeleton shape painted in
-# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (next-stage1-morty)
+# the pictures per Preset alone (#819): {name: (document, Preset)}, each Stage in the Preset's Skeleton shape (and its
+# Skin shape, where the Stage is drawn in it, #807) painted in its Palettes, named by the Stage as Bones, the default
+# Preset's alone, another's -<its slug> (next-stage1-morty)
 SUFFIX = {p: f"-{g.slug(p)}" if i else "" for i, p in enumerate(g.PRESETS)}
-BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # the Stages in order, as Bones
-DRAWN = {s + SUFFIX[p]: (s + g.SKELETON_SUFFIX[t["Skeleton shape"]], p) for p, t in g.PRESETS.items() for s in BONY}
+BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0] and g.skinless(d) == d]  # in order, as Bones
+
+
+def _drawn(stage, theme):
+    """The Stage as Bones in a Theme's Shapes: its Skeleton shape's, in its Skin shape where it is drawn in it."""
+    doc = stage + g.SKELETON_SUFFIX[theme["Skeleton shape"]]
+    return next((d for d in [doc + g.SKIN_SUFFIX.get(theme["Skin shape"], "")] if d in g.STAGES), doc)
+
+
+DRAWN = {s + SUFFIX[p]: (_drawn(s, t), p) for p, t in g.PRESETS.items() for s in BONY}
 PANELS = [(name, view) for name in DRAWN for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
@@ -53,7 +62,7 @@ EXPLODE = {
     "next-jaw": (0, -40, 45),
     "next-eyes": (0, 0, 95),
     "next-cranium": (0, 0, 160),
-    "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
+    **{f"next-{k}": (0, 0, 0) for k in g.SKIN_SUFFIX},  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its

@@ -124,6 +124,8 @@ PRESETS = {
 THEME = next(iter(PRESETS.values()))
 # a document's name in each Skeleton shape: its name as Bones, the first's, then this (-mechanical)
 SKELETON_SUFFIX = {v: f"-{v}" if i else "" for i, v in enumerate(THEMES["Skeleton shape"])}
+# Stage 3's name in each Skin shape drawn (#807): Morty's, the first, its own, another's this after its Skeleton's
+SKIN_SUFFIX = {"morty": "", "bart": "-bart"}
 
 
 def slug(preset):
@@ -131,8 +133,14 @@ def slug(preset):
     return preset.lower().replace("'", "").replace(" ", "-")
 
 
+def skinless(doc):
+    """A document's name less its Skin shape's suffix (-bart): Morty's, whose own it is."""
+    return next((doc.removesuffix(s) for s in SKIN_SUFFIX.values() if s and doc.endswith(s)), doc)
+
+
 def shape(doc):
-    """A document's Skeleton shape: the one its name ends in (-mechanical), else the first."""
+    """A document's Skeleton shape: the one its name ends in (-mechanical) less its Skin's, else the first."""
+    doc = skinless(doc)
     return next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEMES["Skeleton shape"][0])
 
 
@@ -179,15 +187,20 @@ PRINTED = {
     "next L eyeball cap": ("eye whites", "PLA Pure"),
     "next R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# Morty's Shells (#665, model/skin.py) by Colour group, the eyeball caps above his too: each Skin's in its own
-_MORTY = {
-    "face": ("next morty face", "next morty mouth cover")
-    + tuple(f"next morty {s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower")),
-    "hair": ("next morty hair",),
-    "pupils": ("next morty L pupil", "next morty R pupil"),
-    "clothes": ("next morty shirt front", "next morty shirt back"),
+# Each Skin's Shells (#665, #807, model/skin.py) by Colour group, the same set each, the eyeball caps above (every
+# Skin's): Bart's spikes on his hair's Shell, his crown
+_SHELLS = {
+    "face": ("face", "mouth cover", *(f"{s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower"))),
+    "hair": ("hair",),
+    "pupils": ("L pupil", "R pupil"),
+    "clothes": ("shirt front", "shirt back"),
 }
-PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for name in names}
+PRINTED |= {
+    f"next {skin} {name}": (group, "PLA Pure")
+    for skin in SKIN_SUFFIX
+    for group, names in _SHELLS.items()
+    for name in names
+}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
@@ -212,7 +225,7 @@ NEXT = {
         sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-cranium", "next-base", *carriers)
     }
     for v, carriers in (("back", ["next-morty", SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
-    # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
+    # Skin on it (#665), Bart's on its copies (SKIN_SUFFIX, #807); the cansin Skin shape wears Morty's until #813
 }
 # The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
@@ -235,6 +248,13 @@ STAGES |= {
     doc + s: {k: f for k, f in subs.items() if k != SKULL_SUB}
     for doc, subs in STAGES.items()
     for s in SKELETON_SUFFIX.values()
+    if s
+}
+# Stage 3 in each other Skin shape drawn (#807): in each Skeleton, its Shells on the same Seats in place of Morty's
+STAGES |= {
+    doc + s: {sub.replace("next-morty", f"next-{k}"): f for sub, f in STAGES[doc].items()}
+    for doc in [d for d in STAGES if "next-morty" in STAGES[d]]
+    for k, s in SKIN_SUFFIX.items()
     if s
 }
 # Physics runs on the mechanical documents alone (#809): each Bone is carved from its mechanical part, so clearance,

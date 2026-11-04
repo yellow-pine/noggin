@@ -38,7 +38,7 @@ def report(doc, model):
     parts = [
         n
         for sub in g.NEXT[doc]
-        if sub not in ("next-neck", "next-jaw", "next-eyes", "next-morty")
+        if sub not in ("next-neck", "next-jaw", "next-eyes", *(f"next-{k}" for k in g.SKIN_SUFFIX))
         for n in stages.SUBS[sub]().parts
     ]
     size, eyes = head(doc, model)

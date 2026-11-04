@@ -1,7 +1,8 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Being designed, not built yet.** Morty's Shells are in the model (#665); Bart's (#807) and Cansin's (#813) follow.
+> **Being designed, not built yet.** Morty's and Bart's Shells are in the model (#665, #807), Bart's on Morty's Seats
+> and fitted to today's head; Cansin's (#813) follows.
 > #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one

@@ -19,6 +19,7 @@ from collections import namedtuple
 import numpy as np
 
 from model import base as nb
+from model import geometry as g
 from model import gimbal as gm
 from model import neck as nk
 
@@ -82,6 +83,17 @@ SIDE = (
 )
 SIDE_ROUND = 25.0
 TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
+# Bart's head (#807): Morty's with a flat crown, from the front square at its top corners and from the side flat over
+# the cranium, so it holds all of Morty's (whatever clears his clears Bart's, the worn skull's carving too) in the same
+# box; the spikes (model/printed/skin.py SPIKES) stand on the crown, past the head's top (inferred)
+HEADS = {
+    "morty": (FRONT, SIDE, TOP),
+    "bart": (
+        ((-48.5, 48.0, 20.0), (48.5, 48.0, 20.0), *FRONT[1:]),
+        (((5.0, 48.0, 20.0), (68.0, 48.0, 20.0), *SIDE[0]), SIDE[1]),
+        TOP,
+    ),
+}
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
 HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
@@ -161,14 +173,25 @@ SEATS = [
         for x in (-24.0, 24.0)
     ],
 ]
-GLUED = {"next morty L pupil": (0.0, -1.0, 0.0), "next morty R pupil": (0.0, -1.0, 0.0)}  # keyed in the caps' seats
+# every Skin's Shells on Morty's Seats (#51: one Seat for every Skin, #807), each named for its Skin
+SKINS = tuple(g.SKIN_SUFFIX)
+assert set(HEADS) == set(SKINS)
+SEATS += [
+    s._replace(
+        shell=s.shell.replace("next morty ", f"next {k} "), carrier=s.carrier.replace("next morty ", f"next {k} ")
+    )
+    for k in SKINS[1:]
+    for s in SEATS
+    if s.shell.startswith("next morty ")
+]
+GLUED = {f"next {k} {s} pupil": (0.0, -1.0, 0.0) for k in SKINS for s in "LR"}  # keyed in the caps' seats
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
 DIRECTIONS = {s.shell: s.normal for s in SEATS} | GLUED  # each Shell's Assembly direction, in its carrier's frame
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
 # their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
-DRAWN = [s for s in SHELLS if s.startswith("next morty ")]
+DRAWN = [s for s in SHELLS if s.split()[1] in SKINS]
 
 
 @functools.cache

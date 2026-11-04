@@ -166,8 +166,8 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
-        "| Skin | morty | hair | morty hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",  # Morty's Shells (#665)
-        "| Skin | bart | clothes | morty shirt front, morty shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",
+        "| Skin | morty | hair | morty hair, bart hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",  # #807
+        "| Skin | bart | clothes | morty shirt front, morty shirt back, bart shirt front, bart shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",  # noqa: E501
         "| Skin | cansin | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
@@ -314,7 +314,8 @@ def test_every_document_has_a_side_and_an_isometric_panel():
     panels = [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
     assert [pictures.picture(*p) for p in pictures.PANELS] == panels
     assert pictures.DRAWN["next-stage1"] == ("next-stage1-mechanical", "Cansin's build")  # the default
-    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back", "Bart")
+    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back-bart", "Bart")  # in his own Skin (#807)
+    assert pictures.DRAWN["next-stage2-bart"] == ("next-stage2", "Bart")
 
 
 def test_the_next_mech_has_its_own_panels():
@@ -384,7 +385,8 @@ def test_the_site_publishes_the_next_mech_alone():
     assert not [f for f in published if f.startswith("next-eyes")]
     assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
     bare = {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
-    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare
+    bart = {f"next-mech-back{s}-bart": f"next-mech-back{s}-bart.glb" for s in SHAPES}  # in Bart's Skin (#807)
+    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | bart
     assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
     assert {doc for doc, _ in pictures.next_parts().values()} <= set(map(build.document, build.PUBLIC)) == set(g.STAGES)
 

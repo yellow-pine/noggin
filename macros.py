@@ -216,7 +216,7 @@ BONY = pictures.BONY  # the Stages in order, as Bones
 def stage(doc):
     """A Stage document's name on a page, in any Shape, or a picture's (pictures.DRAWN) in any Preset: "Stage 2"."""
     doc = pictures.DRAWN.get(doc, (doc,))[0]
-    return f"Stage {BONY.index(doc.removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
+    return f"Stage {BONY.index(g.skinless(doc).removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
 
 
 def next_panels():
@@ -382,7 +382,7 @@ def stage_switch():
     adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
     sim ranked today's variants: its mechanical document's, the one physics runs on (#809); the Skeleton shapes
     (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shape none's (#876),
-    where a Stage has a bare GLB."""
+    where a Stage has a bare GLB, and each other Skin shape drawn (#807), where it has its own."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
@@ -395,7 +395,8 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": {g.SKINLESS: viewer.BARE}}
+    skins = {g.SKINLESS: viewer.BARE} | {k: s for k, s in g.SKIN_SUFFIX.items() if s}  # Bart's Stage 3 (#807)
+    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": skins}
 
 
 def theme():

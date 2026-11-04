@@ -56,19 +56,20 @@ UNSTYLED = {
     BONES, "the realistic Skeleton's skull, a mesh (model/printed/skull.py): the mechanical Skeleton has none (#838)"
 )
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
-# Morty's Skin (#665): his Shells, each Seat cut into what carries it in every style (model/skin.py)
-PARTS |= {
-    "next morty face": skin.face,
-    "next morty hair": skin.hair,
-    **{f"next morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
-    **{
-        f"next morty {s} {lid} lid cover": functools.partial(skin.lid_cover, s, lid)
-        for s in "LR"
-        for lid in ("upper", "lower")
-    },
-    "next morty mouth cover": skin.mouth_cover,
-    **{f"next morty shirt {half}": functools.partial(skin.shirt, half) for half in ("front", "back")},
-}
+# Each Skin (#665, #807): its Shells, each Seat cut into what carries it in every style (model/skin.py)
+for k in sk.SKINS:
+    PARTS |= {
+        f"next {k} face": functools.partial(skin.face, k),
+        f"next {k} hair": functools.partial(skin.hair, k),
+        **{f"next {k} {s} pupil": functools.partial(skin.pupil, s, k) for s in "LR"},
+        **{
+            f"next {k} {s} {lid} lid cover": functools.partial(skin.lid_cover, s, lid, k)
+            for s in "LR"
+            for lid in ("upper", "lower")
+        },
+        f"next {k} mouth cover": functools.partial(skin.mouth_cover, k),
+        **{f"next {k} shirt {half}": functools.partial(skin.shirt, half, k) for half in ("front", "back")},
+    }
 PARTS |= {
     stem: skin.seated(stem, build)
     for stem, build in PARTS.items()
