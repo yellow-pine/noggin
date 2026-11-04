@@ -44,14 +44,11 @@ BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fix
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
 NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-45.3, -40.3)
 BEARING_Z = (-40.3, -35.3)  # top below the cranium tray's underside; the plate clears the gimbal plane
-TILT_SPLINE_X, TILT_RISE = (
-    -9.0,
-    65.0,
-)  # above the existing eye servos, below the cranium tray; private Skin preflight #902
-TILT_SHAFT = (TILT_SPLINE_X, HEAD_AXES["tilt"][0][1], HEAD_AXES["tilt"][0][2] + TILT_RISE)
-TILT_ARM = 12.0  # printed adapter on the supplied round horn, equal to the fixed reaction arm
-TILT_PIN = (-13.5, TILT_SHAFT[1] + TILT_ARM, TILT_SHAFT[2])
-TILT_ANCHOR = (TILT_PIN[0], TILT_PIN[1], HEAD_AXES["tilt"][0][2])
+TILT_SHAFT = (-24.4, 60.0, 78.0)  # actual case above the electronics: public CAD + private 6.8 mm stack preflight #978
+TILT_ARM = (42.0, -4.0)  # (y,z), equal moving horn and fixed reaction arms; no change in the 1:1 inverse ratio
+TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
+TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
+TILT_BAR_PATH = (TILT_ANCHOR, (0.0, 120.0, 30.0), (0.0, 120.0, 65.0), TILT_PIN)  # behind the full swept PCB/tray volume
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
 CERVICAL_PATH = (
@@ -75,8 +72,8 @@ FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's p
 HEAD_SCREWS = (
     (16.0, 48.0),
     (-16.0, 48.0),
-    (16.0, 75.0),
-    (-16.0, 75.0),
+    (16.0, 83.0),
+    (-16.0, 83.0),
 )  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 4.0
 # The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
