@@ -191,13 +191,11 @@ def nod_plate():
 
 def tilt_lever():
     """Adapter on the supplied round horn, with an outboard standoff clear of the actual case and tabs."""
-    from model.printed.gimbal import lid_mechanical
-
     x, y, z = nk.TILT_SHAFT
     span = (x - 3, x)
     out = cyl("x", (0, y, z), 11.5, span)
-    out = out.union(lid_mechanical([(y, z), tuple(nk.TILT_PIN[1:])], span))
-    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 3.5, (x - 3, nk.REACTION_TAP_X[1])))
+    out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 7)], span[1] - span[0], (span[0], 0, 0)))
+    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (x - 3, nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
     for dy, dz in ((8, 0), (-8, 0), (0, 8), (0, -8)):
         out = out.cut(cyl("x", (0, y + dy, z + dz), 1.1, span))
