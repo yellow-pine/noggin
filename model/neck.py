@@ -42,6 +42,7 @@ HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
 BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
+SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anchors are not certified yet
 NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-52.0, -47.0)
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
 TILT_SHAFT = (-24.4, 60.0, 78.0)  # actual case above the electronics: public CAD + private 6.8 mm stack preflight #978
@@ -306,7 +307,11 @@ def report(head, bare=None):
     out["tilt"] |= {
         **holds(head),
         "bare": holds(bare or head),
-        "spring": {"rest_kgf_cm": round(spring[0], 3), "rate_kgf_cm_rad": round(spring[1], 3)},
+        "spring": {
+            "rest_kgf_cm": round(spring[0], 3),
+            "rate_kgf_cm_rad": round(spring[1], 3),
+            "verified": SPRING_VERIFIED,
+        },
     }
     grams, (_, cy, cz) = head
     out["head"] = {

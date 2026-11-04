@@ -385,7 +385,7 @@ def spec(doc, collide=True):
             drive(s, h)
     if neck.HEAD_CARRIERS["fixed"] in bodies and neck.HEAD_CARRIERS["jaw"] in bodies:
         anatomy(s, stage, bodies)  # missing finished exports must never silently remove anatomical head weight
-    if "tilt horn" in stage.horns:
+    if "tilt horn" in stage.horns and (neck.HEAD_CARRIERS["fixed"] not in bodies or neck.SPRING_VERIFIED):
         balance(s, doc)
     return s
 

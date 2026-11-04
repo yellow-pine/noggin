@@ -319,7 +319,6 @@ HARDWARE = {
     "standard servo": "standard metal-gear tilt servo (to order)",
     "standard horn": "standard servo round horn (included; to order)",
     "pan bearing": "F8-16M thrust bearing, 8 × 16 × 5 mm (to order)",
-    "balance spring": "tilt torsion balance spring (to order)",
 }
 
 

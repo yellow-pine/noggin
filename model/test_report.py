@@ -89,6 +89,8 @@ def gimbal_problems(report):
     m, out = report.get("gimbal"), []
     if not m:
         return out
+    if m["tilt"].get("spring", {}).get("verified") is False:
+        out.append("neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)")
     if m["gaze_deg"] > gimbal.GAZE_DEG:
         out.append(
             f"gimbal gaze: {m['gaze_deg']} deg off with play ({m['play_deg']}) and pupil seating ({m['pupil_deg']})"

@@ -85,11 +85,6 @@ def standard_horn():
     return cq.Workplane("XY").circle(10).circle(3).extrude(3)
 
 
-def balance_spring():
-    """Inferred purchased spring envelope around the independent lateral trunnion; its rate comes from actual loads."""
-    return cq.Workplane("YZ").circle(8).circle(3).extrude(8)
-
-
 # Horn (the kit's short single arm, "half arm1"): the r 3.63 hub on (0, 20), z 0..4.15, with the r 2.14 spline bore
 # down to z 1.85 from the spline side (z 4.15), the screw's r 1.0 hole and r 2.45 counterbore from the outer face (z 0);
 # the 1.55 thick arm along +X tapering to its r 2.0 tip at x 14.05, with r 0.5 holes every 2 mm out to x 14.75 (the bars
@@ -279,5 +274,4 @@ ENVELOPES |= {
     "standard servo": standard_servo,
     "standard horn": standard_horn,
     "pan bearing": pan_bearing,
-    "balance spring": balance_spring,
 }

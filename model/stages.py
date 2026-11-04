@@ -289,7 +289,6 @@ def neck_sub():
     parts["tilt servo:1"] = part(stl("standard servo"), align(neck.TILT_SHAFT, g.Y, (-1, 0, 0)), (55, "documented"))
     parts["tilt horn:1"] = part(stl("standard horn"), align(neck.TILT_SHAFT, g.Y, g.X), BOARD)
     parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.BEARING_Z[0])), (7.85, "steel"))
-    parts["tilt balance spring:1"] = part(stl("balance spring"), translate((-34, *tilt[1:])), (7.85, "steel"))
     # Spline up below the plate, torque through the head mount's quill; the bearing takes axial head load.
     face = (0, pan[1], neck.PAN_HORN_Z)
     parts.update(mounted(gimbal.servo_origin(face, g.Z), g.X, g.Z, "pan", g.X))
