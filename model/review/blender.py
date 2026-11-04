@@ -125,9 +125,10 @@ def morty(m):
         caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
         if any(e.is_boundary for e in rim):
             raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
-        clothes = next(i for i, mat in enumerate(o.data.materials) if mat.name == "clothes")
-        for f in caps:
-            f.material_index = clothes
+        if caps:
+            clothes = next(i for i, mat in enumerate(o.data.materials) if mat.name == "clothes")
+            for f in caps:
+                f.material_index = clothes
         bm.to_mesh(o.data)
         bm.free()
         o.color, o.hide_render = (1, 1, 1, JOB["alpha"]["Morty"]), True
