@@ -145,7 +145,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
   shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
-  the face is as wide as the lids' frame (145 mm since #901), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`
+  the face is as wide as the lids' frame (146 mm since #901), each lower lid's boss 0.6 mm off its upright (its cover then 0.6 off it), and `HEAD_MM`
   is Morty's life-size cranium (160 x 176 x 175 since #901, #893). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
