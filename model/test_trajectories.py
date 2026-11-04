@@ -194,8 +194,15 @@ def test_the_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco():
     yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
     side = np.sign(yaw[np.abs(yaw).argmax()])
     assert (side * pan).max() == pytest.approx(0.6 * 22, abs=1)
-    turned = int(np.abs(pan).argmax())
-    assert abs(yaw[turned] + pan[turned] - side * 22) < 2  # the gaze held on the dart
+    # A return overshoot can be the global pan maximum after the gaze has intentionally left the dart.
+    commands = [(t, side * d) for t, name, d in writes if name == "pan horn"]
+    peak = max(d for _, d in commands)
+    commanded = next(t for t, d in commands if d == peak)
+    returning = next(t for t, d in commands if t > commanded and d < peak)
+    arrived = next(i for i, d in enumerate(side * pan) if d >= 0.6 * 22 - SETTLED_DEG)
+    end = int(np.searchsorted(times, returning))
+    assert arrived < end  # the physical head arrives before it is asked to return
+    assert np.abs(yaw[arrived:end] + pan[arrived:end] - side * 22).max() < 2
     assert abs(pan[-1]) < SETTLED_DEG
 
 
