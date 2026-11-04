@@ -125,7 +125,12 @@ def pins():
 
 
 TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
-LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items()}
+LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
+
+
+def output(drive, servo_deg):
+    """Physical output angle from a servo command; the moving tilt case reacts against a fixed horn."""
+    return LINKAGES[drive](servo_deg)[0] if drive in LINKAGES else servo_deg * (-1 if drive == "tilt" else 1)
 
 
 def drives():
@@ -143,6 +148,8 @@ def drives():
 def servo_for(drive, out):
     """The servo angle (deg from its centre) that turns the drive's output to `out` deg: walked out from rest a degree at
     a time, then found within the degree."""
+    if drive not in LINKAGES:
+        return -out if drive == "tilt" else out
     solve = LINKAGES[drive]
     step = 1.0 if (solve(1.0)[0] > 0) == (out > 0) else -1.0
     s = 0.0
@@ -170,7 +177,8 @@ def _weight(head, deg):
     """kgf.cm the head's weight turns it with about the tilt axis at `deg`, right-handed about +x: its grams times its
     com's horizontal distance from the axis (g x mm / 10^4 = kgf.cm)."""
     grams, (_, cy, cz) = head
-    dy, dz = cy - AXIS[0], cz - AXIS[1]
+    _, y, z = HEAD_AXES["tilt"][0]
+    dy, dz = cy - y, cz - z
     a = math.radians(deg)
     return -grams * (dy * math.cos(a) - dz * math.sin(a)) / 1e4
 
@@ -224,12 +232,18 @@ def report(head, bare=None):
             "transmission_deg": round(min(transmission(drive, s) for s in sweep), 1),
             "gain": round((solve(0.5)[0] - solve(-0.5)[0]), 3),
         }
+    for drive in ("pan", "tilt"):
+        out[drive] = {
+            "drive": "direct",
+            "range_deg": list(RANGES[drive]),
+            "servo_deg": [servo_for(drive, d) for d in RANGES[drive]],
+            "gain": 1.0,
+        }
     sweep = _sweep("tilt")
-    solve = LINKAGES["tilt"]
     spring = balance(head, bare)
 
     def holds(h):
-        at = [_hold(h, spring, solve(s)[0], (solve(s + 0.5)[0] - solve(s - 0.5)[0])) for s in sweep]
+        at = [_hold(h, spring, output("tilt", s), 1.0) for s in sweep]
         return {"rest_kgf_cm": round(_hold(h, spring, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
 
     out["tilt"] |= {
@@ -240,8 +254,8 @@ def report(head, bare=None):
     grams, (_, cy, cz) = head
     out["head"] = {
         "grams": round(grams, 1),
-        "above_tilt_mm": round(cz - AXIS[1], 1),
-        "behind_tilt_mm": round(cy - AXIS[0], 1),
+        "above_tilt_mm": round(cz - HEAD_AXES["tilt"][0][2], 1),
+        "behind_tilt_mm": round(cy - HEAD_AXES["tilt"][0][1], 1),
     }
     out["spans"] = _spans()
     return out

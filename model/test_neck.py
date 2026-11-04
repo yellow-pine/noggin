@@ -9,7 +9,8 @@ from model import base, mjcf, neck, stages
 from model import geometry as g
 
 # a head of 300 g with its centre of mass 40 mm above the tilt axis, straight over it at rest
-HEAD = (300.0, (0.0, neck.AXIS[0], neck.AXIS[1] + 40.0))
+TILT_Y, TILT_Z = neck.HEAD_AXES["tilt"][0][1:]
+HEAD = (300.0, (0.0, TILT_Y, TILT_Z + 40.0))
 
 
 def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
@@ -102,7 +103,7 @@ def report():
     return neck.report(HEAD)
 
 
-@pytest.mark.parametrize("drive", ["pan", "tilt", "jaw"])
+@pytest.mark.parametrize("drive", ["jaw"])
 def test_every_drive_reaches_its_range_within_the_servos_travel_at_40_deg_or_better(report, drive):
     """#641: each bar meets its lever at a transmission angle of at least 40 deg over the whole range, and the servo
     turns no further than its travel to get there."""
@@ -113,14 +114,13 @@ def test_every_drive_reaches_its_range_within_the_servos_travel_at_40_deg_or_bet
 
 def test_the_servo_angles_give_the_ranges_ends():
     for drive, (lo, hi) in neck.RANGES.items():
-        solve = neck.LINKAGES[drive]
         for out in (lo, hi):
-            assert solve(neck.servo_for(drive, out))[0] == pytest.approx(out, abs=1e-3)
+            assert neck.output(drive, neck.servo_for(drive, out)) == pytest.approx(out, abs=1e-3)
 
 
 def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
     """At rest each horn and its lever lie parallel, the bar square to both: a transmission angle of 90 deg."""
-    for drive in neck.RANGES:
+    for drive in neck.LINKAGES:
         assert neck.transmission(drive, 0.0) == pytest.approx(90.0, abs=1e-6)
 
 
@@ -130,7 +130,7 @@ def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(re
     the spring turns it back as much, and its rate is the weight's lever's change, 300 g x 30 mm = 0.9 kgf.cm a radian;
     tilted 20 deg the spring's line misses the weight's turn by 0.08 kgf.cm, the servo holding that through the linkage.
     Straight over the axis the spring takes the 40 mm's change alone: nothing at rest."""
-    ahead = neck.report((300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0)))["tilt"]
+    ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
     assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
     assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
     assert 0.25 * 0.079 < ahead["hold_kgf_cm"] < 0.079
@@ -143,7 +143,7 @@ def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bar
     """#830: one spring holds the head with its Skin on and off. A bare head of 300 g 40 mm in front of the axis and 30
     over it wants -1.2 kgf.cm at rest and 0.9 a radian; its Skin doubles it, -2.4 and 1.8. The spring wound between them,
     -1.8 and 1.35, misses each by 0.6 kgf.cm at rest, which the servo holds through the linkage's gain, alike."""
-    bare = (300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0))
+    bare = (300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0))
     tilt = neck.report((600.0, bare[1]), bare)["tilt"]
     assert tilt["spring"] == {"rest_kgf_cm": -1.8, "rate_kgf_cm_rad": 1.35}
     assert tilt["rest_kgf_cm"] == pytest.approx(0.6 * tilt["gain"], abs=2e-3)

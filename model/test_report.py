@@ -125,7 +125,7 @@ def neck_problems(report):
         return out
     for drive in neck.RANGES:
         d = m[drive]
-        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+        if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
             out.append(
                 f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
             )
@@ -133,8 +133,13 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        if t["hold_kgf_cm"] > sim.RATED_KGF_CM:
-            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+        rated = (
+            sim.limits("tilt horn")["rated_kgf_cm"]
+            if t.get("drive") == "direct" or m["tilt"].get("drive") == "direct"
+            else sim.RATED_KGF_CM
+        )
+        if t["hold_kgf_cm"] > rated:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"

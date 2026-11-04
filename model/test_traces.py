@@ -68,7 +68,7 @@ def test_the_mechs_head_joins_a_wide_gaze_shift_within_its_gaze_error_the_neck_c
 
     writes, times = traces.commands("eureka")
     assert traces.DELAY_MS == {"core1": 0, "core2": 40}
-    pan = [(t, neck.LINKAGES["pan"](d)[0]) for t, d in horn(writes, "pan horn")]
+    pan = [(t, neck.output("pan", d)) for t, d in horn(writes, "pan horn")]
     yaw = horn(writes, "yaw horn")
     ms = range(0, times[-1])
     gaze = [y + p for y, p in zip(held(yaw, ms), held(pan, ms), strict=True)]
