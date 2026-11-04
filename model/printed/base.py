@@ -85,14 +85,12 @@ def tray(mechanical=False):
     Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, a leg down
     from each back corner behind the bail to its foot on the gimbal frame's plate, and the hub's riser on the plate from
     the R foot forward, a hole in it round the head mount's rear L screw's nut."""
-    (x0, x1), (y0, y1) = nb.LEG_X, nb.LEG_Y
-    out = box((-x1 - 6, x1 + 6), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
-    for s in (-1, 1):
-        out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
-    # the riser as wide as before the legs moved out past the pitch servo (#901)
-    riser = box((-24.5, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
-    # join the moved-out foot along its rear band, without widening the riser beside the moving drives
-    riser = riser.union(box((-x1, nb.HUB_X[1]), (y0, y1), (gm.PLATE_Z[1], nb.HUB_Z)))
+    y0, y1 = nb.LEG_Y
+    edge = max(abs(x) for leg in nb.LEG_X.values() for x in leg) + 6
+    out = box((-edge, edge), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
+    for leg in nb.LEG_X.values():
+        out = out.union(box(leg, (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
+    riser = box((nb.LEG_X["R"][0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
     return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
 
