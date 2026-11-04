@@ -342,7 +342,8 @@ def head(doc, model, bare=False):
     and what rides the head mount), as the MJCF weighs and places them; bare: less its Skin's Shells (skin.DRAWN)."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
-    rockers = stages.STAGES[doc].horns["tilt horn"].loops[0].rockers
+    horn = stages.STAGES[doc].horns["tilt horn"]
+    rockers = horn.direct.driven if horn.direct else horn.loops[0].rockers
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
     kg = model.body_mass[ids]

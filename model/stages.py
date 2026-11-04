@@ -276,11 +276,43 @@ def _neck_drives(labels, drives, stems):
 
 
 def neck_sub():
-    """neck: the Mech's neck (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the neck mount,
-    the pan yoke, the head mount and the pan and tilt bars, the neck Core's pan and tilt servos with their horns on the
-    drives."""
-    stems = ("neck mount", "pan yoke", "head mount", "pan bar", "tilt bar")
-    return _neck_drives(("pan", "tilt"), ("pan", "tilt"), stems)
+    """Fixed cervical carrier → nod plate → bearing-supported panning head. Both servo cases ride the nod plate."""
+    parts = {
+        name: part(stl(name.removesuffix(":1")), None, printed(name.removesuffix(":1")))
+        for role, name in neck.HEAD_CARRIERS.items()
+        if role != "jaw"
+    }
+    tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
+    parts["tilt servo:1"] = part(stl("standard servo"), align((26, *tilt[1:]), g.Y, (-1, 0, 0)), (55, "documented"))
+    parts["tilt horn:1"] = part(stl("standard horn"), align((23, *tilt[1:]), g.Y, g.X), BOARD)
+    parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.BEARING_Z[0])), (7.85, "steel"))
+    parts["tilt balance spring:1"] = part(stl("balance spring"), translate((-34, *tilt[1:])), (7.85, "steel"))
+    # Spline up below the plate, torque through the head mount's quill; the bearing takes axial head load.
+    face = (0, pan[1], neck.PAN_HORN_Z)
+    parts.update(mounted(gimbal.servo_origin(face, g.Z), g.X, g.Z, "pan", g.X))
+    head = ["head mount:1", "pan horn:1", *neck.HEAD]
+    carried = ["nod plate:1", "tilt servo:1", "pan servo:1", "pan bearing:1", *head]
+    horns = {
+        "tilt horn": Horn(
+            {"point": tilt, "axis": g.X},
+            (-20, 20),
+            "nod plate:1",
+            [],
+            [],
+            None,
+            direct=Direct("tilt pivot", carried, -1),
+        ),
+        "pan horn": Horn(
+            {"point": pan, "axis": g.Z},
+            (-45, 45),
+            "pan horn:1",
+            [],
+            ["tilt pivot"],
+            None,
+            direct=Direct("pan pivot", head, 1),
+        ),
+    }
+    return Sub(parts, horns)
 
 
 def jaw_sub():
@@ -352,8 +384,8 @@ RIDES = {
     "mandible:1": "jaw:1",
     "worn skull:1": "gimbal frame:1",
     "worn mandible:1": "jaw:1",
-    "atlas:1": "pan yoke:1",
-    "axis:1": "pan yoke:1",
+    "atlas:1": "cervical carrier:1",
+    "axis:1": "cervical carrier:1",
 }  # clamped to that part (a sub-assembly's every part, or one part)
 
 

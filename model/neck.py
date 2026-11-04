@@ -36,11 +36,16 @@ HEAD_FRAME = g._HEAD
 HEAD_AXES = {
     "tilt": ((0.0, 76.6, -48.7), g.X),
     "pan": ((0.0, 46.2, -35.2), g.Z),
-    "jaw": ((0.0, 60.5, -42.1), g.X),
+    "jaw": ((0.0, 26.0, -24.0), g.X),  # actual carried jaw; #968 replaces it at the anatomical condyles
 }
 HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
+NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-43.3, -38.3)
+BEARING_Z = (-38.3, -33.3)  # axial stack lowered: nod plate clears the fixed-height gimbal plate by 0.3 mm
+PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
+WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
+FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not the whole nod plate's swept disc
 
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
