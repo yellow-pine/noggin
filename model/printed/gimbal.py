@@ -315,7 +315,7 @@ def frame(mechanical=False):
         out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, gm.TIE_Z[0] - 2.0)))
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
-            out = out.union(box(lx, (jy - neck.BOSS_R, jy + neck.BOSS_R), (top, jz))).union(
+            out = out.union(box(lx, (jy - neck.BOSS_R, jy + neck.BOSS_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.BOSS_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle

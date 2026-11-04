@@ -36,7 +36,7 @@ HEAD_FRAME = g._HEAD
 HEAD_AXES = {
     "tilt": ((0.0, 76.6, -48.7), g.X),
     "pan": ((0.0, 46.2, -35.2), g.Z),
-    "jaw": ((0.0, 26.0, -24.0), g.X),  # actual carried jaw; #968 replaces it at the anatomical condyles
+    "jaw": ((0.0, 60.05856, -41.60731), g.X),  # measured #874 v7 condylar patch line, within 0.03 mm of +X
 }
 HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
@@ -80,7 +80,7 @@ PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back 
 # the head's lever back along +y; the bar down to the horn, its servo on the yoke's top floor, clear of the Skin's back
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
-JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
+JAW = HEAD_AXES["jaw"][0][1:]
 # the jaw x1.08 about its hinge across and fore-aft (#901, #872: its arms inside Morty's life-size mandible), its floor
 # where it was, over the Torso as the head tilts; its drive keeps its size
 JAW_K = 1.08
@@ -95,9 +95,33 @@ def jaw_y(y):
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
 # neck's cheeks however the head tilts (#838)
 # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
-JAW_LUG_X, JAW_X = (28.0 * JAW_K, 31.0 * JAW_K), (33.0 * JAW_K, 37.0 * JAW_K)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (JAW_X[0] - 3.0, JAW_X[0])  # its tabs up the plate's slot
-CHIN_Y = jaw_y(-29.0)  # its chin's front, the mandible's
+JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
+JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (10.0, -70.0), (JAW_X[0] - 3.0, JAW_X[0])
+# #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
+# Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.
+MANDIBLE_BORDER = {
+    "L": (
+        (42.17778, *JAW),
+        (39.66932, 62.19767, -52.96658),
+        (36.54052, 55.94899, -66.98728),
+        (29.96298, 52.41924, -79.70661),
+        (29.74866, 40.96716, -94.45120),
+        (22.17178, 24.88939, -99.41578),
+        (15.00794, 10.05259, -100.09533),
+    ),
+    "R": (
+        (-42.43407, *JAW),
+        (-40.85832, 63.96941, -49.35478),
+        (-36.71729, 55.38586, -66.82533),
+        (-30.42063, 51.63572, -79.25589),
+        (-26.50951, 36.86854, -94.26046),
+        (-20.49186, 24.76519, -99.17967),
+        (-10.29882, 10.31181, -99.83649),
+    ),
+}
+MENTON = (0.0, -1.4201, -97.7819)
+CHIN_Y = -33.4  # existing Skin rest contour; moving the anatomical carrier must not reshape a resting Skin
 JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
@@ -128,7 +152,7 @@ def pins():
     return {
         "pan": ((0, y, pan_z), (0, y + PAN_LEVER, pan_z), (PAN_BAR, y + PAN_LEVER - CRANK, pan_z), g.Z),
         "tilt": ((0, y, z), (0, y + TILT_LEVER, z), (0, y + TILT_LEVER - CRANK, z - TILT_BAR), g.X),
-        "jaw": ((0, *JAW), (0, JAW[0], JAW[1] - JAW_LEVER), (0, *MOUTH_HORN), g.X),
+        "jaw": ((0, *JAW), (0, *JAW_PIN), (0, *MOUTH_HORN), g.X),
     }
 
 

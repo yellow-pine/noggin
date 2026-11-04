@@ -180,29 +180,33 @@ def head_mount():
 
 @bone.carved
 def jaw(mechanical=False):
-    """The jaw (printed on its side): a boss outside each of the frame's lugs at the condyles (the jaw shanks turn in
-    them), an arm down from each (the mandible's ramus) to the body, which runs forward round to the chin as the
-    mandible's (#838), and a boss down the L arm round the jaw bar's pin. As Bones (#708): each arm a strut, the body
-    and the chin one chain of Bones flat on its underside."""
+    """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
+    from model import skin
+
+    points = {}
+    for side, border in nk.MANDIBLE_BORDER.items():
+        sign = 1 if side == "L" else -1
+        points[side] = [(x - sign * 2.5, y, z + (3 if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)]
+        points[side].append(tuple(np.add(nk.MENTON, (0, 0, 3))))
+    out = None
+    for chain in points.values():
+        for a, b in zip(chain, chain[1:]):
+            link = strut(a, b, (3.2, 2.2), (2.6, 1.8))
+            out = link if out is None else out.union(link)
     jy, jz = nk.JAW
-    x0, x1 = nk.JAW_X
-    x, (z0, _) = (x0 + x1) / 2, nk.JAW_ARM_Z
-    half = [(x, jy), *nk.JAW_BODY]
-    points = [*half, (0.0, nk.CHIN_Y + 2.0), *((-px, py) for px, py in reversed(half))]
-    if mechanical:
-        out = _flat(points, x1 - x0, nk.JAW_ARM_Z)
-        for s in (-1, 1):
-            out = out.union(box(sorted((s * x0, s * x1)), (jy - nk.BOSS_R, jy + nk.BOSS_R), (z0, jz)))
-    else:
-        out = bone.chain(points, *JAW_BONE, z=z0)
-        for s in (-1, 1):  # from inside the body's Bones up into the boss, inside its faces
-            out = out.union(strut((s * x, jy, z0 + 1), (s * x, jy, jz - 1), (3.0, 1.8), (2.4, 1.5)))
-    pin = (0, jy, jz - nk.JAW_LEVER)
-    out = out.union(cyl("x", pin, 3.0, (x0, x1)))
-    for s in (-1, 1):
-        xs = sorted((s * x0, s * x1))
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in nk.JAW_X)
         out = out.union(cyl("x", (0, jy, jz), nk.BOSS_R, xs)).cut(cyl("x", (0, jy, jz), gm.PIN_R, xs))
-    return out.cut(cyl("x", pin, TAP_R, (x0, x1)))
+    # The actual ramus, not a vertical extension of the old L, takes the drive pin.
+    x = sum(nk.JAW_X) / 2
+    pin = (x, *nk.JAW_PIN)
+    out = out.union(strut(points["L"][2], pin, (3, 2.2), (2.5, 1.8)))
+    out = out.union(cyl("x", (0, *nk.JAW_PIN), 3, nk.JAW_X)).cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, nk.JAW_X))
+    # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
+    seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
+    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad / 2))
+    out = out.union(strut(points["L"][-1], at, (3.2, 2.4), (2.8, 2)))
+    return out
 
 
 def _flat(points, w, zs):
@@ -240,6 +244,6 @@ def tilt_bar(mechanical=False):
 @bone.carved
 def jaw_bar(mechanical=False):
     """The jaw bar: the jaw's lever pin back to the mouth horn's (#838)."""
-    jy, jz = nk.JAW
-    hy, hz = nk.MOUTH_HORN
-    return link((jy, jz - nk.JAW_LEVER), (hy, hz + nk.CRANK), nk.JAW_BAR_X, mechanical, BAR_BONE)
+    solve = nk.LINKAGES["jaw"]
+    _, a, b = solve(0)
+    return link(tuple(a[1:]), tuple(b[1:]), nk.JAW_BAR_X, mechanical, BAR_BONE)
