@@ -307,11 +307,8 @@ def report(head, bare=None):
     out["tilt"] |= {
         **holds(head),
         "bare": holds(bare or head),
-        "spring": {
-            "rest_kgf_cm": round(spring[0], 3),
-            "rate_kgf_cm_rad": round(spring[1], 3),
-            "verified": SPRING_VERIFIED,
-        },
+        "spring": {"rest_kgf_cm": round(spring[0], 3), "rate_kgf_cm_rad": round(spring[1], 3)},
+        "spring_verified": SPRING_VERIFIED,
     }
     grams, (_, cy, cz) = head
     out["head"] = {
