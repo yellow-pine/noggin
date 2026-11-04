@@ -193,8 +193,9 @@ def _profile(plane, hulls, t, rounded=0.0):
 
 
 def _head(t, skin="morty"):
-    """The Skin's head (model/skin.py HEADS, else Morty's FRONT, SIDE, TOP) `t` in from its outside (out of it, negative): arcs and lines
-    swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP (#833).
+    """The Skin's head (model/skin.py HEADS, else Morty's FRONT, SIDE, TOP) `t` in from its outside (out of it,
+    negative): arcs and lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid
+    from Linux's STEP (#833).
     Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
     booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
     return cq.Workplane().add(_built_head(t, skin if skin in sk.HEADS else "morty").copy())
@@ -310,12 +311,9 @@ def _spikes():
     y, a, b = SPIKES
     r, h = SPIKE
     top = sk.HEAD_Z[1] - sk.WALL  # each base in the crown's wall, so it fuses with it and stays out of the head
-    out = None
-    for k in range(9):
-        at = cq.Vector(a * math.sin(2 * math.pi * k / 9), y - b * math.cos(2 * math.pi * k / 9), top)
-        cone = cq.Workplane().add(cq.Solid.makeCone(r, 0.0, h + sk.WALL, at, cq.Vector(0, 0, 1)))
-        out = cone if out is None else out.union(cone)
-    return out
+    at = [cq.Vector(a * math.sin(2 * math.pi * k / 9), y - b * math.cos(2 * math.pi * k / 9), top) for k in range(9)]
+    cones = (cq.Workplane().add(cq.Solid.makeCone(r, 0.0, h + sk.WALL, p, cq.Vector(0, 0, 1))) for p in at)
+    return functools.reduce(lambda u, c: u.union(c), cones)
 
 
 def hair(skin="morty"):

@@ -185,21 +185,21 @@ def _carriers():
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("skin_shape", g.SKINS)
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])  # its id the document's: its Model shard's -k
 @pytest.mark.parametrize("pose", list(_poses()))
-def test_every_shell_clears_every_part_but_what_carries_it(pose, skin_shape):
+def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
     """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
     hardware (#51 shell containment), in each Skin (#813)."""
-    assert _near(g.dressed(DOC, skin_shape), pose) == []
+    assert _near(doc, pose) == []
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("skin_shape", g.SKINS)
+@pytest.mark.parametrize("doc", [g.dressed(REAL, s) for s in g.SKINS])
 @pytest.mark.parametrize("pose", list(_poses(REAL)))
-def test_every_shell_clears_the_realistic_skulls_bones(pose, skin_shape):
+def test_every_shell_clears_the_realistic_skulls_bones(pose, doc):
     """The Skins fit the realistic Skeleton too (#838): each Shell CLEAR_MM off the skull's bones as a Skin wears them
     (g.WORN), which the mechanical document has none of."""
-    assert _near(g.dressed(REAL, skin_shape), pose, only=set(g.BONES)) == []
+    assert _near(doc, pose, only=set(g.BONES)) == []
 
 
 def _near(doc, pose, only=None):

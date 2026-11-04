@@ -122,10 +122,10 @@ def _corners(me):
 
 def numbers(job):
     """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP) on every finish."""
-    for o in bpy.data.collections[FINISHED].objects:
-        sockets = o.modifiers["Finish"].node_group.interface.items_tree
+    for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
+        mod = o.modifiers["Finish"]
         for key, value in job["numbers"].items():
-            sockets[key].default_value = value
+            getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
 
 
 def _stl(path, me):

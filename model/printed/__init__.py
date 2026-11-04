@@ -72,10 +72,8 @@ for _skin in SKINS:
     }
 PARTS |= {
     **{f"next morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
-    **{f"next cansin {s} pupil plug": functools.partial(skin.pupil_plug, s) for s in "LR"},
-    **{f"next cansin {s} pupil": functools.partial(skin.dot, s) for s in "LR"},
-    **{f"next bart {s} pupil plug": functools.partial(skin.pupil_plug, s) for s in "LR"},  # Cansin's (#807)
-    **{f"next bart {s} pupil": functools.partial(skin.dot, s) for s in "LR"},
+    **{f"next {k} {s} pupil plug": functools.partial(skin.pupil_plug, s) for k in ("cansin", "bart") for s in "LR"},
+    **{f"next {k} {s} pupil": functools.partial(skin.dot, s) for k in ("cansin", "bart") for s in "LR"},
     **{f"next cansin {s} brow": functools.partial(skin.brow, s) for s in "LR"},
     "next cansin teeth": skin.teeth,
     "next cansin sunglasses": skin.sunglasses,
