@@ -8,6 +8,7 @@ own process before the model reads them: CadQuery's OCCT threads must not be run
 
 import functools
 import os
+import shutil
 import sys
 
 import cadquery as cq
@@ -64,8 +65,14 @@ if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "ours"
     if what == "ours":
         write(stages.OURS, list(SHAPES), ".stl")
-        skeleton.finish()  # round the parts just written
-        print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
+        if shutil.which(skeleton.BLENDER):
+            skeleton.finish()  # round the parts just written
+            print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
+        else:  # the GX10 (#936): no Linux ARM64 Blender; a stale bone would pass tests it should skip
+            for stem in geometry.BONES:
+                if os.path.exists(stages.stl(stem)):
+                    os.remove(stages.stl(stem))
+            print(f"no Blender at {skeleton.BLENDER}: the bones are left unfinished, CI finishes them")
     elif what == "stl":
         write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
     elif what == "step":
