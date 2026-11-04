@@ -374,7 +374,7 @@ def spec(doc, collide=True):
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
-    if neck.HEAD_CARRIERS["fixed"] in bodies:
+    if neck.HEAD_CARRIERS["fixed"] in bodies and neck.HEAD_CARRIERS["jaw"] in bodies:
         anatomy(s, stage, bodies)  # missing finished exports must never silently remove anatomical head weight
     if "tilt horn" in stage.horns:
         balance(s, doc)
