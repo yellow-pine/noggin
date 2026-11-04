@@ -173,7 +173,7 @@ def refit(arrays, scene, envelope):
     # Replace the superseded adult-cap vault targets with one declared regional envelope target set.
     obsolete = {"vertex", "opisthocranion", "euryon", "forehead"}
     scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not obsolete.intersection(n.split())}
-    vault = []
+    vault, reference_vault = [], []
     for bone in scene["bones"]:
         if bone["name"] not in {
             "frontal bone",
@@ -185,7 +185,16 @@ def refit(arrays, scene, envelope):
         }:
             continue
         matrix, key = np.array(bone["matrix"]), bone["key"]
-        vault.append(trimesh.Trimesh(arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"]))
+        vault.append(
+            trimesh.Trimesh(
+                arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"], process=False
+            )
+        )
+        reference_vault.append(
+            trimesh.Trimesh(
+                arrays[key + "_warp"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"], process=False
+            )
+        )
     target = []
     for mark in envelope["landmarks"]:
         if any(
@@ -197,20 +206,16 @@ def refit(arrays, scene, envelope):
         direction = np.array((np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)))
         target.append(np.array(envelope["origin"]) + direction * (mark["outer_radius_mm"] - envelope["inset_mm"]))
     vault = trimesh.util.concatenate(vault)
-    nearest = outer_cortex(vault, np.array(target), np.array(envelope["origin"]))
-    for i, (source, dest) in enumerate(zip(nearest, target)):
-        scene["landmarks"][f"LM vault {i}"] = {"source": source.tolist(), "target": dest.tolist()}
-    corrected = {}
-    regional = []
-    for name, pair in envelope["bone_landmarks"].items():
-        if "ray" in name.split() or any(r in name.split() for r in ("forehead", "crown", "left", "right", "back")):
-            regional.append(name)
-        corrected[name] = dict(pair)
-    points = np.array([corrected[n]["source"] for n in regional])
-    exterior = outer_cortex(vault, points, np.array(envelope["origin"]))
-    for name, point in zip(regional, exterior):
-        corrected[name]["source"] = point.tolist()
-    scene["landmarks"].update(corrected)
+    reference = trimesh.util.concatenate(reference_vault)
+    assert np.array_equal(vault.faces, reference.faces)
+    # Correspond through the prior anatomical Warp: its raised brow must not collapse onto a raw radial latitude.
+    exterior = outer_cortex(reference, np.array(target), np.array(envelope["origin"]))
+    nearest, _, faces = trimesh.proximity.closest_point(reference, exterior)
+    barycentric = trimesh.triangles.points_to_barycentric(reference.triangles[faces], nearest)
+    source = np.einsum("ij,ijk->ik", barycentric, vault.triangles[faces])
+    for i, (point, dest) in enumerate(zip(source, target)):
+        scene["landmarks"][f"LM vault {i}"] = {"source": point.tolist(), "target": dest.tolist()}
+    scene["landmarks"].update(envelope["bone_landmarks"])
     result, report = warp(arrays, scene)
     report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
     return result, report
