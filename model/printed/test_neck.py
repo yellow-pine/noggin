@@ -37,7 +37,8 @@ def shapes():
 @pytest.mark.model
 def test_no_two_parts_overlap_at_rest(shapes):
     pairs = [(a, b) for a, b in itertools.combinations(shapes, 2) if frozenset((a, b)) not in ON_SPLINE]
-    assert _overlaps(shapes, pairs) == []
+    overlaps = _overlaps(shapes, pairs)
+    assert overlaps == [], "\n".join(overlaps)
 
 
 @pytest.mark.model
@@ -132,4 +133,5 @@ def posed(request):
 def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_ranges(posed):
     """#708: the shorter neck and the jaw under the eyes, at each end of the drive's range, in the mechanical Back (its
     Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main."""
-    assert _overlaps(*posed) == []
+    overlaps = _overlaps(*posed)
+    assert overlaps == [], "\n".join(overlaps)

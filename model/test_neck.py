@@ -133,7 +133,7 @@ def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(re
     ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
     assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
     assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
-    assert 0.25 * 0.079 < ahead["hold_kgf_cm"] < 0.079
+    assert ahead["hold_kgf_cm"] == pytest.approx(0.079)  # 1:1 now, not the retired four-bar's torque reduction
     tilt = report["tilt"]
     assert tilt["spring"] == {"rest_kgf_cm": 0.0, "rate_kgf_cm_rad": 1.2} and tilt["rest_kgf_cm"] == pytest.approx(0.0)
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}

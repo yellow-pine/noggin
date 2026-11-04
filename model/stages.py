@@ -290,7 +290,7 @@ def neck_sub():
     # Spline up below the plate, torque through the head mount's quill; the bearing takes axial head load.
     face = (0, pan[1], neck.PAN_HORN_Z)
     parts.update(mounted(gimbal.servo_origin(face, g.Z), g.X, g.Z, "pan", g.X))
-    head = ["head mount:1", "pan horn:1", *neck.HEAD]
+    head = [*neck.HEAD, "pan horn:1"]
     carried = ["nod plate:1", "tilt servo:1", "pan servo:1", "pan bearing:1", *head]
     horns = {
         "tilt horn": Horn(
