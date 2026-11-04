@@ -187,9 +187,9 @@ pause
 
 join_wifi
 
-stage "Calibrate lids and eyes"
-say "Calibration is live: eyes/calibration.json is pushed to the Core by the noggin service; nothing is reflashed."
-say "The file holds the model's nominal ranges (inferred) until your Mech is calibrated: tune what looks off."
+stage "Check horns and nominal motion"
+say "This USB check uses the model's nominal ranges (inferred); it does not save fitted limits."
+say "After the next step installs the noggin service, follow docs/build/calibration.md to fit and save each endpoint."
 note "Fit horns first with the servos at centre (board_send 'pose lids 0.5 eyes 90'), then the small screws."
 board_send "pose lids 0.5 eyes 90" >/dev/null
 confirm "With servos at centre: lids about half open, eyes straight? (if not, refit the horns now)" || warn "refit horns, then re-run this stage"

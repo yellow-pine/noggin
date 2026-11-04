@@ -11,7 +11,7 @@ just start / stop    # (re)start or stop the noggin service; stop frees the Link
 noggin/noggin status # Link (Wi-Fi or USB) and program version per Core, the service's version, the last pack cut (charge the pack), the mode (follow, demo or pose)
 noggin/noggin off    # mute (on to resume); noggin/noggin eureka 2 for a manual gesture
 just demo            # demo mode: every gesture on a loop, 5 s apart, hooks ignored (just demo once, just demo bored 2)
-just follow          # follow mode: react to Claude Code again, from demo or pose (the default, and the mode after any restart)
+just follow          # follow mode: react to Claude Code again, from demo or pose (the default when the Mac service starts)
 just stl / step      # our printed parts as print-ready STLs (model/build/stl); STEP files of every part and document
 just render          # the model's pictures (docs/model-notes.md)
 ```
@@ -24,8 +24,11 @@ Posing, live calibration and the run-in are under [Tuning](tuning.md); flashing 
 Each Core joins your Wi-Fi and beacons every 2 s, so the noggin service learns its address; the Core acks each line on
 receipt, before it plays it, and keeps WLAN power save off, so a line after a quiet spell isn't held. A line Wi-Fi does
 not deliver goes over USB when the eyes Core's cable is in, and a neck line is dropped ([How it works](../how-it-works.md#the-link)).
-`noggin/noggin status` shows which way each Core is reached. With the cable out the gestures keep playing over Wi-Fi;
-after the Mech is switched off and on, each Core's beacon comes back by itself and the noggin service resends the
-calibration.
+`noggin/noggin status` shows which way each Core is reached. With the cable out the gestures keep playing over Wi-Fi.
+If the eyes Core loses power or reconnects while the Mac's noggin service keeps running, the service resends its
+calibration and any held pose. While muted, it sends `release` instead of restoring the pose.
+
+Restarting the Mac's noggin service (`just start`) begins in follow mode: a demo or held pose is not saved across
+that restart. The calibration stays saved in `eyes/calibration.json` and is sent again when the eyes Core connects.
 
 Both Cores together, end to end: `just live-check` ([Live check](../build/live-check.md)).
