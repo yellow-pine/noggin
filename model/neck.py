@@ -61,7 +61,7 @@ JAW_K = 1.08
 
 
 def jaw_point(y, z):
-    """(y, z) of the jaw at today's (y, z), grown JAW_K about its hinge."""
+    """(y, z) of the jaw as first drawn, grown JAW_K about its hinge."""
     return (JAW[0] + (y - JAW[0]) * JAW_K, JAW[1] + (z - JAW[1]) * JAW_K)
 
 

@@ -82,7 +82,7 @@ GROW = gm.K
 
 
 def grown(*v):
-    """The head's sizes `v`, mm as drawn round today's eyes (#665), grown GROW about the eyes' midpoint."""
+    """The head's sizes `v`, mm as first drawn round the eyes (#665), grown GROW about the eyes' midpoint."""
     return tuple(c * GROW for c in v)
 
 
