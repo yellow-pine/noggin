@@ -14,8 +14,10 @@ stricter CC BY-SA 2.1 JP treatment agreed for this adoption; it does not silentl
 `sources.json` maps every adopted object to its source FJ identifier. The working scene comes from
 prototype commit `8a937251`: 21 cranial elements, one mandible, C1–C7 and 27 upper-chest elements.
 The prototype selected T1–T4 and the first four rib/cartilage pairs from the complete downloaded
-package; the package's remaining lower thoracic/rib/cartilage meshes and two sclera references are
-not anatomical objects in this scene. Each working mesh was decimated to at most 3000 faces.
+package. The scene also retains an inactive `Below the base (cut away)` archive of lower
+thoracic/rib meshes and authored cartilage helpers; these are outside the 56-object fitting
+inventory and do not feed the finished outputs. The two sclera references are measurement
+assets, not adopted bones. Each active working mesh was decimated to at most 3000 faces.
 Do not describe these working meshes as restored full-resolution source geometry.
 
 Adaptations include posing in the shared bust frame, landmark warping, authored Sculpt deltas,

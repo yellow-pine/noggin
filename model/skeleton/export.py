@@ -26,9 +26,10 @@ def collection(name, parent=None):
     return c
 
 
-def carve(bone, kind):
+def carve(bone, kind, part=None):
     """The collection of what the finish of `bone` cuts as `kind` (rigid, moving, skins)."""
-    return collection(f"Carve {bone} {kind}", collection(CARVE, collection("helpers")))
+    c = collection(f"Carve {bone} {kind}", collection(CARVE, collection("helpers")))
+    return collection(f"{bone} {kind} {part}", c) if part is not None else c
 
 
 def _empty(c):
@@ -74,8 +75,18 @@ def swap(job, ratio=None):
     frame = Matrix.Translation(job["frame"])
     corners = {path: _corners(me) for path, me in meshes.items()}
     for bone, kinds in job["bones"].items():
-        o = bpy.data.objects[bone]
-        box = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        if "parts" in job:
+            group = bpy.data.collections[job["parts"][bone]["source"]]
+            dg = bpy.context.evaluated_depsgraph_get()
+            box = [
+                o.matrix_world @ Vector(c)
+                for o in group.all_objects
+                if o.type == "MESH"
+                for c in o.evaluated_get(dg).bound_box
+            ]
+        else:
+            o = bpy.data.objects[bone]
+            box = [o.matrix_world @ Vector(c) for c in o.bound_box]
         lo = Vector([min(p[i] for p in box) for i in range(3)]) - Vector((2,) * 3)
         hi = Vector([max(p[i] for p in box) for i in range(3)]) + Vector((2,) * 3)
         for kind, places in kinds.items():
@@ -88,7 +99,11 @@ def swap(job, ratio=None):
                     x = bpy.data.objects.new(name, me)
                     x.matrix_world = m
                     x.display_type, x.hide_render = "WIRE", True
-                    c.objects.link(x)
+                    # Pose groups are rasterized separately by the adopted
+                    # live Finish, then SDF-unioned. Avoid a multi-million-face
+                    # realized sweep as one MeshToSDF allocation.
+                    target = carve(bone, kind, name) if "parts" in job and kind == "moving" else c
+                    target.objects.link(x)
     mech = collection(MECH)
     for name, path in job["files"].items():
         x = bpy.data.objects.new(name, meshes[path])
@@ -144,16 +159,26 @@ def _stl(path, me):
 
 def write(job):
     """Each finished bone's STL in job["out"], moved from the document's frame into the head's."""
-    for o in bpy.data.collections[FINISHED].objects:
-        o.modifiers["Finish"].show_viewport = True
-    dg = bpy.context.evaluated_depsgraph_get()
+    outputs = list(bpy.data.collections[FINISHED].objects)
+    for o in outputs:
+        for mod in o.modifiers:
+            mod.show_viewport = False
     back = Matrix.Translation(-Vector(job["frame"]))
-    for o in bpy.data.collections[FINISHED].objects:
-        me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
-        me.transform(back @ o.matrix_world)
+    for o in outputs:
         stem = o.name.removeprefix("finished ")
+        if "only" in job and stem != job["only"]:
+            continue
+        for mod in o.modifiers:
+            mod.show_viewport = True
+        dg = bpy.context.evaluated_depsgraph_get()
+        me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+        assert len(me.polygons), f"{stem}: live Finish produced an empty mesh"
+        me.transform(back @ o.matrix_world)
         _stl(os.path.join(job["out"], stem + ".stl"), me)
         print(f"export: {stem} {len(me.polygons)} faces", flush=True)
+        bpy.data.meshes.remove(me)
+        for mod in o.modifiers:
+            mod.show_viewport = False
 
 
 if __name__ == "__main__":
@@ -162,3 +187,4 @@ if __name__ == "__main__":
     numbers(job)
     write(job)
     print("export: done", flush=True)
+    print("review: done", flush=True)

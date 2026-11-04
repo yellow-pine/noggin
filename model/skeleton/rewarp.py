@@ -92,6 +92,11 @@ def apply(prefix, out):
         bpy.context.scene["warp_blend"] = json.dumps(scene["warp_blend"])
     elif "warp_blend" in bpy.context.scene:
         del bpy.context.scene["warp_blend"]
+    if "bone_parts" in bpy.context.scene:
+        sys.path.insert(0, os.path.dirname(__file__))
+        import adopt
+
+        adopt.refresh()
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(out), compress=True)
     assert os.path.getsize(out) <= 12_000_000, "Skeleton scene exceeds its 12 MB cap"
 

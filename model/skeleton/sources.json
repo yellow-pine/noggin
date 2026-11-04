@@ -59,7 +59,11 @@
     "L scapula": "FJ3279",
     "R scapula": "FJ3384"
   },
-  "unselected_bones": {
+  "measurement_only": {
+    "L": "FJ1317",
+    "R": "FJ1368"
+  },
+  "inactive_scene_bones": {
     "T5": "FJ3169",
     "T6": "FJ3171",
     "T7": "FJ3173",
@@ -91,8 +95,13 @@
     "R costal cartilage 6": "FJ3343",
     "R costal cartilage 7": "FJ3345"
   },
-  "measurement_only": {
-    "L": "FJ1317",
-    "R": "FJ1368"
-  }
+  "inactive_scene_collection": "Below the base (cut away)",
+  "authored_inactive_helpers": [
+    "L costal cartilage 8 (modelled)",
+    "L costal cartilage 9 (modelled)",
+    "L costal cartilage 10 (modelled)",
+    "R costal cartilage 8 (modelled)",
+    "R costal cartilage 9 (modelled)",
+    "R costal cartilage 10 (modelled)"
+  ]
 }
