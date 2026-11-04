@@ -5,6 +5,9 @@ name: Claude Review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+concurrency:   # one run per PR; a new push cancels the one in progress
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions: {}
 jobs:
   skills:
