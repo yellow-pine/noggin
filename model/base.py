@@ -21,7 +21,7 @@ import os
 
 import numpy as np
 
-from model import gimbal, neck
+from model import envelopes, gimbal, neck
 
 # the Torso's outside, the realistic skull's box pedestal (#838): x, y, and z from its foot to its lid's top (as tall as
 # when the pan was in it: #858 keeps the Mech's height), round the power-path board in front of the neck mount's foot,
@@ -52,11 +52,12 @@ POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 # its legs down to the gimbal frame's plate behind the bail (LEG_X, LEG_Y); on it the Cores lying flat, each under its
 # Shield, their USB-C ends back toward the hub (their middles' x, and y); the hub on the tray's riser on the plate, its
 # upstream port out the back of the skull base (HUB_X, its back end HUB_Y, its underside HUB_Z) beside the pitch bar
-# and over the head mount's rear L screw; the bulk capacitor standing on the tray behind the Cores (CAP_Y); every
+# and over the head mount's rear L screw; the bulk capacitor lying across x on the tray behind the Cores (CAP_Y); the
+# hub's back end and the capacitor's top kept off the hair's inside, which runs 0.4 and 3 mm past them (#921); every
 # number inferred, held inside the skull by model/test_base.py
 TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (20.5, 24.5), (74.0, 80.0)
 CORES_AT = ((-16.0, 16.0), 50.0)
-HUB_X, HUB_Y, HUB_Z = (-20.2, 0.2), 86.0, gimbal.PLATE_Z[1] + 4.0
+HUB_X, HUB_Y, HUB_Z = (-20.2, 0.2), 85.0, gimbal.PLATE_Z[1] + 4.0
 HUB_LENGTH = 31.6  # the hub's, port to back: model/envelopes.py hub's (model/test_base.py)
 CAP_Y = 71.0
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
@@ -100,7 +101,7 @@ def standing(back, z, row=ROW):
 
 def cranium():
     """The boards in the head (#858): {part name: (Envelope, 4x4)}: each Core plugged in under its Shield, lying flat on
-    the cranium tray, the Shield's pins up and its USB-C end back, Core 1 at -x; the bulk capacitor standing on the
+    the cranium tray, the Shield's pins up and its USB-C end back, Core 1 at -x; the bulk capacitor lying across x on the
     tray behind them, on the Y lead where it enters the Shields; the hub lying on the tray's riser, its upstream port
     back."""
     out = {}
@@ -110,7 +111,8 @@ def cranium():
         m[:3, 3] = (x, CORES_AT[1], TRAY_Z[1] + 10.68)  # the Core's USB-C on the tray
         out |= {name: (mesh, m) for name, mesh in parts}
     cap = np.eye(4)
-    cap[:3, 3] = (0.0, CAP_Y, TRAY_Z[1])
+    cap[:3, :3] = np.array(((0, 0, -1), (0, 1, 0), (1, 0, 0))).T  # its can's axis along x
+    cap[:3, 3] = (-envelopes.CAPACITOR[1] / 2, CAP_Y, TRAY_Z[1] + envelopes.CAPACITOR[0])
     out["next bulk capacitor"] = ("capacitor", cap)
     m = np.eye(4)
     m[:3, :3] = np.array(((0, 1, 0), (-1, 0, 0), (0, 0, 1))).T  # its length back, its port's end last
