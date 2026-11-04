@@ -144,14 +144,16 @@ def stale(doc):
 
 def poses(doc, motion):
     """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
-    the web viewer's GLBs are baked from (web/build.py). Each of the skull's bones, which MuJoCo plays none of
-    (mjcf.spec), rides its carrier (stages.RIDES) as model/stages.py places it on it."""
-    parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
+    the web viewer's GLBs are baked from (web/build.py); a Stage in another Skin (geometry.DRESSED) plays the one it
+    wears it on. Each part MuJoCo plays none of (the skull's bones, mjcf.spec; that Skin's Shells) rides its carrier
+    (stages.RIDES) as model/stages.py places it on it, or stays where it is placed (a Shell on the Torso)."""
+    parts = json.load(open(os.path.join(OUT, geometry.undressed(doc), motion + ".json")))["parts"]
     placed = stages.STAGES[doc].parts
+    parts = {n: p for n, p in parts.items() if n in placed}
     rides = {}
-    for name in (n for n, p in placed.items() if stages.stem(p.file) in geometry.BONES):
-        carrier = stages.RIDES[name]
-        rides[name] = (carrier, np.linalg.inv(placed[carrier].matrix) @ placed[name].matrix)
+    for name in (n for n in placed if n not in parts):
+        carrier = stages.RIDES.get(name) if stages.RIDES.get(name) in parts else None
+        rides[name] = (carrier, np.linalg.inv(placed[carrier].matrix if carrier else np.eye(4)) @ placed[name].matrix)
         rides[name][1][:3, 3] /= 1000  # mm to MuJoCo's metres
     frames = []
     for i in range(len(next(iter(parts.values()))["pos"])):
@@ -161,7 +163,7 @@ def poses(doc, motion):
             m[:3, 3] = p["pos"][i]
             frames[-1][name] = m
         for name, (carrier, rel) in rides.items():
-            frames[-1][name] = frames[-1][carrier] @ rel
+            frames[-1][name] = frames[-1][carrier] @ rel if carrier else rel
     return frames
 
 

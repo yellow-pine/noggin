@@ -9,7 +9,7 @@ next_panels: the next Mech's panels' grid, each of its Stages in every Preset (m
 geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a viewer per motion (#839), and
 next_parts: a
 picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' three there and
-next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
+next_exploded: each Stage with every part apart (#811); stand_in: the line under the pictures of a Preset whose Skin stands in (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeleton shapes.
@@ -215,7 +215,7 @@ BONY = pictures.BONY  # the Stages in order, as Bones
 
 def stage(doc):
     """A Stage document's name on a page, in any Shape, or a picture's (pictures.DRAWN) in any Preset: "Stage 2"."""
-    doc = pictures.DRAWN.get(doc, (doc,))[0]
+    doc = g.undressed(pictures.DRAWN.get(doc, (doc,))[0])
     return f"Stage {BONY.index(doc.removesuffix(g.SKELETON_SUFFIX[g.shape(doc)])) + 1}"
 
 
@@ -226,9 +226,13 @@ def next_panels():
 
 
 def stand_in():
-    """The line under Cansin's build's pictures, shown for it alone (#819): its Skin's Shape a stand-in."""
-    p = next(iter(g.PRESETS))
-    return f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist (#813).</em></p>"
+    """The line under the pictures of each Preset whose Skin shape has no Shells yet (geometry.SKINS), shown for it
+    alone (#819, #813): Morty's stand in."""
+    shapes = {g.SKINLESS, *g.SKINS}
+    lines = [p for p, t in g.PRESETS.items() if t["Skin shape"] not in shapes]
+    return "".join(
+        f"<p{themed([p])}><em>{p}'s Skin is drawn in Morty's Shape until its own Shells exist.</em></p>" for p in lines
+    )
 
 
 def figures(labels, kind="parts", links=None, presets=None):
@@ -381,8 +385,8 @@ def stage_switch():
     """The viewer page's Stage switch (#720): a button per Stage by its GLB as Bones, "1" to "3" (the Skeleton shape
     adds its suffix), the head variant's Stage marked with the gates and marks it fails in RANKING (#705), when just
     sim ranked today's variants: its mechanical document's, the one physics runs on (#809); the Skeleton shapes
-    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shape none's (#876),
-    where a Stage has a bare GLB."""
+    (#805, #819), each its GLB's suffix (the Preset picks one, or the viewer's mix); and the Skin shapes', where a
+    Stage has their GLB: none's bare (#876), each other drawn one's dressed (#813)."""
     ranking = json.loads(RANKING.read_text()) if RANKING.exists() else {}
     ranked = set(ranking.get("order", [])) == {d for d in g.NEXT if d in g.SIMULATED}
     buttons = []
@@ -395,7 +399,8 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": {g.SKINLESS: viewer.BARE}}
+    skins = {g.SKINLESS: viewer.BARE} | {s: f"-{s}" for s in list(g.SKINS)[1:]}  # Morty's the documents' own (#813)
+    return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": skins}
 
 
 def theme():

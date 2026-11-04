@@ -1,6 +1,6 @@
-"""Seam: Morty's Shells (model/printed/skin.py) and the Seats cut into what carries them, as model/stages.py places
-them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part but what carries it, at
-rest and with each servo at either end."""
+"""Seam: the Skins' Shells (model/printed/skin.py: Morty's, Cansin's) and the Seats cut into what carries them, as
+model/stages.py places them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part but
+what carries it, at rest and with each servo at either end, in each Skin."""
 
 import functools
 import math
@@ -20,34 +20,43 @@ from model.printed import PARTS, gimbal, skin
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
 DOC = next(d for d in g.NEXT if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
 REAL = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])  # the realistic one: the skull's bones on it
+HEADS = ("face", "hair", "mouth cover")
 
 
 @pytest.fixture(scope="module")
-def head():
-    """{face, hair, mouth cover: its shape}, built once (CI times a test, not its fixtures: #808)."""
-    return {s: PARTS[f"next morty {s}"]().val() for s in ("face", "hair", "mouth cover")}
+def heads():
+    """{Skin: {face, hair, mouth cover: its shape}}, built once (CI times a test, not its fixtures: #808)."""
+    return {skin: {s: PARTS[f"next {skin} {s}"]().val() for s in HEADS} for skin in g.SKINS}
+
+
+def _built(stem, heads):
+    skin_shape, _, rest = stem.removeprefix("next ").partition(" ")
+    return heads.get(skin_shape, {}).get(rest) or PARTS[stem]().val()
 
 
 @pytest.mark.parametrize("stem", sk.SHELLS)
-def test_a_shell_is_one_valid_solid(stem, head):
-    shape = head.get(stem.removeprefix("next morty ")) or PARTS[stem]().val()
+def test_a_shell_is_one_valid_solid(stem, heads):
+    shape = _built(stem, heads)
     assert shape.isValid() and len(shape.Solids()) == 1
 
 
-def test_a_head_shell_built_again_is_the_same(head):
+@pytest.mark.parametrize("skin_shape", g.SKINS)
+def test_a_head_shell_built_again_is_the_same(skin_shape, heads):
     """#838: every Shell shares the head's shapes (skin._head), and on Linux's OCCT a second build over shapes an
     earlier one's booleans used came out broken; each build starts from its own copy."""
-    for s, shape in head.items():
-        again = PARTS[f"next morty {s}"]().val()
+    for s, shape in heads[skin_shape].items():
+        again = PARTS[f"next {skin_shape} {s}"]().val()
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
 HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the ears outside its width (#844)
 
 
-def test_mortys_head_fits_the_head_limit_but_for_his_ears(head):
-    """His face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm; only his ears stand out of its sides."""
-    head = list(head.values())
+@pytest.mark.parametrize("skin_shape", g.SKINS)
+def test_each_head_fits_the_head_limit_but_for_its_ears(skin_shape, heads):
+    """Its face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm, Cansin's tufts too (#813); only the ears
+    stand out of its sides."""
+    head = list(heads[skin_shape].values())
     lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
     hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head) for a in "xyz"]
     _, depth, height = np.subtract(hi, lo)
@@ -57,10 +66,23 @@ def test_mortys_head_fits_the_head_limit_but_for_his_ears(head):
     assert earless.xlen <= HEAD_LIMIT[0] + 1e-3 < max(h.BoundingBox().xlen for h in head)
 
 
-def test_mortys_face_and_hair_meet_without_overlapping(head):
+@pytest.mark.parametrize("skin_shape", g.SKINS)
+def test_the_face_and_hair_meet_without_overlapping(skin_shape, heads):
     """Printed apart and pressed together on the face's Seats: the hair's bosses and walls clear the face's, but for
     its balls touching the face's grooves (the clearance test skips a Shell's carrier)."""
-    assert head["face"].intersect(head["hair"]).Volume() < 0.1
+    assert heads[skin_shape]["face"].intersect(heads[skin_shape]["hair"]).Volume() < 0.1
+
+
+@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.startswith("next cansin ")])
+def test_cansins_glued_shells_fill_their_pockets_without_overlapping(glued):
+    """#813: his brows in the face, his teeth in the mouth cover, each pupil plug in its cap's jagged seat and its dot
+    in the plug: each in its pocket, within its fit of what carries it and sharing no volume with it."""
+    carrier = sk.GLUED[glued][0]
+    shape, held = PARTS[glued]().val(), PARTS[carrier]().val()
+    if "brow" in glued:  # drawn in its eye's frame, its pocket in the head's
+        shape = shape.translate(cq.Vector(*gm.EYE[glued.split()[2]]))
+    assert shape.intersect(held).Volume() < 1e-3
+    assert shape.distance(held) <= gm.PUPIL_FIT + 1e-3
 
 
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
@@ -102,7 +124,7 @@ def test_a_shell_meets_what_carries_it_only_where_its_balls_touch(pair):
 
 
 SPACING = 0.4  # mm between the points sampled on each surface
-SEAMS = {frozenset(("next morty shirt front", "next morty shirt back"))}  # Shells meeting 0.2 mm apart by design
+SEAMS = {frozenset((f"next {s} shirt front", f"next {s} shirt back")) for s in g.SKINS}  # meeting 0.2 mm apart
 # shortcut: sampled surfaces read a distance up to SPACING long; OCCT's exact distance took minutes a pose (#665)
 
 
@@ -132,6 +154,8 @@ def _carriers():
     out = {s: set() for s in sk.SHELLS}
     for s in sk.SEATS:
         out[s.shell].add(s.carrier)
+    for s, (carrier, _) in sk.GLUED.items():
+        out[s].add(carrier)
     for rider, carrier in stages.RIDES.items():
         if rider.removesuffix(":1") in out:
             out[rider.removesuffix(":1")].add(carrier.removesuffix(":1"))
@@ -139,19 +163,21 @@ def _carriers():
 
 
 @pytest.mark.model
+@pytest.mark.parametrize("skin_shape", g.SKINS)
 @pytest.mark.parametrize("pose", list(_poses()))
-def test_every_shell_clears_every_part_but_what_carries_it(pose):
+def test_every_shell_clears_every_part_but_what_carries_it(pose, skin_shape):
     """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
-    hardware (#51 shell containment)."""
-    assert _near(DOC, pose) == []
+    hardware (#51 shell containment), in each Skin (#813)."""
+    assert _near(g.dressed(DOC, skin_shape), pose) == []
 
 
 @pytest.mark.model
+@pytest.mark.parametrize("skin_shape", g.SKINS)
 @pytest.mark.parametrize("pose", list(_poses(REAL)))
-def test_every_shell_clears_the_realistic_skulls_bones(pose):
+def test_every_shell_clears_the_realistic_skulls_bones(pose, skin_shape):
     """The Skins fit the realistic Skeleton too (#838): each Shell CLEAR_MM off the skull's bones as a Skin wears them
     (g.WORN), which the mechanical document has none of."""
-    assert _near(REAL, pose, only=set(g.BONES)) == []
+    assert _near(g.dressed(REAL, skin_shape), pose, only=set(g.BONES)) == []
 
 
 def _near(doc, pose, only=None):

@@ -3,7 +3,7 @@
 import functools
 
 from model import skin as sk
-from model.geometry import BONES, MECHANICAL
+from model.geometry import BONES, MECHANICAL, SKINS
 from model.printed import base, coupon, gimbal, neck, skin
 
 PARTS = {
@@ -56,18 +56,26 @@ UNSTYLED = {
     BONES, "the realistic Skeleton's skull, a mesh (model/printed/skull.py): the mechanical Skeleton has none (#838)"
 )
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
-# Morty's Skin (#665): his Shells, each Seat cut into what carries it in every style (model/skin.py)
+# The Skins (#665, #813): each one's Shells, each Seat cut into what carries it in every style (model/skin.py)
+for _skin in SKINS:
+    PARTS |= {
+        f"next {_skin} face": functools.partial(skin.face, _skin),
+        f"next {_skin} hair": functools.partial(skin.hair, _skin),
+        **{
+            f"next {_skin} {s} {lid} lid cover": functools.partial(skin.lid_cover, _skin, s, lid)
+            for s in "LR"
+            for lid in ("upper", "lower")
+        },
+        f"next {_skin} mouth cover": functools.partial(skin.mouth_cover, _skin),
+        **{f"next {_skin} shirt {half}": functools.partial(skin.shirt, _skin, half) for half in ("front", "back")},
+    }
 PARTS |= {
-    "next morty face": skin.face,
-    "next morty hair": skin.hair,
     **{f"next morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
-    **{
-        f"next morty {s} {lid} lid cover": functools.partial(skin.lid_cover, s, lid)
-        for s in "LR"
-        for lid in ("upper", "lower")
-    },
-    "next morty mouth cover": skin.mouth_cover,
-    **{f"next morty shirt {half}": functools.partial(skin.shirt, half) for half in ("front", "back")},
+    **{f"next cansin {s} pupil plug": functools.partial(skin.pupil_plug, s) for s in "LR"},
+    **{f"next cansin {s} pupil": functools.partial(skin.dot, s) for s in "LR"},
+    **{f"next cansin {s} brow": functools.partial(skin.brow, s) for s in "LR"},
+    "next cansin teeth": skin.teeth,
+    "next cansin sunglasses": skin.sunglasses,
 }
 PARTS |= {
     stem: skin.seated(stem, build)

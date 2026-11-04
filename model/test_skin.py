@@ -78,3 +78,40 @@ def test_no_lid_shows_past_its_cover_from_the_front(lid):
         x, r, deg = np.meshgrid(xs, radii, np.linspace(*span, 53))
         hidden = _hidden(r, x, deg + turn, cover_r, np.add(cover, turn), cover_x)
         assert hidden.all(), (s, x[~hidden].min(), x[~hidden].max(), deg[~hidden].min(), deg[~hidden].max())
+
+
+def _on_skeleton(skin_shape):
+    """{(the Shell less its Skin's name, carrier, at, normal)}: the Skin's Seats on the Skeleton."""
+    prefix = f"next {skin_shape} "
+    return {
+        (s.shell.removeprefix(prefix), s.carrier, s.at, s.normal)
+        for s in skin.SEATS
+        if s.shell.startswith(prefix) and not s.carrier.startswith(prefix)
+    }
+
+
+def test_every_skin_sits_on_the_same_seats_on_the_skeleton():
+    """#51, #813: one Skeleton for every Skin; each Skin's Shells come off and on the same kinematic Seats."""
+    assert len(_on_skeleton("morty")) == 13  # 4 lid covers, 2 face, 2 hair, the mouth, 4 shirt
+    for skin_shape in g.SKINS:
+        assert _on_skeleton(skin_shape) == _on_skeleton("morty"), skin_shape
+
+
+def test_cansins_sunglasses_hang_by_a_magnet_on_his_tees_neckline():
+    """#813: aviators hooked on the tee's neckline, a small separate magnetic part in Apricot."""
+    (seat,) = (s for s in skin.SEATS if s.shell == "next cansin sunglasses")
+    assert seat.carrier == "next cansin shirt front" and seat.normal == (0.0, -1.0, 0.0)
+    assert g.PRINTED["next cansin sunglasses"][0] == "accessories"
+    assert g.filament("accessories", g.PRESETS["Cansin's build"])[1] == "Apricot"
+
+
+def test_a_glued_shell_is_keyed_in_what_carries_it():
+    """The pupils (#51: keyed, not held by magnets alone), and Cansin's plugs, brows and teeth (#813)."""
+    assert skin.GLUED["next morty L pupil"] == ("next L eyeball cap", (0.0, -1.0, 0.0))
+    assert skin.GLUED["next cansin L pupil"][0] == "next cansin L pupil plug"
+    assert skin.GLUED["next cansin L pupil plug"][0] == "next L eyeball cap"
+    assert skin.GLUED["next cansin teeth"][0] == "next cansin mouth cover"
+    assert skin.GLUED["next cansin R brow"][0] == "next cansin face"
+    assert set(skin.SHELLS) == {n for n in g.PRINTED if n.split()[1] in g.SKINS} | {
+        f"next {s} eyeball cap" for s in "LR"
+    }
