@@ -32,7 +32,8 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 ## Assembly, as the model places it
 
-1. **Torso**: the box pedestal the Mech stands on, the pack lying low in it, the switch board lying flat beside the
+1. **Torso**: ~~the box pedestal the Mech stands on~~ *a T1–T4 ribcage of primitives on a floor plate, the Mech
+   standing on the plate (#879)*, the pack lying low in it, the switch board lying flat beside the
    pack's lead end, its lever reached through a hole in the lid, the power-path board lying flat in front, and the
    **neck mount** standing on its floor, its hollow post rising through the **torso lid**, the neck cable up inside it,
    the pan servo on its shelf over the lid. The lid slides onto the post from behind through its slot, over the walls,

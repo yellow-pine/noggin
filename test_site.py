@@ -202,8 +202,8 @@ def test_the_model_notes_build_the_picture_sizes_and_colours_from_the_code():
     for row in [
         "| panels | 800 wide, as tall as the tallest | WebP |",
         "| anatomical | Bones | PETG Basic Dark Beige (30403) | #DBC8B6 | #DBC8B6 | #DBC8B6 |",
-        "| robot | Joints | PETG Basic Black (30105) | #000000 | #2B2B2E | #5A5A60 |",
-        "| black | Bones | PETG Basic Black (30105) | #000000 | #2B2B2E | #5A5A60 |",
+        "| robot | Joints | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
+        "| black | Bones | PETG Basic Black (30105) | #000000 | #3A3A3C | #5A5A60 |",
         "| morty | eye whites | PLA Basic Jade White (10100) | #FFFFFF | #FFFFFF | #E8E8E8 |",
         "| lines | | | | #5F5F5F | |",
         "| background | | | | transparent | #F7F4EE |",
