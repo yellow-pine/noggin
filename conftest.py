@@ -45,3 +45,17 @@ def eyes(monkeypatch):
 @pytest.fixture
 def pwm_log():
     return _PWM.log
+
+
+def pytest_collection_modifyitems(items):
+    """Without Blender (the GX10, #936) `just ours` leaves the realistic Skeleton's bones unfinished: what reads them
+    skips."""
+    marked = [item for item in items if "bones" in item.keywords]
+    if not marked:
+        return
+    from model import skeleton  # here, not at the top: check-light's collection stays light
+
+    if skeleton.blender():
+        return
+    for item in marked:
+        item.add_marker(pytest.mark.skip(reason="no Blender on this host; CI runs it"))

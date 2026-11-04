@@ -66,7 +66,9 @@ def _apart(doc, level):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("doc", g.STAGES)
+@pytest.mark.parametrize(
+    "doc", [pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.STAGES[d] else d for d in g.STAGES]
+)  # the skull: its bones
 def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
     """#811: every part of each Stage, in each Skeleton, out of every other part's bounding box."""
     offsets, boxes = _apart(doc, 2)
@@ -79,6 +81,7 @@ def test_at_the_parts_level_no_two_parts_boxes_overlap(doc):
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_each_part_slides_out_along_its_assembly_direction_on_its_sub_assemblys_offset():
     """Stage 3 (#811): the pack and the switch board up off the Torso's floor, each Core off the cranium tray (#858), each lid
     bar out along its Pivot's axis (the left eye's to +x), the pan horn up its servo's shaft beyond the servo; the

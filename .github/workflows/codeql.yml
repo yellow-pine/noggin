@@ -10,14 +10,12 @@ on:
   schedule:
     - cron: "0 4 * * 1"   # Mondays
   workflow_dispatch:
-concurrency:   # a newer run cancels the one in progress
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 permissions: {}
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       security-events: write   # upload the results to code scanning

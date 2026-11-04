@@ -18,7 +18,9 @@ TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("doc", sorted(g.STAGES))
+@pytest.mark.parametrize(
+    "doc", [pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.STAGES[d] else d for d in sorted(g.STAGES)]
+)  # the skull: its bones
 def test_every_part_of_the_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the Mech assembled, nothing lying apart: every part of each document
     touches one that leads, part on part, down to the Torso (Stage 1's test stand, #720). Each part's surface sampled about 1 mm apart, plus its
@@ -93,6 +95,7 @@ def test_the_cores_lie_on_the_cranium_tray_and_the_switch_and_power_path_boards_
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_back_of_its_base():
     """#858: each Core and Shield, the bulk capacitor and the tray's plate under them, at least the finished skull's WALL inside the cranium's
     hull, so the finish (model/skeleton) leaves its outside whole over them; the hub's port on the back of the

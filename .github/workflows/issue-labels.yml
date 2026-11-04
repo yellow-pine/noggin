@@ -9,15 +9,13 @@ on:
     types: [opened, edited, reopened, ready_for_review]
   issues:
     types: [closed]
-concurrency:   # one run per PR or issue; a newer edit supersedes the one in progress
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
 permissions: {}
 jobs:
   in-progress:
     name: In Progress
     if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:
@@ -42,6 +40,7 @@ jobs:
     name: Clear Labels
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:

@@ -8,14 +8,12 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
 permissions: {}
 jobs:
   scan:
     name: Scan (${{ matrix.image }})
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       security-events: write   # the SARIF upload

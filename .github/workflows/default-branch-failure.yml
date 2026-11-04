@@ -4,9 +4,9 @@ name: Default Branch Failure
 # images failure` issue, closed by its next push. PRs run a slim gate, so the default branch's post-merge run catches
 # what they no longer run (#697). A failed run opens the issue (that label, bug, ready for agent) linking the commit and
 # the run, titled a Conventional Commit scoped by the failed job, which it names (#767, #791: 'fix(model): `Checks` fail
-# on the default branch at <sha7> (Model)'), or comments on the open one, found by its label, as does a run a failed
-# step cancelled (cancel-on-failure, #769); anything else (a pass, a cancelled run superseded) says nothing (#745). It
-# acts only for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named
+# on the default branch at <sha7> (Model)'), or comments on the open one, found by its label. Only a run that ends as
+# `failure` files (#944: no run is cancelled early, so a red one ends so); a cancelled run says nothing (#745). It acts
+# only for this repository's runs on main (branches: [main] alone also matches a fork's PR from a branch named
 # main).
 run-name: "${{ github.event.workflow_run.display_title }}"
 on:
@@ -14,17 +14,16 @@ on:
     workflows: ["Checks", "CI Images"]   # by their names (test_workflows.py)
     types: [completed]
     branches: [main]
-concurrency:   # one at a time, so two red runs never open two issues
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
 permissions: {}
 jobs:
   report:
     name: Report
     if: >-
       ${{ github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository }}
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      && contains(fromJSON('["failure", "success"]'), github.event.workflow_run.conclusion) }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       actions: read   # the run's jobs
       issues: write
@@ -46,13 +45,11 @@ jobs:
           fi
           # the open one, by the issues API: search lags a just-opened issue
           issue=$(gh issue list --label "$label" --json number --jq '.[0].number // empty')
-          # the failed job; a failed step cancels the rest of its run (cancel-on-failure, #769), its own job too, which
-          # may then read cancelled: a cancelled run with a failed step is red
-          [ "$CONCLUSION" = success ] || job=$(gh run view "$RUN_ID" --json jobs --jq '[.jobs[] |
-            select(.conclusion == "failure" or any(.steps[]?; .conclusion == "failure"))][0].name // empty')
-          if [ "$CONCLUSION" = cancelled ] && [ -n "$job" ]; then CONCLUSION=failure; fi
           case "$CONCLUSION" in
-            failure|timed_out|startup_failure)
+            failure)
+              # the failed job, which names the issue's owner (a job past its timeout-minutes may read timed_out)
+              job=$(gh run view "$RUN_ID" --json jobs \
+                --jq '[.jobs[] | select(.conclusion | IN("failure", "timed_out"))][0].name // empty')
               # a Conventional Commit, scoped by the failed job (#791); backticks keep subject-case off the name
               case "$job" in Model*|Render*|Convex*) scope=model ;; Site*) scope=site ;; *) scope=ci ;; esac
               title="fix($scope): \`$WORKFLOW\` fail on the default branch at ${SHA:0:7}"

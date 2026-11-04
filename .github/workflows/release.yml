@@ -35,10 +35,10 @@ jobs:
     uses: ./.github/workflows/checks.yml
     with:
       deploy: true
-    permissions:   # what checks.yml's jobs ask for: cancel-on-failure's actions, Deploy's Pages
+    permissions:   # what checks.yml's jobs ask for: Changes' runs, Deploy's Pages
       contents: read
       issues: read   # Site's marks check (docs/adr/0024)
-      actions: write
+      actions: read
       pages: write
       id-token: write
   release:
@@ -50,10 +50,12 @@ jobs:
       || github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
       && github.event.workflow_run.head_repository.full_name == github.repository) }}
-    concurrency:   # one release at a time, never cancelled mid-release
+    concurrency:   # the one group but Deploy's (#944): one release at a time, never cancelled mid-release; a newer
+      # commit's waiting release replaces an older waiting one
       group: Release
       cancel-in-progress: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit Checks passed
     steps:

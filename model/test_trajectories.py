@@ -166,7 +166,7 @@ def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(
 
 def test_the_mech_plays_the_wink_on_its_eye_gimbal():
     """#663: the eye program's wink on the Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
-    (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking eye's upper lid
+    (8 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking eye's upper lid
     shuts (-21, model/test_gimbal.py) and its lower lid rises on its link to meet it, and the other squints; all come
     back to rest."""
     model = built(DOC)
@@ -176,24 +176,24 @@ def test_the_mech_plays_the_wink_on_its_eye_gimbal():
     frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
     left, right, pitch, lid, other, under = frames.T
     assert np.abs(left - right).max() < 0.1 and np.abs(pitch).max() < SETTLED_DEG
-    assert abs(left.max() - 8 / 30 * 25) < 1.5  # its saccade lands, overshooting a little on the way
+    assert abs(left.max() - 8) < 1.5  # its saccade lands, overshooting a little on the way (the gimbal's degrees, #896)
     assert abs(lid.min() + 21) < SETTLED_DEG and -21 + 5 < other.min() < -2
     assert abs(under.max() - gimbal.lower(-21)) < SETTLED_DEG
     assert np.abs(frames[-1]).max() < SETTLED_DEG
 
 
 def test_the_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco():
-    """#688: eureka's 22 deg dart on the Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
-    the 11 deg it carries (model/test_traces.py) within the servo's deadband, while the eyes counter-rotate back from
-    the dart; the head comes back to rest."""
+    """#688: eureka's 22 deg dart on the Mech's MuJoCo model (the eye program's degrees are the gimbal's yaw, #896): the
+    pan pivot turns the head the way the eyes look, to the 13.2 deg it carries (model/test_traces.py) within the servo's
+    deadband, while the eyes counter-rotate back from the dart; the head comes back to rest."""
     model = built(DOC)
     writes, times = tj.commands(DOC, "eureka")
     names = ("L yaw pivot", "pan pivot")
     yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
     side = np.sign(yaw[np.abs(yaw).argmax()])
-    assert (side * pan).max() == pytest.approx(0.6 * 22 * 25 / 30, abs=1)
+    assert (side * pan).max() == pytest.approx(0.6 * 22, abs=1)
     turned = int(np.abs(pan).argmax())
-    assert abs(yaw[turned] + pan[turned] - side * 22 * 25 / 30) < 2  # the gaze held on the dart
+    assert abs(yaw[turned] + pan[turned] - side * 22) < 2  # the gaze held on the dart
     assert abs(pan[-1]) < SETTLED_DEG
 
 

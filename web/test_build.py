@@ -65,6 +65,14 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb):
         assert look[k] == re.search(rf'^{name} = "(#[0-9A-F]{{6}})"', drawn, re.M)[1], k
 
 
+def test_blender_s_look_colours_are_one_line_hexes():
+    """#940: the GLB test above reads blender.py's colours as one-line hex constants (it imports bpy, so text), checked
+    here without a GLB, so a wrapped line fails on the PR, not on main's Render."""
+    drawn = open(os.path.join(build.HERE, "..", "model", "render", "blender.py")).read()
+    for name in ("BLACK_LIFT", "INK"):
+        assert re.search(rf'^{name} = "#[0-9A-F]{{6}}"', drawn, re.M), name
+
+
 def test_every_part_of_the_document_is_a_node(glb):
     doc, g = glb
     assert {n["name"] for n in g["nodes"] if "mesh" in n} == parts(doc)
@@ -104,6 +112,7 @@ def test_each_part_carries_its_explode_offsets_the_page_moves_it_by(glb):
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_explode_gives_each_part_its_offsets_in_gltfs_metres_and_y_up():
     """#482, #664: the Sub-assemblies level by model/render/pictures.py EXPLODE, as glTF's (x, z, -y) in metres: the
     Torso stays, the jaw lifts with the neck and goes forward; then the Parts level's (#811)."""
