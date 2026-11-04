@@ -11,7 +11,7 @@ from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box, hull
 from model.printed import bone
-from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
+from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link, passes
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 NECK_R = 5.0  # the post's top, in the pan bar's layer: the bar swings to 6.8 mm of the axis at pan 45 (#642)
@@ -113,8 +113,8 @@ def cervical_carrier():
     _, y, z = nk.HEAD_AXES["tilt"][0]
     out = box((-20, 20), (56, 72), nk.MOUNT_Z)
     for sign in (-1, 1):
-        xs = sorted(sign * x for x in (14, 18))
-        rail = box(xs, (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
+        xs = sorted(sign * x for x in (6, 10))
+        rail = box(sorted(sign * x for x in (14, 18)), (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
         points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
         for a, b in zip(points, points[1:]):
             rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
@@ -123,9 +123,9 @@ def cervical_carrier():
     # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
     anchor = nk.TILT_ANCHOR
     root = (-nk.CERVICAL_X[-2], *nk.CERVICAL_PATH[-2])
-    out = out.union(strut(root, (-3.3, anchor[1], anchor[2]), (4, 3), (3.5, 2.5)))
-    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-4.8, -1.8)))
-    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-4.8, -1.8)))
+    out = out.union(strut(root, (-6.8, anchor[1], anchor[2]), (4, 3), (3.5, 2.5)))
+    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-8.3, -1.8)))
+    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-8.3, -1.8)))
     for x, fy in nk.CARRIER_FEET:
         out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
     return out
@@ -135,9 +135,9 @@ def nod_plate():
     """The tilting plate, lateral trunnions and the two servo case seats; no load passes through a spline."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
     py = nk.HEAD_AXES["pan"][0][1]
-    out = hull("XY", [(0, py, 10), (-20.8, y, 6), (20.8, y, 6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
+    out = hull("XY", [(0, py, 10), (-12.8, y, 6), (12.8, y, 6)], nk.NOD_Z[1] - nk.NOD_Z[0], (0, 0, nk.NOD_Z[0]))
     for sign in (-1, 1):
-        xs = sorted(sign * x for x in (18.8, 22.8))
+        xs = sorted(sign * x for x in (10.8, 14.8))
         out = out.union(box(xs, (y - 5, y + 5), (z, nk.NOD_Z[0] + 1)))
         out = out.union(cyl("x", (0, y, z), 5, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
     out = out.cut(cyl("z", (0, py, 0), 4.2, nk.NOD_Z))
@@ -146,7 +146,7 @@ def nod_plate():
     floor = nk.PAN_HORN_Z - 19
     out = out.union(collar(matrix, floor))
     for start, x in (((-21, py + 6), -23), ((11, py + 6), 23)):
-        out = out.union(_flat([start, (x, 72)], 4, (floor, floor + 3)))
+        out = out.union(_flat([start, (x, 72)], 4, (floor, floor + 3)).cut(passes(matrix)))
         out = out.union(box((x - 1.5, x + 1.5), (69.5, 74.5), (floor, nk.NOD_Z[0] + 1)))
     # Upper-head saddle on the actual standard-servo tabs; rear posts clear the complete tray/PCB pan sweep.
     sx, sy, sz = nk.TILT_SHAFT
@@ -162,10 +162,11 @@ def nod_plate():
             out = out.cut(cyl("x", (0, hy, hz), 1.1, tab_x))
     out = out.union(box(tab_x, (sy - 16.6, rear + 3), (ceiling - 2, ceiling)))
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R + 0.3, nk.NOD_Z))
+    out = out.cut(box((-3.2, 3.2), (95, rear + 4), nk.NOD_Z))  # the reaction bar crosses the rear edge at full tilt
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
     for xs, radius in (
-        ((13.7, 18.3), 8.5),
-        ((-18.3, -13.7), 8.5),
+        ((5.7, 10.3), 5.1),
+        ((-10.3, -5.7), 5.1),
         ((-34.2, -25.8), 8.5),
     ):
         out = out.cut(cyl("x", (0, y, z), radius, xs))

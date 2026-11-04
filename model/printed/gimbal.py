@@ -331,6 +331,8 @@ def frame(mechanical=False):
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
+    for sign in (-1, 1):
+        out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
     servos = [gm.servo_matrix(face, shaft, tab) for face, shaft, tab, _ in gm.drives().values()]
     servos.append(gm.servo_matrix(*neck.drives()["mouth"][:3]))  # the mouth's, hanging behind the jaw (#838)
     for m in servos:

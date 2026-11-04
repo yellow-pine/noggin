@@ -58,7 +58,7 @@ CERVICAL_PATH = (
     (78.5, -60.7),
     (76.6, -48.7),
 )  # (y,z), over the pack into the true canal
-CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 16.0)  # narrow medial rails outside the wire corridor, then lateral C0 trunnions
+CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 8.0)  # medial rails keep the C0 trunnions inside the condyles' pan sweep
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not the whole nod plate's swept disc
 
