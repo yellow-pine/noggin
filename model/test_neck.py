@@ -153,7 +153,7 @@ def report():
     return neck.report(HEAD)
 
 
-@pytest.mark.parametrize("drive", ["jaw"])
+@pytest.mark.parametrize("drive", ["jaw", "tilt"])
 def test_every_drive_reaches_its_range_within_the_servos_travel_at_40_deg_or_better(report, drive):
     """#641: each bar meets its lever at a transmission angle of at least 40 deg over the whole range, and the servo
     turns no further than its travel to get there."""
