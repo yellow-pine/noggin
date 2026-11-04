@@ -120,6 +120,7 @@ def carved(build, grow=False):
         bones = build(*args, mechanical=False)
         cut = bones.intersect(out)
         cut = cut if one(cut) else out.intersect(bones)  # OCCT's intersect: one way round (#838)
+        cut = cut if one(cut) else bones.intersect(out, tol=1e-4)  # or fuzzy, where Linux's broke an exact one (#901)
         assert one(cut), build  # OCCT's intersect can split or break it
         return cut
 
