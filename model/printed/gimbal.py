@@ -277,7 +277,7 @@ def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # its outboard spoke never under the eye, where the yoke's bearing arm is (#901)
+    # its outboard spoke forward of the yoke's bearing under the eye over the lid's whole range (#901)
     out = _lid(gm.LOWER_R, span, (-65.0, -68.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
@@ -285,8 +285,9 @@ def lower_lid(side, mechanical=False):
 @bone.grown
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
-    (#838, model/gimbal.py PLATE_Z), with the yaw bearings under the yokes' stems, the bail's and the lids' uprights with
-    the shanks' bores (the lids' on a beam out in front of the coronoids, the face's Seats flush in its front, #852), the
+    (#838, model/gimbal.py PLATE_Z), with the yaw bearings reaching forward under the yokes' stems, the bail's and the
+    lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, the face's
+    Seats flush in its front, #852), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
     holes the head mount
@@ -307,9 +308,8 @@ def frame(mechanical=False):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
-        out = out.union(
-            box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top))
-        )  # the lid upright's foot, hanging the bar
+        foot = box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top))  # the lid upright's foot, hanging the bar
+        out = out.union(foot)
         if mechanical:  # each yoke's bearing reaching forward from the plate's front (#901)
             out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
             out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, stem)))

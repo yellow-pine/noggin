@@ -43,18 +43,15 @@ TIE_Z = (-30.0, -27.0)
 YAW_Y = 22.0
 BAIL = (40.0 * K, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
-BAIL_END = (
-    12.0 * K
-)  # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
+# the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
+BAIL_END = 12.0 * K
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
 CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
 LID_R = (CAP_R + 1.0, CAP_R + 3.1)  # the upper lid's shell, inner and outer radius: 1 mm off Morty's eye (#872)
-LOWER_R = (
-    LID_R[1] + 1.5,
-    LID_R[1] + 4.0,
-)  # the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
+# the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
+LOWER_R = (LID_R[1] + 1.5, LID_R[1] + 4.0)
 LID_COVER = 3.0  # how far past the cap's rim a shut lid reaches
 
 
@@ -72,7 +69,7 @@ LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: s
 LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
 # the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
 LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
-LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
+LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits on the eye
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
 LID_HORN = (37.0, -12.0)  # its case 1 mm behind the jaw's hinge (#901)
@@ -90,8 +87,9 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
-# upper. Inferred, searched (#901) for the lower lid turning as far as the upper from rest to shut, its link meeting the
-# crank at 55 deg or more, every pin behind the cap's flat back however the eye turns, above the frame's plate
+# upper about 0.8x. Inferred, searched (#901) for the lower lid's edge from its rest to shut, its link meeting the crank
+# at 55 deg or more, every pin behind the cap's flat back however the eye turns and above the frame's plate, and
+# building on every OCCT CI and the GX10 run
 LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
 LOWER_PIN = (2.9, -14.9)  # (y, z) of the lower lid's crank pin at rest
 _LOWER = linkage.four_bar(
@@ -119,10 +117,9 @@ LID_X = {
     **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.3, 36.3)},
     **{"bar": (24.75, 27.75), "link": (27.75, 30.75), "ear": (30.75, 33.75)},
 }
-# The gimbal frame's plate (#838): up under the tie-bar, between the realistic skull's coronoids (|x| 32..40, y -5..12)
-# and its condyles, above the mandible, the yaw servo hanging under it through its hole: its body PLATE_X either side
-# from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), and a bar in front of the coronoids (CHEEK_Y) out
-# to the lids' uprights
+# The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
+# hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
+# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) between those uprights' feet
 PLATE_Z = (-38.0, -35.0)
 # under the eyes' centres, behind the lower lids' sweep (#901: in front of the coronoids before), to past the head
 # mount's rear screws (model/neck.py)
