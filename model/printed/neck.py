@@ -122,7 +122,8 @@ def cervical_carrier():
         out = out.union(rail)
     # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
     anchor = nk.TILT_ANCHOR
-    out = out.union(strut((-16, y, z), (-3.3, anchor[1], anchor[2]), (4, 3), (3.5, 2.5)))
+    root = (-nk.CERVICAL_X[-2], *nk.CERVICAL_PATH[-2])
+    out = out.union(strut(root, (-3.3, anchor[1], anchor[2]), (4, 3), (3.5, 2.5)))
     out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-4.8, -1.8)))
     out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-4.8, -1.8)))
     for x, fy in nk.CARRIER_FEET:
@@ -153,7 +154,7 @@ def nod_plate():
     ceiling, rear = sz + 14, 112.0
     out = out.union(box((-15, 15), (y, rear + 3), nk.NOD_Z))
     for x in (-12, 12):
-        out = out.union(box((x - 3, x + 3), (rear - 3, rear + 3), (nk.NOD_Z[0], ceiling)))
+        out = out.union(box((x - 6, x + 6), (rear - 6, rear + 6), (nk.NOD_Z[0], ceiling)))
     out = out.union(box((-15, 15), (rear - 3, rear + 3), (ceiling - 2, ceiling)))
     for hy in (sy - 13.4, sy + 34.1):
         out = out.union(box(tab_x, (hy - 3.2, hy + 3.2), (sz - 10.8, ceiling)))
