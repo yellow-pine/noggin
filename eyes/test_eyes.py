@@ -161,6 +161,29 @@ def test_pose_can_hold_the_pitch_alone_or_with_the_yaw(eyes, pwm_log, pose):
     assert pwm_log == []
 
 
+def test_pitch_endpoint_poses_glide_inside_the_live_fitted_limits(eyes, monkeypatch):
+    eyes.handle_line("set pitch_lo 80")
+    eyes.handle_line("set pitch_hi 100")
+    eyes.handle_line("rest")
+    writes, put = [], mod.PWM.duty_ns
+
+    def write(pwm, ns):
+        if pwm.pin == mod.PITCH:
+            writes.append((mod.clock, angle(ns)))
+        put(pwm, ns)
+
+    monkeypatch.setattr(mod.PWM, "duty_ns", write)
+    for requested, fitted in ((0, 80), (180, 100)):
+        writes.clear()
+        eyes.handle_line(f"pose pitch {requested}")
+        assert writes[-1][1] == pytest.approx(fitted, abs=0.001)
+        assert all(80 - 0.001 <= a <= 100 + 0.001 for _, a in writes)
+        assert len({round(a, 3) for _, a in writes}) > 4  # a glide, not a jump to the endpoint
+        for (t0, a0), (t1, a1) in zip(writes, writes[1:], strict=False):
+            assert t1 - t0 >= 20
+            assert abs(a1 - a0) <= mod.SLEW * (t1 - t0) / 1000 + 0.001
+
+
 def test_exercise_stays_mid_range_and_ends_in_rest(eyes, pwm_log):
     eyes.handle_line("exercise 1")
     for t in range(0, 70_000, 50):

@@ -223,6 +223,27 @@ def test_gesture_reaches_the_eyes_core_with_a_tag_not_the_token(tmp_path):
     core.running = False
 
 
+def test_pitch_calibration_and_held_pose_are_saved_and_restored_on_reconnect(tmp_path):
+    core = FakeCore()
+    core.beaconing = False
+    s, sock = start(tmp_path, core)
+    path = tmp_path / "calibration.json"
+    path.write_text('{"pitch_lo": 80, "pitch_hi": 100}')
+    try:
+        ask(sock, "pose pitch 0\n")  # hold the endpoint before the Core connects
+        core.beaconing = True
+        assert wait_for(lambda: core.lines == ["set pitch_lo 80", "set pitch_hi 100", "rest", "pose pitch 0"])
+        ask(sock, "set pitch_lo 82\n")
+        assert wait_for(lambda: core.lines[-3:] == ["set pitch_lo 82", "rest", "pose pitch 0"])
+        assert json.loads(path.read_text()) == {"pitch_lo": 82, "pitch_hi": 100}
+        core.uptime = 1
+        restored = ["set pitch_lo 82", "set pitch_hi 100", "rest", "pose pitch 0"]
+        assert wait_for(lambda: core.lines[-len(restored) :] == restored)
+    finally:
+        s.stop()
+        core.running = False
+
+
 def test_ack_from_another_address_does_not_count(tmp_path, capsys, fast):
     core = FakeCore(ack=False, stranger=True)
     s, sock = start(tmp_path, core)
