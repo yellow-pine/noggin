@@ -278,7 +278,7 @@ def lower_lid(side, mechanical=False):
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
     # its outboard spoke forward of the yoke's bearing under the eye over the lid's whole range (#901)
-    out = _lid(gm.LOWER_R, span, (-65.0, -68.0), "lower boss", gm.LOWER_PIN, mechanical)
+    out = _lid(gm.LOWER_R, span, (-65.0, -76.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
