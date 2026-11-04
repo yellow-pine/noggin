@@ -54,12 +54,15 @@ def writes(line, cal=CAL):
     mod.sleep_ms = lambda ms: clock.__setitem__(0, clock[0] + ms)
     e = mod.Eyes()
     e.cal.update(cal)
+    ranges = {p: e.range(p) for p in mod.NAME}
     half = {p: (hi - lo) / 2 for p, (lo, hi) in ((p, e.range(p)) for p in (*mod.EYES, mod.PAN))}
     # The program's commands before its servo calibration: lid fraction, eye degrees from centre (clamped to its range).
     e._lid_angle = lambda pin, f: min(1.0, max(0.0, f))
     e._eye_angle = lambda pin, a: a - mod.EYE_CENTER
     e._pan_angle = lambda head: head
-    e.range = lambda pin: (0.0, 1.0) if pin in mod.LIDS else (-half[pin], half[pin])
+    ranges.update({p: (0.0, 1.0) for p in mod.LIDS})
+    ranges.update({p: (-span, span) for p, span in half.items()})
+    e.range = ranges.__getitem__  # tilt and jaw stay in their calibrated servo degrees (#929)
     original = e.set
 
     def set_and_log(targets):
@@ -102,4 +105,6 @@ def commands(motion):
             out.append((t, f"{s[0].upper()} lid horn", round(edge - gimbal.LID_REST + gimbal.LID_FOLLOW * pitch, 2)))
         elif s == "pan":
             out.append((t, "pan horn", round(neck.servo_for("pan", a / half * gimbal.YAW), 2)))
+        elif s in ("tilt", "mouth"):
+            out.append((t, "jaw horn" if s == "mouth" else "tilt horn", round(a - 90, 2)))
     return sorted(out, key=lambda w: w[0]), range(0, end + max(DELAY_MS.values()) + FRAME_MS + 1, FRAME_MS)
