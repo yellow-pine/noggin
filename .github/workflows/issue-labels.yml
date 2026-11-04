@@ -2,7 +2,8 @@ name: Issue Labels
 # Keeps issues' state labels in step: a PR sets the issues it links in progress, and closing an issue clears its labels.
 # `In Progress`: each open issue the PR's body links (Closes/Fixes/Resolves #N or Refs #N, main's scripts/pr_issue.py)
 # gets `in progress` in place of `ready for agent` and `blocked`; `on hold` stays (#446). `Clear Labels`: a closed
-# issue loses every state label (CONTRIBUTING.md). `blocked` and `on hold` are otherwise set and lifted by hand.
+# issue loses every state label (CONTRIBUTING.md). `blocked` (a wait no issue stands for) and `on hold` are otherwise
+# set and lifted by hand; a wait on another issue is GitHub's blocked-by, never a label.
 on:
   pull_request:
     types: [opened, edited, reopened, ready_for_review]
