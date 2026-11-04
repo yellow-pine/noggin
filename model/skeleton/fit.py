@@ -39,9 +39,12 @@ def warp(arrays, scene):
     for i in range(3):
         step = np.eye(3)[i] * 0.5
         jac[:, :, i] = field(probes + step) - field(probes - step)
-    determinant = float(np.linalg.det(jac + np.eye(3)).min())
+    determinants = np.linalg.det(jac + np.eye(3))
+    determinant = float(determinants.min())
     if determinant <= 0.1:
-        raise ValueError(f"Bust warp folds or collapses: least Jacobian {determinant:.4f}")
+        raise ValueError(
+            f"Bust warp folds or collapses: least Jacobian {determinant:.4f} at {probes[determinants.argmin()]}"
+        )
     return result, {
         "min_jacobian": determinant,
         "landmark_error_mm": float(np.linalg.norm(source + field(source) - target, axis=1).max()),
