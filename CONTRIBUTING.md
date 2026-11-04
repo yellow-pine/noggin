@@ -150,15 +150,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   and found by it (#697, #745, #767, #791). Only the main session runs the full run on a
   branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
   slim gate alone.
-  Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
-  workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
-  `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). Checks,
-  which deploys and Release waits on, never cancels: main's runs queue and each finishes, so merges minutes apart
-  still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
-  neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
-  (`.github/actions/`), which cancels the rest of the run at once, and Default Branch Failure files it all the same
-  (#769).
-  Checks' `Deploy`, Release and Release Assets never cancel a run mid-way.
+  No run or job is cancelled early (#944, docs/adr/0009, `test_workflows.py`): every run, each push to a PR and each
+  merge to main, runs to its end and lists every failure it has as `failure`, never `cancelled`. No workflow has a
+  `concurrency` group; only Checks' `Deploy` and Release's `Release` jobs keep one, never cancelling one in progress,
+  so a newer commit's deploy or release replaces a waiting older one. Jobs still wait on their `needs:`, a matrix keeps
+  GitHub's default fail-fast, and every job has a `timeout-minutes` at least twice its longest measured run (#948).
+  Default Branch Failure files a run that ends as `failure` alone. A workflow on `pull_request` alone tests no event,
+  so it lists no job every PR skips (#722).
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs

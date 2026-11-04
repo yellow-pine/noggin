@@ -101,30 +101,19 @@ def test_no_workflow_runs_on_ubuntu_latest():
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
-def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
-    """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
-    Checks' Deploy, Release and Release Assets never cancel a run mid-way. #689: Checks, which deploys (#795) and
-    Release waits on (main's alone since #722), runs every push to main to completion, queued, or merges minutes apart
-    never deploy."""
+def test_no_run_or_job_is_cancelled_early():
+    """#944 (docs/adr/0009): a run cancelled early lists its real failures as `cancelled` (#937), so every run on a PR
+    and on main runs to its end. No workflow has a concurrency group, which drops a queued run when a newer one comes;
+    only Checks' Deploy and Release's Release keep a job's group, never cancelling one in progress, so a newer commit's
+    deploy or release replaces a queued older one and an older site never lands after a newer."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
-    wrong = []
-    for name, flow in flows.items():
-        group = str(flow.get("concurrency", {}).get("group", ""))
-        if "pull_request" in flow[True] and not (
-            "github.workflow" in group
-            and "github.event.pull_request.number" in group
-            and flow["concurrency"].get("cancel-in-progress") is True
-        ):
-            wrong.append(name)
-    assert wrong == []
-    awaited = set(flows["release.yml"][True]["workflow_run"]["workflows"])
-    by_name = {flow["name"]: flow for flow in flows.values()}
-    assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
-        awaited, False
-    )
-    assert flows["checks.yml"]["jobs"]["deploy"]["concurrency"]["cancel-in-progress"] is False
-    for name in ("checks.yml", "release.yml", "release-assets.yml"):
-        assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
+    assert [n for n, flow in flows.items() if "concurrency" in flow] == []
+    assert [f.name for f in WORKFLOWS if "cancel-in-progress: true" in f.read_text()] == []
+    groups = {
+        (n, i): j["concurrency"] for n, flow in flows.items() for i, j in flow["jobs"].items() if "concurrency" in j
+    }
+    assert set(groups) == {("checks.yml", "deploy"), ("release.yml", "release")}
+    assert all(g["cancel-in-progress"] is False and "${{" not in g["group"] for g in groups.values()), groups
 
 
 def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
@@ -223,12 +212,10 @@ FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_di
 def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
     """#471: a push to main filters its changed paths against main's last commit whose checks passed; the weekly
     scheduled run on main does not, so every job runs, nor does a dispatch on any branch (#562: the full render for a
-    look's approval, its Checks a real one). Its own concurrency group, so it never cancels a push's run (whose deploy
-    would then never happen) nor one of those cancels it."""
+    look's approval, its Checks a real one)."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     assert "cron" in flow[True]["schedule"][0]
     assert "workflow_dispatch" in flow[True]
-    assert "github.event_name" in flow["concurrency"]["group"]
     steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
     assert steps["filter"]["if"] == FULL
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
@@ -263,7 +250,6 @@ def test_a_pr_runs_the_slim_gate_alone():
         "Link the image's venv",
         "Run just check-light",
         "List the slowest tests",
-        "Cancel the run on failure",  # #769
     ]
     assert "uv run just check-light " in jobs["code"]["steps"][2]["run"]
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
@@ -348,13 +334,13 @@ def test_a_job_names_an_environment_only_to_deploy():
 
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), but may cancel its own run
-    (`actions: write`, cancel-on-failure, #769), and main's Deploy writes Pages (#795)."""
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), and main's Deploy writes Pages
+    (#795). No job cancels its own run any more (#944)."""
     for f in ("checks.yml", "pr-gate.yml"):
         flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
         jobs = [j for i, j in flow["jobs"].items() if i != "deploy"]
         perms = [flow["permissions"], *(j.get("permissions", {}) for j in jobs)]
-        assert not [p for p in perms if "write" in [v for k, v in p.items() if k != "actions"]], f
+        assert not [p for p in perms if "write" in p.values()], f
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():
@@ -675,63 +661,29 @@ def gh_calls(tmp_path: Path) -> list[str]:
     return [c for c in log.read_text().splitlines() if not c.startswith("run view")] if log.exists() else []
 
 
-CANCEL = {"name": "Cancel the run on failure", "if": "${{ failure() }}", "uses": "./.github/actions/cancel-on-failure"}
-
-
-def needs(job: dict) -> list[str]:
-    n = job.get("needs", [])
-    return [n] if isinstance(n, str) else n
-
-
-def test_a_failed_job_cancels_the_rest_of_its_run():
-    """#769 (Cansin: across the board, PR CI too): a failed run can neither pass a PR's gate nor deploy or release main,
-    and main's runs queue one at a time (#689; a 15-minute Blender held ~20 merges back), so every job of Checks and PR
-    Gate but the gate ends in cancel-on-failure, the one job permission it adds `actions: write`, and a matrix fails
-    fast. Every other workflow runs its jobs one after another (each needs the one before) or one per event, so a
-    failed job leaves none running."""
-    action = yaml.safe_load((WORKFLOWS[0].parents[1] / "actions" / "cancel-on-failure" / "action.yml").read_text())
-    assert [s["run"] for s in action["runs"]["steps"]] == ['gh run cancel "$GITHUB_RUN_ID"']
-    for f in ("checks.yml", "pr-gate.yml"):
-        for id_, job in yaml.safe_load((WORKFLOWS[0].parent / f).read_text())["jobs"].items():
-            cancels = id_ not in ("checks", "deploy")  # the gate, every job before it its need, and the deploy after
-            assert (job["steps"][-1] == CANCEL) == cancels, (f, id_)
-            assert (job.get("permissions", {}).get("actions") == "write") == cancels, (f, id_)
-            assert job.get("strategy", {}).get("fail-fast", True) is True, (f, id_)
-    side_by_side = []
-    for f in WORKFLOWS:
-        jobs = yaml.safe_load(f.read_text())["jobs"]
-        if f.name in ("checks.yml", "pr-gate.yml", "issue-labels.yml"):  # issue-labels: a PR's job or an issue's
-            continue
-        before = {j: set(needs(jobs[j])) for j in jobs}
-        for _ in jobs:  # every job's needs, theirs and so on
-            before = {j: b.union(*(before[n] for n in b)) for j, b in before.items()}
-        side_by_side += [
-            (f.name, a, b) for a in jobs for b in jobs if a < b and a not in before[b] and b not in before[a]
-        ]
-    assert side_by_side == []
+def test_no_job_cancels_its_run_and_a_matrix_keeps_githubs_fail_fast():
+    """#944: cancel-on-failure (#769) cancelled the whole run at a job's first failed step, its own job too, so a real
+    failure read `cancelled` (#937); it is gone, with the `actions: write` it took. A matrix keeps GitHub's default
+    fail-fast, but Image Scan, whose two images are scanned apart."""
+    assert not (WORKFLOWS[0].parents[1] / "actions" / "cancel-on-failure").exists()
+    assert [f.name for f in WORKFLOWS if "cancel-on-failure" in f.read_text() or "run cancel" in f.read_text()] == []
+    jobs = {(f.name, i): j for f in WORKFLOWS for i, j in yaml.safe_load(f.read_text())["jobs"].items()}
+    fail_fast = {k: j["strategy"]["fail-fast"] for k, j in jobs.items() if "fail-fast" in j.get("strategy", {})}
+    assert fail_fast == {("image-scan.yml", "scan"): False}
 
 
 @pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
-@pytest.mark.parametrize(
-    ("conclusions", "calls"),
-    [
-        (["failure", "cancelled"], ["issue list --label", "issue create --title"]),  # its failed step cancelled it
-        (["success", "cancelled"], ["issue list --label"]),  # cancelled by hand, nothing failed
-        ([], ["issue list --label"]),  # superseded while it waited: no job ran
-    ],
-)
-def test_default_branch_failure_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
-    """#769: a failed step cancels its run (cancel-on-failure), its own job too, so run and job may read cancelled; a
-    failed step still makes it red."""
+@pytest.mark.parametrize("conclusion", ["cancelled", "timed_out", "startup_failure"])
+def test_default_branch_failure_files_a_failed_run_alone(tmp_path, conclusion):
+    """#944: no run is cancelled early, so a red run ends as `failure`; any other run, a cancelled one past a failed
+    job too, starts no report and, run anyway, files nothing. A success still closes the issue."""
     (job,) = yaml.safe_load((WORKFLOWS[0].parent / "default-branch-failure.yml").read_text())["jobs"].values()
+    assert 'contains(fromJSON(\'["failure", "success"]\'), github.event.workflow_run.conclusion)' in job["if"]
     (step,) = job["steps"]
-    jobs = [
-        {"name": f"Job {i}", "conclusion": "cancelled", "steps": [{"conclusion": c}]} for i, c in enumerate(conclusions)
-    ]
-    env = fake_gh(tmp_path, jobs)
-    env |= {"WORKFLOW": "Checks", "CONCLUSION": "cancelled", "RUN_URL": "u", "SHA": "s"}
+    env = fake_gh(tmp_path, [{"name": "Code", "conclusion": "failure", "steps": [{"conclusion": "failure"}]}])
+    env |= {"WORKFLOW": "Checks", "CONCLUSION": conclusion, "RUN_URL": "u", "SHA": "s"}
     subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
-    assert gh_calls(tmp_path) == calls
+    assert gh_calls(tmp_path) == ["issue list --label"]
 
 
 def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked():
