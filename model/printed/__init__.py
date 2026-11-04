@@ -72,8 +72,8 @@ for _skin in SKINS:
     }
 PARTS |= {
     **{f"morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
-    **{f"cansin {s} pupil plug": functools.partial(skin.pupil_plug, s) for s in "LR"},
-    **{f"cansin {s} pupil": functools.partial(skin.dot, s) for s in "LR"},
+    **{f"{k} {s} pupil plug": functools.partial(skin.pupil_plug, s) for k in sk.DOTTED for s in "LR"},
+    **{f"{k} {s} pupil": functools.partial(skin.dot, s) for k in sk.DOTTED for s in "LR"},
     **{f"cansin {s} brow": functools.partial(skin.brow, s) for s in "LR"},
     "cansin teeth": skin.teeth,
     "cansin sunglasses": skin.sunglasses,
