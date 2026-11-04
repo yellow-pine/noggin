@@ -89,7 +89,8 @@ def tray(mechanical=False):
     out = box((-x1 - 6, x1 + 6), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
     for s in (-1, 1):
         out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
-    riser = box((-x1, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
+    # the riser as wide as before the legs moved out past the pitch servo (#901)
+    riser = box((-24.5, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
     return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
 

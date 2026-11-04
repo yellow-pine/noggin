@@ -272,13 +272,13 @@ def upper_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
-@bone.carved
+@bone.grown  # carved, Linux's OCCT broke its Bones' intersect (#901): the mechanical lid takes them in
 def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
     # its outboard spoke forward of the yoke's bearing under the eye over the lid's whole range (#901)
-    out = _lid(gm.LOWER_R, span, (-65.0, -76.0), "lower boss", gm.LOWER_PIN, mechanical)
+    out = _lid(gm.LOWER_R, span, (-65.0, -90.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -308,11 +308,11 @@ def frame(mechanical=False):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
-        foot = box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top))  # the lid upright's foot, hanging the bar
-        out = out.union(foot)
+        # the lid upright's foot, hanging the bar, and its rail on the plate's level back to the plate's front
+        out = out.union(box(ux, (gm.CHEEK_Y[0], 4), (gm.BEAM_Z[0], top))).union(box(ux, (4, y0 + 4), gm.PLATE_Z))
         # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
         out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
-        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, gm.TIE_Z[0] - 0.5)))
+        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, gm.TIE_Z[0] - 2.0)))
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
             out = out.union(box(lx, (jy - neck.BOSS_R, jy + neck.BOSS_R), (top, jz))).union(

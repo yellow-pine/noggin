@@ -129,7 +129,7 @@ BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back'
 CHEEK_Y = (-10.0, -6.0)
 # the bar a beam down its whole width, the face's Seats flush in its front (#852), under the lower lids' sweep (#901),
 # hung from the lid uprights' feet
-BEAM_Z = (-(LOWER_R[1] + 13.0), -(LOWER_R[1] + 1.0))
+BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' covers too
 # the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
 HEAD_MM = (160.0, 176.0, 175.0)
 

@@ -208,12 +208,12 @@ def _built_head(t, skin):
 
 
 def _eyes():
-    """What the eyes' openings leave out: round each eye, everything its lids and their covers reach with 1.2 mm to
+    """What the eyes' openings leave out: round each eye, everything its lids and their covers reach with 2 mm to
     spare, ahead of the eye centres and inside the lids' reach across."""
-    out, r = None, gm.LOWER_R[1] + sk.GAP + sk.COVER + 1.2
-    across = gm.SPACING / 2 + gm.LID_X["lower boss"][1] + 2.0
+    out, r = None, gm.LOWER_R[1] + sk.GAP + sk.COVER + 2.0
+    across = gm.SPACING / 2 + gm.LID_X["lower boss"][1] + 4.0
     for x, _, _ in gm.EYE.values():
-        o = ball(r, (x, 0, 0)).intersect(box((-across, across), (-r - 5, 0), (-r, r)))
+        o = ball(r, (x, 0, 0)).intersect(box((-across, across), (-r - 5, 5), (-r, r)))
         out = o if out is None else out.union(o)
     return out
 
@@ -348,7 +348,7 @@ def mouth_cover(skin="morty"):
     swings down; up off its Seat once the face is off. Cansin's: his teeth's pocket in the chin's top front."""
     (seat,) = (s for s in sk.SEATS if s.shell == f"{skin} mouth cover")
     _, y, z = seat.at
-    bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
+    bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 2.6  # clear of the muzzle's curve over the Seat (#901)
     plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
     w = 22.0 * nk.JAW_K  # within the jaw's chin
     wall = box((-w, w), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
