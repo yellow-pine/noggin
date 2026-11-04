@@ -29,6 +29,9 @@ def export(prefix):
         scene["warp_blend"] = json.loads(bpy.context.scene["warp_blend"])
     if "anatomical_regions" in bpy.context.scene:
         scene["anatomical_regions"] = json.loads(bpy.context.scene["anatomical_regions"])
+    for key in ("original_anatomical_landmarks", "anatomical_constraints"):
+        if key in bpy.context.scene:
+            scene[key] = json.loads(bpy.context.scene[key])
     groups = {"Skull", "Mandible", "Ribcage"} | {f"C{i}" for i in range(1, 8)}
     for name in inventory:
         o = bpy.data.objects[name]
@@ -95,6 +98,9 @@ def apply(prefix, out):
         assert hashlib.sha256(points.tobytes()).digest() == digest, name
     bpy.context.scene["fit_report"] = json.dumps(report)
     bpy.context.scene["anatomical_regions"] = json.dumps(scene["anatomical_regions"])
+    for key in ("original_anatomical_landmarks", "anatomical_constraints"):
+        if key in scene:
+            bpy.context.scene[key] = json.dumps(scene[key])
     if "warp_blend" in scene:
         bpy.context.scene["warp_blend"] = json.dumps(scene["warp_blend"])
     elif "warp_blend" in bpy.context.scene:

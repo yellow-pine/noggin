@@ -336,5 +336,11 @@
       -80.0
     ],
     "status": "inferred coherent upper-chest shear; C0/eyes fixed; lower sternum/floor preserved; all surface/joint/wire gates still required"
+  },
+  "regional_room": {
+    "upper_chest_outer_width_mm": 135.4587,
+    "head_outer_top_mm": 293.064,
+    "provenance": "Local immutable Morph volume/capped-bust scalar sections, 2026-11-04; private geometry stays on Mac. Width excludes arm span.",
+    "status": "Seed containment budgets only; exact full-surface fit remains required."
   }
 }

@@ -235,138 +235,126 @@ def original_facts(arrays, scene):
 
 
 def refit(arrays, scene, envelope):
-    """Register the true cervical canals in one skull-to-T1 frame and fit the vault to our coarse cage.
+    """Original anatomy, four declared uniform regions, then one bounded residual field.
 
-    The anatomical corridor is independent of the pan bearing. Its provisional C1 y=-73.4 and original T1 end
-    preserve the accepted head interface while correcting the lateral-hole translations, not the bone order.
+    The similarity sizes are chosen BEFORE shape deformation from fixed eye/C0 anchors and measured Skin room.
+    Original cervical curvature is retained; no independent Bone poses or interpolated C2-C7 targets are used.
     """
-    original = {b["group"]: np.array(b["matrix"]) for b in scene["bones"]}
-    common = original["Skull"]
-    canals, target = {}, {}
-    for bone in scene["bones"]:
-        name, key = bone["name"], bone["key"]
-        if name not in {"C" + str(i) for i in range(1, 8)} | {"T1"}:
-            continue
-        normal = (0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))) if name == "C2" else (0, 0, 1)
-        c = canal(trimesh.Trimesh(arrays[key + "_basis"], arrays[key + "_faces"]), normal)
-        canals[name] = c @ common[:3, :3].T + common[:3, 3]
-    top, bottom = (np.array(envelope["canal_ends"][n]) for n in ("C1", "T1"))
-    for name, centre in canals.items():
-        fraction = (centre[2] - canals["T1"][2]) / (canals["C1"][2] - canals["T1"][2])
-        target[name] = bottom + fraction * (top - bottom)
-    # Keep only authored landmarks; generated poses/anchors are rebuilt from the ORIGINAL connected anatomy.
-    generated = ("LM chest ", "LM canal ", "LM vault ", "LM correction ")
-    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not n.startswith(generated)}
-    for name, pair in scene["landmarks"].items():
-        group = name.split()[1]
-        if group == "frame":
-            continue
-        group = "Ribcage" if group == "ribcage" else group if group in original else "Skull"
-        old = original[group]
-        local = (np.array(pair["source"]) - old[:3, 3]) @ np.linalg.inv(old[:3, :3]).T
-        pair["source"] = (local @ common[:3, :3].T + common[:3, 3]).tolist()
-    legacy = ("LM ribcage anchor",) + tuple("LM C" + str(i) + " anchor" for i in range(1, 8))
-    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not n.startswith(legacy)}
-    # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
-    chest = np.array(envelope["chest_frame"])
+    import copy
 
-    def chest_target(point):
-        at = point @ chest[:3, :3].T + chest[:3, 3]
-        bottom_z, top_z = envelope["chest_forward"]["fade_z_mm"]
-        t = np.clip((at[2] - bottom_z) / (top_z - bottom_z), 0, 1)
-        at[1] -= envelope["chest_forward"]["offset_mm"] * t * t * (3 - 2 * t)
-        return at
+    historical = copy.deepcopy(scene["landmarks"])
+    facts = original_facts(arrays, scene)
+    eye_l, eye_r = (np.array(facts["landmarks"][f"LM {side} orbit"]) for side in ("L", "R"))
+    c1, t1 = (np.array(facts["canals"][name]["centre"]) for name in ("C1", "T1"))
+    fixed_c0 = np.array(envelope["canal_ends"]["C1"])
+    fixed_t1 = np.array(envelope["canal_ends"]["T1"])
+    source = np.array((eye_l, eye_r, c1))
+    target = np.array(((36.35, -150, 177), (-36.35, -150, 177), fixed_c0))
+    a, b = source - source.mean(0), target - target.mean(0)
+    u, _, vh = np.linalg.svd(a.T @ b)
+    rotation = vh.T @ np.diag((1, 1, np.linalg.det(vh.T @ u.T))) @ u.T
+    ratios = [
+        np.linalg.norm(target[i] - target[j]) / np.linalg.norm(source[i] - source[j])
+        for i, j in ((0, 1), (0, 2), (1, 2))
+    ]
+    head_scale = float(np.sqrt(min(ratios) * max(ratios)))
 
-    chest_points = []
-    for bone in scene["bones"]:
-        bone["matrix"] = common.tolist()
-        if bone["group"] == "Ribcage":
-            p = np.asarray(arrays[bone["key"] + "_basis"])
-            chest_points.append(p)
-            scene["landmarks"]["LM chest " + bone["name"]] = {
-                "source": (p.mean(0) @ common[:3, :3].T + common[:3, 3]).tolist(),
-                "target": chest_target(p.mean(0)).tolist(),
-                "region": "body",
-            }
-    points = np.vstack(chest_points)
-    lo, hi = points.min(0), points.max(0)
-    for i, p in enumerate(np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])):
-        scene["landmarks"][f"LM chest frame {i}"] = {
-            "source": (p @ common[:3, :3].T + common[:3, 3]).tolist(),
-            "target": chest_target(p).tolist(),
-            "region": "body",
-        }
-    for name, source in canals.items():
-        for offset in (-3.0, 0.0, 3.0):
-            normal = (
-                np.array((0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15)))) if name == "C2" else np.array((0, 0, 1))
-            )
-            p = source + offset * normal
-            fraction = (p[2] - canals["T1"][2]) / (canals["C1"][2] - canals["T1"][2])
-            scene["landmarks"][f"LM canal {name} {offset:g}"] = {
-                "source": p.tolist(),
-                "target": (bottom + fraction * (top - bottom)).tolist(),
-            }
-    for side, x in (("L", 36.35), ("R", -36.35)):
-        scene["landmarks"][f"LM {side} orbit"]["target"] = [x, -150.0, 177.0]
-    target_canals = target
-    # Replace the superseded adult-cap vault targets with one declared regional envelope target set.
-    obsolete = {"vertex", "opisthocranion", "euryon", "forehead"}
-    scene["landmarks"] = {n: p for n, p in scene["landmarks"].items() if not obsolete.intersection(n.split())}
-    vault, reference_vault = [], []
-    for bone in scene["bones"]:
-        if bone["name"] not in {
-            "frontal bone",
-            "L parietal bone",
-            "R parietal bone",
-            "occipital bone",
-            "L temporal bone",
-            "R temporal bone",
-        }:
-            continue
-        matrix, key = np.array(bone["matrix"]), bone["key"]
-        vault.append(
-            trimesh.Trimesh(
-                arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"], process=False
-            )
+    def matrix(scale, rotate, point, dest):
+        m = np.eye(4)
+        m[:3, :3] = scale * rotate
+        m[:3, 3] = dest - scale * rotate @ point
+        return m
+
+    head = matrix(head_scale, rotation, source.mean(0), target.mean(0))
+    shared_c1 = head[:3, :3] @ c1 + head[:3, 3]
+    # Match two shared endpoints without straightening the original curve between them.
+    z = (c1 - t1) / np.linalg.norm(c1 - t1)
+    wanted = (shared_c1 - fixed_t1) / np.linalg.norm(shared_c1 - fixed_t1)
+
+    def frame(axis):
+        x = np.array((1.0, 0, 0))
+        x -= axis * np.dot(x, axis)
+        x /= np.linalg.norm(x)
+        return np.column_stack((x, np.cross(axis, x), axis))
+
+    neck_rotation = frame(wanted) @ frame(z).T
+    neck_scale = float(np.linalg.norm(shared_c1 - fixed_t1) / np.linalg.norm(c1 - t1))
+    neck = matrix(neck_scale, neck_rotation, c1, shared_c1)
+    chest_points = np.vstack([arrays[b["key"] + "_basis"] for b in scene["bones"] if b["group"] == "Ribcage"])
+    raw_width = envelope["regional_room"]["upper_chest_outer_width_mm"] - 2 * envelope["inset_mm"]
+    chest_scale = float(raw_width / np.ptp(chest_points @ neck_rotation.T, axis=0)[0])
+    chest = matrix(chest_scale, neck_rotation, t1, fixed_t1)
+    regions = {
+        name: {"scale": scale, "matrix": m.tolist()}
+        for name, scale, m in (
+            ("skull", head_scale, head),
+            ("jaw", head_scale, head),
+            ("cervicals", neck_scale, neck),
+            ("upper_chest", chest_scale, chest),
         )
-        reference_vault.append(
-            trimesh.Trimesh(
-                arrays[key + "_warp"] @ matrix[:3, :3].T + matrix[:3, 3], arrays[key + "_faces"], process=False
-            )
-        )
-    target = []
-    for mark in envelope["landmarks"]:
-        if any(
-            mark["elevation"] == x["elevation"] and mark["azimuth"] in x["azimuths"]
-            for x in envelope["excluded_openings"]
-        ):
-            continue
-        a, e = np.deg2rad((mark["azimuth"], mark["elevation"]))
-        direction = np.array((np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)))
-        target.append(np.array(envelope["origin"]) + direction * (mark["outer_radius_mm"] - envelope["inset_mm"]))
-    vault = trimesh.util.concatenate(vault)
-    reference = trimesh.util.concatenate(reference_vault)
-    assert np.array_equal(vault.faces, reference.faces)
-    # Correspond through the prior anatomical Warp: its raised brow must not collapse onto a raw radial latitude.
-    exterior = outer_cortex(reference, np.array(target), np.array(envelope["origin"]))
-    nearest, _, faces = trimesh.proximity.closest_point(reference, exterior)
-    barycentric = trimesh.triangles.points_to_barycentric(reference.triangles[faces], nearest)
-    source = np.einsum("ij,ijk->ik", barycentric, vault.triangles[faces])
-    for i, (point, dest) in enumerate(zip(source, target)):
-        scene["landmarks"][f"LM vault {i}"] = {"source": point.tolist(), "target": dest.tolist(), "region": "head"}
-    scene["landmarks"].update(envelope["bone_landmarks"])
-    menton = np.asarray(scene["landmarks"]["LM menton"]["source"])
-    # The C1/menton plane keeps the jaw with the head; the whole cervical chain blends continuously down to T1.
-    slope = (canals["C1"][2] - menton[2]) / (canals["C1"][1] - menton[1])
-    normal = np.array((0, -slope, 1))
-    scene["warp_blend"] = {
-        "normal": normal.tolist(),
-        "low": float(canals["T1"] @ normal),
-        "high": float(canals["C1"] @ normal),
     }
+    regional_seed(arrays, scene, regions)
+    scene["original_anatomical_landmarks"] = historical
+    constraints = {}
+
+    def anchor(name, native, region, dest):
+        m = np.array(regions[region]["matrix"])
+        p = m[:3, :3] @ native + m[:3, 3]
+        scene["landmarks"][name] = {"source": p.tolist(), "target": np.asarray(dest).tolist()}
+        constraints[name] = {
+            "source_native": np.asarray(native).tolist(),
+            "region": region,
+            "target": np.asarray(dest).tolist(),
+        }
+
+    anchor("LM fixed L orbit", eye_l, "skull", target[0])
+    anchor("LM fixed R orbit", eye_r, "skull", target[1])
+    anchor("LM shared C1 canal", c1, "cervicals", fixed_c0)
+    anchor("LM shared T1 canal", t1, "upper_chest", fixed_t1)
+    # Original chest shape takes priority over filling the cavity. Hold its uniformly fitted corners, not old warps.
+    chest_world = chest_points @ chest[:3, :3].T + chest[:3, 3]
+    lo, hi = chest_world.min(0), chest_world.max(0)
+    for i, p in enumerate(np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])):
+        scene["landmarks"][f"LM chest room {i}"] = {"source": p.tolist(), "target": p.tolist()}
+    skull_bones = [b for b in scene["bones"] if b["group"] == "Skull"]
+    crown = max((p for b in skull_bones for p in arrays[b["key"] + "_basis"]), key=lambda p: p[2])
+    crown_world = head[:3, :3] @ crown + head[:3, 3]
+    crown_target = crown_world.copy()
+    crown_target[2] = min(crown_target[2], envelope["regional_room"]["head_outer_top_mm"] - envelope["inset_mm"])
+    anchor("LM crown containment", crown, "skull", crown_target)
+    scene["anatomical_constraints"] = constraints
     result, report = warp(arrays, scene)
-    report["canal_targets_before_field"] = {n: c.tolist() for n, c in target_canals.items()}
+    report["declared_regional_sizes"] = {name: r["scale"] for name, r in regions.items()}
+    report["landmark_scope"] = (
+        "Sparse eye/C1-canal/T1/crown constraints; full anatomical joint/facet registration UNVERIFIED"
+    )
+    report["pending_acceptance"] = [
+        "actual skull-base/C1 and C7/T1 joint faces",
+        "finished walls/containment",
+        "8mm hardware wire corridor",
+        "actual978 mechanism",
+        "full motion/print/worn gates",
+    ]
+    report["actual_canals_after_sculpt"] = {}
+    for bone in scene["bones"]:
+        if bone["name"] not in facts["canals"]:
+            continue
+        m = np.array(bone["matrix"])
+        key = bone["key"]
+        p = result[key + "_sculpt"] @ m[:3, :3].T + m[:3, 3]
+        source_normal = (
+            np.array((0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))))
+            if bone["name"] == "C2"
+            else np.array((0, 0, 1))
+        )
+        normal = m[:3, :3] @ source_normal
+        normal /= np.linalg.norm(normal)
+        try:
+            report["actual_canals_after_sculpt"][bone["name"]] = canal(
+                trimesh.Trimesh(p, arrays[key + "_faces"]), normal, details=True
+            )
+        except ValueError as e:
+            report["actual_canals_after_sculpt"][bone["name"]] = {"error": str(e)}
     return result, report
 
 
