@@ -97,6 +97,24 @@ def test_the_tilt_reaction_bar_holds_the_actual_standard_servo_at_stall():
             assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (a, b, t)
 
 
+@pytest.mark.model
+def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
+    from model.printed.test_gimbal import _bending_sf, _slice
+
+    solid, mat = _built("tilt lever"), g.MATERIALS[g.PRINTED["tilt lever"][1]]
+    shaft, pin = nk.TILT_SHAFT, nk.TILT_PIN
+    radius = np.linalg.norm(nk.TILT_ARM)
+    tangent = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / radius
+    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
+    force = tangent / math.sin(math.radians(angle))
+    for t in (0.25, 0.4, 0.6, 0.8):
+        area, _, bend, half = _slice(solid, shaft[1:], pin[1:], t)
+        stress = force / area + tangent * radius * (1 - t) * half / bend
+        assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, t
+    a, b = (shaft[0], *pin[1:]), (sum(nk.REACTION_BAR_X) / 2, *pin[1:])
+    assert _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.75)) >= beams.MIN_SF
+
+
 Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
