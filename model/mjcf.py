@@ -54,6 +54,8 @@ MM = 0.001
 SKY = "#F7F4EE"  # a flat sky
 VIEW = {"#000000": "#5A5A60", "#FFFFFF": "#E8E8E8"}
 TIMESTEP, SETTLE_S = 0.0005, 0.5
+# A life-size head can still ring after one hold: quasi-static readings wait for quiet, bounded at two seconds.
+SETTLE_MAX_S, SETTLE_DEG_S = 2.0, 0.1
 # A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.99 (the
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
 # scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
@@ -357,8 +359,9 @@ def model(doc, collide=True):
 
 def pose(model, ctrl, deg_s=SLEW_DEG_S):
     """MjData with each horn's servo at ctrl[horn] degrees from neutral (the others at neutral): from rest, each
-    command slews there at deg_s (a step flings a light four-bar through its toggle), then is held under gravity for
-    SETTLE_S. Contacts are off: the parts' contacts are measured as distances (model/mujoco_report.py), not pushed apart."""
+    command slews there at deg_s (a step flings a light four-bar through its toggle). The default quasi-static slew
+    waits for quiet within SETTLE_MAX_S; a custom speed keeps its fixed SETTLE_S observation (the rated swing gate).
+    Contacts are off: the parts' contacts are measured as distances (model/mujoco_report.py), not pushed apart."""
     data = mujoco.MjData(model)
     rate = math.radians(deg_s) * model.opt.timestep  # rad per step
     target = {h: math.radians(deg) for h, deg in ctrl.items()}
@@ -370,7 +373,22 @@ def pose(model, ctrl, deg_s=SLEW_DEG_S):
             for h, rad in target.items():
                 data.actuator(h).ctrl = rad * k / steps
             mujoco.mj_step(model, data)
-        mujoco.mj_step(model, data, nstep=round(SETTLE_S / model.opt.timestep))
+        quasi = deg_s == SLEW_DEG_S
+        speed = error = math.inf
+        for _ in range(round(SETTLE_MAX_S / SETTLE_S) if quasi else 1):
+            mujoco.mj_step(model, data, nstep=round(SETTLE_S / model.opt.timestep))
+            if not quasi:
+                break
+            speed = float(np.max(np.abs(data.qvel), initial=0))
+            positions = data.qpos[model.jnt_qposadr[model.actuator_trnid[:, 0]]]
+            error = float(np.max(np.abs(data.ctrl - positions), initial=0))
+            if speed <= math.radians(SETTLE_DEG_S) and error <= SERVO["stall_nm"] / SERVO["kp"]:
+                break
+        else:
+            raise RuntimeError(
+                f"quasi-static pose did not settle in {SETTLE_MAX_S} s: "
+                f"{math.degrees(speed):.3f} deg/s, {math.degrees(error):.3f} deg off command"
+            )
     finally:  # the model is the caller's: its contacts come back on
         model.opt.disableflags = flags
     return data

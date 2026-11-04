@@ -264,9 +264,13 @@ def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
 @pytest.mark.parametrize("doc", grouped(["mech-back-mechanical"]))
 def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
     """#937: this sweep point was still ringing a degree off after the old half-second hold."""
-    data = mjcf.pose(built(doc), {"pan horn": -16.0854752692})
+    model, command = built(doc), {"pan horn": -16.0854752692}
+    data = mjcf.pose(model, command)
     assert math.degrees(data.joint("pan horn").qpos[0]) == pytest.approx(-16.0854752692, abs=TURN_DEG)
     assert np.abs(np.degrees(data.qvel)).max() < 0.5  # a static reading, not a frame from the remaining swing
+    rated = math.degrees(mjcf.SERVO["no_load_rad_s"])
+    fast = mjcf.pose(model, command, rated)
+    assert fast.time == pytest.approx(0.5 + abs(command["pan horn"]) / rated, abs=model.opt.timestep)
 
 
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
