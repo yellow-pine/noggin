@@ -98,6 +98,7 @@ export default defineConfig({
           items: [
             'docs/pictures',
             { label: 'Viewer', link: '/viewer/' },
+            { label: 'Roadmap', link: '/roadmap/' },
             { label: 'Reports', link: '/reports/' },
             'docs/model-notes',
           ],

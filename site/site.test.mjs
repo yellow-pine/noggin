@@ -1,7 +1,8 @@
 // The site as `just site` builds it into dist/ (docs/adr/0009, 0013), checked at its HTML: every doc is a page titled
 // by its H1, every link lands, the numbers are the code's (macros.json), each page's footer and /version.json give the
-// version and the commit, and each page's CSP lets only the site's own scripts run. Run after just site: npm test (Site
-// Checks).
+// version and the commit, each page's CSP lets only the site's own scripts run, and the marks (docs/adr/0024) are in
+// their format, on the Roadmap and name open issues. Run after just site: npm test (Site Checks; GITHUB_TOKEN set for
+// the issues' check).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, globSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -313,6 +314,68 @@ test("the viewer's page draws the next Mech and a Stage switch, the Preset its S
     const npm = path.join(ROOT, 'site/node_modules/three/examples/jsm/libs/draco/gltf', f);
     expect(readFileSync(path.join(DIST, 'viewer/draco', f)).equals(readFileSync(npm)), f).toBe(true);
   }
+});
+
+// The marks (docs/adr/0024): ~~is~~ *will be (#N)*, *Upcoming (#N): …* and a NOTE opening **Upcoming (#N):**, each
+// linking its issue, and nothing else struck through (a stray pair of single ~ strikes the text between them)
+const issue = (n) => `${REPO}/issues/${n}`;
+const marksOf = (doc) => [
+  ...doc.querySelectorAll('del').map((del) => [del.nextElementSibling, del]),
+  ...doc.querySelectorAll('em, strong').filter((e) => /^Upcoming \(#/.test(e.text)).map((e) => [e, e]),
+];
+test("every mark is in the one format, linking its issue, and nothing else is struck through", () => {
+  let found = 0;
+  for (const f of html) {
+    const doc = parse(readFileSync(path.join(DIST, f), 'utf8'));
+    for (const [mark, at] of marksOf(doc)) {
+      const where = `${f}: ${at.toString().slice(0, 80)}`;
+      if (at.tagName === 'DEL') expect(mark?.tagName, where).toBe('EM');
+      const [, n] = mark.text.match(at.tagName === 'DEL' ? /\(#(\d+)\)$/ : /^Upcoming \(#(\d+)\):/) ?? [];
+      expect(n, where).toBeDefined();
+      expect(mark.querySelector('a')?.getAttribute('href'), where).toBe(issue(n));
+      if (mark.tagName === 'STRONG') expect(mark.closest('aside.starlight-aside--note'), where).not.toBeNull();
+      found++;
+    }
+  }
+  expect(found).toBeGreaterThan(0);
+});
+
+const roadmap = () =>
+  page(`${HOME}/roadmap/`).querySelectorAll('main [data-issue] li a').map((a) => {
+    const n = a.closest('[data-issue]').getAttribute('data-issue');
+    return [n, a.getAttribute('href')];
+  });
+
+test('the Roadmap, under Model, lists every mark by its issue, each linking the page and heading it sits on', () => {
+  const marks = [];
+  for (const f of html.filter((f) => f !== 'roadmap/index.html')) {
+    for (const [mark] of marksOf(parse(readFileSync(path.join(DIST, f), 'utf8'))))
+      marks.push([mark.querySelector('a').text.slice(1), `${HOME}/${f.replace(/index\.html$/, '')}`]);
+  }
+  const listed = roadmap();
+  expect(listed.map(([n, href]) => [n, href.split('#')[0]]).sort()).toEqual(marks.sort());
+  expect(listed.map(([n]) => Number(n))).toEqual(listed.map(([n]) => Number(n)).sort((a, b) => a - b)); // by issue
+  for (const [, href] of listed) {
+    const anchor = href.split('#')[1];
+    if (anchor) expect(page(href).getElementById(anchor), href).not.toBeNull();
+  }
+  const nav = page(route('docs/build/parts.md')).querySelectorAll('nav a').map((a) => a.getAttribute('href'));
+  expect(nav.indexOf(`${HOME}/roadmap/`)).toBe(nav.indexOf(`${HOME}/reports/`) - 1);
+});
+
+// main's Checks alone, with the workflow's token (checks.yml's Site): a PR closing #N clears #N's marks (ADR 0024)
+const token = process.env.GITHUB_TOKEN;
+test.skipIf(!token)("every mark's issue is open on GitHub", async () => {
+  const issues = [...new Set(roadmap().map(([n]) => n))];
+  const closed = [];
+  for (const n of issues) {
+    const r = await fetch(`https://api.github.com/repos/yellow-pine/noggin/issues/${n}`, {
+      headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' },
+    });
+    expect(r.ok, `#${n}: ${r.status}`).toBe(true);
+    if ((await r.json()).state !== 'open') closed.push(`#${n}`);
+  }
+  expect(closed, 'marks naming a closed issue: clear them (docs/adr/0024)').toEqual([]);
 });
 
 test("every diagram renders with the site's Mermaid (mermaid-cli in the installed Chrome)", { timeout: 120_000 }, () => {
