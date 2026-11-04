@@ -40,6 +40,25 @@ def test_no_two_parts_overlap_at_rest(shapes):
     assert _overlaps(shapes, pairs) == []
 
 
+@pytest.mark.model
+@pytest.mark.parametrize("stem", ("cervical carrier", "nod plate", "head mount"))
+def test_each_head_carrier_is_one_valid_solid(stem):
+    shape = _built(stem)
+    assert shape.isValid() and len(shape.Solids()) == 1
+
+
+@pytest.mark.model
+def test_the_bearing_carries_the_head_without_loading_a_servo_spline():
+    sub = stages.neck_sub()
+    plate, bearing, mount = (_shape(sub.parts[n]) for n in ("nod plate:1", "pan bearing:1", "head mount:1"))
+    assert plate.distance(bearing) < 1e-6 and bearing.distance(mount) < 1e-6
+    assert plate.intersect(bearing).Volume() < 1e-6
+    assert bearing.intersect(mount).Volume() < 1e-6
+    # Independent contact rings, not a hidden solid shaft down the canal or through the bearing bore.
+    py = nk.HEAD_AXES["pan"][0][1]
+    assert not bearing.isInside(cq.Vector(0, py, sum(nk.BEARING_Z) / 2))
+
+
 Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
@@ -58,8 +77,12 @@ _solid = functools.cache(lambda build: build().val())
 @pytest.mark.parametrize(
     "turns, fixed, at, across",
     [  # (the turning part, the fixed one, a point on the axis inside each, a direction across the axis)
-        (neck.yoke, neck.mount, ((0, Y, nk.DISC_Z[0] + 2), (0, Y, nk.DISC_Z[0] - 2)), (1, 0, 0)),
-        (neck.head_mount, neck.yoke, ((15, Y, Z), (11, Y, Z)), (0, 1, 0)),
+        (
+            neck.nod_plate,
+            neck.cervical_carrier,
+            ((20.4, *nk.HEAD_AXES["tilt"][0][1:]), (16, *nk.HEAD_AXES["tilt"][0][1:])),
+            (0, 1, 0),
+        ),
         (
             neck.jaw,
             gimbal.frame,
