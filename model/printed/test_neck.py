@@ -172,3 +172,35 @@ def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_rang
     Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main."""
     overlaps = _overlaps(*posed)
     assert overlaps == [], "\n".join(overlaps)
+
+
+@pytest.fixture(
+    scope="module",
+    params=list(itertools.product((-45, -22.5, 0, 22.5, 45), (-20, 0, 20), (0, 25))),
+    ids=lambda p: f"pan{p[0]:g}-tilt{p[1]:g}-jaw{p[2]:g}",
+)
+def mechanism_pose(request):
+    """Actual new mechanism against every mechanical part over combined commands; the Shell gate above remains."""
+    from model import skin
+
+    stage = stages.STAGES[DOC]
+    rest = {n: p.matrix for n, p in stage.parts.items()}
+    pan, tilt, jaw = request.param
+    poses = [
+        stages.pose(stage, HORN[d], nk.servo_for(d, a)).parts for d, a in (("tilt", tilt), ("pan", pan), ("jaw", jaw))
+    ]
+    mats = {n: poses[0][n] @ np.linalg.inv(rest[n]) @ poses[1][n] @ np.linalg.inv(rest[n]) @ poses[2][n] for n in rest}
+    parts = {n: p for n, p in stage.parts.items() if stages.stem(p.file) not in skin.SHELLS}
+    changed = stages.neck_sub().parts.keys() | stages.jaw_sub().parts.keys()
+    pairs = [
+        (a, b)
+        for a, b in itertools.combinations(parts, 2)
+        if (a in changed or b in changed) and frozenset((a, b)) not in ON_SPLINE
+    ]
+    shapes = {n: _shape(p._replace(matrix=mats[n])) for n, p in parts.items()}
+    return shapes, pairs
+
+
+@pytest.mark.model
+def test_the_actual_head_mechanism_clears_every_mechanical_part_under_combined_commands(mechanism_pose):
+    assert (overlaps := _overlaps(*mechanism_pose)) == [], "\n".join(overlaps)
