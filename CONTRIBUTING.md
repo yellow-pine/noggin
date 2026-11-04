@@ -27,7 +27,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Every ready PR gets Claude's review (`.github/workflows/claude-review.yml`: mattpocock code-review plus ponytail):
   claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
   ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
-  approval lands on the head (re-run the job, #389). Its approval resolves its own threads a later push outdated
+  approval lands on the head (re-run the job, #389). Each run reviews its own push's commit and names it (`commit_id`);
+  a run that ends after a newer push fails, and the newer push's run decides (#950). Its approval resolves its own threads a later push outdated
   (`scripts/claude_approved.py`). A PR that edits claude-review.yml gets no review and needs Cansin's bypass. When main's
   claude-review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
   the new head (#433): `git pull --rebase` before your next push. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice,
