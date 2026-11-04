@@ -55,6 +55,14 @@ def test_a_held_servo_carries_the_gravity_torque_its_four_bar_brings_it():
     )  # the light links weigh 1e-6 kg
 
 
+def test_a_reversed_direct_reaction_reports_motor_torque_with_its_physical_sign():
+    model = mujoco.MjModel.from_xml_string(FOUR_BAR.replace('<motor joint="horn"/>', '<motor joint="horn" gear="-1"/>'))
+    reference = mujoco.MjModel.from_xml_string(FOUR_BAR)
+    torque = mujoco_report.torques(model, mujoco.MjData(model), moving=False)[0]
+    expected = mujoco_report.torques(reference, mujoco.MjData(reference), moving=False)[0]
+    assert torque == pytest.approx(-expected, rel=1e-6)
+
+
 def test_a_balance_spring_on_the_rocker_takes_its_share_off_the_held_servo():
     """#838: a torsion spring on the rocker's pivot wound to the mass's torque at rest (mjcf.balance's stiffness and
     springref) leaves the servo nothing to hold there; wound to half of it, half."""
