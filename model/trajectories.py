@@ -22,7 +22,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import geometry, mjcf, stages, traces
+from model import geometry, mjcf, neck, stages, traces
 from model.render import hero, scene
 
 OUT = os.path.join(mjcf.BUILD, "trajectories")
@@ -104,6 +104,8 @@ def stamp(doc):
     it is stale."""
     h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
     paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
+    if neck.HEAD_CARRIERS["fixed"] in stages.STAGES[doc].parts:
+        paths.append(mjcf.ANATOMY_LOADS)
     for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(
         {p.file for p in stages.STAGES[doc].parts.values()}
     ):

@@ -29,6 +29,7 @@ from model import geometry as g
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
+ANATOMY_LOADS = os.path.join(BUILD, "skeleton", "loads.json")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
@@ -173,6 +174,47 @@ def _quat(m):
     q = np.zeros(4)
     mujoco.mju_mat2Quat(q, np.ascontiguousarray(m[:3, :3]).flatten())
     return q
+
+
+def anatomy(spec, stage, bodies):
+    """Finished-export mass/COM/inertia on rigid carriers; realistic meshes remain excluded from collisions (ADR0020)."""
+    with open(ANATOMY_LOADS) as file:
+        loads = json.load(file)
+    required = {"skull": "pan", "calvaria": "pan", "mandible": "jaw", **{f"c{i}": "fixed" for i in range(1, 8)}}
+    if (
+        not isinstance(loads.get("source"), str)
+        or not loads["source"].strip()
+        or not required.keys() <= loads.get("parts", {}).keys()
+    ):
+        raise ValueError("finished anatomy loads need their export stamp and every head/cervical part")
+    head = stage.horns["tilt horn"].frame
+    for stem, load in loads["parts"].items():
+        role = load["carrier"]
+        if role not in ("pan", "jaw", "fixed") or required.get(stem, role) != role:
+            raise ValueError(f"invalid anatomical carrier for {stem}")
+        grams, com, tensor = load["mass_g"], np.asarray(load["com_mm"], float), np.asarray(load["inertia_g_mm2"], float)
+        if (
+            not math.isfinite(grams)
+            or grams <= 0
+            or com.shape != (3,)
+            or tensor.shape != (3, 3)
+            or not np.isfinite(com).all()
+            or not np.isfinite(tensor).all()
+            or not np.allclose(tensor, tensor.T)
+        ):
+            raise ValueError(f"invalid finished mass properties for {stem}")
+        carrier = neck.HEAD_CARRIERS[role]
+        matrix = np.linalg.inv(stage.parts[carrier].matrix) @ head
+        inertia, axes = np.linalg.eigh(matrix[:3, :3] @ tensor @ matrix[:3, :3].T)
+        if min(inertia) <= 0 or 2 * max(inertia) > sum(inertia) * (1 + 1e-8):
+            raise ValueError(f"nonphysical finished inertia for {stem}")
+        if np.linalg.det(axes) < 0:
+            axes[:, -1] *= -1
+        orientation = np.eye(4)
+        orientation[:3, :3] = axes
+        body = bodies[carrier].add_body(name=f"anatomy {stem}", pos=(matrix @ [*com, 1])[:3] * MM)
+        body.explicitinertial, body.mass = True, grams / 1000
+        body.inertia, body.iquat = inertia * 1e-9, _quat(orientation)  # g.mm² -> kg.m²
 
 
 def _joints(stage):
@@ -331,6 +373,8 @@ def spec(doc, collide=True):
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
+    if neck.HEAD_CARRIERS["fixed"] in bodies:
+        anatomy(s, stage, bodies)  # missing finished exports must never silently remove anatomical head weight
     if "tilt horn" in stage.horns:
         balance(s, doc)
     return s
@@ -348,6 +392,9 @@ def head(doc, model, bare=False):
     rockers = horn.direct.driven if horn.direct else horn.loops[0].rockers
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
+    ids += [
+        i for i in range(1, model.nbody) if model.body(i).name.startswith("anatomy ") and model.body_parentid[i] in ids
+    ]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
