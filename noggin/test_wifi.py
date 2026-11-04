@@ -223,6 +223,30 @@ def test_gesture_reaches_the_eyes_core_with_a_tag_not_the_token(tmp_path):
     core.running = False
 
 
+def test_the_neck_core_gets_its_calibration_and_live_pose_after_connecting_or_restarting(tmp_path):
+    core = FakeCore(name="neck")
+    core.beaconing = False
+    s, sock = start(tmp_path, core)
+    cal = {"tilt_lo": 80, "tilt_rest": 90, "tilt_hi": 100, "mouth_lo": 100, "mouth_hi": 60}
+    path = tmp_path / "calibration.json"
+    path.write_text(json.dumps(cal))
+    core.beaconing = True
+    try:
+        assert wait_for(lambda: core.lines == [*(f"set {k} {v}" for k, v in cal.items()), "rest"])
+        ask(sock, "pose tilt 95 jaw 0.5\n")
+        assert wait_for(lambda: core.lines[-2:] == ["rest", "pose tilt 95 jaw 0.5"])
+        ask(sock, "set mouth_hi 70\n")
+        assert wait_for(lambda: core.lines[-3:] == ["set mouth_hi 70", "rest", "pose tilt 95 jaw 0.5"])
+        assert json.loads(path.read_text())["mouth_hi"] == 70
+        cal["mouth_hi"] = 70
+        core.uptime = 1
+        restored = [*(f"set {k} {v}" for k, v in cal.items()), "rest", "pose tilt 95 jaw 0.5"]
+        assert wait_for(lambda: core.lines[-len(restored) :] == restored)
+    finally:
+        s.stop()
+        core.running = False
+
+
 def test_ack_from_another_address_does_not_count(tmp_path, capsys, fast):
     core = FakeCore(ack=False, stranger=True)
     s, sock = start(tmp_path, core)

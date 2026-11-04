@@ -15,9 +15,10 @@ down. Its rows are the eye program's calibration ([Calibration](calibration.md))
 Stage 1 is calibrated (inferred): the lids in the shared lid frame, the right lid servo's degrees (the Core writes
 180 - a to the left, inferred), closed at the low end where the lids meet, open at the high; the yaw and the pitch
 rest centred between their ends. The gestures turn the eyes left and right only, so the pitch holds the gaze level.
-The neck Core runs the same eye program, which drives its pan alone: its rows' ranges are the neck's in the model and
-its rest the model's neutral, 90 (the jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred:
-the same Shield). *Upcoming (#929): the neck Core drives the tilt and the jaw, from a calibration of their own.*
+The neck Core runs the same program, driving its pan, tilt and jaw. Its rows come from the same calibration file:
+the tilt rests at `tilt_rest`, the jaw at its closed `mouth_lo`, and the pan halfway between its two ends. The tilt
+and jaw start at the model's nominal horn ranges (inferred), until they are calibrated on a built Mech. Its GPIOs are
+the Shield's as on the eyes Core (inferred: the same Shield).
 
 > [!WARNING]
 > **The lids bind at the ends.** Verify a range on the real Mech before pushing past it.

@@ -63,8 +63,8 @@ def hero_commands():
 
 
 def commands(doc, motion):
-    """(writes, frame times) of the motion: a gesture or Rest through the eye gimbal (#663), or the hero (#642), the
-    one motion that turns the neck and jaw."""
+    """(writes, frame times) of the motion: a gesture or Rest through the Cores' program (#663, #929), or the hero
+    (#642)."""
     return hero_commands() if motion == "hero" else traces.commands(motion)
 
 
@@ -112,7 +112,7 @@ def stamp(doc):
 
 
 def motions(doc):
-    """The document's motions: every gesture and Rest through its eye gimbal (#663), and the hero (#642) on a Stage
+    """The document's motions: every gesture and Rest through the Cores' program (#663, #929), and the hero (#642) on a Stage
     with the neck."""
     return [*traces.MOTIONS, *(["hero"] if "pan horn" in stages.STAGES[doc].horns else [])]
 

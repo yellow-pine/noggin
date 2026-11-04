@@ -1,7 +1,7 @@
 """Gesture replay for the model (#20, #39, #663): the five gestures plus thinking recorded from the eye program on
 CPython (machine stubbed by the root conftest, a virtual clock instead of sleeping) as the program's own commands before
 its servo calibration (lid fraction 0 closed .. 1 open, eye position -1..1 of its range): `writes` gives them at their
-own times, `commands` the same program's writes as the Mech's eyes Core takes them (#663): through the eye
+own times, `commands` the same program's writes as the Mech's Cores take them (#663, #929): through the eye
 gimbal's command map (model/gimbal.py), which model/trajectories.py plays in MuJoCo and the web viewer bakes
 (web/build.py, docs/adr/0008)."""
 
@@ -49,17 +49,20 @@ _CORE.cal.update(CAL)
 def writes(line, cal=CAL):
     """A command line as the Core writes it under `cal`, from rest: ([(ms, servo, command)] after every write, rest's own
     writes before ms 0, each command before the servo calibration: lid fraction, eye and head degrees from centre (the
-    head in the eyes' degrees); the ms it ended)."""
+    head in the eyes' degrees), tilt and jaw in their calibrated servo degrees (#929); the ms it ended)."""
     clock, log = [0], []  # virtual time; (ms, servo, command) after every write
     mod.sleep_ms = lambda ms: clock.__setitem__(0, clock[0] + ms)
     e = mod.Eyes()
     e.cal.update(cal)
+    ranges = {p: e.range(p) for p in mod.NAME}
     half = {p: (hi - lo) / 2 for p, (lo, hi) in ((p, e.range(p)) for p in (*mod.EYES, mod.PAN))}
     # The program's commands before its servo calibration: lid fraction, eye degrees from centre (clamped to its range).
     e._lid_angle = lambda pin, f: min(1.0, max(0.0, f))
     e._eye_angle = lambda pin, a: a - mod.EYE_CENTER
     e._pan_angle = lambda head: head
-    e.range = lambda pin: (0.0, 1.0) if pin in mod.LIDS else (-half[pin], half[pin])
+    ranges.update({p: (0.0, 1.0) for p in mod.LIDS})
+    ranges.update({p: (-span, span) for p, span in half.items()})
+    e.range = ranges.__getitem__  # tilt and jaw stay in their calibrated servo degrees (#929)
     original = e.set
 
     def set_and_log(targets):
@@ -84,7 +87,8 @@ def commands(motion):
     the lower lid meets it (gimbal.LID_SHUT, #698), rest just over the pupil, open (gimbal.LID_EDGES), the lid following
     the pitch (#51); under its calibration
     (HEAD_CAL) the head joins wide gaze shifts (#688): the pan, in the eyes' degrees, scaled as the yaw, through the
-    pan's four-bar (neck.servo_for), each Core's writes DELAY_MS late. ([(ms, horn, servo degrees from centre)] in time
+    pan's four-bar (neck.servo_for); tilt and jaw from their fitted servo calibration, each Core DELAY_MS late.
+    ([(ms, horn, servo degrees from centre)] in time
     order, rest's writes before ms 0; the frame times), as commands()."""
     log, end = writes(MOTIONS[motion], CAL | HEAD_CAL)
     lo, hi = _CORE.range(mod.YAW)
@@ -102,4 +106,6 @@ def commands(motion):
             out.append((t, f"{s[0].upper()} lid horn", round(edge - gimbal.LID_REST + gimbal.LID_FOLLOW * pitch, 2)))
         elif s == "pan":
             out.append((t, "pan horn", round(neck.servo_for("pan", a / half * gimbal.YAW), 2)))
+        elif s in ("tilt", "mouth"):
+            out.append((t, "jaw horn" if s == "mouth" else "tilt horn", round(a - 90, 2)))
     return sorted(out, key=lambda w: w[0]), range(0, end + max(DELAY_MS.values()) + FRAME_MS + 1, FRAME_MS)

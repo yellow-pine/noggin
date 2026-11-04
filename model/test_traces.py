@@ -49,6 +49,20 @@ def test_the_mech_rests_with_a_blink_its_lids_following_its_level_gaze():
     assert set(traces.MOTIONS) == {*traces.GESTURES, "rest"}
 
 
+def test_eurekas_tilt_and_jaw_commands_are_the_neck_cores_actual_servo_writes():
+    """#929: the viewer and sim keep the physical neck Core's new calibrated gesture, not an eyes-only replay."""
+    from model import stages
+
+    writes, _ = traces.commands("eureka")
+    limits = stages.neck_sub().horns | stages.jaw_sub().horns
+    for name in ("tilt horn", "jaw horn"):
+        positions = [d for _, d in horn(writes, name)]
+        assert positions and max(positions) - min(positions) > 5
+        lo, hi = limits[name].limits
+        assert all(lo - 0.05 <= a <= hi + 0.05 for a in positions)
+        assert positions[-1] == pytest.approx(0, abs=0.01)
+
+
 def held(writes, ms):
     """The last of [(ms, deg)] at or before each ms of `ms`."""
     out, i, last = [], 0, writes[0][1]

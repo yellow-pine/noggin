@@ -60,7 +60,7 @@ Each busy pivot is a greased M3 shank turning in a bore printed along the layers
 
 The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)) and runs the same eye program, which turns the
 pan for wide gaze shifts once it is calibrated ([Gestures](../use/gestures.md#the-head-joins-wide-gaze-shifts)).
-*Upcoming (#929): the neck Core drives the tilt too, so a gesture nods the head.* The power-path board in the Torso charges the
+The neck Core drives the tilt: Eureka lifts the head slightly, then returns it to its calibrated rest. The power-path board in the Torso charges the
 pack from the head's USB-C and feeds both Shields in the head through the switch board and the neck cable's four
 conductors up the post, a 470 µF capacitor across the Y lead where it enters the Shields; its input limit follows what
 the USB-C source advertises (docs/research/2026-11-03-usb-c-power.md 7). Every servo lead runs to the Shields in the

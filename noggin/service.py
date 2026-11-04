@@ -238,10 +238,11 @@ class Service:
         """In pose mode, unmuted: `rest` (ends a thinking drift on the Core) then the held pose; else nothing."""
         return ["rest", self.mode] if self.mode.startswith("pose") and not self.director.muted else []
 
-    def catch_up(self):
+    def catch_up(self, core=None):
         """Calibrate the Core, then bring it to the mode: the held pose, else unpowered while muted (Rest blinks), else
         the Director's."""
-        self.send(self.cal_lines() + (self.held() or ["release" if self.director.muted else self.director.mode()]))
+        lines = self.cal_lines() + (self.held() or ["release" if self.director.muted else self.director.mode()])
+        self.send(lines) if core is None else self.send_to(lines, core)
 
     def follow(self):
         self.mode = "follow"
@@ -323,8 +324,7 @@ class Service:
                 log(name, "beacon stale for", self.wifi.stale, "s")
             for name in (live.keys() - self.live.keys()) | {n for n in live if live[n] < self.live.get(n, 0)}:
                 log(name, "beacon back:", self.wifi.status(name))  # new, or rebooted inside the stale window
-                if name == "eyes":  # a Core (back) on Wi-Fi
-                    self.catch_up()
+                self.catch_up(name)
             self.live = live
             restarts = self.wifi.restarts
             if all(n in restarts for n in CORES):

@@ -1,16 +1,17 @@
 # Calibration
 
 Every Mech is calibrated on its own: each servo's horn sits on its spline a tooth either way, and each print fits a
-little differently, so no one else's numbers fit yours. The eyes Core's servos (both lids, the yaw and the pitch) are
+little differently, so no one else's numbers fit yours. The eyes Core's servos (both lids, the yaw and the pitch) and
+the neck Core's pan, tilt and jaw are
 calibrated in `eyes/calibration.json`, live with `noggin/noggin set` ([Tuning](../use/tuning.md)). Until you calibrate
 your own, the file holds the model's nominal ranges, each servo's horn about its 90 neutral (inferred; the
-[Wiring](wiring.md#servo-ports) table shows them). *Upcoming (#929): the neck Core's tilt and jaw get a calibration of
-their own.*
+[Wiring](wiring.md#servo-ports) table shows them).
 
 ## What the numbers are
 
 - `<servo>_lo` and `<servo>_hi`: a servo's two ends, in servo degrees, for each servo in the
-  [Wiring](wiring.md#servo-ports) table's eyes Core rows. For a lid, `_lo` is closed (where the upper and lower lid meet) and `_hi` open.
+  [Wiring](wiring.md#servo-ports) table. For a lid, `_lo` is closed (where the upper and lower lid meet) and `_hi` open.
+  The jaw uses `mouth_lo` closed and `mouth_hi` open; its horn turns backwards to open, so `_hi` may be smaller.
 - `<lid>_rest`: where each lid servo sits at `lid_rest`, so the two lids can match at rest even when their linkages
   differ.
 - Both lids are in one shared frame, the right lid servo's degrees: the two lid servos are mirror-mounted, and the Core
@@ -18,6 +19,9 @@ their own.*
 - `lid_rest`, `lid_think`, `lid_closed` and `lid_open`: how open the lids are, 0 closed to 1 open, at rest, while
   thinking, in a blink and at their widest.
 - `pan_lo`, `pan_hi` and `head_share`: the pan, once the neck is built ([Gestures](../use/gestures.md#the-head-joins-wide-gaze-shifts)).
+- `tilt_rest`: the head's resting tilt, in servo degrees. Hold it with `pose tilt <degrees>` while finding the two
+  ends, then set its rest. `pose jaw <0-1>` holds the jaw between closed and open; its closed position is a motion
+  endpoint, not a servo hard stop. Keep each fitted endpoint inside any physical stop.
 
 ## The method
 

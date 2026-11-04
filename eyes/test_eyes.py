@@ -55,12 +55,12 @@ def test_thinking_drifts_and_rest_stops_it(eyes, pwm_log):
     for t in range(0, 30_000, 100):
         eyes.tick(t)
     assert_in_range_and_held(pwm_log)
-    drifts = len(pwm_log)
-    pwm_log.clear()
     eyes.handle_line("rest")
+    assert angle(last_ns(pwm_log, mod.YAW)) == pytest.approx(mod.EYE_CENTER, abs=0.01)
+    pwm_log.clear()
     for t in range(30_000, 60_000, 100):
         eyes.tick(t)
-    assert len(pwm_log) < drifts / 4  # rest pose once, then nothing
+    assert pwm_log and {pin for pin, _ in pwm_log} <= set(mod.LIDS)  # spontaneous blinks, no gaze drift
 
 
 def test_thinking_blinks_occasionally(eyes, pwm_log):
@@ -204,7 +204,7 @@ def test_core_json_ports_pick_the_gpio_per_servo_name(tmp_path, monkeypatch, pwm
     assert {pin for pin, _ in pwm_log} == {2, 0}
 
 
-def test_neck_core_never_drives_the_eye_pins(tmp_path, monkeypatch, pwm_log):
+def test_neck_core_drives_only_its_own_servos(tmp_path, monkeypatch, pwm_log):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(mod, "sleep_ms", lambda ms: None)
     (tmp_path / "core.json").write_text('{"name": "neck", "ports": {"1": "tilt", "2": "mouth", "3": "pan"}}')
@@ -212,7 +212,7 @@ def test_neck_core_never_drives_the_eye_pins(tmp_path, monkeypatch, pwm_log):
     pwm_log.clear()
     e.handle_line("eureka 2")
     e.handle_line("wink 1")  # eye servo names unknown here: skipped, not crashed
-    assert pwm_log == []
+    assert {pin for pin, _ in pwm_log} == {mod.PORT_GPIO["1"], mod.PORT_GPIO["2"]}
 
 
 def test_take_writes_each_move_on_time_by_the_core_clock_however_slow_the_link_polls(eyes, pwm_log, monkeypatch):
@@ -314,7 +314,7 @@ def test_the_neck_core_turns_the_head_on_the_eyes_cores_timeline(tmp_path, monke
         start = mod.clock
         runs.append([(t - start, h) for t, h, _ in gaze_log(e, lambda e=e: e.handle_line("eureka 2"))])
     assert runs[0] == runs[1] and max(abs(h) for _, h in runs[1]) == pytest.approx(13.2)
-    assert {pin for pin, _ in pwm_log} == {mod.PORT_GPIO["3"]}  # the neck Core's last run: the pan alone
+    assert {pin for pin, _ in pwm_log} == {mod.PORT_GPIO[p] for p in ("1", "2", "3")}  # only the neck Core's servos
 
 
 def test_both_cores_pick_a_gestures_side_from_the_lines_alone(monkeypatch):

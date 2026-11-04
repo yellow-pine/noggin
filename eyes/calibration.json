@@ -16,5 +16,10 @@
  "think_trace": 0,
  "pan_lo": 60,
  "pan_hi": 120,
+ "tilt_lo": 42.1,
+ "tilt_rest": 90.0,
+ "tilt_hi": 139.7,
+ "mouth_lo": 90.0,
+ "mouth_hi": 53.7,
  "head_share": 0
 }
