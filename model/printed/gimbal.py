@@ -294,7 +294,7 @@ def frame(mechanical=False):
     (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
     waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
-    from model.printed.neck import TAP_R, strut  # here: model.printed.neck imports this module
+    from model.printed.neck import TAP_R, reaction_slot, strut  # here: model.printed.neck imports this module
 
     c, (bottom, top) = gm.EYE["L"][0], gm.PLATE_Z
     by, bz = gm.BAIL
@@ -340,7 +340,7 @@ def frame(mechanical=False):
     for s in (-1, 1):  # room for each yoke's crank to turn: the lid servo's collar comes down beside it
         reach = gm.CRANK + CRANK_BONE[0][0] + 0.5  # its Bone's head, which the yoke grows into its mechanical one
         out = out.cut(cyl("z", (s * c, 0, 0), reach, (gm.YAW_CRANK_Z[0], gm.YAW_CRANK_Z[1] + 0.5)))
-    return out
+    return out.cut(reaction_slot())
 
 
 def passes(m):

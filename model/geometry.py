@@ -172,6 +172,8 @@ _SKELETON = {
         "L lower lid",
         "R lower lid",
         "jaw bar",
+        "tilt lever",
+        "tilt reaction bar",
     ),
     "Mounts": ("torso", "torso lid", "cranium tray"),  # the realistic skull's black box pedestal (#838)
 }

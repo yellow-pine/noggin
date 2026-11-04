@@ -115,13 +115,16 @@ def cervical_carrier():
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (14, 18))
         rail = box(xs, (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
-        for a, b in zip(nk.CERVICAL_PATH, nk.CERVICAL_PATH[1:]):
-            rail = rail.union(strut((sign * 16, *a), (sign * 16, *b), (4, 2), (3, 1.6)))
-        rail = rail.union(cyl("x", (0, y, z), 8, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
+        points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
+        for a, b in zip(points, points[1:]):
+            rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
+        rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    out = out.union(box((14, nk.TILT_SPLINE_X), (y - 3, y + 3), (z - 9, z - 5)))
-    out = out.union(cyl("x", (0, y, z), 9.5, (nk.TILT_SPLINE_X - 3, nk.TILT_SPLINE_X)))
-    out = out.cut(cyl("x", (0, y, z), 3.1, (nk.TILT_SPLINE_X - 4, nk.TILT_SPLINE_X + 1)))
+    # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
+    anchor = nk.TILT_ANCHOR
+    out = out.union(strut((-16, y, z), (-10.5, anchor[1], anchor[2]), (3.5, 2.2), (3, 1.8)))
+    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-12, -9)))
+    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-12, -9)))
     for x, fy in nk.CARRIER_FEET:
         out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
     return out
@@ -147,20 +150,57 @@ def nod_plate():
     out = out.union(pad.cut(passes(matrix)))
     for x in (-25, 25):
         out = out.union(box((x - 1.5, x + 1.5), (py + 9, py + 15), (floor, nk.NOD_Z[0] + 1)))
-    out = out.union(box((26, nk.TILT_SPLINE_X + 43), (y - 17, y + 38), (z - 12.85, z - 9.85)))
-    for hy in (y - 13.4, y + 34.1):
-        out = out.union(box((26, nk.TILT_SPLINE_X + 13.4), (hy - 2.5, hy + 2.5), (z - 12.85, nk.NOD_Z[0] + 1)))
-        for hz in (z - 5, z + 5):
-            out = out.cut(cyl("x", (0, hy, hz), 2.0, (nk.TILT_SPLINE_X + 9, nk.TILT_SPLINE_X + 14)))
+    # The standard's real side tabs carry it above the existing eye servos; no floor crosses their tops.
+    sx, sy, sz = nk.TILT_SHAFT
+    rear = sy + 34.1
+    tab_x = (sx + 10.4, sx + 13.4)
+    ceiling = 29.5  # 0.5 mm below the cranium tray's underside at z30
+    out = out.union(box(tab_x, (sy, rear + 3), nk.NOD_Z))
+    out = out.union(box(tab_x, (rear - 3, rear + 3), (nk.NOD_Z[0], ceiling)))
+    for hy in (sy - 13.4, rear):
+        out = out.union(box(tab_x, (hy - 3, hy + 3), (sz - 10.8, ceiling)))
+        for hz in (sz - 5, sz + 5):
+            out = out.cut(cyl("x", (0, hy, hz), 2, (tab_x[0], tab_x[1])))
+    out = out.union(box(tab_x, (sy - 16.4, rear + 3), (ceiling - 2, ceiling)))
+    out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R + 0.3, nk.NOD_Z))
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
     for xs, radius in (
         ((13.7, 18.3), 8.5),
         ((-18.3, -13.7), 8.5),
-        ((22.6, nk.TILT_SPLINE_X + 0.2), 11),
         ((-34.2, -25.8), 8.5),
     ):
         out = out.cut(cyl("x", (0, y, z), radius, xs))
     return out
+
+
+def tilt_lever():
+    """Adapter on the standard horn, with the equal-arm parallelogram's passive-bar pin."""
+    _, y, z = nk.TILT_SHAFT
+    from model.printed.gimbal import lid_mechanical
+
+    out = cyl("x", (0, y, z), 11.5, (-12, -9))
+    out = out.union(lid_mechanical([(y, z), (nk.TILT_PIN[1], nk.TILT_PIN[2])], (-12, -9)))
+    out = out.union(cyl("x", (0, nk.TILT_PIN[1], nk.TILT_PIN[2]), 3.5, (-12, -9)))
+    out = out.cut(cyl("x", (0, y, z), 1.6, (-12, -9)))
+    for dy, dz in ((8, 0), (-8, 0), (0, 8), (0, -8)):
+        out = out.cut(cyl("x", (0, y + dy, z + dz), 1.1, (-12, -9)))
+    return out.cut(cyl("x", (0, nk.TILT_PIN[1], nk.TILT_PIN[2]), TAP_R, (-12, -9)))
+
+
+def tilt_reaction_bar():
+    out = link(tuple(nk.TILT_ANCHOR[1:]), tuple(nk.TILT_PIN[1:]), (-15, -12), True, BAR_BONE)
+    for point in (nk.TILT_ANCHOR, nk.TILT_PIN):
+        out = out.union(cyl("x", (0, *point[1:]), 3.8, (-15, -12))).cut(cyl("x", (0, *point[1:]), gm.PIN_R, (-15, -12)))
+    return out
+
+
+def reaction_slot():
+    """Clearance for the real reaction bar through the panning frame; the sampled arc's sagitta is under0.05mm."""
+    from model import linkage
+
+    point, _ = nk.HEAD_AXES["pan"]
+    positions = [(linkage.rotation((0, 0, 1), d, point) @ [*nk.TILT_ANCHOR, 1])[:2] for d in np.linspace(-45, 45, 19)]
+    return _flat(positions, 8, (-52, 21))
 
 
 def head_mount():

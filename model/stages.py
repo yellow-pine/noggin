@@ -284,17 +284,25 @@ def neck_sub():
         if role != "jaw"
     }
     tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
-    parts["tilt servo:1"] = part(
-        stl("standard servo"), align((neck.TILT_SPLINE_X, *tilt[1:]), g.Y, (-1, 0, 0)), (55, "documented")
-    )
-    parts["tilt horn:1"] = part(stl("standard horn"), align((neck.TILT_SPLINE_X, *tilt[1:]), g.Y, g.X), BOARD)
+    for stem in ("tilt lever", "tilt reaction bar"):
+        parts[stem + ":1"] = part(stl(stem), None, printed(stem))
+    parts["tilt servo:1"] = part(stl("standard servo"), align(neck.TILT_SHAFT, g.Y, (-1, 0, 0)), (55, "documented"))
+    parts["tilt horn:1"] = part(stl("standard horn"), align(neck.TILT_SHAFT, g.Y, g.X), BOARD)
     parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.BEARING_Z[0])), (7.85, "steel"))
     parts["tilt balance spring:1"] = part(stl("balance spring"), translate((-34, *tilt[1:])), (7.85, "steel"))
     # Spline up below the plate, torque through the head mount's quill; the bearing takes axial head load.
     face = (0, pan[1], neck.PAN_HORN_Z)
     parts.update(mounted(gimbal.servo_origin(face, g.Z), g.X, g.Z, "pan", g.X))
     head = [*neck.HEAD, "pan horn:1"]
-    carried = ["nod plate:1", "tilt servo:1", "pan servo:1", "pan bearing:1", *head]
+    carried = ["nod plate:1", "tilt servo:1", "tilt horn:1", "tilt lever:1", "pan servo:1", "pan bearing:1", *head]
+    reaction = Reaction(
+        neck.TILT_SHAFT,
+        neck.TILT_PIN,
+        neck.TILT_ANCHOR,
+        ["tilt lever:1", "tilt horn:1"],
+        "tilt reaction bar:1",
+        "cervical carrier:1",
+    )
     horns = {
         "tilt horn": Horn(
             {"point": tilt, "axis": g.X},
@@ -303,7 +311,7 @@ def neck_sub():
             [],
             [],
             None,
-            direct=Direct("tilt pivot", carried, -1),
+            direct=Direct("tilt pivot", carried, -1, reaction),
         ),
         "pan horn": Horn(
             {"point": pan, "axis": g.Z},

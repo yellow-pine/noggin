@@ -29,6 +29,8 @@ PARTS = {
     "head mount": neck.head_mount,
     "jaw": neck.jaw,
     "jaw bar": neck.jaw_bar,
+    "tilt lever": neck.tilt_lever,
+    "tilt reaction bar": neck.tilt_reaction_bar,
     # the Mech's Torso (#685) and the cranium tray, which carries the Cores in the head (#858)
     "torso": base.torso,
     "torso lid": base.lid,
@@ -50,7 +52,8 @@ UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
     **dict.fromkeys(
-        ("cervical carrier", "nod plate", "head mount"), "hidden structural bearing and servo interfaces (#902)"
+        ("cervical carrier", "nod plate", "head mount", "tilt lever", "tilt reaction bar"),
+        "hidden structural bearing and servo interfaces (#902)",
     ),
 } | dict.fromkeys(
     BONES,

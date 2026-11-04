@@ -44,15 +44,24 @@ BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fix
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
 NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-45.3, -40.3)
 BEARING_Z = (-40.3, -35.3)  # top below the cranium tray's underside; the plate clears the gimbal plane
-TILT_SPLINE_X = 35.0  # axial offset clears the actual condylar pan arc; private Skin preflight documented in #902
+TILT_SPLINE_X, TILT_RISE = (
+    -9.0,
+    65.0,
+)  # above the existing eye servos, below the cranium tray; private Skin preflight #902
+TILT_SHAFT = (TILT_SPLINE_X, HEAD_AXES["tilt"][0][1], HEAD_AXES["tilt"][0][2] + TILT_RISE)
+TILT_ARM = 12.0  # printed adapter on the supplied round horn, equal to the fixed reaction arm
+TILT_PIN = (-13.5, TILT_SHAFT[1] + TILT_ARM, TILT_SHAFT[2])
+TILT_ANCHOR = (TILT_PIN[0], TILT_PIN[1], HEAD_AXES["tilt"][0][2])
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
 CERVICAL_PATH = (
     (64.0, -171.0),
     (76.0, -154.0),
     (91.6, -146.0),
+    (78.5, -60.7),
     (76.6, -48.7),
 )  # (y,z), over the pack into the true canal
+CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 16.0)  # narrow medial rails outside the wire corridor, then lateral C0 trunnions
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not the whole nod plate's swept disc
 
@@ -66,10 +75,10 @@ FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's p
 HEAD_SCREWS = (
     (16.0, 48.0),
     (-16.0, 48.0),
-    (16.0, 83.0),
-    (-16.0, 83.0),
+    (16.0, 75.0),
+    (-16.0, 75.0),
 )  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
-CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
+CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 4.0
 # The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
 # the neck cable, and the pan at its top under the head (#858): the yoke's disc on it under its top floor, on which the
 # tilt servo stands, the cheeks up from it to the tilt axis; the pan servo hangs on the post over the lid
@@ -98,7 +107,7 @@ def jaw_y(y):
 # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
 JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (10.0, -70.0), (JAW_X[0] - 3.0, JAW_X[0])
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (10.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
 # #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
 # Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.
 MANDIBLE_BORDER = {
@@ -174,13 +183,20 @@ def drives():
     return {
         "pan": ((pan[0], pan[1], PAN_Z[0]), g.Z, g.Y, g.Y),
         "tilt": ((TILT_BAR_X[1], *tilt[1:]), (-1, 0, 0), (0, -1, 0), g.Y),
-        "mouth": ((JAW_BAR_X[0], *jaw[1:]), g.X, (0, 0, -1), g.Z),
+        "mouth": (
+            (JAW_BAR_X[0], *jaw[1:]),
+            g.X,
+            (0, 0, -1),
+            tuple(-np.subtract(p["jaw"][1], p["jaw"][0]) / math.dist(p["jaw"][1], p["jaw"][0])),
+        ),
     }
 
 
 def servo_for(drive, out):
     """The servo angle (deg from its centre) that turns the drive's output to `out` deg: walked out from rest a degree at
     a time, then found within the degree."""
+    if out == 0:
+        return 0.0
     if drive not in LINKAGES:
         return -out if drive == "tilt" else out
     solve = LINKAGES[drive]
