@@ -91,8 +91,7 @@ _Avoid_: theme (for the named set), skin (for the whole look)
 
 **Default build**:
 The first Preset, the look every picture, viewer and page opens on until another is picked: the mechanical Skeleton in
-black, ~~in the cansin Skin shape~~ *with no Skin (#897)*, the default Skin palette (mechanical, black,
-~~cansin~~ *none (#897)*, default).
+black, with no Skin, the default Skin palette (mechanical, black, none, default).
 _Avoid_: Cansin's build, default look, default theme
 
 **Colour group**:

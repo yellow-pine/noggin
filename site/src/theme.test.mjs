@@ -6,7 +6,7 @@ import { AXES, PRESETS, css, picked } from "./theme.mjs";
 test("the bar's Presets are the model's, Default build first, the default, each a value on every axis", () => {
   expect(Object.keys(PRESETS)).toEqual(["default-build", "morty", "bart"]);
   expect(PRESETS["default-build"]).toEqual({
-    label: "Default build", "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "cansin", "skin-palette": "default",
+    label: "Default build", "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none", "skin-palette": "default",
   });
   expect(AXES["skeleton-palette"]).toEqual(["anatomical", "robot", "black"]);
 });
