@@ -327,7 +327,7 @@ def stage_guides():
     """Per Stage ("1" to "3", the Bony documents): the parts it adds to the Stage before it (and any it takes off), each
     printed in its Colour group's filament under each Preset, shown for the Preset picked (#806, #819), or bought, and
     its new servos with their Core (the eyes Core's are the eye gimbal's horns, model/stages.py eyes_sub) and the
-    model's range, from neutral 90 as wiring() gives them."""
+    model's range from each servo's travel midpoint as wiring() gives them."""
     made = {name: f"{group}: {filament(group)}" for name, (group, _) in g.PRINTED.items()}
     eyes = set(stages.SUBS["eyes"]().horns)
     parts, servos, before, horns = {}, {}, Counter(), set()
@@ -342,8 +342,9 @@ def stage_guides():
         rows = ["| Core | Servo | The model's range |", "|---|---|---|"]
         for name, horn in d.horns.items():
             if name not in horns:
-                lo, hi = (round(90 + a, 1) for a in horn.limits)
                 servo = name.removesuffix(" horn")
+                neutral = mjcf.electrical.servo.profile(servo)["travel_deg"] / 2
+                lo, hi = (round(neutral + a, 1) for a in horn.limits)
                 rows.append(f"| {'eyes' if name in eyes else 'neck'} | {servo} | {lo:g}..{hi:g} |")
         servos[str(n)], before, horns = "\n".join(rows), now, set(d.horns)
     return parts, servos
@@ -371,7 +372,7 @@ def shopping():
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
     shared lid frame, the eyes resting centred between their ends), the neck's the Mech's neck's limits (its horns
-    from neutral, 90) and that neutral."""
+    from each servo's travel midpoint) and that neutral."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
     neck = stages.neck_sub().horns | stages.jaw_sub().horns
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
@@ -382,7 +383,8 @@ def wiring():
                 rest = cal.get(servo + "_rest", (lo + hi) / 2)
             else:  # the pan servo's horn goes by "rotate" (model/render/scene.py HORNS)
                 horn = neck[scene.HORNS["rotate" if servo == "pan" else servo]]
-                (lo, hi), rest = (round(90 + d, 1) for d in horn.limits), 90
+                rest = mjcf.electrical.servo.profile(servo)["travel_deg"] / 2
+                lo, hi = (round(rest + d, 1) for d in horn.limits)
             row = f"{n} ({name}) | {port} | {gpio[str(port)]} | {g.SERVO_LABEL[servo]} | {lo:g}..{hi:g} | {rest:g}"
             rows.append(f"| {row} |")
     return "\n".join(rows)
