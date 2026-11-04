@@ -39,10 +39,10 @@ servo = _load("servo")
 SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
 # The Mech's power path (#858, docs/research/2026-11-03-usb-c-power.md 7): the pack on the power-path board's
 # battery FET (BQ25886; its on-resistance not read, 20 mohm [I]), the switch board after the board's output, then the
-# neck cable's output pair up the post (24 AWG, 0.0842 ohm/m, out and back; 250 mm, the research's assumed run [I]) to
+# neck cable's output pair (22 AWG, 0.0535 ohm/m, out and back; 250 mm inferred run; #902 research) to
 # the Y lead into the Shields, across which the bulk capacitor sits (470 uF: open at DC, so worst_case() is unmoved by
 # it; it rides the start edges and the board's switchover).
-BATFET_OHM, NECK_CABLE_MM, NECK_OHM_PER_MM, BULK_F = 0.020, 250, 2 * 0.0842e-3, 470e-6
+BATFET_OHM, NECK_CABLE_MM, NECK_OHM_PER_MM, BULK_F = 0.020, 250, 2 * 0.0535e-3, 470e-6
 
 
 CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)

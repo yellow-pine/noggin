@@ -92,15 +92,15 @@ JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (JAW_X[0] - 3.0, JAW_X[
 CHIN_Y = jaw_y(-29.0)  # its chin's front, the mandible's
 JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
-# the thickest lead that crosses, a 24 AWG pair (inferred): each of the neck cable's two (#858, its four conductors:
+# the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
 # docs/research/2026-11-03-usb-c-power.md 7)
-LEAD_OD = 1.4
+LEAD_OD = 1.6
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
 # its clamps in front of the pan axis at this radius: the post's, over where the neck cable leaves it, then the yoke's disc's
 PAN_SPAN = (18.0, (-112.0, -82.0))
 # its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
-TILT_SPAN = (22.0, 45.0)
+TILT_SPAN = (24.0, 45.0)
 LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug
 # the parts the tilt turns with the eye gimbal: model/report.py weighs the head from them
 HEAD = ("head mount:1", "jaw:1", "jaw bar:1", "mouth servo:1", "mouth horn:1")

@@ -19,3 +19,18 @@ applied to the standard servo. Its lead resistance uses the same inferred
 26 AWG copper as the other servo leads, with the published 320 mm length.
 The actual finished anatomical head and Skin loads must be included before
 the spring, torque and stability acceptance for #902 can close.
+
+The manufacturer specifies operating voltage without identifying its measurement
+node. The supply report conservatively keeps the 4.8 V minimum after the stock
+lead; it does not move that boundary to make a result pass. With the earlier
+inferred 24 AWG neck run, simultaneous stalls leave 4.792 V there. The neck run
+therefore uses four 22 AWG conductors, still one pack and the same four power
+conductors. Resistance is modelled as 0.0535 Ω/m per conductor, consistent with
+[Belden's 22 AWG stranded-copper example](https://catalog.belden.com/index.cfm?event=pd&p=PF_6545UE).
+Insulation OD 1.6 mm and the 250 mm run remain inferred; the flexing spans keep
+the ten-diameter minimum bend radius. This is a wiring design, not a claim of
+stock servo lead gauge or a hardware measurement.
+
+The manufacturer's comment describes 159° travel, while a robot variant has
+180°. Travel and pulse endpoints remain calibration assumptions: the tilt uses
+only ±20° about its fitted centre, within the conservative ±79.5° envelope.

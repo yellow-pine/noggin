@@ -45,7 +45,7 @@ Also needed, which the model doesn't count as parts:
 
 - M3 screws, about 10 mm, as the busy pivots' greased shanks, and M2 screws and nuts for the servos and boards
   (inferred).
-- From Stage 2: a Y lead from the switch board to both Shields, four 24 AWG conductors up the neck from the Torso to
+- From Stage 2: a Y lead from the switch board to both Shields, four 22 AWG conductors up the neck from the Torso to
   the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
   to the head; inferred).
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current

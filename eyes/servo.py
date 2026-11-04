@@ -54,6 +54,9 @@ def profile(axis, volts=5.0):
         "min_v": v0,
         "lead_mm": 320 if standard else 250,
         "mass_g": 55 if standard else 16,
+        "travel_deg": 159
+        if standard
+        else 180,  # calibrated pulse endpoints remain an inference, not a universal 180° claim
         "armature": ARMATURE * (55 / 16 if standard else 1),
         "rated_source": "inferred: one third of stall" if standard else "published",
     }

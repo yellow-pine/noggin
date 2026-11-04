@@ -92,6 +92,7 @@ def motor(horn):
         "kp": stall / math.radians(0.5),
         "armature": p["armature"],
         "delay_s": 0.02,
+        "travel_deg": p["travel_deg"],
         **(json.load(open(FIT)) if horn != "tilt horn" and os.path.exists(FIT) else {}),
     }
 
@@ -113,7 +114,8 @@ def drive(s, joint, values=None, delay_max_s=None, *, name=None, gear=1):
         controller=[values["kp"], 0, kd, 0, 0, volts],
         ctrlspec=mujoco.mjtCtrlInput.mjINPUT_POS,
     )
-    servo.ctrlrange = [-math.pi / 2, math.pi / 2]  # the servo's 0..180
+    travel = math.radians(values.get("travel_deg", 180) / 2)
+    servo.ctrlrange = [-travel, travel]
     servo.gear = [gear, 0, 0, 0, 0, 0]
     servo.nsample = math.ceil((delay_max_s or values["delay_s"]) / s.option.timestep - 1e-9)
     servo.delay, servo.interp = values["delay_s"], 1  # linear (XMLreference actuator interp), so the fit can move it
