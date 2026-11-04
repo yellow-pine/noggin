@@ -25,7 +25,8 @@ BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
-Direct = namedtuple("Direct", "joint driven sign")  # a concentric servo: output sign, rigid carrier and its riders
+Reaction = namedtuple("Reaction", "point pin anchor driven bar fixed")  # moving-case parallelogram, parallel hinge axes
+Direct = namedtuple("Direct", "joint driven sign reaction", defaults=(None,))  # 1:1 output, concentric or parallelogram
 Horn = namedtuple(
     "Horn", "pivot limits crank loops still frame rods direct", defaults=((), None)
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
@@ -453,7 +454,19 @@ def pose(stage, horn_name, deg):
         turn = linkage.rotation(horn.pivot["axis"], output, horn.pivot["point"])
         for name in horn.direct.driven:
             move(name, turn)
-        return Pose(mats, {**dict.fromkeys(horn.still, 0.0), horn.direct.joint: round(output, 2)})
+        joints = {**dict.fromkeys(horn.still, 0.0), horn.direct.joint: round(output, 2)}
+        if reaction := horn.direct.reaction:
+            for name in reaction.driven:
+                mats[name] = (
+                    f
+                    @ turn
+                    @ linkage.rotation(horn.pivot["axis"], deg, reaction.point)
+                    @ f_inv
+                    @ stage.parts[name].matrix
+                )
+            move(reaction.bar, linkage.rotation(horn.pivot["axis"], output, reaction.anchor))
+            joints |= {horn_name: deg, reaction.bar + " pivot": output}
+        return Pose(mats, joints)
     move(horn.crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
     joints, coupled = {j: 0.0 for j in horn.still}, set()
     for loop in horn.loops:

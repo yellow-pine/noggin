@@ -235,6 +235,15 @@ def _joints(stage):
             hinges[horn.direct.joint] = at(horn.pivot["point"], horn.pivot["axis"])
             for name in horn.direct.driven:
                 moves[name].add(horn.direct.joint)
+            if reaction := horn.direct.reaction:
+                axis = horn.pivot["axis"]
+                hinges[h] = at(reaction.point, axis)
+                for name in reaction.driven:
+                    moves[name].add(h)
+                bar_joint = reaction.bar + " pivot"
+                hinges[bar_joint] = at(reaction.anchor, axis)
+                moves[reaction.bar].add(bar_joint)
+                closures.append((h + " reaction", reaction.bar, reaction.driven[0], at(reaction.pin, axis)[0]))
             continue
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
         moves[horn.crank].add(h)
@@ -370,7 +379,7 @@ def spec(doc, collide=True):
             solimp=LOOP_SOLIMP,
         )
     for h, horn in stage.horns.items():
-        if horn.direct:
+        if horn.direct and not horn.direct.reaction:
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
