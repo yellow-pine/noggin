@@ -45,21 +45,23 @@ W = electrical.worst_case()  # every servo at stall and both Cores in a Wi-Fi tr
 
 def test_the_one_pack_feeds_both_shields_with_every_servo_at_stall_and_both_cores_bursting():
     for case in ("nominal", "cutoff"):
-        # 7 servos at 650 mA stall + 2 x (shield standby 60 mA + an ESP32-C3 transmit burst 335 mA): 5.34 A on a 3 A pack
-        assert abs(W[case]["pack_a"] - 5.34) < 1e-6
-        assert abs(W[case]["shield_a"]["core1"] - (4 * 0.65 + 0.060 + 0.335)) < 1e-6
-        assert abs(W[case]["shield_a"]["core2"] - (3 * 0.65 + 0.060 + 0.335)) < 1e-6
+        # Six micro servos at 5 V (0.5667 A) plus the standard's full published 1.4 A and both Cores: 5.59 A.
+        assert W[case]["pack_a"] == pytest.approx(5.59)
+        assert W[case]["shield_a"]["core1"] == pytest.approx(2.662)
+        assert W[case]["shield_a"]["core2"] == pytest.approx(2.928)
     assert W["cap_a"] == 3.0 and all(a < 3.0 for a in W["nominal"]["shield_a"].values())
 
 
-def test_on_a_nominal_pack_every_servo_keeps_its_minimum_and_both_cores_their_3v3():
+def test_the_nominal_simultaneous_stall_reports_the_standard_leads_drop_and_keeps_both_cores_at_3v3():
     nominal = W["nominal"]
     assert nominal["pack_v"] == 7.4 and W["servo_min_v"] == 4.8 and W["brownout_v"] == 2.51
     assert set(nominal["servo_v"]) == {"l_lid", "yaw", "r_lid", "pitch", "tilt", "mouth", "pan"}
-    # the shield's 5 V rail holds (Core 1's, behind the neck cable's drop, 3 mV into its dropout, #858); the servo
-    # lead's two 250 mm conductors (26 AWG, 0.134 ohm/m) drop 0.65 A x 0.067 ohm
-    assert all(abs(nominal["servo_v"][n] - 4.953) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(nominal["servo_v"][n] - 4.956) < 0.001 for n in ("tilt", "mouth", "pan"))
+    assert all(abs(nominal["servo_v"][n] - 4.882) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert all(abs(nominal["servo_v"][n] - 4.874) < 0.001 for n in ("mouth", "pan"))
+    # The actual 320 mm standard lead drops 1.4 A x 0.08576 ohm. This deliberately exposes an unsafe all-stall
+    # condition (also 5.59 A on a 3 A pack); test_report's existing minimum-voltage gate must still reject it.
+    assert nominal["servo_v"]["tilt"] == pytest.approx(4.792)
+    assert nominal["servo_v"]["tilt"] < W["servos"]["tilt"]["min_v"]
     assert all(abs(v - 3.3) < 1e-6 for v in nominal["core_v"].values())
 
 
@@ -78,8 +80,9 @@ def test_at_the_cut_the_servos_sag_below_their_minimum_and_the_cores_keep_their_
     cutoff = W["cutoff"]
     assert all(v < W["servo_min_v"] for v in cutoff["servo_v"].values())  # "sluggish when the battery is low"
     assert all(abs(v - 3.3) < 1e-6 for v in cutoff["core_v"].values())  # the pack cuts before a Core browns out
-    # 5.8 V less 5.34 A through the MOSFETs, the pack lead, the power-path board's battery FET, the switch and the neck
+    # 5.8 V less 5.59 A through the MOSFETs, the pack lead, the power-path board's battery FET, the switch and the neck
     # cable's 250 mm of 24 AWG up the post (#858), the shield's branch, the rail's 0.5 V dropout and the servo lead:
     # Core 1's shield (4 servos) sags further than Core 2's (3)
-    assert all(abs(cutoff["servo_v"][n] - 4.221) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(cutoff["servo_v"][n] - 4.238) < 0.001 for n in ("tilt", "mouth", "pan"))
+    assert all(abs(cutoff["servo_v"][n] - 4.191) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert all(abs(cutoff["servo_v"][n] - 4.184) < 0.001 for n in ("mouth", "pan"))
+    assert cutoff["servo_v"]["tilt"] == pytest.approx(4.101)
