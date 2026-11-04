@@ -285,6 +285,20 @@ def test_the_required_pr_gate_blocks_until_code_actually_succeeds(result):
     assert (done.returncode == 0) is (result == "success"), done
 
 
+@pytest.mark.parametrize("draft", ("true", "false", "", "unknown"))
+def test_required_pr_validation_blocks_drafts_before_doing_any_work(draft):
+    """#972: the other required check must not leave an accepted skipped result behind on a draft."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-checks.yml").read_text())["jobs"]["pr"]
+    assert not job.get("if")  # report a failing guard instead of skipping the required job
+    step = job["steps"][0]
+    env = {key: draft for key, value in step["env"].items() if value == "${{ github.event.pull_request.draft }}"}
+    assert env
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (draft == "false"), done
+    # Only the body and dependency checks run past a failed step; they must also stay off drafts.
+    assert all("!github.event.pull_request.draft" in s["if"] for s in job["steps"][1:] if "if" in s)
+
+
 def test_a_pr_lists_no_job_every_pr_skips():
     """#722: a job conditioned off pull_request shows as skipped on every PR, so a workflow on pull_request alone
     tests no event at all. Dependabot Auto-merge runs on Dependabot's PRs and Clear Labels on a closed issue: both
