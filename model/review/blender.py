@@ -30,6 +30,21 @@ def lin(hexc, alpha):
     return (*[x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c], alpha)
 
 
+def material(name, rgba):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.diffuse_color = rgba
+    return m
+
+
+def paint(o):
+    """Per-object slots: mirrored parts share meshes, and each scene's copies keep their own alpha."""
+    m = material("Review " + ",".join(f"{v:.6f}" for v in o.color), o.color)
+    if not o.data.materials:
+        o.data.materials.append(m)
+    for slot in o.material_slots:
+        slot.link, slot.material = "OBJECT", m
+
+
 def finished(stem):
     return bpy.data.objects[f"finished {stem}"]
 
@@ -42,16 +57,47 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """The local Morty, decimated, at his place, in three objects split at the planes, each in his region's colour."""
-    bpy.ops.wm.stl_import(filepath=m["stl"])
-    whole = bpy.context.selected_objects[0]
+    """The private closed, arm-free reference: one mesh named Morty in the raw sculpt's frame, its painted material slots
+    named by Skin Colour group. Keep this editable .blend in docs/references; rebuilding never writes to it."""
+    with bpy.data.libraries.load(m["blend"]) as (src, dst):
+        if "Morty" not in src.objects:
+            raise ValueError("review: local Morty reference needs a mesh named Morty with Skin Colour group materials")
+        dst.objects = ["Morty"]
+    whole = dst.objects[0]
+    if whole.type != "MESH" or not whole.data.polygons or not whole.data.materials:
+        raise ValueError("review: local Morty reference needs a painted mesh")
+    bpy.context.scene.collection.objects.link(whole)
+    for slot in whole.material_slots:
+        if not slot.material or slot.material.name not in m["colours"]:
+            raise ValueError("review: local Morty materials must be named by Skin Colour group")
+        slot.material.diffuse_color = lin(m["colours"][slot.material.name], JOB["alpha"]["Morty"])
     dec = whole.modifiers.new("Decimate", "DECIMATE")
     dec.ratio = min(1.0, MORTY_FACES / len(whole.data.polygons))
     with bpy.context.temp_override(object=whole):
         bpy.ops.object.modifier_apply(modifier=dec.name)
-    whole.data.transform(Matrix(m["at"]))
+    whole.data.transform(Matrix(m["at"]) @ whole.matrix_world)
+    bm = bmesh.new()
+    bm.from_mesh(whole.data)
+    floor = m["floor"]
+    bmesh.ops.bisect_plane(
+        bm,
+        geom=[*bm.verts, *bm.edges, *bm.faces],
+        plane_co=(0, 0, floor),
+        plane_no=(0, 0, 1),
+        clear_inner=True,
+        dist=1e-5,
+    )
+    rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.z - floor) < 1e-4 for v in e.verts)]
+    caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
+    if any(e.is_boundary for e in rim):
+        raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
+    clothes = next(i for i, mat in enumerate(whole.data.materials) if mat.name == "clothes")
+    for f in caps:
+        f.material_index = clothes
+    bm.to_mesh(whole.data)
+    bm.free()
     low, high = m["planes"]
-    for region, hexc, (z0, z1) in zip(REGIONS, m["colours"], ((high, 1e9), (low, high), (-1e9, low)), strict=True):
+    for region, (z0, z1) in zip(REGIONS, ((high, 1e9), (low, high), (-1e9, low)), strict=True):
         me = whole.data.copy()
         bm = bmesh.new()
         bm.from_mesh(me)
@@ -60,7 +106,7 @@ def morty(m):
         bm.free()
         o = bpy.data.objects.new(f"Morty {region.lower()}", me)
         bpy.data.collections[f"Morty {region}"].objects.link(o)
-        o.color, o.hide_render = lin(hexc, JOB["alpha"]["Morty"]), True
+        o.color, o.hide_render = (1, 1, 1, JOB["alpha"]["Morty"]), True
     bpy.data.objects.remove(whole)
 
 
@@ -87,6 +133,7 @@ def assemble():
         else:
             place(o, name, p["region"], p["layer"])
         o.color = lin(p["colour"], JOB["alpha"][p["layer"] or "Mech"])
+        paint(o)
         o.hide_set(False)
     for o in list(bpy.data.collections[export.FINISHED].objects):  # the bare copies: the document wears the worn
         bpy.data.objects.remove(o)
@@ -94,7 +141,7 @@ def assemble():
     if JOB["morty"]:
         morty(JOB["morty"])
     else:
-        print("review: no Morty (a fresh clone): his layer stays empty", flush=True)
+        print("review: no local sectioned Morty reference (NOGGIN_MORTY); his layer stays empty", flush=True)
 
 
 def bake(stem):
@@ -108,6 +155,7 @@ def bake(stem):
     old, o.data = o.data, me
     me.name = o.name
     bpy.data.meshes.remove(old)
+    paint(o)
     print(f"review: {stem} {len(me.polygons)} faces", flush=True)
 
 
@@ -119,7 +167,7 @@ def walk(lc):
 
 def shading(s):
     s.render.engine = "BLENDER_WORKBENCH"
-    s.display.shading.light, s.display.shading.color_type = "STUDIO", "OBJECT"
+    s.display.shading.light, s.display.shading.color_type = "STUDIO", "MATERIAL"
     s.unit_settings.scale_length, s.unit_settings.length_unit = 0.001, "MILLIMETERS"
 
 
@@ -164,6 +212,10 @@ def copies(scene, name, items):
         x.parent = None
         x.matrix_world = world
         x.color = (*x.color[:3], 1.0)
+        for slot in x.material_slots:
+            if slot.material:
+                m = slot.material
+                slot.link, slot.material = "OBJECT", material(m.name + " opaque", (*m.diffuse_color[:3], 1.0))
         x.hide_render = False
         c.objects.link(x)
         x.hide_set(False)
@@ -230,7 +282,7 @@ def scenes():
         for area in screen.areas:
             if area.type == "VIEW_3D":
                 sp = area.spaces.active
-                sp.shading.type, sp.shading.color_type = "SOLID", "OBJECT"
+                sp.shading.type, sp.shading.color_type = "SOLID", "MATERIAL"
                 sp.clip_start, sp.clip_end = 1.0, 20000.0
 
 

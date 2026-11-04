@@ -8,6 +8,7 @@ import subprocess
 
 import pytest
 
+from model import geometry as g
 from model import review, skeleton, stages
 
 STAGE = stages.STAGES[review.DOC]
@@ -59,7 +60,23 @@ a = bpy.data.scenes["Assembled"]
 out = {"scenes": [s.name for s in bpy.data.scenes], "first": bpy.context.window_manager.windows[0].scene.name}
 out["layers"] = {c.name: {k.name: sorted({round(o.color[3], 2) for o in k.objects}) for k in c.children}
                  for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
+out["layer_material_alpha"] = {c.name: sorted({round(slot.material.diffuse_color[3], 2)
+    for o in c.all_objects for slot in o.material_slots if slot.material})
+    for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
 out["morty"] = len(bpy.data.collections["Morty"].all_objects)
+out["shading"] = a.display.shading.color_type
+out["skin"] = {o.data.materials[p.material_index].name: list(o.data.materials[p.material_index].diffuse_color)
+               for o in bpy.data.collections["Morty"].all_objects for p in o.data.polygons
+               if o.data.materials}
+base = [o.matrix_world @ v.co for o in bpy.data.collections["Mech Pedestal"].objects for v in o.data.vertices]
+out["floor"] = min((v.z for v in base), default=None)
+bust = [o.matrix_world @ v.co for o in bpy.data.collections["Morty Pedestal"].objects for v in o.data.vertices]
+caps = sum(all(abs((o.matrix_world @ o.data.vertices[i].co).z - out["floor"]) < 0.01 for i in p.vertices)
+    for o in bpy.data.collections["Morty Pedestal"].objects for p in o.data.polygons) if base else 0
+out["bust"] = [min(v.z for v in bust), caps] if bust and base else None
+out["material_alpha"] = {s.name: sorted({round(slot.material.diffuse_color[3], 2)
+    for o in s.objects if o.type == "MESH" and not o.name.startswith("Plate")
+    for slot in o.material_slots if slot.material}) for s in bpy.data.scenes if s.name in ("Exploded", "Print bed")}
 out["helpers"] = next(l.hide_viewport for l in walk(a.view_layers[0].layer_collection) if l.name == "helpers")
 horns = [o for o in bpy.data.objects if o.name.startswith("horn ")]
 out["actions"] = sorted({o.animation_data.action.name for o in a.objects if o.animation_data})
@@ -109,6 +126,7 @@ def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
         regions = blend["layers"][layer]
         assert sorted(regions) == sorted(f"{layer} {r}" for r in ("Skull", "Mechanism", "Pedestal"))
         assert all(a in ([], [alpha]) for a in regions.values()), (layer, regions)
+        assert blend["layer_material_alpha"][layer] in ([], [alpha])
     assert (blend["morty"] == 3) == os.path.isfile(review.MORTY)
     assert blend["helpers"]
 
@@ -118,6 +136,31 @@ def test_one_looping_action_sweeps_each_horn_over_its_servos_range(blend):
     for horn, (lo, hi, first, last) in blend["horns"].items():
         assert (lo, hi) == pytest.approx(STAGE.horns[horn].limits, abs=1e-4), horn
         assert first == last == 0.0
+
+
+def test_mortys_sections_show_the_default_skin_palette_at_33_percent(blend):
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    assert blend["shading"] == "MATERIAL"
+    groups = {"face", "hair", "pupils", "clothes", "eye whites"}
+    assert set(blend["skin"]) == groups
+    for group, rgba in blend["skin"].items():
+        hex_ = g.THEMES["Skin palette"]["default"][group][3]
+        srgb = [int(hex_[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in srgb]
+        assert rgba == pytest.approx([*linear, 0.33])
+
+
+def test_mortys_bust_stops_at_the_models_flat_floor(blend):
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    low, caps = blend["bust"]
+    assert low == pytest.approx(blend["floor"], abs=0.01)
+    assert caps > 0
+
+
+def test_exploded_and_print_bed_materials_are_opaque(blend):
+    assert blend["material_alpha"] == {"Exploded": [1.0], "Print bed": [1.0]}
 
 
 def test_every_printed_piece_lies_on_a_plate(blend):
