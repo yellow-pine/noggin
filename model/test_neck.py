@@ -25,6 +25,20 @@ def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
     assert len(set(neck.HEAD_CARRIERS.values())) == 4
 
 
+def test_the_real_neck_uses_a_fixed_cervical_carrier_then_nod_plate_then_pan_bearing():
+    sub = stages.neck_sub()
+    assert {"cervical carrier:1", "nod plate:1", "head mount:1", "pan bearing:1"} <= sub.parts.keys()
+    assert not {"neck mount:1", "pan yoke:1", "pan bar:1", "tilt bar:1"} & sub.parts.keys()
+    assert stages.stem(sub.parts["tilt servo:1"].file) == "standard servo"
+    assert sub.parts["tilt servo:1"].material == (55, "documented")
+    tilt, pan = sub.horns["tilt horn"], sub.horns["pan horn"]
+    assert tilt.direct.joint == "tilt pivot" and tilt.direct.sign == -1
+    assert pan.direct.joint == "pan pivot" and pan.direct.sign == 1
+    assert {"nod plate:1", "tilt servo:1", "pan servo:1", "head mount:1"} <= set(tilt.direct.driven)
+    assert not {"cervical carrier:1", "tilt horn:1"} & set(tilt.direct.driven)
+    assert "head mount:1" in pan.direct.driven and "pan servo:1" not in pan.direct.driven
+
+
 @pytest.mark.parametrize("sign", (-1, 1))
 def test_a_direct_servo_turns_its_carrier_and_riders_but_not_its_fixed_reaction(sign):
     """A servo case on the moving plate reacts against a fixed horn; its output sign reverses (#902)."""
