@@ -91,7 +91,7 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # at 55 deg or more, every pin behind the cap's flat back however the eye turns and above the frame's plate, and
 # building on every OCCT CI and the GX10 run
 LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (3.3, -15.0)  # 0.4 mm rearward: the pin's boss clears the cap at full inward yaw, down pitch and closure
+LOWER_PIN = (3.3, -14.9)  # 0.4 mm rearward, 0.1 up: its boss clears the cap while the rest edge stays on its rim
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
