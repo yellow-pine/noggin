@@ -6,6 +6,10 @@ made: [Model notes](model-notes.md).
 
 ## The Mech
 
+[Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1) ·
+[Open Stage 2 in the viewer](https://yellowpine.com/noggin/viewer/?stage=2) ·
+[Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3)
+
 <!--{{ stage_panels }}-->
 
 <!--{{ front_views }}-->
@@ -19,7 +23,8 @@ The Mech's Stages from the side and isometric, and each of its parts, are in
 [the grids on the site](https://yellowpine.com/noggin/docs/pictures/).
 <!-- #}-->
 
-Stage by Stage, in the Preset the Theme bar at the top picks, the Default build (its Skeleton mechanical, all black) by
+First each Stage in the viewer, turning as you drag it, then its stills. Stage by Stage, in the Preset the Theme bar
+at the top picks, the Default build (its Skeleton mechanical, all black) by
 default, or Morty or Bart (their Skeleton as Bones): Stage 1 the eye
 block on its test stand with the eyes Core, Stage 2 adds the Torso, the neck and the boards, Stage 3 the jaw, the whole
 Mech. Under them, as the home shows them,

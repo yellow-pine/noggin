@@ -76,6 +76,8 @@ const FOV = 20;
 const MARGIN = 1.06, GIF_ASPECT = 4 / 3, GHOST = 0.12;  // GHOST: a ghosted part's opacity (part=)
 const APART_S = 1;  // the seconds each Explode step takes
 const press = (b, on) => b.setAttribute("aria-pressed", on);
+// two colours alike to 8 bits: the GLB's material in linear floats against a hex
+const near = (a, b) => Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b)) < 1 / 512;
 
 function mount(root) {
   const stages = root.querySelectorAll("[data-stage]");
@@ -157,13 +159,13 @@ function mount(root) {
     b.addEventListener("click", () => (goal = i, pressLevel(), share(gesture)));
   });
   const pressLevel = () => levels.forEach((b, i) => press(b, i === goal));
-  let scene, sphere, reach, refPx, mixer, clips, loop, creases, look, current, file, loading = 0;
+  let scene, sphere, reach, refPx, mixer, clips, loop, hulls, creases, look, current, file, loading = 0;
   // how far apart the parts are (0 together, 1 each sub-assembly apart, 2 each part), the level they are headed to,
   // each part's group with its offset at each level, the camera's framing at each level, and the gesture in the address
   let apart = 0, goal = 0, parts = [], framings, gesture = link.gesture;
 
   // style B from the GLB's look (web/glb.py writes it into the scene's extras): toon colour, a black inverted hull
-  // for silhouettes, black crease lines
+  // for silhouettes, black crease lines; on a black part (drawn in look.black, the charcoal) both in look.ink (#914)
   function stylise(model) {
     look = model.userData;
     band.value.set(look.highlight_from, look.highlight);
@@ -171,14 +173,18 @@ function mount(root) {
     const ramp = new Uint8Array(look.ramp.map((x) => Math.round(255 * (x - look.ramp[0]))));
     const gradient = new THREE.DataTexture(ramp, ramp.length, 1, THREE.RedFormat);  // nearest filtering
     gradient.needsUpdate = true;
-    const hull = new THREE.MeshBasicMaterial({ color: 0, side: THREE.BackSide });
-    hull.onBeforeCompile = (s) => {
-      s.uniforms.outline = outline;
-      s.vertexShader = "uniform vec2 outline;\n" + s.vertexShader.replace("#include <project_vertex>",
-        "#include <project_vertex>\ngl_Position.xy += normalize(normalMatrix * normal).xy * outline * gl_Position.w;");
-    };
-    creases = new LineMaterial({ color: 0 });
+    hulls = [0, look.ink].map((color) => {
+      const hull = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+      hull.onBeforeCompile = (s) => {
+        s.uniforms.outline = outline;
+        s.vertexShader = "uniform vec2 outline;\n" + s.vertexShader.replace("#include <project_vertex>",
+          "#include <project_vertex>\ngl_Position.xy += normalize(normalMatrix * normal).xy * outline * gl_Position.w;");
+      };
+      return hull;
+    });
+    creases = [0, look.ink].map((color) => new LineMaterial({ color }));
     const meshes = [];
+    let shown = 0;
     model.traverse((o) => o.isMesh && meshes.push(o));
     for (const o of meshes) {
       const g = o.geometry;
@@ -198,30 +204,42 @@ function mount(root) {
       const h = mergeVertices(new THREE.BufferGeometry().setAttribute("position", g.attributes.position).setIndex(g.index));
       h.computeVertexNormals();
       const lines = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(g, look.crease));
-      if (shows(link.part, partOf(o))) o.add(new THREE.Mesh(h, hull), new LineSegments2(lines, creases));
-      else Object.assign(o.material, { transparent: true, opacity: GHOST, depthWrite: false }), o.castShadow = false;
+      if (shows(link.part, partOf(o))) {
+        o.userData.lines = [new THREE.Mesh(h, hulls[0]), new LineSegments2(lines, creases[0])];  // repaint picks the ink
+        o.add(...o.userData.lines), shown++;
+      } else Object.assign(o.material, { transparent: true, opacity: GHOST, depthWrite: false }), o.castShadow = false;
     }
+    if (!link.part) return;
+    if (!shown) console.error(`no part ${link.part} in ${file}`);  // a part= naming none: the smoke test fails on it
+    canvas.setAttribute("aria-label", `The noggin Mech, rendered from its model, its ${link.part} alone; ${how}`);
   }
 
-  // each part's Colour group in the mix's Palette (the hardware keeps the GLB's grey)
+  // each part's Colour group in the mix's Palette (the hardware keeps the GLB's grey), black as the GLB's charcoal,
+  // and a part drawn in it lined in the GLB's ink
   function repaint() {
-    const colours = paint(mix);
-    scene?.traverse((o) => o.material?.isMeshToonMaterial && colours[o.material.name] && o.material.color.set(colours[o.material.name]));
+    const colours = paint(mix, look.black), black = new THREE.Color(look.black);
+    scene?.traverse((o) => {
+      if (!o.material?.isMeshToonMaterial) return;
+      if (colours[o.material.name]) o.material.color.set(colours[o.material.name]);
+      const [hull, lines] = o.userData.lines ?? [], ink = Number(near(o.material.color, black));
+      if (hull) [hull.material, lines.material] = [hulls[ink], creases[ink]];
+    });
   }
 
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    creases.resolution.set(w, h);
+    for (const c of creases) c.resolution.set(w, h);
   }
 
   // lines follow the Stage's size on screen as the GIFs' do, through every zoom and resize
   function lineWidths() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     const r = radiusPx(sphere.radius, camera.position.distanceTo(sphere.center), camera.fov, h);
-    creases.linewidth = lineWidth(look.line_px, r, refPx);
-    outline.value.set(2 * creases.linewidth / w, 2 * creases.linewidth / h);
+    const px = lineWidth(look.line_px, r, refPx);
+    for (const c of creases) c.linewidth = px;
+    outline.value.set(2 * px / w, 2 * px / h);
   }
 
   // a gesture (a clip's name) plays once, then the viewer's own goes on: its link's gesture again (a viewer in a

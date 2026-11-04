@@ -58,6 +58,10 @@ def test_the_glb_carries_every_look_number_the_page_reads(glb):
     assert read and read <= set(look)
     assert look["line_px"] == 2.5 and look["crease"] == 60  # docs/model-notes.md, style B
     assert look["line_at"] == 640  # lines scale with the canvas: line_px at 640 px wide (Cansin, #211)
+    # black drawn as Blender's charcoal, its lines in the pictures' grey (#914): blender.py imports bpy, so read as text
+    drawn = open(os.path.join(build.HERE, "..", "model", "render", "blender.py")).read()
+    for k, name in {"black": "BLACK_LIFT", "ink": "INK"}.items():
+        assert look[k] == re.search(rf'^{name} = "(#[0-9A-F]{{6}})"', drawn, re.M)[1], k
 
 
 def test_every_part_of_the_document_is_a_node(glb):

@@ -301,7 +301,7 @@ def skull_sub():
     return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
-def next_skin(skin):
+def skin_sub(skin):
     """next-<skin>: a Skin (g.SKINS: Morty's, #665; Cansin's, #813; model/skin.py), each Shell where it sits on what
     carries it (RIDES): the face and the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on
     the jaw, the shirt on the Torso; an eye's own (side) drawn in its frame."""
@@ -320,7 +320,7 @@ SUBS = {
     "base": base_sub,
     "cranium": cranium_sub,
     "stand": stand_sub,
-    **{sub: functools.partial(next_skin, skin) for skin, sub in g.SKINS.items()},
+    **{sub: functools.partial(skin_sub, skin) for skin, sub in g.SKINS.items()},
     g.SKULL_SUB: skull_sub,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as

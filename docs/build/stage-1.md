@@ -4,6 +4,8 @@
 > **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
 > [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
+[Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1)
+
 The eye block on its test stand: both eyes turn together, left and right on one servo and up and down on another, and
 each eye's upper and lower lid close on that eye's own servo. Four servos on the eyes Core, which stands against the
 stand's back.
@@ -37,10 +39,17 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 3. **Eyeball cores** turning up and down in the yokes; the **bail** and its two **push-rods** turn both from the pitch
    servo through the **pitch bar**.
 4. **Lids**: each eye's upper lid through its **lid bar** from its lid servo, the lower lid through a **lid link** off
-   that bar, so the two close against each other.
-5. **Eyeball caps** on the cores.
+   that bar, so the two close against each other. The left upper lid:
+
+   [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&part=L+upper+lid)
+
+5. **Eyeball caps** on the cores, as the eyes look out from the front:
+
+   [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&view=front)
+
 6. **Test stand** screwed under the frame's plate, where the head mount goes in [Stage 2](stage-2.md); the eyes Core
-   on its Shield against the stand's back.
+   on its Shield against the stand's back. *Upcoming (#877): Stage 1 becomes a cut of Stage 3, the eye block arriving
+   in the cranium that carries it, and the test stand goes.*
 
 ## Wiring
 
