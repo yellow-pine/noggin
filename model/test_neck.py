@@ -105,6 +105,48 @@ def test_a_direct_servo_in_mujoco_drives_its_joint_and_riders_with_the_physical_
     )
 
 
+@pytest.mark.parametrize("command", (-20, 20))
+def test_a_moving_case_parallelogram_drives_the_real_motor_joint_and_closes_its_reaction_bar(
+    tmp_path, monkeypatch, command
+):
+    mesh = tmp_path / "gimbal frame.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    p = np.array(neck.HEAD_AXES["tilt"][0])
+    q, b = p + (0, 0, 40), p + (0, 12.75, 0)
+    a = q + (0, 12.75, 0)
+    frame = stages.align(*neck.HEAD_FRAME)
+    parts = {
+        name: stages.Part(str(mesh), frame @ stages.translate(point), (grams, "documented"), None)
+        for name, point, grams in (
+            ("fixed:1", p, 1),
+            ("plate:1", p + (0, -10, 20), 100),
+            ("servo:1", q, 55),
+            ("lever:1", q, 1),
+            ("bar:1", (a + b) / 2, 1),
+        )
+    }
+    reaction = stages.Reaction(tuple(q), tuple(a), tuple(b), ["lever:1"], "bar:1", "fixed:1")
+    horn = stages.Horn(
+        {"point": tuple(p), "axis": g.X},
+        (-20, 20),
+        "lever:1",
+        [],
+        [],
+        frame,
+        direct=stages.Direct("tilt pivot", ["plate:1", "servo:1", "lever:1"], -1, reaction),
+    )
+    doc = "mech-back-mechanical"
+    monkeypatch.setitem(stages.STAGES, doc, stages.Doc(doc, parts, {"tilt horn": horn}))
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    assert model.actuator("tilt horn").trnid[0] == model.joint("tilt horn").id  # the actual offset motor shaft
+    data = mjcf.pose(model, {"tilt horn": command})
+    assert np.degrees(data.joint("tilt horn").qpos[0]) == pytest.approx(command, abs=0.5)
+    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-command, abs=0.5)
+    assert max(mjcf.residuals(model, data).values()) < 0.05
+
+
 @pytest.fixture(scope="module")
 def report():
     return neck.report(HEAD)
