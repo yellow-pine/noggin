@@ -15,7 +15,6 @@ jobs:
     # same-repo ready PRs (dependabot's and the release App's too); the skills CLI (ci/package-lock.json) runs here with no token or secrets, from the BASE locks so a PR can't pick its reviewer's skills
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
     permissions:
       contents: read
     steps:
