@@ -60,7 +60,7 @@ JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condy
 JAW_K = 1.08
 
 
-def _jaw(y, z):
+def jaw_point(y, z):
     """(y, z) of the jaw at today's (y, z), grown JAW_K about its hinge."""
     return (JAW[0] + (y - JAW[0]) * JAW_K, JAW[1] + (z - JAW[1]) * JAW_K)
 
@@ -72,9 +72,15 @@ def _jaw(y, z):
 JAW_LUG_X, JAW_X = (28.0 * JAW_K, 31.0 * JAW_K), (33.0 * JAW_K, 37.0 * JAW_K)
 # its drive keeps its size (#901: the jaw grows round it), the bar inside the L arm
 JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (JAW_X[0] - 3.0, JAW_X[0])  # its tabs up the plate's slot
-CHIN_Y = _jaw(-29.0, 0.0)[0]  # its chin's front, the mandible's
-JAW_BODY = ((27.0 * JAW_K, _jaw(0.0, 0.0)[0]), (14.0 * JAW_K, _jaw(-20.0, 0.0)[0]))  # (x, y) forward round to the chin
-JAW_ARM_Z = (_jaw(0.0, -74.5)[1], _jaw(0.0, -70.5)[1])  # the jaw's body forward from its arms to the chin, its floor
+CHIN_Y = jaw_point(-29.0, 0.0)[0]  # its chin's front, the mandible's
+JAW_BODY = (
+    (27.0 * JAW_K, jaw_point(0.0, 0.0)[0]),
+    (14.0 * JAW_K, jaw_point(-20.0, 0.0)[0]),
+)  # (x, y) forward round to the chin
+JAW_ARM_Z = (
+    jaw_point(0.0, -74.5)[1],
+    jaw_point(0.0, -70.5)[1],
+)  # the jaw's body forward from its arms to the chin, its floor
 # the thickest lead that crosses, a 24 AWG pair (inferred): each of the neck cable's two (#858, its four conductors:
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
 # docs/research/2026-11-03-usb-c-power.md 7)
