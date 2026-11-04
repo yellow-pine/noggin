@@ -73,3 +73,32 @@ def test_regional_fits_keep_a_shared_bone_joint_continuous_in_the_common_frame()
     assert result["head_warp"] == pytest.approx(np.array(((1, 0, 0), (2, 0, 10))))
     assert result["body_warp"] == pytest.approx(np.array(((0, 0, -10), (1, 0, 0))))
     assert report["min_jacobian"] == pytest.approx(1)
+
+
+def test_declared_uniform_regional_resize_does_not_consume_local_shape_budget():
+    # The regional size is explicit, never estimated separately from each fitted Bone.
+    gradients = np.array([np.diag((1.5, 2.0, 2.5))])
+    report = fit.check_stretch(gradients, 2.0)
+    assert report["minimum"] == pytest.approx(0.75)
+    assert report["maximum"] == pytest.approx(1.25)
+
+
+def test_preserved_volume_cannot_hide_excessive_local_squash_and_stretch():
+    with pytest.raises(ValueError, match="local stretch"):
+        fit.check_stretch(np.array([np.diag((0.5, 1.0, 2.0))]), 1.0)
+
+
+def test_final_sculpt_surface_changes_count_against_the_same_regional_budget():
+    basis = np.array(((0, 0, 0), (1, 0, 0), (0, 1, 0)), float)
+    final = basis.copy()
+    final[1, 0] = 1.3
+    with pytest.raises(ValueError, match="surface stretch"):
+        fit.check_surface_stretch(basis, final, np.array(((0, 1, 2),)), 1.0)
+
+
+def test_surface_budget_accepts_rigid_placement_after_declared_regional_resize():
+    basis = np.array(((0, 0, 0), (1, 0, 0), (0, 1, 0)), float)
+    final = basis @ np.array(((0, 1, 0), (-1, 0, 0), (0, 0, 1))) * 2 + (4, 5, 6)
+    report = fit.check_surface_stretch(basis, final, np.array(((0, 1, 2),)), 2.0)
+    assert report["minimum"] == pytest.approx(1)
+    assert report["maximum"] == pytest.approx(1)
