@@ -231,6 +231,46 @@ def head_mount():
     return out.cut(cyl("z", (nk.CRANK, py, 0), 0.6, (nk.PAN_HORN_Z, nk.PAN_HORN_Z + 1.5)))
 
 
+def pan_wire_candidate():
+    """Unaccepted retained C0 bearing study; immediate CAD/STEP evidence, outside the production part registry."""
+    y = nk.HEAD_AXES["tilt"][0][1]
+    (bore, outside, _), (bottom, top) = nk.PAN_STUDY_BEARING, nk.PAN_STUDY_Z
+    bolts = [(7.1 * math.cos(a), y + 7.1 * math.sin(a)) for a in np.radians((0, 120, 240))]
+    spindle = cyl("z", (0, y, 0), 11.5, (bottom - 4, bottom)).union(cyl("z", (0, y, 0), bore / 2, (bottom, top)))
+    spindle = spindle.cut(cyl("z", (0, y, 0), nk.WIRE_R, (bottom - 4, top)))
+    fixed_cap = cyl("z", (0, y, 0), 11.5, (top, top + 4)).cut(cyl("z", (0, y, 0), nk.WIRE_R, (top, top + 4)))
+    for x, fy in bolts:
+        spindle = spindle.cut(cyl("z", (x, fy, 0), 0.8, (top - 6.5, top)))
+        fixed_cap = fixed_cap.cut(cyl("z", (x, fy, 0), 1.1, (top, top + 4)))
+    bearing = cyl("z", (0, y, 0), outside / 2, (bottom, top)).cut(cyl("z", (0, y, 0), bore / 2, (bottom, top)))
+    carrier = cyl("z", (0, y, 0), 18.5, (bottom - 2, top)).cut(
+        cyl("z", (0, y, 0), 15, (bottom - 2, bottom)).union(cyl("z", (0, y, 0), outside / 2, (bottom, top)))
+    )
+    moving_cap = cyl("z", (0, y, 0), 18.5, (top, top + 4)).cut(cyl("z", (0, y, 0), 15, (top, top + 4)))
+    for a in np.radians((0, 120, 240)):
+        x, fy = 20.6 * math.cos(a), y + 20.6 * math.sin(a)
+        carrier = carrier.union(cyl("z", (x, fy, 0), 3.2, (bottom - 2, top))).cut(
+            cyl("z", (x, fy, 0), 0.8, (top - 6.5, top))
+        )
+        moving_cap = moving_cap.union(cyl("z", (x, fy, 0), 3.2, (top, top + 4))).cut(
+            cyl("z", (x, fy, 0), 1.1, (top, top + 4))
+        )
+    for x, fy in nk.PAN_STUDY_SCREWS:
+        delta = np.array((x, fy - y))
+        start = delta / np.linalg.norm(delta) * 17 + (0, y)
+        carrier = carrier.union(_flat([tuple(start), (x, fy)], 6, (bottom - 2, bottom)))
+        carrier = carrier.union(cyl("z", (x, fy, 0), 3.8, (bottom - 3, bottom))).cut(
+            cyl("z", (x, fy, 0), 1.7, (bottom - 3, bottom))
+        )
+    return {
+        "spindle": spindle,
+        "fixed cap": fixed_cap,
+        "bearing": bearing,
+        "head carrier": carrier,
+        "moving cap": moving_cap,
+    }
+
+
 @bone.carved
 def jaw(mechanical=False):
     """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""

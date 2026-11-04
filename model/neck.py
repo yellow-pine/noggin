@@ -34,6 +34,10 @@ HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "h
 BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
 SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anchors are not certified yet
+# Unaccepted C0 component study: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners.
+# It does not change HEAD_AXES or the production document until the complete drive and anatomical fit pass.
+PAN_STUDY_BEARING, PAN_STUDY_Z = (20.0, 32.0, 7.0), (-32.0, -25.0)
+PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (30.0, 83.0), (-30.0, 83.0))
 NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-52.0, -47.0)
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
 TILT_SHAFT = (-24.4, 60.0, 78.0)  # actual case above the electronics: public CAD + private 6.8 mm stack preflight #978

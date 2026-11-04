@@ -165,8 +165,10 @@ def test_the_c0_pan_bearing_candidate_has_real_retention_and_an_open_wire_path(p
     assert set(pan_wire_candidate) == {"spindle", "fixed cap", "bearing", "head carrier", "moving cap"}
     for solid in pan_wire_candidate.values():
         assert solid.isValid() and len(solid.Solids()) == 1 and solid.Volume() > 0
-    y, bottom = nk.HEAD_AXES["tilt"][0][1], -36.0
-    cable = gimbal.cyl("z", (0, y, 0), 3, (bottom - 5, bottom + 12)).val()
+    y = nk.HEAD_AXES["tilt"][0][1]
+    bottom = min(s.BoundingBox().zmin for s in pan_wire_candidate.values())
+    top = max(s.BoundingBox().zmax for s in pan_wire_candidate.values())
+    cable = gimbal.cyl("z", (0, y, 0), 3, (bottom - 1, top + 1)).val()
     assert all(s.intersect(cable).Volume() < 1e-6 for s in pan_wire_candidate.values())
     assert _overlaps(pan_wire_candidate, list(itertools.combinations(pan_wire_candidate, 2))) == []
     for a, b in (
