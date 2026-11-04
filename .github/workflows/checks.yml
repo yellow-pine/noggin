@@ -627,6 +627,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: read
+      issues: read   # the marks' issues are open (docs/adr/0024)
       actions: write   # cancel-on-failure
     container:
       image: ghcr.io/yellow-pine/noggin-ci-base:main   # as code's
@@ -669,8 +670,11 @@ jobs:
       - name: Run just site
         run: uv run just site
       # the built site's HTML: pages, links (the pictures' too), numbers, CSP, every picture and GLB one the code
-      # publishes; and the diagrams drawn by mermaid-cli in the image's Chrome
+      # publishes; every mark's issue open, read with the token (docs/adr/0024); and the diagrams drawn by mermaid-cli
+      # in the image's Chrome
       - name: Test the built site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: npm --prefix site test
       # the viewer loads the next Mech, the diagrams draw, search finds a page, the header names the newest release, an
       # old docs version's URL lands on the docs, in the image's Chrome, with no CSP violation or console error and no request to another host but api.github.com

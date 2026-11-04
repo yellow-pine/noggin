@@ -1,7 +1,7 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Being designed, not built yet.** Morty's Shells are in the model (#665); Bart's (#807) and Cansin's (#813) follow.
+> **Upcoming (#51):** being designed, not built yet. Morty's Shells are in the model (#665); Bart's (#807) and Cansin's (#813) follow.
 > #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
@@ -13,8 +13,9 @@ anatomical, its own Skin). The model, the [viewer](https://yellowpine.com/noggin
 next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
-- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (the packs
-  and the switch board since #858), the cranium tray (both Cores in the realistic skull's cranium, #858). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
+- Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (the pack,
+  the switch board and the power-path board alone since #858), the cranium tray (both Cores and the hub in the
+  realistic skull's cranium, #858). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
   realistic, every part drawn as Bones, and mechanical, every part in boxes and cylinders (docs/adr/0020); its
   Palettes: anatomical, robot and black (PETG Basic Black throughout).
 - Skin, PLA: the head shell with hair, the ears, the nose, the eyeball caps, separate pupils, the lid covers, the mouth

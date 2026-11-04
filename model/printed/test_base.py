@@ -1,5 +1,5 @@
 """Seam: the next Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
-gimbal: the Torso holds the neck mount, both packs, the switch board and the charger dongle inside its walls, the pan
+gimbal: the Torso holds the neck mount, the pack, the switch board and the power-path board inside its walls, the pan
 servo over them (#858); its boards, the cranium tray's and the tray overlap nothing."""
 
 import itertools
@@ -20,34 +20,31 @@ from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
 PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next spare pack", "next switch", "next charger", "next test stand")
-BASE += ("next cranium tray", "next Core", "next Shield")  # the cranium's (#858)
+BASE = ("next torso", "next pack", "next switch", "next power-path", "next test stand")  # and the cranium's (#858)
+BASE += ("next cranium tray", "next Core", "next Shield", "next hub")
 
 
 @pytest.mark.model
-def test_the_torso_holds_the_neck_mount_both_packs_and_the_charger_dongle_inside_its_walls():
-    """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pan servo over them (#858), the packs
-    and the dongle lying on its floor, the -x wall open over the dongle and the switch board where the packs' plugs swap;
-    the Torso's bottom is the foot, so nothing hangs below it."""
+def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside_its_walls():
+    """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pan servo over them (#858), the pack
+    lying on its floor; the Torso's bottom is the foot, so nothing hangs below it."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     parts = stages.next_neck().parts | stages.next_base().parts
-    torso = printed_base.torso().val()
-    foot = torso.BoundingBox()  # without the Seats the Skin adds (model/skin.py)
-    (oy0, oy1), (oz0, oz1) = base.OPENING
-    assert not torso.isInside(cq.Vector(x0 + WALL / 2, (oy0 + oy1) / 2, nk.MOUNT_Z[0] + (oz0 + oz1) / 2))
+    foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
         "next neck mount:1",
         "next pan servo:1",
         "next pack:1",
         "next switch board:1",
-        "next spare pack:1",
-        "next charger dongle:1",
+        "next power-path board:1",
     ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = ("next pack:1", "next spare pack:1", "next neck mount:1", "next charger dongle:1")
-    assert len({round(_shape(parts[n]).BoundingBox().zmin, 6) for n in lying}) == 1  # the floor the neck mount's on
+    lying = [
+        _shape(parts[n]).BoundingBox().zmin for n in ("next pack:1", "next neck mount:1", "next power-path board:1")
+    ]
+    assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
     assert _shape(parts["next pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
 
 

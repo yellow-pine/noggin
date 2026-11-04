@@ -3,7 +3,6 @@ cross pan and tilt, and the ranking of their sim reports."""
 
 import itertools
 
-import cadquery as cq
 import numpy as np
 import pytest
 import trimesh
@@ -11,8 +10,8 @@ from scipy.spatial import ConvexHull, cKDTree
 
 from model import base, envelopes, skeleton, stages
 from model import geometry as g
+from model import gimbal as gm
 from model import neck as nk
-from model.printed import base as printed_base
 from model.test_envelopes import BOXES, solid
 
 TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
@@ -69,39 +68,42 @@ def _box(mesh, m):
     return v.min(axis=0).round(2).tolist(), v.max(axis=0).round(2).tolist()
 
 
-def test_the_cores_lie_on_the_cranium_tray_and_the_switch_board_the_dongle_and_both_packs_on_the_torsos_floor():
+def test_the_cores_lie_on_the_cranium_tray_and_the_switch_and_power_path_boards_on_the_torsos_floor():
     """#858: each Core under its Shield lies flat on the cranium tray (base.TRAY_Z), Core 1 at -x, Core 2 its mirror
-    image, 3 mm apart, the Core's USB-C end back; the switch board flat on the Torso's floor beside the pack's lead end
-    (-x), the charger dongle beside the neck mount's foot, its socket's end forward to the spare pack's lead, both
-    within the Torso's walls, the opening in its -x wall over them."""
+    image, 3 mm apart, the Core's USB-C end back; the hub on its riser, its port's end back at HUB_Y; the switch board
+    flat on the Torso's floor beside the pack's lead end (-x), the power-path board flat in front of the neck mount's
+    foot, both within the Torso's walls."""
     boards, ((x0, x1), (y0, y1), _) = base.cranium(), base.TORSO
     shield, core = (_box(*boards[f"next {n} 1"]) for n in ("Shield", "Core"))
     assert core[0][2] == pytest.approx(base.TRAY_Z[1]) and shield[1][2] - core[0][2] == pytest.approx(21.46, abs=0.01)
     assert shield[0][0] == pytest.approx(-30.5) and shield[1][0] == pytest.approx(-1.5)
     assert core[1][1] > shield[1][1] - 2  # its USB-C end
     assert _box(*boards["next Shield 2"]) == ([-shield[1][0], *shield[0][1:]], [-shield[0][0], *shield[1][1:]])
-    switch, dongle = _box(*base.switch_board()["next switch board"]), _box(*base.dongle()["next charger dongle"])
-    for lo, hi in (switch, dongle):
-        assert lo[2] == pytest.approx(nk.MOUNT_Z[0]) and x0 + 2 < lo[0] and hi[0] < x1 - 2
-        assert y0 + 2 < lo[1] < hi[1] < y1 - 2 and base.OPENING[0][0] < max(lo[1], hi[1] - 20) < base.OPENING[0][1]
-    assert switch[1][0] < -base.PACK[0] / 2 - 2.5 and dongle[1][0] < -base.PACK[0] / 2 - 2.5
-    assert dongle[0][1] == pytest.approx(base.DONGLE_AT[1]) and abs(base.SPARE_Y - dongle[0][1]) < base.PACK[1]
-    assert envelopes.CORE["parts"][2] == base.USB  # its copy of the Envelope's USB-C (ADR 0011)
+    hub = _box(*boards["next hub"])
+    assert hub[1][1] == pytest.approx(base.HUB_Y) and hub[0][2] == pytest.approx(base.HUB_Z)
+    for lo, hi in (_box(*base.switch_board()["next switch board"]), _box(*base.power_board()["next power-path board"])):
+        assert (
+            lo[2] == pytest.approx(nk.MOUNT_Z[0])
+            and x0 + 2 < lo[0]
+            and hi[0] < x1 - 2
+            and y0 + 2 < lo[1] < hi[1] < y1 - 2
+        )
+    assert _box(*base.switch_board()["next switch board"])[1][0] < -base.PACK[0] / 2 - 2.5
+    assert base.HUB_LENGTH == BOXES["hub"][1][0] - BOXES["hub"][0][0]  # its copy of the Envelope's (ADR 0011)
 
 
 @pytest.mark.model
-def test_the_cores_lie_inside_the_realistic_skull_each_usb_c_opening_straight_back_out_of_it():
-    """#858: each Core and Shield, and the tray's plate under them, at least the finished skull's WALL inside the
-    cranium's hull, so the finish (model/skeleton) leaves its outside whole over them but for each Core's
-    USB-C opening: a plug's box from its socket's mouth straight back, side by side, out past the hull, clear of the
-    tray."""
+def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_back_of_its_base():
+    """#858: each Core and Shield, the bulk capacitor and the tray's plate under them, at least the finished skull's WALL inside the cranium's
+    hull, so the finish (model/skeleton) leaves its outside whole over them; the hub's port on the back of the
+    skull base, its socket's mouth within 3 mm of the hull and 10 of the gimbal frame's plate."""
     hull = ConvexHull(trimesh.load(stages.stl("next skull"), force="mesh").vertices)
 
     def inside(points):  # mm in from the hull's nearest face
         return -(hull.equations[:, :3] @ np.transpose(points) + hull.equations[:, 3:]).max(axis=0)
 
-    boards, openings = base.cranium(), base.openings()
-    for name in ("next Core 1", "next Shield 1", "next Core 2", "next Shield 2"):
+    boards = base.cranium()
+    for name in ("next Core 1", "next Shield 1", "next Core 2", "next Shield 2", "next bulk capacitor"):
         mesh, m = boards[name]
         points = np.array([v.toTuple() for v in solid(mesh).tessellate(0.5)[0]]) @ m[:3, :3].T + m[:3, 3]
         assert inside(points).min() >= skeleton.WALL, name
@@ -109,15 +111,10 @@ def test_the_cores_lie_inside_the_realistic_skull_each_usb_c_opening_straight_ba
         (x, y, z) for x in (-30.5, 30.5) for y in (base.CORES_AT[1] - 15, base.CORES_AT[1] + 15) for z in base.TRAY_Z
     ]
     assert inside(plate).min() >= skeleton.WALL
-    tray = printed_base.tray().val()
-    for name, (lo, hi) in openings.items():
-        socket = _box("core", boards[name][1])
-        assert lo[1] == pytest.approx(socket[1][1]) and inside([(sum(lo[::2]) / 2, hi[1], lo[2])])[0] < 0  # out
-        assert lo[0] < socket[0][0] + 7 and socket[1][0] - 7 < hi[0] and lo[2] < base.TRAY_Z[1] < hi[2]
-        cut = cq.Solid.makeBox(*(hi - lo), cq.Vector(*lo))
-        assert tray.intersect(cut).Volume() < 0.01, name
-    (a, _), (b, _) = openings.values()
-    assert a[1:] == pytest.approx(b[1:]) and a[0] < 0 < b[0]  # side by side
+    _, m = boards["next hub"]
+    (_, x1), ys, zs = envelopes.HUB["usb"]
+    mouth = np.array([(x1, y, z) for y in ys for z in zs]) @ m[:3, :3].T + m[:3, 3]
+    assert np.abs(inside(mouth)).max() <= 3.0 and mouth[:, 2].max() < gm.PLATE_Z[1] + 10.0
 
 
 def test_the_heads_box_takes_in_the_skull_over_the_parts():
@@ -142,11 +139,11 @@ def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
     assert base.PACK == (hi[1] - lo[1], hi[0] - lo[0])
 
 
-def test_the_leads_that_cross_pan_and_tilt_are_the_neck_servos_and_the_packs_y_lead():
+def test_the_leads_that_cross_pan_and_tilt_are_the_neck_servos_and_the_neck_cable():
     """The Cores ride the head (#858): the pan servo's lead crosses both up to them, the tilt servo's the tilt, and the
-    pack's Y lead's one pair from the switch board both; the eyes' and the mouth's stay on the head, the packs', the
-    switch board's and the dongle's in the Torso."""
-    assert base.leads(stages.STAGES["next-mech-back"]) == {"pan pivot": 2, "tilt pivot": 3}
+    neck cable's two pairs from the power-path board both; the eyes' and the mouth's stay on the head, the pack's and
+    the switch board's in the Torso."""
+    assert base.leads(stages.STAGES["next-mech-back"]) == {"pan pivot": 3, "tilt pivot": 4}
 
 
 def _report(

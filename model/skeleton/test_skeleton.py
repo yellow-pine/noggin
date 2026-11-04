@@ -42,7 +42,7 @@ def test_blenders_scipy_comes_from_the_repos_gitignored_folder():
 def test_each_source_sits_under_its_own_licence(folder):
     """docs/adr/0023: each source's folder carries its licence, its author and where it came from, and names the
     scene that holds it now."""
-    notice = open(os.path.join(stages.REPO, folder, "LICENSE.md")).read()
+    notice = open(os.path.join(stages.REPO, f"{folder}/LICENSE.md")).read()  # its folder's own
     assert "printables.com/model/" in notice and "creativecommons.org/licenses/" in notice
     assert "not under the repo's PolyForm Noncommercial licence" in notice and skeleton.SCENE in notice
 

@@ -1,6 +1,6 @@
 """The realistic Skeleton's bones (docs/adr/0025): authored in the Skeleton scene (model/skeleton/skeleton.blend), its
 bones in the Stage 3 document's frame, each finished by its own Geometry Nodes modifier (model/skeleton/build.py wrote
-them: the cranium shelled to WALL, the orbits opened round the lids and the Cores' USB-C openings cut out, everything
+them: the cranium shelled to WALL, the orbits opened round the lids, everything
 riding the bone cut out and everything moving against it CLEAR_MM round, crumbs dropped, meshed at PITCH).
 
 finish() hands Blender the scene and the document just built: Blender (model/skeleton/export.py) deletes the Scene
@@ -14,10 +14,10 @@ import subprocess
 import numpy as np
 import trimesh
 
-from model import base, stages
 from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
+from model import stages
 
 SCENE, EXPORT = "model/skeleton/skeleton.blend", "model/skeleton/export.py"
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
@@ -41,7 +41,7 @@ def job():
     """What export.py needs, JSON-ready: the head's frame in the document; each cutting part's STL; for each bone, the
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (the
-    orbits, the USB-C boxes, head's frame) and the finish's numbers."""
+    orbits, head's frame) and the finish's numbers."""
     stage = stages.STAGES[DOC]
     rest = {n: p.matrix for n, p in stage.parts.items()}
     files = {n: p.file for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES}
@@ -70,7 +70,6 @@ def job():
         "worn": g.WORN,
         "orbits": [[list(e), gm.LOWER_R[1] + CLEAR_MM] for e in gm.EYE.values()],
         "reach": REACH,
-        "openings": [[list(lo), list(hi)] for lo, hi in base.openings().values()],
         "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP},
     }
 

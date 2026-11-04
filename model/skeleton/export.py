@@ -109,8 +109,6 @@ def swap(job, ratio=None):
         for c in list(s.users_collection):
             c.objects.unlink(s)
         openings.objects.link(s)
-    for i, (lo, hi) in enumerate(job["openings"]):  # each Core's USB-C, straight back out (#858)
-        _box(f"USB-C {i}", lo, hi, openings)
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True

@@ -1,12 +1,77 @@
 // The viewer's state: its deep link, picker address, caption and Explode's steps, from the site's macros.json (npm test)
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { expect, test } from "vitest";
-import { ANIMATING, address, between, caption, glb, mixed, opened, paint, touched } from "./state.mjs";
+import { moments } from "../macros.json";
+import {
+  ANIMATING, VIEW, address, between, caption, glb, looped, mixed, moves, opened, paint, partOf, shows, touched,
+} from "./state.mjs";
+import { PRESETS } from "../theme.mjs";
 
 const stages = ["next-stage1", "next-stage2", "next-mech-back"];  // the viewer page's Stage buttons (#720)
 
-test("a gesture's caption says which Claude Code event plays it, the Tour's says it tours", () => {
+test("every clip's caption says what plays: a gesture's the Claude Code event, Rest's and the hero loop's their own", () => {
   expect(caption("wink")).toBe("Wink: a session starts (SessionStart)");
-  expect(caption()).toBe("Tour: every gesture in turn");
+  expect(caption("rest")).toBe("Rest: the Mech at rest, between gestures");
+  expect(caption("hero")).toBe("Hero: the demo loop, every move in one");
+  expect(caption("next hero")).toBe(caption("hero"));  // its name until #895
+  for (const c of [...Object.keys(moments), "rest", "hero"]) expect(caption(c)).not.toMatch(/undefined/);
+});
+
+test("with no gesture named, a viewer plays its Stage's hero loop, else Rest (a Stage with no neck)", () => {
+  expect(looped(["wink", "next hero", "rest"])).toBe("next hero");
+  expect(looped(["hero", "wink", "rest"])).toBe("hero");
+  expect(looped(["wink", "rest"])).toBe("rest");
+});
+
+test("a view= opens the camera from the front, the side or isometric; none, or an unknown one, the default framing", () => {
+  expect(opened("?view=front", [], "x").view).toEqual([0, 0, 1]);  // glTF's Y-up: the eyes face +Z
+  expect(opened("?view=side", [], "x").view).toEqual([1, 0, 0]);  // its left, as the panels (pictures.py VIEWS)
+  expect(opened("?view=isometric", [], "x").view).toEqual([1, 1, 1]);
+  for (const s of ["", "?view=top"]) expect(opened(s, [], "x").view).toEqual(VIEW);
+});
+
+test("a part= shows that part alone, every copy of it, the rest ghosted; none, every part", () => {
+  const { part } = opened("?part=next+L+lid+horn", [], "x");
+  expect(part).toBe("next L lid horn");
+  expect(shows(part, "next L lid horn:1")).toBe(true);  // Blender's node, its copy number after the colon
+  expect(shows(part, "next L lid horn")).toBe(true);
+  expect(shows(part, "next L lid horn link:1")).toBe(false);
+  expect(shows(part, "next R lid horn:1")).toBe(false);
+  expect(shows(opened("", [], "x").part, "next R lid horn:1")).toBe(true);
+});
+
+test("a mesh's part is its glTF node's name as Blender wrote it, which part= picks", async () => {
+  const gltf = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ name: "next jaw:1", mesh: 0, extras: { explode: [0, 0, 0] } }],
+    buffers: [{ byteLength: 36 }],
+    bufferViews: [{ buffer: 0, byteLength: 36 }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3", min: [0, 0, 0], max: [0, 0, 0] }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+  };
+  // a GLB as Blender exports one (web/glb.py): its JSON, padded to 4 bytes, then its binary chunk
+  const json = Buffer.from(JSON.stringify(gltf).padEnd(Math.ceil(JSON.stringify(gltf).length / 4) * 4));
+  const chunk = (type, data) => Buffer.concat([Buffer.from(new Uint32Array([data.length, type]).buffer), data]);
+  const body = Buffer.concat([chunk(0x4e4f534a, json), chunk(0x004e4942, Buffer.alloc(36))]);
+  const glb = Buffer.concat([Buffer.from(new Uint32Array([0x46546c67, 2, 12 + body.length]).buffer), body]);
+  const { scene } = await new GLTFLoader().parseAsync(glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.length), "");
+  const meshes = [];
+  scene.traverse((o) => o.isMesh && meshes.push(o));
+  expect(meshes.map(partOf)).toEqual(["next jaw:1"]);
+  expect(shows("next jaw", partOf(meshes[0]))).toBe(true);
+});
+
+test("view= and part= round-trip through the address the viewer page writes", () => {
+  const link = address(stages, "next-stage1", "wink", 0, "?view=side&part=next+jaw");
+  expect(link).toBe("?view=side&part=next+jaw&stage=1&gesture=wink");
+  expect(opened(link, stages, "x")).toMatchObject({ stage: "next-stage1", gesture: "wink", part: "next jaw", view: [1, 0, 0] });
+});
+
+test("an embed only rotates, the wheel and a pinch left to the page; the viewer page zooms and pans too", () => {
+  expect(moves(false)).toEqual({ enableRotate: true, enableZoom: false, enablePan: false });
+  expect(moves(true)).toEqual({ enableRotate: true, enableZoom: true, enablePan: true });
 });
 
 test("a GLB's name is its Stage's as Bones and its Skeleton shape's suffix (#805, #819)", () => {
@@ -29,10 +94,10 @@ test("the viewer's mix is the Preset's Shapes and Palettes, each axis the addres
   expect(mix).toEqual({ "skeleton-shape": "realistic", "skeleton-palette": "black", "skin-shape": "morty", "skin-palette": "morty" });
 });
 
-test("with no Preset picked, the viewer opens on the bare anatomical Skeleton, its Skin Morty once on (#883)", () => {
-  expect(mixed("", undefined)).toEqual({
-    "skeleton-shape": "realistic", "skeleton-palette": "anatomical", "skin-shape": "none", "skin-palette": "morty",
-  });
+test("with no Preset picked, the viewer opens on the Default build: mechanical, black, no Skin (#889)", () => {
+  const { "skin-palette": palette, ...build } = mixed("", undefined);
+  expect(build).toEqual({ "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none" });
+  expect(palette).toBe(Object.values(PRESETS)[0]["skin-palette"]);  // the Default Skin palette ("cansin" until #895)
   expect(mixed("?skin-shape=bart", undefined)["skin-shape"]).toBe("bart");  // the address still names any
 });
 
@@ -45,8 +110,8 @@ test("a mix paints each Colour group in its Palette's hex, black as Blender draw
 });
 
 test("a deep link opens its nth Stage, its gesture, and its Explode level", () => {
-  expect(opened("?stage=1&gesture=wink", stages, "x")).toEqual({ stage: "next-stage1", gesture: "wink", explode: 0 });
-  expect(opened("?preset=morty&stage=3&explode=1", stages, "x")).toEqual({
+  expect(opened("?stage=1&gesture=wink", stages, "x")).toMatchObject({ stage: "next-stage1", gesture: "wink", explode: 0 });
+  expect(opened("?preset=morty&stage=3&explode=1", stages, "x")).toMatchObject({
     stage: "next-mech-back", gesture: null, explode: 1,
   });
   expect(opened("?stage=3&explode=2", stages, "x").explode).toBe(2);  // the Parts level (#811)
@@ -54,7 +119,7 @@ test("a deep link opens its nth Stage, its gesture, and its Explode level", () =
 });
 
 test("with no link, or a Stage the page has no button for, the viewer opens its own Stage", () => {
-  expect(opened("", stages, "next-mech-back")).toEqual({ stage: "next-mech-back", gesture: null, explode: 0 });
+  expect(opened("", stages, "next-mech-back")).toMatchObject({ stage: "next-mech-back", gesture: null, explode: 0 });
   expect(opened("?stage=7", stages, "next-mech-back").stage).toBe("next-mech-back");
   expect(opened("?stage=1", [], "next-mech-back").stage).toBe("next-mech-back");  // a page with no buttons
 });
@@ -63,7 +128,7 @@ test("the switches keep the address the deep link to what plays, so it can be sh
   expect(address(stages, "next-stage1", "eureka", 0)).toBe("?stage=1&gesture=eureka");
   const themed = "?preset=morty&skin-palette=bart&stage=1&gesture=wink";  // the bar's Preset, the viewer's mix (#819)
   expect(address(stages, "next-stage2", undefined, 0, themed)).toBe("?preset=morty&skin-palette=bart&stage=2");
-  expect(address(stages, "next-mech-back", undefined, 1)).toBe("?stage=3&explode=1");  // the Tour is the default
+  expect(address(stages, "next-mech-back", undefined, 1)).toBe("?stage=3&explode=1");  // the hero loop is the default
   expect(address(stages, "next-mech-back", "wink", 2)).toBe("?stage=3&gesture=wink&explode=2");
   expect(address(stages, "stage3", undefined, 0)).toBe("");  // a Stage the page has no button for
   expect(address([], "next-mech-back", undefined, 0, "?preset=bart")).toBe("?preset=bart");  // a page with no buttons
@@ -91,6 +156,6 @@ test("of the viewers on screen, the three that came into view or were touched la
 });
 
 test("a viewer in a page opens on its own link, the Stage its own (#839)", () => {
-  expect(opened("?gesture=wink&explode=1", [], "next-stage1")).toEqual({ stage: "next-stage1", gesture: "wink", explode: 1 });
-  expect(opened(undefined, [], "next-stage1")).toEqual({ stage: "next-stage1", gesture: null, explode: 0 });
+  expect(opened("?gesture=wink&explode=1", [], "next-stage1")).toMatchObject({ stage: "next-stage1", gesture: "wink", explode: 1 });
+  expect(opened(undefined, [], "next-stage1")).toMatchObject({ stage: "next-stage1", gesture: null, explode: 0 });
 });

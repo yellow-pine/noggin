@@ -55,9 +55,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
-- Issue state labels, one per state: `ready for agent` (can start), `in progress` (picked up and not in main yet; a
-  spec from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another
-  ticket, hardware), `on hold` (paused by Cansin). `blocked` and `on hold` are set by hand. The implementer sets
+- Issue state labels, at most one per open issue: `ready for agent` (can start), `in progress` (picked up and not in
+  main yet; a spec from its first ticket until its last reaches main), `blocked` (waits on something no issue can
+  stand for, named in the issue: hardware, sudo, an outside party), `on hold` (paused by Cansin). A wait on another
+  ticket is GitHub's own blocked-by relationship alone, set when the ticket is filed (`gh api -X POST
+  repos/{owner}/{repo}/issues/N/dependencies/blocked_by -F issue_id=$(gh api repos/{owner}/{repo}/issues/M --jq
+  .id)` for N blocked by M); GitHub already shows the issue as blocked, so no label. An issue's type is its
+  Conventional Commit title, so no `enhancement` label. `blocked` and `on hold` are set by hand. The implementer sets
   `in progress` on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR
   opened by hand), and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
