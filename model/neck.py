@@ -56,13 +56,24 @@ PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back 
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
 JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
+# the jaw x1.08 about its hinge across and fore-aft (#901, #872: its arms inside Morty's life-size mandible), its floor
+# where it was, over the Torso as the head tilts; its drive keeps its size
+JAW_K = 1.08
+
+
+def jaw_y(y):
+    """y of the jaw at y as first drawn, grown JAW_K about its hinge."""
+    return JAW[0] + (y - JAW[0]) * JAW_K
+
+
 # the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
 # neck's cheeks however the head tilts (#838)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (30.0, 33.0)  # its tabs up through the plate's slot
-JAW_LUG_X, JAW_X = (28.0, 31.0), (33.0, 37.0)  # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
-CHIN_Y = -29.0  # its chin's front, the mandible's
-JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L arm round to the chin, the mandible's
+# the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
+JAW_LUG_X, JAW_X = (28.0 * JAW_K, 31.0 * JAW_K), (33.0 * JAW_K, 37.0 * JAW_K)
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (JAW_X[0] - 3.0, JAW_X[0])  # its tabs up the plate's slot
+CHIN_Y = jaw_y(-29.0)  # its chin's front, the mandible's
+JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 # the thickest lead that crosses, a 24 AWG pair (inferred): each of the neck cable's two (#858, its four conductors:
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,

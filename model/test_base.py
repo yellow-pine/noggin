@@ -183,10 +183,10 @@ def test_a_variant_whose_boards_meet_the_head_ranks_last_whatever_its_figures():
     assert ranked["variants"]["mech-later"]["fails"] == ["clearance"]
 
 
-def test_a_head_past_140_w_140_d_150_h_fails_the_head_gate_and_ranks_after_one_that_fits():
-    """#51, #838: everything that rides the head fits a head of at most 140 W x 140 D x 150 H mm, the realistic skull's
-    length; a variant 2 mm too deep ranks after one that fits, though its servo holds less."""
-    ranked = base.rank({"mech-back": _report(hold=0.05, head=[120.0, 142.0, 140.0]), "mech-later": _report(hold=0.3)})
+def test_a_head_past_160_w_176_d_175_h_fails_the_head_gate_and_ranks_after_one_that_fits():
+    """#51, #838, #901: everything that rides the head fits a head of at most 160 W x 176 D x 175 H mm, Morty's life-size
+    cranium; a variant 2 mm too deep ranks after one that fits, though its servo holds less."""
+    ranked = base.rank({"mech-back": _report(hold=0.05, head=[120.0, 178.0, 140.0]), "mech-later": _report(hold=0.3)})
     assert ranked["order"] == ["mech-later", "mech-back"]
     assert ranked["variants"]["mech-back"]["gates"]["head"] == ["depth"]
     assert ranked["variants"]["mech-back"]["fails"] == ["head size"]

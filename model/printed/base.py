@@ -89,7 +89,8 @@ def tray(mechanical=False):
     out = box((-x1 - 6, x1 + 6), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
     for s in (-1, 1):
         out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
-    riser = box((-x1, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
+    # the riser as wide as before the legs moved out past the pitch servo (#901)
+    riser = box((-24.5, nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
     return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
 
@@ -100,7 +101,7 @@ def stand(mechanical=False):
     to the plate's underside round the hanging yaw servo, its top behind that, with the holes under the head mount's
     (nk.HEAD_SCREWS), the eyes Core against its back face; as Bones (#704) its upright edges round."""
     x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if mechanical else ROUND / 3
-    y = (gm.CHEEK_Y[1], gm.PLATE_Y[1])  # its front behind the frame's beam (#852)
+    y = (gm.PLATE_Y[0] - 5.0, gm.PLATE_Y[1])  # its front behind the lower lids' sweep, before the yaw servo (#901)
     out = _box((-x, x), y, (nb.STAND_Z, top), r)
     out = out.cut(_box((-x + WALL, x - WALL), (y[0] + WALL, y[1] - WALL), (nb.STAND_Z, top), r and r - WALL))
     out = out.union(box((-x + WALL, x - WALL), (nb.STAND_TOP_Y, y[1] - WALL), (top - nb.TRAY_T, top)))
