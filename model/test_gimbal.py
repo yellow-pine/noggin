@@ -115,20 +115,20 @@ def test_a_print_error_splits_the_eyes_a_little(report):
 def test_the_lids_cover_the_cap_shut_and_track_the_pitch(report):
     """Shut, the upper lid reaches past the cap's top rim and the lower past its bottom one; the servo's range runs from
     shut tracking a pitch down as far as the servo turns (#51 lid = rest + pitch, #698) to Morty's rest edge, 68 deg up
-    (#901): the servo's whole travel one side of its centre."""
+    (#901), past it to 5 deg over: the servo's whole travel on the shut side."""
     lid = report["lid"]
     assert lid["shut_deg"][0] + gimbal.LID_SPAN > gimbal.CAP_HALF
     assert lid["shut_deg"][1] - gimbal.LOWER_SPAN < -gimbal.CAP_HALF
-    assert lid["edge_deg"] == pytest.approx([68.2 - 90, 68.2], abs=0.1)
+    assert lid["edge_deg"] == pytest.approx([68.2 - 90, 68.2 + 5], abs=0.1)
     assert lid["edge_deg"][0] < gimbal.LID_SHUT
 
 
 def test_the_lower_lid_turns_against_the_upper_and_they_meet_below_the_middle():
     """#698, #901: one servo drives both lids of an eye; from Morty's rest edges (68 deg up, 52 down) the lower travels
-    against the upper, 37 deg to its 82, and shut the two edges meet below the eye's middle, 1.5 deg apart."""
+    against the upper, 41 deg to its 78, and shut the two edges meet below the eye's middle, 1.5 deg apart."""
     shut = gimbal.LID_SHUT - gimbal.LID_REST
     assert gimbal.lower(0) == pytest.approx(0, abs=1e-9)
-    assert gimbal.lower(shut) / shut == pytest.approx(-37 / 82, abs=0.03)
+    assert gimbal.lower(shut) / shut == pytest.approx(-41 / 78, abs=0.03)
     lo, hi = np.subtract(gimbal.LID_EDGES, gimbal.LID_REST)
     turns = [gimbal.lower(s) for s in np.linspace(lo, hi, 41)]
     assert all(np.diff(turns) < 0)  # the servo opening the upper lid opens the lower, all the way

@@ -56,8 +56,7 @@ PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back 
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
 JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
-# the jaw x1.08 about its hinge (#901, #872: its arms inside Morty's life-size mandible), the mouth servo and horn their
-# size, the horn carried with it
+# the jaw x1.08 about its hinge (#901, #872: its arms inside Morty's life-size mandible)
 JAW_K = 1.08
 
 
@@ -69,13 +68,10 @@ def _jaw(y, z):
 # the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
 # neck's cheeks however the head tilts (#838)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = (
-    20.0 * JAW_K,
-    _jaw(37.0, -56.75),
-    (30.0 * JAW_K, 33.0 * JAW_K),
-)  # its tabs up the slot
 # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
 JAW_LUG_X, JAW_X = (28.0 * JAW_K, 31.0 * JAW_K), (33.0 * JAW_K, 37.0 * JAW_K)
+# its drive keeps its size (#901: the jaw grows round it), the bar inside the L arm
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (JAW_X[0] - 3.0, JAW_X[0])  # its tabs up the plate's slot
 CHIN_Y = _jaw(-29.0, 0.0)[0]  # its chin's front, the mandible's
 JAW_BODY = ((27.0 * JAW_K, _jaw(0.0, 0.0)[0]), (14.0 * JAW_K, _jaw(-20.0, 0.0)[0]))  # (x, y) forward round to the chin
 JAW_ARM_Z = (_jaw(0.0, -74.5)[1], _jaw(0.0, -70.5)[1])  # the jaw's body forward from its arms to the chin, its floor

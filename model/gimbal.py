@@ -38,7 +38,9 @@ LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0, "stem_r": 4.0, "stem_z": -27.0}
 YAW_CRANK_Z = (-27.0, -24.0)  # the yokes' cranks; the tie-bar under them, the yaw horn's outer face under that
 TIE_Z = (-30.0, -27.0)
-YAW_Y = 30  # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684)
+# the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684) and behind the lower
+# lids' sweep (#901)
+YAW_Y = 22.0
 BAIL = (40.0 * K, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
 BAIL_END = (
@@ -63,14 +65,17 @@ def _outline(deg):
 
 LID_REST = _outline(90)  # the upper lid's edge on Morty's outline (#872), at the lid servo's centre
 LOWER_EDGE = -_outline(270)  # the lower lid's, at the servo's centre (LOWER_REST, which the lower lid's drive sets)
-# shut, the upper lid's edge below the eye's middle (#698), the lower's LID_GAP under it: low enough that the lower lid's
-# sweep stays clear of the frame's plate under the eye, high enough that the upper's stays clear of the push-rod (#901)
-LID_SHUT, LID_GAP = -14.0, 1.5
+# shut, the upper lid's edge at the eye's middle (#901; slightly below it before, #698), the lower's LID_GAP under it:
+# high enough that the upper lid, open, stays clear of the push-rod, low enough that the lower's sweep stays clear of
+# the frame's plate and the yaw servo
+LID_SHUT, LID_GAP = 0.0, 1.5
 LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: shut, it covers the cap's top
 LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
-# the upper lid's edge over the servo's range: shut tracking a pitch down as far as the servo turns (#51, #698), open at
-# rest: Morty's lids rest wide open, clear of the cap pitched up (#901; open tracking a pitch up, shut all of it, before)
-LID_EDGES = (LID_REST - SERVO_DEG, LID_REST)
+# the upper lid's edge over the servo's range: shut tracking a pitch down (#51, #698), open LID_OPEN past rest, as far
+# as the crank's transmission floor allows (#901: Morty's lids rest wide open, clear of the cap pitched up; open
+# tracking a pitch up before)
+LID_OPEN = 14.5
+LID_EDGES = (LID_SHUT - PITCH, LID_REST + LID_OPEN)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
@@ -90,9 +95,9 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
 # upper. Inferred, searched (#901) for the lower lid turning as far as the upper from rest to shut, its link meeting the
-# crank at 57 deg or more, every pin behind the cap's flat back however the eye turns, above the frame's plate
-LINK_PIN = (31.8, -23.4)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (7.2, -22.6)  # (y, z) of the lower lid's crank pin at rest
+# crank at 50 deg or more, every pin behind the cap's flat back however the eye turns, above the frame's plate
+LINK_PIN = (28.6, -17.4)  # (y, z) of the link's pin on the bar at rest
+LOWER_PIN = (4.6, -15.4)  # (y, z) of the lower lid's crank pin at rest
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
@@ -125,7 +130,7 @@ LID_X = {
 PLATE_Z = (-38.0, -35.0)
 # under the eyes' centres, behind the lower lids' sweep (#901: in front of the coronoids before), to past the head
 # mount's rear screws (model/neck.py)
-PLATE_Y = (0.0, 87.0)
+PLATE_Y = (16.0, 87.0)
 PLATE_X, BACK_Y = 33.5, 40.0  # the body's half-width, out under the jaw's lugs (model/neck.py JAW_LUG_X)
 BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back's, out to the bail's uprights
 CHEEK_Y = (-10.0, -6.0)
