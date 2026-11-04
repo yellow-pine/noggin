@@ -17,7 +17,8 @@ theme: the header's Theme bar, the Presets, and the viewer's mix of Shapes and P
 #819); filaments: the buy list's, per Preset (docs/build/parts.md), shown, as every Preset's pictures and the Stages'
 print tables, for the Preset picked.
 stage_parts, stage_servos: each Stage's build guide (docs/build/stage-*.md), what it adds as the model has it
-(model/stages.py, geometry.py STAGES and PRINTED, #721).
+(model/stages.py, geometry.py STAGES and PRINTED, #721); shopping: docs/build/parts.md's buy list, the bought parts
+each Stage adds (#900).
 wiring: docs/build/wiring.md's servo ports, both Cores (geometry.py CHANNELS, eyes/eyes.py PORT_GPIO,
 eyes/calibration.json, the next Mech's neck for the neck Core: model/stages.py next_neck).
 moments: the web viewer's line under each gesture (site/src/viewer/viewer.mjs), the event that plays it.
@@ -357,6 +358,25 @@ def stage_guides():
     return parts, servos
 
 
+def shopping():
+    """The buy list per Stage (docs/build/parts.md, #900): how many of each bought part (not in geometry.PRINTED) each
+    Stage adds to the one before, as stage_guides() counts them."""
+    rows, before = {}, Counter()
+    for n, doc in enumerate(BONY):
+        now = Counter(stages.stem(p.file) for p in stages.STAGES[doc].parts.values())
+        for s, k in (now - before).items():
+            if s not in g.PRINTED:
+                rows.setdefault(HARDWARE.get(s, s.removeprefix("next ")), [""] * len(BONY))[n] = str(k)
+        before = now
+    head = [
+        "| Part | " + " | ".join(f"Stage {n}" for n in range(1, len(BONY) + 1)) + " |",
+        "|---" * (len(BONY) + 1) + "|",
+    ]
+    return "\n".join(
+        head + [f"| {p} | {' | '.join(ks)} |" for p, ks in sorted(rows.items(), key=lambda r: r[0].lower())]
+    )
+
+
 def wiring():
     """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
     shared lid frame, the eyes resting centred between their ends), the neck's the next Mech's neck's limits (its horns
@@ -462,6 +482,7 @@ def numbers():
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},
         "stage_parts": (guides := stage_guides())[0],
         "stage_servos": guides[1],
+        "shopping": shopping(),
         "wiring": wiring(),
         "coupon": coupon(),
         "workflows": workflows(),

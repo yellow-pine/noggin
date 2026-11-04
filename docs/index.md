@@ -8,7 +8,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 
 [Start here](start-here.md) · [Build one](build/parts.md) · [Use it](use/noggin-service.md)
 
-## The next Mech, in progress
+## The Mech, in progress
 
 <!--{{ front }}-->
 
@@ -16,8 +16,7 @@ Claude Code hooks feed a small Mac service, the noggin service, which tells the 
 Its Stage 1 from the front, its Stage 3 isometric and exploded are on [the site's home](https://yellowpine.com/noggin/).
 <!-- #}-->
 
-The next Mech (#51), clean-room, as its model has it after the latest merge, its mechanism bare until a finished Skin
-exists: Stage 1 from the front, Stage 3 whole and pulled apart; each opens in
+The Mech (#51) as its model has it after the latest merge, nothing printed yet, its mechanism bare: Stage 1 from the front, Stage 3 whole and pulled apart; each opens in
 [the viewer](https://yellowpine.com/noggin/viewer/), to turn it and play its gestures. Each part and motion in
 [Pictures](pictures.md).
 
@@ -38,9 +37,11 @@ The Mech is our own design, being designed and not built yet (#51). It grows in 
 desk.
 
 - **Stage 1: eyes.** The eye block on a test stand: both eyes turn together on two servos, each eye's lids on its own,
-  four servos on the eyes Core. [Build Stage 1](build/stage-1.md)
+  four servos on the eyes Core. *Upcoming (#877): Stage 1 becomes a cut of Stage 3, and the test stand goes.*
+  [Build Stage 1](build/stage-1.md)
 - **Stage 2: neck.** The eye block on a pan-and-tilt neck over the Torso, the boards in the back of the head: two more
-  servos on the neck Core. [Build Stage 2](build/stage-2.md)
+  servos on the neck Core. *Upcoming (#902): both neck servos ride inside the skull.*
+  [Build Stage 2](build/stage-2.md)
 - **Stage 3: mouth.** A jaw under the eyes: the seventh servo, the whole Mech. Then a character's Shells on magnets.
   [Build Stage 3](build/stage-3.md)
 

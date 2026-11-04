@@ -106,6 +106,16 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 - `just step` (#98): every part and envelope, and each document at neutral (model/stages.py's placements, coloured,
   one assembly), as STEP files in model/build/step; `open -a FreeCAD model/build/step/next-mech-back.step`.
 
+## Cansin's parts (2026-10-31, #51)
+What Cansin owns and has ordered, by our names (the codes are on [Parts](build/parts.md#parts-to-buy)):
+- Owned: the Beginner Hardware Kit (2 Cores, a Shield and a transmitter shield, a switch board, a pack, its charger,
+  one 180° and one 360° servo), the Battery Upgrade Kit (a second switch board and pack), 4 servos, M3x10, M2x12 and
+  M2 nuts (20 each); PLA Pure in Milky Pink, Pure White, Absolute Black and Apricot (docs/research/2026-10-31-filament.md),
+  and black PETG.
+- Ordered 2026-10-31: a Shield, 3 servos and a pack.
+- Spare once the Mech has its 7 servos, 2 Cores, 2 Shields, a switch board and a pack: a pack on charge (the charger
+  off the Mech) and a switch board.
+
 ## Planned edits (notes only, never in the model; #81)
 Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to change stays here until it stabilises.
 - The next Mech (#51; the spec lives there) is designed in the model, as its own documents (geometry.NEXT, #629),

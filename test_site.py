@@ -127,6 +127,23 @@ def test_the_buy_list_names_the_picked_presets_filaments_from_the_model():
     )
 
 
+def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_its_shop_code():
+    """#900: docs/build/parts.md's shopping list counts what each Stage adds that is bought, from the model (the Stage
+    guides' "bought" rows), and the shop's line beside it names every one of those parts with its code."""
+    import macros
+
+    table = macros.shopping()
+    assert table.splitlines()[0] == "| Part | Stage 1 | Stage 2 | Stage 3 |"
+    for row in ["| servo | 4 | 2 | 1 |", "| Core | 1 | 1 |  |", "| Shield | 1 | 1 |  |", "| battery pack |  | 1 |  |"]:
+        assert row in table, row
+    parts = (ROOT / "docs" / "build" / "parts.md").read_text()
+    buy = parts.split("## Parts to buy", 1)[1].split("\n## ", 1)[0]
+    assert "<!--{{ shopping }}-->" in buy
+    codes = dict(re.findall(r"^\| ([\w -]+?) \| [^|]+ \| ([^|]+?) \|$", buy, re.M))
+    named = re.findall(r"^\| ([\w -]+?) \|", table, re.M)[1:]
+    assert [n for n in named if n not in codes] == []
+
+
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
     the next Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
