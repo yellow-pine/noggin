@@ -151,7 +151,7 @@ def nod_plate():
     # Upper-head saddle on the actual standard-servo tabs; rear posts clear the complete tray/PCB pan sweep.
     sx, sy, sz = nk.TILT_SHAFT
     tab_x = (sx + 10.4, sx + 13.4)
-    ceiling, rear = sz + 14, 102.0
+    ceiling, rear = sz + 20, 102.0
     out = out.union(box((-15, 15), (y, 115), nk.NOD_Z))
     # One positive-X mast leaves the negative-X reaction standoff free. Its low dogleg bypasses the rotating plate;
     # its top leans forward from the hair groove, preserving the continuous skull-wall stack.
@@ -162,12 +162,12 @@ def nod_plate():
         out = out.union(strut(a, b, (6, 6), (6, 6)))
     for _, fy, fz in mast:
         out = out.union(cyl("x", (0, fy, fz), 6, (4, 16)))
-    out = out.union(box((-15, 16), (rear - 3, rear + 3), (ceiling - 2, ceiling)))
+    out = out.union(box((-15, 16), (rear - 3, rear + 3), (ceiling - 8, ceiling)))
     for hy in (sy - 13.4, sy + 34.1):
         out = out.union(box(tab_x, (hy - 3.2, hy + 3.2), (sz - 10.8, ceiling)))
         for hz in (sz - 5, sz + 5):
             out = out.cut(cyl("x", (0, hy, hz), 1.1, tab_x))
-    out = out.union(box(tab_x, (sy - 16.6, rear + 3), (ceiling - 2, ceiling)))
+    out = out.union(box(tab_x, (sy - 16.6, rear + 3), (ceiling - 8, ceiling)))
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R + 0.3, nk.NOD_Z))
     out = out.cut(box((-3.2, 3.2), (95, 116), nk.NOD_Z))  # the reaction bar crosses the rear edge at full tilt
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
