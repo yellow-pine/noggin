@@ -25,8 +25,9 @@ BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
+Direct = namedtuple("Direct", "joint driven sign")  # a concentric servo: output sign, rigid carrier and its riders
 Horn = namedtuple(
-    "Horn", "pivot limits crank loops still frame rods", defaults=((),)
+    "Horn", "pivot limits crank loops still frame rods direct", defaults=((), None)
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
 # A rod riding another moving part, the `carrier` (the Mech's pitch push-rods on the bail, #663; each lower lid's
 # link on its lid bar, #698): `part` on a `joint` at `arm` (about `axes`: two, a universal joint), its other end on
@@ -387,7 +388,10 @@ def assemble(doc, frames):
 
     for h, horn in horns.items():
         loops = [loop._replace(rockers=carried(loop.rockers)) for loop in horn.loops]
-        horns[h] = horn._replace(loops=loops, rods=[rod._replace(driven=carried(rod.driven)) for rod in horn.rods])
+        direct = horn.direct._replace(driven=carried(horn.direct.driven)) if horn.direct else None
+        horns[h] = horn._replace(
+            loops=loops, rods=[rod._replace(driven=carried(rod.driven)) for rod in horn.rods], direct=direct
+        )
     return Doc(doc, parts, horns)
 
 
@@ -410,6 +414,12 @@ def pose(stage, horn_name, deg):
     def move(name, delta):
         mats[name] = f @ delta @ f_inv @ mats[name]
 
+    if horn.direct:
+        output = horn.direct.sign * deg
+        turn = linkage.rotation(horn.pivot["axis"], output, horn.pivot["point"])
+        for name in horn.direct.driven:
+            move(name, turn)
+        return Pose(mats, {**dict.fromkeys(horn.still, 0.0), horn.direct.joint: round(output, 2)})
     move(horn.crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
     joints, coupled = {j: 0.0 for j in horn.still}, set()
     for loop in horn.loops:
