@@ -115,6 +115,45 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     assert _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.75)) >= beams.MIN_SF
 
 
+@pytest.fixture(scope="module")
+def saddle():
+    return _built("nod plate")
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("member", ("mast", "header", "tab beam"))
+def test_the_standard_servo_saddle_holds_its_actual_stall_reaction(saddle, member):
+    """Actual CAD sections, including eccentric axial loading; the finished anatomical head load stays on its bearing."""
+    shaft, mat = nk.TILT_SHAFT, g.MATERIALS[g.PRINTED["nod plate"][1]]
+    torque = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10
+    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
+    force = torque / np.linalg.norm(nk.TILT_ARM) / math.sin(math.radians(angle))
+    z = (shaft[2] + nk.HEAD_AXES["tilt"][0][2]) / 2
+    mast = saddle.intersect(cq.Workplane("XY", origin=(0, 0, z)).rect(400, 400).extrude(0.005, both=True).val())
+    if member == "mast":
+        cut, axis, bend = mast, 0, 1
+        moment = force * abs(mast.Center().x - shaft[0])
+    else:
+        # Peak reaction at one tab combines the bar force and the motor's case torque over its tab spacing.
+        force = force / 2 + torque / (34.1 + 13.4)
+        top = saddle.BoundingBox().zmax
+        if member == "header":
+            x = mast.BoundingBox().xmin - 1
+            plane, axis, bend = cq.Plane(origin=(x, shaft[1], top - 10), xDir=(0, 1, 0), normal=(1, 0, 0)), 2, 1
+            moment = force * abs(x - (shaft[0] + 11.9))
+            cut = saddle.intersect(cq.Workplane(plane).rect(40, 40).extrude(0.005, both=True).val())
+        else:
+            y = shaft[1] + 17.05
+            plane, axis, bend = cq.Plane(origin=(shaft[0] + 15.4, y, top - 10), xDir=(1, 0, 0), normal=(0, 1, 0)), 2, 0
+            moment = force * abs(shaft[1] + 34.1 - y)
+            cut = saddle.intersect(cq.Workplane(plane).rect(20, 40).extrude(0.005, both=True).val())
+    inertia = np.asarray(cq.Shape.matrixOfInertia(cut))[bend, bend] / 0.01
+    box, centre = cut.BoundingBox(), cut.Center().toTuple()[axis]
+    half = max(getattr(box, "xyz"[axis] + "max") - centre, centre - getattr(box, "xyz"[axis] + "min"))
+    stress = force / (cut.Volume() / 0.01) + moment * half / inertia
+    assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF
+
+
 Y, Z = nk.AXIS
 JY, JZ = nk.JAW
 
