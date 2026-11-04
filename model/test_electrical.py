@@ -58,8 +58,8 @@ def test_the_nominal_simultaneous_stall_reports_the_standard_leads_drop_and_keep
     assert set(nominal["servo_v"]) == {"l_lid", "yaw", "r_lid", "pitch", "tilt", "mouth", "pan"}
     assert all(abs(nominal["servo_v"][n] - 4.962) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
     assert all(abs(nominal["servo_v"][n] - 4.960) < 0.001 for n in ("mouth", "pan"))
-    # The actual 320 mm standard lead drops 1.4 A x 0.08576 ohm. This deliberately exposes an unsafe all-stall
-    # condition (also 5.59 A on a 3 A pack); test_report's existing minimum-voltage gate must still reject it.
+    # The inferred 22 AWG neck route retains the voltage floor despite the standard's 320 mm lead at 1.4 A.
+    # Simultaneous stall still exceeds the 3 A pack budget; the Core scheduling proof remains #902/#929.
     assert nominal["servo_v"]["tilt"] == pytest.approx(4.878)
     assert all(v >= W["servos"][n]["min_v"] for n, v in nominal["servo_v"].items())
     assert all(abs(v - 3.3) < 1e-6 for v in nominal["core_v"].values())
