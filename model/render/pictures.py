@@ -259,7 +259,6 @@ def blender(name, manifest, shots):
         sys.exit(f"Blender failed on {name}, missing {missing[:3]}:\n{r.stdout[-3000:]}\n{r.stderr[-3000:]}")
     frames = [line for line in r.stdout.splitlines(True) if line.startswith("frame ")]
     print("".join(frames), end="")
-    return [float(line.split()[2]) for line in frames]  # each frame's seconds
 
 
 def render(name, manifest, shots):
