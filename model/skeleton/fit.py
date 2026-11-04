@@ -94,12 +94,10 @@ def refit(arrays, scene, envelope):
         normal = (0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))) if name == "C2" else (0, 0, 1)
         c = canal(trimesh.Trimesh(arrays[key + "_basis"], arrays[key + "_faces"]), normal)
         canals[name] = c @ common[:3, :3].T + common[:3, 3]
-        matrix = np.array(bone["matrix"])
-        target[name] = c @ matrix[:3, :3].T + matrix[:3, 3]
-    top, bottom = target["C1"], target["T1"]
-    for name, centre in target.items():
-        fraction = (centre[2] - bottom[2]) / (top[2] - bottom[2])
-        centre[0], centre[1] = 0, bottom[1] + fraction * (-73.4 - bottom[1])
+    top, bottom = (np.array(envelope["canal_ends"][n]) for n in ("C1", "T1"))
+    for name, centre in canals.items():
+        fraction = (centre[2] - canals["T1"][2]) / (canals["C1"][2] - canals["T1"][2])
+        target[name] = bottom + fraction * (top - bottom)
     # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
     for bone in scene["bones"]:
         bone["matrix"] = common.tolist()

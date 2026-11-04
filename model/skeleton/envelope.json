@@ -132,5 +132,18 @@
       "elevation": 90,
       "outer_radius_mm": 77
     }
-  ]
+  ],
+  "canal_ends": {
+    "C1": [
+      0,
+      -73.4,
+      129.66735687562277
+    ],
+    "T1": [
+      0,
+      -58.326921563016064,
+      29.725203238828158
+    ]
+  },
+  "canal_ends_status": "inferred provisional anatomical endpoints, independent of head pan bearing; final corridor/joins require mesh proof"
 }
