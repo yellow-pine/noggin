@@ -5,11 +5,11 @@ head()) and the ranking of their reports (rank()); model/candidates.py reports t
 Frame: the head's (model/neck.py), z up, -y forward. In each the base is the Torso (#685, GLOSSARY): a compact open box
 whose floor carries the neck mount (its post up through the lid, the pan servo on it over the lid, #858) and, behind
 it, the pack lying flat across x as low as it goes, the switch board, which switches the pack, lying on its floor beside
-the pack's lead end (switch_board(), #828), and in front of the neck mount the spare pack on the kit's charger dongle
-(dongle(), #858), an opening in the wall where the two swap; its bottom is the foot the Mech stands on. The head
-carries the rest: both Cores, each plugged in under its Shield, lying flat on the cranium tray in the realistic skull's
-cranium, each USB-C socket's opening straight back through it (cranium(), openings(), #858). The pack's Y lead runs up
-the post as one pair and splits in the cranium, every servo's lead to the Shields (leads(); #51's wiring rules). Nothing but the mechanism and the boards ride the
+the pack's lead end (switch_board(), #828), and in front of the neck mount the power-path board (power_board(), #858);
+its bottom is the foot the Mech stands on, and nothing else is in it (#858). The head carries the rest: both Cores, each
+plugged in under its Shield, lying flat on the cranium tray in the realistic skull's cranium, and the USB-C hub low at
+the back of the skull base, its upstream port the head's (cranium(), #858). The neck cable runs up the post to the
+head, every servo's lead to the Shields (leads(); #51's wiring rules). Nothing but the mechanism and the boards ride the
 head under its skull or Skin, within gimbal.HEAD_MM (#51), in one variant since Cansin picked it (#712; the ranking
 stays for the next):
 - Back, next-mech-back: the eye gimbal on the head mount, the jaw at the realistic skull's condyles, nothing over the
@@ -24,8 +24,8 @@ import numpy as np
 from model import gimbal, neck
 
 # the Torso's outside, the realistic skull's box pedestal (#838): x, y, and z from its foot to its lid's top (as tall as
-# when the pan was in it: #858 keeps the Mech's height), round the spare pack's cradle in front of the neck mount's
-# foot, the pack's behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan
+# when the pan was in it: #858 keeps the Mech's height), round the power-path board in front of the neck mount's foot,
+# the pack in its cradle behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan
 # axis
 TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 49.0))
 LID_T, POST_GAP = 3.0, 1.0  # the Torso's lid, the post's room in its hole
@@ -45,22 +45,20 @@ RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand
 # the switch board's frame on the Torso's floor: beside the pack's lead end (-x), 5 mm off its cradle; the board lies
 # flat, its lever up, reached from the open back (inferred, #828, #838)
 SWITCH_AT = (-47.0, PACK_Y)
-# the spare pack (#858: one pack on, one charging) lying across x in its own cradle in front of the neck mount's foot,
-# its lead out to -x to the kit's charger dongle, which lies along y on the floor beside the foot, its socket's end
-# forward (DONGLE_AT: that end's middle); an opening in the -x wall (OPENING: y, and z up from the floor to its sides'
-# top, its roof rising 45 deg from there to a peak, so it prints upright) over the
-# dongle and the switch board, where the packs' plugs swap and the dongle's USB lead leaves (inferred)
-SPARE_Y = neck.AXIS[0] - 38.0
-DONGLE_AT = (-43.0, neck.AXIS[0] - 29.0)
-OPENING = ((neck.AXIS[0] - 21.0, neck.AXIS[0] + 43.0), (2.0, 9.0))
+# the power-path board (#858: charges the pack from the head's USB-C and feeds the Shields through the switch board)
+# lying flat on the Torso's floor in front of the neck mount's foot, 2 mm off it: its middle's (x, y) (inferred)
+POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 # the realistic skull's cranium (#858; model/printed/skull.py): the cranium tray's plate over the eyes' drives (TRAY_Z),
-# its legs down to the gimbal frame's plate behind the pitch bar (LEG_X, LEG_Y); on it the Cores lying flat, each under
-# its Shield, their USB-C ends back (their middles' x, and y), the plate notched behind each for a plug (PLUG: its half
-# width and half height round the socket's middle); every number inferred, held inside the skull by model/test_base.py
-TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (5.0, 9.0), (74.0, 80.0)
+# its legs down to the gimbal frame's plate behind the bail (LEG_X, LEG_Y); on it the Cores lying flat, each under its
+# Shield, their USB-C ends back toward the hub (their middles' x, and y); the hub on the tray's riser on the plate, its
+# upstream port out the back of the skull base (HUB_X, its back end HUB_Y, its underside HUB_Z) beside the pitch bar
+# and over the head mount's rear L screw; the bulk capacitor standing on the tray behind the Cores (CAP_Y); every
+# number inferred, held inside the skull by model/test_base.py
+TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (20.5, 24.5), (74.0, 80.0)
 CORES_AT = ((-16.0, 16.0), 50.0)
-PLUG = (6.5, 3.25)  # a USB-C plug's overmold, about 12 x 6.5 mm (docs/research/2026-11-03-usb-c-power.md 5)
-USB = ((-4.47, 4.47), (-10.68, -7.4), (-13.39, -6.05))  # the Core's USB-C: model/envelopes.py core's (test_base.py)
+HUB_X, HUB_Y, HUB_Z = (-20.2, 0.2), 86.0, gimbal.PLATE_Z[1] + 4.0
+HUB_LENGTH = 31.6  # the hub's, port to back: model/envelopes.py hub's (model/test_base.py)
+CAP_Y = 71.0
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
 # bottom: model/envelopes.py, held to it by model/test_base.py)
 ROW = (
@@ -102,36 +100,29 @@ def standing(back, z, row=ROW):
 
 def cranium():
     """The boards in the head (#858): {part name: (Envelope, 4x4)}: each Core plugged in under its Shield, lying flat on
-    the cranium tray, the Shield's pins up and its USB-C end back, Core 1 at -x."""
+    the cranium tray, the Shield's pins up and its USB-C end back, Core 1 at -x; the bulk capacitor standing on the
+    tray behind them, on the Y lead where it enters the Shields; the hub lying on the tray's riser, its upstream port
+    back."""
     out = {}
     for (parts, _, _, _), x in zip(ROW, CORES_AT[0]):
         m = np.eye(4)
         m[:3, :3] = np.array(((1, 0, 0), (0, 0, 1), (0, -1, 0))).T  # its x across, y up, z forward
         m[:3, 3] = (x, CORES_AT[1], TRAY_Z[1] + 10.68)  # the Core's USB-C on the tray
         out |= {name: (mesh, m) for name, mesh in parts}
-    return out
-
-
-def openings():
-    """{Core: (lo, hi)}: each Core's USB-C opening (#858), a plug's box from its socket's mouth straight back out past
-    the head's shell (DOME), which the cranium tray and the skull leave open."""
-    out = {}
-    for name, (mesh, m) in cranium().items():
-        if mesh == "core":
-            (x0, x1), (y0, y1), (z0, z1) = USB
-            mid = m[:3, :3] @ ((x0 + x1) / 2, (y0 + y1) / 2, z0) + m[:3, 3]  # its mouth's middle
-            lo, hi = mid - (PLUG[0], 0, PLUG[1]), mid + (PLUG[0], 0, PLUG[1])
-            hi[1] = DOME[1][1] + 5.0
-            out[name] = (lo, hi)
-    return out
-
-
-def dongle():
-    """The kit's charger dongle on the Torso's floor (#858): {part name: (Envelope, 4x4)}, lying flat along y."""
+    cap = np.eye(4)
+    cap[:3, 3] = (0.0, CAP_Y, TRAY_Z[1])
+    out["next bulk capacitor"] = ("capacitor", cap)
     m = np.eye(4)
-    m[:3, :3] = np.array(((0, 1, 0), (-1, 0, 0), (0, 0, 1))).T  # its length back from its socket's end
-    m[:3, 3] = (*DONGLE_AT, neck.MOUNT_Z[0])
-    return {"next charger dongle": ("dongle", m)}
+    m[:3, :3] = np.array(((0, 1, 0), (-1, 0, 0), (0, 0, 1))).T  # its length back, its port's end last
+    m[:3, 3] = (sum(HUB_X) / 2, HUB_Y - HUB_LENGTH, HUB_Z)
+    return out | {"next hub": ("hub", m)}
+
+
+def power_board():
+    """The power-path board on the Torso's floor (#858): {part name: (Envelope, 4x4)}, lying flat."""
+    m = np.eye(4)
+    m[:3, 3] = (*POWER_AT, neck.MOUNT_Z[0])
+    return {"next power-path board": ("power", m)}
 
 
 def switch_board():
@@ -155,17 +146,18 @@ def stand_boards():
 
 
 def leads(stage):
-    """{pivot: leads crossing it} for the pan and tilt pivots: each servo's lead to the Shields, the pack's to the switch
-    board and its Y lead's one pair on up the post to the Shields in the cranium (#858), the spare pack's to the
-    charger dongle, so one crosses each pivot that turns one end and not the other."""
+    """{pivot: leads crossing it} for the pan and tilt pivots: each servo's lead to the Shields, the pack's to the
+    power-path board, the board's output to the switch board, whose output pair runs up the post to the Shields, and
+    the head's USB-C pair down it to the board (the neck cable's two, #858), so one crosses each pivot that turns one end
+    and not the other."""
 
     def rides(part):
         return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers}
 
-    shield, switch = rides("next Shield 1:1"), rides("next switch board:1")
+    shield, switch, power = rides("next Shield 1:1"), rides("next switch board:1"), rides("next power-path board:1")
     ends = [(rides(n), shield) for n, p in stage.parts.items() if os.path.basename(p.file) == "servo.stl"]
-    ends += [(rides("next pack:1"), switch), (rides("next spare pack:1"), rides("next charger dongle:1"))]
-    ends.append((switch, shield))
+    ends += [(rides(n), power) for n, p in stage.parts.items() if os.path.basename(p.file) == "battery.stl"]
+    ends += [(power, switch), (switch, shield), (shield, power)]  # the neck cable's two pairs
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}
 
 

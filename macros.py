@@ -308,7 +308,9 @@ HARDWARE = {
     "switch": "switch board",
     "battery": "battery pack",
     "horn": "servo horn",
-    "dongle": "charger dongle",
+    "hub": "USB-C hub",
+    "power": "power-path board",
+    "capacitor": "bulk capacitor",
 }
 
 

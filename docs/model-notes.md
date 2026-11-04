@@ -179,10 +179,10 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
   and the servo holds only what the spring's straight line misses. One spring holds the head in its Skin and bare
   (#830): wound halfway between the two heads' springs, it misses each by half the Skin's turn, which the servo holds
-  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838; since #858 the neck
+  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838: since #858 the neck
   mount's hollow post (20 mm) rises from the Torso's floor through its lid, the pan servo on it over the lid and the
-  pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there,
-  the pack's Y lead up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture
+  pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there;
+  the neck cable runs up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture
   Cansin gave (a plaque in front, a border round the lid's panel, as Bones). Since #642 it moves in
   MuJoCo (its horns named pan, tilt and jaw horn, so the sim report's neck figures, tip-over and the Core's servo
   names apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
@@ -191,14 +191,14 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The head variants (#686, model/base.py, the parts in model/printed/base.py, GLOSSARY), in place of #642's two Base
   candidates: one document each (geometry.NEXT), all on one Torso (#685: the
   shirt is the base, a compact open box whose floor is the foot, the neck mount's post rising from it, the pack
-  lying across behind, the switch board lying flat beside the pack's lead end (#828) and, since #858, the spare pack
-  in front of the neck on the kit's charger dongle, an opening in the -x wall where they swap; its footprint in the
-  sim report's tip_over, footprint_mm). Back (#828 stood a Core on edge in each cheek, #838 moved them down into the
-  Torso, #858 up onto the cranium tray in the realistic skull's cranium, each USB-C socket's opening straight back
-  through the skull; #708 stood the boards upright over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
+  lying across behind, the switch board lying flat beside the pack's lead end (#828) and, since #858, the power-path
+  board flat in front of the neck and nothing else; its footprint in the sim report's tip_over, footprint_mm).
+  Back (#828 stood a Core on edge in each cheek, #838 moved them down into the Torso, #858 up into the realistic
+  skull's cranium, lying flat on their Shields on the cranium tray, the hub low at the back of the skull base, its
+  port the head's; #708 stood the boards upright over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
   (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
-  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso
-  have room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
+  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso have
+  room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
   (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
   against `gimbal.HEAD_MM` (140 x 140 x 150 since #838, so the realistic skull keeps its length) and how far up
   it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.55: the realistic skull's orbits, a hair over half since #838), both hard gates in each look
