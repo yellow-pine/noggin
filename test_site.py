@@ -168,10 +168,10 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap, cansin L pupil plug, cansin R pupil plug, cansin"
         " teeth | PLA Basic Jade White (10100) | #FFFFFF |",
         # Morty's Shells (#665), Cansin's (#813)
-        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow | PLA Basic Cocoa Brown (10802) |"
-        " #6F5034 |",
-        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back | PLA Matte"
-        " Scarlet Red (11200) | #DE4343 |",
+        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow | PLA Basic Cocoa Brown"
+        " (10802) | #6F5034 |",
+        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back | PLA"
+        " Matte Scarlet Red (11200) | #DE4343 |",
         "| Skin | cansin | accessories | cansin sunglasses | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row

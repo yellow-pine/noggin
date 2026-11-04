@@ -9,7 +9,8 @@ next_panels: the next Mech's panels' grid, each of its Stages in every Preset (m
 geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a viewer per motion (#839), and
 next_parts: a
 picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' three there and
-next_exploded: each Stage with every part apart (#811); stand_in: the line under the pictures of a Preset whose Skin stands in (#819).
+next_exploded: each Stage with every part apart (#811); stand_in: the line under the pictures of a Preset
+whose Skin stands in (#819).
 front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeleton shapes.
