@@ -1,4 +1,4 @@
-"""Seam: the next Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
+"""Seam: the Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
 gimbal: the Torso holds the neck mount, both packs, the switch board and the charger dongle inside its walls, the pan
 servo over them (#858); its boards, the cranium tray's and the tray overlap nothing."""
 
@@ -19,9 +19,9 @@ from model.printed.base import WALL
 from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
-PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next spare pack", "next switch", "next charger", "next test stand")
-BASE += ("next cranium tray", "next Core", "next Shield")  # the cranium's (#858)
+PLUGGED = {frozenset((f"Core {n}:1", f"Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
+BASE = ("torso", "pack", "spare pack", "switch", "charger", "test stand")
+BASE += ("cranium tray", "Core", "Shield")  # the cranium's (#858)
 
 
 @pytest.mark.model
@@ -30,25 +30,25 @@ def test_the_torso_holds_the_neck_mount_both_packs_and_the_charger_dongle_inside
     and the dongle lying on its floor, the -x wall open over the dongle and the switch board where the packs' plugs swap;
     the Torso's bottom is the foot, so nothing hangs below it."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
-    parts = stages.next_neck().parts | stages.next_base().parts
+    parts = stages.neck_sub().parts | stages.base_sub().parts
     torso = printed_base.torso().val()
     foot = torso.BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     (oy0, oy1), (oz0, oz1) = base.OPENING
     assert not torso.isInside(cq.Vector(x0 + WALL / 2, (oy0 + oy1) / 2, nk.MOUNT_Z[0] + (oz0 + oz1) / 2))
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
-        "next neck mount:1",
-        "next pan servo:1",
-        "next pack:1",
-        "next switch board:1",
-        "next spare pack:1",
-        "next charger dongle:1",
+        "neck mount:1",
+        "pan servo:1",
+        "pack:1",
+        "switch board:1",
+        "spare pack:1",
+        "charger dongle:1",
     ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = ("next pack:1", "next spare pack:1", "next neck mount:1", "next charger dongle:1")
+    lying = ("pack:1", "spare pack:1", "neck mount:1", "charger dongle:1")
     assert len({round(_shape(parts[n]).BoundingBox().zmin, 6) for n in lying}) == 1  # the floor the neck mount's on
-    assert _shape(parts["next pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
+    assert _shape(parts["pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
 
 
 @pytest.fixture(params=g.SIMULATED)  # the whole Mech and Stage 1's test stand (#720), mechanical (#809)
@@ -68,7 +68,7 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
     assert _overlaps(placed, pairs) == []
 
 
-@pytest.fixture(params=sorted(g.NEXT))
+@pytest.fixture(params=sorted(g.MECH))
 def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
@@ -86,7 +86,7 @@ def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(he
     base.shelled), fit gimbal.HEAD_MM (W x D x H), the eye centres at most base.EYES_UP of the way up them (the sim
     report reads the same off the MJCF: model/candidates.py)."""
     doc, b = head
-    eyes = np.array(stages.DOCS[doc]["next-eyes"][0])
+    eyes = np.array(stages.DOCS[doc]["eyes"][0])
     lo, hi = base.shelled(np.array((b.xmin, b.ymin, b.zmin)) - eyes, np.array((b.xmax, b.ymax, b.zmax)) - eyes)
     assert all(s <= h for s, h in zip(hi - lo, gm.HEAD_MM))
     assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP

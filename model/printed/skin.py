@@ -104,7 +104,7 @@ def lid_cover(side, lid):
     else:
         out = band(sk.COVER, sk.LOWER_COVER, sk.LOWER_X)
     out = out if side == "L" else out.mirror("YZ")
-    return _finish(f"next morty {side} {lid} lid cover", out)
+    return _finish(f"morty {side} {lid} lid cover", out)
 
 
 def _star(r_out, r_in, n=7):
@@ -137,7 +137,7 @@ def cap(side):
     Character's largest, #630), its back GAP off the core's seat face, its pupil's jagged seat cut in."""
     r, back = gm.CAP_R, gm.CAP_R * math.cos(math.radians(gm.CAP_HALF)) + sk.GAP
     out = ball(r).intersect(box((-r, r), (-r - 1, -back), (-r, r))).cut(_pupil_prism(side))
-    return _finish(f"next {side} eyeball cap", out)
+    return _finish(f"{side} eyeball cap", out)
 
 
 def pupil(side):
@@ -257,34 +257,34 @@ def face():
         out = out.union(_ear(s).cut(_head(sk.WALL)))
     y0 = sk.HEAD_Y[0]
     out = out.cut(box((-24, 24), (y0 - 11, y0 + 9), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
-    for seat in (s for s in sk.SEATS if s.carrier == "next morty face"):  # each a pad on a web from the forehead
+    for seat in (s for s in sk.SEATS if s.carrier == "morty face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
         out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0)))
-    return _finish("next morty face", out, _head(0.0))
+    return _finish("morty face", out, _head(0.0))
 
 
 def hair():
     """Morty's hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto
     the gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples."""
     out = _skull(-sk.HAIR).intersect(_hair(-0.1))
-    for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
+    for seat in (s for s in sk.SEATS if s.shell == "morty hair" and s.carrier == "gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
         out = out.union(web.intersect(_head(0.0)))
-    return _finish("next morty hair", out, _head(0.0))
+    return _finish("morty hair", out, _head(0.0))
 
 
 def mouth_cover():
     """The mouth cover (face), his lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
     inside the face, and the chin under the jaw in the face's mouth opening, rounded as the head is, which the jaw
     swings down; up off its Seat once the face is off."""
-    (seat,) = (s for s in sk.SEATS if s.shell == "next morty mouth cover")
+    (seat,) = (s for s in sk.SEATS if s.shell == "morty mouth cover")
     _, y, z = seat.at
     bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
     plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
     wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
     chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
-    return _finish("next morty mouth cover", plate.union(wall).union(chin))
+    return _finish("morty mouth cover", plate.union(wall).union(chin))
 
 
 SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
@@ -298,7 +298,7 @@ def shirt(half):
     neck; each half off its Torso wall's Seats, the front forward, the back backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     sides, shoulders, neck = SHIRT_ROUND
-    front = next(s for s in sk.SEATS if s.shell == "next morty shirt front")
+    front = next(s for s in sk.SEATS if s.shell == "morty shirt front")
     off = y0 - front.at[1] + sk.GAP + front.boss  # the Seats' faces out of the walls, their gap and the bosses
     inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5)).edges("|Z").fillet(sides - sk.WALL)
     outer = box(
@@ -316,4 +316,4 @@ def shirt(half):
     collar = collar.edges("|Z").fillet(neck + sk.WALL).edges(">Z").fillet(sk.WALL / 2)
     out = outer.cut(inner).union(collar).cut(hole)
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)
-    return _finish(f"next morty shirt {half}", out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30))))
+    return _finish(f"morty shirt {half}", out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30))))

@@ -1,4 +1,4 @@
-"""Seam: model/printed/skull.py, the realistic skull's bones (#838): placed on the next Mech's eyes and neck, held by the
+"""Seam: model/printed/skull.py, the realistic skull's bones (#838): placed on the Mech's eyes and neck, held by the
 head's box (base.DOME), each source under its own licence beside it, and carved into one piece each (just ours)."""
 
 import os
@@ -21,7 +21,7 @@ def placed():
 def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits(placed):
     """Chin to top HEIGHT_SPARE under the head gate's height; each eye's centre inside the cranium's box, its cap's
     front SUNK proud of the orbit's rim."""
-    cranium, mandible = placed["next skull"], placed["next mandible"]
+    cranium, mandible = placed["skull"], placed["mandible"]
     assert cranium.vertices[:, 2].max() - mandible.vertices[:, 2].min() == pytest.approx(
         gm.HEAD_MM[2] - skull.HEIGHT_SPARE
     )
@@ -41,7 +41,7 @@ def test_the_heads_box_is_the_skulls(placed):
 
 def test_the_vertebrae_ring_the_post_under_the_heads_lugs(placed):
     """The atlas's canal round the pan axis (the post), its top under the head's tilt lugs, the axis under it."""
-    atlas, axis = placed["next atlas"], placed["next axis"]
+    atlas, axis = placed["atlas"], placed["axis"]
     canal = skull._canal(atlas)
     assert canal == pytest.approx((0.0, stages.neck.AXIS[0]), abs=0.5)
     assert atlas.vertices[:, 2].max() < stages.neck.AXIS[1] - stages.neck.BOSS_R

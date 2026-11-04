@@ -3,7 +3,7 @@
 // bar of controls under it (#883): the page's buttons (src/pages/viewer.astro: a Stage switch, #720), the Tour and a
 // chip per gesture, Explode's levels, the mix; under it, a line on what plays and the Claude Code event that plays it.
 // Any page, a doc's Markdown too, drops a small one in with
-//   <div class="noggin-viewer" data-stage="next-stage1" data-link="gesture=wink&explode=1"></div>
+//   <div class="noggin-viewer" data-stage="stage1" data-link="gesture=wink&explode=1"></div>
 // and the footer (src/components/Footer.astro) loads this module there, which Vite bundles with three.js from npm. A
 // page may hold several (#839): one WebGL renderer draws them all, each into its own canvas, each GLB is loaded once,
 // and a viewer loads its Stage only once scrolled into view, a <figure> inside its still until then; of those on

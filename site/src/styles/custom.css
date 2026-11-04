@@ -212,7 +212,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 figure:has(img) { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* the next Mech's parts (macros.py figures): a picture each over its name, its motions (a viewer each, #839) and the
+/* the Mech's parts (macros.py figures): a picture each over its name, its motions (a viewer each, #839) and the
    front doors' own wider, the home's three (macros.py front, #739) in three columns */
 .noggin-parts, .noggin-motions, .noggin-views, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
 :is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }

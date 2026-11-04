@@ -1,4 +1,4 @@
-"""The next Mech's Skins (#665, GLOSSARY Skin, Seat): where each Shell sits on what carries it, and how hard its
+"""The Mech's Skins (#665, GLOSSARY Skin, Seat): where each Shell sits on what carries it, and how hard its
 magnets hold it there. One source: model/printed/skin.py draws the Shells and cuts the Seats from these numbers,
 model/stages.py places the Shells on their carriers, model/mujoco_report.py reads each Shell's peak acceleration and
 model/test_report.py holds it to hold_n().
@@ -66,7 +66,7 @@ def _lid_seats(side, polarity):
         ("lower", gm.LOWER_R[1], gm.LOWER_REST - gm.LOWER_SPAN / 2),
     ):
         at, n = _on_lid(r, deg, side)
-        out.append(Seat(f"next morty {side} {lid} lid cover", f"next {side} {lid} lid", at, n, 0.0, 0.0, polarity))
+        out.append(Seat(f"morty {side} {lid} lid cover", f"{side} {lid} lid", at, n, 0.0, 0.0, polarity))
     return out
 
 
@@ -103,8 +103,8 @@ SEATS = [
     # the eyeball caps on the cores' seat faces, along the gaze
     *[
         Seat(
-            f"next {s} eyeball cap",
-            "next eyeball core",
+            f"{s} eyeball cap",
+            "eyeball core",
             (0.0, -gm.CAP_R * math.cos(math.radians(gm.CAP_HALF)), 0.0),
             (0.0, -1.0, 0.0),
             0.0,
@@ -119,8 +119,8 @@ SEATS = [
     # held by the hair
     *[
         Seat(
-            "next morty face",
-            "next gimbal frame",
+            "morty face",
+            "gimbal frame",
             (x, _PLATE[0], _PLATE[1]),
             (0.0, -1.0, 0.0),
             0.0,
@@ -132,18 +132,18 @@ SEATS = [
     # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
     # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
     *[
-        Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
+        Seat("morty hair", "gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
         for x in (-_BACK[0], _BACK[0])
     ],
     *[
-        Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
+        Seat("morty hair", "morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
         for x in (-40.0, 40.0)
     ],
     # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
     # (inside the jaw's U), flush with its front: under the chin it would make the head taller (#708's gate)
     Seat(
-        "next morty mouth cover",
-        "next jaw",
+        "morty mouth cover",
+        "jaw",
         (0.0, nk.CHIN_Y + PAD_R, nk.JAW_ARM_Z[1]),
         (0.0, 0.0, 1.0),
         nk.JAW_ARM_Z[1] - nk.JAW_ARM_Z[0],
@@ -152,23 +152,17 @@ SEATS = [
     ),
     # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
     # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
-    *[
-        Seat("next morty shirt front", "next torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, 4.0, 1)
-        for x in (-24.0, 24.0)
-    ],
-    *[
-        Seat("next morty shirt back", "next torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, 4.0, 1)
-        for x in (-24.0, 24.0)
-    ],
+    *[Seat("morty shirt front", "torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, 4.0, 1) for x in (-24.0, 24.0)],
+    *[Seat("morty shirt back", "torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, 4.0, 1) for x in (-24.0, 24.0)],
 ]
-GLUED = {"next morty L pupil": (0.0, -1.0, 0.0), "next morty R pupil": (0.0, -1.0, 0.0)}  # keyed in the caps' seats
+GLUED = {"morty L pupil": (0.0, -1.0, 0.0), "morty R pupil": (0.0, -1.0, 0.0)}  # keyed in the caps' seats
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
 DIRECTIONS = {s.shell: s.normal for s in SEATS} | GLUED  # each Shell's Assembly direction, in its carrier's frame
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
 # their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
-DRAWN = [s for s in SHELLS if s.startswith("next morty ")]
+DRAWN = [s for s in SHELLS if s.startswith("morty ")]
 
 
 @functools.cache

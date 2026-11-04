@@ -18,19 +18,19 @@ from model import stages
 from model.printed import PARTS, gimbal, skin
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
-DOC = next(d for d in g.NEXT if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
-REAL = next(d for d in g.NEXT if g.SKULL_SUB in g.NEXT[d])  # the realistic one: the skull's bones on it
+DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
+REAL = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])  # the realistic one: the skull's bones on it
 
 
 @pytest.fixture(scope="module")
 def head():
     """{face, hair, mouth cover: its shape}, built once (CI times a test, not its fixtures: #808)."""
-    return {s: PARTS[f"next morty {s}"]().val() for s in ("face", "hair", "mouth cover")}
+    return {s: PARTS[f"morty {s}"]().val() for s in ("face", "hair", "mouth cover")}
 
 
 @pytest.mark.parametrize("stem", sk.SHELLS)
 def test_a_shell_is_one_valid_solid(stem, head):
-    shape = head.get(stem.removeprefix("next morty ")) or PARTS[stem]().val()
+    shape = head.get(stem.removeprefix("morty ")) or PARTS[stem]().val()
     assert shape.isValid() and len(shape.Solids()) == 1
 
 
@@ -38,7 +38,7 @@ def test_a_head_shell_built_again_is_the_same(head):
     """#838: every Shell shares the head's shapes (skin._head), and on Linux's OCCT a second build over shapes an
     earlier one's booleans used came out broken; each build starts from its own copy."""
     for s, shape in head.items():
-        again = PARTS[f"next morty {s}"]().val()
+        again = PARTS[f"morty {s}"]().val()
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
@@ -67,7 +67,7 @@ def test_mortys_face_and_hair_meet_without_overlapping(head):
 def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     """The pupil fills its jagged seat to PUPIL_FIT a side, which keys it, and the seat turns TOE_IN toward the other
     eye (#630)."""
-    pupil, cap = PARTS[f"next morty {side} pupil"]().val(), PARTS[f"next {side} eyeball cap"]().val()
+    pupil, cap = PARTS[f"morty {side} pupil"]().val(), PARTS[f"{side} eyeball cap"]().val()
     assert pupil.intersect(cap).Volume() < 1e-6
     assert pupil.Center().x == pytest.approx(inward * gm.CAP_R * math.sin(math.radians(gm.TOE_IN)), abs=0.1)
     seat = cq.Workplane().add(cap).union(cq.Workplane().add(pupil)).val()
@@ -102,7 +102,7 @@ def test_a_shell_meets_what_carries_it_only_where_its_balls_touch(pair):
 
 
 SPACING = 0.4  # mm between the points sampled on each surface
-SEAMS = {frozenset(("next morty shirt front", "next morty shirt back"))}  # Shells meeting 0.2 mm apart by design
+SEAMS = {frozenset(("morty shirt front", "morty shirt back"))}  # Shells meeting 0.2 mm apart by design
 # shortcut: sampled surfaces read a distance up to SPACING long; OCCT's exact distance took minutes a pose (#665)
 
 

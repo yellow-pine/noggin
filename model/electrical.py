@@ -37,7 +37,7 @@ servo = _load("servo")
 # lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
 # board is taken as 100 [I] (the battery box lead's length is not published).
 SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
-# The next Mech (#858): the Y lead's one pair runs on from the switch board up the post to the cranium, where it splits
+# The Mech (#858): the Y lead's one pair runs on from the switch board up the post to the cranium, where it splits
 # to the Shields: 250 mm, the post run docs/research/2026-11-03-usb-c-power.md 7 assumes [I], of the lead's 26 AWG.
 POST_MM = 250
 
@@ -113,7 +113,7 @@ def operating_point(netlist):
 
 
 def mech(soc):
-    """The next Mech's wiring at its worst (#858), on a pack at a state of charge: pack, its lead, the switch board, the
+    """The Mech's wiring at its worst (#858), on a pack at a state of charge: pack, its lead, the switch board, the
     Y lead's pair up the post and its branch from there to each shield; per shield its standby, the 5 V servo rail and
     every servo at stall on its lead, and the Core's 3.3 V in a transmit burst. A regulator is a behavioural source in
     series, dropping what is above its output or at least its dropout."""

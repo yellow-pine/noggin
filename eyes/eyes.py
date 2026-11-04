@@ -258,7 +258,7 @@ class Eyes:
         gaze, both minimum jerk, and the eyes counter-rotate (gaze - head) as it arrives; the eyes the slower the more
         of the shift the head carries, down to a third ([PE13]). A write a FRAME of the pan and both eyes.
         shortcut: each Core times this from its own eye state, which thinking's tick-driven drift can part, shifting
-        the neck Core's head by up to a fixation's timing; sync the Cores per line once the next Mech is built."""
+        the neck Core's head by up to a fixation's timing; sync the Cores per line once the Mech is built."""
         g0, h0 = self._gaze(), self.head
         d, dh = gaze - g0, self.cal["head_share"] * (gaze - EYE_CENTER) - h0
         share = min(1.0, abs(dh / d)) if d else 1.0

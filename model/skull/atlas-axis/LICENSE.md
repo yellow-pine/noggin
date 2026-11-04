@@ -11,4 +11,4 @@ Changes from the original (#838, 2026-11-03):
 - `atlas.stl`, `axis.stl`: the original's two vertebrae, decimated to 20,000 and 30,000 faces in Blender.
 
 The model builds from these, and every adaptation it writes is shared under the same licence
-(`model/printed/skull.py`): scaled to the next Mech's skull, set on its neck and carved for its mechanism.
+(`model/printed/skull.py`): scaled to the Mech's skull, set on its neck and carved for its mechanism.

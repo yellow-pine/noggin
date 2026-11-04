@@ -5,10 +5,10 @@ distance between the convex pieces, within CLEARANCE_MM), the four-bars' residua
 angles (model/gates.py), the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
 the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
-gesture, Rest and the next hero: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
+gesture, Rest and the hero: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
 inverse dynamics reads each servo's torque along it, held against gravity and turning its load, beside its hold at
 Rest; the centre of mass, shifted by its acceleration, against the footprint (and the footprint's size); and, for
-ranking the next Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
+ranking the Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
 model/build/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the MJCF model/build/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 
@@ -83,7 +83,7 @@ def _plate(model, data):
     """The base's (the Torso's) foot: its drawn mesh's vertices in MuJoCo's world (mm), where they are, within FOOT_MM
     of its lowest: its outline is the footprint, what stands on the table (the Seats' pads on its walls stand off it,
     #665)."""
-    v = vertices(model, data, model.body("next torso:1").id)
+    v = vertices(model, data, model.body("torso:1").id)
     return v[v[:, 2] <= v[:, 2].min() + FOOT_MM]
 
 
@@ -181,7 +181,7 @@ def _motions(doc, model, plate, names):
 
 
 def vibration(doc, model, data, slow):
-    """The neck's figures for ranking the next Mech's head variants (#51), at data's pose: the head's mass times its centre
+    """The neck's figures for ranking the Mech's head variants (#51), at data's pose: the head's mass times its centre
     of mass's height above the tilt axis, and per neck servo the inertia its output joint turns, its gain (the output's
     span over the servo's, from the slow sweep's ends) and the servo loop's own mode through it (the servo's kp on its
     rotor plus the load referred to its shaft). Not the lowest mode: the printed parts' compliance and the gears' backlash,

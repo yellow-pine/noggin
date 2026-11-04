@@ -31,8 +31,8 @@ that is only planned, so every page says what the code does today and marks what
   so nothing in the repo, the Site, the README or a release carries the designer's geometry or dimensions; the Mech is
   designed clean-room from its requirements. Others' meshes join only under their own licences (ADR 0023).
 
-ADR 0019's publishing rules go with today's Mech: the `next-` names, the guard that published only `next-` files, and
-the rule that today's Mech is shown nowhere. What the Site publishes is the Mech's documents, as the Model makes them.
+ADR 0019's publishing rules go: the guard that published only some of the Model's files, and the rule that the
+designer's parts are shown nowhere. What the Site publishes is the Mech's documents, as the Model makes them.
 
 ## Considered options
 

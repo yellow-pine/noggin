@@ -5,7 +5,7 @@ The lids and eyes are calibrated per Mech in `eyes/calibration.json`, live with 
 
 ## Servo calibration lessons (2026-10-31)
 
-Learnt on today's Mech, whose servos the Mech keeps.
+Learnt on the 9 g servos the Mech uses.
 
 - The 9 g servos have a slip clutch. Driving a lid into its
   mechanical stop makes the clutch slip and the calibration drifts, which looks

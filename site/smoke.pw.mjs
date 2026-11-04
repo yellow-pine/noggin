@@ -1,6 +1,6 @@
 // The built site in Chrome (#513): the diagrams draw, search finds a page, the header names the newest release and an
 // old Docs version's URL lands on the docs (docs/adr/0021), the wordmark's eye looks at the pointer (#603), and nothing
-// breaks the CSP, logs an error or asks another host than api.github.com (the header's release, stars and forks). The viewer loads the next Mech (#649), the only
+// breaks the CSP, logs an error or asks another host than api.github.com (the header's release, stars and forks). The viewer loads the Mech (#649), the only
 // one the site serves (docs/adr/0019), and plays its gestures (#664). The header's Theme bar (#806, #819) shows each page
 // in the Preset picked, kept in the address and across pages, the viewer's Shapes and Palettes too, and its own mix,
 // the bare anatomical Skeleton while none is picked; a viewer in a page has no control (#883).
@@ -29,9 +29,9 @@ test.afterEach(async ({ baseURL }) => {
   expect(elsewhere).toEqual([]);
 });
 
-test('the viewer loads the next Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
-  // CI always has the GLBs; a local build has them once just web next ran before just site
-  test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+test('the viewer loads the Mech, plays it, explodes it, see-through, and the wheel zooms it', async ({ page }) => {
+  // CI always has the GLBs; a local build has them once just web all ran before just site
+  test.skip(!existsSync(new URL('dist/viewer/stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
   test.slow(); // three GLB loads in CI's software GL, each allowed 45 s: 54 s of the default 60 before the mix (#819)
   await page.goto('viewer/');
   const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Shapes the bar's Preset's (#819)
@@ -41,7 +41,7 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   // no Preset picked: its own mix, Stage 3's bare anatomical Skeleton, a Skin switched on Morty's (#883)
   const own = { 'Skeleton shape': 'realistic', 'Skeleton palette': 'anatomical', 'Skin shape': 'none', 'Skin palette': 'morty' };
   for (const [axis, value] of Object.entries(own)) await expect(mix.getByRole('combobox', { name: axis })).toHaveValue(value);
-  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['next-mech-back-bare.glb']);
+  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['mech-back-bare.glb']);
   await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
   await expect(page).toHaveURL(/\/viewer\/\?stage=1$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
@@ -71,13 +71,13 @@ test("the Theme bar shows the page in the Preset picked, by keyboard too, kept i
   await expect(page).toHaveURL(/\/parts\/$/); // none picked: the default's, the address untouched (#883)
   const item = (p) => page.locator(`li[data-presets="${p}"]`);
   const bar = page.locator('header').getByRole('combobox', { name: 'Preset' });
-  await expect(item('cansins-build')).toBeVisible();
+  await expect(item('default-build')).toBeVisible();
   await expect(item('morty')).toBeHidden();
   await bar.focus();
   await page.keyboard.press('m'); // a closed select picks the option its letter starts
   await expect(page).toHaveURL(/\?preset=morty$/);
   await expect(item('morty')).toBeVisible();
-  await expect(item('cansins-build')).toBeHidden();
+  await expect(item('default-build')).toBeHidden();
   await page.goto('docs/build/stage-1/'); // another page, no address: what was picked last
   await expect(bar).toHaveValue('morty');
   await page.goto('docs/build/parts/?preset=bart'); // the address first

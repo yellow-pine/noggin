@@ -2,9 +2,9 @@
 
 <p align="center">An animatronic Mech on the desk that reacts to Claude Code.</p>
 
-<div align="center"><table><tr><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=1"><img src="https://yellowpine.com/noggin/images/next-stage1-front.webp" height="200" alt="Stage 1, from the front"></a><br><sub>Stage 1, from the front</sub></td><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=3"><img src="https://yellowpine.com/noggin/images/next-mech-back-bare-isometric.webp" height="200" alt="Stage 3"></a><br><sub>Stage 3</sub></td><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=3&amp;explode=1"><img src="https://yellowpine.com/noggin/images/next-mech-back-side-exploded.webp" height="200" alt="Stage 3, exploded"></a><br><sub>Stage 3, exploded</sub></td></tr></table></div>
+<div align="center"><table><tr><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=1"><img src="https://yellowpine.com/noggin/images/stage1-front.webp" height="200" alt="Stage 1, from the front"></a><br><sub>Stage 1, from the front</sub></td><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=3"><img src="https://yellowpine.com/noggin/images/mech-back-bare-isometric.webp" height="200" alt="Stage 3"></a><br><sub>Stage 3</sub></td><td align="center"><a href="https://yellowpine.com/noggin/viewer/?stage=3&amp;explode=1"><img src="https://yellowpine.com/noggin/images/mech-back-side-exploded.webp" height="200" alt="Stage 3, exploded"></a><br><sub>Stage 3, exploded</sub></td></tr></table></div>
 
-<p align="center"><sub>The next Mech's bare mechanism, in progress</sub></p>
+<p align="center"><sub>The Mech's bare mechanism, in progress</sub></p>
 
 <p align="center"><a href="https://yellowpine.com/noggin/"><b>Docs</b></a>&emsp;&emsp;&emsp;<a href="https://yellowpine.com/noggin/docs/build/parts/"><b>Build guide</b></a></p>
 

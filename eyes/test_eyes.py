@@ -240,8 +240,8 @@ def gaze_log(e, move):
 
 
 def test_todays_calibration_leaves_the_neck_alone(eyes):
-    """#688: head_share 0, as today's Mech is calibrated: the eyes carry every gaze shift and the pan is never written,
-    so today's neck Core stays as it was."""
+    """#688: head_share 0, as eyes/calibration.json has it: the eyes carry every gaze shift and the pan is never
+    written, so the neck Core stays as it was."""
     assert mod.DEFAULT_CAL["head_share"] == 0
     for line in ("rest", "eureka 3", "thinking", "attention 2", "rest"):
         eyes.handle_line(line)

@@ -1,6 +1,6 @@
-# Electrical engineering for the next Mech (#51)
+# Electrical engineering for the Mech (#51)
 
-Researched 2026-11-02. Purpose: the one-pack power budget, brownout, joint wiring, Wi-Fi in the cranium and a pack-voltage reading for the next Mech, inside #51's fixed parts.
+Researched 2026-11-02. Purpose: the one-pack power budget, brownout, joint wiring, Wi-Fi in the cranium and a pack-voltage reading for the Mech, inside #51's fixed parts.
 
 Builds on `2026-10-31-electrical.md` (part figures), `2026-10-31-radio.md` and `model/electrical.py` (DC worst case: 5.34 A from the pack with every servo at stall; servo rail 3.65 V at a 5.8 V pack). None of that is repeated here.
 

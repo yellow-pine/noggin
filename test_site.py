@@ -1,6 +1,6 @@
 """The site's sources (docs/adr/0009, 0013) as GitHub shows them, and the numbers the code gives the site
 (macros.py): the built site itself is checked in site/ (site.test.mjs, smoke.pw.mjs). The pictures are none in git
-(#226); the site shows the next Mech's (#640, #649, docs/adr/0019)."""
+(#226); the site shows the Mech's (#640, #649, docs/adr/0019)."""
 
 import os
 import re
@@ -81,7 +81,7 @@ def test_the_readme_is_for_contributors():
 def test_the_wiring_table_is_built_from_the_code():
     """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
     calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
-    centred) and the next Mech's neck's limits and its 90 neutral (model/stages.py next_neck; the neck Core has no
+    centred) and the Mech's neck's limits and its 90 neutral (model/stages.py neck_sub; the neck Core has no
     program yet)."""
     import macros  # here, not at the top: it imports the model
 
@@ -99,12 +99,12 @@ def test_the_wiring_table_is_built_from_the_code():
 
 # #806, #819: a printed part's filament in each Preset, shown for the Presets that print it alone
 WHITES = (
-    '<span data-presets="cansins-build">PLA Pure Pure White (17100)</span>'
+    '<span data-presets="default-build">PLA Pure Pure White (17100)</span>'
     '<span data-presets="morty">PLA Basic Jade White (10100)</span>'
     '<span data-presets="bart">PLA Matte Ivory White (11100)</span>'
 )
 BONES = (
-    '<span data-presets="cansins-build">PETG Basic Black (30105)</span>'
+    '<span data-presets="default-build">PETG Basic Black (30105)</span>'
     '<span data-presets="morty bart">PETG Basic Dark Beige (30403)</span>'
 )
 
@@ -116,9 +116,9 @@ def test_the_buy_list_names_the_picked_presets_filaments_from_the_model():
 
     assert "<!--{{ filaments }}-->" in (ROOT / "docs" / "build" / "parts.md").read_text()
     items = re.findall(r'<li data-presets="([\w-]+)">([^<]+)</li>', macros.filaments())
-    assert [p for p, _ in items] == ["cansins-build", "morty", "bart"]
+    assert [p for p, _ in items] == ["default-build", "morty", "bart"]
     assert items[0][1] == (
-        "Cansin's build: Bones, Joints, Linkages, Mounts PETG Basic Black (30105); face PLA Pure Milky Pink (17200);"
+        "Default build: Bones, Joints, Linkages, Mounts PETG Basic Black (30105); face PLA Pure Milky Pink (17200);"
         " hair, pupils PLA Pure Absolute Black (17101); clothes, eye whites PLA Pure Pure White (17100); accessories"
         " PLA Pure Apricot (17300)"
     )
@@ -129,7 +129,7 @@ def test_the_buy_list_names_the_picked_presets_filaments_from_the_model():
 
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
-    the next Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
+    the Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
     Core, then the Torso, the neck and the boards with the neck Core in the Torso (the stand comes off, #838), then the
     jaw."""
     import macros
@@ -144,7 +144,7 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
         f"| test stand | 1 | Bones: {BONES} |",
     ]:
         assert row in parts["1"], row
-    mounts = '<span data-presets="cansins-build morty bart">PETG Basic Black (30105)</span>'  # the pedestal (#838)
+    mounts = '<span data-presets="default-build morty bart">PETG Basic Black (30105)</span>'  # the pedestal (#838)
     assert "| servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Mounts: {mounts} |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
     assert f"| jaw | 1 | Bones: {BONES} |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
@@ -168,7 +168,7 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
         "| Skin | morty | hair | morty hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",  # Morty's Shells (#665)
         "| Skin | bart | clothes | morty shirt front, morty shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",
-        "| Skin | cansin | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
+        "| Skin | default | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
     assert (
@@ -281,7 +281,7 @@ def test_every_number_github_shows_agrees_with_the_code():
 
 def test_nothing_public_shows_todays_mech():
     """#640, #649 (docs/adr/0019): today's printed parts derive from the designer's models, so neither the README nor a
-    page of the site shows a picture of them: a picture it names is one the site publishes (the next Mech's), it draws
+    page of the site shows a picture of them: a picture it names is one the site publishes (the Mech's), it draws
     no viewer by hand (the viewer's page and macros.py's draw the published GLBs alone: site.test.mjs); the site's icon
     is no render."""
     from model.render import pictures
@@ -300,29 +300,29 @@ def test_nothing_public_shows_todays_mech():
     assert [f for f, t in texts.items() if re.search(r"\{\{ panels \}\}|noggin-viewer|favicon\.png", t)] == []
 
 
-STAGE_DOCS = ["next-stage1", "next-stage2", "next-mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
+STAGE_DOCS = ["stage1", "stage2", "mech-back"]  # #720: Stage 3 the head variant's (Back since #712)
 SHAPES = ["", "-mechanical"]  # each document in its Skeleton shape realistic (as Bones) and mechanical (#704, #805)
-PRESETS = ["cansins-build", "morty", "bart"]  # #819: the pictures per Preset, the default's unsuffixed
+PRESETS = ["default-build", "morty", "bart"]  # #819: the pictures per Preset, the default's unsuffixed
 LOOKS = ["", "-morty", "-bart"]
 
 
 def test_every_document_has_a_side_and_an_isometric_panel():
-    """Cansin (#470): the panels come from the next Mech's documents in the code, each Stage in each Preset (#720,
+    """Cansin (#470): the panels come from the Mech's documents in the code, each Stage in each Preset (#720,
     #819), from the side and isometric, one WebP each with its lines in one grey for both themes (#489)."""
     from model.render import pictures
 
     panels = [f"{d}{look}-{v}.webp" for look in LOOKS for d in STAGE_DOCS for v in ("side", "isometric")]
     assert [pictures.picture(*p) for p in pictures.PANELS] == panels
-    assert pictures.DRAWN["next-stage1"] == ("next-stage1-mechanical", "Cansin's build")  # the default
-    assert pictures.DRAWN["next-mech-back-bart"] == ("next-mech-back", "Bart")
+    assert pictures.DRAWN["stage1"] == ("stage1-mechanical", "Default build")  # the default
+    assert pictures.DRAWN["mech-back-bart"] == ("mech-back", "Bart")
 
 
-def test_the_next_mech_has_its_own_panels():
-    """#629, #720: Pictures shows each Stage of the next Mech in every Preset, framed among themselves, each Stage's
+def test_the_mech_has_its_own_panels():
+    """#629, #720: Pictures shows each Stage of the Mech in every Preset, framed among themselves, each Stage's
     name and pictures shown in its own Preset alone (#806, #819: the header's Theme bar picks it)."""
     import macros
 
-    grid = macros.next_panels()
+    grid = macros.stage_panels()
     names = [(s, f"Stage {n}") for s in PRESETS for n in (1, 2, 3)]
     assert re.findall(r'<strong data-presets="([\w-]+)">([^<]+)</strong>', grid) == names
     views = re.findall(r'<a href="[^"]+" data-presets="([\w-]+)"><img src="[^"]+/([^/"]+)"', grid)
@@ -338,7 +338,7 @@ def test_pictures_shows_each_stage_at_explodes_parts_level():
     """#811: Pictures has each Stage with every part apart under its name, in each Preset, shown in it alone."""
     import macros
 
-    grid = macros.next_exploded()
+    grid = macros.exploded_views()
     names = [f"Stage {n}, its parts apart" for n in (1, 2, 3)] * 3
     assert re.findall(r"<figcaption>([^<]+)</figcaption>", grid) == names
     cells = re.findall(r'<figure data-presets="([\w-]+)"><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
@@ -347,7 +347,7 @@ def test_pictures_shows_each_stage_at_explodes_parts_level():
         for preset, look in zip(PRESETS, LOOKS, strict=True)
         for d in STAGE_DOCS
     ]
-    assert "<!--{{ next_exploded }}-->" in (ROOT / "docs" / "pictures.md").read_text()
+    assert "<!--{{ exploded_views }}-->" in (ROOT / "docs" / "pictures.md").read_text()
 
 
 def test_each_part_picture_shows_for_the_presets_in_its_shape():
@@ -355,19 +355,19 @@ def test_each_part_picture_shows_for_the_presets_in_its_shape():
     part's and the hardware's for every Preset."""
     import macros
 
-    grid = macros.next_parts()
+    grid = macros.part_pictures()
     marks = dict(
         (f, m) for m, f in re.findall(r'<figure(?: data-presets="([\w -]+)")?><a [^>]+><img src="[^"]+/([^/"]+)"', grid)
     )
-    assert marks["next-test-stand.webp"] == "morty bart"
-    assert marks["next-test-stand-mechanical.webp"] == "cansins-build"
-    assert marks["next-l-eyeball-cap.webp"] == marks["next-core.webp"] == ""
+    assert marks["test-stand.webp"] == "morty bart"
+    assert marks["test-stand-mechanical.webp"] == "default-build"
+    assert marks["l-eyeball-cap.webp"] == marks["core.webp"] == ""
 
 
-def test_the_site_publishes_the_next_mech_alone():
-    """#649 (docs/adr/0019): the site's pictures are the next Mech's panels and one per part, stills alone (#839: its
-    motion is the viewer's), each in each Preset (#819), its viewer the next Mech's GLBs, a Stage each in each Skeleton
-    shape (#720), Stage 3 bare too (#876), every name starting next-."""
+def test_the_site_publishes_the_mech_alone():
+    """#649 (docs/adr/0019): the site's pictures are the Mech's panels and one per part, stills alone (#839: its
+    motion is the viewer's), each in each Preset (#819), its viewer the Mech's GLBs, a Stage each in each Skeleton
+    shape (#720), Stage 3 bare too (#876), every name a document's or a part's (ADR 0024)."""
     from model import geometry as g
     from model import stages
     from model.render import pictures
@@ -378,23 +378,24 @@ def test_the_site_publishes_the_next_mech_alone():
     # side and isometric per Stage, each at the Parts level (#811), each per Preset (#819), the front doors' three
     # (#739, #843), and a picture per part; no motion (#839)
     assert len(published) == 3 * (3 * 3) + 3 + len(stems) == len(set(published))
-    assert {"next-stage1-isometric.webp", "next-test-stand.webp"} <= {*published}
-    assert {"next-stage1-front.webp", "next-mech-back-bare-isometric.webp"} <= {*published}
-    assert "next-stage1-morty-front.webp" not in published and "next-mech-back-side-exploded.webp" in published
-    assert not [f for f in published if f.startswith("next-eyes")]
-    assert {"next-stage1-parts-exploded.webp", "next-mech-back-morty-parts-exploded.webp"} <= {*published}
-    bare = {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
+    assert {"stage1-isometric.webp", "test-stand.webp"} <= {*published}
+    assert {"stage1-front.webp", "mech-back-bare-isometric.webp"} <= {*published}
+    assert "stage1-morty-front.webp" not in published and "mech-back-side-exploded.webp" in published
+    assert not [f for f in published if f.startswith("eyes")]
+    assert {"stage1-parts-exploded.webp", "mech-back-morty-parts-exploded.webp"} <= {*published}
+    bare = {f"mech-back{s}-bare": f"mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
     assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare
-    assert all(n.startswith("next-") for n in [*published, *build.PUBLIC.values()])
-    assert {doc for doc, _ in pictures.next_parts().values()} <= set(map(build.document, build.PUBLIC)) == set(g.STAGES)
+    parts = pictures.part_files()  # the rest are a document's: its panels, exploded, front doors (ADR 0024)
+    assert all(n in parts or any(n.startswith(d + "-") for d in g.STAGES) for n in published)
+    assert {doc for doc, _ in pictures.part_files().values()} <= set(map(build.document, build.PUBLIC)) == set(g.STAGES)
 
 
-# #739: the front doors' three, in order, in the default Preset, Cansin's build (#819), bare of its Skin (#843):
+# #739: the front doors' three, in order, in the default Preset, the Default build (#819), bare of its Skin (#843):
 # (picture, caption, link), each its Stage in the viewer (#839)
 FRONT = [
-    ("next-stage1-front.webp", "Stage 1, from the front", "viewer/?stage=1"),
-    ("next-mech-back-bare-isometric.webp", "Stage 3", "viewer/?stage=3"),
-    ("next-mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
+    ("stage1-front.webp", "Stage 1, from the front", "viewer/?stage=1"),
+    ("mech-back-bare-isometric.webp", "Stage 3", "viewer/?stage=3"),
+    ("mech-back-side-exploded.webp", "Stage 3, exploded", "viewer/?stage=3&amp;explode=1"),
 ]
 
 
@@ -406,7 +407,7 @@ def test_the_home_shows_the_front_doors_three_pictures_from_the_code():
 
     site = "https://yellowpine.com/noggin/"
     home, grid = (ROOT / "docs" / "index.md").read_text(), macros.front()
-    assert "<!--{{ front }}-->" in home and "next-eyes-sweep" not in home
+    assert "<!--{{ front }}-->" in home and "eyes-sweep" not in home
     assert 'class="noggin-front not-content"' in grid
     cells = re.findall(
         r'<figure><a href="([^"]+)"><img src="([^"]+)" alt="([^"]+)"[^>]*></a><figcaption>',
@@ -432,7 +433,7 @@ def test_the_readmes_top_shows_the_front_doors_three_pictures_at_one_height_in_o
     ]
     assert [c for *_, c in cells] == [c for _, c, _ in FRONT]
     assert len({h for _, _, h, _, _ in cells}) == 1
-    assert "next-eyes-sweep" not in top
+    assert "eyes-sweep" not in top
 
 
 def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_fails_a_gate(tmp_path, monkeypatch):
@@ -444,15 +445,15 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
 
     import macros
 
-    monkeypatch.setattr(macros, "RANKING", tmp_path / "next-mech-ranking.json")
+    monkeypatch.setattr(macros, "RANKING", tmp_path / "mech-ranking.json")
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
-    fails = {"next-mech-back-mechanical": ["head size", "tilt loop"]}
+    fails = {"mech-back-mechanical": ["head size", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
     assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]
-    macros.RANKING.write_text(json.dumps({"order": ["next-mech-a"], "variants": {"next-mech-a": {"fails": []}}}))
+    macros.RANKING.write_text(json.dumps({"order": ["mech-a"], "variants": {"mech-a": {"fails": []}}}))
     assert macros.stage_switch() == unranked
 
 
@@ -501,12 +502,12 @@ def test_the_reports_page_lists_each_sim_report_the_build_adds(tmp_path):
     page = '<main><ul><li data-reports="">No reports in this build.</li></ul></main>'
     (tmp_path / "site" / "dist" / "reports" / "index.html").write_text(page)
     (tmp_path / "model" / "build" / "reports").mkdir(parents=True)
-    for f in ("next-mech-back-sim.json", "next-mech-back-junit.xml"):
+    for f in ("mech-back-sim.json", "mech-back-junit.xml"):
         (tmp_path / "model" / "build" / "reports" / f).write_text("{}")
     subprocess.run([ROOT / "scripts" / "site_reports.sh"], cwd=tmp_path, check=True)
     built = tmp_path / "site" / "dist" / "reports"
     assert (built / "index.html").read_text() == (
-        '<main><ul><li><a href="next-mech-back-junit.xml">next-mech-back-junit.xml</a></li>'
-        '<li><a href="next-mech-back-sim.json">next-mech-back-sim.json</a></li></ul></main>'
+        '<main><ul><li><a href="mech-back-junit.xml">mech-back-junit.xml</a></li>'
+        '<li><a href="mech-back-sim.json">mech-back-sim.json</a></li></ul></main>'
     )
-    assert (built / "next-mech-back-sim.json").read_text() == "{}"
+    assert (built / "mech-back-sim.json").read_text() == "{}"

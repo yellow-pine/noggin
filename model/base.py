@@ -1,4 +1,4 @@
-"""The next Mech's head variants (#686, #51; GLOSSARY), clean-room (#618): their numbers (one source: model/printed/base.py
+"""The Mech's head variants (#686, #51; GLOSSARY), clean-room (#618): their numbers (one source: model/printed/base.py
 draws the parts from them, model/stages.py places them and the boards), what the sim report reads (sway(), leads(),
 head()) and the ranking of their reports (rank()); model/candidates.py reports their figures from MuJoCo.
 
@@ -12,7 +12,7 @@ cranium, each USB-C socket's opening straight back through it (cranium(), openin
 the post as one pair and splits in the cranium, every servo's lead to the Shields (leads(); #51's wiring rules). Nothing but the mechanism and the boards ride the
 head under its skull or Skin, within gimbal.HEAD_MM (#51), in one variant since Cansin picked it (#712; the ranking
 stays for the next):
-- Back, next-mech-back: the eye gimbal on the head mount, the jaw at the realistic skull's condyles, nothing over the
+- Back, mech-back: the eye gimbal on the head mount, the jaw at the realistic skull's condyles, nothing over the
   eyes but the skull dome, which gives the head its height over them (shelled()), so the eyes sit in the head's lower
   half (#708).
 Every size is ours and inferred (no build settles one yet)."""
@@ -64,9 +64,9 @@ USB = ((-4.47, 4.47), (-10.68, -7.4), (-13.39, -6.05))  # the Core's USB-C: mode
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
 # bottom: model/envelopes.py, held to it by model/test_base.py)
 ROW = (
-    ((("next Shield 1", "receiver"), ("next Core 1", "core")), (-14.5, 14.5), -10.68, -15.0),
-    ((("next Shield 2", "receiver"), ("next Core 2", "core")), (-14.5, 14.5), -10.68, -15.0),
-    ((("next switch board", "switch"),), (-7.25, 13.25), -4.6, -16.0),
+    ((("Shield 1", "receiver"), ("Core 1", "core")), (-14.5, 14.5), -10.68, -15.0),
+    ((("Shield 2", "receiver"), ("Core 2", "core")), (-14.5, 14.5), -10.68, -15.0),
+    ((("switch board", "switch"),), (-7.25, 13.25), -4.6, -16.0),
 )
 BOARD_H = 32.0  # the row's height (the switch board's)
 
@@ -131,7 +131,7 @@ def dongle():
     m = np.eye(4)
     m[:3, :3] = np.array(((0, 1, 0), (-1, 0, 0), (0, 0, 1))).T  # its length back from its socket's end
     m[:3, 3] = (*DONGLE_AT, neck.MOUNT_Z[0])
-    return {"next charger dongle": ("dongle", m)}
+    return {"charger dongle": ("dongle", m)}
 
 
 def switch_board():
@@ -162,9 +162,9 @@ def leads(stage):
     def rides(part):
         return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers}
 
-    shield, switch = rides("next Shield 1:1"), rides("next switch board:1")
+    shield, switch = rides("Shield 1:1"), rides("switch board:1")
     ends = [(rides(n), shield) for n, p in stage.parts.items() if os.path.basename(p.file) == "servo.stl"]
-    ends += [(rides("next pack:1"), switch), (rides("next spare pack:1"), rides("next charger dongle:1"))]
+    ends += [(rides("pack:1"), switch), (rides("spare pack:1"), rides("charger dongle:1"))]
     ends.append((switch, shield))
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}
 

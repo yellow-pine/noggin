@@ -13,5 +13,5 @@ Changes from the original (#838, 2026-11-03):
 - `mandible.stl`: the original's mandible, decimated to 40,000 faces.
 
 The model builds from these, and every adaptation it writes is shared under the same licence
-(`model/printed/skull.py`): scaled to the next Mech's head, the orbits enlarged for its eyes and lids, remeshed for
+(`model/printed/skull.py`): scaled to the Mech's head, the orbits enlarged for its eyes and lids, remeshed for
 printing and carved for its mechanism.

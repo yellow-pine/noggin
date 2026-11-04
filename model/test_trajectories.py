@@ -18,9 +18,7 @@ DOC = geometry.SIMULATED[-1]  # the whole Mech, mechanical (#809)
 
 # Pairs whose pieces read deeper than at rest along a motion where their exact solids cannot meet, with why.
 NESTED = {
-    frozenset(
-        (f"next {s} eyeball cap:1", f"next {s} upper lid:1")
-    ): "the upper lid's shell turns about the cap's own centre, its"
+    frozenset((f"{s} eyeball cap:1", f"{s} upper lid:1")): "the upper lid's shell turns about the cap's own centre, its"
     " inside 1.5 mm out from the cap (gimbal.LID_R, CAP_R): its convex pieces fill that inside, so they read the cap"
     " 0.06 mm deeper than at rest as it yaws under a half-shut lid (attention); gimbal.report() holds the exact gap (#663)"
     for s in "LR"
@@ -69,11 +67,11 @@ def overlaps(played, chunk, chunks):
 
 @pytest.mark.parametrize(
     "doc, name, chunk",
-    [(d, m, c) for d in geometry.NEXT for m in tj.motions(d) for c in range(CHUNKS) if d in geometry.SIMULATED],
+    [(d, m, c) for d in geometry.MECH for m in tj.motions(d) for c in range(CHUNKS) if d in geometry.SIMULATED],
     ids=str,
 )  # ids carry the document: CI's model shards split on it
 def test_no_two_parts_overlap_in_any_frame_of_any_motion(motion, chunk):
-    """#255, #663: every motion as played on the next Mech (its gestures and Rest on its eye gimbal, #663; the next hero
+    """#255, #663: every motion as played on the Mech (its gestures and Rest on its eye gimbal, #663; the hero
     on its neck and jaw, #642): no pair of parts more than PENETRATION_MM deeper than at rest at any step of the sim, not
     only in the 100 ms frames the GIFs and the web viewer draw (#627)."""
     assert overlaps(motion, chunk, CHUNKS) == {}
@@ -98,9 +96,9 @@ def test_a_step_reaches_its_target_no_faster_than_the_servo_slews():
     """A 30 degree step on the L lid servo: after its PWM frame's delay the horn never runs ahead of the rated slew, is
     within the deadband by 250 ms and its rise to 90 % takes the delay and the slew's time give or take 30 ms."""
     model = built(DOC)
-    writes = [(-1, h, 0.0) for h in stages.STAGES[DOC].horns] + [(0, "next L lid horn", -30.0)]
+    writes = [(-1, h, 0.0) for h in stages.STAGES[DOC].horns] + [(0, "L lid horn", -30.0)]
     times = range(0, 401, 5)
-    deg = turned(tj.play(model, writes, times), model.body("next L lid horn:1").id)
+    deg = turned(tj.play(model, writes, times), model.body("L lid horn:1").id)
     rate = electrical.servo.rate(electrical.SERVO_MIN_V) / 1000  # deg per ms
     delay = mjcf.SERVO["delay_s"] * 1000
     assert all(d <= rate * max(t - delay, 0) + SETTLED_DEG for t, d in zip(times, deg))
@@ -118,7 +116,7 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
     assert set(out["parts"]) == {model.body(b).name for b in range(1, model.nbody)}
     n = len(tj.commands(DOC, "wink")[1])
     assert all(len(p["pos"]) == len(p["quat"]) == n for p in out["parts"].values())
-    lid = out["parts"]["next L lid horn:1"]["quat"]
+    lid = out["parts"]["L lid horn:1"]["quat"]
     assert lid[0] != lid[n // 2]  # the wink moves it
     assert tj.stale(DOC)  # its other motions are not baked here
 
@@ -126,7 +124,7 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
 def test_a_bone_rides_its_carrier_in_the_baked_poses(tmp_path, monkeypatch):
     """MuJoCo plays no bone of the realistic skull (mjcf.spec); poses() puts each on its carrier (stages.RIDES), so the
     pictures and the viewer draw it there: with its carrier at rest, where model/stages.py places it."""
-    doc = next(d for d in geometry.NEXT if geometry.SKULL_SUB in geometry.NEXT[d])
+    doc = next(d for d in geometry.MECH if geometry.SKULL_SUB in geometry.MECH[d])
     stage = stages.STAGES[doc]
     bones = [n for n, p in stage.parts.items() if stages.stem(p.file) in geometry.BONES]
     rest = {}
@@ -161,14 +159,14 @@ def test_an_edit_to_the_core_program_or_its_calibration_stales_the_trajectories(
         assert tj.stamp(DOC) != before, edited
 
 
-def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
-    """#663: the eye program's wink on the next Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
+def test_the_mech_plays_the_wink_on_its_eye_gimbal():
+    """#663: the eye program's wink on the Mech's MuJoCo model: one yaw servo turns both yokes alike to the glance
     (6.67 deg, model/test_traces.py) within the servos' deadband, the gaze stays level, the winking eye's upper lid
     shuts (-21, model/test_gimbal.py) and its lower lid rises on its link to meet it, and the other squints; all come
     back to rest."""
     model = built(DOC)
-    names = ("next L yaw pivot", "next R yaw pivot", "next L eyeball pitch", "next L lid pivot", "next R lid pivot")
-    names += ("next L lower lid pivot",)
+    names = ("L yaw pivot", "R yaw pivot", "L eyeball pitch", "L lid pivot", "R lid pivot")
+    names += ("L lower lid pivot",)
     writes, times = tj.commands(DOC, "wink")
     frames = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names]))
     left, right, pitch, lid, other, under = frames.T
@@ -179,13 +177,13 @@ def test_the_next_mech_plays_the_wink_on_its_eye_gimbal():
     assert np.abs(frames[-1]).max() < SETTLED_DEG
 
 
-def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco():
-    """#688: eureka's 22 deg dart on the next Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
+def test_the_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco():
+    """#688: eureka's 22 deg dart on the Mech's MuJoCo model: the pan pivot turns the head the way the eyes look, to
     the 11 deg it carries (model/test_traces.py) within the servo's deadband, while the eyes counter-rotate back from
     the dart; the head comes back to rest."""
     model = built(DOC)
     writes, times = tj.commands(DOC, "eureka")
-    names = ("next L yaw pivot", "pan pivot")
+    names = ("L yaw pivot", "pan pivot")
     yaw, pan = np.degrees(tj.play(model, writes, times, read=lambda d: [d.joint(j).qpos[0] for j in names])).T
     side = np.sign(yaw[np.abs(yaw).argmax()])
     assert (side * pan).max() == pytest.approx(0.6 * 22 * 25 / 30, abs=1)
@@ -194,12 +192,12 @@ def test_the_next_mechs_head_turns_the_eyes_way_on_a_wide_gaze_shift_in_mujoco()
     assert abs(pan[-1]) < SETTLED_DEG
 
 
-def test_the_next_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
+def test_the_mechs_command_map_levels_a_yawed_gaze_in_mujoco():
     """#663: at full yaw the push-rod's Hooke error would lower a 15 deg upward gaze; the gimbal's command map
     (gimbal.servos) gives the pitch servo the turn that holds it at 15 deg in MuJoCo, as its kinematics solve it."""
     model = built(DOC)
     yaw, pitch = gimbal.servos(gimbal.YAW, gimbal.PITCH)
-    data = mjcf.pose(model, {"next yaw horn": yaw, "next pitch horn": pitch})
+    data = mjcf.pose(model, {"yaw horn": yaw, "pitch horn": pitch})
     for s in "LR":
-        assert math.degrees(data.joint(f"next {s} yaw pivot").qpos[0]) == pytest.approx(gimbal.YAW, abs=SETTLED_DEG)
-        assert math.degrees(data.joint(f"next {s} eyeball pitch").qpos[0]) == pytest.approx(15, abs=SETTLED_DEG)
+        assert math.degrees(data.joint(f"{s} yaw pivot").qpos[0]) == pytest.approx(gimbal.YAW, abs=SETTLED_DEG)
+        assert math.degrees(data.joint(f"{s} eyeball pitch").qpos[0]) == pytest.approx(15, abs=SETTLED_DEG)

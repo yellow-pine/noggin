@@ -1,4 +1,4 @@
-# Perception and appeal for the next Mech's face
+# Perception and appeal for the Mech's face
 
 Researched 2026-11-02. Purpose: test #51's face choices against perception research. The choices are linked eyes, a big head on a small base, Pure White eyes with black pupils, separate lids, and gestures timed for a few servos. Builds on `2026-10-31-natural-eye-motion.md`, `2026-11-01-blink-kinematics.md` and `2026-11-01-toon-eyes.md`. Their timing numbers (Williams, Thomas & Johnston, Lasseter, blink kinematics) are not repeated here.
 

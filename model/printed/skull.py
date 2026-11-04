@@ -30,7 +30,7 @@ PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the voxels; the room round every part (
 HEIGHT_SPARE = 2.0  # the skull this much under the head gate's height: its remesh grows it a little
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
-DOC = "next-mech-back"  # the realistic document the bones are carved for
+DOC = "mech-back"  # the realistic document the bones are carved for
 
 
 def _source(path, turn=True):
@@ -65,7 +65,7 @@ def placed():
     move = np.array([-canal[0], y - canal[1], top - atlas.vertices[:, 2].max()])
     for m in (atlas, axis):
         m.vertices = m.vertices + move
-    return {"next skull": cranium, "next mandible": mandible, "next atlas": atlas, "next axis": axis}
+    return {"skull": cranium, "mandible": mandible, "atlas": atlas, "axis": axis}
 
 
 def _canal(atlas, b=0.5):
@@ -157,12 +157,12 @@ def carved():
     }
     shells = {n for n, p in stage.parts.items() if stages.stem(p.file) in sk.SHELLS}
     clouds = {n: surface(m) for n, m in cutters.items()}
-    frame = np.array(stages.DOCS[DOC]["next-eyes"][0], float)  # the head's frame in the document's
+    frame = np.array(stages.DOCS[DOC]["eyes"][0], float)  # the head's frame in the document's
     out = {}
     for bone, mesh in placed().items():
         grid = Grid(*mesh.bounds)
         occ = ndimage.binary_erosion(grid.solid(surface(mesh)))  # the voxel solid() grew it by taken back
-        if bone == "next skull":  # a shell, the eyes' orbits opened round their lids
+        if bone == "skull":  # a shell, the eyes' orbits opened round their lids
             occ &= ndimage.distance_transform_edt(occ) * PITCH <= WALL
             x, y, z = np.meshgrid(*grid.centres(), indexing="ij", sparse=True)
             for cx, _, _ in gm.EYE.values():

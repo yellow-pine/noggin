@@ -3,10 +3,10 @@ posed from its baked trajectories (model/trajectories.py, `just trajectories`): 
 WebP with a transparent background, its lines one grey for the site's light and dark themes (blender.py INK, #470).
 `views` (`just render`): the panels (each Stage in each Preset at rest, #819, a trajectory's first frame, from the
 side and isometric, framed among themselves: PANELS), the front doors' own (FRONT, #739) and each Stage at Explode's
-Parts level (parts_exploded, #811). `site next` (`just pictures next`, Checks'
+Parts level (parts_exploded, #811). `site all` (`just pictures all`, Checks'
 Render shards, each its share: SHARD): what the site serves into model/build/images (#649): those and a picture per
 part, stills alone (#839: the Mech's motion is the web viewer's), each one's Blender seconds in SECONDS.
-Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)"""
+Usage: python -m model.render.pictures views | site all (Blender at $BLENDER)"""
 
 import functools
 import json
@@ -25,9 +25,9 @@ from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
-# "i/n" (from 0): `site next` renders shard i of n's share alone, Checks' Render shards (#770)
+# "i/n" (from 0): `site all` renders shard i of n's share alone, Checks' Render shards (#770)
 SHARD = os.environ.get("PICTURES_SHARD")
-# each picture `site next` rendered and its Blender seconds, as model/durations.json keys them (model/shards.py RENDER,
+# each picture `site all` rendered and its Blender seconds, as model/durations.json keys them (model/shards.py RENDER,
 # #839): what Checks' Render shards upload for `just model-durations`
 SECONDS = os.path.join(OUT, "seconds.json")
 TOOK = {}  # {"render <picture>": its Blender seconds}, written to SECONDS
@@ -36,7 +36,7 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 # up, at one scale on one ground line, framed tight: the largest panel's silhouette plus PAD of it each side
 VIEWS = {"side": (g.X, g.Z), "isometric": ((1, -1, 1), g.Z)}
 # the pictures per Preset alone (#819): {name: (document, Preset)}, each Stage in the Preset's Skeleton shape painted in
-# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (next-stage1-morty)
+# its Palettes, named by the Stage as Bones, the default Preset's alone, another's -<its slug> (stage1-morty)
 SUFFIX = {p: f"-{g.slug(p)}" if i else "" for i, p in enumerate(g.PRESETS)}
 BONY = [d for d in g.STAGES if g.shape(d) == g.THEMES["Skeleton shape"][0]]  # the Stages in order, as Bones
 DRAWN = {s + SUFFIX[p]: (s + g.SKELETON_SUFFIX[t["Skeleton shape"]], p) for p, t in g.PRESETS.items() for s in BONY}
@@ -44,27 +44,27 @@ PANELS = [(name, view) for name in DRAWN for view in VIEWS]
 PANEL_WIDTH, PAD = 800, 0.03
 MARGIN = 1.06
 WEBP_QUALITY = 85  # lossy colour, lossless alpha
-# the web viewer's exploded next Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
+# the web viewer's exploded Mech (macros.py explode, #482, #664), mm: the neck lifted off the base, the eyes off
 # the neck (or Stage 1's stand), the jaw forward, the cranium's boards up out of the head (#858)
 EXPLODE = {
-    "next-base": (0, 0, 0),
-    "next-stand": (0, 0, 0),
-    "next-neck": (0, 0, 45),
-    "next-jaw": (0, -40, 45),
-    "next-eyes": (0, 0, 95),
-    "next-cranium": (0, 0, 160),
-    "next-morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
+    "base": (0, 0, 0),
+    "stand": (0, 0, 0),
+    "neck": (0, 0, 45),
+    "jaw": (0, -40, 45),
+    "eyes": (0, 0, 95),
+    "cranium": (0, 0, 160),
+    "morty": (0, 0, 0),  # the shirt's, with the Torso; every other Shell's its carrier's
 }
 # Explode's Parts level (#811): each part out along its Assembly direction (GLOSSARY) on its sub-assembly's offset, at
 # least GAP clear of every part's bounding box, mm (inferred); a seated part's direction off its seat: a Core and its
 # Shield off its pins' side (BOARDS: up off the cranium tray, #858, or off the test stand's face), the switch board, the
-# charger dongle and the packs up off the Torso's floor (stages.next_base)
+# charger dongle and the packs up off the Torso's floor (stages.base_sub)
 GAP = 5.0
 SEATS = {
     "switch": g.Z,
     "battery": g.Z,
     "dongle": g.Z,
-    "next torso lid": g.Z,
+    "torso lid": g.Z,
 } | skin.DIRECTIONS  # a Shell off its Seats; the lid up
 # out of the Torso's walls (#838)
 BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
@@ -72,16 +72,16 @@ BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (mo
 # its mechanism without a Skin (bare) until a finished Skin exists (#843): Stage 1 from the front, its eyes facing
 # the camera; Stage 3 isometric; Stage 3 from the side, exploded (EXPLODE); each (DRAWN's name, eye direction,
 # exploded), framed tight on its own at the panels' size
-STAGE1, STAGE3 = BONY[0], next(iter(g.NEXT))
+STAGE1, STAGE3 = BONY[0], next(iter(g.MECH))
 FRONT = {
     f"{STAGE1}-front.webp": (STAGE1, (0, -1, 0), False),
     f"{STAGE3}-bare-isometric.webp": (STAGE3, VIEWS["isometric"][0], False),
     f"{STAGE3}-side-exploded.webp": (STAGE3, VIEWS["side"][0], True),
 }
 IMAGES = os.path.join(stages.REPO, "model", "build", "images")
-# what the site publishes (#649, docs/adr/0019): the next Mech's panels and a picture of each of its parts, alone at
-# rest, isometric, framed on its own; every name next-
-NEXT = "next"
+# what the site publishes (#649, docs/adr/0019): the Mech's panels and a picture of each of its parts, alone at
+# rest, isometric, framed on its own: `site all`
+ALL = "all"
 PART_SIZE = (400, 400)
 
 
@@ -96,21 +96,21 @@ def parts_exploded(name):
 
 
 @functools.cache
-def next_parts():
-    """{picture: (document, part)}: one per part of the next Mech's documents by its mesh, its first instance."""
+def part_files():
+    """{picture: (document, part)}: one per part of the Mech's documents by its mesh, its first instance."""
     out = {}
     for doc in g.STAGES:
         for name, p in stages.STAGES[doc].parts.items():
-            stem = stages.stem(p.file).removeprefix("next ")
-            out.setdefault(f"next-{stem.lower().replace(' ', '-')}.webp", (doc, name))
+            stem = stages.stem(p.file)
+            out.setdefault(f"{stem.lower().replace(' ', '-')}.webp", (doc, name))
     return out
 
 
 def published():
-    """Every picture the site serves (#649): the next Mech's panels and each Stage at the Parts level (#811), each in
+    """Every picture the site serves (#649): the Mech's panels and each Stage at the Parts level (#811), each in
     each Preset (#806, #819), the front doors (#739), then its parts'; stills alone (#839)."""
     apart = map(parts_exploded, DRAWN)
-    return [*(picture(*p) for p in PANELS), *FRONT, *apart, *next_parts()]
+    return [*(picture(*p) for p in PANELS), *FRONT, *apart, *part_files()]
 
 
 def bare(doc, mats):
@@ -325,9 +325,9 @@ def views(mine):
 
 
 def part_pictures(mine):
-    """Each part of the next Mech (next_parts) in mine alone, at rest as MuJoCo settles it, from VIEWS' isometric,
+    """Each part of the Mech (part_files) in mine alone, at rest as MuJoCo settles it, from VIEWS' isometric,
     framed tight on its own."""
-    for doc in dict.fromkeys(d for d, _ in next_parts().values()):  # the documents a part is first drawn in
+    for doc in dict.fromkeys(d for d, _ in part_files().values()):  # the documents a part is first drawn in
         _, manifest, hull = prepare(f"parts-{doc}", doc)  # in its Theme, the first Preset's in its Shape
         mats = trajectories.poses(doc, "wink")[0]
         shots = [
@@ -337,7 +337,7 @@ def part_pictures(mine):
                 camera.fit(points(hull, pose), *VIEWS["isometric"], 1, None, MARGIN),
                 [pose],
             )
-            for f, (d, name) in next_parts().items()
+            for f, (d, name) in part_files().items()
             if d == doc
             for pose in [{name: mats[name]}]
         ]
@@ -358,7 +358,7 @@ def main(what, names):
     os.makedirs(OUT, exist_ok=True)
     if what == "views":
         views(set(published()))
-    elif what == "site" and set(names) <= {NEXT}:
+    elif what == "site" and set(names) <= {ALL}:
         mine = published()
         if SHARD:  # shortcut: durations.json is so an input of the pictures' cache key, so its refresh renders once
             mine = share(shards.renders(json.load(open(shards.DURATIONS)), mine), *map(int, SHARD.split("/")))

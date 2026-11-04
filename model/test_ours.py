@@ -9,7 +9,7 @@ import trimesh
 from model import geometry, ours, printed, stages
 
 BOX_MM = 1.0
-DOC = next(iter(geometry.NEXT))
+DOC = next(iter(geometry.MECH))
 
 
 def near(got, want):
@@ -22,7 +22,7 @@ def box(shape):
 
 
 def test_a_printed_parts_stl_is_watertight_in_its_shapes_box(tmp_path):
-    for stem in ("next pitch bar", "next L eyeball cap"):
+    for stem in ("pitch bar", "L eyeball cap"):
         mesh = trimesh.load(ours.printable(stem, str(tmp_path / f"{stem}.stl")), force="mesh")
         assert mesh.is_watertight and mesh.volume > 0, stem
         assert near(mesh.bounds.flatten(), box(ours.SHAPES[stem]().val())), (stem, mesh.bounds)
@@ -36,9 +36,9 @@ def test_just_stl_prints_the_clearance_coupon_watertight_flat_on_the_bed(tmp_pat
 
 
 def test_a_printed_parts_step_is_one_valid_solid_in_its_shapes_box(tmp_path):
-    shape = cq.importers.importStep(ours.export("next pitch bar", str(tmp_path / "bar.step"))).val()
+    shape = cq.importers.importStep(ours.export("pitch bar", str(tmp_path / "bar.step"))).val()
     assert shape.isValid() and len(shape.Solids()) == 1
-    assert near(box(shape), box(ours.SHAPES["next pitch bar"]().val())), box(shape)
+    assert near(box(shape), box(ours.SHAPES["pitch bar"]().val())), box(shape)
 
 
 @pytest.fixture

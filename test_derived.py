@@ -63,8 +63,8 @@ DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfil
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "sim": (["model/report.py", "model/test_report.py", "model/ours.py"], ["uv.lock"]),  # just sim: ours, report, test
-    # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
-    "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
+    # the Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
+    "pictures": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
     # the release and title rules' tests (#732): the rules, their tests and the packages they run through (ADR 0010,
     # 0017)
@@ -149,7 +149,7 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
     assert missed == set()
 
 
-def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
+def test_the_mechs_key_hashes_no_justfile_workflow_or_test():
     """A justfile, workflow or test edit renders no picture and bakes no GLB (#469, #649): its key hashes only what the
     render code reads."""
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
@@ -158,11 +158,11 @@ def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
         for f in tracked
         if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
-    assert {f for globs in patterns()["next"] for f in tooling if covered(f, globs)} == set()
+    assert {f for globs in patterns()["pictures"] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_sim_key_hashes_no_justfile_or_workflow():
-    """A CI edit re-runs no 10-13 min sim (#732): its key hashes what the reports are made from, as the next Mech's."""
+    """A CI edit re-runs no 10-13 min sim (#732): its key hashes what the reports are made from, as the Mech's."""
     tooling = ("justfile", ".github/workflows/checks.yml")
     assert {f for globs in patterns()["sim"] for f in tooling if covered(f, globs)} == set()
 
