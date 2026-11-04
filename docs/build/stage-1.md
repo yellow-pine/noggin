@@ -8,7 +8,8 @@
 
 The eye block on its test stand: both eyes turn together, left and right on one servo and up and down on another, and
 each eye's upper and lower lid close on that eye's own servo. Four servos on the eyes Core, which stands against the
-stand's back.
+stand's back. *Upcoming (#901): the eyes, their caps and lids grow to Morty's at life size, and the gimbal frame
+stretches to the pupils.*
 
 ## Parts it adds, from the model
 
@@ -28,7 +29,8 @@ The servos and their ranges are in [the table on the site](https://yellowpine.co
 built from the model.
 <!-- #}-->
 
-The ranges are the model's, in servo degrees, where every part sweeps clear; the real servos get calibrated
+The ranges are the model's, in servo degrees, where every part sweeps clear; the eye program starts from its own
+calibration inside them ([Wiring](wiring.md#servo-ports)), and you calibrate your servos from there
 ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
@@ -55,4 +57,5 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 The four servos go to the eyes Core ([Wiring](wiring.md)); flash it ([Flashing](flashing.md)). The model's Stage 1
 carries no pack: the pack and the switch board sit beside the stand until the Torso holds them in Stage 2
-(inferred).
+(inferred). Then calibrate the four servos on your Stage 1 ([Calibration](calibration.md)) and run the noggin service
+([The noggin service](../use/noggin-service.md)): the eyes react to Claude Code.

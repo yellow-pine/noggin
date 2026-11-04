@@ -1,24 +1,26 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Upcoming (#51):** being designed, not built yet. Morty's Shells (#665) and Cansin's (#813) are in the model; Bart's
-> (#807) follow.
-> #51 holds the whole spec.
+> **Upcoming (#51):** being designed, not built yet; #51 holds the whole spec. Morty's Shells and the cansin Skin's are
+> in the model; Bart's (#807) follow.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
-set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our own design;
-nothing comes from other people's designs. A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
-Palette painting any Shape of its category (docs/adr/0022). A Preset names one: Default build (mechanical in black,
-the cansin Skin), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
-Shells until they exist, #807). The model, the [viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
-Mech in one, Default build unless another is picked; the viewer mixes any Shape with any Palette.
+set off and pressing the other on. Both are parts in the model (model/printed), our own design, but for the
+realistic Skeleton's skull and first two vertebrae, adapted from others' meshes under their licences (docs/adr/0023,
+[Credits](credits.md)). A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
+Palette painting any Shape of its category (docs/adr/0022). A Preset names one: the Default build (mechanical in black, the cansin
+Skin in the Default Skin palette), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
+Shells until they exist, #807). The default is the first Preset (model/geometry.py `PRESETS`): the model, the
+[viewer](https://yellowpine.com/noggin/viewer/), every picture and the shopping list's filaments follow it unless you
+pick another in the header; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
 - Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (the pack,
   the switch board and the power-path board alone since #858), the cranium tray (both Cores and the hub in the
   realistic skull's cranium, #858). It is the same under every Skin; the eye centres stay fixed (model/geometry.py `EYE_R`). Its Shapes:
   realistic, every part drawn as Bones, and mechanical, every part in boxes and cylinders (docs/adr/0020); its
-  Palettes: anatomical, robot and black (PETG Basic Black throughout).
+  Palettes: anatomical, robot and black (PETG Basic Black throughout). *Upcoming (#893): the realistic Skeleton
+  becomes a life-size bust from one anatomical source, warped into Morty.*
 - Skin, PLA: the head shell with hair, the ears, the nose, the eyeball caps, separate pupils, the lid covers, the mouth
   covers, the collar or shirt. A Character's eyeball caps may grow up to touching. Its Shapes: morty, his face with
   ears, nose and lids, his hair and jagged pupils, his shirt and collar, his eye whites; bart, his face with the spikes
@@ -41,7 +43,9 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 
 ## Morty's Shells
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
-size inferred):
+size inferred). *Upcoming (#850): his Shells are refitted round the life-size skull as one smooth loft, the hair's
+Seats re-placed on the new cranium.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through
+the Shells over it, the hair and the shirt, for a plug.*
 - the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
   the head mount, square from above where the mouth servo's corners need it; 140 x 140 x 150 mm
   but for the ears (model/printed/test_skin.py);
@@ -59,7 +63,8 @@ size inferred):
   with its half of the round crew neck's collar.
 
 ## Cansin's Shells
-Cansin in Rick and Morty style (#813), in the four PLA Pure colours he owns, on Morty's head and his Seats: the same
+*Upcoming (#917): refitted to the life-size head once Morty's are.* Cansin in Rick and Morty style, in four PLA Pure
+colours, on Morty's head and his Seats: the same
 Shells, but for these (model/printed/skin.py; every size inferred; his reference photo stays local, never in git):
 - the hair (hair, Absolute Black): short, the temples higher, so the face (Milky Pink) takes the sides of the
   forehead, and tufted on top, a short quiff standing out of the head's forward slope within its 150 mm height;

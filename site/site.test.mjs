@@ -64,8 +64,9 @@ const ADDED = ['images', 'reports'];
 const built = (file) => !ADDED.some((d) => file.startsWith(path.join(DIST, d)) && !existsSync(path.join(DIST, d)));
 const pages = html; // every one Astro's, the reports' page too (#603)
 
-test('every link on the site lands on a page or file of it, and no .md link is left', () => {
-  const broken = [];
+test('every link on the site lands on a page or file of it, at its heading, and no .md link is left', () => {
+  const broken = [], ids = new Map();
+  const idsOf = (file) => ids.get(file) ?? ids.set(file, new Set(parse(readFileSync(file, 'utf8')).querySelectorAll('[id]').map((e) => e.id))).get(file);
   for (const f of html.filter((f) => f !== '404.html')) {
     // (the 404 page's canonical link is to /404/, which GitHub Pages serves from 404.html)
     for (const el of parse(readFileSync(path.join(DIST, f), 'utf8')).querySelectorAll('[href], [src]')) {
@@ -73,6 +74,9 @@ test('every link on the site lands on a page or file of it, and no .md link is l
       if (/\.md(#|$)/.test(url) && !/^[a-z]+:/.test(url)) broken.push(`${f}: ${url}`);
       const file = fileOf(url);
       if (file && built(file) && !existsSync(file)) broken.push(`${f}: ${url}`);
+      // a heading it names is on that page (#900: Gestures' link to the home's #gestures)
+      const anchor = url.match(/^[^#]*#([\w-]+)$/)?.[1];
+      if (anchor && file?.endsWith('.html') && existsSync(file) && !idsOf(file).has(anchor)) broken.push(`${f}: ${url}`);
     }
   }
   expect(broken).toEqual([]);
@@ -328,10 +332,11 @@ const embedsOf = (doc) =>
     v.getAttribute('data-link'),
   ]);
 
-test("Stage 1's and Stage 3's guides open on their Stage's viewer, a view and a part of it in their steps (#914)", () => {
+test("each Stage's guide opens on its Stage's viewer, a view or a part of it in its steps (#914, #900)", () => {
   expect(embedsOf('docs/build/stage-1.md')).toEqual([[1, ''], [1, 'part=L+upper+lid'], [1, 'view=front']]);
+  expect(embedsOf('docs/build/stage-2.md')).toEqual([[2, ''], [2, 'view=side']]);
   expect(embedsOf('docs/build/stage-3.md')).toEqual([[3, ''], [3, 'part=jaw'], [3, 'explode=1']]);
-  for (const doc of ['docs/build/stage-1.md', 'docs/build/stage-3.md']) {
+  for (const doc of ['docs/build/stage-1.md', 'docs/build/stage-2.md', 'docs/build/stage-3.md']) {
     const [, first] = page(route(doc)).querySelector('.sl-markdown-content').children; // under the warning, before a word
     expect(first.getAttribute('class'), doc).toBe('noggin-viewer');
   }
