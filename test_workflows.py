@@ -488,8 +488,10 @@ def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed(
     assert release["needs"] == "checks" and "needs.checks.result == 'success'" in release["if"]
     called = yaml.safe_load((wf / "checks.yml").read_text())
     assert called[True]["workflow_call"]["inputs"]["deploy"] == {"type": "boolean", "default": False}
-    asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
-    assert asked.items() <= checks["permissions"].items()
+    # every scope a called job asks for, granted at least at its level: a nested job asking more makes Release invalid
+    level = {"none": 0, "read": 1, "write": 2}
+    asked = [(k, v) for j in called["jobs"].values() for k, v in j.get("permissions", {}).items()]
+    assert [(k, v) for k, v in asked if level[checks["permissions"].get(k, "none")] < level[v]] == []
     steps = {s["name"]: s for s in release["steps"]}
     assert steps["Check whether main moved on"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
     moved = "${{ steps.tip.outputs.branch != '' }}"
