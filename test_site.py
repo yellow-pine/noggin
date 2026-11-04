@@ -79,18 +79,18 @@ def test_the_readme_is_for_contributors():
 
 
 def test_the_wiring_table_is_built_from_the_code():
-    """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eyes'
-    calibrated ranges and rests (eyes/calibration.json, #255: lids closed 39, rest 61.4 and 64, open 102; eyes 58..118,
-    centred) and the next Mech's neck's limits and its 90 neutral (model/stages.py next_neck; the neck Core has no
-    program yet)."""
+    """Both Cores' ports (model/geometry.py CHANNELS), the Shield's GPIOs (eyes/eyes.py PORT_GPIO), the eye gimbal's
+    calibrated ranges and rests (eyes/calibration.json, the model's nominals until a Stage 1 is calibrated, #896: lids
+    closed 69, rest 90, open 105; yaw 65..115 and pitch 59.6..120.4, centred) and the next Mech's neck's limits and its
+    90 neutral (model/stages.py next_neck; the neck Core has no program yet)."""
     import macros  # here, not at the top: it imports the model
 
     table = macros.wiring()
     for row in [
-        "| 1 (eyes) | 1 | 3 | L lid | 39..102 | 61.4 |",
-        "| 1 (eyes) | 2 | 2 | L eye | 58..118 | 88 |",
-        "| 1 (eyes) | 3 | 1 | R lid | 39..102 | 64 |",
-        "| 1 (eyes) | 4 | 0 | R eye | 58..118 | 88 |",
+        "| 1 (eyes) | 1 | 3 | L lid | 69..105 | 90 |",
+        "| 1 (eyes) | 2 | 2 | yaw | 65..115 | 90 |",
+        "| 1 (eyes) | 3 | 1 | R lid | 69..105 | 90 |",
+        "| 1 (eyes) | 4 | 0 | pitch | 59.6..120.4 | 90 |",
     ]:
         assert row in table, row
     neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| 90 \|$", table, re.M)

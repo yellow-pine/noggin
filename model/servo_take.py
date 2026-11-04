@@ -31,9 +31,9 @@ LEVELS = RAMP_DEG * np.linspace(0.2, 0.8, 13)  # on the ramp, clear of its start
 
 
 def commands():
-    """[[s, degrees from neutral]] the Core writes to the right eye (Shield port 4) through `take`, from 0."""
+    """[[s, degrees from neutral]] the Core writes to the yaw servo (Shield port 2) through `take`, from 0."""
     log, _ = traces.writes("take")
-    held = {ms: a for ms, servo, a in log if servo == "r_eye" and ms >= 0}  # the last write of each instant
+    held = {ms: a for ms, servo, a in log if servo == "yaw" and ms >= 0}  # the last write of each instant
     return [[ms / 1000, a] for ms, a in sorted(held.items())]
 
 
