@@ -234,6 +234,19 @@ def test_the_eye_program_drives_stage_1s_servos_on_their_ports():
     assert sorted(s for core, s in wired if core == "1 (eyes)") == sorted(stage_1)
 
 
+def test_the_standard_tilts_model_tables_use_its_actual_travel_midpoint():
+    import macros
+
+    rows = {
+        cells[3]: cells
+        for row in macros.wiring().splitlines()[2:]
+        if (cells := [c.strip() for c in row.strip("|").split("|")])[0] == "2 (neck)"
+    }
+    assert rows["tilt"][4:] == ["59.5..99.5", "79.5"]  # published 159° envelope, operational ±20°
+    assert rows["pan"][4:] == ["45..135", "90"]
+    assert "| neck | tilt | 59.5..99.5 |" in macros.stage_guides()[1]["2"]
+
+
 def test_the_calibration_is_the_models_nominals_until_a_stage_1_is_calibrated():
     """eyes/calibration.json and the eye program's fallback are Stage 1's horns about their 90 neutral (#896,
     inferred): the yaw over its range, the pitch centred where the gaze is level and as far each way as both ends
