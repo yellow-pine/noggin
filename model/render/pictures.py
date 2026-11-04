@@ -365,7 +365,8 @@ def main(what, names):
         views(mine)
         part_pictures(mine)
         json.dump(TOOK, open(SECONDS, "w"), indent=2)
-        os.makedirs(IMAGES, exist_ok=True)
+        shutil.rmtree(IMAGES, ignore_errors=True)  # what an older run left would land on the site's, as web/build.py
+        os.makedirs(IMAGES)
         for f in mine:
             shutil.copy(os.path.join(OUT, f), IMAGES)
     else:
