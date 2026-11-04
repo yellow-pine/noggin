@@ -22,7 +22,12 @@ just follow                              # back to reacting to Claude Code
   re-sends the pose, so a lid's closed, rest and open ends can be compared side by side, both eyes at a half-open pose
   as well as at the ends. The keys and what each means are under [Calibration](../build/calibration.md#what-the-numbers-are).
 - `release` unpowers the servos, so they slump under gravity; any command powers them again.
-- `demo` and `demo <gesture> [level]` play gestures with the hooks ignored; `just follow` (or a restart) ends it.
+- `demo` and `demo <gesture> [level]` play gestures with the hooks ignored; `just follow` or restarting the Mac's
+  noggin service ends it.
+
+A held pose is restored with its calibration when the eyes Core reconnects or powers back on, provided the Mac's
+noggin service is still running and unmuted. Restarting that service begins in follow mode instead
+([The Link](noggin-service.md#the-link)).
 
 Set a lid's ends first, then its rest, then the opening fractions (`lid_rest`, `lid_think`, `lid_open`), watching a
 gesture after each. [Calibration](../build/calibration.md#the-method) gives the held pose for each endpoint before
