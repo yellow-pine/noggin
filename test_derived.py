@@ -8,6 +8,7 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
+import pytest
 import yaml
 
 from model import trajectories
@@ -206,3 +207,46 @@ def test_claude_codes_deny_list_bans_the_heavy_recipes_and_no_other():
     assert {r for r in deny if re.match(r"Bash\((uv run )?just ", r)} == {
         f"Bash({runner}just {name} *)" for name in HEAVY for runner in ("", "uv run ")
     }
+
+
+def _table_servos(table, column):
+    """The servo names in a Markdown table's column, by its header."""
+    head, _, *rows = table.splitlines()
+    i = [c.strip() for c in head.strip("|").split("|")].index(column)
+    return [r.strip("|").split("|")[i].strip() for r in rows if r.startswith("|")]
+
+
+def test_the_eye_program_drives_stage_1s_servos_on_their_ports():
+    """One yaw and one pitch servo for both eyes and a lid servo per eye (#896): the eyes Core's ports are Stage 1's
+    horns, and the eye program (eyes/eyes.py keeps its own GPIO -> servo map: the Core runs it alone) names what each
+    GPIO drives as the ports do; the wiring table and Stage 1's servo table name the same servos."""
+    import eyes  # the Core's program (eyes/ is on sys.path: conftest.py)
+    import macros
+    from model.geometry import SERVO_LABEL
+
+    names = {pin: name for pin, name in eyes.NAME.items() if pin != eyes.PAN}
+    assert {eyes.PORT_GPIO[str(port)]: servo for port, servo in CORES["eyes"].items()} == names
+    assert eyes.NAME[eyes.PAN] in CORES["neck"].values()  # the neck Core's, by its core.json (#688)
+    stage_1 = _table_servos(macros.stage_guides()[1]["1"], "Servo")
+    assert sorted(SERVO_LABEL[s] for s in CORES["eyes"].values()) == sorted(stage_1)
+    wiring = macros.wiring()
+    wired = zip(_table_servos(wiring, "Core"), _table_servos(wiring, "Servo"), strict=True)
+    assert sorted(s for core, s in wired if core == "1 (eyes)") == sorted(stage_1)
+
+
+def test_the_calibration_is_the_models_nominals_until_a_stage_1_is_calibrated():
+    """eyes/calibration.json and the eye program's fallback are Stage 1's horns about their 90 neutral (#896,
+    inferred): the yaw over its range, the pitch centred where the gaze is level and as far each way as both ends
+    allow, each lid closed where its lids meet, resting with its edge over the pupil, open at its open edge."""
+    import eyes
+    from model import gimbal, stages
+
+    cal = json.loads((ROOT / "eyes/calibration.json").read_text())
+    horns = stages.SUBS["next-eyes"]().horns
+    yaw, pitch = horns["next yaw horn"].limits, horns["next pitch horn"].limits
+    level, reach = 90 + gimbal.servos(0, 0)[1], min(-pitch[0], pitch[1])
+    lid = {"lo": gimbal.LID_SHUT, "rest": gimbal.LID_REST, "hi": gimbal.LID_EDGES[1]}
+    nominal = {"yaw_lo": 90 + yaw[0], "yaw_hi": 90 + yaw[1], "pitch_lo": level - reach, "pitch_hi": level + reach}
+    nominal |= {f"{s}_lid_{k}": 90 + edge - gimbal.LID_REST for s in "lr" for k, edge in lid.items()}
+    assert {k: cal[k] for k in nominal} == pytest.approx(nominal, abs=0.05)
+    assert {k: eyes.DEFAULT_CAL[k] for k in cal} == cal

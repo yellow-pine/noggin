@@ -141,8 +141,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
-  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
-  jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
+  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
+  bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
   it prints upright); the core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
@@ -158,8 +158,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   other way round until it and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
-  gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
+  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): its yaw, in the gimbal's own
+  degrees since its servos are Stage 1's (#896), through `gimbal.servos`, the gaze level (the program holds the pitch), each lid level to its edge
   (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
