@@ -45,10 +45,10 @@ def test_on_a_nominal_pack_every_servo_keeps_its_minimum_and_both_cores_their_3v
     nominal = W["nominal"]
     assert nominal["pack_v"] == 7.4 and W["servo_min_v"] == 4.8 and W["brownout_v"] == 2.51
     assert set(nominal["servo_v"]) == {"l_lid", "yaw", "r_lid", "pitch", "tilt", "mouth", "pan"}
-    # the shields' 5 V rails hold but for a few hundredths in their dropout, behind the Y lead's 250 mm pair up the post
-    # (#858); the servo lead's two 250 mm conductors (26 AWG, 0.134 ohm/m) drop 0.65 A x 0.067 ohm
-    assert all(abs(nominal["servo_v"][n] - 4.926) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(nominal["servo_v"][n] - 4.944) < 0.001 for n in ("tilt", "mouth", "pan"))
+    # the shield's 5 V rail holds (Core 1's, behind the neck cable's drop, 3 mV into its dropout, #858); the servo
+    # lead's two 250 mm conductors (26 AWG, 0.134 ohm/m) drop 0.65 A x 0.067 ohm
+    assert all(abs(nominal["servo_v"][n] - 4.953) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert all(abs(nominal["servo_v"][n] - 4.956) < 0.001 for n in ("tilt", "mouth", "pan"))
     assert all(abs(v - 3.3) < 1e-6 for v in nominal["core_v"].values())
 
 
@@ -67,8 +67,8 @@ def test_at_the_cut_the_servos_sag_below_their_minimum_and_the_cores_keep_their_
     cutoff = W["cutoff"]
     assert all(v < W["servo_min_v"] for v in cutoff["servo_v"].values())  # "sluggish when the battery is low"
     assert all(abs(v - 3.3) < 1e-6 for v in cutoff["core_v"].values())  # the pack cuts before a Core browns out
-    # 5.8 V less 5.34 A through the MOSFETs, the pack lead, the switch and the Y lead's 250 mm pair up the post (#858),
-    # the shield's branch, the rail's 0.5 V dropout and the servo lead: Core 1's shield (4 servos) sags further than
-    # Core 2's (3)
-    assert all(abs(cutoff["servo_v"][n] - 4.195) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(cutoff["servo_v"][n] - 4.212) < 0.001 for n in ("tilt", "mouth", "pan"))
+    # 5.8 V less 5.34 A through the MOSFETs, the pack lead, the power-path board's battery FET, the switch and the neck
+    # cable's 250 mm of 24 AWG up the post (#858), the shield's branch, the rail's 0.5 V dropout and the servo lead:
+    # Core 1's shield (4 servos) sags further than Core 2's (3)
+    assert all(abs(cutoff["servo_v"][n] - 4.221) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert all(abs(cutoff["servo_v"][n] - 4.238) < 0.001 for n in ("tilt", "mouth", "pan"))
