@@ -1,7 +1,42 @@
 """Numerical fitting of public anatomical meshes; private reference meshes stay outside this module."""
 
 import numpy as np
+from scipy.interpolate import RBFInterpolator
 from shapely.geometry import Polygon
+
+
+def warp(arrays, scene):
+    """Fit all public raw bones in one world field, keeping each local Sculpt−Warp delta.
+
+    Input/output are the public scene exchange, never a private reference mesh. Blender only applies the result;
+    the numerical solve and its non-collapse gate run on GX10.
+    """
+    pairs = list(scene["landmarks"].values())
+    source, target = (np.array([p[k] for p in pairs]) for k in ("source", "target"))
+    field = RBFInterpolator(source, target - source, kernel="thin_plate_spline")
+    result, world = {}, []
+    for bone in scene["bones"]:
+        key, matrix = bone["key"], np.asarray(bone["matrix"])
+        points = arrays[key + "_basis"] @ matrix[:3, :3].T + matrix[:3, 3]
+        world.append(points)
+        local = (points + field(points) - matrix[:3, 3]) @ np.linalg.inv(matrix[:3, :3]).T
+        result[key + "_warp"] = local
+        result[key + "_sculpt"] = local + arrays[key + "_sculpt"] - arrays[key + "_warp"]
+    points = np.vstack(world)
+    probes = np.stack(
+        np.meshgrid(*[np.linspace(a, b, 14) for a, b in zip(points.min(0), points.max(0))], indexing="ij"), -1
+    ).reshape(-1, 3)
+    jac = np.empty((len(probes), 3, 3))
+    for i in range(3):
+        step = np.eye(3)[i] * 0.5
+        jac[:, :, i] = field(probes + step) - field(probes - step)
+    determinant = float(np.linalg.det(jac + np.eye(3)).min())
+    if determinant <= 0.1:
+        raise ValueError(f"Bust warp folds or collapses: least Jacobian {determinant:.4f}")
+    return result, {
+        "min_jacobian": determinant,
+        "landmark_error_mm": float(np.linalg.norm(source + field(source) - target, axis=1).max()),
+    }
 
 
 def canal(mesh, normal=(0, 0, 1)):
