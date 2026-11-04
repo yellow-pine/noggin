@@ -78,13 +78,17 @@ def test_no_two_parts_overlap_in_any_frame_of_any_motion(motion, chunk):
 
 
 @pytest.fixture
-def eureka_load(level, monkeypatch):
+def eureka_load(doc, level, monkeypatch):
     monkeypatch.setitem(tj.traces.MOTIONS, "eureka", f"eureka {level}")
-    loads, _ = mujoco_report._motions(DOC, built(DOC), None, ["eureka"])
+    loads, _ = mujoco_report._motions(doc, built(doc), None, ["eureka"])
     return loads["servos"]
 
 
-@pytest.mark.parametrize("level", (1, 2, 3))
+@pytest.mark.parametrize(
+    "doc, level",
+    [(doc, level) for doc in geometry.SIMULATED if "tilt horn" in stages.STAGES[doc].horns for level in (1, 2, 3)],
+    ids=str,
+)
 def test_eurekas_neck_servos_stay_under_rated_hold_and_half_stall_peak(eureka_load):
     """#929: the new Core motion has no hero-only peak exception (test_report.KNOWN_PEAKS)."""
     for name in ("pan horn", "tilt horn", "jaw horn"):
