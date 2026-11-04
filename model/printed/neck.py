@@ -113,7 +113,7 @@ def cervical_carrier():
     _, y, z = nk.HEAD_AXES["tilt"][0]
     out = box((-20, 20), (56, 72), nk.MOUNT_Z)
     for sign in (-1, 1):
-        xs = sorted(sign * x for x in (6, 10))
+        xs = sorted(sign * x for x in (5.8, 10.2))
         rail = box(sorted(sign * x for x in (14, 18)), (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
         points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
         for a, b in zip(points, points[1:]):
@@ -148,11 +148,12 @@ def nod_plate():
     for start, x in (((-21, py + 6), -23), ((11, py + 6), 23)):
         out = out.union(_flat([start, (x, 72)], 4, (floor, floor + 3)).cut(passes(matrix)))
         out = out.union(box((x - 1.5, x + 1.5), (69.5, 74.5), (floor, nk.NOD_Z[0] + 1)))
+        out = out.union(_flat([(x, 72), (math.copysign(12.8, x), y)], 4, (nk.NOD_Z[0], nk.NOD_Z[0] + 3)))
     # Upper-head saddle on the actual standard-servo tabs; rear posts clear the complete tray/PCB pan sweep.
     sx, sy, sz = nk.TILT_SHAFT
     tab_x = (sx + 10.4, sx + 13.4)
     ceiling, rear = sz + 20, 102.0
-    out = out.union(box((-15, 15), (y, 115), nk.NOD_Z))
+    out = out.union(box((-10, 10), (y, 98), nk.NOD_Z)).union(box((-15, 15), (98, 115), nk.NOD_Z))
     # One positive-X mast leaves the negative-X reaction standoff free. Its low dogleg bypasses the rotating plate;
     # its top leans forward from the hair groove, preserving the continuous skull-wall stack.
     mast = [
@@ -172,8 +173,8 @@ def nod_plate():
     out = out.cut(box((-3.2, 3.2), (95, 116), nk.NOD_Z))  # the reaction bar crosses the rear edge at full tilt
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
     for xs, radius in (
-        ((5.7, 10.3), 5.1),
-        ((-10.3, -5.7), 5.1),
+        ((5.5, 10.5), 5.1),
+        ((-10.5, -5.5), 5.1),
         ((-34.2, -25.8), 8.5),
     ):
         out = out.cut(cyl("x", (0, y, z), radius, xs))
