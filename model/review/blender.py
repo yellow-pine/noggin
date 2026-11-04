@@ -57,7 +57,7 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """The private arm-free reference: one mesh named Morty in the raw sculpt's frame, its painted material slots
+    """The private closed, arm-free reference: one mesh named Morty in the raw sculpt's frame, its painted material slots
     named by Skin Colour group. Keep this editable .blend in docs/references; rebuilding never writes to it."""
     with bpy.data.libraries.load(m["blend"]) as (src, dst):
         if "Morty" not in src.objects:
@@ -89,6 +89,8 @@ def morty(m):
     )
     rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.z - floor) < 1e-4 for v in e.verts)]
     caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
+    if any(e.is_boundary for e in rim):
+        raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
     clothes = next(i for i, mat in enumerate(whole.data.materials) if mat.name == "clothes")
     for f in caps:
         f.material_index = clothes

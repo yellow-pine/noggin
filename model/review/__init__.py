@@ -10,7 +10,7 @@ on its largest flat face, packed on BED plates); `before` adds a scene of main's
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
 
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
-it): an arm-free mesh named Morty, in morty-fixed.stl's raw frame, with painted material slots named by Skin Colour
+it): a closed arm-free mesh named Morty, in morty-fixed.stl's raw frame, with painted material slots named by Skin Colour
 group. It stays local and editable; the recipe reads it without changing it, applies the Default Skin palette and
 cuts it at the model's floor. Without this sectioned reference, Morty's layer stays empty, including in a fresh clone.
 """
