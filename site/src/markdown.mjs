@@ -55,9 +55,9 @@ const macros = {
 
 /** A mark's `#N`, in its text node, becomes a link to the issue (GitHub shows the text as written). */
 const linkIssue = (node, n, ctx) => {
-  const [head, tail] = node.value.split(`#${n}`, 2);
+  const [head, tail] = node.value.split(`(#${n})`, 2);
   const link = { type: 'link', url: `${REPO}/issues/${n}`, children: [{ type: 'text', value: `#${n}` }] };
-  ctx.replaceNode(node, [{ type: 'text', value: head }, link, { type: 'text', value: tail }]);
+  ctx.replaceNode(node, [{ type: 'text', value: `${head}(` }, link, { type: 'text', value: `)${tail}` }]);
 };
 
 /** The marks (docs/adr/0024), each with its kind, issue, text and the heading it sits under, for the Roadmap page
