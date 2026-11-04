@@ -1,7 +1,9 @@
 """claude_approved.py: claude-review.yml's `Review` passes only when claude[bot]'s last verdict on the PR's head is an
 approval, and Claude's verdict is refused until that last verdict matches it (#389)."""
 
-from scripts.claude_approved import last_verdict, outdated_threads, refusal, wanted
+import pytest
+
+from scripts.claude_approved import last_verdict, new_review, outdated_threads, refusal, stale, wanted
 
 HEAD = "a" * 40
 
@@ -47,11 +49,27 @@ def test_the_hook_wants_the_review_claude_is_about_to_report_and_the_gate_an_app
     assert wanted(None) == "APPROVED"
 
 
-def test_the_hook_refuses_a_verdict_until_its_review_is_on_the_head():
-    assert "gh pr review 378 --approve --body-file -" in (refusal("approve", "CHANGES_REQUESTED", 378, HEAD) or "")
-    assert "gh pr review 378 --request-changes --body-file -" in (refusal("request_changes", None, 378, HEAD) or "")
-    assert refusal("approve", "APPROVED", 378, HEAD) is None
-    assert refusal(None, None, 378, HEAD) is None  # `Check the verdict` never refuses: it exits 1
+def test_the_hook_posts_the_verdict_on_the_reviewed_commit_with_an_allowed_event_alone():
+    """#950: the hook, not the model, posts the review: on the commit the run read (`gh pr review` would land on the
+    head of the moment, a newer push's), its event from the verdict, the model's reasons only as its body."""
+    assert new_review("approve", "ok", HEAD) == {"commit_id": HEAD, "event": "APPROVE", "body": "ok"}
+    assert new_review("request_changes", "no", HEAD)["event"] == "REQUEST_CHANGES"
+    with pytest.raises(KeyError):
+        new_review("DISMISS", "x", HEAD)
+
+
+def test_the_hook_refuses_a_verdict_until_its_review_is_on_the_reviewed_commit():
+    assert HEAD in (refusal("approve", "CHANGES_REQUESTED", HEAD) or "")
+    assert refusal("request_changes", None, HEAD)
+    assert refusal("approve", "APPROVED", HEAD) is None
+    assert refusal(None, None, HEAD) is None  # `Check the verdict` never refuses: it exits 1
+
+
+def test_the_gate_fails_a_review_of_a_commit_the_pr_moved_past():
+    """#950: no run is cancelled early (#944), so an older push's review can end after a newer push; its approval is on
+    the commit it read, and `Review` fails unless that commit is still the PR's head."""
+    assert stale(HEAD, HEAD) is None
+    assert "newer push" in (stale(HEAD, "b" * 40) or "")
 
 
 def thread(tid, outdated=True, resolved=False, login="claude"):  # GraphQL names a bot without its [bot]

@@ -89,10 +89,24 @@ def test_every_job_has_a_timeout():
     """#944: a hung Blender or sim never holds a runner for GitHub's six hours. Each limit is at least twice the job's
     longest measured run (its PR lists them); a job calling a reusable workflow takes its jobs' limits."""
     jobs = [(f.name, i, j) for f in WORKFLOWS for i, j in yaml.safe_load(f.read_text())["jobs"].items()]
-    missing = [(f, i) for f, i, j in jobs if "uses" not in j and not isinstance(j.get("timeout-minutes"), int)]
-    # shortcut: a PR editing claude-review.yml gets no review and needs Cansin's bypass (CONTRIBUTING.md), so its
-    # Fetch Skills limit lands in its own PR, which empties this list
-    assert missing == [("claude-review.yml", "skills")]
+    assert [(f, i) for f, i, j in jobs if "uses" not in j and not isinstance(j.get("timeout-minutes"), int)] == []
+
+
+def test_claude_reviews_the_commit_its_run_read():
+    """#950: no run is cancelled early (#944), so an older push's Review can end after a newer push. The hook (main's
+    scripts/claude_approved.py) posts the review on the commit the run read, never the model; the hook and `Check the
+    verdict` judge that commit, and the gate fails once the PR moved past it."""
+    (job,) = [
+        j
+        for j in yaml.safe_load((WORKFLOWS[0].parent / "claude-review.yml").read_text())["jobs"].values()
+        if any(s.get("id") == "claude" for s in j["steps"])
+    ]
+    steps = {s["name"]: s for s in job["steps"]}
+    claude, sha = steps["Run Claude's review"]["with"], "${{ github.event.pull_request.head.sha }}"
+    # the model posts nothing itself: no raw `gh api` (an injected prompt could call any endpoint) nor `gh pr review`
+    assert not re.search(r"gh (api|pr review)", claude["claude_args"] + claude["prompt"])
+    assert f"REVIEWED_SHA={sha} python3 -I -S" in claude["settings"]
+    assert steps["Check the verdict"]["env"]["REVIEWED_SHA"] == sha
 
 
 def test_no_workflow_runs_on_ubuntu_latest():
@@ -107,10 +121,8 @@ def test_no_run_or_job_is_cancelled_early():
     only Checks' Deploy and Release's Release keep a job's group, never cancelling one in progress, so a newer commit's
     deploy or release replaces a queued older one and an older site never lands after a newer."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
-    # shortcut: a PR editing claude-review.yml gets no review and needs Cansin's bypass (CONTRIBUTING.md), so its group
-    # goes in its own PR, which empties both lists
-    assert [n for n, flow in flows.items() if "concurrency" in flow] == ["claude-review.yml"]
-    assert [f.name for f in WORKFLOWS if "cancel-in-progress: true" in f.read_text()] == ["claude-review.yml"]
+    assert [n for n, flow in flows.items() if "concurrency" in flow] == []
+    assert [f.name for f in WORKFLOWS if "cancel-in-progress: true" in f.read_text()] == []
     groups = {
         (n, i): j["concurrency"] for n, flow in flows.items() for i, j in flow["jobs"].items() if "concurrency" in j
     }
