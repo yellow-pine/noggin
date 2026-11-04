@@ -49,14 +49,14 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     state = tmp_path / "mute"
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"
-    cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
+    cal.write_text('{"lid_rest": 0.28, "yaw_lo": 65}')
     d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal, beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True)
     t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
     assert wait_for(
-        lambda: fake.buf == b"set lid_rest 0.28\nset l_eye_lo 58\nrest\nthinking\n"
+        lambda: fake.buf == b"set lid_rest 0.28\nset yaw_lo 65\nrest\nthinking\n"
     )  # calibration + mode on connect, then the Trigger
     send(sock, "off\n")
     assert wait_for(lambda: state.exists())

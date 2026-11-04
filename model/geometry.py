@@ -19,14 +19,15 @@ HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15}
 # Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0 (51.2 long, 28.4 wide), lead fused to the pack body
 # beyond y=56
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
-# The servos by the names the remote config and calibration use, and their Mech labels. Core 1 drives the eyes
-# (docs/build/wiring.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
-CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
+# The servos by the names the remote config and calibration use, and their Mech labels (Stage 1's horns, model/stages.py
+# next_eyes). Core 1 drives the eye gimbal (docs/build/wiring.md servo ports, #896): a lid servo per eye, one yaw and
+# one pitch servo for both eyes; Core 2 tilt/mouth/pan.
+CHANNELS = {"core1": {1: "l_lid", 2: "yaw", 3: "r_lid", 4: "pitch"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
 SERVO_LABEL = {
     "l_lid": "L lid",
-    "l_eye": "L eye",
+    "yaw": "yaw",
     "r_lid": "R lid",
-    "r_eye": "R eye",
+    "pitch": "pitch",
     "tilt": "tilt",
     "mouth": "jaw",
     "pan": "pan",
