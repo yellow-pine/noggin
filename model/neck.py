@@ -30,6 +30,18 @@ from scipy.optimize import brentq
 from model import geometry as g
 from model import linkage
 
+# #902's inferred functional interface, in the head's frame. #874 verifies the actual anatomical registration;
+# prototype canal estimates are not anatomical anchors. The mechanism below migrates to this contract in #902.
+HEAD_FRAME = g._HEAD
+HEAD_AXES = {
+    "tilt": ((0.0, 76.6, -48.7), g.X),
+    "pan": ((0.0, 46.2, -35.2), g.Z),
+    "jaw": ((0.0, 60.5, -42.1), g.X),
+}
+HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
+HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
+HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
+
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
