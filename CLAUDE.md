@@ -46,7 +46,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
 - Themes, the Mech's Skeleton and Skins (Shells planned, #51): `docs/face-design.md`.
-- Model pictures (Blender, from MuJoCo's trajectories; look, the panels): `docs/model-notes.md`; `just render`, `just pictures next` (what the site publishes).
+- Model pictures (Blender, from MuJoCo's trajectories; look, the six stills): `docs/model-notes.md`; `just render`, `just pictures next` (what the site publishes).
 - Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, the site serves the Mech's; `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.
 - The designer's PDFs/STLs/configs and the GazeBase cache: `docs/references/` (gitignored, local only).
