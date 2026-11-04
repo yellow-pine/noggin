@@ -30,8 +30,8 @@ from scipy.optimize import brentq
 from model import geometry as g
 from model import linkage
 
-# #902's inferred functional interface, in the head's frame. #874 verifies the actual anatomical registration;
-# prototype canal estimates are not anatomical anchors. The mechanism below migrates to this contract in #902.
+# #902's actual mechanical interface in the head's frame. #874 verifies anatomical registration and finished loads;
+# prototype canal estimates are not anatomical anchors.
 HEAD_FRAME = g._HEAD
 HEAD_AXES = {
     "tilt": ((0.0, 76.6, -48.7), g.X),
@@ -65,9 +65,7 @@ FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not t
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
-AXIS = (61.0, -42.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the realistic
-# skull's foramen magnum, at its base (#838), the cheeks' bosses (BOSS_R) up into the head mount's flange, 0.5 under the
-# gimbal frame's plate (#708)
+AXIS = (61.0, -42.0)  # legacy base/Skin layout datum; actual physical joint axes are HEAD_AXES
 FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's plate's back (model/gimbal.py PLATE_Z)
 HEAD_SCREWS = (
     (16.0, 48.0),
@@ -207,6 +205,12 @@ def servo_for(drive, out):
 
 def transmission(drive, servo_deg):
     """The angle between the bar and its lever at the servo's angle, folded to 0..90 (0 at the toggle)."""
+    if drive == "tilt":
+        theta = math.radians(-servo_deg)
+        dy, dz = np.subtract(TILT_SHAFT, HEAD_AXES["tilt"][0])[1:]
+        bar = np.array((dy * math.cos(theta) - dz * math.sin(theta), dy * math.sin(theta) + dz * math.cos(theta)))
+        lever = np.array(TILT_ARM)  # the closed parallelogram keeps the reaction arms fixed in world orientation
+        return math.degrees(math.acos(np.clip(abs(bar @ lever) / (np.linalg.norm(bar) * np.linalg.norm(lever)), 0, 1)))
     solve = LINKAGES[drive]
     _, a, b = solve(servo_deg)
     u, v = linkage._PLANE[tuple(solve.axis)]
@@ -285,6 +289,10 @@ def report(head, bare=None):
             "servo_deg": [servo_for(drive, d) for d in RANGES[drive]],
             "gain": 1.0,
         }
+    out["tilt"] |= {
+        "drive": "parallelogram",
+        "transmission_deg": round(min(transmission("tilt", s) for s in _sweep("tilt")), 1),
+    }
     sweep = _sweep("tilt")
     spring = balance(head, bare)
 

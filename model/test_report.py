@@ -135,7 +135,7 @@ def neck_problems(report):
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
         rated = (
             sim.limits("tilt horn")["rated_kgf_cm"]
-            if t.get("drive") == "direct" or m["tilt"].get("drive") == "direct"
+            if m["tilt"].get("drive") in {"direct", "parallelogram"}
             else sim.RATED_KGF_CM
         )
         if t["hold_kgf_cm"] > rated:
