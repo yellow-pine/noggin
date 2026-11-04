@@ -139,7 +139,8 @@ def mech(soc):
             f"Brail_{core} {vbat} {rail} v=max(V({vbat})-{SERVO_RAIL_V}, {SERVO_DROPOUT_V})",
         ]
         for name in ports.values():
-            lines += [f"R{name} {rail} {name} {SERVO_LEAD_MM * OHM_PER_MM}", f"I{name} {name} 0 {STALL_A}"]
+            motor = servo.profile(name, SERVO_RAIL_V)
+            lines += [f"R{name} {rail} {name} {motor['lead_mm'] * OHM_PER_MM}", f"I{name} {name} 0 {motor['stall_a']}"]
         lines += [
             f"Bcore_{core} {vbat} {core} v=max(V({vbat})-{CORE_V}, {CORE_DROPOUT_V})",
             f"Iwifi_{core} {core} 0 {WIFI_TX_A}",
@@ -175,6 +176,7 @@ def worst_case():
     return {
         "cap_a": CAP_A,
         "servo_min_v": SERVO_MIN_V,
+        "servos": {name: servo.profile(name, SERVO_RAIL_V) for ports in CHANNELS.values() for name in ports.values()},
         "brownout_v": BROWNOUT_V,
         "cutoff_delay_ms": CUTOFF_DELAY_MS,
         "nominal": nominal,
