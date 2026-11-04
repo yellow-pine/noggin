@@ -131,9 +131,7 @@ def refit(arrays, scene, envelope):
             }
     points = np.vstack(chest_points)
     lo, hi = points.min(0), points.max(0)
-    for i, p in enumerate(
-        (np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2]))
-    ):
+    for i, p in enumerate(np.array((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])):
         scene["landmarks"][f"LM chest frame {i}"] = {
             "source": (p @ common[:3, :3].T + common[:3, 3]).tolist(),
             "target": (p @ chest[:3, :3].T + chest[:3, 3]).tolist(),
