@@ -4,12 +4,11 @@ the recipe runs this file after each build)."""
 
 import json
 import os
-import subprocess
 
 import pytest
 
 from model import geometry as g
-from model import review, skeleton, stages
+from model import review, stages
 
 STAGE = stages.STAGES[review.DOC]
 
@@ -50,13 +49,26 @@ def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
     review.lock(path).close()
 
 
-INSPECT = """
-import json, bpy
+REFERENCE_CARRIERS = {
+    role: stages.RIDES[shell]
+    for role, shell in {
+        "head": "morty face:1",
+        "jaw": "morty mouth cover:1",
+        "L eye": "morty L pupil:1",
+        "R eye": "morty R pupil:1",
+    }.items()
+}
+
+INSPECT = (
+    f"EXPECTED_REFERENCE = {REFERENCE_CARRIERS!r}\n"
+    + """
+import json, bpy, numpy as np
 def walk(lc):
     yield lc
     for c in lc.children:
         yield from walk(c)
 a = bpy.data.scenes["Assembled"]
+a.frame_set(a.frame_start)
 out = {"scenes": [s.name for s in bpy.data.scenes], "first": bpy.context.window_manager.windows[0].scene.name}
 out["layers"] = {c.name: {k.name: sorted({round(o.color[3], 2) for o in k.objects}) for k in c.children}
                  for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
@@ -81,11 +93,61 @@ out["helpers"] = next(l.hide_viewport for l in walk(a.view_layers[0].layer_colle
 horns = [o for o in bpy.data.objects if o.name.startswith("horn ")]
 out["actions"] = sorted({o.animation_data.action.name for o in a.objects if o.animation_data})
 deg = {o.name[5:]: [] for o in horns}
+reference = {}
+reference_witnesses = []
+out["reference_witnesses"] = {}
+for o in bpy.data.collections["Morty"].all_objects:
+    if o.get("reference_region"):
+        v = np.empty(len(o.data.vertices) * 3)
+        o.data.vertices.foreach_get("co", v)
+        v = v.reshape(-1, 3)
+        m = np.array(o.matrix_world)
+        reference[o.name] = (o, v, v @ m[:3, :3].T + m[:3, 3])
+        for g in o.vertex_groups:
+            if g.name in ("witness neck", "witness L shoulder", "witness R shoulder"):
+                indices = [p.index for p in o.data.vertices if any(x.group == g.index and x.weight > .5 for x in p.groups)]
+                points = v[indices]
+                reference_witnesses.append((g.name, o, points, points @ m[:3, :3].T + m[:3, 3]))
+                out["reference_witnesses"].setdefault(g.name, []).append({"region": o["reference_region"],
+                    "vertices": len(points), "travel": 0.0})
+actors = {o["part"]: o for o in a.objects if o.get("part")}
+actor_rest = {role: np.array(actors[part].matrix_world) for role, part in EXPECTED_REFERENCE.items() if part in actors}
+actor_back = {role: np.linalg.inv(m) for role, m in actor_rest.items()}
+out["reference_motion"] = {o["reference_region"]: {"vertices": len(v), "travel": 0.0,
+    "carrier_error": None, "own_travel": 0.0}
+    for o, v, rest in reference.values()}
 for f in range(a.frame_start, a.frame_end + 2):
     a.frame_set(f)
     for o in horns:
         deg[o.name[5:]].append(o["deg"])
+    for o, v, rest in reference.values():
+        m = np.array(o.matrix_world)
+        travel = np.linalg.norm(v @ m[:3, :3].T + m[:3, 3] - rest, axis=1).max()
+        region = out["reference_motion"][o["reference_region"]]
+        region["travel"] = max(region["travel"], float(travel))
+        role = o["reference_region"]
+        if role in actor_back and "head" in actor_back:
+            delta = np.array(actors[EXPECTED_REFERENCE[role]].matrix_world) @ actor_back[role]
+            now = v @ m[:3, :3].T + m[:3, 3]
+            expected = rest @ delta[:3, :3].T + delta[:3, 3]
+            error = float(np.linalg.norm(now - expected, axis=1).max())
+            region["carrier_error"] = max(region["carrier_error"] or 0.0, error)
+            head_back = np.linalg.inv(np.array(actors[EXPECTED_REFERENCE["head"]].matrix_world))
+            local_now = now @ head_back[:3, :3].T + head_back[:3, 3]
+            local_rest = rest @ actor_back["head"][:3, :3].T + actor_back["head"][:3, 3]
+            region["own_travel"] = max(region["own_travel"], float(np.linalg.norm(local_now - local_rest, axis=1).max()))
+    for name, o, v, rest in reference_witnesses:
+        m = np.array(o.matrix_world)
+        travel = float(np.linalg.norm(v @ m[:3, :3].T + m[:3, 3] - rest, axis=1).max()) if len(v) else 0.0
+        witness = next(w for w in out["reference_witnesses"][name] if w["region"] == o["reference_region"])
+        witness["travel"] = max(witness["travel"], travel)
 out["horns"] = {h: [min(v), max(v), v[0], v[-1]] for h, v in deg.items()}
+mech_layer = a.view_layers[0].layer_collection.children["Mech"]
+hidden = mech_layer.hide_viewport
+mech_layer.hide_viewport = True
+a.frame_set(156)
+out["reference_visible_without_mech"] = all(o.visible_get(view_layer=a.view_layers[0]) for o, _, _ in reference.values())
+mech_layer.hide_viewport = hidden
 bed, out["plates"] = bpy.data.scenes["Print bed"], {}
 for c in bed.collection.children:
     plate = next(o for o in c.objects if o.name.startswith("Plate"))
@@ -99,7 +161,9 @@ for c in bed.collection.children:
                 hi = [max(a, b) for a, b in zip(hi or p, p)]
     out["plates"][c.name] = [lo[0] - x0, lo[1], lo[2], hi[0] - x0, hi[1], len(c.objects) - 1]
 print("INSPECT " + json.dumps(out))
+print("review: done")
 """
+)
 
 
 @pytest.fixture(scope="module")
@@ -107,10 +171,12 @@ def blend():
     path = os.environ.get("NOGGIN_REVIEW")
     if not path or not os.path.isfile(path):
         pytest.skip("no review file to read (NOGGIN_REVIEW: just review sets it)")
-    r = subprocess.run(
-        [skeleton.BLENDER, "-b", "--factory-startup", path, "--python-expr", INSPECT], capture_output=True, text=True
-    )
-    line = next(x for x in r.stdout.splitlines() if x.startswith("INSPECT "))
+    held = review.lock(review.SLOT, wait=True)
+    try:
+        log = review._blender([path, "--python-expr", INSPECT])
+    finally:
+        held.close()
+    line = next(x for x in log.splitlines() if x.startswith("INSPECT "))
     return json.loads(line.removeprefix("INSPECT "))
 
 
@@ -127,8 +193,9 @@ def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
         assert sorted(regions) == sorted(f"{layer} {r}" for r in ("Skull", "Mechanism", "Pedestal"))
         assert all(a in ([], [alpha]) for a in regions.values()), (layer, regions)
         assert blend["layer_material_alpha"][layer] in ([], [alpha])
-    assert (blend["morty"] == 3) == os.path.isfile(review.MORTY)
+    assert bool(blend["morty"]) == os.path.isfile(review.MORTY)
     assert blend["helpers"]
+    assert blend["reference_visible_without_mech"]
 
 
 def test_one_looping_action_sweeps_each_horn_over_its_servos_range(blend):
@@ -151,12 +218,39 @@ def test_mortys_sections_show_the_default_skin_palette_at_33_percent(blend):
         assert rgba == pytest.approx([*linear, 0.33])
 
 
+def test_the_reference_neck_shoulders_and_torso_stay_fixed_while_the_head_moves(blend):
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    motion = blend["reference_motion"]
+    assert {"neck", "shoulders", "torso", "head"} <= motion.keys()
+    for name in ("neck", "shoulders", "torso"):
+        assert motion[name]["vertices"] >= 3
+        assert motion[name]["travel"] == pytest.approx(0.0, abs=1e-3), name
+    assert motion["head"]["travel"] > 1.0
+    for name, role in {"neck": "neck", "L shoulder": "shoulders", "R shoulder": "shoulders"}.items():
+        witnesses = blend["reference_witnesses"]["witness " + name]
+        assert all(w["region"] == role and w["vertices"] > 0 for w in witnesses), name
+        assert all(w["travel"] < 1e-3 for w in witnesses), name
+
+
 def test_mortys_bust_stops_at_the_models_flat_floor(blend):
     if not blend["morty"]:
         pytest.skip("no local Morty reference")
     low, caps = blend["bust"]
     assert low == pytest.approx(blend["floor"], abs=0.01)
     assert caps > 0
+
+
+def test_the_reference_jaw_and_eyes_follow_their_live_carriers_independently_of_the_head(blend):
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    motion = blend["reference_motion"]
+    for role in REFERENCE_CARRIERS:
+        assert motion[role]["vertices"] > 0
+        assert motion[role]["carrier_error"] is not None, role
+        assert motion[role]["carrier_error"] < 1e-3, role
+    assert motion["head"]["own_travel"] < 1e-3
+    assert all(motion[role]["own_travel"] > 1.0 for role in ("jaw", "L eye", "R eye"))
 
 
 def test_exploded_and_print_bed_materials_are_opaque(blend):
