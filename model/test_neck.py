@@ -3,8 +3,9 @@ angles each range needs, and the report's numbers against #641's gates."""
 
 import numpy as np
 import pytest
+import trimesh
 
-from model import base, neck, stages
+from model import base, mjcf, neck, stages
 from model import geometry as g
 
 # a head of 300 g with its centre of mass 40 mm above the tilt axis, straight over it at rest
@@ -47,6 +48,39 @@ def test_a_direct_servo_turns_its_carrier_and_riders_but_not_its_fixed_reaction(
         assert pose.parts[name][:3, 3] == pytest.approx(
             (0, radius * np.cos(np.deg2rad(20)), sign * radius * np.sin(np.deg2rad(20)))
         )
+
+
+@pytest.mark.parametrize("sign", (-1, 1))
+def test_a_direct_servo_in_mujoco_drives_its_joint_and_riders_with_the_physical_sign(tmp_path, monkeypatch, sign):
+    """#902: the real actuator, not just the kinematic command map, turns the rigid carrier against ground."""
+    mesh = tmp_path / "gimbal frame.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    parts = {
+        name: stages.Part(str(mesh), stages.translate(point), (16.0, "documented"), None)
+        for name, point in (("fixed:1", (0, 0, 0)), ("plate:1", (0, 10, 0)), ("head:1", (0, 20, 0)))
+    }
+    horn = stages.Horn(
+        {"point": (0, 0, 0), "axis": g.Z},
+        (-45, 45),
+        "plate:1",
+        [],
+        [],
+        np.eye(4),
+        direct=stages.Direct("pan pivot", ["plate:1", "head:1"], sign),
+    )
+    doc = "mech-back-mechanical"
+    monkeypatch.setitem(stages.STAGES, doc, stages.Doc(doc, parts, {"pan horn": horn}))
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    assert model.actuator("pan horn").trnid[0] == model.joint("pan pivot").id
+    assert model.actuator("pan horn").gear[0] == sign
+    data = mjcf.pose(model, {"pan horn": 20})
+    assert np.degrees(data.joint("pan pivot").qpos[0]) == pytest.approx(20 * sign, abs=0.5)
+    assert data.body("fixed:1").xpos == pytest.approx((0, 0, 0))
+    assert data.body("head:1").xpos == pytest.approx(
+        (-sign * 0.02 * np.sin(np.deg2rad(20)), 0.02 * np.cos(np.deg2rad(20)), 0), abs=0.0002
+    )
 
 
 @pytest.fixture(scope="module")
