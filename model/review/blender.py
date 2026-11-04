@@ -129,7 +129,7 @@ def animate(scene, objects):
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
-    carrier = {"Morty skull": "gimbal frame:1", "Morty mechanism": "pan yoke:1"}
+    carrier = {"Morty skull": "next gimbal frame:1", "Morty mechanism": "next pan yoke:1"}
     moving = []
     for o in objects:
         part = o.get("part") or carrier.get(o.name)

@@ -34,10 +34,10 @@ QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
 CEILING_KB = 3_000_000  # a Blender process's RSS past this is killed: the laptop swaps to a crash
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
 REGIONS = {
-    "eyes": "Skull",
-    "jaw": "Skull",
-    "cranium": "Skull",
-    "neck": "Mechanism",
+    "next-eyes": "Skull",
+    "next-jaw": "Skull",
+    "next-cranium": "Skull",
+    "next-neck": "Mechanism",
 }  # else Pedestal
 FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
@@ -96,11 +96,11 @@ def keys(stage):
         (130, {}),
         (138, {"jaw horn": 0}),
         (146, {}),
-        (156, {"yaw horn": 0}),
-        (172, {"yaw horn": 1}),
+        (156, {"next yaw horn": 0}),
+        (172, {"next yaw horn": 1}),
         (180, {}),
-        (188, {"pitch horn": 1}),
-        (200, {"pitch horn": 0}),
+        (188, {"next pitch horn": 1}),
+        (200, {"next pitch horn": 0}),
         (208, {}),
         (214, dict.fromkeys(lids, 1)),  # wide
         (220, dict.fromkeys(lids, 0)),  # the blink (shut: the low end, inferred)
@@ -185,7 +185,7 @@ def plates(stage):
 def _morty(stage):
     """Morty's place, the planes his three regions part at and his colours: his eyes on the Mech's (one pupils' line),
     scaled to their spacing; Skull above the Mech's head's lowest part, Pedestal below its Pedestal's top."""
-    eyes = stages.align(*stages.DOCS[DOC]["eyes"])
+    eyes = stages.align(*stages.DOCS[DOC]["next-eyes"])
     mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
     raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
     scale = np.linalg.norm(mech["L"] - mech["R"]) / np.linalg.norm(raw["L"] - raw["R"])
