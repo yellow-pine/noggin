@@ -273,6 +273,22 @@ def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
     assert fast.time == pytest.approx(0.5 + abs(command["pan horn"]) / rated, abs=model.opt.timestep)
 
 
+def test_a_quiet_but_stalled_pose_fails_and_restores_the_callers_contact_flags():
+    model = mujoco.MjModel.from_xml_string("""
+    <mujoco>
+      <option timestep="0.0005" gravity="0 0 0"/>
+      <worldbody><body><joint name="stalled" type="hinge"/>
+        <geom type="sphere" size="0.01" mass="0.1"/>
+      </body></worldbody>
+      <actuator><position name="stalled" joint="stalled" kp="0"/></actuator>
+    </mujoco>
+    """)
+    flags = model.opt.disableflags
+    with pytest.raises(RuntimeError, match="did not settle"):
+        mjcf.pose(model, {"stalled": 10})
+    assert model.opt.disableflags == flags
+
+
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
     """Each part's CoACD pieces share its mass from its mesh (mjcf.mass) by volume; a Skin's drawn Shells (model/skin.py
     DRAWN) weigh theirs on their drawn mesh (#830)."""
