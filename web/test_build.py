@@ -103,6 +103,7 @@ def test_each_part_carries_its_explode_offsets_the_page_moves_it_by(glb):
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_explode_gives_each_part_its_offsets_in_gltfs_metres_and_y_up():
     """#482, #664: the Sub-assemblies level by model/render/pictures.py EXPLODE, as glTF's (x, z, -y) in metres: the
     Torso stays, the jaw lifts with the neck and goes forward; then the Parts level's (#811)."""

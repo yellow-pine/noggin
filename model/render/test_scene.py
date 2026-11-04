@@ -10,6 +10,7 @@ DOC = next(iter(geometry.MECH))
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_export_writes_each_part_in_metres_in_its_themes_colour_or_grey(tmp_path):
     """#805, #819: in the document's Theme, or the one given (a Preset's pictures); each part names its Colour group,
     a hardware envelope its file's name: what the GLB's materials are named by, the viewer's repaint."""

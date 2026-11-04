@@ -52,6 +52,7 @@ def _bones():
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
     """The chin to the cranium's top within the head gate's height; each eye's centre inside the cranium's box, the
     brow ahead of the caps' fronts."""
@@ -64,6 +65,7 @@ def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_the_heads_box_is_the_bones():
     """base.DOME, the head's shell in the gates, is the bare bones' box (ADR 0011: a copy held to its source), to a
     mm."""
@@ -89,6 +91,7 @@ def _canal(atlas, b=0.5):
 
 
 @pytest.mark.model
+@pytest.mark.bones
 def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
     """The atlas's canal round the pan axis (the post), its top under the head's tilt lugs, the axis under it."""
     bones = _bones()
@@ -99,6 +102,7 @@ def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
 
 
 @pytest.mark.model
+@pytest.mark.bones
 @pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
     """One piece (but crumbs of a voxel or two), inside the head's box."""

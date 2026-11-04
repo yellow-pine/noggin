@@ -63,7 +63,9 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
     assert _overlaps(placed, pairs) == []
 
 
-@pytest.fixture(params=sorted(g.MECH))
+@pytest.fixture(
+    params=[pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.MECH[d] else d for d in sorted(g.MECH)]
+)
 def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
