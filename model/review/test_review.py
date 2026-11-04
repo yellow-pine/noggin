@@ -24,9 +24,9 @@ def test_the_loop_takes_every_horn_to_each_end_of_its_range_and_back_to_rest():
 def test_the_bones_ride_their_regions():
     """The skull and mandible in Skull, the atlas and axis in Mechanism, the Torso in Pedestal."""
     region = review.regions()
-    assert region["next worn skull:1"] == region["next worn mandible:1"] == "Skull"
-    assert region["next atlas:1"] == region["next axis:1"] == "Mechanism"
-    assert region["next torso:1"] == "Pedestal"
+    assert region["worn skull:1"] == region["worn mandible:1"] == "Skull"
+    assert region["atlas:1"] == region["axis:1"] == "Mechanism"
+    assert region["torso:1"] == "Pedestal"
 
 
 def test_pack_keeps_every_piece_on_a_plate_clear_of_its_edge():
