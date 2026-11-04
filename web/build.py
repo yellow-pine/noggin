@@ -4,7 +4,8 @@ the site serves at viewer/ beside the viewer's page and its module (site/src/pag
 docs/adr/0009). Each GLB is Blender's (web/glb.py): the document's parts in the pictures' look, one glTF clip per motion
 of its baked trajectories (model/trajectories.py, `just trajectories`): its gestures, Rest (#663) and the next hero
 (#642), and each part's Explode offsets in its node's extras (explode, #811). Stage 3 also bare (BARE, #876): the
-viewer's Skin shape none, the stills' bare look (model/render/pictures.py bare).
+viewer's Skin shape none, the stills' bare look (model/render/pictures.py bare); and in each other Skin shape drawn
+(geometry.DRESSED, #813).
 Usage: python -m web.build [out [doc ... | next]]   (default web/build, every GLB; `just web`, Blender at $BLENDER)"""
 
 import json
@@ -23,6 +24,7 @@ SCRIPT = os.path.join(HERE, "glb.py")
 BARE = "-bare"  # a Stage 3 GLB without its Skin, its full bones on (#876): the viewer's Skin shape none
 # what the site serves: the next Mech's Stages (#720, ADR 0019), Stage 3 bare too
 PUBLIC = {doc: doc + ".glb" for doc in g.STAGES} | {doc + BARE: doc + BARE + ".glb" for doc in g.NEXT}
+PUBLIC |= {doc: doc + ".glb" for doc in g.DRESSED}  # Stage 3 in each other Skin shape drawn (#813)
 
 
 def document(name):

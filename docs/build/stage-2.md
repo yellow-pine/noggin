@@ -5,8 +5,9 @@
 > [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
 The eye block leaves its test stand for the neck: the head turns left and right (pan) and nods (tilt) on its own
-pivots, each servo driving it through a bar. The Torso under it holds both packs and the switch board; both Cores ride
-in the head's cranium. Two more servos, on the neck Core.
+pivots, each servo driving it through a bar. The Torso under it holds the pack, its switch and the power-path board;
+both Cores ride in the head's cranium, the hub's USB-C port at the back of the skull base. Two more servos, on the neck
+Core.
 
 ## Parts it adds, from the model
 
@@ -31,26 +32,28 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 
 ## Assembly, as the model places it
 
-1. **Torso**: the box pedestal the Mech stands on, the pack lying low in it, the switch board lying flat beside the
-   pack's lead end, its lever reached through a hole in the lid, the spare pack in front on the kit's charger dongle,
-   an opening in the -x wall where the two packs' plugs swap and the dongle's USB lead leaves, and the **neck mount**
-   standing on its floor, its hollow post rising through the **torso lid**, the pack's Y lead up inside it, the pan
-   servo on its shelf over the lid. The lid slides onto the post from behind through its slot, over the walls, then
-   drops onto its ledge inside them, flush with their top, where it cannot slide off.
+1. **Torso**: ~~the box pedestal the Mech stands on~~ *a T1–T4 ribcage of primitives on a floor plate, the Mech
+   standing on the plate (#879)*, the pack lying low in it, the switch board lying flat beside the
+   pack's lead end, its lever reached through a hole in the lid, the power-path board lying flat in front, and the
+   **neck mount** standing on its floor, its hollow post rising through the **torso lid**, the neck cable up inside it,
+   the pan servo on its shelf over the lid. The lid slides onto the post from behind through its slot, over the walls,
+   then drops onto its ledge inside them, flush with their top, where it cannot slide off.
 2. **Pan yoke** turning on the post's top under the head, the tilt servo on its floor; the **pan bar** joins it to the
    pan servo's horn.
 3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the skull's base behind the head's centre of mass,
    a torsion spring on its shank holding the head's weight (the balance spring); the **tilt bar** joins it to the tilt
    servo's horn.
 4. **Eye block** from [Stage 1](stage-1.md) on the head mount, in the test stand's place.
-5. **Cranium tray** on the gimbal frame's plate, up behind the bail: both Cores lying flat on their Shields on it,
-   each USB-C socket's opening straight back through the skull.
+5. **Cranium tray** on the gimbal frame's plate, up behind the bail: both Cores lying flat on their Shields on it, and
+   the hub on its riser, its upstream USB-C port out the back of the skull base.
 
 Each busy pivot is a greased M3 shank turning in a bore printed along the layers' axis.
 
 ## Wiring
 
-The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)). One pack and the switch board in the Torso
-feed both Shields in the head, the Y lead's one pair up the post, split in the cranium; every servo lead runs to the
-Shields in the head, and the leads that cross the pan and tilt pivots (the pan servo's, the tilt servo's and the Y
-lead's pair) are clamped at both ends and bent no tighter than ten times their diameter.
+The neck Core joins the Wi-Fi like the eyes Core ([Wiring](wiring.md)). The power-path board in the Torso charges the
+pack from the head's USB-C and feeds both Shields in the head through the switch board and the neck cable's four
+conductors up the post, a 470 µF capacitor across the Y lead where it enters the Shields; its input limit follows what
+the USB-C source advertises (docs/research/2026-11-03-usb-c-power.md 7). Every servo lead runs to the Shields in the
+head, and the leads that cross the pan and tilt pivots (the pan servo's, the tilt servo's and the neck cable) are
+clamped at both ends and bent no tighter than ten times their diameter.

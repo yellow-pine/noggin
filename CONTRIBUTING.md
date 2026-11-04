@@ -55,9 +55,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
-- Issue state labels, one per state: `ready for agent` (can start), `in progress` (picked up and not in main yet; a
-  spec from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another
-  ticket, hardware), `on hold` (paused by Cansin). `blocked` and `on hold` are set by hand. The implementer sets
+- Issue state labels, at most one per open issue: `ready for agent` (can start), `in progress` (picked up and not in
+  main yet; a spec from its first ticket until its last reaches main), `blocked` (waits on something no issue can
+  stand for, named in the issue: hardware, sudo, an outside party), `on hold` (paused by Cansin). A wait on another
+  ticket is GitHub's own blocked-by relationship alone, set when the ticket is filed (`gh api -X POST
+  repos/{owner}/{repo}/issues/N/dependencies/blocked_by -F issue_id=$(gh api repos/{owner}/{repo}/issues/M --jq
+  .id)` for N blocked by M); GitHub already shows the issue as blocked, so no label. An issue's type is its
+  Conventional Commit title, so no `enhancement` label. `blocked` and `on hold` are set by hand. The implementer sets
   `in progress` on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR
   opened by hand), and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
@@ -139,7 +143,7 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
-  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
+  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Render,
   the smoke) runs on main after the merge, CodeQL weekly (#728), and a red default branch files its own issue (`fix(<the
   failed job's scope>): \`Checks\` fail on the default branch at <sha7> (<job>)`), labelled `default branch failure`
   and found by it (#697, #745, #767, #791). Only the main session runs the full run on a
@@ -158,12 +162,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
-  inputs. `Site` runs after Blender unless a job before it failed: it builds the deploy with the next Mech's pictures,
+  inputs. `Site` runs after Render unless a job before it failed: it builds the deploy with the next Mech's pictures,
   tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
   (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
 - `Model` runs on eight shards, `just mech` one of their units, balanced by the seconds CI measured in
-  `model/durations.json`, and `Render` on eight, its pictures balanced by their Blender seconds there (#839); `just
-  model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
+  `model/durations.json`, and `Render` in one job, its parts and trajectories built once for its six stills and the
+  GLBs (#898); `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
   public repo is anyone's (ADR 0019, `test_workflows.py`); the

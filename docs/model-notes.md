@@ -5,9 +5,8 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 ## Rendering rules (2026-10-31, #47)
 - Today's Mech left the model (Cansin, 2026-11-02, #720): its Stages, sub-assemblies and printed parts, their tests,
   renders and the hero live in git history alone; the model holds the next Mech.
-- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` shards render its two panels
-  and a picture of each of its parts (alone at rest, isometric, framed on its own, 400 x 400: pictures.py next_parts,
-  `just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
+- The next Mech is published (Cansin, 2026-11-02, #649, docs/adr/0019): Checks' `Render` (one job since #898, its
+  parts and trajectories built once) renders its six stills (`just pictures next`) and bakes its viewer GLB, a clip per motion it plays since #663 (`just web` with its
   document), when what they are made from changed; the site shows them on [Pictures](pictures.md) and at /viewer/,
   from main. No PR preview (#673). Every published name starts `next-`.
 - Stills alone (Cansin, 2026-11-03, #839): Blender renders no motion, no animated WebP or GIF (the eye gimbal's
@@ -16,7 +15,7 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   Preset.
 - No screenshots, reference-photo canvases or overlay views: every picture is rendered in Blender (headless, Eevee)
   posed from MuJoCo's baked trajectories (model/trajectories.py `poses`, `just trajectories`; #150): `just render` for
-  the panels (each Stage in each Preset at rest, a trajectory's first frame, #819);
+  the six stills (#898: the front doors and a poster per Stage);
   code in model/render, output in model/build/pictures. Only what the site shows is rendered (#470). The gestures play
   in the web viewer, not in GIFs (#468, #839).
 - Parts carry their Colour group's filament colour in the Preset's Palettes (#805, #819, docs/adr/0022: model/geometry.py
@@ -43,17 +42,17 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
 - Every picture is one WebP with a transparent background, its lines one mid grey (blender.py INK) that reads on the
   site's light and dark pages alike (Cansin, #470, #489: white lines on the dark theme read badly; of three greys
   she took the darkest). No backdrop, disc or tint behind the Mech.
-- Panels (Cansin, #470): each document from its left side (+X) and isometric from its front left (+X, -Y, +Z),
-  orthographic, every panel at one scale on one ground line, framed tight to the largest silhouette (pictures.py
-  VIEWS, PANELS); Pictures shows them in one grid (macros.py next_panels): a column per Stage, a row per view, each
-  linking to its file; on a phone stacked by document.
+- Six stills alone (Cansin, 2026-11-04, #889, #898): the front doors below and a poster per Stage (pictures.py
+  POSTERS: each Stage at rest in the default Preset, isometric from its front left (+X, -Y, +Z), orthographic, the three
+  at one scale on one ground line, framed tight to the largest silhouette, a viewer's still until it loads). Every
+  other picture is a viewer embed (macros.py viewers): Pictures shows each Stage from the side (+X), isometric and at
+  Explode's Parts level (next_views), and each part alone, the rest ghosted (next_parts).
 - The front doors (Cansin, 2026-11-02, #739): the README's top and the site's home show three side by side, in the
   default Preset, Cansin's build (#819), whichever Preset is picked, its mechanism bare of every Shell until a finished
   Skin exists (Cansin, 2026-11-03, #843: pictures.py bare): Stage 1 from the front, Stage 3 isometric and Stage 3 from
-  the side, exploded by the viewer's offsets (pictures.py FRONT, EXPLODE), each framed tight on its own at the panels'
+  the side, exploded by the viewer's offsets (pictures.py FRONT, EXPLODE), each framed tight on its own at the posters'
   size and also on Pictures.
-- Explode's Parts level (Cansin, 2026-11-03, #811): Pictures shows each Stage in each Preset isometric with every
-  part apart, framed tight on its own at the panels' size (pictures.py parts_exploded): each part on its sub-assembly's
+- Explode's Parts level (Cansin, 2026-11-03, #811): the viewer's `explode=2`, each part on its sub-assembly's
   offset (EXPLODE) slid out along its Assembly direction (pictures.py directions: a servo and its horn along the shaft,
   a part on a pivot or rod joint along its axis away from the Stage's middle, a board or the pack off its seat) until
   its bounding box is GAP clear of its own and of every part placed before it, the largest first (pictures.py offsets,
@@ -81,7 +80,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
   numbers (model/test_envelopes.py).
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `just test` and `just sim`
+  (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
+  round them from the Skeleton scene (model/skeleton, docs/adr/0025), so it needs Blender (`just linux-test` runs in
+  CI's Blender image; the GX10 has none). The model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 
@@ -141,8 +142,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
-  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, pan, tilt and
-  jaw bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
+  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
+  bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
   it prints upright); the core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
@@ -158,8 +159,8 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   other way round until it and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): the L eye's position over the
-  gimbal's yaw range through `gimbal.servos`, the gaze level (the program has no pitch), each lid level to its edge
+  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.next_commands): its yaw, in the gimbal's own
+  degrees since its servos are Stage 1's (#896), through `gimbal.servos`, the gaze level (the program holds the pitch), each lid level to its edge
   (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
@@ -179,10 +180,10 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
   and the servo holds only what the spring's straight line misses. One spring holds the head in its Skin and bare
   (#830): wound halfway between the two heads' springs, it misses each by half the Skin's turn, which the servo holds
-  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838; since #858 the neck
+  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838: since #858 the neck
   mount's hollow post (20 mm) rises from the Torso's floor through its lid, the pan servo on it over the lid and the
-  pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there,
-  the pack's Y lead up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture
+  pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there;
+  the neck cable runs up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture
   Cansin gave (a plaque in front, a border round the lid's panel, as Bones). Since #642 it moves in
   MuJoCo (its horns named pan, tilt and jaw horn, so the sim report's neck figures, tip-over and the Core's servo
   names apply) and plays the next hero: the hero's head and jaw keys through its own four-bars (hero.next_at), the one
@@ -191,14 +192,14 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
 - The head variants (#686, model/base.py, the parts in model/printed/base.py, GLOSSARY), in place of #642's two Base
   candidates: one document each (geometry.NEXT), all on one Torso (#685: the
   shirt is the base, a compact open box whose floor is the foot, the neck mount's post rising from it, the pack
-  lying across behind, the switch board lying flat beside the pack's lead end (#828) and, since #858, the spare pack
-  in front of the neck on the kit's charger dongle, an opening in the -x wall where they swap; its footprint in the
-  sim report's tip_over, footprint_mm). Back (#828 stood a Core on edge in each cheek, #838 moved them down into the
-  Torso, #858 up onto the cranium tray in the realistic skull's cranium, each USB-C socket's opening straight back
-  through the skull; #708 stood the boards upright over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
+  lying across behind, the switch board lying flat beside the pack's lead end (#828) and, since #858, the power-path
+  board flat in front of the neck and nothing else; its footprint in the sim report's tip_over, footprint_mm).
+  Back (#828 stood a Core on edge in each cheek, #838 moved them down into the Torso, #858 up into the realistic
+  skull's cranium, lying flat on their Shields on the cranium tray, the hub low at the back of the skull base, its
+  port the head's; #708 stood the boards upright over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
   (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
-  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso
-  have room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
+  are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso have
+  room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
   (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
   against `gimbal.HEAD_MM` (140 x 140 x 150 since #838, so the realistic skull keeps its length) and how far up
   it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.55: the realistic skull's orbits, a hair over half since #838), both hard gates in each look
@@ -206,14 +207,15 @@ Cansin's build is the ground truth, then our model (CLAUDE.md). What we plan to 
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/printed/test_skull.py holds
-  it to the placed skull, to the mm), whose bones ride the realistic documents alone.
-  Since #838 the realistic Skeleton has bones of its own (model/printed/skull.py, docs/adr/0023): 3Demon's cranium and
+  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/skeleton/test_skeleton.py holds
+  it to the finished bones), whose bones ride the realistic documents alone.
+  Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
+  model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): 3Demon's cranium and
   mandible scaled to the head's 150 mm height (2 mm spare for the remesh), its orbits on the eyes with the caps 7 mm
-  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` carves
-  them on a 0.8 mm voxel grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
+  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` has Blender
+  finish them on a 0.8 mm SDF grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
-  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each.
+  under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
   Morty cannot be worn over the full skull (its back 18 mm past his, its brow 10 mm ahead of his face), so the skull and
   mandible are also carved 1.6 mm round every Skin's Shells (`geometry.WORN`, Cansin's pick): the documents, which wear
   a Skin, carry the worn copies, the pictures' bare look the full ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up

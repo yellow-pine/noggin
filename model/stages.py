@@ -4,6 +4,7 @@ sub-assemblies at frames into one document (geometry.STAGES, geometry.NEXT). pos
 the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry a ":1" suffix, as MuJoCo's
 bodies and the GLBs' nodes."""
 
+import functools
 import math
 import os
 from collections import namedtuple
@@ -94,27 +95,22 @@ def rocker_loop(joint, o2, a0, o4, b0, axis, coupler, rockers):
 
 def next_base():
     """next-base: the next Mech's Torso (#685, model/base.py) with the pack lying across x on its floor, its lead out to
-    -x, the switch board lying beside the lead's end (#828) and the spare pack in front of the neck, its lead to the
-    kit's charger dongle (#858), the same in every head variant."""
-
-    def pack(y):
-        at = align((candidates.PACK[0] / 2, y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
-        return part(stl("battery"), at, BOARD, ("y", g.BATTERY_STEP["lead_y"]))
-
+    -x, the switch board lying beside the lead's end (#828) and the power-path board in front of the neck (#858), the
+    same in every head variant."""
+    pack = align((candidates.PACK[0] / 2, candidates.PACK_Y, neck.MOUNT_Z[0] - g.BATTERY_STEP["floor_z"]), g.Y)
     parts = {
         "next torso:1": part(stl("next torso"), None, printed("next torso")),
         "next torso lid:1": part(stl("next torso lid"), None, printed("next torso lid")),
-        "next pack:1": pack(candidates.PACK_Y),
-        "next spare pack:1": pack(candidates.SPARE_Y),
+        "next pack:1": part(stl("battery"), pack, BOARD, ("y", g.BATTERY_STEP["lead_y"])),
     }
-    boards = candidates.switch_board() | candidates.dongle()
+    boards = candidates.switch_board() | candidates.power_board()
     parts |= {f"{name}:1": part(stl(mesh), at, BOARD) for name, (mesh, at) in boards.items()}
     return Sub(parts, {})
 
 
 def next_cranium():
     """next-cranium: the boards in the next Mech's head (#858, model/base.py): the cranium tray on the gimbal frame's
-    plate, both Cores lying on it, each under its Shield; it rides the head (RIDES)."""
+    plate, both Cores lying on it, each under its Shield, and the hub on its riser; it rides the head (RIDES)."""
     return _boards("next cranium tray", candidates.cranium())
 
 
@@ -299,18 +295,19 @@ def next_stand():
 
 
 def next_skull():
-    """next-skull: the realistic Skeleton's skull (#838, model/printed/skull.py) as a Skin wears it (g.WORN), its bones
+    """next-skull: the realistic Skeleton's skull (#838; model/skeleton finishes it) as a Skin wears it (g.WORN), its bones
     drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame,
     the mandible on the jaw, the atlas and the axis on the pan yoke."""
     return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
-def next_morty():
-    """next-morty: Morty's Skin (#665, model/skin.py), each Shell where it sits on what carries it (RIDES): the face and
-    the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on the jaw, the shirt on the Torso."""
+def next_skin(skin):
+    """next-<skin>: a Skin (g.SKINS: Morty's, #665; Cansin's, #813; model/skin.py), each Shell where it sits on what
+    carries it (RIDES): the face and the hair on the head, a pupil in each cap, a cover on each lid, the mouth cover on
+    the jaw, the shirt on the Torso; an eye's own (side) drawn in its frame."""
     parts = {}
     for stem in g.PRINTED:
-        if stem.startswith("next morty "):
+        if stem.startswith(f"next {skin} "):
             side = next((s for s in gimbal.EYE if f" {s} " in stem), None)
             parts[stem + ":1"] = part(stl(stem), side and translate(gimbal.EYE[side]), printed(stem))
     return Sub(parts, {})
@@ -323,22 +320,32 @@ SUBS = {
     "next-base": next_base,
     "next-cranium": next_cranium,
     "next-stand": next_stand,
-    "next-morty": next_morty,
+    **{sub: functools.partial(next_skin, skin) for skin, sub in g.SKINS.items()},
     g.SKULL_SUB: next_skull,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
 # geometry.align_rows: the next Mech's Stages in every Skeleton, the last of them the head variant's (geometry.NEXT)
-DOCS = g.STAGES | g.NEXT
+DOCS = g.STAGES | g.NEXT | g.DRESSED
 RIDES = {
     "next-eyes": "next head mount:1",  # the gimbal frame screwed on its flange
     "next-jaw": "next head mount:1",  # the jaw on its lugs, the mouth servo in its collar
     "next-cranium": "next gimbal frame:1",  # the cranium tray on its plate (#858)
-    # a Skin's Shells, each on its Seats (model/skin.py), the shirt on the Torso, which moves none
-    "next morty face:1": "next gimbal frame:1",
-    "next morty hair:1": "next gimbal frame:1",
-    **{f"next morty {s} pupil:1": f"next {s} eyeball cap:1" for s in "LR"},
-    **{f"next morty {s} {lid} lid cover:1": f"next {s} {lid} lid:1" for s in "LR" for lid in ("upper", "lower")},
-    "next morty mouth cover:1": "next jaw:1",
+    # a Skin's Shells, each on its Seats (model/skin.py) or glued in its seat (skin.GLUED) on the part that moves it,
+    # the shirt (and what it carries) on the Torso, which moves none
+    **{
+        f"{shell}:1": f"{carrier}:1"
+        for skin in g.SKINS
+        for shell, carrier in {
+            f"next {skin} face": "next gimbal frame",
+            f"next {skin} hair": "next gimbal frame",
+            **{f"next {skin} {s} {p}": f"next {s} eyeball cap" for s in "LR" for p in ("pupil", "pupil plug")},
+            **{f"next {skin} {s} {lid} lid cover": f"next {s} {lid} lid" for s in "LR" for lid in ("upper", "lower")},
+            **{f"next {skin} {s} brow": "next gimbal frame" for s in "LR"},
+            f"next {skin} mouth cover": "next jaw",
+            f"next {skin} teeth": "next jaw",
+        }.items()
+        if shell in g.PRINTED
+    },
     # the realistic skull's bones (#838), each lying on its carrier
     "next skull:1": "next gimbal frame:1",
     "next mandible:1": "next jaw:1",

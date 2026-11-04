@@ -145,8 +145,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 .noggin-viewer.hero::before {
   content: ''; position: absolute; z-index: -1; inset: 55% calc(50% - 50vw) 0; background: var(--noggin-band);
 }
-.noggin-viewer.hero figcaption { color: var(--sl-color-gray-2); }
-:root[data-theme='light'] .noggin-viewer.hero figcaption { color: #5a5a58; }
+.noggin-viewer.hero[data-tap] > figure { cursor: pointer; } /* a phone's: a tap loads it */
 /* the links under the hero (docs/index.md's one line of them, dots between): pills, the first filled */
 .noggin-viewer.hero + p { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 2rem; font-size: 0; }
 .noggin-viewer.hero + p a {
@@ -155,10 +154,6 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 }
 .noggin-viewer.hero + p a:first-child { background: var(--noggin-ink); color: var(--sl-color-black); }
 .noggin-viewer.hero + p a:hover { border-color: var(--noggin-apricot); }
-/* the three Stages after their panels: pink cards */
-.noggin-panels + p + ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
-.noggin-panels + p + ul > li { margin: 0; padding: 1.25rem; border-radius: 1.5rem; background: var(--noggin-wash); }
-.noggin-panels + p + ul > li > strong:first-child { display: block; font-family: var(--noggin-rubik); font-size: 1.5rem; }
 
 /* ---------- a Stage's guide: the Stages as eyes, its own open with an Apricot iris, the others half shut ---------- */
 .noggin-stages {
@@ -176,7 +171,14 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 /* ---------- the web viewer's chrome (src/viewer/viewer.mjs): one bar under it, chunky pills, pressed Apricot; the
    Stage and Skeleton switches rows of pills; Explode's levels at the right (on their row where there is one, the chips then on
    a row of their own); the line on what plays under it ---------- */
-.noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: none; }
+.noggin-viewer { position: relative; }
+/* an embed only turns: a vertical swipe and a pinch stay the page's (#889); the /viewer page's takes every touch */
+.noggin-viewer canvas { display: block; width: 100%; aspect-ratio: 4 / 3; touch-action: pan-y pinch-zoom; }
+.noggin-viewer[data-zoom] canvas { touch-action: none; }
+/* its one control, once turned: back to the view it opened on, an icon at the top right */
+.noggin-viewer .noggin-reset { position: absolute; top: 0.5rem; right: 0.5rem; width: 2.5rem; padding: 0; }
+.noggin-viewer .noggin-reset:not([hidden]) { display: grid; place-items: center; }
+.noggin-reset svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .noggin-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 1rem; }
 .noggin-controls nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .noggin-controls nav span { color: var(--sl-color-gray-2); font-family: var(--noggin-rubik); font-weight: 700; margin-inline-end: 0.25rem; }
@@ -203,7 +205,7 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 /* the viewer's own page (src/pages/viewer.astro): the Mech on a pink-washed desk, the bar on it */
 .noggin-viewer[data-zoom] { background: var(--noggin-wash); border-radius: 1.5rem; padding: 1rem 1rem 0.75rem; }
 /* the landing page's, the hero's shape */
-.noggin-viewer.hero canvas { aspect-ratio: 2 / 1; }
+.noggin-viewer.hero canvas, .noggin-viewer.hero > figure img { aspect-ratio: 2 / 1; }
 /* a viewer's still until it is scrolled into view (#839), in its canvas' box */
 .noggin-viewer > figure { margin: 0; }
 .noggin-viewer > figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
@@ -212,24 +214,11 @@ html[data-theme] pre.mermaid[data-processed] { background: #fcfcfc; border: 2px 
 figure:has(img) { text-align: center; }
 figure img { margin-inline: auto; }
 
-/* the next Mech's parts (macros.py figures): a picture each over its name, its motions (a viewer each, #839) and the
-   front doors' own wider, the home's three (macros.py front, #739) in three columns */
-.noggin-parts, .noggin-motions, .noggin-views, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
-:is(.noggin-parts, .noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }
-.noggin-motions, .noggin-views { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+/* Pictures' grids: its viewers (macros.py viewers, #898) and motions (#839) each over its caption, the front doors'
+   stills (macros.py figures), the home's three (macros.py front, #739) in three columns */
+.noggin-motions, .noggin-views, .noggin-row, .noggin-front { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+:is(.noggin-motions, .noggin-views, .noggin-front) figure { margin: 0; text-align: center; }
+:is(.noggin-motions, .noggin-views, .noggin-front) img { display: block; width: 100%; height: auto; }
+.noggin-motions, .noggin-views, .noggin-row { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .noggin-front { grid-template-columns: repeat(3, 1fr); }
 
-/* the Stage panels (macros.py panels): a column per Stage under its name, a row per view after its label; on a phone
-   stacked by Stage, its views side by side */
-.noggin-panels {
-  display: grid; grid-template: auto repeat(var(--views), auto) / auto; grid-auto-flow: column; grid-auto-columns: 1fr;
-  gap: 0.5rem 1rem; align-items: center; text-align: center; margin-block: 1.5rem;
-}
-.noggin-panels strong { font-family: var(--noggin-rubik); }
-.noggin-panels img { display: block; width: 100%; height: auto; }
-@media (max-width: 50rem) {
-  .noggin-panels { grid-template: none / 1fr 1fr; grid-auto-flow: row; }
-  .noggin-panels > span { display: none; }
-  .noggin-panels > strong { grid-column: 1 / -1; }
-}

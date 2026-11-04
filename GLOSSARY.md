@@ -30,16 +30,16 @@ the eyes Core against its back; not part of the whole Mech.
 _Avoid_: base, desk stand, jig
 
 **Torso**:
-The Mech's base, a box pedestal under its lid: holding both packs lying low, the one on the Mech through the
-switch board and the spare on the kit's charger dongle, with an opening in its wall where the two swap (#858); the neck
-mount stands on its floor, its hollow post rising through the lid to the pan under the head, the pack's Y lead up
-inside it; its bottom is the foot the Mech stands on.
+The Mech's base, a box pedestal under its lid: holding the pack lying low, the switch board and the power-path
+board, and nothing else (#858); the neck mount stands on its floor, its hollow post rising through the lid to the pan
+under the head, the neck cable up inside it; its bottom is the foot the Mech stands on.
 _Avoid_: base plate, body, stand
 
 **Head variant**:
 One way to place the Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
-shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores ride
-the head in the realistic skull's cranium, the packs and the switch board lie low in the Torso.
+shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores and
+the hub ride the head in the realistic skull's cranium, the pack, the switch board and the power-path board lie low
+in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
 
 **Eye gimbal**:
@@ -113,6 +113,22 @@ _Avoid_: board, receiver, controller, ESP
 **Shield**:
 The expansion board the Core sits on; carries the servo ports and the power input; one per Core.
 _Avoid_: receiver, receiver shield, product codes
+
+**Hub**:
+The USB-C hub in the Mech's head (#858): its upstream port is the head's one USB-C port, at the back of the skull
+base, and it feeds both Cores data and power, so a laptop cable flashes and commands both directly.
+_Avoid_: splitter, dock
+
+**Power-path board**:
+The board in the Torso that charges the pack from the head's USB-C and feeds the Shields through the switch board,
+switching over between the two seamlessly (#858), so the pack charges with the Mech switched off.
+_Avoid_: charger, UPS (for the board)
+
+**Neck cable**:
+The one cable up the Mech's neck between the power-path board and the head (the hollow post's bore today, the cervical
+canal once spec #893's neck lands): USB 5 V down, the pack's supply up (#858); the pan's range limits its twist, no
+slip ring.
+_Avoid_: link (the Link is the noggin service's), lead (a servo's or the pack's)
 
 **Pack cut**:
 The battery pack's protection switching the pack off under a load it can no longer carry (near empty), so every Core
@@ -219,10 +235,10 @@ with the jaw (the whole Mech); each in every Skeleton. The build guides go Stage
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
-(docs/adr/0008): the Mech Stage by Stage, playing its gestures and the Tour, whole or exploded. The Mech's one
-motion: pictures are stills. A page may embed it several times, each opening on its own Stage, gesture, Explode level
-and Preset.
+The page that shows a document of the Mech in 3D from Blender's glTF, turned by the reader (and zoomed on its own
+page, docs/adr/0008): the Mech Stage by Stage, playing the Hero (Rest where there is none) or a gesture, whole or
+exploded. The Mech's one motion: pictures are stills. A page may embed it several times, each opening on its own
+Stage, gesture, Explode level, view, part and Preset.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
@@ -253,14 +269,10 @@ checks, review or Release Assets run as they would for a person's (docs/adr/0010
 _Avoid_: release App, bot token
 
 **Hero**:
-The Mech's showcase loop: talking, glancing aside and nodding, the first clip of the Tour.
-_Avoid_: banner, idle loop
-
-**Tour**:
-The web viewer's default: every clip of the document in turn, the Hero first, round and round;
-a gesture picked plays once, then the Tour goes on. An embedded viewer opened on a gesture repeats that gesture
-instead.
-_Avoid_: hero (for the viewer's default), demo, autoplay
+The Mech's showcase loop: talking, glancing aside and nodding. The web viewer's default, round and round, on a Stage
+with the neck (Rest on Stage 1); a gesture picked plays once, then the Hero goes on, and an embedded viewer opened on
+a gesture repeats that gesture instead (#889).
+_Avoid_: banner, idle loop, Tour (retired), demo, autoplay
 
 **Sub-assembly**:
 An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base and Test stand) and is placed into a document at a frame (model/stages.py).
@@ -273,6 +285,30 @@ _Avoid_: explode vector, pull direction
 **Envelope**:
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
 _Avoid_: proxy, dummy, placeholder
+
+**Skeleton scene**:
+The committed Blender scene that is the realistic Skeleton's bones' one source: the bones, their Landmarks and Warp, a
+Finish for each, and the Scene Mech they are fitted round (docs/adr/0025).
+_Avoid_: skeleton.blend (the file), the prototype, the bust file
+
+**Scene Mech**:
+The light copy of the Stage 3 Mech saved in the Skeleton scene, so it opens fitted; CI deletes it and fits the bones
+to the Mech it just built.
+_Avoid_: stand-in (the Mech stand-in is the Link's), placeholder, decimated Mech
+
+**Warp**:
+The one smooth deformation that carries the bones from their anatomy onto their Landmarks' targets, held as a shape key
+under the hand edits.
+_Avoid_: morph, fit, deform
+
+**Landmark**:
+A point on a bone's anatomy and the target the Warp carries it to; one with no target is a fixed point.
+_Avoid_: control point, pin
+
+**Finish**:
+What turns a bone as authored into one that prints round the Mech: shelled, carved clear of every part that moves
+against it, crumbs dropped, remeshed; live in the Skeleton scene, run at export.
+_Avoid_: carve (one of its steps), post-process, bake
 
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.
@@ -303,7 +339,8 @@ A part we print, by our name (model/printed); the Skeleton's:
 - torso: the Torso; torso lid: its lid; neck mount: on the Torso, its hollow post up through the lid, the pan servo on
   it; pan yoke: turns on the post's top for pan, the tilt servo on it, its cheeks up to the head; pan bar: the pan
   Horn to the yoke;
-- cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it;
+- cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it and the hub
+  on its riser at the back of the skull base;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their

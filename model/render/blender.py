@@ -14,7 +14,9 @@ import time
 import bpy
 from mathutils import Matrix, Vector
 
-BLACK_LIFT = "#2B2B2E"  # Absolute Black drawn a touch lighter so its shading and lines read
+BLACK_LIFT = (
+    "#424245"  # black drawn as a charcoal, its toon steps, highlight and INK lines readable on both themes (#898)
+)
 LINE_PX, TOON, SHADOW, HIGHLIGHT = 2.5, 0.55, 0.72, 0.35  # Cansin's pick (#47 style B); the web viewer's lines
 INK = "#5F5F5F"  # the pictures' lines: one grey that reads on the light and the dark theme (Cansin's pick, #489)
 ART_PX = 1.25  # the pictures' Line Art lines: 2.5 and 1.75 px read too bold (Cansin, #276)

@@ -59,10 +59,10 @@ worktrees-clean:
 check-light: venv lint
     {{PY}} -m pytest -q -n auto -m "not model"
 
-# just ours, then the pytest arguments given, in CI's base image as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
+# just ours, then the pytest arguments given, in CI's Blender image (the base image and Blender, for the bones: docs/adr/0025) as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
 [positional-arguments]
 linux-test +args:
-    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-base:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-blender:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin BLENDER=blender ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
 
 # the command given, on Cansin's GX10 (ssh host gx10, #888) for a heavy Python job (sim, CoACD, every test; not Blender: no Linux ARM64 build): pushes this branch's commits, checks them out in ~/noggin there (cloned on first use), uv syncs, streams the output, then scps FETCH's paths back (just FETCH="model/build/reports" gx10 uv run just sim)
 [positional-arguments]
@@ -103,9 +103,9 @@ sim-merge: venv
     {{PY}} -m model.report --merge
     {{PY}} -m pytest -q model/test_report.py
 
-# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
+# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws), then the realistic Skeleton's bones Blender finishes round them from the Skeleton scene (model/skeleton, docs/adr/0025); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
 ours: venv
-    @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
+    @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else BLENDER={{BLENDER}} {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
 
 # print-ready STLs of our printed parts (mm, the designer's frames, L and R each) and the clearance coupon in model/build/stl
 stl: venv
@@ -216,15 +216,23 @@ view doc="next-mech-back-mechanical": venv ours
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
 
-# Blender pictures, each of the next Mech's documents at rest from its trajectories: the panels (model/build/pictures)
+# Blender pictures, the next Mech's six stills from its trajectories (model/build/pictures, #898)
 [group('heavy')]
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels and a picture per part, stills alone (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, balanced on model/durations.json, #649, #770, #839)
+# the site's pictures (model/render/pictures.py published) in model/build/images: six stills, the front doors' three and a poster per Stage (Checks' Render runs `just pictures next`, #649, #898)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
+
+# scipy for Blender's own Python (model/skeleton/rewarp.py) in the repo's gitignored .blender-site, never into Blender.app (docs/adr/0025): the venv's scipy, for Blender's Python version
+blender-site: venv
+    @v=$({{BLENDER}} -b --factory-startup --python-expr 'import sys; print("PY=%d.%d" % sys.version_info[:2])' | sed -n 's/^PY=//p') && uv pip install -q --target .blender-site --python-version "$v" --no-deps "scipy==$({{PY}} -c 'import scipy; print(scipy.__version__)')"
+
+# the Skeleton scene's Warp re-run from its Landmarks, and the scene saved (model/skeleton/rewarp.py); open it with open model/skeleton/skeleton.blend
+rewarp: blender-site
+    PYTHONPATH=.blender-site {{BLENDER}} -b --python-use-system-env model/skeleton/skeleton.blend -P model/skeleton/rewarp.py
 
 # the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
 model-shards-list: venv
@@ -232,7 +240,7 @@ model-shards-list: venv
 
 # model/durations.json from a Checks run's measured seconds (its durations-* artifacts): just model-durations <run id>
 model-durations run:
-    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^(just|render) ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
+    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^just ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
 # the web viewer's GLBs in web/build, Blender's per next Mech document (or the documents named; next: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]

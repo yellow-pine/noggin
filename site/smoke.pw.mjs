@@ -36,19 +36,22 @@ test('the viewer loads the next Mech, plays it, explodes it, see-through, and th
   await page.goto('viewer/');
   const viewer = page.locator('.noggin-viewer'); // one, its Stage switch (#720), its Shapes the bar's Preset's (#819)
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
-  await expect(viewer.getByRole('button', { name: 'Tour' })).toHaveAttribute('aria-pressed', 'true'); // the clips (#669)
+  // the hero loop first (#889), a chip per clip (#669)
+  await expect(viewer.getByRole('button', { name: 'Hero' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(viewer.locator('.noggin-caption')).toHaveText(/^Hero: /);
   const mix = viewer.getByRole('navigation', { name: 'Mix' }); // any Shape in any Palette (#819)
-  // no Preset picked: its own mix, Stage 3's bare anatomical Skeleton, a Skin switched on Morty's (#883)
-  const own = { 'Skeleton shape': 'realistic', 'Skeleton palette': 'anatomical', 'Skin shape': 'none', 'Skin palette': 'morty' };
+  // no Preset picked: the Default build, Stage 3's mechanical Skeleton in black, no Skin (#889)
+  const own = { 'Skeleton shape': 'mechanical', 'Skeleton palette': 'black', 'Skin shape': 'none', 'Skin palette': 'cansin' };
   for (const [axis, value] of Object.entries(own)) await expect(mix.getByRole('combobox', { name: axis })).toHaveValue(value);
-  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['next-mech-back-bare.glb']);
+  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['next-mech-back-mechanical-bare.glb']);
   await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();
   await expect(page).toHaveURL(/\/viewer\/\?stage=1$/);
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+  await expect(viewer.locator('.noggin-caption')).toHaveText(/^Rest: /); // Stage 1 has no neck, so no hero loop
   await mix.getByRole('combobox', { name: 'Skeleton palette' }).selectOption('robot'); // a repaint, no load
   await expect(page).toHaveURL(/\/viewer\/\?stage=1&skeleton-palette=robot$/);
   await page.locator('header').getByRole('combobox', { name: 'Preset' }).selectOption('morty');
-  await expect(page).toHaveURL(/\?stage=1&preset=morty$/); // the Preset's own mix
+  await expect(page).toHaveURL(/\?preset=morty&stage=1$/); // the Preset's own mix, its Skeleton shape another GLB
   await expect(mix.getByRole('combobox', { name: 'Skin shape' })).toHaveValue('morty');
   await expect(viewer).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
   const explode = viewer.getByRole('navigation', { name: 'Explode' }); // Explode's levels (#811)
@@ -93,7 +96,50 @@ test('a viewer in a page shows its Mech and its motion, with no control (#883)',
   const viewers = page.locator('.noggin-motions .noggin-viewer'); // one per motion of Stage 1 (#839)
   await viewers.first().scrollIntoViewIfNeeded(); // the viewer's module loads once one is in view (Footer.astro)
   await expect(viewers.first().locator('.noggin-caption')).toBeAttached(); // mounted
-  await expect(viewers.locator('button, select, nav')).toHaveCount(0);
+  await expect(viewers.locator('select, nav, .noggin-open')).toHaveCount(0); // its fallback link replaced
+  await expect(viewers.locator('button:not([hidden])')).toHaveCount(0); // its reset waits for a turn
+  requests = requests.filter((u) => !u.startsWith('https://yellowpine.com/'));
+});
+
+test("Stage 1's and Stage 3's guides load each of their viewers, a part= one finding its part (#914)", async ({ page }) => {
+  test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.slow(); // up to two GLB loads a page in CI's software GL
+  for (const guide of ['docs/build/stage-1/', 'docs/build/stage-3/']) {
+    await page.goto(guide);
+    for (const v of await page.locator('.noggin-viewer').all()) {
+      await v.scrollIntoViewIfNeeded(); // each loads once in view (Footer.astro)
+      await expect(v).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+    }
+    // a part= one names its part, which is in its GLB: none would log an error (viewer.mjs stylise)
+    await expect(page.locator('.noggin-viewer[data-link^="part="] canvas')).toHaveAttribute('aria-label', /alone/);
+  }
+});
+
+test("the home opens on Stage 3's hero loop, only turns, and its reset takes it back to the view it opened on", async ({ page }) => {
+  test.skip(!existsSync(new URL('dist/viewer/next-stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  // its poster is the live site's: a blank PNG, and no request of ours
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  await page.route('https://yellowpine.com/**', (r) => r.fulfill({ contentType: 'image/png', body: Buffer.from(PNG, 'base64') }));
+  await page.goto('');
+  const hero = page.locator('.noggin-viewer.hero');
+  await expect(hero).toHaveAttribute('aria-busy', 'false', { timeout: 45_000 });
+  await expect(hero.locator('.noggin-caption')).toHaveText(/^Hero: /);
+  expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['next-mech-back-mechanical-bare.glb']);
+  const reset = hero.getByRole('button', { name: 'Reset the view' });
+  await expect(hero.locator('button:visible')).toHaveCount(0); // no control until it is turned
+  const box = await hero.locator('canvas').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.evaluate(() => addEventListener('wheel', (e) => (window.zoomed = e.defaultPrevented), { once: true }));
+  await page.mouse.wheel(0, 100);
+  await expect.poll(() => page.evaluate(() => window.zoomed)).toBe(false); // the page's: it scrolls past
+  const at = await hero.locator('canvas').boundingBox(); // where the scroll left it
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(at.x + at.width / 2 + 120, at.y + at.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(reset).toBeVisible();
+  await reset.click();
+  await expect(reset).toBeHidden();
   requests = requests.filter((u) => !u.startsWith('https://yellowpine.com/'));
 });
 

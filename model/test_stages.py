@@ -13,14 +13,14 @@ from model import gimbal, printed, skin, stages
 )
 def test_the_next_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the next Mech's documents (a head variant) holds our Envelopes of the
-    hardware we own (two Cores and Shields, the switch board, both packs and the kit's charger dongle, #858, seven
-    servos each with its horn on a drive) and its own printed parts, all named "next". Its neck's three servos drive
-    it."""
+    hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
+    buy (the hub, the power-path board and the bulk capacitor, #858), and its own printed parts, all named "next". Its neck's three servos
+    drive it."""
     nxt = stages.STAGES[doc]
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if not m.startswith("next "))
-    boards = ["core", "receiver"] * 2 + ["switch", "battery", "battery", "dongle"]
-    assert hardware == sorted(boards + ["servo", "horn"] * 7)
+    bought = ["hub", "power", "capacitor"]
+    assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery", *bought] + ["servo", "horn"] * 7)
     assert {m for m in meshes if m.startswith("next ")} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"next {d} horn" for d in gimbal.drives())}
@@ -58,6 +58,24 @@ def test_each_next_mech_variant_is_built_mechanical_too_from_the_same_layout():
     }
 
 
+def _drawn(skin_shape):
+    return [s for s in skin.DRAWN if s.startswith(f"next {skin_shape} ")]
+
+
+def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys():
+    """#813: the Skeleton, its horns and what each moves the same; Cansin's Shells in place of Morty's, each glued one
+    riding the part that moves its carrier."""
+    for doc in g.NEXT:
+        three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "cansin")]
+        morty, cansin = ({n + ":1" for n in _drawn(s)} for s in ("morty", "cansin"))
+        assert set(dressed.parts) == set(three.parts) - morty | cansin
+        assert set(dressed.horns) == set(three.horns)
+        jaw = {n for loop in dressed.horns["jaw horn"].loops for n in loop.rockers}
+        assert {"next cansin mouth cover:1", "next cansin teeth:1"} <= jaw
+        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        assert {"next cansin hair:1", "next cansin L brow:1", "next cansin R pupil:1"} <= tilt
+
+
 def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
     eye block on the Torso's neck (pan, tilt) under the head mount, the neck Core beside the eyes' in the Torso (#838);
@@ -76,7 +94,7 @@ def test_the_next_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_w
         "next jaw bar:1",
         "next mouth servo:1",
         "next mouth horn:1",
-    } | {n + ":1" for n in [*skin.DRAWN, *(g.WORN.get(s, s) for s in g.SKULL)]}
+    } | {n + ":1" for n in [*_drawn("morty"), *(g.WORN.get(s, s) for s in g.SKULL)]}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 

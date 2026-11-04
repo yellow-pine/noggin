@@ -54,7 +54,7 @@ jobs:
           case "$CONCLUSION" in
             failure|timed_out|startup_failure)
               # a Conventional Commit, scoped by the failed job (#791); backticks keep subject-case off the name
-              case "$job" in Model*|Render*|Blender*|Convex*) scope=model ;; Site*) scope=site ;; *) scope=ci ;; esac
+              case "$job" in Model*|Render*|Convex*) scope=model ;; Site*) scope=site ;; *) scope=ci ;; esac
               title="fix($scope): \`$WORKFLOW\` fail on the default branch at ${SHA:0:7}"
               # the job, less a matrix's '(<shard>)'; the images' run has one job
               if [ -n "$job" ] && [ "$WORKFLOW" != "CI Images" ]; then title+=" (${job%% (*})"; fi
