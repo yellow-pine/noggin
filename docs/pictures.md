@@ -11,8 +11,6 @@ GLBs in the same look (ADR 0008). How they are made: [Model notes](model-notes.m
 
 <!--{{ front_views }}-->
 
-<!--{{ stand_in }}-->
-
 <!--{# GitHub shows the line below; the site drops it for the viewers, which it builds from the code -->
 The Mech's Stages and each of its parts are in [the viewers on the site](https://yellowpine.com/noggin/docs/pictures/).
 <!-- #}-->
