@@ -453,17 +453,22 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
 
 @pytest.mark.parametrize(
     ("workflow", "runs"),
-    [("checks.yml", "${{ !cancelled() }}"), ("pr-gate.yml", "${{ !cancelled() && !github.event.pull_request.draft }}")],
+    [("checks.yml", "${{ !cancelled() }}"), ("pr-gate.yml", "${{ always() }}")],
 )
 def test_the_checks_gate_needs_every_job_and_never_skips(workflow, runs):
     """`Checks`, the one required check of a PR's gate and the one main's Deploy and Release wait on (#496, #722, #795):
     it needs every other job of its workflow but the Deploy after it, runs past a failed or skipped one (a skipped
-    required check passes) and fails unless each passed or, conditioned on its inputs, was skipped as unchanged. A draft
-    runs none of it (#414)."""
+    required check passes). #972: drafts run blocking required guards alone; test_workflows executes the PR guard."""
     jobs = yaml.safe_load((ROOT / ".github" / "workflows" / workflow).read_text())["jobs"]
     gate = jobs["checks"]
     assert sorted(gate["needs"]) == sorted(j for j in jobs if j not in ("checks", "deploy"))
     assert gate["if"] == runs
+
+
+def test_the_main_checks_gate_only_allows_skips_for_unchanged_inputs():
+    """Main aggregates many jobs; the PR's single-Code guard is exercised in test_workflows (#972)."""
+    jobs = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())["jobs"]
+    gate = jobs["checks"]
     green = gate["steps"][0]
     assert "re-actors/alls-green@" in green["uses"]
     assert green["with"]["jobs"] == "${{ toJSON(needs) }}"
