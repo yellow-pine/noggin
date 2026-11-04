@@ -183,12 +183,12 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap, cansin L pupil plug, cansin R pupil plug, cansin"
-        " teeth | PLA Basic Jade White (10100) | #FFFFFF |",
-        # Morty's Shells (#665), Cansin's (#813)
-        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow | PLA Basic Cocoa Brown"
-        " (10802) | #6F5034 |",
-        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back | PLA"
-        " Matte Scarlet Red (11200) | #DE4343 |",
+        " teeth, bart L pupil plug, bart R pupil plug | PLA Basic Jade White (10100) | #FFFFFF |",
+        # Morty's Shells (#665), Cansin's (#813), Bart's (#807)
+        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow, bart hair | PLA Basic Cocoa"
+        " Brown (10802) | #6F5034 |",
+        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back, bart"
+        " shirt front, bart shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",
         "| Skin | default | accessories | cansin sunglasses | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
@@ -342,8 +342,9 @@ def test_render_makes_six_stills_the_readmes_three_and_a_poster_per_stage():
         "mech-back-isometric.webp",
     ]
     assert pictures.DRAWN["stage1"] == ("stage1-mechanical", "Default build")  # the default
+    assert pictures.DRAWN["mech-back-bart"] == ("mech-back-bart", "Bart")  # in his own Skin (#807)
     bare = {f"mech-back{s}-bare": f"mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
-    dressed = {f"mech-back{s}-cansin": f"mech-back{s}-cansin.glb" for s in SHAPES}  # in Cansin's Skin (#813)
+    dressed = {f"mech-back{s}-{k}": f"mech-back{s}-{k}.glb" for s in SHAPES for k in ("bart", "cansin")}
     assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | dressed
     assert set(map(build.document, build.PUBLIC)) == {*g.STAGES, *g.DRESSED}
 
@@ -440,7 +441,8 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
-    assert unranked["skins"] == {"none": "-bare", "cansin": "-cansin"}  # #876, #813: where Stage 3 has its GLB
+    # #876, #813, #807: where Stage 3 has its GLB
+    assert unranked["skins"] == {"none": "-bare", "cansin": "-cansin", "bart": "-bart"}
     fails = {"mech-back-mechanical": ["head size", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))

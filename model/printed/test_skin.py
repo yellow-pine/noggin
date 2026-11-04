@@ -55,8 +55,16 @@ HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the e
 @pytest.mark.parametrize("skin_shape", g.SKINS)
 def test_each_head_fits_the_head_limit_but_for_its_ears(skin_shape, heads):
     """Its face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm, Cansin's tufts too (#813); only the ears
-    stand out of its sides."""
-    head = list(heads[skin_shape].values())
+    stand out of its sides, and Bart's spikes out of its top (#807)."""
+    head = dict(heads[skin_shape])
+    if skin_shape == "bart":
+        top = sk.HEAD_Z[1] + 0.01
+        above = gimbal.cyl("z", (0, 0, 0), 200, (top, top + 100))
+        spikes = cq.Workplane().add(head["hair"]).intersect(above).val()
+        assert len(spikes.Solids()) == 9  # his nine, on the flat crown
+        assert spikes.BoundingBox().zmax == pytest.approx(sk.HEAD_Z[1] + skin.SPIKE[1], abs=0.01)
+        head["hair"] = cq.Workplane().add(head["hair"]).cut(above).val()
+    head = list(head.values())
     lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
     hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head) for a in "xyz"]
     _, depth, height = np.subtract(hi, lo)
@@ -73,16 +81,30 @@ def test_the_face_and_hair_meet_without_overlapping(skin_shape, heads):
     assert heads[skin_shape]["face"].intersect(heads[skin_shape]["hair"]).Volume() < 0.1
 
 
-@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.startswith("cansin ")])
-def test_cansins_glued_shells_fill_their_pockets_without_overlapping(glued):
-    """#813: his brows in the face, his teeth in the mouth cover, each pupil plug in its cap's jagged seat and its dot
-    in the plug: each in its pocket, within its fit of what carries it and sharing no volume with it."""
+@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.split()[1] in ("cansin", "bart")])
+def test_the_glued_shells_fill_their_pockets_without_overlapping(glued):
+    """#813, #807: Cansin's brows in the face, his teeth in the mouth cover, each pupil plug (Bart's too) in its cap's
+    jagged seat and its dot in the plug: each in its pocket, within its fit of what carries it, sharing no volume."""
     carrier = sk.GLUED[glued][0]
     shape, held = PARTS[glued]().val(), PARTS[carrier]().val()
     if "brow" in glued:  # drawn in its eye's frame, its pocket in the head's
         shape = shape.translate(cq.Vector(*gm.EYE[glued.split()[1]]))
     assert shape.intersect(held).Volume() < 1e-3
     assert shape.distance(held) <= gm.PUPIL_FIT + 1e-3
+
+
+def test_barts_head_holds_mortys_whole_with_a_flat_crown():
+    """#807: Bart's head is Morty's with a flat crown in the same box, so whatever clears Morty's Shells inside clears
+    Bart's; his crown is level over the cranium where Morty's is round."""
+    morty, bart = (skin._head(0.0, k).val() for k in ("morty", "bart"))
+    assert morty.cut(bart).Volume() < 1e-3
+    corners = [[getattr(b.BoundingBox(), f"{a}{e}") for a in "xyz" for e in ("min", "max")] for b in (morty, bart)]
+    assert np.allclose(*corners, atol=1e-3)  # the same box
+    crown = gimbal.cyl("z", (0, 30, 0), 1.0, (sk.HEAD_Z[1] - 0.5, sk.HEAD_Z[1] - 0.1)).val()
+    for x in (-40.0, 0.0, 40.0):  # level across, where Morty's falls away from his middle
+        at = crown.translate(cq.Vector(x, 0, 0))
+        assert bart.intersect(at).Volume() == pytest.approx(at.Volume(), rel=1e-3)
+    assert morty.intersect(crown.translate(cq.Vector(40, 0, 0))).Volume() < 1e-3
 
 
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
