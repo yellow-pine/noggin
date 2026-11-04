@@ -94,7 +94,7 @@ test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape'
 
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {
   expect(mixed("", "default-build")).toEqual({
-    "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "cansin", "skin-palette": "default",
+    "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none", "skin-palette": "default",
   });
   const mix = mixed("?preset=morty&skeleton-palette=black&skin-palette=lisa", "morty");
   expect(mix).toEqual({ "skeleton-shape": "realistic", "skeleton-palette": "black", "skin-shape": "morty", "skin-palette": "morty" });

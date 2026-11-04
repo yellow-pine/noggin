@@ -8,8 +8,8 @@ The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held
 set off and pressing the other on. Both are parts in the model (model/printed), our own design, but for the
 realistic Skeleton's skull and first two vertebrae, adapted from others' meshes under their licences (docs/adr/0023,
 [Credits](credits.md)). A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
-Palette painting any Shape of its category (docs/adr/0022). A Preset names one: the Default build (mechanical in black, the cansin
-Skin in the Default Skin palette), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
+Palette painting any Shape of its category (docs/adr/0022). A Preset names one: the Default build (mechanical in black, no
+Skin, the Default Skin palette), Morty and Bart (each realistic in anatomical, its own Skin; Morty's Shape stands in for Bart's
 Shells until they exist, #807). The default is the first Preset (model/geometry.py `PRESETS`): the model, the
 [viewer](https://yellowpine.com/noggin/viewer/), every picture and the shopping list's filaments follow it unless you
 pick another in the header; the viewer mixes any Shape with any Palette.

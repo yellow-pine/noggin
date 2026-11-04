@@ -117,7 +117,7 @@ THEMES = {
 PRESETS = {
     name: dict(zip(THEMES, axes, strict=True))
     for name, axes in {
-        "Default build": ("mechanical", "black", "cansin", "default"),
+        "Default build": ("mechanical", "black", SKINLESS, "default"),  # no Skin, the default Skin palette (#889)
         "Morty": ("realistic", "anatomical", "morty", "morty"),
         "Bart": ("realistic", "anatomical", "bart", "bart"),
     }.items()

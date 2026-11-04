@@ -36,7 +36,7 @@ def test_the_horn_seats_on_the_spline_and_pins_its_bar_at_the_second_hole_from_t
 DEFAULT_BUILD = {
     "Skeleton shape": "mechanical",
     "Skeleton palette": "black",
-    "Skin shape": "cansin",
+    "Skin shape": "none",  # no Skin (#889, #938)
     "Skin palette": "default",
 }
 MORTY = {
