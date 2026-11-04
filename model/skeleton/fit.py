@@ -20,8 +20,7 @@ def outer_cortex(mesh, targets, origin):
     The nearest surface can be the inner wall. Follow that anatomical radial direction through every source
     triangle and take its outermost positive crossing; never stretch the inner cortex onto the Skin target.
     """
-    nearest = trimesh.proximity.closest_point(mesh, targets)[0]
-    directions = nearest - origin
+    directions = np.asarray(targets) - origin
     directions /= np.linalg.norm(directions, axis=1)[:, None]
     locations, rays, _ = mesh.ray.intersects_location(np.tile(origin, (len(targets), 1)), directions)
     result = []
