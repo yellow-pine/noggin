@@ -53,11 +53,9 @@ def pytest_collection_modifyitems(items):
     marked = [item for item in items if "bones" in item.keywords]
     if not marked:
         return
-    import shutil
-
     from model import skeleton  # here, not at the top: check-light's collection stays light
 
-    if shutil.which(skeleton.BLENDER):
+    if skeleton.blender():
         return
     for item in marked:
         item.add_marker(pytest.mark.skip(reason="no Blender on this host; CI runs it"))
