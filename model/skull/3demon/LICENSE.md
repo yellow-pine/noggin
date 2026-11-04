@@ -12,7 +12,7 @@ Changes from the original (#838, 2026-11-03):
   160,000 faces in Blender.
 - The mandible: the original's mandible, decimated to 40,000 faces.
 
-Since #873 (2026-11-04) both live in the Skeleton scene, `model/skeleton/skeleton.blend` (its objects `next skull` and
-`next mandible`), scaled to the next Mech's head and set on its eyes, under this licence. The model builds from them,
+Since #873 (2026-11-04) both live in the Skeleton scene, `model/skeleton/skeleton.blend` (its objects `skull` and
+`mandible`), scaled to the Mech's head and set on its eyes, under this licence. The model builds from them,
 and every adaptation it writes is shared under the same licence (`model/skeleton`, docs/adr/0025): the orbits enlarged
 for its eyes and lids, remeshed for printing and carved for its mechanism.

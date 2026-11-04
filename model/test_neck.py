@@ -1,4 +1,4 @@
-"""Seam: model/neck.py, the next Mech's neck and jaw (#641): what the servos turn the head and jaw through, the servo
+"""Seam: model/neck.py, the Mech's neck and jaw (#641): what the servos turn the head and jaw through, the servo
 angles each range needs, and the report's numbers against #641's gates."""
 
 import numpy as np
@@ -79,16 +79,16 @@ def test_the_pan_span_bends_in_an_s_and_the_tilt_spans_arc_breathes(report):
     assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(15.23, abs=0.01)
 
 
-@pytest.mark.parametrize("doc", g.NEXT)
+@pytest.mark.parametrize("doc", g.MECH)
 def test_the_neck_and_the_gimbal_share_the_heads_frame_the_torsos_foot_on_z_0(doc):
-    """geometry.NEXT copies the Torso's depth (ADR 0011): the neck, the gimbal and the base are drawn in one frame, the
+    """geometry.MECH copies the Torso's depth (ADR 0011): the neck, the gimbal and the base are drawn in one frame, the
     head's, and the document stands the Torso's foot on z 0."""
-    frames = g.NEXT[doc]
+    frames = g.MECH[doc]
     assert len({f for f in frames.values()}) == 1
-    assert frames["next-neck"][0][2] == -base.TORSO[2][0]
+    assert frames["neck"][0][2] == -base.TORSO[2][0]
 
 
-@pytest.mark.parametrize("doc", g.NEXT)
+@pytest.mark.parametrize("doc", g.MECH)
 @pytest.mark.parametrize("drive,horn,pivot", [("pan", "pan horn", "pan pivot"), ("tilt", "tilt horn", "tilt pivot")])
 def test_each_neck_servo_turns_the_head_with_the_gimbal_on_it(doc, drive, horn, pivot):
     """#642: the neck moves in the model. Its servo at the angle servo_for gives turns the head its range's end about its
@@ -98,13 +98,13 @@ def test_each_neck_servo_turns_the_head_with_the_gimbal_on_it(doc, drive, horn, 
     pose = stages.pose(stage, horn, neck.servo_for(drive, end))
     assert pose.joints[pivot] == pytest.approx(end, abs=0.01)
     mats = pose.parts
-    carry = mats["next head mount:1"] @ np.linalg.inv(stage.parts["next head mount:1"].matrix)
-    for name in stages.next_eyes().parts:
+    carry = mats["head mount:1"] @ np.linalg.inv(stage.parts["head mount:1"].matrix)
+    for name in stages.eyes_sub().parts:
         assert np.allclose(mats[name], carry @ stage.parts[name].matrix)
     assert not np.allclose(carry, np.eye(4))
 
 
 def test_the_head_is_the_parts_the_tilt_turns():
-    parts = stages.next_neck().parts | stages.next_jaw().parts
+    parts = stages.neck_sub().parts | stages.jaw_sub().parts
     assert set(neck.HEAD) <= set(parts)
-    assert {f"next {label} servo:1" for label in neck.drives()} <= set(parts)
+    assert {f"{label} servo:1" for label in neck.drives()} <= set(parts)

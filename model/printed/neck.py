@@ -1,4 +1,4 @@
-"""The next Mech's neck and jaw (#641) as CadQuery parts, every size from model/neck.py (its frame and its design), each
+"""The Mech's neck and jaw (#641) as CadQuery parts, every size from model/neck.py (its frame and its design), each
 drawn where it sits at rest. Turning bores take the busy pivots' M3 shanks (model/gimbal.py PIN_R); the part a shank
 is fixed in has a tapping hole instead. A tie slot through a tab clamps each end of a flexing span."""
 

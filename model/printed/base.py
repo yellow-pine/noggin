@@ -1,4 +1,4 @@
-"""The next Mech's Torso (#685), the cranium tray that carries the Cores in the head (#858), and Stage 1's test stand
+"""The Mech's Torso (#685), the cranium tray that carries the Cores in the head (#858), and Stage 1's test stand
 (#720) as CadQuery parts, every size from model/base.py, each drawn where it sits at rest in the head's frame
 (model/neck.py)."""
 

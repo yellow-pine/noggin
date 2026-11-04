@@ -1,6 +1,6 @@
 # Fit and servo tests
 
-Two hands-on jobs for the next Mech ([#51](https://github.com/yellow-pine/noggin/issues/51)); nothing else waits on
+Two hands-on jobs for the Mech ([#51](https://github.com/yellow-pine/noggin/issues/51)); nothing else waits on
 them. The coupon finds the clearance our printer needs before a pivot or a magnet seat relies on one; the video gives
 the servo model real motion to be fitted to. Why each: docs/research/2026-11-02-literature-cams-am.md (fits) and
 2026-11-02-literature-simulation.md (the servo).

@@ -8,10 +8,9 @@
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are CadQuery parts in the model (model/printed), adapted from our own design;
 nothing comes from other people's designs. A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
-Palette painting any Shape of its category (docs/adr/0022). A Preset names one: Cansin's build (mechanical in black,
+Palette painting any Shape of its category (docs/adr/0022). A Preset names one: Default build (mechanical in black,
 the cansin Skin), Morty and Bart (each realistic in anatomical, its own Skin). The model, the
-[viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the
-next Mech in one, Cansin's build unless another is picked; the viewer mixes any Shape with any Palette.
+[viewer](https://yellowpine.com/noggin/viewer/) and every picture draw the Mech in one, Default build unless another is picked; the viewer mixes any Shape with any Palette.
 
 ## Skeleton and Skin
 - Skeleton, PETG: the eye gimbal with the eyeball cores and lid arms, the jaw arm and pivot, the neck, the Torso (the pack,

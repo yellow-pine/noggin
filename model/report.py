@@ -1,10 +1,10 @@
 """The sim report (`just sim`, ADR 0007): for every document physics runs on (geometry.SIMULATED, the mechanical ones:
 #809) the electrical budget where both Cores are,
-the next Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
+the Mech's eye gimbal (model/gimbal.py; its bounding box and lid drives' sweep, model/printed/gimbal.py), neck
 (model/neck.py) and head variant (model/base.py, model/candidates.py), and the MuJoCo half (model/mujoco_report.py),
 measured on the document's MJCF, written beside it as model/build/reports/<doc>.xml. Written to
 model/build/reports/<doc>-sim.json in the shape model/test_report.py reads, and the head variants' ranking from theirs to
-model/build/reports/next-mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's
+model/build/reports/mech-ranking.json: build outputs, never committed; CI builds them and the site publishes main's
 at /reports (docs/adr/0009). CI measures each in parts on as many runners (model/shards.py; SIM_PART=i/n: its share
 of the poses and motions, model/mujoco_report.py, into model/build/sim-part-<i>-of-<n>) and merges them (--merge).
 Usage: [SIM_PART=i/n] python -m model.report [doc ...]; python -m model.report --merge"""
@@ -24,7 +24,7 @@ from model import geometry as g
 from model.printed import gimbal as gimbal_parts
 
 OUT = os.path.join(stages.REPO, "model", "build", "reports")  # CI thresholds them (model/test_report.py)
-RANKED = [d for d in g.NEXT if d in g.SIMULATED]  # the head variants ranked (#686), each in its mechanical document
+RANKED = [d for d in g.MECH if d in g.SIMULATED]  # the head variants ranked (#686), each in its mechanical document
 
 
 def folder(part):
@@ -37,19 +37,19 @@ def report(doc, part=(0, 1)):
     the MuJoCo half, the first part the rest too (merge() joins them)."""
     stage, first = stages.STAGES[doc], part[0] == 0
     out = {"doc": doc}
-    if "next-eyes" in stages.DOCS[doc] and first:  # the next Mech's eye gimbal moves by its own kinematics (#630)
+    if "eyes" in stages.DOCS[doc] and first:  # the Mech's eye gimbal moves by its own kinematics (#630)
         out["gimbal"] = {
             **gimbal.report(),
             "block_mm": gimbal_parts.bounds(gimbal_parts.at_rest(mechanical=True)),
             "sweep": gimbal_parts.sweep(),
         }
-    if {"next Core 1:1", "next Core 2:1"} <= set(stage.parts) and first:  # the whole Mech: both Cores
+    if {"Core 1:1", "Core 2:1"} <= set(stage.parts) and first:  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report
     model = mujoco.MjModel.from_xml_path(mjcf.write(doc, folder(part)))
-    if "next-neck" in stages.DOCS[doc] and first:  # the next Mech's neck moves by its own kinematics (#641)
+    if "neck" in stages.DOCS[doc] and first:  # the Mech's neck moves by its own kinematics (#641)
         out["neck"] = neck.report(mjcf.head(doc, model), mjcf.head(doc, model, bare=True))
-    if doc in g.NEXT and first:  # its head variant's figures for the ranking (#686)
+    if doc in g.MECH and first:  # its head variant's figures for the ranking (#686)
         out["variant"] = candidates.report(doc, model)
     out["mujoco"] = mujoco_report.measure(doc, model, part)
     return out
@@ -72,7 +72,7 @@ def simulate(doc, part=(0, 1)):
 def rank(docs):
     """The head variants ranked, beside their reports, when these documents hold them all (#686)."""
     if set(RANKED) <= set(docs):
-        _dump(os.path.join(OUT, "next-mech-ranking.json"), base.rank({d: json.load(open(path(d))) for d in RANKED}))
+        _dump(os.path.join(OUT, "mech-ranking.json"), base.rank({d: json.load(open(path(d))) for d in RANKED}))
 
 
 def path(doc):

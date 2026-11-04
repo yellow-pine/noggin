@@ -1,7 +1,7 @@
-"""The next Mech's eye gimbal (#630, GLOSSARY Eye gimbal): our own design, clean-room (#618). Its numbers (one source:
+"""The Mech's eye gimbal (#630, GLOSSARY Eye gimbal): our own design, clean-room (#618). Its numbers (one source:
 model/printed/gimbal.py draws the parts from them, model/stages.py places them), its kinematics and its report.
 
-Frame (the next-eyes Sub-assembly's): x along the eye line (the L eye at +x), -y forward, z up, the origin midway
+Frame (the eyes Sub-assembly's): x along the eye line (the L eye at +x), -y forward, z up, the origin midway
 between the eye centres. Each eyeball core pitches inside a yoke that yaws on a vertical axis through the eye centre
 (yaw on the outer ring). One servo yaws both yokes through a three-crank parallelogram: its horn and both yokes'
 cranks, equal, pinned to one tie-bar. One servo pitches both cores: its horn drives the bail (a rocker on an x axis
@@ -187,7 +187,7 @@ def eyes(yaw_servo, pitch_servo, scale=0.0):
 
 def servos(yaw, pitch):
     """(yaw servo, pitch servo) degrees that point the L eye at (yaw, pitch): the command map the noggin service applies
-    for the next Mech, undoing the Hooke coupling."""
+    for the Mech, undoing the Hooke coupling."""
     s = brentq(lambda s: eyes(yaw, s)["L"][1] - pitch, -60, 60)
     return yaw, s
 
@@ -202,7 +202,7 @@ def _carry(a0, b0, a, b):
 
 
 def moved(lid, pitch, yaw=0.0):
-    """{next-eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg (or {side: deg}, each its own) and
+    """{eyes part: 4x4 from its rest placement} for both lid servos at `lid` deg (or {side: deg}, each its own) and
     the L eye at (yaw, pitch) through the command map (#650, #656): each eye's lids, its bar, link and horn; yawed, the
     yaw horn, the tie-bar and each yoke; the pitch horn, the pitch bar, the bail, each push-rod, core and cap."""
     out, lids = {}, lid if isinstance(lid, dict) else dict.fromkeys(EYE, lid)
@@ -210,29 +210,29 @@ def moved(lid, pitch, yaw=0.0):
         lid_m, horn_m = linkage.rotation(g.X, -lids[s], (x, 0, 0)), linkage.rotation(g.X, -lids[s], (x, *LID_HORN))
         low_m = linkage.rotation(g.X, -lower(lids[s]), (x, 0, 0))
         crank, pin, link, low = ((x, *p) for p in (LID_PIN, np.add(LID_HORN, LID_PIN), LINK_PIN, LOWER_PIN))
-        out[f"next {s} upper lid:1"], out[f"next {s} lower lid:1"], out[f"next {s} lid horn:1"] = lid_m, low_m, horn_m
-        bar = out[f"next {s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
-        out[f"next {s} lid link:1"] = _carry(link, low, (bar @ [*link, 1])[:3], (low_m @ [*low, 1])[:3])
+        out[f"{s} upper lid:1"], out[f"{s} lower lid:1"], out[f"{s} lid horn:1"] = lid_m, low_m, horn_m
+        bar = out[f"{s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
+        out[f"{s} lid link:1"] = _carry(link, low, (bar @ [*link, 1])[:3], (low_m @ [*low, 1])[:3])
     yaw_servo, servo = servos(yaw, pitch)
     if yaw:  # else they stay at rest, left out: the lid drives' sweep (model/printed/gimbal.py) poses what is here
-        out["next yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo, (0, YAW_Y, 0))
-        out["next tie-bar:1"] = tie = np.eye(4)
+        out["yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo, (0, YAW_Y, 0))
+        out["tie-bar:1"] = tie = np.eye(4)
         pin = (0, YAW_Y + CRANK, 0)
         tie[:3, 3] = (horn @ (*pin, 1))[:3] - pin  # a parallelogram: the bar shifts, never turns
     bail, a, b = _PITCH(servo)
-    out["next pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
-    out["next bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))
-    out["next pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, BAIL[0] + BAIL_IN, BAIL[1]), a, b)
+    out["pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
+    out["bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))
+    out["pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, BAIL[0] + BAIL_IN, BAIL[1]), a, b)
     for s, (y, p) in eyes(yaw_servo, servo).items():
         x = EYE[s][0]
         yoke = linkage.rotation(g.Z, y, (x, 0, 0))
         if yaw:
-            out[f"next {s} yaw yoke:1"] = yoke
+            out[f"{s} yaw yoke:1"] = yoke
         core_m = yoke @ linkage.rotation(g.X, -p, (x, 0, 0))  # as core()
-        out[f"next {s} eyeball core:1"] = out[f"next {s} eyeball cap:1"] = core_m
+        out[f"{s} eyeball core:1"] = out[f"{s} eyeball cap:1"] = core_m
         lever, arm = (x, 0, LEVER), (x, BAIL[0], BAIL[1] + LEVER)
-        rod = (core_m @ [*lever, 1])[:3], (out["next bail:1"] @ [*arm, 1])[:3]
-        out[f"next {s} push-rod:1"] = _carry(lever, arm, *rod)
+        rod = (core_m @ [*lever, 1])[:3], (out["bail:1"] @ [*arm, 1])[:3]
+        out[f"{s} push-rod:1"] = _carry(lever, arm, *rod)
     return out
 
 

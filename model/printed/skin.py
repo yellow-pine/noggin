@@ -109,7 +109,7 @@ def lid_cover(skin, side, lid):
     else:
         out = band(sk.COVER, sk.LOWER_COVER, sk.LOWER_X)
     out = out if side == "L" else out.mirror("YZ")
-    return _finish(f"next {skin} {side} {lid} lid cover", out)
+    return _finish(f"{skin} {side} {lid} lid cover", out)
 
 
 def _star(r_out, r_in, n=7):
@@ -142,7 +142,7 @@ def cap(side):
     Character's largest, #630), its back GAP off the core's seat face, its pupil's jagged seat cut in."""
     r, back = gm.CAP_R, gm.CAP_R * math.cos(math.radians(gm.CAP_HALF)) + sk.GAP
     out = ball(r).intersect(box((-r, r), (-r - 1, -back), (-r, r))).cut(_pupil_prism(side))
-    return _finish(f"next {side} eyeball cap", out)
+    return _finish(f"{side} eyeball cap", out)
 
 
 def pupil(side):
@@ -281,13 +281,13 @@ def face(skin="morty"):
         out = out.union(_ear(s).cut(_head(sk.WALL, skin)))
     y0 = sk.HEAD_Y[0]
     out = out.cut(box((-24, 24), (y0 - 11, y0 + 9), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
-    for seat in (s for s in sk.SEATS if s.carrier == f"next {skin} face"):  # each a pad on a web from the forehead
+    for seat in (s for s in sk.SEATS if s.carrier == f"{skin} face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
         out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0, skin)))
     if skin == "cansin":
         for s in "LR":
             out = out.cut(_brow(s, gm.PUPIL_FIT, BROW_SUNK + gm.PUPIL_FIT))
-    return _finish(f"next {skin} face", out, _head(0.0, skin))
+    return _finish(f"{skin} face", out, _head(0.0, skin))
 
 
 # Cansin's tufts on top (#813): balls (x, y, z, r) over the hairline's front, the head's top 1.5 mm proud at most
@@ -328,25 +328,25 @@ def hair(skin="morty"):
         top = box((-100, 100), (-100, 100), (-100, sk.HEAD_Z[1] + sk.HAIR))
         for x, y, z, r in TUFTS:
             out = out.union(ball(r, (x, y, z)).cut(face).cut(_head(sk.WALL)).intersect(top))
-    for seat in (s for s in sk.SEATS if s.shell == f"next {skin} hair" and s.carrier == "next gimbal frame"):
+    for seat in (s for s in sk.SEATS if s.shell == f"{skin} hair" and s.carrier == "gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
         out = out.union(web.intersect(_head(0.0, skin)))
-    return _finish(f"next {skin} hair", out, _head(0.0, skin))
+    return _finish(f"{skin} hair", out, _head(0.0, skin))
 
 
 def mouth_cover(skin="morty"):
     """The mouth cover (face), the lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
     inside the face, and the chin under the jaw in the face's mouth opening, rounded as the head is, which the jaw
     swings down; up off its Seat once the face is off. Cansin's: his teeth's pocket in the chin's top front."""
-    (seat,) = (s for s in sk.SEATS if s.shell == f"next {skin} mouth cover")
+    (seat,) = (s for s in sk.SEATS if s.shell == f"{skin} mouth cover")
     _, y, z = seat.at
     bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
     plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
     wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
     chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
     out = plate.union(wall).union(chin)
-    return _finish(f"next {skin} mouth cover", out.cut(_teeth(gm.PUPIL_FIT)) if skin == "cansin" else out)
+    return _finish(f"{skin} mouth cover", out.cut(_teeth(gm.PUPIL_FIT)) if skin == "cansin" else out)
 
 
 SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
@@ -360,7 +360,7 @@ def shirt(skin, half):
     neck; each half off its Torso wall's Seats, the front forward, the back backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     sides, shoulders, neck = SHIRT_ROUND
-    front = next(s for s in sk.SEATS if s.shell == f"next {skin} shirt front")
+    front = next(s for s in sk.SEATS if s.shell == f"{skin} shirt front")
     off = y0 - front.at[1] + sk.GAP + front.boss  # the Seats' faces out of the walls, their gap and the bosses
     inner = box((x0 - off, x1 + off), (y0 - off, y1 + off), (z0 + 0.5, z1 + 0.5)).edges("|Z").fillet(sides - sk.WALL)
     outer = box(
@@ -384,7 +384,7 @@ def shirt(skin, half):
         for s in (-1, 1):
             lapel = [(s * x, z) for x, z in LAPEL]
             out = out.union(cq.Workplane("XZ", origin=(0, y + 0.1, 0)).polyline(lapel).close().extrude(LAPEL_PROUD))
-    return _finish(f"next {skin} shirt {half}", out)
+    return _finish(f"{skin} shirt {half}", out)
 
 
 # Cansin's open jacket (#813): each lapel's outline on the shirt's front (x, z), its L one, standing LAPEL_PROUD proud
@@ -446,7 +446,7 @@ def teeth():
 def sunglasses():
     """Cansin's aviators (accessories), hooked on the tee's neckline: two teardrop lenses and a bar over the bridge,
     sk.COVER thick, GAP off the shirt front, on its bridge's Seat."""
-    (seat,) = (s for s in sk.SEATS if s.shell == "next cansin sunglasses")
+    (seat,) = (s for s in sk.SEATS if s.shell == "cansin sunglasses")
     x, y, z = seat.at
     back, front = y - sk.GAP, y - sk.GAP - sk.COVER
     out = cyl("y", (x, 0, z), sk.PAD_R, (front, back))
@@ -454,4 +454,4 @@ def sunglasses():
         lens = cq.Workplane("XZ", origin=(0, back, 0)).polyline([(s * u, v + z) for u, v in LENS]).close()
         out = out.union(lens.extrude(sk.COVER).edges("|Y").fillet(2.0))
     bar = box((-LENS[1][0], LENS[1][0]), (front, back), (z + 4.0, z + 6.0))
-    return _finish("next cansin sunglasses", out.union(bar))
+    return _finish("cansin sunglasses", out.union(bar))

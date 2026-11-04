@@ -81,8 +81,7 @@ _Avoid_: style, model (the Model is the digital Mech)
 
 **Palette**:
 The filament each Colour group of one Theme category prints in: the Skeleton's anatomical, robot or black, a Skin's
-morty, bart or Default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure; ~~cansin~~ *default (#895)* in
-the Model).
+morty, bart or default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure).
 _Avoid_: colour scheme, theme (for one category's colours)
 
 **Preset**:
@@ -92,8 +91,8 @@ _Avoid_: theme (for the named set), skin (for the whole look)
 
 **Default build**:
 The first Preset, the look every picture, viewer and page opens on until another is picked: the mechanical Skeleton in
-black, no Skin, the Default Skin palette (mechanical, black, none, Default). ~~Cansin's build (mechanical, black,
-cansin, cansin)~~ *Default build (#895)* in the Model.
+black, ~~in the cansin Skin shape~~ *with no Skin (#897)*, the default Skin palette (mechanical, black,
+~~cansin~~ *none (#897)*, default).
 _Avoid_: Cansin's build, default look, default theme
 
 **Colour group**:
@@ -290,6 +289,12 @@ _Avoid_: proxy, dummy, placeholder
 The committed Blender scene that is the realistic Skeleton's bones' one source: the bones, their Landmarks and Warp, a
 Finish for each, and the Scene Mech they are fitted round (docs/adr/0025).
 _Avoid_: skeleton.blend (the file), the prototype, the bust file
+
+**Review file**:
+Cansin's one local Blender file of the Mech (`just review`, model/review): the Skeleton scene fitted to the Stage 3
+document, in Assembled (Mech, Skeleton and Morty layers, a looping motion), Exploded and Print bed scenes. Never
+committed or published.
+_Avoid_: the Desktop file, the preview
 
 **Scene Mech**:
 The light copy of the Stage 3 Mech saved in the Skeleton scene, so it opens fitted; CI deletes it and fits the bones

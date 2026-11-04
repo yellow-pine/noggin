@@ -14,14 +14,12 @@ from model import stages, trajectories
 from web import build
 
 # each Stage (#720; Stage 3 the head variant's, Back since #712) in each Skeleton, realistic and mechanical (#704, #805)
-STAGES = {
-    f"{d}{s}": f"{d}{s}.glb" for s in ("", "-mechanical") for d in ("next-stage1", "next-stage2", "next-mech-back")
-}
+STAGES = {f"{d}{s}": f"{d}{s}.glb" for s in ("", "-mechanical") for d in ("stage1", "stage2", "mech-back")}
 # and Stage 3 bare in each (#876): the viewer's Skin shape none, its Shells off and the realistic one's full skull on
-STAGES |= {f"next-mech-back{s}-bare": f"next-mech-back{s}-bare.glb" for s in ("", "-mechanical")}
+STAGES |= {f"mech-back{s}-bare": f"mech-back{s}-bare.glb" for s in ("", "-mechanical")}
 # and Stage 3 in Cansin's Skin in each (#813): the viewer's Skin shape cansin, after the Skeleton's suffix
-STAGES |= {f"next-mech-back{s}-cansin": f"next-mech-back{s}-cansin.glb" for s in ("", "-mechanical")}
-STAGES |= {f"next-mech-back{s}-bart": f"next-mech-back{s}-bart.glb" for s in ("", "-mechanical")}  # and Bart's (#807)
+STAGES |= {f"mech-back{s}-cansin": f"mech-back{s}-cansin.glb" for s in ("", "-mechanical")}
+STAGES |= {f"mech-back{s}-bart": f"mech-back{s}-bart.glb" for s in ("", "-mechanical")}  # and Bart's (#807)
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
@@ -31,11 +29,11 @@ def test_one_glb_per_document():
 
 def test_a_bare_glb_is_its_stage_without_the_skin_its_full_bones_on():
     """#876: the stills' bare rule (model/render/pictures.py bare); any other GLB shows its document's parts."""
-    worn, bare = parts("next-mech-back"), parts("next-mech-back-bare")
-    assert {"next morty face:1", "next worn skull:1", "next worn mandible:1"} <= worn - bare
-    assert {"next skull:1", "next mandible:1"} <= bare - worn and "next torso:1" in bare
-    assert parts("next-mech-back-mechanical-bare") < parts("next-mech-back-mechanical")
-    assert parts("next-stage2") == set(stages.STAGES["next-stage2"].parts)
+    worn, bare = parts("mech-back"), parts("mech-back-bare")
+    assert {"morty face:1", "worn skull:1", "worn mandible:1"} <= worn - bare
+    assert {"skull:1", "mandible:1"} <= bare - worn and "torso:1" in bare
+    assert parts("mech-back-mechanical-bare") < parts("mech-back-mechanical")
+    assert parts("stage2") == set(stages.STAGES["stage2"].parts)
 
 
 def parts(name):
@@ -109,8 +107,8 @@ def test_each_part_carries_its_explode_offsets_the_page_moves_it_by(glb):
 def test_explode_gives_each_part_its_offsets_in_gltfs_metres_and_y_up():
     """#482, #664: the Sub-assemblies level by model/render/pictures.py EXPLODE, as glTF's (x, z, -y) in metres: the
     Torso stays, the jaw lifts with the neck and goes forward; then the Parts level's (#811)."""
-    explode = build.explode("next-mech-back")
-    assert explode.keys() == stages.STAGES["next-mech-back"].parts.keys()
-    assert explode["next torso:1"] == [0, 0, 0, 0, 0, 0]
-    assert explode["next jaw:1"][:3] == pytest.approx([0, 0.045, 0.04])
-    assert explode["next pack:1"][3:] != pytest.approx([0, 0, 0])
+    explode = build.explode("mech-back")
+    assert explode.keys() == stages.STAGES["mech-back"].parts.keys()
+    assert explode["torso:1"] == [0, 0, 0, 0, 0, 0]
+    assert explode["jaw:1"][:3] == pytest.approx([0, 0.045, 0.04])
+    assert explode["pack:1"][3:] != pytest.approx([0, 0, 0])
