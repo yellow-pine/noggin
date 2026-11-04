@@ -224,9 +224,10 @@ def test_the_eye_program_drives_stage_1s_servos_on_their_ports():
     import macros
     from model.geometry import SERVO_LABEL
 
-    names = {pin: name for pin, name in eyes.NAME.items() if pin != eyes.PAN}
+    names = {pin: name for pin, name in eyes.NAME.items() if pin not in eyes.NECK}
     assert {eyes.PORT_GPIO[str(port)]: servo for port, servo in CORES["eyes"].items()} == names
     assert eyes.NAME[eyes.PAN] in CORES["neck"].values()  # the neck Core's, by its core.json (#688)
+    assert {eyes.NAME[pin] for pin in eyes.NECK} == set(CORES["neck"].values())
     stage_1 = _table_servos(macros.stage_guides()[1]["1"], "Servo")
     assert sorted(SERVO_LABEL[s] for s in CORES["eyes"].values()) == sorted(stage_1)
     wiring = macros.wiring()
@@ -248,5 +249,13 @@ def test_the_calibration_is_the_models_nominals_until_a_stage_1_is_calibrated():
     lid = {"lo": gimbal.LID_SHUT, "rest": gimbal.LID_REST, "hi": gimbal.LID_EDGES[1]}
     nominal = {"yaw_lo": 90 + yaw[0], "yaw_hi": 90 + yaw[1], "pitch_lo": level - reach, "pitch_hi": level + reach}
     nominal |= {f"{s}_lid_{k}": 90 + edge - gimbal.LID_REST for s in "lr" for k, edge in lid.items()}
+    neck = stages.neck_sub().horns | stages.jaw_sub().horns
+    nominal |= {
+        "tilt_lo": 90 + neck["tilt horn"].limits[0],
+        "tilt_rest": 90,
+        "tilt_hi": 90 + neck["tilt horn"].limits[1],
+        "mouth_lo": 90,
+        "mouth_hi": 90 + neck["jaw horn"].limits[0],
+    }
     assert {k: cal[k] for k in nominal} == pytest.approx(nominal, abs=0.05)
     assert {k: eyes.DEFAULT_CAL[k] for k in cal} == cal

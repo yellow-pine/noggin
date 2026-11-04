@@ -48,5 +48,5 @@ The jaw rides the head mount, so it pans and tilts with the head. Each sub-assem
 
 ## Wiring
 
-The jaw servo goes to the neck Core, on its port in [Wiring](wiring.md). *Upcoming (#929): the neck Core drives the
-jaw, so a gesture opens the mouth; today the jaw plays in the model and the viewer alone.*
+The jaw servo goes to the neck Core, on its port in [Wiring](wiring.md). Eureka opens the jaw in proportion to the
+gesture's level, then closes it. Hold it for calibration with `noggin/noggin pose jaw 0.5` (half open).

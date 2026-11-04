@@ -58,9 +58,10 @@ def _s8(v):
 # shield port 1..4 -> GPIO 3,2,1,0; core.json "ports" (port -> servo name) picks the GPIO per name, defaults below
 PORT_GPIO = {"1": 3, "2": 2, "3": 1, "4": 0}
 L_LID, YAW, R_LID, PITCH = 3, 2, 1, 0
-PAN = 4  # the neck Core's pan servo: on no default GPIO, so only a core.json naming "pan" drives it
-NAME = {L_LID: "l_lid", YAW: "yaw", R_LID: "r_lid", PITCH: "pitch", PAN: "pan"}
+PAN, TILT, JAW = 4, 5, 6  # virtual pins: only a core.json carrying their names drives the neck servos
+NAME = {L_LID: "l_lid", YAW: "yaw", R_LID: "r_lid", PITCH: "pitch", PAN: "pan", TILT: "tilt", JAW: "mouth"}
 LIDS, EYES = (L_LID, R_LID), (YAW, PITCH)
+NECK = (PAN, TILT, JAW)
 EYE_CENTER = 90
 LID_OPEN_FULL, LID_CLOSED = 1.0, 0.0
 SLEW = 428  # deg/s, the servo's rated slew at 4.8 V (eyes/servo.py, not flashed): no move asks for more
@@ -96,7 +97,7 @@ def servo_map():
         with open("core.json") as f:
             return {name: PORT_GPIO[port] for port, name in json.load(f)["ports"].items()}
     except (OSError, KeyError, ValueError):
-        return {name: pin for pin, name in NAME.items() if pin != PAN}
+        return {name: pin for pin, name in NAME.items() if pin not in NECK}
 
 
 # Fallback values, eyes/calibration.json's: the model's nominals (inferred, model/stages.py eyes_sub) until a Stage 1
@@ -135,6 +136,11 @@ DEFAULT_CAL = {
     # the pan servo's degrees that turn the head as far as the eyes turn at the yaw's lo and hi ends (lo > hi: reversed)
     "pan_lo": 60,
     "pan_hi": 120,
+    "tilt_lo": 42.1,
+    "tilt_rest": 90.0,
+    "tilt_hi": 139.7,
+    "mouth_lo": 90.0,  # closed at neutral; the mouth horn turns backwards to open
+    "mouth_hi": 53.7,
     "head_share": 0.0,  # how much of a gaze shift past HEAD_FROM the head carries ([AND]); 0: the eyes alone, no pan
 }
 
@@ -190,6 +196,26 @@ class Eyes:
         elo, ehi = self.range(YAW)
         return (lo + hi) / 2 + head * (hi - lo) / (ehi - elo)
 
+    def _jaw_angle(self, opened):
+        lo, hi = self.cal["mouth_lo"], self.cal["mouth_hi"]
+        return lo + (hi - lo) * min(1.0, max(0.0, opened))
+
+    def _rest_angle(self, pin):
+        if pin in EYES:
+            return self._eye_angle(pin, EYE_CENTER)
+        if pin in LIDS:
+            return self._lid_angle(pin, self.cal["lid_rest"])
+        if pin == JAW:
+            return self._jaw_angle(0)
+        return self.cal["tilt_rest"] if pin == TILT else self._pan_angle(0)
+
+    def neck_pose(self, tilt, jaw, ms):
+        """Tilt -1..1 around its calibrated rest and jaw 0 closed..1 open, within this Mech's fitted ranges."""
+        tilt = min(1.0, max(-1.0, tilt))
+        rest = self.cal["tilt_rest"]
+        end = self.cal["tilt_lo" if tilt < 0 else "tilt_hi"]
+        self.glide(ms, {TILT: rest + abs(tilt) * (end - rest), JAW: self._jaw_angle(jaw)})
+
     def _gaze(self):
         """Where the eyes look, the head's turn included: the yaw's angle (EYE_CENTER straight) plus the head's."""
         return self.pos.get(YAW, self._eye_angle(YAW, EYE_CENTER)) - self._eye_angle(YAW, 0) + self.head
@@ -223,12 +249,7 @@ class Eyes:
 
     def glide(self, ms, targets):
         """Move along minimum jerk over ms, a write a FRAME, in more frames when it would pass SLEW or ACCEL."""
-        start = {
-            p: self.pos.get(
-                p, self._eye_angle(p, EYE_CENTER) if p in EYES else self._lid_angle(p, self.cal["lid_rest"])
-            )
-            for p in targets
-        }
+        start = {p: self.pos.get(p, self._rest_angle(p)) for p in targets}
         span = max(abs(targets[p] - start[p]) for p in targets)
         t = max(ms, 1.875 * span * 1000 / SLEW, math.sqrt(5.7735 * span / ACCEL) * 1000)
         n = max(1, math.ceil(t / FRAME))
@@ -329,6 +350,7 @@ class Eyes:
     def rest_pose(self):
         self.lids(self.cal["lid_rest"], 200)
         self.turn(EYE_CENTER, 200) if self.cal["head_share"] else self.eyes(EYE_CENTER, 200)
+        self.neck_pose(0, 0, HEAD_MS)
 
     # --- gestures ----------------------------------------------------------
     def eureka(self, i):
@@ -340,6 +362,7 @@ class Eyes:
         self.lids(self.cal["lid_think"], 160)  # anticipation
         wait(60)
         self.lids(self.cal["lid_open"])  # AU5: the take, as a step at the servo's full slew
+        self.neck_pose(-0.3, 0.6 * i / 3, HEAD_MS)  # a small head take and open jaw, scaled to the fitted calibration
         self.saccade(EYE_CENTER + side * amp)
         self.lids(wide, hold)  # cushion back from the accent while the stare holds
         if i == 3:
@@ -351,6 +374,7 @@ class Eyes:
             wait(200)
             self.blink(level=wide)
         self.lids(self.cal["lid_rest"], 300, over=-0.04)
+        self.neck_pose(0, 0, 300)
 
     def attention(self, i):
         """Needs you: half lids, two slow pursuit sweeps (~40 deg/s), centre, lids open past rest, settle, one blink."""
@@ -448,13 +472,17 @@ class Eyes:
             self.release()
         elif cmd == "set" and len(args) == 2 and args[0] in self.cal:
             self.cal[args[0]] = type(DEFAULT_CAL[args[0]])(float(args[1]))
-        elif cmd == "pose" and len(args) in (2, 4):  # pose lids <0-1> | eyes <angle> | both; holds
+        elif cmd == "pose" and len(args) in (2, 4):  # two of lids <0-1>, eyes/tilt <servo angle>, jaw <0-1>; holds
             self.mode = "pose"  # still, no rest blink, while it is tuned
             for key, val in zip(args[::2], args[1::2]):
                 if key == "lids":
                     self.lids(float(val), 150)
                 elif key == "eyes":
                     self.eyes(float(val), 150)
+                elif key == "tilt":
+                    self.glide(250, {TILT: float(val)})
+                elif key == "jaw":
+                    self.glide(250, {JAW: self._jaw_angle(float(val))})
         elif cmd == "take":  # each move on time by the Core's clock: the Link's polls in the waits never add up
             self.mode = "pose"
             t0 = ticks_ms()

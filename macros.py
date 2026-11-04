@@ -34,7 +34,7 @@ from pathlib import Path
 from model import geometry as g
 from model import mjcf, stages, trajectories
 from model.printed import coupon as clearance
-from model.render import pictures, scene
+from model.render import pictures
 from noggin.core import VERSION
 from noggin.service import CORES
 from reactions.director import STALE_TURN_SECONDS, TIERS, Director
@@ -365,20 +365,14 @@ def shopping():
 
 
 def wiring():
-    """Each Core's ports: the Shield's GPIO, the servo, its range and rest; the eyes' as calibrated (the lids in the
-    shared lid frame, the eyes resting centred between their ends), the neck's the Mech's neck's limits (its horns
-    from neutral, 90) and that neutral."""
+    """Each Core's ports: the Shield's GPIO, the servo, its calibrated range and rest; the lids in their shared frame,
+    the eyes and pan centred between their ends, the tilt at its calibrated rest, the jaw closed."""
     gpio, cal = constant("eyes/eyes.py", "PORT_GPIO"), json.loads((ROOT / "eyes/calibration.json").read_text())
-    neck = stages.neck_sub().horns | stages.jaw_sub().horns
     rows = ["| Core | Port | GPIO | Servo | Range | Rest |", "|---|---|---|---|---|---|"]
-    for n, (name, (core, ports)) in enumerate(zip(CORES, g.CHANNELS.items(), strict=True), 1):
+    for n, (name, ports) in enumerate(zip(CORES, g.CHANNELS.values(), strict=True), 1):
         for port, servo in ports.items():
-            if core == "core1":
-                lo, hi = cal[servo + "_lo"], cal[servo + "_hi"]
-                rest = cal.get(servo + "_rest", (lo + hi) / 2)
-            else:  # the pan servo's horn goes by "rotate" (model/render/scene.py HORNS)
-                horn = neck[scene.HORNS["rotate" if servo == "pan" else servo]]
-                (lo, hi), rest = (round(90 + d, 1) for d in horn.limits), 90
+            lo, hi = cal[servo + "_lo"], cal[servo + "_hi"]
+            rest = cal.get(servo + "_rest", lo if servo == "mouth" else (lo + hi) / 2)
             row = f"{n} ({name}) | {port} | {gpio[str(port)]} | {g.SERVO_LABEL[servo]} | {lo:g}..{hi:g} | {rest:g}"
             rows.append(f"| {row} |")
     return "\n".join(rows)
