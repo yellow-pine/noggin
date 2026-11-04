@@ -18,6 +18,7 @@ jobs:
     name: In Progress
     if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:
@@ -42,6 +43,7 @@ jobs:
     name: Clear Labels
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:

@@ -54,6 +54,7 @@ jobs:
       group: Release
       cancel-in-progress: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}   # the commit Checks passed
     steps:

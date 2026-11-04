@@ -16,6 +16,7 @@ jobs:
     name: Re-pin Skills
     # the skills CLI (ci/package-lock.json) runs here with no token or secrets
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -45,6 +46,7 @@ jobs:
     # from main only (a dispatch elsewhere is a dry run): it would otherwise propose that branch's commits too
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

@@ -16,6 +16,7 @@ jobs:
   scan:
     name: Scan (${{ matrix.image }})
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       security-events: write   # the SARIF upload

@@ -29,6 +29,7 @@ jobs:
     name: Push
     if: ${{ github.ref == 'refs/heads/main' }}   # a dispatch can name another branch
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write   # the only job that writes to GHCR
