@@ -30,7 +30,7 @@ their own.*
    then keep the end a few degrees inside it.
 3. **Close the lids.** Lower `l_lid_lo` and `r_lid_lo` until the lid edges just touch, quietly, both eyes alike.
 4. **Open the lids.** Raise `_hi` until the lid stops opening visibly, inside any stop.
-5. **Match the rest.** Pose both eyes half open (`noggin/noggin pose lids 0.3`) and set `l_lid_rest` and
+5. **Match the rest.** Pose both eyes partly open (`noggin/noggin pose lids 0.3`) and set `l_lid_rest` and
    `r_lid_rest` until both lids show the same part of the pupil. Compare at a half-open pose, not only at the ends: the
    lid bars make equal servo steps unequal lid steps, so a straight line between the ends can't fit both.
 6. **The eyes.** Set `yaw_lo`, `yaw_hi`, `pitch_lo` and `pitch_hi` so the eyes reach their widest look with every

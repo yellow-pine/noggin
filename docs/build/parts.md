@@ -21,15 +21,16 @@ The count per Stage is in [the table on the site](https://yellowpine.com/noggin/
 from the model.
 <!-- #}-->
 
-Stage 1 runs off Stage 2's pack and switch board, lying beside its test stand until the Torso holds them (inferred), so
-buy those two with Stage 1 if you want it to move on its own. Where to buy each:
+Stage 1 needs Stage 2's pack and switch board too: a Core's USB-C powers the Core alone, never the servos, so they lie
+beside the test stand until the Torso holds them (inferred). Buy both with Stage 1, and a fifth servo if you will
+[film one](tests.md#filming-a-servo). Where to buy each:
 
 | Part | What to buy | Code |
 |---|---|---|
 | Core | Bambu Lab CyberBrick Core | XA003 |
 | Shield | CyberBrick X11 Receiver Shield | XA004 |
 | servo | CyberBrick 9 g servo with clutch protection, the 180° one (the 360° one turns on and on, so it is not used) | PG001 |
-| servo horn | the horns that come with each servo | PG001 |
+| servo horn | the horns that come with each servo | with the servo |
 | battery pack | CyberBrick 2S battery, 7.4 V 800 mAh | PC003 |
 | switch board | CyberBrick switch module | XA007 |
 | power-path board | nomo's BQ25886 2S charge board on Tindie, its 18650 holder snapped off and ICHGSET swapped to 2.87 kΩ for 0.75 A | BQ25886 |
@@ -44,10 +45,10 @@ Also needed, which the model doesn't count as parts:
 
 - M3 screws, about 10 mm, as the busy pivots' greased shanks, and M2 screws and nuts for the servos and boards
   (inferred).
-- A Y lead from the switch board to both Shields, and four 24 AWG conductors up the neck from the Torso to the head
-  (docs/research/2026-11-03-usb-c-power.md 7).
-- The balance spring, a torsion spring on the tilt shank holding the head's weight (model/neck.py `balance`).
-- A USB-C source that advertises 3 A: the power-path board's input limit doesn't follow the source yet.
+- From Stage 2: a Y lead from the switch board to both Shields, four 24 AWG conductors up the neck from the Torso to
+  the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
+  to the head; inferred).
+- A USB-C charger or laptop port that offers 3 A: the power-path board charges at a fixed input limit.
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
 - *Upcoming (#902): a standard metal-gear servo (about 10 kgf·cm at 5 V) for the tilt and a thrust bearing (an F8-16M,
   or a 608 in a seat) under the head for the pan, both inside the skull.*
@@ -78,5 +79,7 @@ every Palette's filaments are in the table on [Themes](../face-design.md).
 
 ## On the Mac
 
-macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it) and Claude Code. `uv` manages
+macOS, [uv](https://docs.astral.sh/uv/) (Python 3.14 and mpremote come with it), [just](https://just.systems/)
+(`uv tool install rust-just`) and Claude Code, and this repo cloned (`git clone
+https://github.com/yellow-pine/noggin`, then `just venv` in it). `uv` manages
 `.venv` and runs mpremote and pytest; the system Python is 3.9 and is not used.

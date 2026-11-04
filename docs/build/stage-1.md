@@ -29,7 +29,8 @@ The servos and their ranges are in [the table on the site](https://yellowpine.co
 built from the model.
 <!-- #}-->
 
-The ranges are the model's, in servo degrees, where every part sweeps clear; the real servos get calibrated
+The ranges are the model's, in servo degrees, where every part sweeps clear; the eye program starts from its own
+calibration inside them ([Wiring](wiring.md#servo-ports)), and you calibrate your servos from there
 ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
