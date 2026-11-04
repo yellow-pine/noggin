@@ -104,11 +104,19 @@ def refit(arrays, scene, envelope):
     # Every original bone uses the SAME pre-field transform. No independent cervical translations survive.
     for bone in scene["bones"]:
         bone["matrix"] = common.tolist()
+        if bone["group"] == "Ribcage":
+            # Actual chest points constrain its affine fit; the old full-ribcage box alone left the upper chest loose.
+            p = np.asarray(arrays[bone["key"] + "_basis"]).mean(axis=0)
+            old = original["Ribcage"]
+            scene["landmarks"]["LM chest " + bone["name"]] = {
+                "source": (p @ old[:3, :3].T + old[:3, 3]).tolist(),
+                "target": (p @ old[:3, :3].T + old[:3, 3]).tolist(),
+            }
     for name, pair in scene["landmarks"].items():
         group = name.split()[1]
         if group == "frame":
             continue
-        group = "Ribcage" if group == "ribcage" else group if group in original else "Skull"
+        group = "Ribcage" if group in ("ribcage", "chest") else group if group in original else "Skull"
         old = original[group]
         local = (np.array(pair["source"]) - old[:3, 3]) @ np.linalg.inv(old[:3, :3]).T
         pair["source"] = (local @ common[:3, :3].T + common[:3, 3]).tolist()
