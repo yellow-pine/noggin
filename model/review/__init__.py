@@ -252,6 +252,7 @@ def _blender(args, ceiling_kb=CEILING_KB):
     log = tempfile.TemporaryFile("w+")  # a file, not a pipe: a full pipe would stall Blender
     p = subprocess.Popen([skeleton.BLENDER, "-b", "--factory-startup", *args], stdout=log, stderr=subprocess.STDOUT)
     peak = 0
+    step = "inspect" if "--python-expr" in args else args[-1]
     while p.poll() is None:
         rss = subprocess.run(["ps", "-o", "rss=", "-p", str(p.pid)], capture_output=True, text=True).stdout.strip()
         peak = max(peak, int(rss or 0))
@@ -263,8 +264,8 @@ def _blender(args, ceiling_kb=CEILING_KB):
     log.seek(0)
     log = log.read()
     if p.returncode or "review: done" not in log:
-        raise RuntimeError(f"Blender failed on {args[-1]}:\n{log[-4000:]}")
-    print(f"review: {args[-1]} in {peak // 1000} MB", flush=True)
+        raise RuntimeError(f"Blender failed on {step}:\n{log[-4000:]}")
+    print(f"review: {step} in {peak // 1000} MB", flush=True)
     return log
 
 

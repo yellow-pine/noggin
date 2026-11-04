@@ -203,8 +203,16 @@ def animate(scene, objects):
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
     moving = []
+    parts = {o["part"]: o for o in scene.objects if "part" in o}
     for o in objects:
-        part = o.get("part") or o.get("carrier")
+        if carrier := o.get("carrier"):
+            if carrier not in parts:
+                raise ValueError(f"review: Morty's carrier {carrier} has no live scene object")
+            world = o.matrix_world.copy()
+            o.parent = parts[carrier]
+            o.matrix_parent_inverse = parts[carrier].matrix_world.inverted()
+            o.matrix_world = world
+        part = o.get("part")
         if part and any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"]):
             moving.append((o, part, o.matrix_world.copy()))
     for o, _, _ in moving:
