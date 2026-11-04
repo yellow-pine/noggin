@@ -225,8 +225,8 @@ def _eyes():
 TEMPLES = (sk.grown(66.0, 2.0, 38.0), 20.0 * sk.GROW)
 BROW, BROW_SUNK, BROW_PROUD = (sk.grown(12.0, 40.0), sk.grown(41.0, 45.0)), 1.0, 1.5
 DOT = (3.0, 2.0)
-# the teeth on the jaw's chin, grown with it (model/neck.py JAW_K)
-TEETH, TOOTH = ((-18.0 * nk.JAW_K, 18.0 * nk.JAW_K), (nk.jaw_point(0, -77.5)[1], nk.jaw_point(0, -75.0)[1]), 3.0), 6.0
+# the teeth across the jaw's chin, grown with it (model/neck.py JAW_K)
+TEETH, TOOTH = ((-18.0 * nk.JAW_K, 18.0 * nk.JAW_K), (-77.5, -75.0), 3.0), 6.0
 LAPEL_PROUD = 1.2
 LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.0, -4.0))
 

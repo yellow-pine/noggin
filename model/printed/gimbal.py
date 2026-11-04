@@ -310,16 +310,15 @@ def frame(mechanical=False):
         lx = sorted(s * u for u in neck.JAW_LUG_X)
         foot = box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top))  # the lid upright's foot, hanging the bar
         out = out.union(foot)
-        if mechanical:  # each yoke's bearing reaching forward from the plate's front (#901)
-            out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
-            out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, stem)))
+        # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
+        out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
+        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, gm.TIE_Z[0] - 0.5)))
+        if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
             out = out.union(box(lx, (jy - neck.BOSS_R, jy + neck.BOSS_R), (top, jz))).union(
                 cyl("x", (0, jy, jz), neck.BOSS_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
-            bearing = strut((s * c, y0 + 2, top - 1), (s * c, 0, stem), (5.0, 5.0), (3.5, 3.5))
-            out = out.union(bearing.intersect(box((s * c - 6, s * c + 6), (-6, y0 + 6), (top - 2, stem))))
             for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.BOSS_R)):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
                 # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)

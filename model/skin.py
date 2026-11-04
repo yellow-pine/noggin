@@ -110,7 +110,8 @@ HEADS = {
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
 HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
-HEAD_Z = (min(v - r for _, v, r in FRONT + SIDE[1]), max(v + r for _, v, r in FRONT))
+# its floor where it was first drawn (#665), over the neck and the Torso however the head tilts (#901: grown, it met them)
+HEAD_Z = (-80.0, max(v + r for _, v, r in FRONT))
 MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # The hairline (his model sheet's): the hair is the head inside a circle along x, (y, z, r), from over the forehead down
