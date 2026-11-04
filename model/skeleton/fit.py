@@ -45,9 +45,12 @@ def warp(arrays, scene):
         raise ValueError(
             f"Bust warp folds or collapses: least Jacobian {determinant:.4f} at {probes[determinants.argmin()]}"
         )
+    error = float(np.linalg.norm(source + field(source) - target, axis=1).max())
+    if error > 1.0:
+        raise ValueError(f"Bust warp misses an anatomical landmark by {error:.4f} mm")
     return result, {
         "min_jacobian": determinant,
-        "landmark_error_mm": float(np.linalg.norm(source + field(source) - target, axis=1).max()),
+        "landmark_error_mm": error,
     }
 
 
