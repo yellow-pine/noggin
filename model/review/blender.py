@@ -57,57 +57,81 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """The private closed, arm-free reference: one mesh named Morty in the raw sculpt's frame, its painted material slots
-    named by Skin Colour group. Keep this editable .blend in docs/references; rebuilding never writes to it."""
+    """Private semantic surfaces, painted by Colour group and carried by live parts; fixed body surfaces never key.
+    The editable source stays local and is read without being rewritten."""
     with bpy.data.libraries.load(m["blend"]) as (src, dst):
-        if "Morty" not in src.objects:
-            raise ValueError("review: local Morty reference needs a mesh named Morty with Skin Colour group materials")
-        dst.objects = ["Morty"]
-    whole = dst.objects[0]
-    if whole.type != "MESH" or not whole.data.polygons or not whole.data.materials:
-        raise ValueError("review: local Morty reference needs a painted mesh")
-    bpy.context.scene.collection.objects.link(whole)
-    for slot in whole.material_slots:
-        if not slot.material or slot.material.name not in m["colours"]:
-            raise ValueError("review: local Morty materials must be named by Skin Colour group")
-        slot.material.diffuse_color = lin(m["colours"][slot.material.name], JOB["alpha"]["Morty"])
-    dec = whole.modifiers.new("Decimate", "DECIMATE")
-    dec.ratio = min(1.0, MORTY_FACES / len(whole.data.polygons))
-    with bpy.context.temp_override(object=whole):
-        bpy.ops.object.modifier_apply(modifier=dec.name)
-    whole.data.transform(Matrix(m["at"]) @ whole.matrix_world)
-    bm = bmesh.new()
-    bm.from_mesh(whole.data)
-    floor = m["floor"]
-    bmesh.ops.bisect_plane(
-        bm,
-        geom=[*bm.verts, *bm.edges, *bm.faces],
-        plane_co=(0, 0, floor),
-        plane_no=(0, 0, 1),
-        clear_inner=True,
-        dist=1e-5,
-    )
-    rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.z - floor) < 1e-4 for v in e.verts)]
-    caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
-    if any(e.is_boundary for e in rim):
-        raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
-    clothes = next(i for i, mat in enumerate(whole.data.materials) if mat.name == "clothes")
-    for f in caps:
-        f.material_index = clothes
-    bm.to_mesh(whole.data)
-    bm.free()
-    low, high = m["planes"]
-    for region, (z0, z1) in zip(REGIONS, ((high, 1e9), (low, high), (-1e9, low)), strict=True):
-        me = whole.data.copy()
+        if "Morty reference" not in src.collections:
+            raise ValueError("review: local Morty needs an editable Morty reference collection with semantic meshes")
+        dst.collections = ["Morty reference"]
+    source = dst.collections[0]
+    objects = [o for o in source.all_objects if o.type == "MESH"]
+    roles = [o.get("reference_region") for o in objects]
+    fixed = {"neck", "shoulders", "torso"}
+    if (
+        not all(isinstance(r, str) and r for r in roles)
+        or len(set(roles)) != len(roles)
+        or not (fixed | {"head"}) <= set(roles)
+    ):
+        raise ValueError("review: Morty needs distinct head, neck, shoulders and torso surfaces")
+    witnesses = {"witness neck": "neck", "witness L shoulder": "shoulders", "witness R shoulder": "shoulders"}
+    if not witnesses.keys() <= {g.name for o in objects for g in o.vertex_groups}:
+        raise ValueError("review: local Morty needs independent neck and shoulder vertex witnesses")
+    ratio = min(1.0, MORTY_FACES / max(1, sum(len(o.data.polygons) for o in objects)))
+    for o in objects:
+        carrier = o.get("carrier")
+        if any(witnesses[g.name] != o["reference_region"] for g in o.vertex_groups if g.name in witnesses):
+            raise ValueError("review: Morty's independent anatomical witness is in the wrong semantic region")
+        if o.get("display_region") not in REGIONS or "part" in o:
+            raise ValueError("review: private reference surfaces need a display_region and must not be print parts")
+        if (o["reference_region"] in fixed and carrier) or (o["reference_region"] not in fixed and not carrier):
+            raise ValueError("review: neck, shoulders and torso stay fixed; moving surfaces need a live carrier")
+        if carrier and carrier not in JOB_REST:
+            raise ValueError(f"review: Morty's carrier {carrier} is absent from the live model")
+        if not o.data.polygons or not o.data.materials:
+            raise ValueError("review: local Morty surfaces need painted meshes")
+        for slot in o.material_slots:
+            if not slot.material or slot.material.name not in m["colours"]:
+                raise ValueError("review: local Morty materials must be named by Skin Colour group")
+            slot.material.diffuse_color = lin(m["colours"][slot.material.name], JOB["alpha"]["Morty"])
+        world = o.matrix_world.copy()
+        for c in list(o.users_collection):
+            c.objects.unlink(o)
+        bpy.data.collections[f"Morty {o['display_region']}"].objects.link(o)
+        bpy.context.view_layer.update()
+        dg = bpy.context.evaluated_depsgraph_get()
+        o.data = bpy.data.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+        o.modifiers.clear()
+        if ratio < 1.0:
+            dec = o.modifiers.new("Decimate", "DECIMATE")
+            dec.ratio = ratio
+            with bpy.context.temp_override(object=o, active_object=o):
+                bpy.ops.object.modifier_apply(modifier=dec.name)
+        o.parent = None
+        o.animation_data_clear()
+        o.matrix_world = Matrix.Identity(4)
+        o.data.transform(Matrix(m["at"]) @ world)
         bm = bmesh.new()
-        bm.from_mesh(me)
-        bmesh.ops.delete(bm, geom=[f for f in bm.faces if not z0 <= f.calc_center_median().z < z1], context="FACES")
-        bm.to_mesh(me)
+        bm.from_mesh(o.data)
+        floor = m["floor"]
+        bmesh.ops.bisect_plane(
+            bm,
+            geom=[*bm.verts, *bm.edges, *bm.faces],
+            plane_co=(0, 0, floor),
+            plane_no=(0, 0, 1),
+            clear_inner=True,
+            dist=1e-5,
+        )
+        rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.z - floor) < 1e-4 for v in e.verts)]
+        caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
+        if any(e.is_boundary for e in rim):
+            raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
+        clothes = next(i for i, mat in enumerate(o.data.materials) if mat.name == "clothes")
+        for f in caps:
+            f.material_index = clothes
+        bm.to_mesh(o.data)
         bm.free()
-        o = bpy.data.objects.new(f"Morty {region.lower()}", me)
-        bpy.data.collections[f"Morty {region}"].objects.link(o)
         o.color, o.hide_render = (1, 1, 1, JOB["alpha"]["Morty"]), True
-    bpy.data.objects.remove(whole)
+    bpy.data.collections.remove(source)
 
 
 def assemble():
@@ -177,10 +201,9 @@ def animate(scene, objects):
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
-    carrier = {"Morty skull": "gimbal frame:1", "Morty mechanism": "pan yoke:1"}
     moving = []
     for o in objects:
-        part = o.get("part") or carrier.get(o.name)
+        part = o.get("part") or o.get("carrier")
         if part and any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"]):
             moving.append((o, part, o.matrix_world.copy()))
     for o, _, _ in moving:
