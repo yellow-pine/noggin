@@ -81,19 +81,36 @@ SERVO = {
 }
 
 
-def drive(s, joint, values=SERVO, delay_max_s=None, *, name=None, gear=1):
+def motor(horn):
+    """Per-axis motor on the actual 5 V rail; the micro's filmed fit never fits the standard tilt."""
+    p = electrical.servo.profile(horn.removesuffix(" horn"), electrical.SERVO_RAIL_V)
+    stall = p["stall_kgfcm"] * 0.0980665
+    return {
+        "volts": p["volts"],
+        "stall_nm": stall,
+        "no_load_rad_s": math.radians(60 / p["s_per_60"]),
+        "kp": stall / math.radians(0.5),
+        "armature": p["armature"],
+        "delay_s": 0.02,
+        **(json.load(open(FIT)) if horn != "tilt horn" and os.path.exists(FIT) else {}),
+    }
+
+
+def drive(s, joint, values=None, delay_max_s=None, *, name=None, gear=1):
     """A servo on the spec's hinge `joint` (an actuator of its name): a dcmotor at SERVO_V whose position loop commands
     torque (MuJoCo's controller adds back-EMF to its voltage, as a current-driven motor: optimistic for the servo's
     voltage H-bridge below the clamp), its voltage clamped at SERVO_V, so it stalls at stall_nm and runs no faster than
     no_load_rad_s; its command read delay_s late from a history of delay_max_s (default delay_s)."""
+    values = motor(name or joint) if values is None else values
+    volts = values.get("volts", SERVO_V)
     kd = 2 * math.sqrt(values["kp"] * values["armature"])
     s.joint(joint).armature = values["armature"]
     servo = s.add_actuator(name=name or joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
     servo.set_to_dcmotor(
         motorconst=[0, 0],
         resistance=0,
-        nominal=[SERVO_V, values["stall_nm"], values["no_load_rad_s"]],
-        controller=[values["kp"], 0, kd, 0, 0, SERVO_V],
+        nominal=[volts, values["stall_nm"], values["no_load_rad_s"]],
+        controller=[values["kp"], 0, kd, 0, 0, volts],
         ctrlspec=mujoco.mjtCtrlInput.mjINPUT_POS,
     )
     servo.ctrlrange = [-math.pi / 2, math.pi / 2]  # the servo's 0..180
