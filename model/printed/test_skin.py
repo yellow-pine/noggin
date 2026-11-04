@@ -49,12 +49,13 @@ def test_a_head_shell_built_again_is_the_same(skin_shape, heads):
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
-HEAD_LIMIT = (140.0, 140.0, 150.0)  # W, D, H: the head Cansin set (#838), the ears outside its width (#844)
+# W, D, H: the head Cansin set (#838), grown with the eyes (#901), the ears outside its width (#844)
+HEAD_LIMIT = sk.grown(140.0, 140.0, 150.0)
 
 
 @pytest.mark.parametrize("skin_shape", g.SKINS)
 def test_each_head_fits_the_head_limit_but_for_its_ears(skin_shape, heads):
-    """Its face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm, Cansin's tufts too (#813); only the ears
+    """Its face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm grown x1.5 (#901), Cansin's tufts too (#813); only the ears
     stand out of its sides."""
     head = list(heads[skin_shape].values())
     lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
@@ -62,7 +63,7 @@ def test_each_head_fits_the_head_limit_but_for_its_ears(skin_shape, heads):
     _, depth, height = np.subtract(hi, lo)
     assert depth <= HEAD_LIMIT[1] and height <= HEAD_LIMIT[2]
     y, z, r, _ = skin.EAR
-    earless = cq.Workplane().add(head).cut(gimbal.cyl("x", (0, y, z), r + 0.1, (-100, 100))).val().BoundingBox()
+    earless = cq.Workplane().add(head).cut(gimbal.cyl("x", (0, y, z), r + 0.1, (-300, 300))).val().BoundingBox()
     assert earless.xlen <= HEAD_LIMIT[0] + 1e-3 < max(h.BoundingBox().xlen for h in head)
 
 
@@ -91,7 +92,8 @@ def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     eye (#630)."""
     pupil, cap = PARTS[f"morty {side} pupil"]().val(), PARTS[f"{side} eyeball cap"]().val()
     assert pupil.intersect(cap).Volume() < 1e-6
-    assert pupil.Center().x == pytest.approx(inward * gm.CAP_R * math.sin(math.radians(gm.TOE_IN)), abs=0.1)
+    # the pupil's centre a little inside its seat's shift: Morty's big pupil clipped by the cap's curve (#901)
+    assert pupil.Center().x == pytest.approx(inward * gm.CAP_R * math.sin(math.radians(gm.TOE_IN)), abs=0.3)
     seat = cq.Workplane().add(cap).union(cq.Workplane().add(pupil)).val()
     dome = gimbal.ball(gm.CAP_R).val().Volume()
     assert seat.Volume() < dome  # the cap and its pupil fill no more than the dome: the pupil is in the seat

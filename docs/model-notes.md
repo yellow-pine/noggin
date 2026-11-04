@@ -122,17 +122,20 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, hanging under the frame's plate, the pitch servo beside the pitch bar, each lid servo upright
   behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
-  Since #838 the eyes are 52 mm apart, in the realistic skull's orbits: each eye's inboard drives (bar, link, ears)
-  within 25.5 mm of it, the two eyes' 1 mm apart about their shared axis, the upper lid's shell 1.5 mm; the frame's
-  plate is up under the tie-bar, between the skull's coronoids and condyles, its bar in front of the coronoids out to
-  the lids' uprights. Each eye has an
+  Since #901 the eyes are Morty's at life size (#872's round 2): on his pupils, 72.7 mm apart, the cap his eye's 40.4 mm
+  sphere, the core, yoke, lever and bail x1.5 with it, the upper lid 1 mm off the cap; each eye's inboard drives (bar,
+  link, ears) within 33.75 mm of it, the two eyes' 5.2 mm apart about their shared axis. The bigger lower lids sweep
+  under the eyes, so the frame's plate starts behind that sweep (the yokes' bearings reach forward from it) and its bar,
+  a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Each eye has an
   upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
   parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
-  four-bar turning it against the upper about 0.8x (`gimbal.lower`; #838 turned it about the eye with the crank, every
-  angle kept); shut they meet 4 deg below the eye's middle,
+  four-bar turning it against the upper about 0.8x (`gimbal.lower`; searched again for #901's layout); at rest each
+  edge sits on the cap's rim (Morty's outline, 68 deg up and 52 down, lies past the cap's 45); shut they meet 4 deg
+  below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
   shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
-  the face is as wide as the lids' frame (119 mm, 138 before), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`'s width was that and a 3 mm shell wall (140 since #828). The pitch push-rod's Hooke coupling is undone by the command map
+  the face is as wide as the lids' frame (145 mm since #901), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`
+  is Morty's life-size cranium (160 x 176 x 175 since #901, #893). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
   as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`mech-back`,
@@ -159,7 +162,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
   lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.commands): its yaw, in the gimbal's own
   degrees since its servos are Stage 1's (#896), through `gimbal.servos`, the gaze level (the program holds the pitch), each lid level to its edge
-  (closed where the lids meet, rest just over the pupil, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  (closed where the lids meet, rest on the cap's rim, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
   the Mech's calibration (traces.HEAD_CAL, 0.6, inferred), the pan in the eyes' degrees scaled as the yaw and
@@ -168,8 +171,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gestures' gaze is level, so the tilt carries none.
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
-  tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, its
-  servo hanging under the frame's plate behind it), each servo drives through
+  tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, x1.08
+  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it), each servo
+  drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
   weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The tilt axis lies 40 mm or
@@ -199,7 +203,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso have
   room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
   (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
-  against `gimbal.HEAD_MM` (140 x 140 x 150 since #838, so the realistic skull keeps its length) and how far up
+  against `gimbal.HEAD_MM` (160 x 176 x 175 since #901, Morty's life-size cranium) and how far up
   it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.55: the realistic skull's orbits, a hair over half since #838), both hard gates in each look
   (model/test_report.py, model/printed/test_base.py), and `just sim` ranks them into model/build/reports/mech-ranking.json (base.rank: the clearance,
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and

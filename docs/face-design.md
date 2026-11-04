@@ -43,7 +43,7 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
 size inferred):
 - the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
-  the head mount, square from above where the mouth servo's corners need it; 140 x 140 x 150 mm
+  the head mount, square from above where the mouth servo's corners need it; 210 x 210 x 225 mm (x1.5 with the eyes, #901)
   but for the ears (model/printed/test_skin.py);
 - the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
   reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;

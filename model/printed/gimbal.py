@@ -307,7 +307,9 @@ def frame(mechanical=False):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
-        out = out.union(box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top)))  # the lid upright's foot, hanging the bar
+        out = out.union(
+            box(ux, (gm.CHEEK_Y[0], y0 + 4), (gm.BEAM_Z[0], top))
+        )  # the lid upright's foot, hanging the bar
         if mechanical:  # each yoke's bearing reaching forward from the plate's front (#901)
             out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
             out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, stem)))

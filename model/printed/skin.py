@@ -206,11 +206,12 @@ def _built_head(t):
 
 
 def _eyes():
-    """What the eyes' openings leave out: round each eye, everything its lids and their covers reach (r 36.3) with
-    1.2 mm to spare, ahead of the eye centres and inside the lids' reach across."""
-    out = None
+    """What the eyes' openings leave out: round each eye, everything its lids and their covers reach with 1.2 mm to
+    spare, ahead of the eye centres and inside the lids' reach across."""
+    out, r = None, gm.LOWER_R[1] + sk.GAP + sk.COVER + 1.2
+    across = gm.SPACING / 2 + gm.LID_X["lower boss"][1] + 2.0
     for x, _, _ in gm.EYE.values():
-        o = ball(37.5, (x, 0, 0)).intersect(box((-58, 58), (-60, 0), (-40, 40)))
+        o = ball(r, (x, 0, 0)).intersect(box((-across, across), (-r - 5, 0), (-r, r)))
         out = o if out is None else out.union(o)
     return out
 
@@ -219,10 +220,11 @@ def _eyes():
 # from the hair; each brow's (|x|, z) span over its eye, sunk into the face and standing proud of it; his dot pupils'
 # radius and depth in their plugs; his teeth's x and z span on the chin's top front, how deep they reach back and each
 # tooth's width; his lapels' proud; and the L aviator lens' outline (x, z) round the bridge's Seat
-TEMPLES = ((66.0, 2.0, 38.0), 20.0)
-BROW, BROW_SUNK, BROW_PROUD = ((12.0, 40.0), (41.0, 45.0)), 1.0, 1.5
+TEMPLES = (sk.grown(66.0, 2.0, 38.0), 20.0 * sk.GROW)
+BROW, BROW_SUNK, BROW_PROUD = (sk.grown(12.0, 40.0), sk.grown(41.0, 45.0)), 1.0, 1.5
 DOT = (3.0, 2.0)
-TEETH, TOOTH = ((-18.0, 18.0), (-77.5, -75.0), 3.0), 6.0
+# the teeth on the jaw's chin, grown with it (model/neck.py JAW_K)
+TEETH, TOOTH = ((-18.0 * nk.JAW_K, 18.0 * nk.JAW_K), (nk._jaw(0, -77.5)[1], nk._jaw(0, -75.0)[1]), 3.0), 6.0
 LAPEL_PROUD = 1.2
 LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.0, -4.0))
 
@@ -230,7 +232,7 @@ LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.
 def _hair(grow, skin="morty"):
     """The hair's region (model/skin.py HAIRLINE, NAPE), `grow` mm out of it; Cansin's less his temples."""
     y, z, r = sk.HAIRLINE
-    out = cyl("x", (0, y, z), r + grow, (-100, 100)).union(box((-100, 100), (sk.NAPE - grow, 200), (-200, 200)))
+    out = cyl("x", (0, y, z), r + grow, (-200, 200)).union(box((-200, 200), (sk.NAPE - grow, 300), (-300, 300)))
     if skin == "cansin":
         (x, ty, tz), tr = TEMPLES
         for s in (-1, 1):
@@ -242,15 +244,15 @@ def _skull(t):
     """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
     floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
     x, up = sk.NECK
-    neck = box((-x, x), (-100, 200), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
-    back = box((-100, 100), (sk.BACK_OPEN[0], 200), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
+    neck = box((-x, x), (-200, 300), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
+    back = box((-200, 200), (sk.BACK_OPEN[0], 300), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
     out = _head(t).cut(_head(sk.WALL)).cut(_eyes()).cut(neck).cut(back)
-    return out.intersect(box((-100, 100), (-100, 100), (sk.HEAD_Z[0], 100)))
+    return out.intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
 
 
 FACE_Y = min(u - r for u, _, r in sk.SIDE[0])  # the face's front over the eyes
-NOSE = (7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
-EAR = (18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
+NOSE = sk.grown(7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
+EAR = sk.grown(18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
 
 
 def _ear(s):
@@ -263,7 +265,7 @@ def _ear(s):
     ):  # a ball its poles on x, its seam off the cheek's cut: OCCT cuts a ball across its seam to nothing
         return cq.Workplane().add(cq.Solid.makeSphere(radius, cq.Vector(*at), cq.Vector(1, 0, 0), -90, 90))
 
-    ear = on_x(r, (x, y, z)).cut(box((0, sk.HEAD_X - 6.0), (-100, 100), (-100, 100)))
+    ear = on_x(r, (x, y, z)).cut(box((0, sk.HEAD_X - 6.0), (-200, 200), (-200, 200)))
     ear = ear.cut(on_x(r - 4.0, (x + 6.0, y - 4.0, z)))
     return ear if s > 0 else ear.mirror("YZ")
 
@@ -274,11 +276,13 @@ def face(skin="morty"):
     Cansin's: his temples higher, a pocket over each eye for his brow."""
     out = _skull(0.0).cut(_hair(0.1, skin))
     r, z = NOSE
-    out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-10, 10), (FACE_Y + sk.WALL, 0), (-40, 0))))
+    out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-r, r), (FACE_Y + sk.WALL, 0), (2 * z, 0))))
     for s in (-1, 1):
         out = out.union(_ear(s).cut(_head(sk.WALL)))
     y0 = sk.HEAD_Y[0]
-    out = out.cut(box((-24, 24), (y0 - 11, y0 + 9), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6)))
+    out = out.cut(
+        box((-24 * sk.GROW, 24 * sk.GROW), (y0 - 11, y0 + 9 * sk.GROW), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6 * sk.GROW))
+    )
     for seat in (s for s in sk.SEATS if s.carrier == f"{skin} face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
         out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0)))
@@ -290,12 +294,15 @@ def face(skin="morty"):
 
 # Cansin's tufts on top (#813): balls (x, y, z, r) over the hairline's front, the head's top 1.5 mm proud at most
 # (model/printed/test_skin.py HEAD_LIMIT), so they stand out of its forward slope as a short quiff
-TUFTS = (
-    (0.0, -4.0, 59.0, 10.0),
-    (-17.0, -1.0, 58.0, 10.0),
-    (17.0, -1.0, 58.0, 10.0),
-    (-9.0, 8.0, 61.0, 8.5),
-    (9.0, 8.0, 61.0, 8.5),
+TUFTS = tuple(
+    sk.grown(*t)
+    for t in (
+        (0.0, -4.0, 59.0, 10.0),
+        (-17.0, -1.0, 58.0, 10.0),
+        (17.0, -1.0, 58.0, 10.0),
+        (-9.0, 8.0, 61.0, 8.5),
+        (9.0, 8.0, 61.0, 8.5),
+    )
 )
 
 
@@ -306,7 +313,7 @@ def hair(skin="morty"):
     out = _skull(-sk.HAIR).intersect(_hair(-0.1, skin))
     if skin == "cansin":
         face = _head(0.0).cut(_hair(-0.1, skin))  # the face's, under the hairline
-        top = box((-100, 100), (-100, 100), (-100, sk.HEAD_Z[1] + sk.HAIR))
+        top = box((-200, 200), (-200, 200), (-200, sk.HEAD_Z[1] + sk.HAIR))
         for x, y, z, r in TUFTS:
             out = out.union(ball(r, (x, y, z)).cut(face).cut(_head(sk.WALL)).intersect(top))
     for seat in (s for s in sk.SEATS if s.shell == f"{skin} hair" and s.carrier == "gimbal frame"):
@@ -324,8 +331,9 @@ def mouth_cover(skin="morty"):
     _, y, z = seat.at
     bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 0.6
     plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
-    wall = box((-22, 22), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
-    chin = box((-22, 22), (sk.MUZZLE_Y, -30), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
+    w = 22.0 * nk.JAW_K  # within the jaw's chin
+    wall = box((-w, w), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
+    chin = box((-w, w), (sk.MUZZLE_Y, nk.CHIN_Y - 1.0), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
     out = plate.union(wall).union(chin)
     return _finish(f"{skin} mouth cover", out.cut(_teeth(gm.PUPIL_FIT)) if skin == "cansin" else out)
 
@@ -397,7 +405,7 @@ def _brow(side, grow=0.0, sunk=BROW_SUNK):
     (x0, x1), (z0, z1) = BROW
     s = 1 if side == "L" else -1
     xs = sorted((s * (x0 - grow), s * (x1 + grow)))
-    region = box(xs, (-100, 0), (z0 - grow, z1 + grow)).intersect(_head(-BROW_PROUD))
+    region = box(xs, (-200, 0), (z0 - grow, z1 + grow)).intersect(_head(-BROW_PROUD))
     return region.cut(_head(sunk))
 
 
@@ -420,7 +428,7 @@ def teeth():
     tooth; glued in its pocket in the mouth cover, which the jaw swings down."""
     out, (x0, x1) = _teeth(), TEETH[0]
     for x in np.arange(x0 + TOOTH, x1 - 1.0, TOOTH):
-        out = out.cut(box((x - 0.4, x + 0.4), (sk.MUZZLE_Y - 2.0, sk.MUZZLE_Y + 0.6), (-100, 100)))
+        out = out.cut(box((x - 0.4, x + 0.4), (sk.MUZZLE_Y - 2.0, sk.MUZZLE_Y + 0.6), (-200, 200)))
     return out
 
 

@@ -63,19 +63,15 @@ def _outline(deg):
     return math.degrees(math.asin(min(1.0, MORTY_OUTLINE[round(deg / 30) % 12] / MORTY_EYE_R)))
 
 
-LID_REST = _outline(90)  # the upper lid's edge on Morty's outline (#872), at the lid servo's centre
-LOWER_EDGE = -_outline(270)  # the lower lid's, at the servo's centre (LOWER_REST, which the lower lid's drive sets)
-# shut, the upper lid's edge at the eye's middle (#901; slightly below it before, #698), the lower's LID_GAP under it:
-# high enough that the upper lid, open, stays clear of the push-rod, low enough that the lower's sweep stays clear of
-# the frame's plate and the yaw servo
-LID_SHUT, LID_GAP = 0.0, 1.5
+# at the lid servo's centre, each lid's edge on Morty's outline (#872) but within the cap, whose rim is the most eye
+# white there is to show (#901: his outline, 68 deg up and 52 down, lies past the cap's 45)
+LID_REST = min(_outline(90), CAP_HALF)
+LOWER_EDGE = -min(_outline(270), CAP_HALF)  # the lower lid's, which its drive sets (LOWER_REST)
+LID_SHUT, LID_GAP = -4.0, 1.5  # shut, the upper lid's edge slightly below the eye's middle, the lower's this far under
 LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: shut, it covers the cap's top
 LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
-# the upper lid's edge over the servo's range: shut tracking a pitch down (#51, #698), open LID_OPEN past rest, as far
-# as the crank's transmission floor allows (#901: Morty's lids rest wide open, clear of the cap pitched up; open
-# tracking a pitch up before)
-LID_OPEN = 14.5
-LID_EDGES = (LID_SHUT - PITCH, LID_REST + LID_OPEN)
+# the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
+LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits over the pupil
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
@@ -95,9 +91,9 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
 # upper. Inferred, searched (#901) for the lower lid turning as far as the upper from rest to shut, its link meeting the
-# crank at 50 deg or more, every pin behind the cap's flat back however the eye turns, above the frame's plate
-LINK_PIN = (28.6, -17.4)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (4.6, -15.4)  # (y, z) of the lower lid's crank pin at rest
+# crank at 55 deg or more, every pin behind the cap's flat back however the eye turns, above the frame's plate
+LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
+LOWER_PIN = (2.8, -14.9)  # (y, z) of the lower lid's crank pin at rest
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids

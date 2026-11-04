@@ -12,14 +12,13 @@ from model import envelopes, gimbal, mujoco_report
 
 def test_the_eyes_are_mortys_at_life_size():
     """#901 (#872 step 3 round 2): the eyes sit on Morty's pupils, 72.7 mm apart; the cap is his eye's 40.4 mm sphere,
-    the core x1.50 with it; the upper lid rides 1 mm off it, its edge at rest on his outline 68 deg over the gaze, and
-    the lower lid's 52 deg under it."""
+    the core x1.5 with it; the upper lid rides 1 mm off it. At rest each lid's edge is on his outline (68 deg over the
+    gaze, 52 under) or, past the cap's 45 deg rim, on the rim: no eye white shows beyond it."""
     assert gimbal.SPACING == pytest.approx(72.7)
     assert gimbal.CAP_R == pytest.approx(40.4)
-    assert gimbal.CORE_R == pytest.approx(13.0 * 1.5, abs=0.1)
+    assert gimbal.CORE_R == pytest.approx(13.0 * 1.5)
     assert gimbal.LID_R[0] == pytest.approx(41.4)
-    assert gimbal.LID_REST == pytest.approx(68, abs=0.5)
-    assert gimbal.LOWER_REST == pytest.approx(-52, abs=1.0)
+    assert gimbal.LID_REST == pytest.approx(45) and gimbal.LOWER_REST == pytest.approx(-45, abs=0.5)
 
 
 @pytest.mark.parametrize("drive", ["yaw", "pitch", "L lid", "R lid"])
@@ -40,7 +39,7 @@ def test_each_lid_servo_drives_from_the_inner_side_of_its_eye(side):
     face, shaft, _, _ = gimbal.drives()[f"{side} lid"]
     x = gimbal.EYE[side][0]
     assert 0 < abs(face[0]) < abs(x) and np.sign(shaft[0]) == -np.sign(x)
-    # the lids' frame across both eyes within Morty's life-size cranium (#901; today's Mech's 138)
+    # the lids' frame across both eyes within Morty's life-size cranium (#901)
     assert gimbal.SPACING + 2 * gimbal.LID_X["upright"][1] <= gimbal.HEAD_MM[0]
 
 
@@ -114,26 +113,24 @@ def test_a_print_error_splits_the_eyes_a_little(report):
 
 def test_the_lids_cover_the_cap_shut_and_track_the_pitch(report):
     """Shut, the upper lid reaches past the cap's top rim and the lower past its bottom one; the servo's range runs from
-    shut tracking a pitch down as far as the servo turns (#51 lid = rest + pitch, #698) to Morty's rest edge, 68 deg up
-    (#901), past it to 5 deg over: the servo's whole travel on the shut side."""
+    shut tracking a pitch down to the upper edge on the cap's rim at full pitch up (#51 lid = rest + pitch, #698, #901)."""
     lid = report["lid"]
     assert lid["shut_deg"][0] + gimbal.LID_SPAN > gimbal.CAP_HALF
     assert lid["shut_deg"][1] - gimbal.LOWER_SPAN < -gimbal.CAP_HALF
-    assert lid["edge_deg"] == pytest.approx([68.2 - 90, 68.2 + 5], abs=0.1)
-    assert lid["edge_deg"][0] < gimbal.LID_SHUT
+    assert lid["edge_deg"] == pytest.approx([gimbal.LID_SHUT - gimbal.PITCH, gimbal.CAP_HALF + gimbal.PITCH])
 
 
-def test_the_lower_lid_turns_against_the_upper_and_they_meet_below_the_middle():
-    """#698, #901: one servo drives both lids of an eye; from Morty's rest edges (68 deg up, 52 down) the lower travels
-    against the upper, 41 deg to its 78, and shut the two edges meet below the eye's middle, 1.5 deg apart."""
+def test_the_lower_lid_turns_against_the_upper_at_about_0_8_and_they_meet_below_the_middle():
+    """#698: one servo drives both lids of an eye; the lower travels about 0.8x the upper (the measured design: 38 deg
+    upper, 30 lower), against it, and shut the two edges meet slightly below the eye's middle, about 1.5 deg apart."""
     shut = gimbal.LID_SHUT - gimbal.LID_REST
     assert gimbal.lower(0) == pytest.approx(0, abs=1e-9)
-    assert gimbal.lower(shut) / shut == pytest.approx(-41 / 78, abs=0.03)
+    assert gimbal.lower(shut) / shut == pytest.approx(-0.8, abs=0.03)
     lo, hi = np.subtract(gimbal.LID_EDGES, gimbal.LID_REST)
     turns = [gimbal.lower(s) for s in np.linspace(lo, hi, 41)]
     assert all(np.diff(turns) < 0)  # the servo opening the upper lid opens the lower, all the way
     upper, under = gimbal.LID_SHUT, gimbal.LOWER_REST + gimbal.lower(shut)
-    assert -20 < under < upper < 0 and upper - under == pytest.approx(1.5, abs=0.01)
+    assert -10 < under < upper < 0 and upper - under == pytest.approx(1.5, abs=0.01)
 
 
 @pytest.mark.parametrize("pitch", [-12, 14])
@@ -191,11 +188,11 @@ def test_each_lid_takes_its_own_servo():
 def test_the_lid_and_the_eyes_turn_as_commanded():
     """The lid servo's degrees turn the upper lid's edge up by as many and the lower lid's down by lower(); the core
     takes the eyes' pitch up."""
-    m = gimbal.moved(-30, 10)
+    m = gimbal.moved(12, 10)
     x = gimbal.EYE["L"][0]
-    for part, turn in (("upper lid", -30), ("lower lid", gimbal.lower(-30))):
+    for part, turn in (("upper lid", 12), ("lower lid", gimbal.lower(12))):
         edge = m[f"L {part}:1"] @ (x, -1, 0, 1)
         assert math.degrees(math.atan2(edge[2], -edge[1])) == pytest.approx(turn)
-    assert gimbal.lower(-30) > 6  # closing, the lower lid rises
+    assert gimbal.lower(12) < -6  # opening, the lower lid drops
     front = m["L eyeball core:1"] @ (x, -1, 0, 1)
     assert math.degrees(math.atan2(front[2], -front[1])) == pytest.approx(10, abs=1e-3)

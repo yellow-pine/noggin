@@ -42,8 +42,9 @@ _OVER = max(
     gm.LOWER_REST + gm.lower(s) - gm.LID_REST - s for s in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), 91)
 )
 BAND = 0.75
-LIP = 5.0  # deg each cover reaches past its lid's free edge, which seen from the front peeks out under an edge flush
-# with it (its face and the shell's curve), up to 4.6 deg at the lid's x ends wide open (model/test_skin.py)
+LIP = 10.0  # deg each cover reaches past its lid's free edge, which seen from the front peeks out under an edge flush
+# with it (its face and the shell's curve), up to 9.5 deg at the lid's x ends wide open on Morty's wide eyes (#901, 4.6
+# before; model/test_skin.py)
 UPPER_COVER = (gm.LID_REST + _OVER + 1.0, gm.LID_REST + gm.LID_SPAN)  # deg from forward toward up, as the lid at rest
 UPPER_SKIN = (gm.LID_REST - LIP, UPPER_COVER[1])
 LOWER_COVER = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST + LIP)
@@ -76,13 +77,25 @@ def _lid_seats(skin, side, polarity):
 # (x, z) a round cranium over the cheeks; from the side (y, z) the face
 # flat over the eyes, the cranium round behind it, and the muzzle over the jaw and the head mount (two hulls, the corner
 # between them rounded SIDE_ROUND); from above (x, y), square to the mouth servo's corners. Every size is inferred.
-FRONT = ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
-SIDE = (
-    ((1.0, 25.7, 25.0), (-4.0, -12.0, 20.0), (30.0, 10.0, 58.0), (68.0, -60.0, 20.0)),
-    ((-29.0, -50.0, 20.0), (-42.0, -73.0, 7.0), (40.0, -60.0, 20.0)),
+# The head grows with the eyes (#901: x1.5 about their midpoint, as the eye gimbal does round Morty's own eyes).
+GROW = gm.K
+
+
+def grown(*v):
+    """The head's sizes `v`, mm as drawn round today's eyes (#665), grown GROW about the eyes' midpoint."""
+    return tuple(c * GROW for c in v)
+
+
+FRONT = tuple(
+    grown(*c)
+    for c in ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
 )
-SIDE_ROUND = 25.0
-TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
+SIDE = (
+    tuple(grown(*c) for c in ((1.0, 25.7, 25.0), (-4.0, -12.0, 20.0), (30.0, 10.0, 58.0), (68.0, -60.0, 20.0))),
+    tuple(grown(*c) for c in ((-29.0, -50.0, 20.0), (-42.0, -73.0, 7.0), (40.0, -60.0, 20.0))),
+)
+SIDE_ROUND = 25.0 * GROW
+TOP = tuple(grown(*c) for c in ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0)))
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
 HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
@@ -91,8 +104,8 @@ MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the he
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # The hairline (his model sheet's): the hair is the head inside a circle along x, (y, z, r), from over the forehead down
 # behind the ears, and all behind NAPE, so the hair comes off upward and the face forward; it stands HAIR proud of the face
-HAIRLINE = (99.4, 67.4, 111.5)
-NAPE = 78.0
+HAIRLINE = grown(99.4, 67.4, 111.5)
+NAPE = 78.0 * GROW
 HAIR = 1.5
 NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
 BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
@@ -145,7 +158,7 @@ def _seats(skin):
             for x in (-_BACK[0], _BACK[0])
         ],
         *[
-            Seat(f"{skin} hair", f"{skin} face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
+            Seat(f"{skin} hair", f"{skin} face", grown(x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0 * GROW, 1)
             for x in (-40.0, 40.0)
         ],
         # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
