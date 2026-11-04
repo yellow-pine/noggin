@@ -124,11 +124,11 @@ def cervical_carrier():
     anchor = nk.TILT_ANCHOR
     root = (-10.5, *nk.CERVICAL_PATH[-2])
     elbow = (-10.5, 90.0, -78.0)
-    for a, b in ((root, elbow), (elbow, (-6.8, anchor[1], anchor[2]))):
+    for a, b in ((root, elbow), (elbow, (-9.8, anchor[1], anchor[2]))):
         out = out.union(strut(a, b, (4, 3), (3.5, 2.5)))
     out = out.union(cq.Workplane().sphere(2.8).translate(elbow))
-    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-8.3, -1.8)))
-    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-8.3, -1.8)))
+    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-11.3, nk.REACTION_TAP_X[1])))
+    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-11.3, nk.REACTION_TAP_X[1])))
     for x, fy in nk.CARRIER_FEET:
         out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
     return out
@@ -178,7 +178,7 @@ def nod_plate():
             out = out.cut(cyl("x", (0, hy, hz), 1.1, tab_x))
     out = out.union(box(tab_x, (sy - 16.6, max(rear + 3, sy + 37.3)), (ceiling - 8, ceiling)))
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R + 0.3, nk.NOD_Z))
-    out = out.cut(box((-3.2, 3.2), (95, 116), nk.NOD_Z))  # the reaction bar crosses the rear edge at full tilt
+    out = out.cut(box((nk.REACTION_BAR_X[0] - 1.6, nk.REACTION_BAR_X[1] + 1.6), (95, 116), nk.NOD_Z))
     # Cylindrical reliefs stay clear at every tilt, not only a few sampled angles.
     for xs, radius in (
         ((5.5, 10.5), 8.5),
@@ -197,11 +197,11 @@ def tilt_lever():
     span = (x - 3, x)
     out = cyl("x", (0, y, z), 11.5, span)
     out = out.union(lid_mechanical([(y, z), tuple(nk.TILT_PIN[1:])], span))
-    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 3.5, (x - 3, -1.8)))
+    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 3.5, (x - 3, nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
     for dy, dz in ((8, 0), (-8, 0), (0, 8), (0, -8)):
         out = out.cut(cyl("x", (0, y + dy, z + dz), 1.1, span))
-    return out.cut(cyl("x", (0, *nk.TILT_PIN[1:]), TAP_R, (-4.8, -1.8)))
+    return out.cut(cyl("x", (0, *nk.TILT_PIN[1:]), TAP_R, nk.REACTION_TAP_X))
 
 
 def tilt_reaction_bar():
@@ -209,10 +209,10 @@ def tilt_reaction_bar():
     from model.printed.gimbal import lid_mechanical
 
     pins = [tuple(point[1:]) for point in nk.TILT_BAR_PATH]
-    out = lid_mechanical(pins, (-1.5, 1.5))
+    out = lid_mechanical(pins, nk.REACTION_BAR_X)
     for point in (nk.TILT_ANCHOR, nk.TILT_PIN):
-        out = out.union(cyl("x", (0, *point[1:]), 3.8, (-1.5, 1.5))).cut(
-            cyl("x", (0, *point[1:]), gm.PIN_R, (-1.5, 1.5))
+        out = out.union(cyl("x", (0, *point[1:]), 3.8, nk.REACTION_BAR_X)).cut(
+            cyl("x", (0, *point[1:]), gm.PIN_R, nk.REACTION_BAR_X)
         )
     return out
 
