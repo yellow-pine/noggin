@@ -1,11 +1,13 @@
-"""claude-review.yml's gate on claude[bot]'s last verdict on the PR's head commit. Claude can give its verdict without
-its review landing (#247, #389), so:
+"""claude-review.yml's gate on claude[bot]'s last verdict on the commit its run reviewed (REVIEWED_SHA, #950; the PR's
+head when unset). Claude can give its verdict without its review landing (#247, #389), so:
 - `Check the verdict` (no flag): `Review` passes only when that last verdict is an approval;
 - Claude's PreToolUse hook on StructuredOutput (--hook, the hook's JSON on stdin): the verdict is refused (exit 2, the
   reason fed back to Claude) until the last review on the head matches it, so the review lands while the session lives.
+No run is cancelled early (#944), so an older push's run can end after a newer push: its review names the commit it
+read (commit_id), and `Check the verdict` fails once the PR's head moved past it (the newer push's run decides).
 On an approval, `Check the verdict` also resolves claude[bot]'s open threads that later pushes outdated (#441), so they
 don't hold the PR (required_review_thread_resolution).
-Usage: GITHUB_REPOSITORY=o/r python3 scripts/claude_approved.py <PR number> [--hook]"""
+Usage: GITHUB_REPOSITORY=o/r [REVIEWED_SHA=<sha>] python3 scripts/claude_approved.py <PR number> [--hook]"""
 
 import json
 import os
@@ -30,15 +32,22 @@ def wanted(verdict: str | None) -> str:
     return STATES[verdict] if verdict else "APPROVED"  # `Check the verdict` (no verdict given) wants an approval
 
 
-def refusal(verdict: str | None, got: str | None, pr: int, head: str) -> str | None:
-    """What the hook tells Claude when its verdict doesn't match its last review on the head yet."""
+def refusal(verdict: str | None, got: str | None, pr: int, head: str, repo: str) -> str | None:
+    """What the hook tells Claude when its verdict doesn't match its last review on the reviewed commit yet."""
     if not verdict or got == wanted(verdict):
         return None
     return (
-        f"Your verdict needs your review on the head first: claude[bot]'s last review on {head} is {got}. Submit it now"
-        f" (step 4: `gh pr review {pr} --{verdict.replace('_', '-')} --body-file -` with the review body on stdin),"
-        " then give the same verdict again."
+        f"Your verdict needs your review on {head} first: claude[bot]'s last review on it is {got}. Submit it now (step"
+        f" 4: `gh api repos/{repo}/pulls/{pr}/reviews -f commit_id={head} -f event={verdict.upper()} -F body=@-` with"
+        " the review body on stdin), then give the same verdict again."
     )
+
+
+def stale(reviewed: str, live: str) -> str | None:
+    """Why `Check the verdict` fails a review of a commit the PR has since moved past."""
+    if reviewed == live:
+        return None
+    return f"the PR moved from {reviewed} to {live}: the newer push's run reviews its head, not this one"
 
 
 THREADS = """query($owner: String!, $name: String!, $pr: Int!) { repository(owner: $owner, name: $name) {
@@ -66,13 +75,17 @@ if __name__ == "__main__":
     verdict = json.load(sys.stdin)["tool_input"]["verdict"] if "--hook" in sys.argv else None
     pr = int(sys.argv[1])
     pr_path = f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls/{pr}"
-    head = gh(pr_path)["head"]["sha"]
+    live = gh(pr_path)["head"]["sha"]
+    head = os.environ.get("REVIEWED_SHA") or live
     reviews = sum(gh(f"{pr_path}/reviews", "--paginate", "--slurp"), [])  # --slurp: one array per page
     got = last_verdict(reviews, head)
-    if message := refusal(verdict, got, pr, head):
+    if message := refusal(verdict, got, pr, head, os.environ["GITHUB_REPOSITORY"]):
         print(message, file=sys.stderr)
         sys.exit(2)
     print(f"{pr_path} at {head}: {got or 'no claude[bot] verdict'}")
+    if not verdict and (moved := stale(head, live)):  # the hook lets the session end; the gate fails
+        print(f"::error::{moved}")
+        sys.exit(1)
     if got == "APPROVED" and not verdict:
         owner, name = os.environ["GITHUB_REPOSITORY"].split("/")
         try:  # best effort: a thread left open is the PR author's to resolve, never a failed review

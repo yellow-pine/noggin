@@ -92,6 +92,25 @@ def test_every_job_has_a_timeout():
     assert [(f, i) for f, i, j in jobs if "uses" not in j and not isinstance(j.get("timeout-minutes"), int)] == []
 
 
+def test_claude_reviews_the_commit_its_run_read():
+    """#950: no run is cancelled early (#944), so an older push's Review can end after a newer push. Its review names
+    the commit the run read (commit_id), never `gh pr review`, which lands on the head of the moment; the hook and
+    `Check the verdict` judge that commit, and the gate fails once the PR moved past it (scripts/claude_approved.py)."""
+    (job,) = [
+        j
+        for j in yaml.safe_load((WORKFLOWS[0].parent / "claude-review.yml").read_text())["jobs"].values()
+        if any(s.get("id") == "claude" for s in j["steps"])
+    ]
+    steps = {s["name"]: s for s in job["steps"]}
+    claude, sha = steps["Run Claude's review"]["with"], "${{ github.event.pull_request.head.sha }}"
+    assert f"-f commit_id={sha}" in claude["prompt"] and "gh pr review" not in claude["prompt"]
+    assert "gh pr review" not in claude["claude_args"]
+    reviews = "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews"
+    assert f"Bash(gh api {reviews}:*)" in claude["claude_args"]
+    assert f"REVIEWED_SHA={sha} python3 -I -S" in claude["settings"]
+    assert steps["Check the verdict"]["env"]["REVIEWED_SHA"] == sha
+
+
 def test_no_workflow_runs_on_ubuntu_latest():
     """#392: `ubuntu-latest` moves under us when GitHub says so (26.04 from 2026-10-19); a named image moves when we
     do (ADR 0012)."""
