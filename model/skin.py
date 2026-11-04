@@ -48,8 +48,8 @@ LIP = 10.0  # deg each cover reaches past its lid's free edge, which seen from t
 UPPER_COVER = (gm.LID_REST + _OVER + 1.0, gm.LID_REST + gm.LID_SPAN)  # deg from forward toward up, as the lid at rest
 UPPER_SKIN = (gm.LID_REST - LIP, UPPER_COVER[1])
 LOWER_COVER = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST + LIP)
-COVER_X = (-gm.LID_X["ear"][0], gm.LID_X["upper boss"][1])  # the L upper lid's main shell (printed/gimbal.py _lid)
-LOWER_X = (COVER_X[0], gm.LID_X["lower boss"][1])  # the lower lid's, out over its boss's slab
+COVER_X = (-gm.LID_X["ear"][0], gm.LID_X["upper boss"][1] - gm.LID_SHELL_IN)  # the L upper lid's main shell (_lid)
+LOWER_X = (COVER_X[0], gm.LID_X["lower boss"][1] - gm.LID_SHELL_IN)  # the lower lid's, out over its boss's slab
 
 
 def _on_lid(r, deg, side):

@@ -114,9 +114,12 @@ PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2,
 # SPACING / 2 so the two eyes' drives turn apart about their shared axis (#838). Every pin the cap could reach lies
 # behind its flat back (gimbal.report, the sweep); the slabs moved out with the eye (#901), 3 mm each as before
 LID_X = {
-    **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.6, 36.6)},
+    **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.3, 36.3)},
     **{"bar": (24.75, 27.75), "link": (27.75, 30.75), "ear": (30.75, 33.75)},
 }
+# each lid's main shell ends this far inside its boss's slab, so its cover (model/skin.py) stays 0.6 mm off the frame's
+# upright, which the lower lid's cover sweeps past since #901; the boss itself still turns 0.3 mm off the upright
+LID_SHELL_IN = 0.3
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
 # to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) between those uprights' feet

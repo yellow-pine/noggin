@@ -35,7 +35,7 @@ calibrated ([Calibration](calibration.md)).
 ## Assembly, as the model places it
 
 1. **Jaw** on the gimbal frame's lugs, its hinge where the realistic skull's condyles are; it turns down to open the
-   mouth. *Upcoming (#901): the jaw scales onto Morty's jawline.*
+   mouth. It is 1.08 times its first drawing about that hinge, its arms inside Morty's life-size mandible.
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 

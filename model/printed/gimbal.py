@@ -252,7 +252,8 @@ def _lid(radii, span, spokes, boss, pin, mechanical):
         return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
 
     shell, outer, inner = ball(ro).cut(ball(ri)), _slab(boss), _slab("ear", -1)
-    out = shell.intersect(wedge(*span, (inner[1], outer[1])))  # into the ears' slab only round its own (the other's)
+    # into the ears' slab only round its own (the other's), short of its boss's slab's outer face
+    out = shell.intersect(wedge(*span, (inner[1], outer[1] - gm.LID_SHELL_IN)))
     for x, spoke in zip((outer, inner), spokes):
         reach = (min(spoke - 10, span[1] - 1), spoke + 10) if spoke > 0 else (spoke - 10, max(spoke + 10, span[0] + 1))
         r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
