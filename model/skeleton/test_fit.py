@@ -1,7 +1,6 @@
 """Public mesh-fitting seam: a vertebra's main passage, even when a plan projection hides it."""
 
 import cadquery as cq
-import numpy as np
 import pytest
 import trimesh
 
