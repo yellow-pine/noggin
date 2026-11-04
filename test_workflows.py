@@ -130,10 +130,10 @@ def test_no_run_or_job_is_cancelled_early():
     assert all(g["cancel-in-progress"] is False and "${{" not in g["group"] for g in groups.values()), groups
 
 
-def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
-    """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
-    job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
-    `!cancelled()`) unless it needs that one's success. Dependabot's auto-merge acts only on its own PRs, not drafts."""
+def test_pr_workflows_skip_drafts_except_the_blocking_required_gates():
+    """#414, #972: drafts skip substantive work. Required PR and Checks instead run tiny failing guards, since a
+    skipped required job satisfies GitHub's gate. Marking ready starts the actual work; neither draft guard passed."""
+    blocking = {("pr-checks.yml", "pr"), ("pr-gate.yml", "checks")}
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
@@ -144,6 +144,8 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
         if "ready_for_review" not in (pr or {}).get("types", []):
             wrong.append((f.name, "types"))
         for id_, job in flow["jobs"].items():
+            if (f.name, id_) in blocking:
+                continue  # the executable guard tests below hold these two exceptions to fail closed
             cond = str(job.get("if", ""))
             past_skips = any(f in cond for f in ("cancelled()", "always()", "failure()")) and "== 'success'" not in cond
             starts = not job.get("needs") or past_skips

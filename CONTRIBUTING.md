@@ -159,6 +159,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Default Branch Failure files a run that ends as `failure` alone. A workflow on `pull_request` alone tests no event,
   so it lists no job every PR skips (#722).
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
+  Drafts skip Code and substantive PR validation, but the lightweight required `Checks` and `PR` guards report failure
+  (#972): GitHub accepts a skipped required check as passing. Marking ready runs Code and PR validation; both required
+  gates must actually succeed before merging. This is the narrow exception to keeping drafts idle.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
