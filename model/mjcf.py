@@ -81,14 +81,14 @@ SERVO = {
 }
 
 
-def drive(s, joint, values=SERVO, delay_max_s=None):
+def drive(s, joint, values=SERVO, delay_max_s=None, *, name=None, gear=1):
     """A servo on the spec's hinge `joint` (an actuator of its name): a dcmotor at SERVO_V whose position loop commands
     torque (MuJoCo's controller adds back-EMF to its voltage, as a current-driven motor: optimistic for the servo's
     voltage H-bridge below the clamp), its voltage clamped at SERVO_V, so it stalls at stall_nm and runs no faster than
     no_load_rad_s; its command read delay_s late from a history of delay_max_s (default delay_s)."""
     kd = 2 * math.sqrt(values["kp"] * values["armature"])
     s.joint(joint).armature = values["armature"]
-    servo = s.add_actuator(name=joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
+    servo = s.add_actuator(name=name or joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
     servo.set_to_dcmotor(
         motorconst=[0, 0],
         resistance=0,
@@ -97,6 +97,7 @@ def drive(s, joint, values=SERVO, delay_max_s=None):
         ctrlspec=mujoco.mjtCtrlInput.mjINPUT_POS,
     )
     servo.ctrlrange = [-math.pi / 2, math.pi / 2]  # the servo's 0..180
+    servo.gear = [gear, 0, 0, 0, 0, 0]
     servo.nsample = math.ceil((delay_max_s or values["delay_s"]) / s.option.timestep - 1e-9)
     servo.delay, servo.interp = values["delay_s"], 1  # linear (XMLreference actuator interp), so the fit can move it
 
@@ -168,6 +169,11 @@ def _joints(stage):
         def at(p, axis):
             return (f @ [*p, 1])[:3], np.asarray(axis, float) @ f[:3, :3].T
 
+        if horn.direct:
+            hinges[horn.direct.joint] = at(horn.pivot["point"], horn.pivot["axis"])
+            for name in horn.direct.driven:
+                moves[name].add(horn.direct.joint)
+            continue
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
         moves[horn.crank].add(h)
         for loop in horn.loops:
@@ -301,8 +307,11 @@ def spec(doc, collide=True):
             solref=LOOP_SOLREF,
             solimp=LOOP_SOLIMP,
         )
-    for h in stage.horns:
-        drive(s, h)
+    for h, horn in stage.horns.items():
+        if horn.direct:
+            drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
+        else:
+            drive(s, h)
     if "tilt horn" in stage.horns:
         balance(s, doc)
     return s
