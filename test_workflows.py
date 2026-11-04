@@ -85,6 +85,16 @@ def test_the_convention_itself():
     assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run just check."])
 
 
+def test_every_job_has_a_timeout():
+    """#944: a hung Blender or sim never holds a runner for GitHub's six hours. Each limit is at least twice the job's
+    longest measured run (its PR lists them); a job calling a reusable workflow takes its jobs' limits."""
+    jobs = [(f.name, i, j) for f in WORKFLOWS for i, j in yaml.safe_load(f.read_text())["jobs"].items()]
+    missing = [(f, i) for f, i, j in jobs if "uses" not in j and not isinstance(j.get("timeout-minutes"), int)]
+    # shortcut: a PR editing claude-review.yml gets no review and needs Cansin's bypass (CONTRIBUTING.md), so its
+    # Fetch Skills limit lands in its own PR, which empties this list
+    assert missing == [("claude-review.yml", "skills")]
+
+
 def test_no_workflow_runs_on_ubuntu_latest():
     """#392: `ubuntu-latest` moves under us when GitHub says so (26.04 from 2026-10-19); a named image moves when we
     do (ADR 0012)."""

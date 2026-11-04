@@ -16,6 +16,7 @@ jobs:
   pin:
     name: Re-pin Blender
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

@@ -49,6 +49,7 @@ jobs:
   changes:
     name: Changes
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: write   # main's last checked commit; cancel-on-failure
@@ -159,6 +160,7 @@ jobs:
     name: Code
     needs: changes   # its release filter
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
       actions: write   # cancel-on-failure
@@ -228,6 +230,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.model != 'false' && needs.changes.outputs.parts != 'true' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 20
     permissions:
       contents: read
       actions: write   # cancel-on-failure
@@ -269,6 +272,7 @@ jobs:
       ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.shards != '[]'
       && needs.convex.result != 'failure' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: write   # cancel-on-failure
@@ -414,6 +418,7 @@ jobs:
     needs: [changes, model]
     if: ${{ !cancelled() && needs.model.result == 'success' && needs.changes.outputs.model != 'false' && needs.changes.outputs.sim != 'true' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: write   # cancel-on-failure
@@ -469,6 +474,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.pictures != 'true' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 25
     permissions:
       contents: read
       actions: write   # cancel-on-failure
@@ -515,6 +521,7 @@ jobs:
     needs: [changes, render]
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: read   # the marks' issues are open (docs/adr/0024)
@@ -599,6 +606,7 @@ jobs:
     needs: [changes, code, convex, model, sim, render, site]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       - name: Check every job passed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
@@ -624,6 +632,7 @@ jobs:
       group: site-deploy
       cancel-in-progress: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
       pages: write

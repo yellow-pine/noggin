@@ -12,6 +12,7 @@ jobs:
     name: Auto-merge
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       # as the bot App: a merge GITHUB_TOKEN turned on starts no push workflow on main (Checks, which deploys). Its key
       # is a Dependabot secret too (CONTRIBUTING.md), since Dependabot's runs see no Actions secret
