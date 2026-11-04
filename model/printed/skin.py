@@ -193,17 +193,16 @@ def _profile(plane, hulls, t, rounded=0.0):
 
 
 def _head(t, skin="morty"):
-    """The Skin's head (model/skin.py HEADS, else Morty's FRONT, SIDE, TOP) `t` in from its outside (out of it,
-    negative): arcs and lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid
-    from Linux's STEP (#833).
-    Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
+    """The Skin's head (model/skin.py HEADS, else Morty's) `t` in from its outside (out of it, negative): arcs and
+    lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP
+    (#833). Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
     booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
     return cq.Workplane().add(_built_head(t, skin if skin in sk.HEADS else "morty").copy())
 
 
 @functools.cache  # every Shell cuts and clips by the same few
 def _built_head(t, skin):
-    front, side, top = sk.HEADS.get(skin, (sk.FRONT, sk.SIDE, sk.TOP))
+    front, side, top = sk.HEADS[skin]
     side = _profile("YZ", side, t, sk.SIDE_ROUND)
     return _profile("XZ", [front], t).intersect(side).intersect(_profile("XY", [top], t)).val()
 

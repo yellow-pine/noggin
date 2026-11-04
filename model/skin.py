@@ -85,13 +85,14 @@ SIDE_ROUND = 25.0
 TOP = ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0))
 # Bart's head (#807): Morty's with a flat crown, from the front square at its top corners and from the side level over
 # the cranium, so it holds all of Morty's in the same box (whatever clears his Shells clears Bart's); his spikes stand
-# on the crown (model/printed/skin.py SPIKE). Every other Skin's head is Morty's (FRONT, SIDE, TOP)
+# on the crown (model/printed/skin.py SPIKE). Every other Skin's head is Morty's
 HEADS = {
+    "morty": (FRONT, SIDE, TOP),
     "bart": (
         ((-48.5, 48.0, 20.0), (48.5, 48.0, 20.0), *FRONT[1:]),
         (((5.0, 48.0, 20.0), (68.0, 48.0, 20.0), *SIDE[0]), SIDE[1]),
         TOP,
-    )
+    ),
 }
 # outside: half-width, front (the muzzle's) to back, z
 HEAD_X = max(u + r for u, _, r in FRONT)
@@ -208,6 +209,7 @@ GLUED = {f"next morty {s} pupil": (f"next {s} eyeball cap", _OUT) for s in "LR"}
     **{f"next bart {s} pupil plug": (f"next {s} eyeball cap", _OUT) for s in "LR"},  # Cansin's plug and dot (#807)
     **{f"next bart {s} pupil": (f"next bart {s} pupil plug", _OUT) for s in "LR"},
 }
+DOTTED = ("cansin", "bart")  # the Skins whose pupils are dots in plugs
 SHELLS = list(dict.fromkeys([s.shell for s in SEATS] + list(GLUED)))
 DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.items()}  # each Shell's Assembly
 # direction, in its carrier's frame

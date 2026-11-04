@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Upcoming (#51):** being designed, not built yet. Morty's (#665), Cansin's (#813) and Bart's Shells are in the
-> model, fitted to today's head; Bart's refit to the life-size head is #913.
+> model, fitted to the head; Bart's refit to the life-size head is #913.
 > #51 holds the whole spec.
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
