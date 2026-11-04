@@ -127,6 +127,16 @@ def swap(job, ratio=None):
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True
+    if "bone_parts" in bpy.context.scene and "parts" in job:
+        # Rebuild against the actual spatially retained pose groups. Blender
+        # 5.2 cannot SDF-union empty groups; new mechanics or a rewarp can change
+        # which groups reach a Bone. No retained pose is discarded here.
+        import adopt
+
+        for o in bpy.data.collections[FINISHED].objects:
+            stem = o.name.removeprefix("finished ")
+            bone = next((b for b, w in job["worn"].items() if w == stem), stem)
+            adopt.wire(o.modifiers["Finish"].node_group, bone, job["parts"][bone], stem != bone, job)
 
 
 def _corners(me):

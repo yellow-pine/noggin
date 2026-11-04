@@ -71,17 +71,37 @@ def wire(group, bone, definition, worn, job):
     carve = next(
         n
         for n in group.nodes
-        if n.bl_idname == "GeometryNodeSDFGridBoolean"
-        and n.operation == "DIFFERENCE"
-        and any(
-            x.bl_idname == "GeometryNodeCollectionInfo"
-            and x.inputs["Collection"].default_value.name.startswith("Carve")
-            for x in upstream(n.inputs["Grid 2"])
+        if n.get("bone_carve")
+        or (
+            n.bl_idname == "GeometryNodeSDFGridBoolean"
+            and n.operation == "DIFFERENCE"
+            and any(
+                x.bl_idname == "GeometryNodeCollectionInfo"
+                and x.inputs["Collection"].default_value.name.startswith("Carve")
+                for x in upstream(n.inputs["Grid 2"])
+            )
         )
     )
+    if not carve.get("bone_carve"):
+        carve["bone_carve"] = True
+        carve["targets"] = json.dumps([(l.to_node.name, l.to_socket.identifier) for l in carve.outputs[0].links])
     cuts = []
     for kind in ("rigid", "moving", *(("skins",) if worn else ())):
-        parts = sorted({n for n, _ in job["bones"].get(bone, {}).get(kind, [])}) if kind == "moving" else []
+        if not export.carve(bone, kind).all_objects:
+            continue
+        parts = (
+            sorted(
+                n
+                for n in {n for n, _ in job["bones"].get(bone, {}).get(kind, [])}
+                if export.carve(bone, kind, n).all_objects
+            )
+            if kind == "moving"
+            else []
+        )
+        if kind == "moving":
+            assert sum(len(export.carve(bone, kind, n).all_objects) for n in parts) == len(
+                export.carve(bone, kind).all_objects
+            ), "Every spatially retained cutter pose must reach the SDF union"
         inputs = [grid(group, export.carve(bone, kind, n)) for n in parts] or [grid(group, export.carve(bone, kind))]
         if len(inputs) > 1:
             sweep = group.nodes.new("GeometryNodeSDFGridBoolean")
@@ -100,18 +120,29 @@ def wire(group, bone, definition, worn, job):
         cuts.append(cut)
     if definition["source"] == "Skull":
         cuts.append(grid(group, export.collection(export.OPENINGS, export.collection("helpers"))))
-    union = group.nodes.new("GeometryNodeSDFGridBoolean")
-    union.operation = "UNION"
-    socket = next(s for s in union.inputs if s.enabled and s.is_multi_input)
-    for cut in cuts:
-        group.links.new(cut, socket)
     # Blender 5's SDF Boolean Grid 2 accepts multiple links. Replacing it must
     # remove the prototype cutter, otherwise both old and current Mech are cut
     # (and both large SDF branches are evaluated).
     for link in list(carve.inputs["Grid 2"].links):
         group.links.remove(link)
-    group.links.new(union.outputs[0], carve.inputs["Grid 2"])
-    assert [link.from_node for link in carve.inputs["Grid 2"].links] == [union]
+    if cuts:
+        union = group.nodes.new("GeometryNodeSDFGridBoolean")
+        union.operation = "UNION"
+        socket = next(s for s in union.inputs if s.enabled and s.is_multi_input)
+        for cut in cuts:
+            group.links.new(cut, socket)
+        group.links.new(union.outputs[0], carve.inputs["Grid 2"])
+        assert [link.from_node for link in carve.inputs["Grid 2"].links] == [union]
+        result = carve.outputs[0]
+    else:
+        # Blender 5.2's SDF Boolean treats an empty operand as invalid, rather
+        # than an identity. A Bone that meets no cutters keeps its source.
+        result = carve.inputs["Grid 1"].links[0].from_socket
+    for name, identifier in json.loads(carve["targets"]):
+        target = next(s for s in group.nodes[name].inputs if s.identifier == identifier)
+        for link in list(target.links):
+            group.links.remove(link)
+        group.links.new(result, target)
     assert not any(
         n.bl_idname == "GeometryNodeCollectionInfo" and n.inputs["Collection"].default_value.name.startswith("Carve (")
         for n in upstream(carve.inputs["Grid 2"])
@@ -139,7 +170,7 @@ def wire(group, bone, definition, worn, job):
             )
             group.links.new(join.outputs[0], raw.inputs["Mesh"])
     output = next(n for n in group.nodes if n.bl_idname == "NodeGroupOutput")
-    used = upstream(output.inputs[0]) | {output}
+    used = upstream(output.inputs[0]) | {output, carve} | upstream(carve.inputs["Grid 1"])
     for node in list(group.nodes):
         if node not in used:
             group.nodes.remove(node)
@@ -225,6 +256,7 @@ def adopt(job):
     parts = job["parts"]
     finished = bpy.data.collections.get("Finished (render only)") or export.collection(export.FINISHED)
     finished.name = export.FINISHED
+    export.swap(job, ratio=0.1)
     aliases = {"calvaria": "Calvaria", "skull": "Face and skull base", "mandible": "Mandible"}
     for bone, definition in parts.items():
         o = bpy.data.objects.get("finished " + bone) or bpy.data.objects["finished " + aliases.get(bone, bone.upper())]
@@ -270,7 +302,6 @@ def adopt(job):
         old = history.as_string()
         history.clear()
         history.write("HISTORICAL prototype 8a937251; not the current electronics or accepted mechanism.\n" + old)
-    export.swap(job, ratio=0.1)
 
 
 if __name__ == "__main__":
