@@ -235,10 +235,10 @@ with the jaw (the whole Mech); each in every Skeleton. The build guides go Stage
 _Avoid_: part, module, phase, top assembly
 
 **Web viewer**:
-The page that shows a document of the Mech in 3D from Blender's glTF, turned and zoomed by the reader
-(docs/adr/0008): the Mech Stage by Stage, playing its gestures and the Tour, whole or exploded. The Mech's one
-motion: pictures are stills. A page may embed it several times, each opening on its own Stage, gesture, Explode level
-and Preset.
+The page that shows a document of the Mech in 3D from Blender's glTF, turned by the reader (and zoomed on its own
+page, docs/adr/0008): the Mech Stage by Stage, playing the Hero (Rest where there is none) or a gesture, whole or
+exploded. The Mech's one motion: pictures are stills. A page may embed it several times, each opening on its own
+Stage, gesture, Explode level, view, part and Preset.
 _Avoid_: twin viewer, web app, demo
 
 **Site**:
@@ -269,14 +269,10 @@ checks, review or Release Assets run as they would for a person's (docs/adr/0010
 _Avoid_: release App, bot token
 
 **Hero**:
-The Mech's showcase loop: talking, glancing aside and nodding, the first clip of the Tour.
-_Avoid_: banner, idle loop
-
-**Tour**:
-The web viewer's default: every clip of the document in turn, the Hero first, round and round;
-a gesture picked plays once, then the Tour goes on. An embedded viewer opened on a gesture repeats that gesture
-instead.
-_Avoid_: hero (for the viewer's default), demo, autoplay
+The Mech's showcase loop: talking, glancing aside and nodding. The web viewer's default, round and round, on a Stage
+with the neck (Rest on Stage 1); a gesture picked plays once, then the Hero goes on, and an embedded viewer opened on
+a gesture repeats that gesture instead (#889).
+_Avoid_: banner, idle loop, Tour (retired), demo, autoplay
 
 **Sub-assembly**:
 An ownership unit that owns its parts exactly once (the Mech's eyes, neck, jaw, base and Test stand) and is placed into a document at a frame (model/stages.py).

@@ -10,7 +10,8 @@ geometry.py STAGES and PRESETS, #629, #720, #819), next_motions: it in motion, a
 next_parts: a
 picture of each of its parts, on docs/pictures.md (#649), next_front: the front doors' three there and
 next_exploded: each Stage with every part apart (#811); stand_in: the line under Cansin's build's pictures (#819).
-front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739).
+front: the front doors' three on the landing page (model/render/pictures.py FRONT, #739); hero: its large Stage 3
+viewer on the hero loop (#889).
 published: the pictures and the GLBs the site serves, the next Mech's alone (site/site.test.mjs,
 src/pages/viewer.astro), and stages: the viewer's Stage switch, a button per Stage (#720), and its Skeleton shapes.
 theme: the header's Theme bar, the Presets, and the viewer's mix of Shapes and Palettes (site/src/theme.mjs, #806,
@@ -281,12 +282,31 @@ def next_motions():
         f'<img src="{site}{pictures.picture(doc + s, "isometric")}" alt="{stage(doc)}" loading="lazy"{themed([p])}>'
         for p, s in pictures.SUFFIX.items()
     )
-    glb = viewer.PUBLIC[doc].removesuffix(".glb")
-    cells = [
-        f'<div class="noggin-viewer" data-stage="{glb}" data-link="gesture={m}"><figure>{still}</figure></div>'
-        for m in trajectories.motions(doc)
-    ]
+    cells = [embed(doc, f"gesture={m}", still) for m in trajectories.motions(doc)]
     return f'<div class="noggin-motions not-content">{"".join(cells)}</div>'
+
+
+def embed(doc, link="", still="", kind=""):
+    """A web viewer of the Stage document doc (as Bones) in a page (site/src/viewer/viewer.mjs, ADR 0008): its link
+    (gesture=, explode=, view=, part=), its still until it loads, and a plain link to it in the viewer page, which
+    GitHub shows and the viewer replaces."""
+    glb, n = viewer.PUBLIC[doc].removesuffix(".glb"), BONY.index(doc) + 1
+    href = f"https://yellowpine.com/noggin/viewer/?stage={n}" + (f"&amp;{link.replace('&', '&amp;')}" if link else "")
+    poster = f"<figure>{still}</figure>" if still else ""
+    return (
+        f'<div class="noggin-viewer{f" {kind}" if kind else ""}" data-stage="{glb}" data-link="{link}">{poster}'
+        f'<p class="noggin-open"><a href="{href}">Open {stage(doc)} in the viewer</a></p></div>'
+    )
+
+
+def hero():
+    """The home's top (#889): a large viewer of Stage 3 playing its hero loop in the Default build, with no control but
+    its reset, its poster the front doors' Stage 3 still from the same view (model/render/pictures.py FRONT); on a phone
+    it loads on a tap (data-tap, site/src/viewer/viewer.mjs)."""
+    still = next(f for f, (d, *_) in pictures.FRONT.items() if d == pictures.STAGE3)
+    src = f"https://yellowpine.com/noggin/images/{still}"
+    img = f'<img src="{src}" alt="{stage(pictures.STAGE3)}" fetchpriority="high">'
+    return embed(pictures.STAGE3, "view=isometric", img, "hero").replace(" data-link", " data-tap data-link", 1)
 
 
 def next_parts():
@@ -441,6 +461,7 @@ def numbers():
         "next_exploded": next_exploded(),
         "front": front(),
         "next_motions": next_motions(),
+        "hero": hero(),
         "next_parts": next_parts(),
         "published": {"images": pictures.published(), "viewer": list(viewer.PUBLIC.values()), "stages": stage_switch()},
         "stage_parts": (guides := stage_guides())[0],
