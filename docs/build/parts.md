@@ -51,8 +51,11 @@ Also needed, which the model doesn't count as parts:
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
   sources ([Stage 2](stage-2.md#wiring)).*
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
-- *Upcoming (#902): a standard metal-gear servo (about 10 kgf·cm at 5 V) for the tilt and a thrust bearing (an F8-16M,
-  or a 608 in a seat) under the head for the pan, both inside the skull.*
+- For the modeled head interface (#978): an MG996R standard metal-gear tilt servo with its supplied round horn,
+  and an F8-16M thrust bearing (8 × 16 × 5 mm) for pan, both inside the skull and still to order. The interpolated
+  5 V stall torque is about 9.67 kgf·cm; the model's continuous allowance is an inferred third of stall, not a
+  manufacturer continuous rating ([servo source and assumptions](../research/2026-11-04-standard-tilt-servo.md)).
+  *Upcoming (#902): finished-head load, spring, current-budget and stability certification.*
 
 ### Filament
 
