@@ -214,6 +214,7 @@ def anatomy(spec, stage, bodies):
         orientation[:3, :3] = axes
         body = bodies[carrier].add_body(name=f"anatomy {stem}", pos=(matrix @ [*com, 1])[:3] * MM)
         body.explicitinertial, body.mass = True, grams / 1000
+        body.ipos = [0, 0, 0]  # the explicit inertia is about this child's own origin, already placed at the COM
         body.inertia, body.iquat = inertia * 1e-9, _quat(orientation)  # g.mm² -> kg.m²
 
 

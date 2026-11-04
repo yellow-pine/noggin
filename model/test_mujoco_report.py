@@ -35,6 +35,8 @@ def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collisio
     assert model.body_subtreemass[model.body("head mount:1").id] == pytest.approx(0.160002)
     assert model.ngeom == 3  # inertial loads never add collision or visual geometry
     data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    assert data.body("anatomy skull").xipos == pytest.approx((0.1, 0, 0))
     assert abs(mujoco_report.torques(model, data, moving=False)[0]) == pytest.approx(0.16 * 9.81 * 0.1)
     matrix = np.zeros((model.nv, model.nv))
     mujoco.mj_fullM(model, data, matrix)
