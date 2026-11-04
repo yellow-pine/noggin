@@ -56,6 +56,24 @@ def test_each_mech_variant_is_built_mechanical_too_from_the_same_layout():
     }
 
 
+def _drawn(skin_shape):
+    return [s for s in skin.DRAWN if s.startswith(f"{skin_shape} ")]
+
+
+def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys():
+    """#813: the Skeleton, its horns and what each moves the same; Cansin's Shells in place of Morty's, each glued one
+    riding the part that moves its carrier."""
+    for doc in g.MECH:
+        three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "cansin")]
+        morty, cansin = ({n + ":1" for n in _drawn(s)} for s in ("morty", "cansin"))
+        assert set(dressed.parts) == set(three.parts) - morty | cansin
+        assert set(dressed.horns) == set(three.horns)
+        jaw = {n for loop in dressed.horns["jaw horn"].loops for n in loop.rockers}
+        assert {"cansin mouth cover:1", "cansin teeth:1"} <= jaw
+        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        assert {"cansin hair:1", "cansin L brow:1", "cansin R pupil:1"} <= tilt
+
+
 def test_the_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
     eye block on the Torso's neck (pan, tilt) under the head mount, the neck Core beside the eyes' in the Torso (#838);
@@ -74,7 +92,7 @@ def test_the_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_
         "jaw bar:1",
         "mouth servo:1",
         "mouth horn:1",
-    } | {n + ":1" for n in [*skin.DRAWN, *(g.WORN.get(s, s) for s in g.SKULL)]}
+    } | {n + ":1" for n in [*_drawn("morty"), *(g.WORN.get(s, s) for s in g.SKULL)]}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 

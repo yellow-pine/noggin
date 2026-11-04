@@ -285,6 +285,30 @@ _Avoid_: explode vector, pull direction
 Our simple CadQuery stand-in for a piece of bought hardware (servo, Horn, Shield, Core, switch board, battery): its interfaces at the STEP's numbers, its body a few boxes and plates (model/envelopes.py).
 _Avoid_: proxy, dummy, placeholder
 
+**Skeleton scene**:
+The committed Blender scene that is the realistic Skeleton's bones' one source: the bones, their Landmarks and Warp, a
+Finish for each, and the Scene Mech they are fitted round (docs/adr/0025).
+_Avoid_: skeleton.blend (the file), the prototype, the bust file
+
+**Scene Mech**:
+The light copy of the Stage 3 Mech saved in the Skeleton scene, so it opens fitted; CI deletes it and fits the bones
+to the Mech it just built.
+_Avoid_: stand-in (the Mech stand-in is the Link's), placeholder, decimated Mech
+
+**Warp**:
+The one smooth deformation that carries the bones from their anatomy onto their Landmarks' targets, held as a shape key
+under the hand edits.
+_Avoid_: morph, fit, deform
+
+**Landmark**:
+A point on a bone's anatomy and the target the Warp carries it to; one with no target is a fixed point.
+_Avoid_: control point, pin
+
+**Finish**:
+What turns a bone as authored into one that prints round the Mech: shelled, carved clear of every part that moves
+against it, crumbs dropped, remeshed; live in the Skeleton scene, run at export.
+_Avoid_: carve (one of its steps), post-process, bake
+
 **Horn**:
 The printed arm on a servo spline; the driven link of every chain.
 _Avoid_: arm, lever

@@ -41,7 +41,7 @@ test('the viewer loads the Mech, plays it, explodes it, see-through, and the whe
   await expect(viewer.locator('.noggin-caption')).toHaveText(/^Hero: /);
   const mix = viewer.getByRole('navigation', { name: 'Mix' }); // any Shape in any Palette (#819)
   // no Preset picked: the Default build, Stage 3's mechanical Skeleton in black, no Skin (#889)
-  const own = { 'Skeleton shape': 'mechanical', 'Skeleton palette': 'black', 'Skin shape': 'none', 'Skin palette': 'cansin' };
+  const own = { 'Skeleton shape': 'mechanical', 'Skeleton palette': 'black', 'Skin shape': 'none', 'Skin palette': 'default' };
   for (const [axis, value] of Object.entries(own)) await expect(mix.getByRole('combobox', { name: axis })).toHaveValue(value);
   expect(requests.filter((u) => u.endsWith('.glb')).map((u) => u.split('/').at(-1))).toEqual(['mech-back-mechanical-bare.glb']);
   await viewer.getByRole('navigation', { name: 'Stage' }).getByRole('button').first().click();

@@ -8,7 +8,9 @@ and are shared under the same licence.
 
 Changes from the original (#838, 2026-11-03):
 
-- `atlas.stl`, `axis.stl`: the original's two vertebrae, decimated to 20,000 and 30,000 faces in Blender.
+- The atlas and the axis: the original's two vertebrae, decimated to 20,000 and 30,000 faces in Blender.
 
-The model builds from these, and every adaptation it writes is shared under the same licence
-(`model/printed/skull.py`): scaled to the Mech's skull, set on its neck and carved for its mechanism.
+Since #873 (2026-11-04) both live in the Skeleton scene, `model/skeleton/skeleton.blend` (its objects `atlas` and
+`axis`), scaled to the Mech's skull and set on its neck, under this licence. The model builds from them, and
+every adaptation it writes is shared under the same licence (`model/skeleton`, docs/adr/0025): carved for its
+mechanism.

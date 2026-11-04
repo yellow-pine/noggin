@@ -29,6 +29,11 @@
 > holds the four PLA Pure colours; the Skin shape cansin (#813's Shells) keeps its name. The README's stills, the
 > posters, the Site's first visit and every viewer with no Preset picked show the Default build, in place of #883's viewer mix; the Themes page says so once, read from the Model. Black
 > parts render as a lifted charcoal (ADR 0008), the filament's hex unchanged.
+> Amended 2026-11-04 (#813): Stage 3 is drawn in each Skin shape whose Shells exist (`SKINS`), Morty's the documents'
+> own and each other under `-<shape>` after the Skeleton's suffix (`mech-back-mechanical-cansin`, `DRESSED`), the
+> viewer's GLB for that Skin shape; a Skin shape without Shells wears Morty's. Physics runs on Morty's Skin alone:
+> every Skin sits on the same Seats, so another Skin's Shells are held at the peak accelerations the sim reads for
+> Morty's there.
 
 The Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

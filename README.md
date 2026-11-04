@@ -58,7 +58,7 @@ how work runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 | [Claude Code](https://docs.claude.com/en/docs/claude-code) | sends the hook events the Mech reacts to |
 | [CadQuery](https://cadquery.readthedocs.io) | models the printed parts |
 | [MuJoCo](https://mujoco.org) | simulates the Mech and tests its motions |
-| [Blender](https://www.blender.org) | draws every picture and the viewer's look |
+| [Blender](https://www.blender.org) | draws every picture and the viewer's look, and finishes the realistic Skeleton's bones in `just ours` |
 | [MicroPython](https://micropython.org) | runs the programs on both Cores |
 | [Astro Starlight](https://starlight.astro.build) | builds the site |
 | [three.js](https://threejs.org) | draws the 3D viewer |

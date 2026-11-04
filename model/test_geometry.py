@@ -87,3 +87,15 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
         assert len({tuple(p) for p in palettes}) == 1  # one set of Colour groups
         assert all(len(set(p.values())) <= 4 for p in palettes)
     assert all(g.filament(group, t) for t in g.PRESETS.values() for group, _ in g.PRINTED.values())
+
+
+def test_stage_3_is_drawn_in_each_skin_shape_with_shells_after_its_skeleton_shape():
+    """#813: Morty's Shells are the documents' own; each other Skin shape drawn wears its own Shells for his on Stage 3,
+    under -<shape> after the Skeleton's suffix, as the viewer names its GLB (site/src/viewer/state.mjs glb)."""
+    assert list(g.DRESSED) == ["mech-back-cansin", "mech-back-mechanical-cansin"]
+    assert "cansin" in g.DRESSED["mech-back-cansin"] and "morty" not in g.DRESSED["mech-back-cansin"]
+    assert g.shape("mech-back-mechanical-cansin") == "mechanical" and g.shape("mech-back-cansin") == "realistic"
+    assert g.undressed("mech-back-mechanical-cansin") == "mech-back-mechanical"
+    assert g.dressed("mech-back-mechanical", "cansin") == "mech-back-mechanical-cansin"
+    assert g.dressed("mech-back", "bart") == g.dressed("mech-back", "none") == "mech-back"
+    assert g.dressed("stage2", "cansin") == "stage2"  # no Skin before Stage 3

@@ -11,6 +11,8 @@
 > the sim and its gates; realistic is visual only (renders, the Viewer, the print files) and its figures are the
 > mechanical one's. The Bones' own strength checks are dropped (Cansin's call: a thin Bone could pass and break on the
 > printer). Read "every gate" below as the mechanical one's.
+> Amended 2026-11-04 (#873, ADR 0025): the realistic Skeleton's bones are authored in the Skeleton scene and finished
+> by Blender round the Mech; still visual only.
 
 Every Skeleton part is drawn in two styles behind one switch: plain (boxes and cylinders) and as Bones (GLOSSARY),
 with the same interfaces (bores, pockets, seats, sockets) in both, and each head variant is built twice from the same

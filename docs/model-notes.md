@@ -79,7 +79,9 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
   board, battery) in its STEP frame, with the interfaces (tab holes, shaft, mount holes, connectors) at the STEP's
   numbers (model/test_envelopes.py).
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
-  (CadQuery's threads must not precede a process pool's fork). The model always reads those: `just test` and `just sim`
+  (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
+  round them from the Skeleton scene (model/skeleton, docs/adr/0025), so it needs Blender (`just linux-test` runs in
+  CI's Blender image; the GX10 has none). The model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
 
@@ -204,14 +206,15 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/printed/test_skull.py holds
-  it to the placed skull, to the mm), whose bones ride the realistic documents alone.
-  Since #838 the realistic Skeleton has bones of its own (model/printed/skull.py, docs/adr/0023): 3Demon's cranium and
+  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/skeleton/test_skeleton.py holds
+  it to the finished bones), whose bones ride the realistic documents alone.
+  Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
+  model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): 3Demon's cranium and
   mandible scaled to the head's 150 mm height (2 mm spare for the remesh), its orbits on the eyes with the caps 7 mm
-  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` carves
-  them on a 0.8 mm voxel grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
+  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` has Blender
+  finish them on a 0.8 mm SDF grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
-  under 2% of the bone dropped, voids filled, then remeshed (marching cubes, Taubin) into one watertight piece each.
+  under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
   Morty cannot be worn over the full skull (its back 18 mm past his, its brow 10 mm ahead of his face), so the skull and
   mandible are also carved 1.6 mm round every Skin's Shells (`geometry.WORN`, Cansin's pick): the documents, which wear
   a Skin, carry the worn copies, the pictures' bare look the full ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up

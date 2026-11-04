@@ -202,7 +202,7 @@ test("each Preset's pictures and filaments are marked with it, the default's sho
   ]);
   const pictures = page(route('docs/pictures.md'));
   expect(home.querySelector('p[data-presets="default-build"] em')).toBeNull();  // #843: no Skin on the home
-  expect(pictures.querySelector('p[data-presets="default-build"] em')?.text).toContain("in Morty's Shape");  // stand-in
+  expect(pictures.querySelector('p[data-presets="default-build"] em')).toBeNull();  // #813: its Skin has its own Shells
   expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
     "Default build", 'Morty', 'Bart',
   ]);

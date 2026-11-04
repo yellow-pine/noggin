@@ -1,7 +1,7 @@
 """Our geometry as files: every printed part (printed.PARTS, by our part name), every Coupon (printed.COUPONS) and
 every hardware envelope (envelopes.ENVELOPES, by the hardware's name), each in its designed frame. `just ours`: all of
 them as STLs in model/build/ours (stages.OURS), which MuJoCo (just sim, everywhere) and the renders read, and then the
-realistic skull's bones carved round them (model/printed/skull.py, #838). `just stl`:
+realistic Skeleton's bones Blender finishes round them from the Skeleton scene (model/skeleton, docs/adr/0025). `just stl`:
 the printed parts and the Coupons as print-ready STLs in model/build/stl. `just step`: every shape and each document at
 neutral (model/stages.py's placements, as one assembly) as STEP files in model/build/step, for FreeCAD. Run it as its
 own process before the model reads them: CadQuery's OCCT threads must not be running when a process pool forks."""
@@ -14,8 +14,7 @@ import cadquery as cq
 import trimesh
 from OCP.gp import gp_Trsf
 
-from model import envelopes, geometry, printed, stages
-from model.printed import skull
+from model import envelopes, geometry, printed, skeleton, stages
 from model.render import scene
 
 SHAPES = {**printed.PARTS, **printed.COUPONS, **envelopes.ENVELOPES}
@@ -65,8 +64,7 @@ if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "ours"
     if what == "ours":
         write(stages.OURS, list(SHAPES), ".stl")
-        for stem, mesh in skull.carved().items():  # carved round the parts just written (#838)
-            mesh.export(stages.stl(stem))
+        skeleton.finish()  # round the parts just written
         print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
     elif what == "stl":
         write(os.path.join(BUILD, "stl"), PRINTS, ".stl", printable)
