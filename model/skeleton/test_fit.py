@@ -38,3 +38,13 @@ def test_a_shared_bust_warp_preserves_each_bones_authored_sculpt():
     assert result["bone_sculpt"] == pytest.approx(points + shift + 0.25)
     assert report["min_jacobian"] == pytest.approx(1)
     assert report["landmark_error_mm"] < 1e-8
+
+
+def test_a_target_inside_the_donor_skull_still_registers_its_outer_cortex():
+    outer = trimesh.creation.icosphere(subdivisions=3, radius=10)
+    inner = trimesh.creation.icosphere(subdivisions=3, radius=8)
+    inner.invert()
+    skull = trimesh.util.concatenate((outer, inner))
+    # The envelope is smaller than the donor skull: nearest-surface correspondence would select the inner wall.
+    points = fit.outer_cortex(skull, np.array(((7, 0, 0), (-7, 0, 0))), np.zeros(3))
+    assert points == pytest.approx(((10, 0, 0), (-10, 0, 0)), abs=0.03)
