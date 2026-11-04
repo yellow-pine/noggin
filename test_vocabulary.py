@@ -168,3 +168,14 @@ def test_there_is_one_mech():
         if retired.search(line)
     ]
     assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)
+
+
+def test_the_scenes_name_one_mech():
+    """A committed Blender scene (model/skeleton/skeleton.blend, ADR 0025) names its objects as the Model does: no ID
+    says "next " (#895), or the scene's lookups by part name miss (main's Convex, after #928)."""
+    from compression import zstd
+
+    for blend in ROOT.glob("model/**/*.blend"):
+        data = blend.read_bytes()
+        data = zstd.decompress(data) if data[:4] == b"\x28\xb5\x2f\xfd" else data
+        assert b"next " not in data, blend
