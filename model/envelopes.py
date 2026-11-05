@@ -72,7 +72,7 @@ def standard_servo():
     out = out.union(cq.Workplane("XY", origin=(0, 0, -5.9)).circle(3).extrude(5.9))
     for x, y in s["holes"]:
         out = out.cut(cq.Workplane("XY", origin=(x, y, -16)).circle(2).extrude(3))
-    return out
+    return out.cut(cq.Workplane("XY", origin=(0, 0, -6)).circle(1.25).extrude(6))  # inferred M3 centre thread
 
 
 def pan_bearing():
@@ -80,16 +80,18 @@ def pan_bearing():
     return cq.Workplane("XY").circle(8).circle(4).extrude(5)
 
 
+STANDARD_HORN = {"radius": 10.0, "face": -1.5, "back": 3.0, "mounts": ((8, 0), (-8, 0), (0, 8), (0, -8))}
+
+
 def standard_horn():
     """Inferred round horn: +Z toward the case, 3 mm spline engagement and an outer M3 retaining shoulder."""
-    out = box((-10, 10), (-10, 10), (-1.5, 3)).intersect(
-        cq.Workplane("XY", origin=(0, 0, -1.5)).circle(10).extrude(4.5)
-    )
-    out = out.cut(cq.Workplane("XY").circle(3).extrude(3))
-    out = out.cut(cq.Workplane("XY", origin=(0, 0, -1.5)).circle(1.6).extrude(4.5))
+    h = STANDARD_HORN
+    out = cq.Workplane("XY", origin=(0, 0, h["face"])).circle(h["radius"]).extrude(h["back"] - h["face"])
+    out = out.cut(cq.Workplane("XY").circle(3).extrude(h["back"]))
+    out = out.cut(cq.Workplane("XY", origin=(0, 0, h["face"])).circle(1.6).extrude(h["back"] - h["face"]))
     # The adapter's four M2 screws transfer torque through real bores; hole pattern is a drilling inference.
-    for x, y in ((8, 0), (-8, 0), (0, 8), (0, -8)):
-        out = out.cut(cq.Workplane("XY", origin=(x, y, -1.5)).circle(0.8).extrude(4.5))
+    for x, y in h["mounts"]:
+        out = out.cut(cq.Workplane("XY", origin=(x, y, h["face"])).circle(0.8).extrude(h["back"] - h["face"]))
     return out
 
 

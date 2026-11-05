@@ -192,12 +192,13 @@ def nod_plate():
 def tilt_lever():
     """Adapter on the supplied round horn, with an outboard standoff clear of the actual case and tabs."""
     x, y, z = nk.TILT_SHAFT
-    span = (x - 4.5, x - 1.5)  # touches the stock horn's real outer retaining shoulder
+    outer = x + envelopes.STANDARD_HORN["face"]
+    span = (outer - 3, outer)  # touches the stock horn's real outer retaining shoulder
     out = cyl("x", (0, y, z), 11.5, span)
     out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 7)], span[1] - span[0], (span[0], 0, 0)))
     out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (span[0], nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
-    for dy, dz in ((8, 0), (-8, 0), (0, 8), (0, -8)):
+    for dy, dz in envelopes.STANDARD_HORN["mounts"]:
         out = out.cut(cyl("x", (0, y + dy, z + dz), 1.1, span))
     return out.cut(cyl("x", (0, *nk.TILT_PIN[1:]), TAP_R, nk.REACTION_TAP_X))
 

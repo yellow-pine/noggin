@@ -53,6 +53,7 @@ def test_the_standard_horn_has_spline_engagement_and_a_retaining_screw_shoulder(
     horn = solid("standard horn")
     shaft = solid("standard servo").rotate((0, 0, 0), (1, 0, 0), 180)  # horn's +Z points into its shaft
     assert horn.intersect(shaft).Volume() < 1e-6
+    assert horn.distance(shaft) < 1e-6
     assert horn.BoundingBox().zmin < 0 < horn.BoundingBox().zmax
     assert horn.isInside(cq.Vector(2.5, 0, -0.75))  # screw head bears on the shoulder outside its clearance bore
     assert not horn.isInside(cq.Vector(1.5, 0, -0.75))
