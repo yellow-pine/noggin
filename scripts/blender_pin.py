@@ -2,14 +2,17 @@
 at least 14 days old, its sha256 from the release's own .sha256 file. The listing comes from the first of
 ci/blender.Dockerfile's sources that answers (download.blender.org, then Blender's official mirrors: #367, #370), the
 sha256 only when two of them agree. Rewrites the version and sha256 in every file under .github/ and ci/ that holds the
-current pin, and prints the new version and the sources that agree on its hash; prints nothing when the pin is
-already the newest. Usage: python3 scripts/blender_pin.py"""
+current pin, including the native GX10 source archive's SHA-256 computed from matching official mirrors. Prints the
+new version and the sources that agree on its binary hash; prints nothing when the pin is already the newest.
+Usage: python3 scripts/blender_pin.py"""
 
 import hashlib
 import re
 import subprocess
+import time
 import urllib.request
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from http.client import HTTPException
 from pathlib import Path
@@ -105,14 +108,23 @@ def lookup(old: str, now: datetime, fetch: Callable[[str], str] = get) -> tuple[
 
 def source_sha256(version: str) -> str:
     """Source archives publish MD5, so compute SHA-256 from the official mirrors, retaining the two-source rule."""
-    sums = {}
-    for source in SOURCES:
+
+    def archive_hash(source):
         url = f"https://{source}/source/blender-{version}.tar.xz"
         try:
-            with urllib.request.urlopen(url, timeout=60) as archive:  # noqa: S310 our own official https URLs
-                sums[source] = hashlib.file_digest(archive, "sha256").hexdigest()
+            digest, deadline = hashlib.sha256(), time.monotonic() + 180
+            with urllib.request.urlopen(url, timeout=20) as archive:  # noqa: S310 our own official https URLs
+                while chunk := archive.read(1024 * 1024):
+                    digest.update(chunk)
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("source mirror exceeded its download budget")
+            return source, digest.hexdigest()
         except (OSError, HTTPException):
-            pass
+            return None
+
+    # Source archives are large; concurrent, bounded streams keep the weekly updater within its ten-minute job.
+    with ThreadPoolExecutor(max_workers=len(SOURCES)) as pool:
+        sums = dict(item for item in pool.map(archive_hash, SOURCES) if item is not None)
     return agreement(version, sums)[0]
 
 

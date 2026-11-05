@@ -2,6 +2,7 @@
 and the re-pin moves the version, series directory and hash and nothing else; sources fall back in the Dockerfile's
 order."""
 
+import re
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -124,18 +125,22 @@ def test_the_weekly_update_moves_both_binary_and_native_source_pins(tmp_path, mo
     files = [tmp_path / "blender.Dockerfile", tmp_path / "gx10-blender-build.sh"]
     for destination in files:
         destination.write_text((repo / "ci" / destination.name).read_text())
-    binary_sha = "78486c018b4443efe5e75ab54c290ed8c15abafd249b862c2c9ce2530a918eec"
+    version_pin = re.search(r"^ARG BLENDER=([\d.]+)$", files[0].read_text(), re.M)
+    binary_pin = re.search(r"^ARG BLENDER_SHA256=([0-9a-f]{64})$", files[0].read_text(), re.M)
+    assert version_pin and binary_pin
+    old, binary_sha = version_pin[1], binary_pin[1]
+    new = f"{int(old.split('.')[0]) + 1}.0.0"
     monkeypatch.setattr(
         blender_pin.subprocess, "run", lambda *args, **kw: SimpleNamespace(stdout="\n".join(map(str, files)))
     )
-    monkeypatch.setattr(blender_pin, "lookup", lambda *args: ("5.3.0", binary_sha, "e" * 64, ["mirror"]))
-    monkeypatch.setattr(blender_pin, "source_sha256", lambda version: "f" * 64, raising=False)
+    monkeypatch.setattr(blender_pin, "lookup", lambda *args: (new, binary_sha, "e" * 64, ["mirror"]))
+    monkeypatch.setattr(blender_pin, "source_sha256", lambda version: "f" * 64)
     blender_pin.main()
-    assert "BLENDER=5.3.0" in files[0].read_text()
+    assert f"BLENDER={new}" in files[0].read_text()
     assert "e" * 64 in files[0].read_text()
     native = files[1].read_text()
-    assert "5.2.3" not in native
-    assert "BLENDER=5.3.0" in native
+    assert f"BLENDER={old}\n" not in native
+    assert f"BLENDER={new}" in native
     assert "f" * 64 in native
 
 
