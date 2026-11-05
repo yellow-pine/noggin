@@ -99,6 +99,9 @@ def tray(mechanical=False):
     out = box((-x1 - 6, x1 + 6), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
     for s in (-1, 1):
         out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
+    # The real head-rocker post passes through the tray; an open rear slot keeps the tray removable.
+    px, py, _ = nk.PAN_ANCHOR
+    out = out.cut(box((px - 7.8, px + 7.8), (py - 7.8, y1 + 1), nb.TRAY_Z))
     # Carry the relocated hub from the negative-X leg; its riser is physically connected, not a floating plate.
     riser = box((nb.HUB_X[0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)

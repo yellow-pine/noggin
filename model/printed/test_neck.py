@@ -193,14 +193,14 @@ def test_the_tray_legs_clear_the_lower_rear_standard_case_through_pan():
 
 
 @pytest.mark.model
-def test_the_rear_pan_case_clears_the_electronics_tray_and_capacitor_through_pan():
-    """#978 packaging fixture: a full standard pan case on the nod carrier clears the panning electronics."""
+def test_the_pan_case_clears_the_electronics_tray_and_capacitor_through_pan():
+    """The selected crown case replaces the rejected rear case that failed the real Skin envelope."""
     from model import base as layout
     from model.printed import base
 
     cap, matrix = layout.cranium()["bulk capacitor"]
     parts = {"tray": base.tray(True).val(), "capacitor": _built(cap).moved(gimbal._at(matrix))}
-    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align((0, 89, 62), g.Y, g.Z)))
+    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.PAN_SHAFT, g.Y, (0, 0, -1))))
     for pan in (-45, -22.5, 0, 22.5, 45):
         delta = gimbal._at(linkage.rotation(g.Z, pan, (0, 75, -20)))
         for name, solid in parts.items():

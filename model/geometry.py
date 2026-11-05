@@ -160,7 +160,7 @@ MATERIALS = {
 # Printed parts: each one's Colour group (THEMES) and material (model/mjcf.py mass() reads it)
 _SKELETON = {
     "Bones": ("gimbal frame", "cervical carrier", "head mount", "jaw", "test stand"),
-    "Joints": ("eyeball core", "yaw yoke", "bail", "nod plate"),
+    "Joints": ("eyeball core", "yaw yoke", "bail", "nod plate", "pan fixed cap", "pan moving cap"),
     "Linkages": (
         "tie-bar",
         "push-rod",
@@ -174,6 +174,8 @@ _SKELETON = {
         "jaw bar",
         "tilt lever",
         "tilt reaction bar",
+        "pan lever",
+        "pan bar",
     ),
     "Mounts": ("torso", "torso lid", "cranium tray"),  # the realistic skull's black box pedestal (#838)
 }

@@ -246,7 +246,8 @@ def _joints(stage):
                 closures.append((h + " reaction", reaction.bar, reaction.driven[0], at(reaction.pin, axis)[0]))
             continue
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
-        moves[horn.crank].add(h)
+        for crank in (horn.crank,) if isinstance(horn.crank, str) else horn.crank:
+            moves[crank].add(h)
         for loop in horn.loops:
             _, a0, b0 = loop.solve(0)
             pivot, axis = loop.rocker_pivot

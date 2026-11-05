@@ -26,7 +26,7 @@ from model import linkage
 HEAD_FRAME = g._HEAD
 HEAD_AXES = {
     "tilt": ((0.0, 76.6, -48.7), g.X),
-    "pan": ((0.0, 46.2, -35.2), g.Z),
+    "pan": ((0.0, 76.6, -21.5), g.Z),  # actual new bearing line; anatomical registration remains unverified
     "jaw": ((0.0, 60.05856, -41.60731), g.X),  # measured #874 v7 condylar patch line, within 0.03 mm of +X
 }
 HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
@@ -36,15 +36,23 @@ HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both hea
 SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anchors are not certified yet
 # Unaccepted C0 component study: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners.
 # It does not change HEAD_AXES or the production document until the complete drive and anatomical fit pass.
-PAN_STUDY_BEARING, PAN_STUDY_Z = (20.0, 32.0, 7.0), (-32.0, -25.0)
-PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (20.0, 83.0), (-20.0, 83.0))
-NOD_X, NOD_Y, NOD_Z = (-28.0, 28.0), (34.2, 88.6), (-52.0, -47.0)
+PAN_STUDY_BEARING = (20.0, 32.0, 7.0)
+PAN_STUDY_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (23.7, 30.7))
+PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (21.5, 83.0), (-21.5, 83.0))
+NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
+NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
-TILT_SHAFT = (-24.4, 60.0, 78.0)  # actual case above the electronics: public CAD + private 6.8 mm stack preflight #978
-TILT_ARM = (46.0, -18.0)  # lower fixed pin clears the nod plate at full tilt; equal moving/fixed arms preserve 1:1
+TILT_SHAFT = (-21.45, 114.0, -3.7)  # lower rear case, outside the tray-leg sweep
+_tilt_offset = np.subtract(TILT_SHAFT, HEAD_AXES["tilt"][0])[1:]
+TILT_ARM = tuple(28 * np.array((_tilt_offset[1], -_tilt_offset[0])) / np.linalg.norm(_tilt_offset))
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
 TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
-TILT_BAR_PATH = (TILT_ANCHOR, (0.0, 120.0, 30.0), (0.0, 120.0, 65.0), TILT_PIN)  # behind the full swept PCB/tray volume
+TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
+PAN_SHAFT = (0.0, 66.25, 59.0)  # crown case, shaft downward; two-millimetre full-face Skin cover checked at five pans
+PAN_ARM = (-30.0, 0.0)
+PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (52.5, 57.5), (60.7, 64.7), (65.0, 71.0)
+PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
+PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 REACTION_BAR_X = (-4.5, 1.5)  # actual standard-servo stall bending load, not a micro-servo bar
 REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
@@ -58,19 +66,14 @@ CERVICAL_PATH = (
 )  # (y,z), over the pack into the true canal
 CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 8.0)  # medial rails keep the C0 trunnions inside the condyles' pan sweep
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
-FRAME_OPEN_R = 8.5  # the bearing's clearance opening in the gimbal plate, not the whole nod plate's swept disc
+FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
 
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
 AXIS = (61.0, -42.0)  # legacy base/Skin layout datum; actual physical joint axes are HEAD_AXES
 FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's plate's back (model/gimbal.py PLATE_Z)
-HEAD_SCREWS = (
-    (16.0, 48.0),
-    (-16.0, 48.0),
-    (16.0, 83.0),
-    (-16.0, 83.0),
-)  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
+HEAD_SCREWS = PAN_STUDY_SCREWS
 CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 4.0
 JAW_FIXED_R = 3.3  # M3 tapping bore r1.25 leaves 2.05 mm; clears the upper C0 knuckle through pan
 # The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
@@ -162,6 +165,7 @@ def pins():
 
 TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
 LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
+LINKAGES["pan"] = linkage.four_bar(PAN_SHAFT, PAN_PIN, HEAD_AXES["pan"][0], PAN_ANCHOR, g.Z)
 
 
 def output(drive, servo_deg):
@@ -281,7 +285,7 @@ def report(head, bare=None):
             "transmission_deg": round(min(transmission(drive, s) for s in sweep), 1),
             "gain": round((solve(0.5)[0] - solve(-0.5)[0]), 3),
         }
-    for drive in ("pan", "tilt"):
+    for drive in ("tilt",):
         out[drive] = {
             "drive": "direct",
             "range_deg": list(RANGES[drive]),

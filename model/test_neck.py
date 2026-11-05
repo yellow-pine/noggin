@@ -17,7 +17,7 @@ def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
     """#902's functional anchors, from the accepted Stage 3 coordinates; anatomy alignment remains #874's gate."""
     frame = stages.align(*neck.HEAD_FRAME)
     assert frame[:3, 3] == pytest.approx((0, -150, 177))
-    for drive, point in (("tilt", (0, -73.4, 128.3)), ("pan", (0, -103.8, 141.8)), ("jaw", (0, -89.94144, 135.39269))):
+    for drive, point in (("tilt", (0, -73.4, 128.3)), ("pan", (0, -73.4, 155.5)), ("jaw", (0, -89.94144, 135.39269))):
         local, axis = neck.HEAD_AXES[drive]
         assert (frame @ np.r_[local, 1])[:3] == pytest.approx(point)
         assert tuple(axis) == (g.Z if drive == "pan" else g.X)
@@ -29,16 +29,18 @@ def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
 def test_the_real_neck_uses_a_fixed_cervical_carrier_then_nod_plate_then_pan_bearing():
     sub = stages.neck_sub()
     assert {"cervical carrier:1", "nod plate:1", "head mount:1", "pan bearing:1"} <= sub.parts.keys()
-    assert not {"neck mount:1", "pan yoke:1", "pan bar:1", "tilt bar:1"} & sub.parts.keys()
+    assert not {"neck mount:1", "pan yoke:1", "tilt bar:1"} & sub.parts.keys()
+    assert {"pan bar:1", "pan lever:1", "pan fixed cap:1", "pan moving cap:1"} <= sub.parts.keys()
     assert stages.stem(sub.parts["tilt servo:1"].file) == "standard servo"
     assert sub.parts["tilt servo:1"].material == (55, "documented")
     tilt, pan = sub.horns["tilt horn"], sub.horns["pan horn"]
     assert tilt.direct.joint == "tilt pivot" and tilt.direct.sign == -1
-    assert pan.direct.joint == "pan pivot" and pan.direct.sign == 1
+    assert pan.direct is None and pan.loops[0].joint == "pan pivot"
+    assert pan.crank == ("pan horn:1", "pan lever:1")
     assert {"nod plate:1", "tilt servo:1", "pan servo:1", "head mount:1"} <= set(tilt.direct.driven)
     assert "cervical carrier:1" not in tilt.direct.driven
     assert tilt.direct.reaction and "tilt horn:1" in tilt.direct.reaction.driven
-    assert "head mount:1" in pan.direct.driven and "pan servo:1" not in pan.direct.driven
+    assert "head mount:1" in pan.loops[0].rockers and "pan servo:1" not in pan.loops[0].rockers
 
 
 def test_pan_has_the_actual_standard_case_mass_and_five_volt_working_limit():

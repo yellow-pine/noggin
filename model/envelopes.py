@@ -76,8 +76,8 @@ def standard_servo():
 
 
 def pan_bearing():
-    """F8-16M's 8 mm bore, 16 mm outside diameter, 5 mm assembled height; no fictitious solid shaft."""
-    return cq.Workplane("XY").circle(8).circle(4).extrude(5)
+    """SKF 61804-2RS1: 20 mm bore, 32 mm outer diameter, 7 mm height; the central neck tube remains hollow."""
+    return cq.Workplane("XY").circle(16).circle(10).extrude(7)
 
 
 STANDARD_HORN = {"radius": 10.0, "face": -1.5, "back": 3.0, "mounts": ((8, 0), (-8, 0), (0, 8), (0, -8))}
