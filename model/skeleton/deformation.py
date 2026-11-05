@@ -171,6 +171,7 @@ def solve(
             "sparse_jacobian": True,
             "factorization_method": "AugmentedSystem",
             "initial_barrier_parameter": 1e-4,
+            "initial_constr_penalty": 1000.0,
         },
     )
     sigma, _, det, _ = lengths(result.x)
