@@ -23,6 +23,45 @@ def _stamp():
         return None
 
 
+def _windows():
+    wm = getattr(getattr(bpy, "context", None), "window_manager", None)
+    return list(wm.windows) if wm else []
+
+
+def _spaces(window):
+    return [a.spaces.active for a in window.screen.areas if a.type == "VIEW_3D" and a.spaces.active.region_3d]
+
+
+def _views():
+    return [
+        [
+            (
+                tuple(sp.region_3d.view_rotation),
+                tuple(sp.region_3d.view_location),
+                sp.region_3d.view_distance,
+                sp.region_3d.view_perspective,
+                sp.shading.type,
+                sp.shading.color_type,
+                sp.overlay.show_overlays,
+            )
+            for sp in _spaces(window)
+        ]
+        for window in _windows()
+    ]
+
+
+def _restore(views):
+    # Loading can replace SpaceView3D datablocks even with load_ui=False: reacquire them after opening.
+    for window, saved in zip(_windows(), views):
+        for sp, (rotation, location, distance, perspective, shading, colour, overlays) in zip(_spaces(window), saved):
+            sp.region_3d.view_rotation = rotation
+            sp.region_3d.view_location = location
+            sp.region_3d.view_distance = distance
+            sp.region_3d.view_perspective = perspective
+            sp.shading.type, sp.shading.color_type = shading, colour
+            sp.overlay.show_overlays = overlays
+
+
 @bpy.app.handlers.persistent
 def _loaded(_):
     global _seen
@@ -47,7 +86,9 @@ def _tick():
             return 2.0
     except (OSError, ValueError, KeyError):
         return 2.0
+    views = _views()
     bpy.ops.wm.open_mainfile(filepath=str(TARGET), load_ui=False, use_scripts=False)
+    _restore(views)
     _seen = now
     return 2.0
 

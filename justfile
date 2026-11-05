@@ -5,11 +5,11 @@
 set lazy
 
 REPO := justfile_directory()
-BIN := REPO / ".venv/bin"
+BIN := env_var_or_default("UV_PROJECT_ENVIRONMENT", REPO / ".venv") / "bin"
 PY := BIN / "python"
 MPR := BIN / "mpremote"
 MPYC := BIN / "mpy-cross"
-BLENDER := "/Applications/Blender.app/Contents/MacOS/Blender"
+BLENDER := env_var_or_default("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
 NOGGIN := "noggin/noggin"
 # one heavy command (MuJoCo, CoACD, Blender) at a time on this machine, the next waits (#246); the recipes that take
 # it are in the heavy group, which .claude/settings.json's deny list keeps for CI
@@ -64,18 +64,14 @@ check-light: venv lint
 linux-test +args:
     docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-blender:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin BLENDER=blender ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
 
-# the command given, on Cansin's GX10 (ssh host gx10, #888) for a heavy Python job (sim, CoACD, every test; not Blender: no Linux ARM64 build): pushes this branch's commits, checks them out in ~/noggin there (cloned on first use), uv syncs, streams the output, then scps FETCH's paths back (just FETCH="model/build/reports" gx10 uv run just sim)
+# the committed command on the native GX10 worker (#979), with bounded memory, private inputs and immutable FETCH snapshots
 [positional-arguments]
-gx10 +args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ssh -o ConnectTimeout=5 -o BatchMode=yes {{GX10}} true 2>/dev/null || { echo "gx10: {{GX10}} is unreachable; run light checks here and leave the rest to CI" >&2; exit 1; }
-    branch=$(git branch --show-current)
-    [ -n "$branch" ] || { echo "gx10: check out a branch first (it runs what is pushed)" >&2; exit 1; }
-    git push -q origin "$branch"
-    # flock: one run at a time holds the one clone, so a parallel agent's checkout never swaps the files under a running job
-    ssh {{GX10}} "set -e; export PATH=\$HOME/.local/bin:\$PATH; exec 9>noggin.lock; flock -n 9 || { echo 'gx10: another run holds the GX10, waiting' >&2; flock 9; };[ -d noggin ] || git clone -q https://github.com/yellow-pine/noggin.git; cd noggin; git fetch -q origin $(printf %q "$branch"); git checkout -qf --detach FETCH_HEAD; uv sync -q; MUJOCO_GL=egl $(printf '%q ' "$@")"
-    for f in {{FETCH}}; do mkdir -p "$(dirname "$f")"; scp -rq "{{GX10}}:noggin/$f" "$(dirname "$f")/"; done
+gx10 +args: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --fetch '{{FETCH}}' -- "$@"
+
+# install the pinned native ARM64 Blender and dependencies in an isolated GX10 container; resumes an active build
+gx10-setup: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --setup
 
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
@@ -234,8 +230,12 @@ blender-site: venv
 rewarp: blender-site
     PYTHONPATH=.blender-site {{BLENDER}} -b --python-use-system-env model/skeleton/skeleton.blend -P model/skeleton/rewarp.py
 
-# Cansin's review file (model/review, #915), ~/Desktop/noggin-stage3.blend or $NOGGIN_REVIEW, then its checks: Assembled with its motion, Exploded and Print bed, finished coarse (1.6 mm, default) or medium (0.8 mm), before adding main's bones beside this checkout's; run it in a branch's worktree to review that branch. Local only, never CI's (so not in the heavy group): it waits for the Blender slot (scripts/heavy.py's lock) itself
-review quality="coarse" before="": venv ours
+# the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
+review quality="coarse" before="": venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --review {{quality}} {{before}}
+
+# internal worker entry: generates and checks the review before the controller snapshots or publishes anything
+_review-build quality="coarse" before="": venv ours
     @out=$({{PY}} -c 'from model import review; print(review.OUT)') && BLENDER={{BLENDER}} {{PY}} -m model.review {{quality}} {{before}} && NOGGIN_REVIEW="$out" {{PY}} -m pytest -q model/review
 
 # the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)

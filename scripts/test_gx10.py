@@ -1,11 +1,13 @@
 """GX10 delivery retains the last good review until the requested, verified result is ready."""
 
+import fcntl
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from scripts.gx10 import memory_limit, publish_review, snapshot_outputs
+from scripts.gx10 import begin_review, blender_ceiling, memory_limit, publish_review, snapshot_outputs
 
 
 def delivery(tmp_path):
@@ -66,3 +68,27 @@ def test_remote_limits_leave_system_headroom_and_keep_the_approved_ceiling():
 def test_a_fetch_cannot_escape_the_job_snapshot(tmp_path):
     with pytest.raises(ValueError, match="relative"):
         snapshot_outputs(tmp_path, tmp_path / "out", ["../secret"])
+
+
+def test_a_remote_limit_cannot_raise_the_mac_blender_ceiling():
+    env = {"NOGGIN_GX10_WORKER": "1", "NOGGIN_BLENDER_CEILING_KB": str(32 * 1024**2)}
+    assert blender_ceiling("darwin", env) == 3_000_000
+    assert blender_ceiling("linux", env) == 32 * 1024**2
+    env["NOGGIN_BLENDER_CEILING_KB"] = str(96 * 1024**2)
+    with pytest.raises(ValueError, match="32 or 64"):
+        blender_ceiling("linux", env)
+
+
+def test_a_new_request_waits_for_an_in_progress_publication(tmp_path):
+    _, target, latest, _ = delivery(tmp_path)
+    with target.with_suffix(".blend.lock").open("a") as lock, ThreadPoolExecutor(max_workers=1) as pool:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        request = pool.submit(begin_review, target, latest, {"id": "newer"})
+        try:
+            with pytest.raises(TimeoutError):
+                request.result(timeout=0.1)
+            assert json.loads(latest.read_text()) == {"id": "current"}
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+        request.result(timeout=5)
+    assert json.loads(latest.read_text()) == {"id": "newer"}

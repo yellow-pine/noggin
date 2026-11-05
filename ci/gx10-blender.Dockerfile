@@ -13,7 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 RUN apt-get update && apt-get install -y --no-install-recommends openimageio-tools ngspice rsync \
  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libeigen3-dev libosd-dev libopenjp2-7-dev libsndfile1-dev \
+ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libceres-dev libgmp-dev libdraco-dev libmeshoptimizer-dev \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 /uv /uvx /usr/local/bin/
 RUN useradd --uid 1000 --create-home builder
 USER builder
+ENV PATH=/work/install/bin:$PATH
 WORKDIR /work

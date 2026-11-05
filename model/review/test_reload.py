@@ -69,3 +69,38 @@ def test_malformed_publication_metadata_does_not_disable_future_refreshes(tmp_pa
     publish(path)
     callbacks[0]()
     assert len(opened) == 1
+
+
+def test_a_different_file_cannot_reset_the_active_view(tmp_path, monkeypatch):
+    path, callbacks, _ = watcher(tmp_path, monkeypatch)
+    bpy = sys.modules["bpy"]
+
+    def space(distance, perspective):
+        return types.SimpleNamespace(
+            region_3d=types.SimpleNamespace(
+                view_rotation=(0.8, 0.2, 0.3, 0.4),
+                view_location=(1, 2, 3),
+                view_distance=distance,
+                view_perspective=perspective,
+            ),
+            shading=types.SimpleNamespace(type="MATERIAL", color_type="MATERIAL"),
+            overlay=types.SimpleNamespace(show_overlays=False),
+        )
+
+    def window(view):
+        return types.SimpleNamespace(
+            screen=types.SimpleNamespace(
+                areas=[
+                    types.SimpleNamespace(type="VIEW_3D", spaces=types.SimpleNamespace(active=view)),
+                ]
+            )
+        )
+
+    old, new = space(480, "ORTHO"), space(100, "PERSP")
+    wm = types.SimpleNamespace(windows=[window(old)])
+    bpy.context = types.SimpleNamespace(window_manager=wm)
+    bpy.ops.wm.open_mainfile = lambda **_kw: setattr(wm, "windows", [window(new)])
+    publish(path)
+    callbacks[0]()
+    assert new.region_3d.view_distance == 480
+    assert new.region_3d.view_perspective == "ORTHO"

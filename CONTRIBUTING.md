@@ -134,11 +134,23 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests not marked `model` (every test that builds
   or reads our parts is, and runs in the `Model` shards, #808).
   A heavy Python job an agent needs before CI (the sim, CoACD, every test, the warp maths) runs on Cansin's GX10, never
-  the laptop: `just gx10 <command>` (`just gx10 uv run just test`) runs the branch's pushed commits there and streams
-  the output; `FETCH` names paths to copy back. Blender stays here and in CI (no Linux ARM64 build). When the GX10 is
-  unreachable the recipe says so at once: run the light checks and leave the rest to CI (#888). Without Blender,
-  `just ours` there builds every part but the realistic Skeleton's finished bones, and the tests marked `bones` (their
-  clearance among them) skip: those run in CI only (#936).
+  the laptop: `just gx10 <command>` (`just gx10 uv run just test`) runs the branch's pushed commits in the bounded native
+  worker; `FETCH` names repo-relative outputs returned from its immutable job snapshot. `just gx10-setup` builds the CI
+  Blender pin and its required dependencies from checksum-verified source in an ARM64 container (#979). Python, CAD,
+  Blender finishing, rendering and validation run there; bone checks execute with Blender present. Required GitHub
+  checks and architecture-specific CI evidence still run normally. The worker starts at 32 GiB; after measuring an OOM,
+  agents may use `NOGGIN_GX10_MEMORY_GIB=64`, subject to the worker's system-headroom check. Keep the Mac's 3 GB Blender
+  safety ceiling. The SSH controller is detached, so computation continues when the Mac disconnects.
+
+  Cansin's editable Morty reference stays authoritative on the Mac. Its full mesh, paint and fit data may be staged over
+  the existing Tailscale SSH connection into the trusted GX10's private, hash-versioned input cache. These inputs and
+  reference-containing results stay excluded from git, public CI uploads and publication; a shared writable mount is
+  unnecessary. One writer owns each source; the remote worker reads immutable inputs and returns candidates.
+
+  `just review` builds and checks on GX10, then delivers a version/commit/hash-verified review with a backup and atomic
+  publication. An older job cannot replace a newer requested review. The Mac remains the interactive Blender viewer;
+  `model/review/reload.py` is its startup watcher, which consumes the matching publication receipt, discards authorized
+  incidental review edits and preserves the active view. Keep authored source files separate from that generated review.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
