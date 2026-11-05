@@ -938,10 +938,10 @@ def _diverse_violators(world_points, margins, limit=64, min_dist_mm=3.5):
 def _load_skin(skin):
     if isinstance(skin, tuple) and len(skin) == 2:
         return np.asarray(skin[0], dtype=float), np.asarray(skin[1], dtype=np.int64)
-    if isinstance(skin, (str, Path)):
-        data = np.load(skin)
-        return np.asarray(data["vertices"], dtype=float), np.asarray(data["faces"], dtype=np.int64)
-    return np.asarray(skin["vertices"], dtype=float), np.asarray(skin["faces"], dtype=np.int64)
+    data = np.load(skin) if isinstance(skin, (str, Path)) else skin
+    v_key = "skin_vertices" if "skin_vertices" in data else "vertices"
+    f_key = "skin_faces" if "skin_faces" in data else "faces"
+    return np.asarray(data[v_key], dtype=float), np.asarray(data[f_key], dtype=np.int64)
 
 
 def fit_bust(arrays, scene, envelope, skin):
