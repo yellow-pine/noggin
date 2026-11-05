@@ -4,6 +4,8 @@ Anchor-conditioned Gaussian residuals keep functional anchors exact. Coefficient
 JSON, so saved and interactive rewarps evaluate the SAME mapping. Optimizer success never replaces validation.
 """
 
+from typing import Any, cast
+
 import numpy as np
 from scipy.optimize import NonlinearConstraint, minimize
 
@@ -172,9 +174,11 @@ def solve(
         for _ in range(80):
             if strains(start).min() > 1e-7:
                 break
-            start *= 0.9
+            start *= 0.99
         else:
             start = np.zeros(count * 3)
+    # SciPy's installed constructor annotation narrows jac to str despite its documented callable support.
+    constraint = cast(Any, NonlinearConstraint)
     result = minimize(
         lambda c: (float(c @ c), 2 * c),
         start,
@@ -182,8 +186,8 @@ def solve(
         hess=lambda c: 2 * np.eye(len(c)),
         method="trust-constr",
         constraints=[
-            NonlinearConstraint(strains, 0, np.inf, jac=strain_jac, keep_feasible=True),
-            NonlinearConstraint(room, 0, np.inf, jac=room_jac),
+            constraint(strains, 0, np.inf, jac=strain_jac, keep_feasible=True),
+            constraint(room, 0, np.inf, jac=room_jac),
         ],
         options={
             "maxiter": maxiter,
