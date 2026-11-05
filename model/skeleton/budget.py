@@ -8,7 +8,6 @@ Coordinates and protection witnesses are original BodyParts3D Basis millimetres,
 import hashlib
 
 import numpy as np
-import trimesh
 
 CRANIAL = {
     "occipital bone",
@@ -46,6 +45,8 @@ def reference(arrays, bones, facts):
 
 
 def support_mesh(arrays, bones):
+    import trimesh
+
     members = [
         trimesh.Trimesh(arrays[b["key"] + "_basis"], arrays[b["key"] + "_faces"], process=False)
         for b in bones
@@ -70,6 +71,8 @@ def caps(bone, basis, reference, support=None):
     """
     basis = np.asarray(basis)
     if bone.startswith(("L rib ", "R rib ", "L costal cartilage ", "R costal cartilage ")):
+        import trimesh
+
         if support is None:
             raise ValueError("Missing original support geometry for rib attachment protection")
         _, distance, _ = trimesh.proximity.closest_point(support, basis)

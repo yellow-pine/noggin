@@ -74,6 +74,19 @@ def apply(prefix, out):
             if upper > 1.25:
                 assert report["anatomical_budget_version"] == scene["anatomical_budget"]["version"] == 1
             assert upper <= 1.5 and bone[kind]["minimum"] >= 0.75 - 1e-6 and bone[kind]["maximum"] <= upper + 1e-6
+    if "anatomical_budget" in scene:
+        sys.path.insert(0, os.path.dirname(__file__))
+        import budget
+
+        original = {}
+        for bone in scene["bones"]:
+            o = bpy.data.objects[bone["name"]]
+            original[bone["key"] + "_basis"] = coordinates(o.data.shape_keys.key_blocks["Basis"].data)
+            o.data.calc_loop_triangles()
+            original[bone["key"] + "_faces"] = np.array([t.vertices[:] for t in o.data.loop_triangles], dtype=np.int32)
+        assert budget.stamp(original, scene["bones"]) == scene["anatomical_budget"]["basis_sha256"], (
+            "Growth allowances belong to a different original anatomical Basis/topology"
+        )
     basis = {}
     for bone in scene["bones"]:
         o = bpy.data.objects[bone["name"]]
