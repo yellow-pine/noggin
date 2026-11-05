@@ -150,3 +150,20 @@ def test_original_cervical_joint_is_preserved_by_one_declared_region_frame():
     assert result["upper_sculpt"][0] == pytest.approx(result["lower_sculpt"][1])
     assert scene["bones"][0]["matrix"] == scene["bones"][1]["matrix"]
     assert report["regional_stretch"]["upper"]["field"]["minimum"] == pytest.approx(1)
+
+
+def test_constrained_affine_meets_exact_anchors_without_spending_region_budget():
+    source = np.array(((-2, 0, 0), (2, 0, 0), (0, 4, 0)), float)
+    target = source * 1.1 + (4, 5, 6)
+    matrix, report = fit.constrained_affine(source, target)
+    assert source @ matrix[:3, :3].T + matrix[:3, 3] == pytest.approx(target, abs=1e-6)
+    assert report["anchor_error_mm"] < 1e-6
+    assert report["stretch"]["minimum"] >= 0.75
+    assert report["stretch"]["maximum"] <= 1.25
+
+
+def test_affine_anchor_incompatibility_is_not_reported_as_global_shape_impossibility():
+    source = np.array(((0, 0, 0), (1, 0, 0), (0, 1, 0)), float)
+    target = np.array(((0, 0, 0), (3, 0, 0), (0, 0.5, 0)), float)
+    with pytest.raises(ValueError, match="affine.*scale"):
+        fit.constrained_affine(source, target)
