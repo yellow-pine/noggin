@@ -92,3 +92,10 @@ def test_a_new_request_waits_for_an_in_progress_publication(tmp_path):
             fcntl.flock(lock, fcntl.LOCK_UN)
         request.result(timeout=5)
     assert json.loads(latest.read_text()) == {"id": "newer"}
+
+
+def test_an_empty_promised_output_is_a_failure(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "model/build/finished").mkdir(parents=True)
+    with pytest.raises(ValueError, match="empty"):
+        snapshot_outputs(repo, tmp_path / "snapshot", ["model/build/finished"])

@@ -94,8 +94,14 @@ uv pip install --python /usr/bin/python3.13 --require-hashes \
     --target /work/install/share/blender/5.2/python/lib/python3.13/dist-packages \
     -r /work/runtime-requirements.txt
 install/bin/blender -b --factory-startup --version
-install/bin/blender -b --factory-startup --python-expr "import bpy; assert bpy.app.version == (5,2,3); assert bpy.app.build_options.openvdb; t=bpy.data.node_groups.new('Native SDF check','GeometryNodeTree'); [t.nodes.new(n) for n in ('GeometryNodeMeshToSDFGrid','GeometryNodeSDFGridOffset','GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; print('native build: startup and SDF nodes verified')" > startup.log 2>&1
+install/bin/blender --python-exit-code 1 -b --factory-startup --python-expr "import bpy; assert bpy.app.version == (5,2,3); assert bpy.app.build_options.openvdb; t=bpy.data.node_groups.new('Native SDF check','GeometryNodeTree'); [t.nodes.new(n) for n in ('GeometryNodeMeshToSDFGrid','GeometryNodeSDFGridOffset','GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; print('native build: startup and SDF nodes verified')" > startup.log 2>&1
 cat startup.log
 if grep -Eq 'Traceback|ModuleNotFoundError|Exception in module register' startup.log; then exit 1; fi
+mkdir -p bin
+cat > bin/blender <<'SH'
+#!/bin/sh
+exec /work/install/bin/blender --python-exit-code 1 "$@"
+SH
+chmod +x bin/blender
 printf '%s\n' '{"version":"5.2.3","source_sha256":"5c66e0ab20da26d684deecfc27e84c4d39e456daaa9112b47eeb45d0e0283876","openvdb":true}' > install/ready.json.tmp
 mv install/ready.json.tmp install/ready.json

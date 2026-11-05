@@ -46,6 +46,7 @@ def snapshot_outputs(repo, snapshot, paths):
             raise ValueError("FETCH must use repo-relative output paths")
         source = repo / relative
         files = source.rglob("*") if source.is_dir() else [source]
+        copied = False
         for path in files:
             if path.is_dir():
                 continue
@@ -56,6 +57,9 @@ def snapshot_outputs(repo, snapshot, paths):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, dest)
             manifest[str(name)] = checksum(dest)
+            copied = True
+        if not copied:
+            raise ValueError("FETCH output is empty")
     return manifest
 
 
@@ -215,7 +219,7 @@ def worker(request_path):
             tools = home / "noggin-tools" / f"blender-{version}"
             tools_lock = (tools / "install.lock").open("a")
             fcntl.flock(tools_lock, fcntl.LOCK_SH)
-            if not (tools / "install/ready.json").is_file() or not (tools / "install/bin/blender").is_file():
+            if not (tools / "install/ready.json").is_file() or not (tools / "bin/blender").is_file():
                 raise RuntimeError(f"native Blender {version} is not installed; run just gx10-setup")
             memory = re.search(r"^MemAvailable:\s+(\d+)", Path("/proc/meminfo").read_text(), re.M)
             assert memory
@@ -262,13 +266,13 @@ def worker(request_path):
                 "UV_CACHE_DIR": "/cache/uv",
                 "UV_LINK_MODE": "copy",
                 "PYTHONDONTWRITEBYTECODE": "1",
-                "BLENDER": "/work/install/bin/blender",
+                "BLENDER": "/work/bin/blender",
                 "MUJOCO_GL": "egl",
                 "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics",
                 "NOGGIN_BLENDER_CEILING_KB": str(limit // 1024),
                 "NOGGIN_GX10_WORKER": "1",
                 "NOGGIN_REVIEW": str(root / "review.blend"),
-                "PATH": "/work/install/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin",
+                "PATH": "/work/bin:/work/install/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin",
                 "XDG_CACHE_HOME": "/cache/xdg",
                 "LD_LIBRARY_PATH": "/work/deps/lib:/usr/local/cuda/lib64",
             }
@@ -286,12 +290,19 @@ def worker(request_path):
                 "'GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; "
                 "print('gx10: native Blender and SDF nodes verified')"
             )
-            flow = shlex.join([executable, "-b", "--factory-startup", "--python-expr", check])
-            flow += " && uv sync -q --frozen && " + shlex.join(request["command"])
+            flow = shlex.join(
+                [executable, "--python-exit-code", "1", "-b", "--factory-startup", "--python-expr", check]
+            )
+            task = request["command"][:]
+            if Path(task[0]).name.lower() == "blender" and "--python-exit-code" not in task:
+                task[1:1] = ["--python-exit-code", "1"]
+            flow += " && uv sync -q --frozen && " + shlex.join(task)
             if request["review"]:
                 flow += " && " + shlex.join(
                     [
                         executable,
+                        "--python-exit-code",
+                        "1",
                         "-b",
                         "--factory-startup",
                         str(root / "review.blend"),
