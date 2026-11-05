@@ -370,6 +370,74 @@ def affine_head_facts(arrays, scene, envelope):
     return report
 
 
+def affine_head_room(arrays, scene, envelope, cage):
+    """Generate worst-vertex constraints for the affine UPPER VAULT submodel; no body/proxy adoption.
+
+    The supplied own coarse cage is only a diagnostic. Success still requires the independent exact private
+    oracle, every lower-face point, actual anatomical joint registration and all finished geometry gates.
+    """
+    facts = original_facts(arrays, scene)
+    source = np.array(
+        [facts["landmarks"][f"LM {side} orbit"] for side in ("L", "R")] + [facts["canals"]["C1"]["centre"]]
+    )
+    target = np.array(((36.35, -150, 177), (-36.35, -150, 177), envelope["canal_ends"]["C1"]))
+    matrix, report = constrained_affine(source, target)
+    vault = {
+        "frontal bone",
+        "L parietal bone",
+        "R parietal bone",
+        "occipital bone",
+        "L temporal bone",
+        "R temporal bone",
+    }
+    points, ids = [], []
+    floor = min(map(float, cage["radial_first_exits"]))
+    for bone in scene["bones"]:
+        if bone["name"] not in vault:
+            continue
+        p = arrays[bone["key"] + "_basis"]
+        included = np.flatnonzero((p @ matrix[:3, :3].T + matrix[:3, 3])[:, 2] >= floor)
+        points.extend(p[included])
+        ids.extend((bone["name"], int(i)) for i in included)
+    points = np.array(points)
+    inset = envelope["inset_mm"] + 0.05  # source radii rounded0.1mm; never spend that rounding on claimed clearance
+    top = envelope["regional_room"]["head_outer_top_mm"] - inset
+
+    def margins(m, selected):
+        q = selected @ m[:3, :3].T + m[:3, 3]
+        return np.minimum(coarse_head_margin(q, cage, inset), top - q[:, 2])
+
+    active = set()
+    for iteration in range(8):
+        full = margins(matrix, points)
+        if full.min() >= -1e-6:
+            break
+        active.update(map(int, np.argsort(full)[:12]))
+        selected = points[sorted(active)]
+        print(f"fit: affine constraint round {iteration + 1}, {len(active)} public vault vertices", flush=True)
+        try:
+            matrix, report = constrained_affine(source, target, lambda m: margins(m, selected))
+        except ValueError as error:
+            return {
+                "status": "No feasible candidate found in this affine/coarse-proxy submodel; NOT global infeasibility",
+                "error": str(error),
+                "active_public_vertex_ids": [ids[i] for i in sorted(active)],
+                "initial_anchor_only_report": report,
+                "scope": "Current head-method analysis only; body/proxy adoption held",
+            }
+    full = margins(matrix, points)
+    report |= {
+        "matrix_native_to_world": matrix.tolist(),
+        "scope": "UNACCEPTED coarse UPPER VAULT affine result; no whole Skin/joint/finished certificate",
+        "proxy_min_margin_mm": float(full.min()),
+        "proxy_violating_vertices": int((full < -1e-6).sum()),
+        "scanned_vertices": len(points),
+        "active_public_vertex_ids": [ids[i] for i in sorted(active)],
+        "source_proxy_sha256": cage["source_sha256"],
+    }
+    return report
+
+
 def refit(arrays, scene, envelope, seed_only=False):
     """Original anatomy, four declared uniform regions, then one bounded residual field.
 
@@ -526,6 +594,17 @@ if __name__ == "__main__":
         )
         Path(sys.argv[4]).parent.mkdir(parents=True, exist_ok=True)
         Path(sys.argv[4]).write_text(json.dumps(report, indent=2) + "\n")
+        print(json.dumps(report, indent=2))
+        sys.exit()
+    if sys.argv[1] == "--affine-room":
+        report = affine_head_room(
+            np.load(sys.argv[2]),
+            json.load(open(sys.argv[3])),
+            json.load(open("model/skeleton/envelope.json")),
+            json.load(open(sys.argv[4])),
+        )
+        Path(sys.argv[5]).parent.mkdir(parents=True, exist_ok=True)
+        Path(sys.argv[5]).write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report, indent=2))
         sys.exit()
     landmarks = sys.argv[1] == "--landmarks"
