@@ -8,7 +8,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-def _basis(points, centres, anchors, width):
+def _basis(points, centres, anchors, width, affine=False):
     def kernel(a, b):
         delta = a[:, None] - b[None]
         value = np.exp(-np.sum(delta**2, axis=2) / (2 * width**2))
@@ -24,6 +24,17 @@ def _basis(points, centres, anchors, width):
         pa, da = kernel(points, anchors)
         value -= pa @ correction
         derivative -= np.einsum("naj,ak->nkj", da, correction)
+    if affine:
+        # These global shape modes vanish on the anchors' affine span; Gaussians need not approximate a tilt/shear.
+        origin = anchors.mean(0) if len(anchors) else np.zeros(3)
+        centred = anchors - origin
+        _, _, frame = np.linalg.svd(centred, full_matrices=True)
+        rank = np.linalg.matrix_rank(centred) if len(anchors) else 0
+        normals = frame[rank:]
+        value = np.column_stack((value, (points - origin) @ normals.T / width))
+        derivative = np.concatenate(
+            (derivative, np.broadcast_to(normals / width, (len(points), len(normals), 3))), axis=1
+        )
     return value, derivative
 
 
@@ -32,7 +43,11 @@ def evaluate(points, field):
     matrix = np.asarray(field["matrix"])
     world = np.asarray(points) @ matrix[:3, :3].T + matrix[:3, 3]
     value, derivative = _basis(
-        world, np.asarray(field["centres"]), np.asarray(field["anchors_world"]), field["width_mm"]
+        world,
+        np.asarray(field["centres"]).reshape(-1, 3),
+        np.asarray(field["anchors_world"]).reshape(-1, 3),
+        field["width_mm"],
+        field.get("affine_residual", False),
     )
     coefficients = np.asarray(field["coefficients"])
     moved = world + value @ coefficients
@@ -55,12 +70,12 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
         raise ValueError("Source-frozen anatomical length allowances must be1.25..1.50")
     fixed = anchors @ matrix[:3, :3].T + matrix[:3, 3]
     world = points @ matrix[:3, :3].T + matrix[:3, 3]
-    _, derivative = _basis(world, centres, fixed, width)
+    _, derivative = _basis(world, centres, fixed, width, affine=True)
     # dF/dnative = A + sum coefficient[k,i] * dphi[k]/dnative.
     d = derivative @ matrix[:3, :3]
     target = np.asarray(constrained_points) @ matrix[:3, :3].T + matrix[:3, 3]
-    values, _ = _basis(target, centres, fixed, width)
-    count = len(centres)
+    values, _ = _basis(target, centres, fixed, width, affine=True)
+    count = values.shape[1]
 
     def lengths(c):
         gradient = (matrix[None, :3, :3] + np.einsum("nkj,ki->nij", d, c.reshape(count, 3))) / scale
@@ -115,6 +130,7 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
     field = {
         "version": 1,
         "kind": "anchor_conditioned_gaussian",
+        "affine_residual": True,
         "matrix": matrix.tolist(),
         "uniform_scale": float(scale),
         "anchors_world": fixed.tolist(),
