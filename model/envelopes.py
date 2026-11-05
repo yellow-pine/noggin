@@ -81,8 +81,16 @@ def pan_bearing():
 
 
 def standard_horn():
-    """Inferred supplied round horn, torque reaction only; not a load bearing."""
-    return cq.Workplane("XY").circle(10).circle(3).extrude(3)
+    """Inferred round horn: +Z toward the case, 3 mm spline engagement and an outer M3 retaining shoulder."""
+    out = box((-10, 10), (-10, 10), (-1.5, 3)).intersect(
+        cq.Workplane("XY", origin=(0, 0, -1.5)).circle(10).extrude(4.5)
+    )
+    out = out.cut(cq.Workplane("XY").circle(3).extrude(3))
+    out = out.cut(cq.Workplane("XY", origin=(0, 0, -1.5)).circle(1.6).extrude(4.5))
+    # The adapter's four M2 screws transfer torque through real bores; hole pattern is a drilling inference.
+    for x, y in ((8, 0), (-8, 0), (0, 8), (0, -8)):
+        out = out.cut(cq.Workplane("XY", origin=(x, y, -1.5)).circle(0.8).extrude(4.5))
+    return out
 
 
 # Horn (the kit's short single arm, "half arm1"): the r 3.63 hub on (0, 20), z 0..4.15, with the r 2.14 spline bore

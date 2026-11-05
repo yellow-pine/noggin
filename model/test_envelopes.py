@@ -50,7 +50,8 @@ def test_servo_tab_holes_are_open_on_the_tab_plate():
 
 def test_the_standard_horn_has_spline_engagement_and_a_retaining_screw_shoulder():
     """The included round horn seats on the shaft but its outer shoulder retains the M3 centre screw."""
-    horn, shaft = solid("standard horn"), solid("standard servo")
+    horn = solid("standard horn")
+    shaft = solid("standard servo").rotate((0, 0, 0), (1, 0, 0), 180)  # horn's +Z points into its shaft
     assert horn.intersect(shaft).Volume() < 1e-6
     assert horn.BoundingBox().zmin < 0 < horn.BoundingBox().zmax
     assert horn.isInside(cq.Vector(2.5, 0, -0.75))  # screw head bears on the shoulder outside its clearance bore
