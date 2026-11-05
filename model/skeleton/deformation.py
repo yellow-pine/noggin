@@ -68,6 +68,7 @@ def solve(
     maxiter=150,
     triangles=None,
     triangle_maximum=1.25,
+    initial=None,
 ):
     """Find the smallest nonlinear residual satisfying this FIXED sampled constraint set.
 
@@ -153,9 +154,30 @@ def solve(
         )
         return np.einsum("nk,ni->nki", values, gradient).reshape(len(q), -1)
 
+    start = np.zeros(count * 3)
+    if initial is not None:
+        if not (
+            initial.get("affine_residual")
+            and np.allclose(initial["matrix"], matrix)
+            and np.array_equal(np.asarray(initial["centres"]).reshape(-1, 3), centres)
+            and np.allclose(initial["anchors_world"], fixed)
+            and initial["width_mm"] == width
+        ):
+            raise ValueError("A continued field must use the same placement, controls and exact anchors")
+        start = np.asarray(initial["coefficients"]).ravel()
+        if start.shape != (count * 3,) or not np.isfinite(start).all():
+            raise ValueError("Invalid continued field coefficients")
+        # New held-out constraints can exclude the old iterate. Retreat the INITIAL GUESS toward the original
+        # feasible affine placement; never clamp individual vertices or accept a budget violation.
+        for _ in range(80):
+            if strains(start).min() > 1e-7:
+                break
+            start *= 0.9
+        else:
+            start = np.zeros(count * 3)
     result = minimize(
         lambda c: (float(c @ c), 2 * c),
-        np.zeros(count * 3),
+        start,
         jac=True,
         hess=lambda c: 2 * np.eye(len(c)),
         method="trust-constr",
