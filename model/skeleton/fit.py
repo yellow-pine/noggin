@@ -939,7 +939,7 @@ def _load_skin(skin):
     if isinstance(skin, tuple) and len(skin) == 2:
         return np.asarray(skin[0], dtype=float), np.asarray(skin[1], dtype=np.int64)
     data = np.load(skin) if isinstance(skin, (str, Path)) else skin
-    for vk, fk in (("skin_vertices", "skin_faces"), ("vertices", "faces"), ("v", "f")):
+    for vk, fk in (("vertices_world", "faces"), ("skin_vertices", "skin_faces"), ("vertices", "faces"), ("v", "f")):
         if vk in data and fk in data:
             return np.asarray(data[vk], dtype=float), np.asarray(data[fk], dtype=np.int64)
     raise ValueError(f"Unrecognized skin archive keys: {list(data.keys())}")
