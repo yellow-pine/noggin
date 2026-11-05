@@ -8,7 +8,6 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Record my directives in this file. Keep it short: pointers, not restated facts.
 - Development cycle and PR workflow: CONTRIBUTING.md. Grilling is interview-only: it builds nothing, and reads docs/adr on each decision before asking.
 - The main session coordinates: it grills, files tickets, briefs and relays. Every fix on a PR (a conflict, a re-run, a review thread, a label on the PR) goes to that PR's `implementer` (SendMessage while it lives, else a fresh one).
-- Heavy compute and review delivery use GX10, including Blender; trusted private staging and Mac viewer refresh follow CONTRIBUTING.md (#979).
 - Standards and well-maintained open-source libraries first: wherever one covers the job, use it instead of custom code; always for security, protocols, parsing and numerics. Small glue stays custom (ponytail).
 - Never a paid service or paid tier (plugins, early access, hosted search); free and open-source only.
 - Install nothing into ~/.claude or launchd without an explicit go.
@@ -27,7 +26,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - I can't measure (no calliper): a size the model leaves open is a best guess from the build's behaviour or photos, marked inferred.
 - Hardware never gates a merge: Core and Link PRs merge on green, and I try them on the physical Mech after.
 - PRs merge on the slim gate; everything heavy runs on main, which fixes forward (#696, CONTRIBUTING.md).
-- Heavy Python jobs (sim, CoACD, every test) run on my GX10 via `just gx10`, never the laptop; Blender stays here (#888, CONTRIBUTING.md).
+- Heavy compute, including Blender, runs on GX10 via `just gx10`; private staging and Mac review delivery follow CONTRIBUTING.md and ADR 0026 (#979).
 - Blender authors every picture of the Mech (README, docs, PR pictures; diagrams are Mermaid in the Markdown); the web viewer draws Blender's glTF with the look Blender writes into it (ADR 0008).
 - A model review for me goes into my open Blender (`~/Desktop/noggin-stage3.blend`, reloaded on write by my startup script), never Preview windows of stills; I audit it there myself.
 - After a merge that changes the Mech's look, the main session opens its new pictures and motion for me: the live Pictures page once deployed.

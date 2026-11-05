@@ -358,14 +358,16 @@ def worker(request_path):
     atomic_json(root / "result.json", result)
 
 
-def copy_result(host, remote, destination, recursive=False):
+def transfer(host, source, destination, recursive=False, upload=False):
     """Connection loss retries automatically; a reachable host's disk/path error remains a real failure."""
     while True:
-        copied = subprocess.run(["scp", "-qr" if recursive else "-q", f"{host}:{remote}", str(destination)])
+        origin = str(source) if upload else f"{host}:{source}"
+        target = f"{host}:{destination}" if upload else str(destination)
+        copied = subprocess.run(["scp", "-qr" if recursive else "-q", origin, target])
         if copied.returncode == 0:
             return
         if ssh(host, ["true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
-            raise RuntimeError("GX10 output transfer failed while the host is reachable")
+            raise RuntimeError("GX10 transfer failed while the host is reachable")
         time.sleep(5)
 
 
@@ -388,7 +390,7 @@ def collect(host, local):
         ssh(host, ["tail", "-n", "30", f"{root}/output.log"])
         raise RuntimeError(f"GX10 failed: {result}")
     if result["files"]:
-        copy_result(host, f"{root}/artifacts", local, recursive=True)
+        transfer(host, f"{root}/artifacts", local, recursive=True)
         for name, digest in result["files"].items():
             relative = Path(name)
             if relative.is_absolute() or ".." in relative.parts or ".git" in relative.parts:
@@ -401,7 +403,7 @@ def collect(host, local):
             destination.parent.mkdir(parents=True, exist_ok=True)
             os.replace(local / "artifacts" / name, destination)
     if request["review"]:
-        copy_result(host, f"{root}/review.blend", local / "review.blend")
+        transfer(host, f"{root}/review.blend", local / "review.blend")
         target = Path(request["target"])
         publish_review(local / "review.blend", target, target.with_suffix(".blend.request.json"), result)
     print(
@@ -461,18 +463,18 @@ def submit(host, command, fetch, review=False):
             ssh(host, ["chmod", "700", f"{home}/noggin-private", f"{home}/noggin-private/inputs", folder], check=True)
             existing = ssh(host, ["sha256sum", remote], capture_output=True, text=True)
             if existing.returncode or existing.stdout.split()[0] != digest:
-                subprocess.run(["scp", "-q", str(source), f"{host}:{remote}.{job_id}.part"], check=True)
+                transfer(host, source, f"{remote}.{job_id}.part", upload=True)
                 received = ssh(
                     host, ["sha256sum", f"{remote}.{job_id}.part"], check=True, capture_output=True, text=True
                 )
                 if received.stdout.split()[0] != digest:
                     raise ValueError("private input changed during transfer")
                 ssh(host, ["mv", f"{remote}.{job_id}.part", remote], check=True)
-                ssh(host, ["chmod", "600", remote], check=True)
+            ssh(host, ["chmod", "600", remote], check=True)
             request["morty"] = {"path": remote, "sha256": digest}
     atomic_json(local / "request.json", request)
-    subprocess.run(["scp", "-q", str(local / "request.json"), f"{host}:{root}/request.json"], check=True)
-    subprocess.run(["scp", "-q", str(Path(__file__).resolve()), f"{host}:{root}/worker.py"], check=True)
+    transfer(host, local / "request.json", f"{root}/request.json", upload=True)
+    transfer(host, Path(__file__).resolve(), f"{root}/worker.py", upload=True)
     quoted = shlex.quote(root)
     launch = (
         f"nohup python3 {quoted}/worker.py --worker {quoted}/request.json >{quoted}/controller.log 2>&1 </dev/null &"

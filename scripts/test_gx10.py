@@ -4,9 +4,11 @@ import fcntl
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 import pytest
 
+from scripts import gx10
 from scripts.gx10 import begin_review, blender_ceiling, memory_limit, publish_review, snapshot_outputs
 
 
@@ -99,3 +101,26 @@ def test_an_empty_promised_output_is_a_failure(tmp_path):
     (repo / "model/build/finished").mkdir(parents=True)
     with pytest.raises(ValueError, match="empty"):
         snapshot_outputs(repo, tmp_path / "snapshot", ["model/build/finished"])
+
+
+def test_a_disconnected_transfer_retries_without_recomputing(monkeypatch):
+    copies, sleeps = [], []
+    outcomes = iter([255, 0])
+
+    def copy(command):
+        copies.append(command)
+        return SimpleNamespace(returncode=next(outcomes))
+
+    monkeypatch.setattr(gx10.subprocess, "run", copy)
+    monkeypatch.setattr(gx10, "ssh", lambda *args, **kwargs: SimpleNamespace(returncode=255))
+    monkeypatch.setattr(gx10.time, "sleep", sleeps.append)
+    gx10.transfer("gx10", "candidate.blend", "/private/candidate.part", upload=True)
+    assert copies == [["scp", "-q", "candidate.blend", "gx10:/private/candidate.part"]] * 2
+    assert sleeps == [5]
+
+
+def test_a_reachable_transfer_error_is_reported(monkeypatch):
+    monkeypatch.setattr(gx10.subprocess, "run", lambda *args: SimpleNamespace(returncode=1))
+    monkeypatch.setattr(gx10, "ssh", lambda *args, **kwargs: SimpleNamespace(returncode=0))
+    with pytest.raises(RuntimeError, match="reachable"):
+        gx10.transfer("gx10", "/private/result.blend", "candidate.blend")
