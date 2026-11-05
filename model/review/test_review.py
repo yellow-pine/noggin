@@ -351,7 +351,6 @@ print('review: done',flush=True)
 """
 
 
-@pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("nonuniform", [False, True])
 def test_saved_reference_preserves_authored_normals_and_still_cuts_the_floor(tmp_path, nonuniform):
