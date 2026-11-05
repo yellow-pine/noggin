@@ -160,6 +160,14 @@ def pan_wire_candidate():
 
 
 @pytest.mark.model
+def test_the_pitch_drive_clears_the_c0_bearing_and_retains_its_planar_linkage(pan_wire_candidate):
+    """#978: free the real C0 bearing volume without changing either eye's pitch kinematics."""
+    rest = gimbal.at_rest(mechanical=True)
+    parts = {n: rest[n] for n in ("pitch servo:1", "pitch horn:1", "pitch bar:1", "bail:1")}
+    assert _overlaps(parts | pan_wire_candidate, list(itertools.product(parts, pan_wire_candidate))) == []
+
+
+@pytest.mark.model
 def test_the_c0_pan_bearing_candidate_has_real_retention_and_an_open_wire_path(pan_wire_candidate):
     """Unaccepted component study: the shaft, caps and bearing leave a full 6 mm cable corridor."""
     assert set(pan_wire_candidate) == {"spindle", "fixed cap", "bearing", "head carrier", "moving cap"}
