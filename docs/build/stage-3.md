@@ -34,9 +34,9 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the gimbal frame's lugs, hinged through the measured mandibular condylar patches; it turns down to
-   open the mouth. The hidden carrier follows the measured ramus and body rather than scaling the old bracket.
-   *Upcoming (#968): finished anatomical attachment and moving Bone/Skin clearance proof.*
+1. **Jaw** on the gimbal frame's lugs, scaled for Morty's jawline about its pivot through the measured mandibular
+   condylar patches; it turns down to open the mouth. The hidden carrier follows the measured ramus and body rather
+   than scaling the old bracket. *Upcoming (#968): finished anatomical attachment and moving Bone/Skin clearance proof.*
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 

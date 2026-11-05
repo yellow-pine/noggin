@@ -256,12 +256,15 @@ def _lid(radii, span, spokes, boss, pin, mechanical):
         return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
 
     shell, outer, inner = ball(ro).cut(ball(ri)), _slab(boss), _slab("ear", -1)
-    out = shell.intersect(wedge(*span, (inner[1], outer[1])))  # into the ears' slab only round its own (the other's)
+    main_x = gm.LID_SHELL_X[boss.removesuffix(" boss")]
+    out = shell.intersect(wedge(*span, main_x))
     for x, spoke in zip((outer, inner), spokes):
         reach = (min(spoke - 10, span[1] - 1), spoke + 10) if spoke > 0 else (spoke - 10, max(spoke + 10, span[0] + 1))
         r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
         end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
-        out = out.union(shell.intersect(wedge(*reach, x))).union(
+        # The upper's narrowed body still joins its own ear through this tab, behind its matching cover.
+        tab_x = (x[0], main_x[0]) if x == inner else x
+        out = out.union(shell.intersect(wedge(*reach, tab_x))).union(
             lid_arms([pin if x == inner else (0, 0), end], x, mechanical)
         )
     out = out.union(cyl("x", (0, 0, 0), 4.0, outer)).intersect(ball(ro))
@@ -281,8 +284,8 @@ def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # its spokes where every OCCT CI and the GX10 run builds the lid and carves its Bones (#901)
-    out = _lid(gm.LOWER_R, span, (-62.0, -75.0), "lower boss", gm.LOWER_PIN, mechanical)
+    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937)
+    out = _lid(gm.LOWER_R, span, (-131.0, 160.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -316,7 +319,8 @@ def frame(mechanical=False):
         out = out.union(box(ux, (gm.CHEEK_Y[0], 4), (gm.BEAM_Z[0], top))).union(box(ux, (4, y0 + 4), gm.PLATE_Z))
         # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
         out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
-        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), (top, gm.TIE_Z[0] - 2.0)))
+        # at the plate's level, so no convex hull of it with the bearing reaches the tie-bar over it (#901)
+        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(

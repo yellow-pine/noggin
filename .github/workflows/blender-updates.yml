@@ -1,6 +1,6 @@
 name: Blender Updates
 # Re-pins Blender to the newest stable release at least 14 days old and opens (or refreshes) a PR, weekly.
-# scripts/blender_pin.py (#334) rewrites the version and the Linux tarball's sha256 wherever the pin lives. It acts as
+# scripts/blender_pin.py (#334) updates the Linux binary and native GX10 source pins together. It acts as
 # the bot App (CONTRIBUTING.md): a PR opened with GITHUB_TOKEN starts no workflows
 # (https://docs.github.com/en/actions/concepts/security/github_token).
 run-name: "${{ github.event_name == 'schedule' && 'ci(ci): weekly Blender Updates re-pin' || format('ci(ci): manual Blender Updates run by {0}', github.actor) }}"

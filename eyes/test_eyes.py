@@ -55,12 +55,13 @@ def test_thinking_drifts_and_rest_stops_it(eyes, pwm_log):
     for t in range(0, 30_000, 100):
         eyes.tick(t)
     assert_in_range_and_held(pwm_log)
-    drifts = len(pwm_log)
-    pwm_log.clear()
+    assert len({ns for pin, ns in pwm_log if pin == mod.YAW}) > 1
     eyes.handle_line("rest")
+    assert angle(last_ns(pwm_log, mod.YAW)) == pytest.approx(mod.EYE_CENTER, abs=0.01)
+    pwm_log.clear()
     for t in range(30_000, 60_000, 100):
         eyes.tick(t)
-    assert len(pwm_log) < drifts / 4  # rest pose once, then nothing
+    assert pwm_log and {pin for pin, _ in pwm_log} <= set(mod.LIDS)  # spontaneous blinks, no gaze drift
 
 
 def test_thinking_blinks_occasionally(eyes, pwm_log):

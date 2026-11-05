@@ -91,7 +91,7 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # at 55 deg or more, every pin behind the cap's flat back however the eye turns and above the frame's plate, and
 # building on every OCCT CI and the GX10 run
 LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (2.9, -15.0)  # (y, z) of the lower lid's crank pin at rest
+LOWER_PIN = (3.3, -14.9)  # 0.4 mm rearward, 0.1 up: its boss clears the cap while the rest edge stays on its rim
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
@@ -115,8 +115,16 @@ BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the b
 # SPACING / 2 so the two eyes' drives turn apart about their shared axis (#838). Every pin the cap could reach lies
 # behind its flat back (gimbal.report, the sweep); the slabs moved out with the eye (#901), 3 mm each as before
 LID_X = {
-    **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.6, 36.6)},
+    **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.3, 36.3)},
     **{"bar": (24.75, 27.75), "link": (27.75, 30.75), "ear": (30.75, 33.75)},
+}
+# each lid's main shell ends this far inside its boss's slab, so its cover (model/skin.py) stays 0.6 mm off the frame's
+# upright, which the lower lid's cover sweeps past since #901; the boss itself still turns 0.3 mm off the upright
+LID_SHELL_IN = 0.3
+# Main shells and their covers share these ends; the upper's inboard end clears the lower lid's rising hoop.
+LID_SHELL_X = {
+    "upper": (-LID_X["ear"][0] + LID_CLEAR_MM, LID_X["upper boss"][1] - LID_SHELL_IN),
+    "lower": (-LID_X["ear"][0], LID_X["lower boss"][1] - LID_SHELL_IN),
 }
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out

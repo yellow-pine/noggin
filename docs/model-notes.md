@@ -80,7 +80,8 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
   (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
   round them from the Skeleton scene (model/skeleton, docs/adr/0025) where Blender is (`just linux-test` runs in
-  CI's Blender image); without it (the GX10) the bones are left out and the tests marked `bones` skip (#936). The
+  CI's Blender image). The native GX10 worker also runs Blender and the finished-bone checks (#979); a host without
+  Blender still leaves the bones out and skips tests marked `bones`. The
   model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).
@@ -144,8 +145,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   edge sits on the cap's rim (Morty's outline, 68 deg up and 52 down, lies past the cap's 45); shut they meet 4 deg
   below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
-  shank from the frame's upright just outside the caps, its spokes behind and under the caps through the whole yaw, so
-  the face is as wide as the lids' frame (146 mm since #901), each lower lid's boss 0.6 mm off its upright (its cover then 0.6 off it), and `HEAD_MM`
+  shank from the frame's upright just outside the caps, its outboard spoke behind the cap and inboard spoke above it, so
+  the face is as wide as the lids' frame (145 mm since #901), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`
   is Morty's life-size cranium (160 x 176 x 175 since #901, #893). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
