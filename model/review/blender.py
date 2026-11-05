@@ -13,7 +13,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skeleton"))
 import export  # noqa: E402
@@ -30,6 +30,21 @@ def lin(hexc, alpha):
     return (*[x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c], alpha)
 
 
+def material(name, rgba):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.diffuse_color = rgba
+    return m
+
+
+def paint(o):
+    """Per-object slots: mirrored parts share meshes, and each scene's copies keep their own alpha."""
+    m = material("Review " + ",".join(f"{v:.6f}" for v in o.color), o.color)
+    if not o.data.materials:
+        o.data.materials.append(m)
+    for slot in o.material_slots:
+        slot.link, slot.material = "OBJECT", m
+
+
 def finished(stem):
     return bpy.data.objects[f"finished {stem}"]
 
@@ -42,26 +57,88 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """The local Morty, decimated, at his place, in three objects split at the planes, each in his region's colour."""
-    bpy.ops.wm.stl_import(filepath=m["stl"])
-    whole = bpy.context.selected_objects[0]
-    dec = whole.modifiers.new("Decimate", "DECIMATE")
-    dec.ratio = min(1.0, MORTY_FACES / len(whole.data.polygons))
-    with bpy.context.temp_override(object=whole):
-        bpy.ops.object.modifier_apply(modifier=dec.name)
-    whole.data.transform(Matrix(m["at"]))
-    low, high = m["planes"]
-    for region, hexc, (z0, z1) in zip(REGIONS, m["colours"], ((high, 1e9), (low, high), (-1e9, low)), strict=True):
-        me = whole.data.copy()
+    """Private semantic surfaces, painted by Colour group and carried by live parts; fixed body surfaces never key.
+    The editable source stays local and is read without being rewritten."""
+    with bpy.data.libraries.load(m["blend"]) as (src, dst):
+        if "Morty reference" not in src.collections:
+            raise ValueError("review: local Morty needs an editable Morty reference collection with semantic meshes")
+        dst.collections = ["Morty reference"]
+    source = dst.collections[0]
+    objects = [o for o in source.all_objects if o.type == "MESH"]
+    roles = [o.get("reference_region") for o in objects]
+    fixed = {"neck", "shoulders", "torso"}
+    if (
+        not all(isinstance(r, str) and r for r in roles)
+        or len(set(roles)) != len(roles)
+        or not (fixed | {"head"}) <= set(roles)
+    ):
+        raise ValueError("review: Morty needs distinct head, neck, shoulders and torso surfaces")
+    witnesses = {"witness neck": "neck", "witness L shoulder": "shoulders", "witness R shoulder": "shoulders"}
+    if not witnesses.keys() <= {g.name for o in objects for g in o.vertex_groups}:
+        raise ValueError("review: local Morty needs independent neck and shoulder vertex witnesses")
+    ratio = min(1.0, MORTY_FACES / max(1, sum(len(o.data.polygons) for o in objects)))
+    for o in objects:
+        carrier = o.get("carrier")
+        if any(witnesses[g.name] != o["reference_region"] for g in o.vertex_groups if g.name in witnesses):
+            raise ValueError("review: Morty's independent anatomical witness is in the wrong semantic region")
+        if o.get("display_region") not in REGIONS or "part" in o:
+            raise ValueError("review: private reference surfaces need a display_region and must not be print parts")
+        if (o["reference_region"] in fixed and carrier) or (o["reference_region"] not in fixed and not carrier):
+            raise ValueError("review: neck, shoulders and torso stay fixed; moving surfaces need a live carrier")
+        if carrier and carrier not in JOB_REST:
+            raise ValueError(f"review: Morty's carrier {carrier} is absent from the live model")
+        if not o.data.polygons or not o.data.materials:
+            raise ValueError("review: local Morty surfaces need painted meshes")
+        for slot in o.material_slots:
+            if not slot.material or slot.material.name not in m["colours"]:
+                raise ValueError("review: local Morty materials must be named by Skin Colour group")
+            slot.material.diffuse_color = lin(m["colours"][slot.material.name], JOB["alpha"]["Morty"])
+        world = o.matrix_world.copy()
+        for c in list(o.users_collection):
+            c.objects.unlink(o)
+        bpy.data.collections[f"Morty {o['display_region']}"].objects.link(o)
+        bpy.context.view_layer.update()
+        dg = bpy.context.evaluated_depsgraph_get()
+        o.data = bpy.data.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+        o.modifiers.clear()
+        if ratio < 1.0:
+            dec = o.modifiers.new("Decimate", "DECIMATE")
+            dec.ratio = ratio
+            with bpy.context.temp_override(object=o, active_object=o):
+                bpy.ops.object.modifier_apply(modifier=dec.name)
+        o.parent = None
+        o.animation_data_clear()
+        o.matrix_world = Matrix.Identity(4)
+        at = Matrix(m["at"]) @ world
+        normals = [n.vector.copy() for n in o.data.corner_normals] if o.data.has_custom_normals else []
+        o.data.transform(at)
+        if normals:
+            # Mesh.transform can change thin faces' normal spaces; retain the authored directions.
+            normal_at = at.to_3x3().inverted().transposed()
+            o.data.normals_split_custom_set([(normal_at @ n).normalized() for n in normals])
         bm = bmesh.new()
-        bm.from_mesh(me)
-        bmesh.ops.delete(bm, geom=[f for f in bm.faces if not z0 <= f.calc_center_median().z < z1], context="FACES")
-        bm.to_mesh(me)
+        bm.from_mesh(o.data)
+        floor = m["floor"]
+        bmesh.ops.bisect_plane(
+            bm,
+            geom=[*bm.verts, *bm.edges, *bm.faces],
+            plane_co=(0, 0, floor),
+            plane_no=(0, 0, 1),
+            clear_inner=True,
+            dist=1e-5,
+        )
+        rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.z - floor) < 1e-4 for v in e.verts)]
+        caps = bmesh.ops.holes_fill(bm, edges=rim)["faces"]
+        if any(e.is_boundary for e in rim):
+            raise ValueError("review: Morty's floor cannot be capped; close the local reference's arm/base cuts first")
+        if caps:
+            clothes = next(i for i, mat in enumerate(o.data.materials) if mat.name == "clothes")
+            for f in caps:
+                f.material_index = clothes
+        bm.to_mesh(o.data)
         bm.free()
-        o = bpy.data.objects.new(f"Morty {region.lower()}", me)
-        bpy.data.collections[f"Morty {region}"].objects.link(o)
-        o.color, o.hide_render = lin(hexc, JOB["alpha"]["Morty"]), True
-    bpy.data.objects.remove(whole)
+        o.color, o.hide_render = (1, 1, 1, JOB["alpha"]["Morty"]), True
+    bpy.data.collections.remove(source)
 
 
 def assemble():
@@ -87,6 +164,7 @@ def assemble():
         else:
             place(o, name, p["region"], p["layer"])
         o.color = lin(p["colour"], JOB["alpha"][p["layer"] or "Mech"])
+        paint(o)
         o.hide_set(False)
     for o in list(bpy.data.collections[export.FINISHED].objects):  # the bare copies: the document wears the worn
         bpy.data.objects.remove(o)
@@ -94,7 +172,7 @@ def assemble():
     if JOB["morty"]:
         morty(JOB["morty"])
     else:
-        print("review: no Morty (a fresh clone): his layer stays empty", flush=True)
+        print("review: no local sectioned Morty reference (NOGGIN_MORTY); his layer stays empty", flush=True)
 
 
 def bake(stem):
@@ -108,6 +186,7 @@ def bake(stem):
     old, o.data = o.data, me
     me.name = o.name
     bpy.data.meshes.remove(old)
+    paint(o)
     print(f"review: {stem} {len(me.polygons)} faces", flush=True)
 
 
@@ -119,7 +198,7 @@ def walk(lc):
 
 def shading(s):
     s.render.engine = "BLENDER_WORKBENCH"
-    s.display.shading.light, s.display.shading.color_type = "STUDIO", "OBJECT"
+    s.display.shading.light, s.display.shading.color_type = "STUDIO", "MATERIAL"
     s.unit_settings.scale_length, s.unit_settings.length_unit = 0.001, "MILLIMETERS"
 
 
@@ -129,10 +208,17 @@ def animate(scene, objects):
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
-    carrier = {"Morty skull": "gimbal frame:1", "Morty mechanism": "pan yoke:1"}
     moving = []
+    parts = {o["part"]: o for o in scene.objects if "part" in o}
     for o in objects:
-        part = o.get("part") or carrier.get(o.name)
+        if carrier := o.get("carrier"):
+            if carrier not in parts:
+                raise ValueError(f"review: Morty's carrier {carrier} has no live scene object")
+            world = o.matrix_world.copy()
+            o.parent = parts[carrier]
+            o.matrix_parent_inverse = parts[carrier].matrix_world.inverted()
+            o.matrix_world = world
+        part = o.get("part")
         if part and any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"]):
             moving.append((o, part, o.matrix_world.copy()))
     for o, _, _ in moving:
@@ -164,6 +250,10 @@ def copies(scene, name, items):
         x.parent = None
         x.matrix_world = world
         x.color = (*x.color[:3], 1.0)
+        for slot in x.material_slots:
+            if slot.material:
+                m = slot.material
+                slot.link, slot.material = "OBJECT", material(m.name + " opaque", (*m.diffuse_color[:3], 1.0))
         x.hide_render = False
         c.objects.link(x)
         x.hide_set(False)
@@ -226,12 +316,25 @@ def scenes():
         s.view_layers[0].update()
     for w in bpy.context.window_manager.windows:
         w.scene = main
+    bounds = [
+        o.matrix_world @ Vector(corner)
+        for o in main.objects
+        if o.type == "MESH" and o.visible_get(view_layer=main.view_layers[0])
+        for corner in o.bound_box
+    ]
+    low = Vector(tuple(min(p[i] for p in bounds) for i in range(3)))
+    high = Vector(tuple(max(p[i] for p in bounds) for i in range(3)))
     for screen in bpy.data.screens:
         for area in screen.areas:
             if area.type == "VIEW_3D":
                 sp = area.spaces.active
-                sp.shading.type, sp.shading.color_type = "SOLID", "OBJECT"
+                sp.shading.type, sp.shading.color_type = "SOLID", "MATERIAL"
                 sp.clip_start, sp.clip_end = 1.0, 20000.0
+                sp.region_3d.view_perspective = "ORTHO"
+                sp.region_3d.view_rotation = Vector((1, -1, 1)).to_track_quat("Z", "Y")
+                sp.region_3d.view_location = (low + high) * 0.5
+                sp.region_3d.view_distance = max((high - low).length * 1.2, 10.0)
+                sp.overlay.show_overlays = False
 
 
 JOB_REST = {n: Matrix(m) for n, m in JOB["motion"][0][1].items()}

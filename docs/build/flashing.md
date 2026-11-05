@@ -5,11 +5,16 @@ Our program replaces the Core's stock remote-control program; the firmware stays
 ## First run
 
 ```
-scripts/setup.sh     # guided first-run: plug in the Core, back up, flash, join the Wi-Fi, calibrate, install hooks + the noggin service
+scripts/setup.sh     # guided first-run: plug in, back up, flash, join Wi-Fi, check nominal motion, install hooks + the service
 just wifi            # add a Wi-Fi network to the Core on USB (the wizard's Join the Wi-Fi step alone)
 just flash           # install the eye program on the Core and reboot it: Wi-Fi while it beacons or no Core is on USB, else USB (just flash-usb forces it)
 just restore-stock   # put the stock remote-control program back on the Core
 ```
+
+The wizard checks the horns and the model's inferred nominal motion over USB before installing the noggin service.
+After installation, follow [Calibration](calibration.md) to fit and save the limits on your Mech with the service
+running. If you skip the wizard's install step, run `just install` before calibrating; `just start` restarts an
+already installed service.
 
 > [!WARNING]
 > **Type secrets in a Terminal window.** Secrets (the Wi-Fi password) are typed in a Terminal window (`just wifi`,

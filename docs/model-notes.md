@@ -80,7 +80,8 @@ They are in [the tables on the site](https://yellowpine.com/noggin/docs/model-no
 - `just ours` (model/ours.py) writes every printed part and envelope to model/build/ours as STLs, in its own process
   (CadQuery's threads must not precede a process pool's fork), then has Blender finish the realistic Skeleton's bones
   round them from the Skeleton scene (model/skeleton, docs/adr/0025) where Blender is (`just linux-test` runs in
-  CI's Blender image); without it (the GX10) the bones are left out and the tests marked `bones` skip (#936). The
+  CI's Blender image). The native GX10 worker also runs Blender and the finished-bone checks (#979); a host without
+  Blender still leaves the bones out and skips tests marked `bones`. The
   model always reads those: `just test` and `just sim`
   build them first, and the reports are simulated on our geometry; CI builds them (never committed) and the site
   publishes main's at /reports (docs/adr/0009).

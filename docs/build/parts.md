@@ -48,7 +48,8 @@ Also needed, which the model doesn't count as parts:
 - From Stage 2: a Y lead from the switch board to both Shields, four 24 AWG conductors up the neck from the Torso to
   the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
   to the head; inferred).
-- A USB-C charger or laptop port that offers 3 A: the power-path board charges at a fixed input limit.
+- A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
+  sources ([Stage 2](stage-2.md#wiring)).*
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
 - *Upcoming (#902): a standard metal-gear servo (about 10 kgf·cm at 5 V) for the tilt and a thrust bearing (an F8-16M,
   or a 608 in a seat) under the head for the pan, both inside the skull.*
