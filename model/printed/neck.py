@@ -161,9 +161,10 @@ def nod_plate():
     out = out.union(box(tabs, (front - 3.1, rear + 3.1), (sz + 12.7, sz + 17.7)))
     path = [
         (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
-        (26, 135, nk.NOD_Z[0] + 2.5),
-        (26, 135, sz + 17),
-        (sum(tabs) / 2, front, sz + 17),
+        (30, 135, nk.NOD_Z[0] + 2.5),
+        (30, 135, sz + 17),
+        (30, rear, sz + 17),
+        (sum(tabs) / 2, rear, sz + 17),
     ]
     out = out.union(_flat([tuple(p[:2]) for p in path[:2]], 8, nk.NOD_Z))
     for u, v in zip(path[1:], path[2:]):

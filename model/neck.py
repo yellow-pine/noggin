@@ -42,7 +42,11 @@ PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
 NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
-TILT_SHAFT = (-3.45, 118.0, -3.7)  # inboard horn clears both rotating tray legs without changing the reaction plane
+TILT_SHAFT = (
+    -21.45,
+    132.0,
+    -3.7,
+)  # rear horn clears the rotating tray annulus, while its case stays inside that annulus
 TILT_ARM = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
 TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
