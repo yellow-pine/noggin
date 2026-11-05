@@ -43,3 +43,10 @@ def test_a_triangle_touching_a_protected_vertex_keeps_the_default_limit():
     final = points * (1.4, 1, 1)
     with pytest.raises(ValueError, match="surface stretch"):
         fit.check_surface_stretch(points, final, np.array(((0, 1, 2),)), 1, maximum=np.array((1.5, 1.25, 1.5)))
+
+
+def test_a_face_crossing_protected_core_cannot_borrow_its_vertices_allowance():
+    ref = REFERENCE | {"condyles": [[-200, 0, 0], [200, 0, 0]]}
+    points = np.array(((-60, 20, 0), (60, 20, 0), (0, 100, 0)), float)
+    assert budget.caps("occipital bone", points, ref) == pytest.approx(np.full(3, 1.5))
+    assert budget.face_caps("occipital bone", points[None], ref) == pytest.approx((1.25,))
