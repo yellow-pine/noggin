@@ -939,9 +939,10 @@ def _load_skin(skin):
     if isinstance(skin, tuple) and len(skin) == 2:
         return np.asarray(skin[0], dtype=float), np.asarray(skin[1], dtype=np.int64)
     data = np.load(skin) if isinstance(skin, (str, Path)) else skin
-    v_key = "skin_vertices" if "skin_vertices" in data else "vertices"
-    f_key = "skin_faces" if "skin_faces" in data else "faces"
-    return np.asarray(data[v_key], dtype=float), np.asarray(data[f_key], dtype=np.int64)
+    for vk, fk in (("skin_vertices", "skin_faces"), ("vertices", "faces"), ("v", "f")):
+        if vk in data and fk in data:
+            return np.asarray(data[vk], dtype=float), np.asarray(data[fk], dtype=np.int64)
+    raise ValueError(f"Unrecognized skin archive keys: {list(data.keys())}")
 
 
 def fit_bust(arrays, scene, envelope, skin):
