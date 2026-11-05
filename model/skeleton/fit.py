@@ -59,6 +59,54 @@ def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.
     return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch", limits)
 
 
+def regional_pose(source, target, uniform_size, pitch_deg=0.0):
+    """A declared uniform size and rigid pitch, with explicit measured deformation along a bilateral axis.
+
+    Both functional anchors stay exact. Their spacing correction is part of the deformation budget, NOT an
+    anisotropic baseline. No old canal-centroid position or crown-fill target constrains this initializer.
+    """
+    source, target = np.asarray(source, dtype=float), np.asarray(target, dtype=float)
+    if source.shape != (2, 3) or target.shape != (2, 3) or not np.isfinite([source, target]).all():
+        raise ValueError("A regional pose needs two finite bilateral source/target anchors")
+    if not np.isfinite([uniform_size, pitch_deg]).all() or uniform_size <= 0:
+        raise ValueError("Declare a finite positive uniform anatomical size and pitch")
+
+    def frame(points):
+        axis = points[0] - points[1]
+        length = np.linalg.norm(axis)
+        if length < 1e-8:
+            raise ValueError("Bilateral pose anchors must be distinct")
+        x = axis / length
+        y = np.array((0.0, 1, 0)) - x * x[1]
+        if np.linalg.norm(y) < 1e-8:
+            raise ValueError("Bilateral anchors must define a lateral anatomical axis")
+        y /= np.linalg.norm(y)
+        return np.column_stack((x, y, np.cross(x, y))), length
+
+    native, a = frame(source)
+    world, b = frame(target)
+    angle = np.deg2rad(pitch_deg)
+    pitch = np.array(((1, 0, 0), (0, np.cos(angle), -np.sin(angle)), (0, np.sin(angle), np.cos(angle))))
+    rotation = world @ pitch @ native.T
+    matrix, declared = np.eye(4), np.eye(4)
+    matrix[:3, :3] = world @ pitch @ np.diag((b / a, uniform_size, uniform_size)) @ native.T
+    declared[:3, :3] = uniform_size * rotation
+    for m in (matrix, declared):
+        m[:3, 3] = target.mean(0) - m[:3, :3] @ source.mean(0)
+    lengths = np.linalg.svd(matrix[:3, :3], compute_uv=False) / uniform_size
+    if lengths.min() < 0.75 or lengths.max() > 1.25:
+        raise ValueError(
+            "No admissible bilateral affine initializer at this size; nonlinear infeasibility is NOT established"
+        )
+    return matrix, {
+        "declared_uniform_size": float(uniform_size),
+        "rigid_pitch_deg": float(pitch_deg),
+        "declared_uniform_frame": declared.tolist(),
+        "measured_initial_local_lengths": lengths.tolist(),
+        "scope": "Initializer only; actual Skin/articulation/finished geometry still require independent validation",
+    }
+
+
 def constrained_affine(source, target, inequalities=None):
     """Fit one anatomical region with three EXACT anchors and an explicitly optimized uniform size.
 
