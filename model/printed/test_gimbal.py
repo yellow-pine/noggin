@@ -48,6 +48,19 @@ def test_no_two_parts_overlap_at_rest(rest):
 
 
 @pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+@pytest.mark.parametrize("yaw", [-gm.YAW, gm.YAW])
+@pytest.mark.parametrize("pitch", [-gm.PITCH, gm.PITCH])
+@pytest.mark.parametrize("lid", list(np.subtract(gm.LID_EDGES, gm.LID_REST)))
+def test_each_lower_lid_clears_the_exact_cap_at_every_combined_travel_end(rest, side, yaw, pitch, lid):
+    """#937: a rearward spoke stays clear even with the eye yawed and pitched under the closing lid."""
+    moved = gm.moved(lid, pitch, yaw)
+    cap, lower = (f"{side} {part}:1" for part in ("eyeball cap", "lower lid"))
+    a, b = (rest[name].moved(gimbal._at(moved[name])) for name in (cap, lower))
+    assert a.distance(b) >= gm.LID_CLEAR_MM
+
+
+@pytest.mark.model
 def test_the_block_fits_the_compact_head(rest):
     """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
     wide as the lids' frame and the shell's wall."""
