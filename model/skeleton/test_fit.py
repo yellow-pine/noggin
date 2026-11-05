@@ -162,6 +162,19 @@ def test_constrained_affine_meets_exact_anchors_without_spending_region_budget()
     assert report["stretch"]["maximum"] <= 1.25
 
 
+def test_declared_regional_size_and_rigid_pitch_keep_bilateral_functional_anchors_exact():
+    source = np.array(((20, 0, 0), (-20, 0, 0)), float)
+    target = np.array(((25, 10, 30), (-25, 10, 30)), float)
+    matrix, report = fit.regional_pose(source, target, uniform_size=1.1, pitch_deg=30)
+    assert source @ matrix[:3, :3].T + matrix[:3, 3] == pytest.approx(target, abs=1e-10)
+    mapped = np.array((0, 0, 10)) @ matrix[:3, :3].T + matrix[:3, 3]
+    assert mapped == pytest.approx((0, 4.5, 30 + 11 * np.sqrt(3) / 2), abs=1e-10)
+    assert report["declared_uniform_size"] == 1.1
+    assert report["measured_initial_local_lengths"] == pytest.approx((1.25 / 1.1, 1, 1))
+    declared = np.asarray(report["declared_uniform_frame"])
+    assert np.linalg.svd(declared[:3, :3], compute_uv=False) == pytest.approx(np.full(3, 1.1))
+
+
 def test_affine_anchor_incompatibility_is_not_reported_as_global_shape_impossibility():
     source = np.array(((0, 0, 0), (1, 0, 0), (0, 1, 0)), float)
     target = np.array(((0, 0, 0), (3, 0, 0), (0, 0.5, 0)), float)
