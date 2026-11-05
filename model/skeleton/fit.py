@@ -131,6 +131,38 @@ def constrained_affine(source, target, inequalities=None):
     }
 
 
+def coarse_head_margin(points, cage, inset):
+    """Signed distance to each interpolated eight-sided cross-section, minus its radial-plane reserve.
+
+    The star polygon retains measured diagonal grooves. It is an OWN coarse proxy, never an exact private Skin
+    certificate; between-section slopes and unmeasured detail still require the independent local oracle.
+    """
+    rings = sorted((float(z), r) for z, r in cage["radial_first_exits"].items())
+    heights = [z for z, _ in rings]
+    cx = np.interp(points[:, 2], heights, [r["origin_world_x_mm"] for _, r in rings])
+    cy = np.interp(points[:, 2], heights, [r["origin_world_y_mm"] for _, r in rings])
+    radii = np.column_stack(
+        [
+            np.interp(points[:, 2], heights, [r["radius_mm_by_angle_deg"][str(angle)] for _, r in rings])
+            for angle in range(0, 360, 45)
+        ]
+    )
+    angles = np.arange(8) * np.pi / 4
+    vertices = radii[:, :, None] * np.column_stack((np.cos(angles), np.sin(angles)))[None]
+    edges = np.roll(vertices, -1, axis=1) - vertices
+    p = points[:, :2] - np.column_stack((cx, cy))
+    t = np.clip(np.sum((p[:, None] - vertices) * edges, axis=2) / np.sum(edges**2, axis=2), 0, 1)
+    distance = np.linalg.norm(p[:, None] - vertices - t[:, :, None] * edges, axis=2).min(axis=1)
+    lengths = np.linalg.norm(p, axis=1)
+    direction = p / np.maximum(lengths[:, None], 1e-12)
+    sector = np.floor(np.mod(np.arctan2(p[:, 1], p[:, 0]), 2 * np.pi) / (np.pi / 4)).astype(int)
+    v, e = vertices[np.arange(len(p)), sector], edges[np.arange(len(p)), sector]
+    cross = lambda a, b: a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0]
+    radius = cross(v, e) / np.where(lengths > 1e-12, cross(direction, e), 1.0)
+    inside = (lengths <= radius + 1e-9) | (lengths <= 1e-12)
+    return np.where(inside, distance, -distance) - inset
+
+
 def outer_cortex(mesh, targets, origin):
     """Source correspondence on the exterior cortex, even when the new envelope is inside the donor skull.
 
