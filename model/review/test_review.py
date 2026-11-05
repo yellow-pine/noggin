@@ -265,3 +265,105 @@ def test_every_printed_piece_lies_on_a_plate(blend):
         assert z0 >= -0.5, plate
         n += count
     assert n == len(review.plates(STAGE))
+
+
+NORMAL_REFERENCE = """
+import bpy, json, math, runpy, sys
+from pathlib import Path
+from mathutils import Matrix, Vector
+folder=Path(FOLDER)
+identity=Matrix.Identity(4)
+at=Matrix.Diagonal((7.13, 3.17 if NONUNIFORM else 7.13, 7.13, 1.0))
+if NONUNIFORM: at=Matrix.Rotation(.4, 4, 'Z') @ at
+at.translation=(-1200,5000,-600)
+normal=Vector((0,-.3,math.sqrt(.91)))
+reference=bpy.data.collections.new('Morty reference')
+for role in ('head','neck','shoulders','torso'):
+    if role=='head':
+        mesh=bpy.data.meshes.new(role)
+        mesh.from_pydata([(100,200,300),(101,200,300),(100.5,200.00002,300.00003)],[],[(0,1,2)])
+        mesh.polygons[0].use_smooth=True
+        for edge in mesh.edges: edge.use_edge_sharp=True
+        mesh.normals_split_custom_set([normal]*3)
+        mesh.attributes.new('authored face','INT','FACE').data[0].value=17
+    else:
+        bpy.ops.mesh.primitive_cube_add(size=1,location=(100,200,300))
+        cube=bpy.context.object
+        bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+        mesh=cube.data.copy()
+        bpy.data.objects.remove(cube,do_unlink=True)
+    material=bpy.data.materials.get('clothes' if role=='torso' else 'face')
+    material=material or bpy.data.materials.new('clothes' if role=='torso' else 'face')
+    mesh.materials.append(material)
+    obj=bpy.data.objects.new(role,mesh)
+    obj['reference_region']=role
+    obj['display_region']='Pedestal' if role=='torso' else 'Mechanism' if role=='neck' else 'Skull'
+    if role=='head': obj['carrier']='carrier:1'
+    for witness in {'neck':['witness neck'],'shoulders':['witness L shoulder','witness R shoulder']}.get(role,[]):
+        obj.vertex_groups.new(name=witness).add([0],1,'REPLACE')
+    reference.objects.link(obj)
+source=folder/'reference.blend'
+bpy.data.libraries.write(str(source),{reference},compress=True)
+for obj in list(reference.objects): bpy.data.objects.remove(obj,do_unlink=True)
+bpy.data.collections.remove(reference)
+bpy.ops.mesh.primitive_cube_add(size=1)
+cube=bpy.context.object
+bpy.ops.wm.stl_export(filepath=str(folder/'marker.stl'),export_selected_objects=True)
+cube.name='finished worn skull'
+cube.modifiers.new('Finish','NODES')
+top=bpy.data.collections.new('Skeleton')
+bpy.context.scene.collection.children.link(top)
+for name in ('Skull','Finished'):
+    collection=bpy.data.collections.new(name)
+    top.children.link(collection)
+for collection in list(cube.users_collection): collection.objects.unlink(cube)
+bpy.data.collections['Finished'].objects.link(cube)
+job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
+     'rest':{'carrier:1':list(identity)},'orbits':[],'reach':0,'numbers':{},
+     'parts':{'carrier:1':{'region':'Skull','layer':'Mech','colour':'#FFFFFF'},
+              'worn skull:1':{'region':'Skull','layer':'Skeleton','colour':'#FFFFFF'}},
+     'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},
+     'motion':[[1,{'carrier:1':list(identity)}]],
+     'morty':{'blend':str(source),'at':list(at),'floor':1538,
+              'colours':{'face':'#F7CED7','clothes':'#FFFFFF'}}}
+job_path=folder/'job.json'
+job_path.write_text(json.dumps(job,default=list))
+output=folder/'review.blend'
+sys.argv=['blender','--',str(job_path),str(output),'assemble']
+runpy.run_path(SCRIPT,run_name='__main__')
+bpy.ops.wm.open_mainfile(filepath=str(output),load_ui=False)
+head=next(o for o in bpy.data.objects if o.get('reference_region')=='head')
+torso=next(o for o in bpy.data.objects if o.get('reference_region')=='torso')
+expected=(at.to_3x3().inverted().transposed() @ normal).normalized()
+result={'normal_dot':min(n.vector.dot(expected) for n in head.data.corner_normals),
+        'finite':all(math.isfinite(c) for v in head.data.vertices for c in v.co),
+        'vertices':len(head.data.vertices),'faces':[list(p.vertices) for p in head.data.polygons],
+        'attribute':head.data.attributes['authored face'].data[0].value,
+        'material':head.data.materials[head.data.polygons[0].material_index].name,
+        'custom_normals':head.data.has_custom_normals,
+        'ordinary_profile_custom_normals':torso.data.has_custom_normals,
+        'floor':min(v.co.z for v in torso.data.vertices),
+        'caps':sum(all(abs(torso.data.vertices[i].co.z-1538)<.001 for i in p.vertices)
+                   for p in torso.data.polygons)}
+print('NORMALS '+json.dumps(result),flush=True)
+print('review: done',flush=True)
+"""
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("nonuniform", [False, True])
+def test_saved_reference_preserves_authored_normals_and_still_cuts_the_floor(tmp_path, nonuniform):
+    """A public thin triangle with authored normals; no private reference or generated model parts needed."""
+    prefix = f"FOLDER={str(tmp_path)!r}\nSCRIPT={review.SCRIPT!r}\nNONUNIFORM={nonuniform!r}\n"
+    held = review.lock(review.SLOT, wait=True)
+    try:
+        log = review._blender(["--python-exit-code", "1", "--python-expr", prefix + NORMAL_REFERENCE])
+    finally:
+        held.close()
+    actual = json.loads(next(line.removeprefix("NORMALS ") for line in log.splitlines() if line.startswith("NORMALS ")))
+    assert actual["normal_dot"] > 0.9999
+    assert actual["finite"] and actual["vertices"] == 3 and actual["faces"] == [[0, 1, 2]]
+    assert actual["attribute"] == 17 and actual["material"] == "face" and actual["custom_normals"]
+    assert not actual["ordinary_profile_custom_normals"]
+    assert actual["floor"] == pytest.approx(1538, abs=0.001) and actual["caps"] > 0
