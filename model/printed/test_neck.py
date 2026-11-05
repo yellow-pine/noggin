@@ -168,6 +168,19 @@ def test_the_pitch_drive_clears_the_c0_bearing_and_retains_its_planar_linkage(pa
 
 
 @pytest.mark.model
+def test_the_connected_electronics_tray_and_hub_clear_the_c0_bearing(pan_wire_candidate):
+    """#978: the USB hub and its real supporting tray leave the retained pan bearing accessible."""
+    from model import base
+    from model.printed import base as printed_base
+
+    mesh, matrix = base.cranium()["hub"]
+    parts = {"tray": printed_base.tray(True).val(), "hub": _built(mesh).moved(gimbal._at(matrix))}
+    assert parts["tray"].isValid() and len(parts["tray"].Solids()) == 1
+    assert _overlaps(parts | pan_wire_candidate, list(itertools.product(parts, pan_wire_candidate))) == []
+    assert parts["tray"].distance(parts["hub"]) < 1e-6
+
+
+@pytest.mark.model
 def test_the_c0_pan_bearing_candidate_has_real_retention_and_an_open_wire_path(pan_wire_candidate):
     """Unaccepted component study: the shaft, caps and bearing leave a full 6 mm cable corridor."""
     assert set(pan_wire_candidate) == {"spindle", "fixed cap", "bearing", "head carrier", "moving cap"}
