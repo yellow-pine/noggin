@@ -133,7 +133,9 @@ def bail(mechanical=False):
     if not mechanical:
         bed = bz - 3
         out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
-        out = out.union(bone.bone((ix, by, bed), (ix, tip, bed), *BAIL_INPUT).intersect(box((x0, x1), (0, 99), (bed, 99))))
+        out = out.union(
+            bone.bone((ix, by, bed), (ix, tip, bed), *BAIL_INPUT).intersect(box((x0, x1), (0, 99), (bed, 99)))
+        )
     else:
         out = cyl("x", (0, by, bz), 3.0, (-end, end))
         out = out.union(box((x0, x1), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (x0, x1)))
