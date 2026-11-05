@@ -9,7 +9,7 @@ import cadquery as cq
 import numpy as np
 import pytest
 
-from model import beams, envelopes, sim, stages
+from model import beams, envelopes, linkage, sim, stages
 from model import geometry as g
 from model import neck as nk
 from model.printed import PARTS, gimbal, neck
@@ -178,6 +178,18 @@ def test_the_connected_electronics_tray_and_hub_clear_the_c0_bearing(pan_wire_ca
     assert parts["tray"].isValid() and len(parts["tray"].Solids()) == 1
     assert _overlaps(parts | pan_wire_candidate, list(itertools.product(parts, pan_wire_candidate))) == []
     assert parts["tray"].distance(parts["hub"]) < 1e-6
+
+
+@pytest.mark.model
+def test_the_tray_legs_clear_the_lower_rear_standard_case_through_pan():
+    """#978 packaging fixture: the full standard case fits between the panning head's actual tray legs."""
+    from model.printed import base
+
+    tray = base.tray(True).val()
+    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align((-21.45, 110, 16.3), g.Y, (-1, 0, 0))))
+    for pan in (-45, -22.5, 0, 22.5, 45):
+        moved = tray.moved(gimbal._at(linkage.rotation(g.Z, pan, (0, 75, -20))))
+        assert moved.intersect(motor).Volume() < 0.01, pan
 
 
 @pytest.mark.model
