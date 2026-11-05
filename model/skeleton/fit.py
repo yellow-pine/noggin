@@ -837,6 +837,8 @@ def joint_witnesses(arrays, scene):
             mask_b &= vb[:, 0] < -2.0
         idx_a = np.flatnonzero(mask_a)
         idx_b = np.flatnonzero(mask_b)
+        if not len(idx_a) or not len(idx_b):
+            continue
         closest_b, dist_a, _ = trimesh.proximity.closest_point(mb, va[idx_a])
         closest_a, dist_b, _ = trimesh.proximity.closest_point(ma, vb[idx_b])
         sel_a = dist_a <= radius
