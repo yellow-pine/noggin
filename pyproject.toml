@@ -18,6 +18,11 @@ dependencies = [
 ]
 
 [dependency-groups]
+blender = [  # installed only into the isolated GX10 Blender's Python 3.13, exported from uv.lock
+    "cattrs>=25.1.1",
+    "requests>=2.34.2",
+    "urllib3>=2.8.0",
+]
 dev = [
     "pytest>=8",
     "mpremote>=1.24",

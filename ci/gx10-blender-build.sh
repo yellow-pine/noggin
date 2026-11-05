@@ -2,6 +2,10 @@
 # Build the pinned native worker inside gx10-blender.Dockerfile, with /work persisted across attempts.
 set -eu
 cd /work
+export LD_LIBRARY_PATH="/work/deps/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec 9>/work/install.lock
+flock 9
+trap 'cat /sys/fs/cgroup/memory.peak > /work/build-memory.peak; cat /sys/fs/cgroup/memory.events > /work/build-memory.events' EXIT
 fetch() {
     file=$1 url=$2 checksum=$3
     [ -f "$file" ] || curl -fL --retry 3 "$url" -o "$file.part"
@@ -67,7 +71,7 @@ cmake -S ceres-solver-0c70ed3a1a2d6ba47c06c7e8b3b040880bc474db -B ceres-build -G
 cmake --build ceres-build --parallel 8
 cmake --install ceres-build
 cmake -S blender-5.2.3 -B blender-build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/work/install \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/work/install -DCMAKE_INSTALL_RPATH=/work/deps/lib \
     -DCMAKE_PREFIX_PATH=/work/deps -DOPENVDB_ROOT_DIR=/work/deps \
     -DOpenImageIO_DIR=/work/deps/lib/cmake/OpenImageIO \
     -DOpenColorIO_DIR=/work/deps/lib/cmake/OpenColorIO -Dfmt_DIR=/work/deps/lib/cmake/fmt \
@@ -84,5 +88,14 @@ cmake -S blender-5.2.3 -B blender-build -G Ninja \
 grep -q '^WITH_OPENVDB:BOOL=ON$' blender-build/CMakeCache.txt
 grep -q '^WITH_TBB:BOOL=ON$' blender-build/CMakeCache.txt
 cmake --build blender-build --parallel 8
+rm -f install/ready.json
 cmake --install blender-build
+uv pip install --python /usr/bin/python3.13 --require-hashes \
+    --target /work/install/share/blender/5.2/python/lib/python3.13/dist-packages \
+    -r /work/runtime-requirements.txt
 install/bin/blender -b --factory-startup --version
+install/bin/blender -b --factory-startup --python-expr "import bpy; assert bpy.app.version == (5,2,3); assert bpy.app.build_options.openvdb; t=bpy.data.node_groups.new('Native SDF check','GeometryNodeTree'); [t.nodes.new(n) for n in ('GeometryNodeMeshToSDFGrid','GeometryNodeSDFGridOffset','GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; print('native build: startup and SDF nodes verified')" > startup.log 2>&1
+cat startup.log
+if grep -Eq 'Traceback|ModuleNotFoundError|Exception in module register' startup.log; then exit 1; fi
+printf '%s\n' '{"version":"5.2.3","source_sha256":"5c66e0ab20da26d684deecfc27e84c4d39e456daaa9112b47eeb45d0e0283876","openvdb":true}' > install/ready.json.tmp
+mv install/ready.json.tmp install/ready.json

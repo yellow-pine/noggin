@@ -73,6 +73,10 @@ gx10 +args: venv
 gx10-setup: venv
     {{PY}} scripts/gx10.py --host {{GX10}} --setup
 
+# resume a detached job's verified delivery after its local client was closed
+gx10-resume job: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --resume {{job}}
+
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
 check: check-light

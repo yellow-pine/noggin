@@ -136,6 +136,24 @@ def setup(host):
     state = ssh(host, ["docker", "inspect", "--format", "{{.State.Status}}", name], capture_output=True, text=True)
     if state.stdout.strip() != "running":
         ssh(host, ["mkdir", "-p", tools], check=True)
+        with tempfile.TemporaryDirectory() as temp:
+            runtime = Path(temp) / "runtime-requirements.txt"
+            subprocess.run(
+                [
+                    "uv",
+                    "export",
+                    "--only-group",
+                    "blender",
+                    "--no-emit-project",
+                    "--frozen",
+                    "--output-file",
+                    str(runtime),
+                ],
+                cwd=repo,
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
+            subprocess.run(["scp", "-q", str(runtime), f"{host}:{tools}/runtime-requirements.txt"], check=True)
         for source, dest in (("gx10-blender.Dockerfile", "Dockerfile"), ("gx10-blender-build.sh", "build.sh")):
             subprocess.run(["scp", "-q", str(repo / "ci" / source), f"{host}:{tools}/{dest}"], check=True)
         ssh(host, ["docker", "build", "-t", f"noggin-blender-build:{version}-arm64", tools], check=True)
@@ -178,8 +196,10 @@ def worker(request_path):
     request_path = Path(request_path).resolve()
     request = json.loads(request_path.read_text())
     root, home = request_path.parent, Path.home()
+    (root / "controller.pid").write_text(str(os.getpid()))
     result = {"id": request["id"], "commit": request["commit"], "returncode": 1}
     start = time.monotonic()
+    tools_lock = None
     try:
         with (home / "noggin.lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
@@ -193,7 +213,9 @@ def worker(request_path):
             version = version[1]
             result["blender_version"] = version
             tools = home / "noggin-tools" / f"blender-{version}"
-            if not (tools / "install/bin/blender").is_file():
+            tools_lock = (tools / "install.lock").open("a")
+            fcntl.flock(tools_lock, fcntl.LOCK_SH)
+            if not (tools / "install/ready.json").is_file() or not (tools / "install/bin/blender").is_file():
                 raise RuntimeError(f"native Blender {version} is not installed; run just gx10-setup")
             memory = re.search(r"^MemAvailable:\s+(\d+)", Path("/proc/meminfo").read_text(), re.M)
             assert memory
@@ -232,6 +254,8 @@ def worker(request_path):
                 (cache, Path("/cache"), False),
             ):
                 command += ["--mount", f"type=bind,source={source},target={target}" + (",readonly" if readonly else "")]
+            if Path("/usr/local/cuda").exists():
+                command += ["--mount", "type=bind,source=/usr/local/cuda,target=/usr/local/cuda,readonly"]
             env = {
                 "UV_PROJECT_ENVIRONMENT": "/cache/venv",
                 "UV_PYTHON_INSTALL_DIR": "/cache/python",
@@ -244,6 +268,9 @@ def worker(request_path):
                 "NOGGIN_BLENDER_CEILING_KB": str(limit // 1024),
                 "NOGGIN_GX10_WORKER": "1",
                 "NOGGIN_REVIEW": str(root / "review.blend"),
+                "PATH": "/work/install/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin",
+                "XDG_CACHE_HOME": "/cache/xdg",
+                "LD_LIBRARY_PATH": "/work/deps/lib:/usr/local/cuda/lib64",
             }
             if morty:
                 env["NOGGIN_MORTY"] = morty["path"]
@@ -313,8 +340,64 @@ def worker(request_path):
                     result.update(review_verified=True, sha256=proof["sha256"], verification=proof)
     except Exception as error:  # the client needs a terminal result even when setup fails
         result.update(returncode=1, error=str(error))
+    finally:
+        if tools_lock:
+            tools_lock.close()
     result["seconds"] = time.monotonic() - start
     atomic_json(root / "result.json", result)
+
+
+def copy_result(host, remote, destination, recursive=False):
+    """Connection loss retries automatically; a reachable host's disk/path error remains a real failure."""
+    while True:
+        copied = subprocess.run(["scp", "-qr" if recursive else "-q", f"{host}:{remote}", str(destination)])
+        if copied.returncode == 0:
+            return
+        if ssh(host, ["true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            raise RuntimeError("GX10 output transfer failed while the host is reachable")
+        time.sleep(5)
+
+
+def collect(host, local):
+    """A later invocation can resume delivery without recomputing an already completed job."""
+    local = Path(local)
+    request = json.loads((local / "request.json").read_text())
+    root, job_id, repo = request["remote_root"], request["id"], Path(request["repo"])
+    print(f"gx10: job {job_id}; log {root}/output.log (continues if disconnected)", flush=True)
+    while True:
+        status = ssh(host, ["cat", f"{root}/result.json"], capture_output=True, text=True)
+        if status.returncode == 0:
+            result = json.loads(status.stdout)
+            break
+        time.sleep(5)
+    atomic_json(local / "result.json", result)
+    if result["id"] != job_id or result["commit"] != request["commit"]:
+        raise ValueError("GX10 result identity mismatch")
+    if result["returncode"]:
+        ssh(host, ["tail", "-n", "30", f"{root}/output.log"])
+        raise RuntimeError(f"GX10 failed: {result}")
+    if result["files"]:
+        copy_result(host, f"{root}/artifacts", local, recursive=True)
+        for name, digest in result["files"].items():
+            relative = Path(name)
+            if relative.is_absolute() or ".." in relative.parts or ".git" in relative.parts:
+                raise ValueError("result path must be repo-relative")
+            source = local / "artifacts" / name
+            if checksum(source) != digest:
+                raise ValueError(f"result checksum mismatch: {name}")
+        for name in result["files"]:
+            destination = repo / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(local / "artifacts" / name, destination)
+    if request["review"]:
+        copy_result(host, f"{root}/review.blend", local / "review.blend")
+        target = Path(request["target"])
+        publish_review(local / "review.blend", target, target.with_suffix(".blend.request.json"), result)
+    print(
+        f"gx10: job {job_id} complete; {result['seconds']:.1f}s, peak {result['peak_memory_bytes'] / 1024**3:.2f} GiB",
+        flush=True,
+    )
+    return result
 
 
 def submit(host, command, fetch, review=False):
@@ -340,11 +423,14 @@ def submit(host, command, fetch, review=False):
         "fetch": fetch,
         "review": review,
         "memory_gib": int(os.environ.get("NOGGIN_GX10_MEMORY_GIB", "32")),
+        "remote_root": root,
+        "repo": str(repo),
     }
     if request["memory_gib"] not in (32, 64):
         raise ValueError("GX10 memory must be 32 or 64 GiB")
     target = Path(os.environ.get("NOGGIN_REVIEW", Path.home() / "Desktop/noggin-stage3.blend")).resolve()
     latest = target.with_suffix(".blend.request.json")
+    request["target"] = str(target)
     if review:
         target.parent.mkdir(parents=True, exist_ok=True)
         begin_review(target, latest, {"id": job_id, "commit": commit})
@@ -381,37 +467,7 @@ def submit(host, command, fetch, review=False):
         f"nohup python3 {quoted}/worker.py --worker {quoted}/request.json >{quoted}/controller.log 2>&1 </dev/null &"
     )
     ssh(host, ["sh", "-c", launch], check=True)
-    print(f"gx10: job {job_id}; log {root}/output.log (continues if disconnected)", flush=True)
-    while True:
-        status = ssh(host, ["cat", f"{root}/result.json"], capture_output=True, text=True)
-        if status.returncode == 0:
-            result = json.loads(status.stdout)
-            break
-        time.sleep(5)
-    atomic_json(local / "result.json", result)
-    if result["id"] != job_id or result["commit"] != commit:
-        raise ValueError("GX10 result identity mismatch")
-    if result["returncode"]:
-        ssh(host, ["tail", "-n", "30", f"{root}/output.log"])
-        raise RuntimeError(f"GX10 failed: {result}")
-    if result["files"]:
-        subprocess.run(["scp", "-qr", f"{host}:{root}/artifacts", str(local)], check=True)
-        for name, digest in result["files"].items():
-            source = local / "artifacts" / name
-            if checksum(source) != digest:
-                raise ValueError(f"result checksum mismatch: {name}")
-        for name in result["files"]:
-            destination = repo / name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(local / "artifacts" / name, destination)
-    if review:
-        subprocess.run(["scp", "-q", f"{host}:{root}/review.blend", str(local / "review.blend")], check=True)
-        publish_review(local / "review.blend", target, latest, result)
-    print(
-        f"gx10: job {job_id} complete; {result['seconds']:.1f}s, peak {result['peak_memory_bytes'] / 1024**3:.2f} GiB",
-        flush=True,
-    )
-    return result
+    return collect(host, local)
 
 
 def main():
@@ -421,6 +477,7 @@ def main():
     parser.add_argument("--review", action="store_true")
     parser.add_argument("--setup", action="store_true")
     parser.add_argument("--worker")
+    parser.add_argument("--resume")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if args.worker:
@@ -428,6 +485,11 @@ def main():
         return
     if args.setup:
         setup(args.host)
+        return
+    if args.resume:
+        if not re.fullmatch(r"[0-9a-f]{32}", args.resume):
+            raise ValueError("invalid GX10 job id")
+        collect(args.host, Path(__file__).resolve().parent.parent / ".cache/gx10" / args.resume)
         return
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     if args.review:
