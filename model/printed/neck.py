@@ -144,6 +144,9 @@ def nod_plate():
         xs = sorted(sign * x for x in (11.8, 15.8))
         out = out.union(box(xs, (y - 3.6, y + 3.6), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
         out = out.union(cyl("x", (0, y, z), 3.6, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
+        for fy in (y - 12, y + 12):
+            out = out.union(_flat([(0, fy), (sign * 14, fy)], 5, nk.NOD_Z))
+        out = out.union(_flat([(sign * 14, y - 12), (sign * 14, y + 12)], 4, nk.NOD_Z))
     # The tube is integral with the nod carrier: head weight never reaches either servo spline.
     out = out.union(pan_wire_candidate()["spindle"])
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R, (nk.NOD_Z[0], nk.PAN_STUDY_Z[1])))

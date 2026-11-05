@@ -56,7 +56,7 @@ def test_pan_has_the_actual_standard_case_mass_and_five_volt_working_limit():
 
 def test_a_stock_horn_and_its_printed_adapter_share_one_real_motor_joint(tmp_path, monkeypatch):
     """A bolted adapter is rigidly driven with its stock horn in both the poses and the physical actuator model."""
-    mesh = tmp_path / "adapter.stl"
+    mesh = tmp_path / "gimbal frame.stl"
     trimesh.creation.box((2, 2, 2)).export(mesh)
     parts = {
         n: stages.Part(str(mesh), stages.translate(p), (1.0, "documented"), None)

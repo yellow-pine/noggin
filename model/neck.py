@@ -38,7 +38,7 @@ SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anc
 # It does not change HEAD_AXES or the production document until the complete drive and anatomical fit pass.
 PAN_STUDY_BEARING = (20.0, 32.0, 7.0)
 PAN_STUDY_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (23.7, 30.7))
-PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (21.5, 83.0), (-21.5, 83.0))
+PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
 NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
