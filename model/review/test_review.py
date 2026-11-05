@@ -287,7 +287,7 @@ for role in ('head','neck','shoulders','torso'):
         mesh.normals_split_custom_set([normal]*3)
         mesh.attributes.new('authored face','INT','FACE').data[0].value=17
     else:
-        bpy.ops.mesh.primitive_cube_add(size=1,location=(100,200,300))
+        bpy.ops.mesh.primitive_cube_add(size=1,location=(100,200,300 if role=='torso' else 302))
         cube=bpy.context.object
         bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
         mesh=cube.data.copy()
@@ -306,6 +306,7 @@ source=folder/'reference.blend'
 bpy.data.libraries.write(str(source),{reference},compress=True)
 for obj in list(reference.objects): bpy.data.objects.remove(obj,do_unlink=True)
 bpy.data.collections.remove(reference)
+bpy.data.orphans_purge(do_recursive=True)
 bpy.ops.mesh.primitive_cube_add(size=1)
 cube=bpy.context.object
 bpy.ops.wm.stl_export(filepath=str(folder/'marker.stl'),export_selected_objects=True)
@@ -356,9 +357,11 @@ print('review: done',flush=True)
 def test_saved_reference_preserves_authored_normals_and_still_cuts_the_floor(tmp_path, nonuniform):
     """A public thin triangle with authored normals; no private reference or generated model parts needed."""
     prefix = f"FOLDER={str(tmp_path)!r}\nSCRIPT={review.SCRIPT!r}\nNONUNIFORM={nonuniform!r}\n"
+    script = tmp_path / "reference.py"
+    script.write_text(prefix + NORMAL_REFERENCE)
     held = review.lock(review.SLOT, wait=True)
     try:
-        log = review._blender(["--python-exit-code", "1", "--python-expr", prefix + NORMAL_REFERENCE])
+        log = review._blender(["--python-exit-code", "1", "-P", str(script)])
     finally:
         held.close()
     actual = json.loads(next(line.removeprefix("NORMALS ") for line in log.splitlines() if line.startswith("NORMALS ")))
