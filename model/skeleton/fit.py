@@ -12,7 +12,7 @@ import numpy as np
 import trimesh
 from scipy.interpolate import RBFInterpolator
 from scipy.optimize import Bounds, NonlinearConstraint, minimize
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 
 from model.skeleton import budget
 
@@ -375,6 +375,44 @@ def original_facts(arrays, scene):
     return out
 
 
+def c1_window(arrays, scene, original):
+    """Actual candidate C1 triangles versus the fixed public shaft line; a diagnostic, never pose acceptance."""
+    bone = next(b for b in scene["bones"] if b["name"] == "C1")
+    key, matrix = bone["key"], np.asarray(bone["matrix"])
+    points = arrays[key + "_sculpt"] @ matrix[:3, :3].T + matrix[:3, 3]
+    mesh = trimesh.Trimesh(points, original[key + "_faces"], process=False)
+    axis = Point(0, -73.4)
+    out = {
+        "scope": "UNACCEPTED candidate C1 only; not Skull/Skin/whole-hardware clearance",
+        "bounds_world": mesh.bounds.tolist(),
+        "sections": {},
+    }
+    for z in (128.3, 132, 137, 140, 145, 148, 152):
+        if not mesh.bounds[0, 2] <= z <= mesh.bounds[1, 2]:
+            out["sections"][str(z)] = {"C1_absent_at_height": True}
+            continue
+        section = mesh.section(plane_origin=(0, 0, z), plane_normal=(0, 0, 1))
+        if section is None:
+            out["sections"][str(z)] = {"error": "No closed C1 cross-section"}
+            continue
+        loops = [Polygon(p[:, :2]) for p in section.discrete if len(p) >= 4 and np.allclose(p[0], p[-1])]
+        loops = [p for p in loops if p.is_valid and p.area > 0]
+        holes = [p for p in loops if sum(q.contains(p) for q in loops if q is not p) % 2]
+        enclosed = [p for p in holes if p.contains(axis)]
+        if not enclosed:
+            out["sections"][str(z)] = {"shaft_axis_inside_neural_air": False}
+            continue
+        radius = float(min(enclosed, key=lambda p: p.area).exterior.distance(axis))
+        out["sections"][str(z)] = {
+            "shaft_axis_inside_neural_air": True,
+            "clear_radius_about_actual_axis_mm": radius,
+            "OD12_plus1_6_clear": radius >= 7.6,
+            "OD20_plus1_6_clear": radius >= 11.6,
+            "OD23_shoulder_plus1_6_clear": radius >= 13.1,
+        }
+    return out
+
+
 def affine_head_facts(arrays, scene, envelope):
     """Analytic/constrained head submodel only: no body/proxy/source adoption or anatomical certificate."""
     facts = original_facts(arrays, scene)
@@ -610,6 +648,12 @@ def refit(arrays, scene, envelope, seed_only=False):
 
 
 if __name__ == "__main__":
+    if sys.argv[1] == "--c1-window":
+        report = c1_window(np.load(sys.argv[2]), json.load(open(sys.argv[3])), np.load(sys.argv[4]))
+        Path(sys.argv[5]).parent.mkdir(parents=True, exist_ok=True)
+        Path(sys.argv[5]).write_text(json.dumps(report, indent=2) + "\n")
+        print(json.dumps(report, indent=2))
+        sys.exit()
     if sys.argv[1] == "--facts":
         print(json.dumps(original_facts(np.load(sys.argv[2]), json.load(open(sys.argv[3]))), indent=2))
         sys.exit()
