@@ -87,7 +87,7 @@ def tray(mechanical=False):
     the R foot forward, a hole in it round the head mount's rear L screw's nut."""
     y0, y1 = nb.LEG_Y
     edge = max(abs(x) for leg in nb.LEG_X.values() for x in leg) + 6
-    out = box((-edge, edge), (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z)
+    out = box(nb.TRAY_X, (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z).union(box((-edge, edge), (y0, y1), nb.TRAY_Z))
     for leg in nb.LEG_X.values():
         out = out.union(box(leg, (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
     riser = box((nb.LEG_X["R"][0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))

@@ -56,6 +56,7 @@ POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 # hub's back end and the capacitor's top kept off the hair's inside, which runs 0.4 and 3 mm past them (#921); every
 # number inferred, held inside the skull by model/test_base.py
 TRAY_Z, LEG_Y = (30.0, 33.0), (74.0, 80.0)
+TRAY_X = (-30.5, 30.5)  # the plate under the Cores; at the back behind the bail it widens to the legs
 LEG_X = {"L": (40.0, 44.0), "R": (-24.5, -20.5)}  # L outside the pitch servo; R joins the hub's riser
 CORES_AT = ((-16.0, 16.0), 50.0)
 HUB_X, HUB_Y, HUB_Z = (-20.2, 0.2), 85.0, gimbal.PLATE_Z[1] + 4.0
