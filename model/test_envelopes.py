@@ -59,6 +59,12 @@ def test_the_standard_horn_has_spline_engagement_and_a_retaining_screw_shoulder(
     assert not horn.isInside(cq.Vector(2.5, 0, 1.5))  # shaft continues through the rear spline seat
 
 
+def test_the_standard_servo_shaft_accepts_the_retaining_screws_thread():
+    """The M3 centre screw has an actual inferred tapping bore, rather than terminating in a solid shaft."""
+    assert not solid("standard servo").isInside(cq.Vector(1.2, 0, -2))
+    assert solid("standard servo").isInside(cq.Vector(1.5, 0, -2))
+
+
 def test_servo_shaft_is_the_r_2_35_spline_on_x_16_69_to_z_minus_14_52():
     assert inside("servo", 16.69 + 2.0, 5.9, -14.3) and not inside("servo", 16.69 + 2.6, 5.9, -13.0)
     assert not inside("servo", 16.69 + 1.5, 5.9, -14.7)
