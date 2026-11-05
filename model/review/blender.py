@@ -13,7 +13,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skeleton"))
 import export  # noqa: E402
@@ -310,12 +310,25 @@ def scenes():
         s.view_layers[0].update()
     for w in bpy.context.window_manager.windows:
         w.scene = main
+    bounds = [
+        o.matrix_world @ Vector(corner)
+        for o in main.objects
+        if o.type == "MESH" and o.visible_get(view_layer=main.view_layers[0])
+        for corner in o.bound_box
+    ]
+    low = Vector(tuple(min(p[i] for p in bounds) for i in range(3)))
+    high = Vector(tuple(max(p[i] for p in bounds) for i in range(3)))
     for screen in bpy.data.screens:
         for area in screen.areas:
             if area.type == "VIEW_3D":
                 sp = area.spaces.active
                 sp.shading.type, sp.shading.color_type = "SOLID", "MATERIAL"
                 sp.clip_start, sp.clip_end = 1.0, 20000.0
+                sp.region_3d.view_perspective = "ORTHO"
+                sp.region_3d.view_rotation = Vector((1, -1, 1)).to_track_quat("Z", "Y")
+                sp.region_3d.view_location = (low + high) * 0.5
+                sp.region_3d.view_distance = max((high - low).length * 1.2, 10.0)
+                sp.overlay.show_overlays = False
 
 
 JOB_REST = {n: Matrix(m) for n, m in JOB["motion"][0][1].items()}

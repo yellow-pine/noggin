@@ -48,7 +48,7 @@ def pwm_log():
 
 
 def pytest_collection_modifyitems(items):
-    """Without Blender (the GX10, #936) `just ours` leaves the realistic Skeleton's bones unfinished: what reads them
+    """Without Blender `just ours` leaves the realistic Skeleton's bones unfinished: what reads them
     skips."""
     marked = [item for item in items if "bones" in item.keywords]
     if not marked:

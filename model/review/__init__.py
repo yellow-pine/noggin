@@ -22,6 +22,7 @@ import fcntl
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -32,6 +33,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skeleton, skin, stages
 from model.render import pictures, scene
+from scripts.gx10 import blender_ceiling
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
 # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
@@ -39,7 +41,7 @@ SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S1
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
 QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
-CEILING_KB = 3_000_000  # a Blender process's RSS past this is killed: the laptop swaps to a crash
+CEILING_KB = blender_ceiling(sys.platform, os.environ)  # the Mac remains protected; GX10 also has a whole-job cgroup
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
 REGIONS = {
     "eyes": "Skull",

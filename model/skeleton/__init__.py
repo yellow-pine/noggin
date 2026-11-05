@@ -30,7 +30,7 @@ REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back
 
 def blender():
     """Whether the finish can run here: Blender found, or CI, which always has it (a missing one fails there, never
-    skips). The GX10 has none (no Linux ARM64 build, #936): `just ours` leaves the bones out and their tests skip."""
+    skips). The native GX10 worker supplies its pinned Blender; another host without it leaves bones unfinished."""
     return bool(os.environ.get("CI") or shutil.which(BLENDER))
 
 
