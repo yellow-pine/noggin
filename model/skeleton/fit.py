@@ -1130,6 +1130,7 @@ def fit_bust(arrays, scene, envelope, skin):
     eye_l, eye_r = (np.asarray(facts["landmarks"][f"LM {side} orbit"], dtype=float) for side in ("L", "R"))
     src_eyes = np.array((eye_l, eye_r))
     dst_eyes = np.array(((36.35, -150.0, 177.0), (-36.35, -150.0, 177.0)))
+    eye_ratio = float(np.linalg.norm(dst_eyes[0] - dst_eyes[1]) / np.linalg.norm(src_eyes[0] - src_eyes[1]))
     skull_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == "skull"]
     vault_names = {
         "frontal bone",
@@ -1146,18 +1147,34 @@ def fit_bust(arrays, scene, envelope, skin):
             if b["name"] in vault_names
         ]
     )
+    occ_l_nat = np.asarray(witnesses["joints"]["C0 L"]["a_patch_centroid_native"], dtype=float)
+    occ_r_nat = np.asarray(witnesses["joints"]["C0 R"]["a_patch_centroid_native"], dtype=float)
+    occ_half_x = 0.5 * float(occ_l_nat[0] - occ_r_nat[0]) * 0.88
+    c0_corridor_center = np.array(envelope["canal_ends"]["C1"], dtype=float)
+
+    def skull_guides_fn(mat, _s):
+        g_src, g_dst = hair_vault_guides(skin_v, skin_f, skull_vault_mesh, mat, inset_mm=inset)
+        c0_src = np.array((occ_l_nat, occ_r_nat))
+        c0_dst = np.array(
+            (
+                c0_corridor_center + np.array((occ_half_x, 0.0, 0.0)),
+                c0_corridor_center + np.array((-occ_half_x, 0.0, 0.0)),
+            )
+        )
+        # Repeat C0 guide points so skull-base taper toward the neck corridor carries strong subordinate weight.
+        return np.vstack([g_src, np.repeat(c0_src, 8, axis=0)]), np.vstack([g_dst, np.repeat(c0_dst, 8, axis=0)]), 2e-3
 
     def skull_candidates(all_v, margin_fn):
         scored = []
-        for s in (0.865, 0.875, 0.855, 0.885):
-            for p in (2.0, 0.0, 4.0, -2.0):
+        for s in np.linspace(eye_ratio / 1.242, eye_ratio / 1.16, 4):
+            for p in (0.0, -4.0, 4.0, -8.0):
                 try:
-                    mat, rep = regional_pose(src_eyes, dst_eyes, uniform_size=s, pitch_deg=p)
+                    mat, rep = regional_pose(src_eyes, dst_eyes, uniform_size=float(s), pitch_deg=float(p))
                 except ValueError:
                     continue
                 m = margin_fn(all_v @ mat[:3, :3].T + mat[:3, 3])
                 score = float(m.min()) + 0.5 * float(np.percentile(m, 5))
-                scored.append((score, (src_eyes, dst_eyes, s, p, mat, rep)))
+                scored.append((score, (src_eyes, dst_eyes, float(s), float(p), mat, rep)))
         scored.sort(key=lambda x: -x[0])
         return [x[1] for x in scored[:2]]
 
@@ -1168,13 +1185,13 @@ def fit_bust(arrays, scene, envelope, skin):
         head_margin,
         width_mm=38.0,
         n_centres=48,
-        guides_fn=lambda mat, _s: (*hair_vault_guides(skin_v, skin_f, skull_vault_mesh, mat, inset_mm=inset), 2e-3),
+        guides_fn=skull_guides_fn,
         rounds=8,
         maxiter=130,
     )
     skull_field = skull_sol["field"]
 
-    def paired_candidates(joint_l, joint_r, a_is_parent, scale_bounds, pitches, extra_score_fn=None):
+    def paired_candidates(joint_l, joint_r, a_is_parent, preferred_scale_range, pitches, extra_score_fn=None):
         jl, jr = witnesses["joints"][joint_l], witnesses["joints"][joint_r]
         if a_is_parent:
             parent_l_v = bone_meta[jl["bone_a"]]["basis"][jl["a_vertex_ids"]]
@@ -1198,14 +1215,14 @@ def fit_bust(arrays, scene, envelope, skin):
         delta_r = child_r_nat - parent_r_nat
         src = np.array((child_l_nat, child_r_nat))
         ratio = float(np.linalg.norm(pl_world - pr_world) / np.linalg.norm(src[0] - src[1]))
-        lo = max(scale_bounds[0], ratio / 1.20)
-        hi = min(scale_bounds[1], ratio / 0.82)
-        if lo > hi:
-            lo, hi = ratio / 1.23, ratio / 0.78
+        lo = max(preferred_scale_range[0], ratio / 1.235)
+        hi = min(preferred_scale_range[1], ratio / 0.765)
+        if lo >= hi:
+            lo, hi = ratio / 1.235, ratio / 0.765
 
         def build(all_v, margin_fn):
             scored = []
-            for s in np.linspace(lo, hi, 5):
+            for s in np.linspace(lo, hi, 6):
                 for p in pitches:
                     try:
                         _, rep0 = regional_pose(
@@ -1233,7 +1250,7 @@ def fit_bust(arrays, scene, envelope, skin):
         "jaw",
         jaw_bones,
         paired_candidates(
-            "TMJ L L", "TMJ R R", a_is_parent=False, scale_bounds=(0.76, 0.92), pitches=(-8, -4, 0, 4, 8)
+            "TMJ L L", "TMJ R R", a_is_parent=False, preferred_scale_range=(0.76, 1.02), pitches=(10, 6, 2, 0, -4, -8)
         ),
         head_margin,
         width_mm=28.0,
@@ -1259,7 +1276,7 @@ def fit_bust(arrays, scene, envelope, skin):
                 target_mid + np.array((-c7_half_x, 0.0, 0.0)),
             )
         )
-        return np.array((c7_l_nat, c7_r_nat)), dst, 2e-3
+        return np.repeat(np.array((c7_l_nat, c7_r_nat)), 6, axis=0), np.repeat(dst, 6, axis=0), 5e-3
 
     cerv_sol = solve_region(
         "cervicals",
@@ -1268,7 +1285,7 @@ def fit_bust(arrays, scene, envelope, skin):
             "C0 L",
             "C0 R",
             a_is_parent=True,
-            scale_bounds=(0.78, 0.90),
+            preferred_scale_range=(0.78, 0.96),
             pitches=(-12, -8, -4, 0, 4, 8, 12),
             extra_score_fn=lambda mat, _s: (
                 -0.25 * float(np.linalg.norm((c7_mid_nat @ mat[:3, :3].T + mat[:3, 3])[:2] - t1_corridor_center[:2]))
@@ -1292,7 +1309,7 @@ def fit_bust(arrays, scene, envelope, skin):
             "C7 T1 L",
             "C7 T1 R",
             a_is_parent=True,
-            scale_bounds=(0.74, 0.84),
+            preferred_scale_range=(0.74, 0.86),
             pitches=(-10, -6, -2, 0, 2, 6, 10),
         ),
         chest_margin,
