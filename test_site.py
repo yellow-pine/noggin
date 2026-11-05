@@ -93,8 +93,8 @@ def test_the_wiring_table_is_built_from_the_code():
         "| 1 (eyes) | 4 | 0 | pitch | 59.6..120.4 | 90 |",
     ]:
         assert row in table, row
-    neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| 90 \|$", table, re.M)
-    assert neck == [("1", "3", "tilt"), ("2", "2", "jaw"), ("3", "1", "pan")]
+    neck = re.findall(r"^\| 2 \(neck\) \| (\d) \| (\d) \| (\w+) \| [\d.]+\.\.[\d.]+ \| ([\d.]+) \|$", table, re.M)
+    assert neck == [("1", "3", "tilt", "79.5"), ("2", "2", "jaw", "90"), ("3", "1", "pan", "79.5")]
 
 
 # #806, #819: a printed part's filament in each Preset, shown for the Presets that print it alone
@@ -134,7 +134,13 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
 
     table = macros.shopping()
     assert table.splitlines()[0] == "| Part | Stage 1 | Stage 2 | Stage 3 |"
-    for row in ["| servo | 4 | 2 | 1 |", "| Core | 1 | 1 |  |", "| Shield | 1 | 1 |  |", "| battery pack |  | 1 |  |"]:
+    for row in [
+        "| servo | 4 |  | 1 |",
+        "| standard servo |  | 2 |  |",
+        "| Core | 1 | 1 |  |",
+        "| Shield | 1 | 1 |  |",
+        "| battery pack |  | 1 |  |",
+    ]:
         assert row in table, row
     parts = (ROOT / "docs" / "build" / "parts.md").read_text()
     buy = parts.split("## Parts to buy", 1)[1].split("\n## ", 1)[0]
@@ -162,13 +168,13 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     ]:
         assert row in parts["1"], row
     mounts = '<span data-presets="default-build morty bart">PETG Basic Black (30105)</span>'  # the pedestal (#838)
-    assert "| servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Mounts: {mounts} |" in parts["2"]
+    assert "| standard servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Mounts: {mounts} |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
     assert f"| jaw | 1 | Bones: {BONES} |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
     row = r"^\| (\w+) \| ([\w ]+) \| [\d.]+\.\.[\d.]+ \|$"
     assert [re.findall(row, servos[n], re.M) for n in servos] == [
         [("eyes", "yaw"), ("eyes", "pitch"), ("eyes", "L lid"), ("eyes", "R lid")],
-        [("neck", "pan"), ("neck", "tilt")],
+        [("neck", "tilt"), ("neck", "pan")],
         [("neck", "jaw")],
     ]
 
@@ -193,8 +199,8 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
     ]:
         assert row in table, row
     assert (
-        "| Skeleton | anatomical | Joints | eyeball core, yaw yoke, bail, pan yoke | PETG Matte White (35100) |"
-        in table
+        "| Skeleton | anatomical | Joints | eyeball core, yaw yoke, bail, nod plate, pan fixed cap, pan moving cap"
+        " | PETG Matte White (35100) |" in table
     )
 
 

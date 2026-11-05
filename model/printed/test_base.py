@@ -33,7 +33,7 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
-        "neck mount:1",
+        "cervical carrier:1",
         "pan servo:1",
         "pack:1",
         "switch board:1",
@@ -41,7 +41,7 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "neck mount:1", "power-path board:1")]
+    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "cervical carrier:1", "power-path board:1")]
     assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
     assert _shape(parts["pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
 

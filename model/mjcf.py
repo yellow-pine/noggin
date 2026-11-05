@@ -467,7 +467,7 @@ def pose(model, ctrl, deg_s=SLEW_DEG_S):
             if not quasi:
                 break
             speed = float(np.max(np.abs(data.qvel), initial=0))
-            positions = data.qpos[model.jnt_qposadr[model.actuator_trnid[:, 0]]]
+            positions = data.actuator_length
             error = float(np.max(np.abs(data.ctrl - positions), initial=0))
             if speed <= math.radians(SETTLE_DEG_S) and error <= SERVO["stall_nm"] / SERVO["kp"]:
                 break

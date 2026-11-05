@@ -3,8 +3,8 @@ head-local frame. x follows the eye line (L at +x), -y is forward and z is up; t
 
 A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo rides its upper saddle and
 reacts through an equal-arm parallelogram against the fixed carrier, reversing the motor angle. The plate carries
-the pan bearing and micro servo; the head mount transfers head weight to the bearing. The provisional forward pan
-line and solid torque quill still fail combined-jaw/cable acceptance; their replacement is an unaccepted design study.
+the pan bearing and crown standard pan servo; the head mount transfers head weight to the bearing. The four 22 AWG
+power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
 The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
 
 Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
@@ -45,15 +45,15 @@ BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs 
 TILT_SHAFT = (
     -21.45,
     132.0,
-    -3.7,
-)  # rear horn clears the rotating tray annulus, while its case stays inside that annulus
-TILT_ARM = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
-TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
-TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
+    1.3,
+)  # rear horn clears the rotating tray annulus, while its raised case clears the rear Skin envelope
+TILT_CRANK = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
+TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_CRANK[0], TILT_SHAFT[2] + TILT_CRANK[1])
+TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_CRANK[0], HEAD_AXES["tilt"][0][2] + TILT_CRANK[1])
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
-PAN_SHAFT = (0.0, 63.25, 58.5)  # crank underside clears the complete Shield envelopes through pan
+PAN_SHAFT = (0.0, 65.25, 61.5)  # crank underside clears the complete Shield and brow envelopes through pan
 PAN_ARM = (-30.0, 0.0)
-PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] - 6.5, PAN_SHAFT[2] - 1.5), (60.7, 64.7), (65.0, 71.0)
+PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5), (62.2, 66.2), (66.5, 72.5)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 REACTION_BAR_X = (-4.5, 1.5)  # actual standard-servo stall bending load, not a micro-servo bar
@@ -215,7 +215,7 @@ def transmission(drive, servo_deg):
         theta = math.radians(-servo_deg)
         dy, dz = np.subtract(TILT_SHAFT, HEAD_AXES["tilt"][0])[1:]
         bar = np.array((dy * math.cos(theta) - dz * math.sin(theta), dy * math.sin(theta) + dz * math.cos(theta)))
-        lever = np.array(TILT_ARM)  # the closed parallelogram keeps the reaction arms fixed in world orientation
+        lever = np.array(TILT_CRANK)  # the closed parallelogram keeps the reaction arms fixed in world orientation
         return math.degrees(math.acos(np.clip(abs(bar @ lever) / (np.linalg.norm(bar) * np.linalg.norm(lever)), 0, 1)))
     solve = LINKAGES[drive]
     _, a, b = solve(servo_deg)

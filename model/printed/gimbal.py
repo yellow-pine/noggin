@@ -343,6 +343,9 @@ def frame(mechanical=False):
         out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
     servos = [gm.servo_matrix(face, shaft, tab) for face, shaft, tab, _ in gm.drives().values()]
     servos.append(gm.servo_matrix(*neck.drives()["mouth"][:3]))  # the mouth's, hanging behind the jaw (#838)
+    tz0 = envelopes.SERVO["tabs"][2][0]
+    lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
+    out = out.union(box((lo[0], hi[0]), (lo[1], y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
     for m in servos:  # on the plate's top, or hanging from its underside

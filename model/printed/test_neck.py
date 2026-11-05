@@ -84,7 +84,7 @@ def test_the_tilt_reaction_bar_holds_the_actual_standard_servo_at_stall():
 
     solid, mat = _built("tilt reaction bar"), g.MATERIALS[g.PRINTED["tilt reaction bar"][1]]
     angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
-    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_ARM)
+    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
     force /= math.sin(math.radians(angle))
     joints = [p[1:] for p in nk.TILT_BAR_PATH]
     (y0, z0), (y1, z1) = joints[0], joints[-1]
@@ -103,7 +103,7 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
 
     solid, mat = _built("tilt lever"), g.MATERIALS[g.PRINTED["tilt lever"][1]]
     shaft, pin = nk.TILT_SHAFT, nk.TILT_PIN
-    radius = np.linalg.norm(nk.TILT_ARM)
+    radius = np.linalg.norm(nk.TILT_CRANK)
     tangent = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / radius
     angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
     force = tangent / math.sin(math.radians(angle))
@@ -127,7 +127,7 @@ def test_the_standard_servo_saddle_holds_its_actual_stall_reaction(saddle, membe
     shaft, mat = nk.TILT_SHAFT, g.MATERIALS[g.PRINTED["nod plate"][1]]
     torque = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10
     angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
-    force = torque / np.linalg.norm(nk.TILT_ARM) / math.sin(math.radians(angle))
+    force = torque / np.linalg.norm(nk.TILT_CRANK) / math.sin(math.radians(angle))
     z = (shaft[2] + nk.HEAD_AXES["tilt"][0][2]) / 2
     mast = saddle.intersect(cq.Workplane("XY", origin=(0, 0, z)).rect(400, 400).extrude(0.005, both=True).val())
     if member == "mast":
@@ -136,12 +136,12 @@ def test_the_standard_servo_saddle_holds_its_actual_stall_reaction(saddle, membe
     else:
         # Peak reaction at one tab combines the bar force and the motor's case torque over its tab spacing.
         force = force / 2 + torque / (34.1 + 13.4)
-        top = saddle.BoundingBox().zmax
+        top = shaft[2] + 22.0
         if member == "header":
-            x = mast.BoundingBox().xmin - 1
-            plane, axis, bend = cq.Plane(origin=(x, shaft[1], top - 10), xDir=(0, 1, 0), normal=(1, 0, 0)), 2, 1
+            x = shaft[0] + 18.0
+            plane, axis, bend = cq.Plane(origin=(x, shaft[1] - 4.0, top - 5.25), xDir=(0, 1, 0), normal=(1, 0, 0)), 2, 1
             moment = force * abs(x - (shaft[0] + 11.9))
-            cut = saddle.intersect(cq.Workplane(plane).rect(40, 40).extrude(0.005, both=True).val())
+            cut = saddle.intersect(cq.Workplane(plane).rect(20, 20).extrude(0.005, both=True).val())
         else:
             y = shaft[1] + 17.05
             plane, axis, bend = cq.Plane(origin=(shaft[0] + 15.4, y, top - 10), xDir=(1, 0, 0), normal=(0, 1, 0)), 2, 0
@@ -186,7 +186,7 @@ def test_the_tray_legs_clear_the_lower_rear_standard_case_through_pan():
     from model.printed import base
 
     tray = base.tray(True).val()
-    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align((-21.45, 110, 16.3), g.Y, (-1, 0, 0))))
+    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.TILT_SHAFT, g.Y, (-1, 0, 0))))
     for pan in (-45, -22.5, 0, 22.5, 45):
         moved = tray.moved(gimbal._at(linkage.rotation(g.Z, pan, (0, 75, -20))))
         assert moved.intersect(motor).Volume() < 0.01, pan

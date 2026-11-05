@@ -31,6 +31,9 @@ beside the test stand until the Torso holds them (inferred). Buy both with Stage
 | Shield | CyberBrick X11 Receiver Shield | XA004 |
 | servo | CyberBrick 9 g servo with clutch protection, the 180° one (the 360° one turns on and on, so it is not used) | PG001 |
 | servo horn | the horns that come with each servo | with the servo |
+| standard servo | MG996R standard metal-gear servo, for tilt and pan | MG996R |
+| standard servo horn | the round horn that comes with each standard servo | with the standard servo |
+| pan bearing | SKF 61804-2RS1 thin-section deep-groove ball bearing, 20 × 32 × 7 mm | 61804-2RS1 |
 | battery pack | CyberBrick 2S battery, 7.4 V 800 mAh | PC003 |
 | switch board | CyberBrick switch module | XA007 |
 | power-path board | nomo's BQ25886 2S charge board on Tindie, its 18650 holder snapped off and ICHGSET swapped to 2.87 kΩ for 0.75 A | BQ25886 |
@@ -51,11 +54,13 @@ Also needed, which the model doesn't count as parts:
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
   sources ([Stage 2](stage-2.md#wiring)).*
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
-- For the modeled head interface (#978): an MG996R standard metal-gear tilt servo with its supplied round horn,
-  and an F8-16M thrust bearing (8 × 16 × 5 mm) for pan, both inside the skull and still to order. The interpolated
-  5 V stall torque is about 9.67 kgf·cm; the model's continuous allowance is an inferred third of stall, not a
-  manufacturer continuous rating ([servo source and assumptions](../research/2026-11-04-standard-tilt-servo.md)).
-  *Upcoming (#902): finished-head load, spring, current-budget and stability certification.*
+- For the modeled head interface (#978): two MG996R standard metal-gear servos (tilt and pan) with their supplied
+  round horns and 150 mm 22 AWG lead extensions, a Pololu D36V28F5 5 V 3.2 A synchronous step-down regulator (5267) on
+  the head-local Y lead for the pan servo's power rail, and an SKF 61804-2RS1 thin-section deep-groove ball bearing
+  (20 × 32 × 7 mm) for pan, all inside the skull and still to order. The interpolated 5 V stall torque is about
+  9.67 kgf·cm; the model's continuous allowance is an inferred third of stall, not a manufacturer continuous rating
+  ([servo source and assumptions](../research/2026-11-04-standard-tilt-servo.md)). *Upcoming (#902): finished-head
+  load, spring, current-budget and stability certification.*
 
 ### Filament
 

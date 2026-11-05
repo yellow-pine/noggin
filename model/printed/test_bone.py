@@ -92,7 +92,7 @@ GROUPS = {
         "axis",
     ]
     + ["worn skull", "worn mandible"],
-    "Joints": ["yaw yoke", "nod plate", "eyeball core", "bail"],
+    "Joints": ["yaw yoke", "nod plate", "pan fixed cap", "pan moving cap", "eyeball core", "bail"],
     "Linkages": [
         "tie-bar",
         "push-rod",
@@ -101,6 +101,8 @@ GROUPS = {
         "lid link",
         "tilt lever",
         "tilt reaction bar",
+        "pan lever",
+        "pan bar",
         "jaw bar",
     ]
     + [f"{s} {lid}" for s in "LR" for lid in ("upper lid", "lower lid")],

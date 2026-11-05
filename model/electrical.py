@@ -35,14 +35,20 @@ servo = _load("servo")
 # typical 9 g micro servo figure (docs/research/2026-11-01-best-guesses.md); the
 # XH2.54 leads are 100 mm (pan-tilt guide p.8 hardware list). The Y
 # lead (guide p.10) joins the halves of one 100 mm XH lead to the battery box's cut lead: each branch from the switch
-# board is taken as 100 [I] (the battery box lead's length is not published).
+# board is taken as 100 [I] (the battery box lead's length is not published), wired in 22 AWG with the neck harness.
+# Standard neck servos use 10 mm of stock 26 AWG splice plus a 150 mm 22 AWG extension (160 mm total).
 SERVO_LEAD_MM, XH_LEAD_MM = 250, 100
+STANDARD_STOCK_MM, STANDARD_EXT_MM = 10, 150
 # The Mech's power path (#858, docs/research/2026-11-03-usb-c-power.md 7): the pack on the power-path board's
 # battery FET (BQ25886; its on-resistance not read, 20 mohm [I]), the switch board after the board's output, then the
 # neck cable's output pair (22 AWG, 0.0535 ohm/m, out and back; 250 mm inferred run; #902 research) to
 # the Y lead into the Shields, across which the bulk capacitor sits (470 uF: open at DC, so worst_case() is unmoved by
 # it; it rides the start edges and the board's switchover).
 BATFET_OHM, NECK_CABLE_MM, NECK_OHM_PER_MM, BULK_F = 0.020, 250, 2 * 0.0535e-3, 470e-6
+# Head-local 5 V step-down regulator for the crown standard pan servo (#978): Pololu D36V28F5 (item 5267, APM81815
+# synchronous buck, 5 V / 3.2 A, 17.8 x 12.7 x 3.6 mm, 1.5 g) fed from the switched neck VBAT/GND; 4.9 V worst-case
+# 2 %-low regulation target, 0.5 V dropout [I], and 0.85 lower-bound efficiency at 2S input.
+PAN_BUCK_V, PAN_BUCK_DROPOUT_V, PAN_BUCK_EFF = 4.9, 0.5, 0.85
 
 
 CAP_A = 3.0  # shield max and pack continuous discharge are both 3 A; one pack feeds both shields (pan-tilt guide p.10)
@@ -115,32 +121,49 @@ def operating_point(netlist):
         return {n[2:-1]: float(raw.get_wave(n)[0]) for n in raw.get_trace_names() if n.lower().startswith("v(")}
 
 
+def lead_ohm(name, motor):
+    """Round-trip resistance of a servo's power lead: 10 mm stock 26 AWG + 150 mm 22 AWG for standard servos."""
+    if name in ("tilt", "pan"):
+        return STANDARD_STOCK_MM * OHM_PER_MM + STANDARD_EXT_MM * NECK_OHM_PER_MM
+    return motor["lead_mm"] * OHM_PER_MM
+
+
 def mech(soc):
     """The Mech's wiring at its worst (#858), on a pack at a state of charge, unplugged: pack, its lead, the
     power-path board's battery FET, the switch board, the neck cable's output pair up the post, the bulk capacitor
-    across its end and the Y lead's branch from there to each shield; per shield its standby, the 5 V servo rail and
-    every servo at stall on its lead, and the Core's 3.3 V in a transmit burst. A regulator is a behavioural source in
-    series, dropping what is above its output or at least its dropout."""
+    across its end, the Pololu D36V28F5 5 V buck feeding the crown standard pan servo, and the Y lead's branch from
+    there to each shield; per shield its standby, the 5 V servo rail and every shield-fed servo at stall on its lead,
+    and the Core's 3.3 V in a transmit burst. A linear regulator is a behavioural source in series, dropping what is
+    above its output or at least its dropout; the synchronous buck draws power-conserving input current."""
     lines = [
         "* noggin supply",
         f"Vpack cells 0 {pack_ocv(soc)}",
         f"Rpack cells pack {pack_ohm(soc)}",
-        f"Rpack_lead pack bat {XH_LEAD_MM * OHM_PER_MM}",
+        f"Rpack_lead pack bat {XH_LEAD_MM * NECK_OHM_PER_MM}",
         f"Rbatfet bat switch_in {BATFET_OHM}",
         f"Rswitch switch_in post {SWITCH_OHM}",
         f"Rneck post switch_out {NECK_CABLE_MM * NECK_OHM_PER_MM}",
         f"Cbulk switch_out 0 {BULK_F}",
     ]
+    pan = servo.profile("pan", SERVO_RAIL_V)
+    lines += [
+        f"Bpan_in switch_out 0 i=V(pan_rail)*{pan['stall_a']}/({PAN_BUCK_EFF}*V(switch_out))",
+        f"Bpan_rail pan_rail 0 v=min(V(switch_out)-{PAN_BUCK_DROPOUT_V}, {PAN_BUCK_V})",
+        f"Rpan pan_rail pan {lead_ohm('pan', pan)}",
+        f"Ipan pan 0 {pan['stall_a']}",
+    ]
     for core, ports in CHANNELS.items():
         vbat, rail = f"{core}_vbat", f"{core}_rail"
         lines += [
-            f"Ry_{core} switch_out {vbat} {XH_LEAD_MM * OHM_PER_MM}",
+            f"Ry_{core} switch_out {vbat} {XH_LEAD_MM * NECK_OHM_PER_MM}",
             f"Ishield_{core} {vbat} 0 {SHIELD_STANDBY_A}",
             f"Brail_{core} {vbat} {rail} v=max(V({vbat})-{SERVO_RAIL_V}, {SERVO_DROPOUT_V})",
         ]
         for name in ports.values():
+            if name == "pan":
+                continue
             motor = servo.profile(name, SERVO_RAIL_V)
-            lines += [f"R{name} {rail} {name} {motor['lead_mm'] * OHM_PER_MM}", f"I{name} {name} 0 {motor['stall_a']}"]
+            lines += [f"R{name} {rail} {name} {lead_ohm(name, motor)}", f"I{name} {name} 0 {motor['stall_a']}"]
         lines += [
             f"Bcore_{core} {vbat} {core} v=max(V({vbat})-{CORE_V}, {CORE_DROPOUT_V})",
             f"Iwifi_{core} {core} 0 {WIFI_TX_A}",
@@ -154,9 +177,13 @@ def worst_case():
     resistance and loaded cells, the voltage at each servo and each Core's 3.3 V, the current from the pack and into
     each shield."""
 
-    def at(soc):
+    def solve(soc):
         v = operating_point(mech(soc))
         a = (v["cells"] - v["pack"]) / pack_ohm(soc)
+        return v, a
+
+    def at(soc):
+        v, a = solve(soc)
         return {
             "soc": round(soc, 4),
             "pack_v": round(pack_ocv(soc), 3),
@@ -164,15 +191,15 @@ def worst_case():
             "cells_v": round(cells_v(soc, a), 3),
             "pack_a": round(a, 3),
             "shield_a": {
-                core: round((v["switch_out"] - v[f"{core}_vbat"]) / (XH_LEAD_MM * OHM_PER_MM), 3) for core in CHANNELS
+                core: round((v["switch_out"] - v[f"{core}_vbat"]) / (XH_LEAD_MM * NECK_OHM_PER_MM), 3)
+                for core in CHANNELS
             },
             "servo_v": {name: round(v[name], 3) for ports in CHANNELS.values() for name in ports.values()},
             "core_v": {core: round(v[core], 3) for core in CHANNELS},
         }
 
     nominal = at(brentq(lambda s: pack_ocv(s) - PACK_V["nominal"], 0, 1))
-    # the loads are fixed currents, so the nominal pack's current is the cut's
-    cutoff = at(brentq(lambda s: cells_v(s, nominal["pack_a"]) - PACK_V["cutoff"], 0, 1))
+    cutoff = at(brentq(lambda s: cells_v(s, solve(s)[1]) - PACK_V["cutoff"], 0, 1))
     return {
         "cap_a": CAP_A,
         "servo_min_v": SERVO_MIN_V,

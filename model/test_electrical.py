@@ -8,11 +8,12 @@ from model import electrical
 
 
 def test_the_standard_tilt_servo_reaches_the_actual_five_volt_supply_loads():
-    """#902: the larger tilt's published 1.4 A must not inherit the owned micro servo's 0.65 A."""
+    """#902/#978: both standard neck servos draw their published 1.4 A, never the owned micro servo's 0.65 A."""
     loads = {
         line.split()[0]: float(line.split()[-1]) for line in electrical.mech(0.5).splitlines() if line.startswith("I")
     }
     assert loads["Itilt"] == pytest.approx(1.4)
+    assert loads["Ipan"] == pytest.approx(1.4)
     assert loads["Iyaw"] == pytest.approx(0.5666666667)  # owned micro's 0.55..0.65 A interpolated at the regulated 5 V
 
 
@@ -44,11 +45,13 @@ W = electrical.worst_case()  # every servo at stall and both Cores in a Wi-Fi tr
 
 
 def test_the_one_pack_feeds_both_shields_with_every_servo_at_stall_and_both_cores_bursting():
+    # Five micro servos at 5 V (0.5667 A), tilt (1.4 A) and both Cores on the Shields (5.023 A total), plus pan (1.4 A)
+    # on the Pololu D36V28F5 synchronous buck (1.494 A at nominal, 1.477 A in dropout at cutoff).
+    assert W["nominal"]["pack_a"] == pytest.approx(6.517)
+    assert W["cutoff"]["pack_a"] == pytest.approx(6.5)
     for case in ("nominal", "cutoff"):
-        # Six micro servos at 5 V (0.5667 A) plus the standard's full published 1.4 A and both Cores: 5.59 A.
-        assert W[case]["pack_a"] == pytest.approx(5.59)
         assert W[case]["shield_a"]["core1"] == pytest.approx(2.662)
-        assert W[case]["shield_a"]["core2"] == pytest.approx(2.928)
+        assert W[case]["shield_a"]["core2"] == pytest.approx(2.362)
     assert W["cap_a"] == 3.0 and all(a < 3.0 for a in W["nominal"]["shield_a"].values())
 
 
@@ -56,21 +59,20 @@ def test_the_nominal_simultaneous_stall_reports_the_standard_leads_drop_and_keep
     nominal = W["nominal"]
     assert nominal["pack_v"] == 7.4 and W["servo_min_v"] == 4.8 and W["brownout_v"] == 2.51
     assert set(nominal["servo_v"]) == {"l_lid", "yaw", "r_lid", "pitch", "tilt", "mouth", "pan"}
-    assert all(abs(nominal["servo_v"][n] - 4.962) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(nominal["servo_v"][n] - 4.960) < 0.001 for n in ("mouth", "pan"))
-    # The inferred 22 AWG neck route retains the voltage floor despite the standard's 320 mm lead at 1.4 A.
-    # Simultaneous stall still exceeds the 3 A pack budget; the Core scheduling proof remains #902/#929.
-    assert nominal["servo_v"]["tilt"] == pytest.approx(4.878)
+    assert all(abs(nominal["servo_v"][n] - 4.813) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert nominal["servo_v"]["mouth"] == pytest.approx(4.816)
+    assert nominal["servo_v"]["tilt"] == pytest.approx(4.828)
+    assert nominal["servo_v"]["pan"] == pytest.approx(4.853)
     assert all(v >= W["servos"][n]["min_v"] for n, v in nominal["servo_v"].items())
     assert all(abs(v - 3.3) < 1e-6 for v in nominal["core_v"].values())
 
 
 def test_the_worst_case_cuts_the_pack_while_it_still_rests_far_above_its_cutoff():
     cutoff = W["cutoff"]
-    # the protector trips once the worst case pulls the cells to 5.8 V (its datasheet): at about 5 % charge, resting
-    # at 7.0-7.1 V, where the pack's resistance has risen to about 0.27 ohm
+    # the protector trips once the worst case pulls the cells to 5.8 V (its datasheet): at about 6.5 % charge, resting
+    # at 7.1-7.2 V, where the pack's resistance has risen to about 0.25 ohm
     assert cutoff["cells_v"] == 5.8 and W["cutoff_delay_ms"] == 16
-    assert 0.05 < cutoff["soc"] < 0.06 and 7.0 < cutoff["pack_v"] < 7.1 and abs(cutoff["pack_ohm"] - 0.27) < 0.01
+    assert 0.06 < cutoff["soc"] < 0.07 and 7.1 < cutoff["pack_v"] < 7.2 and abs(cutoff["pack_ohm"] - 0.253) < 0.01
     # a pack resting at its nominal 7.4 V is at 13 % on Chen's curve, just inside the knee: 0.203 ohm, not 0.189
     nominal = W["nominal"]
     assert nominal["pack_v"] == 7.4 and abs(nominal["soc"] - 0.13) < 0.005 and abs(nominal["pack_ohm"] - 0.203) < 0.001
@@ -80,9 +82,10 @@ def test_at_the_cut_the_servos_sag_below_their_minimum_and_the_cores_keep_their_
     cutoff = W["cutoff"]
     assert all(v < W["servo_min_v"] for v in cutoff["servo_v"].values())  # "sluggish when the battery is low"
     assert all(abs(v - 3.3) < 1e-6 for v in cutoff["core_v"].values())  # the pack cuts before a Core browns out
-    # 5.8 V less 5.59 A through the MOSFETs, the pack lead, the power-path board's battery FET, the switch and the neck
-    # cable's 250 mm of 24 AWG up the post (#858), the shield's branch, the rail's 0.5 V dropout and the servo lead:
-    # Core 1's shield (4 servos) sags further than Core 2's (3)
-    assert all(abs(cutoff["servo_v"][n] - 4.276) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
-    assert all(abs(cutoff["servo_v"][n] - 4.269) < 0.001 for n in ("mouth", "pan"))
-    assert cutoff["servo_v"]["tilt"] == pytest.approx(4.187)
+    # 5.8 V less 6.50 A through the MOSFETs, the 22 AWG pack lead, the power-path board's battery FET, the switch and
+    # the neck cable's 250 mm of 22 AWG up the post (#858/#978), the shield's branch, the rail's 0.5 V dropout and the
+    # servo lead: Core 1's shield (4 micro servos) sags slightly further than Core 2's (tilt + mouth) and the pan buck.
+    assert all(abs(cutoff["servo_v"][n] - 4.275) < 0.001 for n in ("l_lid", "yaw", "r_lid", "pitch"))
+    assert cutoff["servo_v"]["mouth"] == pytest.approx(4.278)
+    assert cutoff["servo_v"]["tilt"] == pytest.approx(4.29)
+    assert cutoff["servo_v"]["pan"] == pytest.approx(4.315)

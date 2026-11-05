@@ -207,10 +207,8 @@ def test_the_servo_angles_give_the_ranges_ends():
 
 def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
     """At rest each horn and its lever lie parallel, the bar square to both: a transmission angle of 90 deg."""
-    for drive in neck.LINKAGES:
-        assert neck.transmission(drive, 0.0) == pytest.approx(
-            86.89235, abs=1e-4
-        )  # measured ramus lever is not perpendicular
+    for drive, expected in (("pan", 90.0), ("jaw", 86.89235)):
+        assert neck.transmission(drive, 0.0) == pytest.approx(expected, abs=1e-4)
 
 
 def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report):

@@ -144,10 +144,10 @@ def test_the_pack_lies_across_x_as_its_envelope_is_long_and_wide():
 
 
 def test_the_leads_that_cross_pan_and_tilt_are_the_neck_servos_and_the_neck_cable():
-    """The Cores ride the head (#858): the pan servo's lead crosses both up to them, the tilt servo's the tilt, and the
-    neck cable's two pairs from the power-path board both; the eyes' and the mouth's stay on the head, the pack's and
-    the switch board's in the Torso."""
-    assert base.leads(stages.STAGES["mech-back"]) == {"pan pivot": 3, "tilt pivot": 4}
+    """The Cores ride the head (#858): the tilt and pan servos sit on the nod plate (their leads cross pan to the
+    Shields), and the neck cable's two pairs from the power-path board cross both tilt and pan; the eyes' and the
+    mouth's stay on the head, the pack's and the switch board's in the Torso."""
+    assert base.leads(stages.STAGES["mech-back"]) == {"pan pivot": 4, "tilt pivot": 2}
 
 
 def _report(

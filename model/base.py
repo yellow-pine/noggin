@@ -156,10 +156,16 @@ def leads(stage):
     and not the other."""
 
     def rides(part):
-        return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers}
+        return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers} | {
+            h.direct.joint for h in stage.horns.values() if h.direct and part in h.direct.driven
+        }
 
     shield, switch, power = rides("Shield 1:1"), rides("switch board:1"), rides("power-path board:1")
-    ends = [(rides(n), shield) for n, p in stage.parts.items() if os.path.basename(p.file) == "servo.stl"]
+    ends = [
+        (rides(n), shield)
+        for n, p in stage.parts.items()
+        if os.path.basename(p.file) in ("servo.stl", "standard servo.stl")
+    ]
     ends += [(rides(n), power) for n, p in stage.parts.items() if os.path.basename(p.file) == "battery.stl"]
     ends += [(power, switch), (switch, shield), (shield, power)]  # the neck cable's two pairs
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}

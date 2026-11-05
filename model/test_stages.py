@@ -21,8 +21,9 @@ def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_
     assert hardware == sorted(
         ["core"] * 2
         + ["receiver"] * 2
-        + ["switch", "battery", *bought, "standard servo", "standard horn", "pan bearing"]
-        + ["servo", "horn"] * 6
+        + ["switch", "battery", *bought, "pan bearing"]
+        + ["standard servo", "standard horn"] * 2
+        + ["servo", "horn"] * 5
     )
     assert {m for m in meshes if m in g.PRINTED} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes

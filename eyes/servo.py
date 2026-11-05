@@ -37,7 +37,7 @@ def profile(axis, volts=5.0):
     Between published voltages interpolation is inferred. The standard servo's
     continuous design limit is one third of stall, inferred, never a vendor rating.
     """
-    standard = axis == "tilt"
+    standard = axis in ("tilt", "pan")
     specs = STANDARD_SPEC if standard else SPEC
     (v0, s0), (v1, s1) = sorted(specs.items())
     if not v0 <= volts <= v1:
@@ -52,7 +52,7 @@ def profile(axis, volts=5.0):
         ),
         "volts": volts,
         "min_v": v0,
-        "lead_mm": 320 if standard else 250,
+        "lead_mm": 160 if standard else 250,
         "mass_g": 55 if standard else 16,
         "travel_deg": 159
         if standard

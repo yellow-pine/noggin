@@ -243,7 +243,7 @@ def test_the_standard_tilts_model_tables_use_its_actual_travel_midpoint():
         if (cells := [c.strip() for c in row.strip("|").split("|")])[0] == "2 (neck)"
     }
     assert rows["tilt"][4:] == ["59.5..99.5", "79.5"]  # published 159° envelope, operational ±20°
-    assert rows["pan"][4:] == ["45..135", "90"]
+    assert rows["pan"][4:] == ["34.5..124.5", "79.5"]
     assert "| neck | tilt | 59.5..99.5 |" in macros.stage_guides()[1]["2"]
 
 
