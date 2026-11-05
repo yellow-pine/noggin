@@ -8,8 +8,8 @@
 
 The eye block on its test stand: both eyes turn together, left and right on one servo and up and down on another, and
 each eye's upper and lower lid close on that eye's own servo. Four servos on the eyes Core, which stands against the
-stand's back. *Upcoming (#901): the eyes, their caps and lids grow to Morty's at life size, and the gimbal frame
-stretches to the pupils.*
+stand's back. The model sizes the eyes, caps and lids from Morty's life-size eye reference, with the gimbal frame
+sized for his pupil spacing.
 
 ## Parts it adds, from the model
 

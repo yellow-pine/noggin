@@ -35,10 +35,11 @@ def test_just_stl_prints_the_clearance_coupon_watertight_flat_on_the_bed(tmp_pat
     assert mesh.is_watertight and mesh.volume > 0 and mesh.bounds[0][2] == 0
 
 
-def test_a_printed_parts_step_is_one_valid_solid_in_its_shapes_box(tmp_path):
-    shape = cq.importers.importStep(ours.export("pitch bar", str(tmp_path / "bar.step"))).val()
+@pytest.mark.parametrize("stem", ["pitch bar", "cranium tray"])
+def test_a_printed_parts_step_is_one_valid_solid_in_its_shapes_box(tmp_path, stem):
+    shape = cq.importers.importStep(ours.export(stem, str(tmp_path / "part.step"))).val()
     assert shape.isValid() and len(shape.Solids()) == 1
-    assert near(box(shape), box(ours.SHAPES["pitch bar"]().val())), box(shape)
+    assert near(box(shape), box(ours.SHAPES[stem]().val())), box(shape)
 
 
 @pytest.fixture
