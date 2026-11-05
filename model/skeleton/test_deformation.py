@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from model.skeleton import deformation
+from model.skeleton.fit import check_surface_stretch
 
 
 def test_bounded_nonlinear_bend_keeps_joint_anchors_exact():
@@ -51,4 +52,25 @@ def test_joint_pinned_global_shape_modes_do_not_require_large_gaussian_coefficie
     moved, gradient = deformation.evaluate(points, field)
     assert moved[:, 2] == pytest.approx(points[:, 2] * 0.8, abs=1e-6)
     assert gradient[:, 2, 2] == pytest.approx(np.full(len(points), 0.8), abs=1e-6)
+    assert report["sampled_feasible"]
+
+
+def test_final_skinny_source_triangles_obey_the_budget_even_when_the_smooth_derivative_does():
+    # A small curved deflection across a long, thin original triangle can stretch its final chord geometry.
+    triangle = np.array(((0, 0, 0), (1, 0, 0), (0.5, 0.0001, 0)), float)
+    field, report = deformation.solve(
+        triangle,
+        np.eye(4),
+        1.0,
+        np.array(((-3, 0, 0), (3, 0, 0))),
+        np.array(((0.5, 0, 0),)),
+        2.0,
+        lambda p: p[:, 1] - 0.001,
+        np.array(((0.5, 0, 0),)),
+        triangles=triangle[None],
+    )
+    final, _ = deformation.evaluate(triangle, field)
+    proof = check_surface_stretch(triangle, final, np.array(((0, 1, 2),)), 1.0)
+    assert proof["minimum"] >= 0.75 - 1e-6
+    assert proof["maximum"] <= 1.25 + 1e-6
     assert report["sampled_feasible"]
