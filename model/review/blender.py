@@ -115,7 +115,7 @@ def morty(m):
         if normals:
             # Mesh.transform can change thin faces' normal spaces; retain the authored directions.
             normal_at = at.to_3x3().inverted().transposed()
-            o.data.normals_split_custom_set([normal_at @ n for n in normals])
+            o.data.normals_split_custom_set([(normal_at @ n).normalized() for n in normals])
         bm = bmesh.new()
         bm.from_mesh(o.data)
         floor = m["floor"]
