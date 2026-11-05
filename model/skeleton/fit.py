@@ -319,6 +319,25 @@ def original_facts(arrays, scene):
     return out
 
 
+def affine_head_facts(arrays, scene, envelope):
+    """Analytic/constrained head submodel only: no body/proxy/source adoption or anatomical certificate."""
+    facts = original_facts(arrays, scene)
+    source = np.array(
+        [facts["landmarks"][f"LM {side} orbit"] for side in ("L", "R")] + [facts["canals"]["C1"]["centre"]]
+    )
+    target = np.array(((36.35, -150, 177), (-36.35, -150, 177), envelope["canal_ends"]["C1"]))
+    matrix, report = constrained_affine(source, target)
+    report["matrix_native_to_world"] = matrix.tolist()
+    report["scope"] = "Affine hard-anchor feasibility only; C1 canal reference is NOT a verified C0 articular axis"
+    report["anatomical_witnesses_world"] = {
+        name: (np.asarray(p) @ matrix[:3, :3].T + matrix[:3, 3]).tolist() for name, p in facts["landmarks"].items()
+    }
+    points = np.vstack([arrays[b["key"] + "_basis"] for b in scene["bones"] if b["group"] in ("Skull", "Mandible")])
+    world = points @ matrix[:3, :3].T + matrix[:3, 3]
+    report["raw_head_bounds_world"] = [world.min(0).tolist(), world.max(0).tolist()]
+    return report
+
+
 def refit(arrays, scene, envelope, seed_only=False):
     """Original anatomy, four declared uniform regions, then one bounded residual field.
 
@@ -468,6 +487,14 @@ def refit(arrays, scene, envelope, seed_only=False):
 if __name__ == "__main__":
     if sys.argv[1] == "--facts":
         print(json.dumps(original_facts(np.load(sys.argv[2]), json.load(open(sys.argv[3]))), indent=2))
+        sys.exit()
+    if sys.argv[1] == "--affine-facts":
+        report = affine_head_facts(
+            np.load(sys.argv[2]), json.load(open(sys.argv[3])), json.load(open("model/skeleton/envelope.json"))
+        )
+        Path(sys.argv[4]).parent.mkdir(parents=True, exist_ok=True)
+        Path(sys.argv[4]).write_text(json.dumps(report, indent=2) + "\n")
+        print(json.dumps(report, indent=2))
         sys.exit()
     landmarks = sys.argv[1] == "--landmarks"
     seed_only = sys.argv[1] == "--regional-seed"
