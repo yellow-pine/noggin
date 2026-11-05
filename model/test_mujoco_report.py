@@ -1,10 +1,60 @@
 """Seam: model/mujoco_report.py's tip-over margin, on a plan outline drawn by hand, and its servo torques, on a
 parallelogram four-bar written by hand (the report itself: test_report.py)."""
 
+import json
+
 import mujoco
+import numpy as np
 import pytest
 
-from model import mujoco_report
+from model import mjcf, mujoco_report, neck, stages
+
+
+def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collision_meshes(tmp_path, monkeypatch):
+    """The same finished export's head/jaw loads must affect torque even in mechanical-only documents (ADR0020)."""
+    loads = {
+        stem: {"carrier": carrier, "mass_g": grams, "com_mm": [100, 0, 0], "inertia_g_mm2": np.eye(3).tolist()}
+        for stem, carrier, grams in [("skull", "head", 100), ("calvaria", "head", 50), ("mandible", "jaw", 10)]
+        + [(f"c{i}", "fixed", 1) for i in range(1, 8)]
+    }
+    path = tmp_path / "loads.json"
+    path.write_text(json.dumps({"source": "synthetic finished mesh fixture", "parts": loads}))
+    monkeypatch.setattr(mjcf, "ANATOMY_LOADS", str(path), raising=False)
+    monkeypatch.setattr(mjcf.g, "SKULL", tuple(loads))
+    spec = mujoco.MjSpec.from_string("""<mujoco><worldbody>
+        <body name="head mount:1"><joint name="tilt" axis="0 1 0"/><geom size="0.001" mass="1e-6"/>
+          <body name="jaw:1"><geom size="0.001" mass="1e-6"/></body></body>
+        <body name="cervical carrier:1"><geom size="0.001" mass="1e-6"/></body>
+        </worldbody><actuator><motor joint="tilt"/></actuator></mujoco>""")
+    parts = {
+        n: stages.Part("unused.stl", np.eye(4), None, None) for n in neck.HEAD_CARRIERS.values() if n != "nod plate:1"
+    }
+    horn = stages.Horn({}, (), "", [], [], np.eye(4))
+    stage = stages.Doc("synthetic", parts, {"tilt horn": horn})
+    mjcf.anatomy(spec, stage, {n: spec.body(n) for n in parts})
+    model = spec.compile()
+    assert model.body_subtreemass[model.body("head mount:1").id] == pytest.approx(0.160002)
+    assert model.ngeom == 3  # inertial loads never add collision or visual geometry
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    assert data.body("anatomy skull").xipos == pytest.approx((0.1, 0, 0))
+    assert abs(mujoco_report.torques(model, data, moving=False)[0]) == pytest.approx(0.16 * 9.81 * 0.1)
+    matrix = np.zeros((model.nv, model.nv))
+    mujoco.mj_fullM(model, data, matrix)
+    assert matrix[0, 0] > 0.16 * 0.1**2  # each finished mesh's own COM inertia also survives
+
+
+def test_the_standard_tilt_motor_holds_a_load_the_micro_servo_cannot():
+    """200 g on a 100 mm arm requires 2 kgf.cm: below the standard's inferred continuous limit, above micro stall."""
+    spec = mujoco.MjSpec.from_string("""<mujoco><worldbody><body>
+        <joint name="tilt pivot" axis="0 1 0"/><geom type="sphere" pos="0.1 0 0" size="0.001" mass="0.2"/>
+        </body></worldbody></mujoco>""")
+    mujoco_report.mjcf.drive(spec, "tilt pivot", name="tilt horn")
+    model = spec.compile()
+    data = mujoco_report.mjcf.pose(model, {"tilt horn": 0})
+    assert abs(np.degrees(data.joint("tilt pivot").qpos[0])) < 0.5
+    assert abs(data.actuator("tilt horn").force[0]) == pytest.approx(0.2 * 9.81 * 0.1, rel=0.01)
+
 
 # A parallelogram: the horn and the rocker 100 mm long, level, their pivots 50 mm apart one above the other, a 100 g
 # mass on the rocker's tip; the coupler stays upright, so the horn carries the rocker's torque one to one.
@@ -53,6 +103,14 @@ def test_a_held_servo_carries_the_gravity_torque_its_four_bar_brings_it():
     assert abs(mujoco_report.torques(model, data, moving=False)[0]) == pytest.approx(
         0.1 * 9.81 * 0.1, rel=1e-4
     )  # the light links weigh 1e-6 kg
+
+
+def test_a_reversed_direct_reaction_reports_motor_torque_with_its_physical_sign():
+    model = mujoco.MjModel.from_xml_string(FOUR_BAR.replace('<motor joint="horn"/>', '<motor joint="horn" gear="-1"/>'))
+    reference = mujoco.MjModel.from_xml_string(FOUR_BAR)
+    torque = mujoco_report.torques(model, mujoco.MjData(model), moving=False)[0]
+    expected = mujoco_report.torques(reference, mujoco.MjData(reference), moving=False)[0]
+    assert torque == pytest.approx(-expected, rel=1e-6)
 
 
 def test_a_balance_spring_on_the_rocker_takes_its_share_off_the_held_servo():

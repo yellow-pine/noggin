@@ -3,12 +3,186 @@ angles each range needs, and the report's numbers against #641's gates."""
 
 import numpy as np
 import pytest
+import trimesh
 
-from model import base, neck, stages
+from model import base, mjcf, neck, stages
 from model import geometry as g
 
 # a head of 300 g with its centre of mass 40 mm above the tilt axis, straight over it at rest
-HEAD = (300.0, (0.0, neck.AXIS[0], neck.AXIS[1] + 40.0))
+TILT_Y, TILT_Z = neck.HEAD_AXES["tilt"][0][1:]
+HEAD = (300.0, (0.0, TILT_Y, TILT_Z + 40.0))
+
+
+def test_the_head_interface_publishes_the_fixed_frame_and_tilt_then_pan_order():
+    """#902's functional anchors, from the accepted Stage 3 coordinates; anatomy alignment remains #874's gate."""
+    frame = stages.align(*neck.HEAD_FRAME)
+    assert frame[:3, 3] == pytest.approx((0, -150, 177))
+    for drive, point in (("tilt", (0, -73.4, 128.3)), ("pan", (0, -73.4, 155.5)), ("jaw", (0, -89.94144, 135.39269))):
+        local, axis = neck.HEAD_AXES[drive]
+        assert (frame @ np.r_[local, 1])[:3] == pytest.approx(point)
+        assert tuple(axis) == (g.Z if drive == "pan" else g.X)
+    assert neck.HEAD_PARENTS == {"tilt": None, "pan": "tilt", "jaw": "pan"}
+    assert neck.HEAD_SERVOS == {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}
+    assert len(set(neck.HEAD_CARRIERS.values())) == 4
+
+
+def test_the_real_neck_uses_a_fixed_cervical_carrier_then_nod_plate_then_pan_bearing():
+    sub = stages.neck_sub()
+    assert {"cervical carrier:1", "nod plate:1", "head mount:1", "pan bearing:1"} <= sub.parts.keys()
+    assert not {"neck mount:1", "pan yoke:1", "tilt bar:1"} & sub.parts.keys()
+    assert {"pan bar:1", "pan lever:1", "pan fixed cap:1", "pan moving cap:1"} <= sub.parts.keys()
+    assert stages.stem(sub.parts["tilt servo:1"].file) == "standard servo"
+    assert sub.parts["tilt servo:1"].material == (55, "documented")
+    tilt, pan = sub.horns["tilt horn"], sub.horns["pan horn"]
+    assert tilt.direct.joint == "tilt pivot" and tilt.direct.sign == -1
+    assert pan.direct is None and pan.loops[0].joint == "pan pivot"
+    assert pan.crank == ("pan horn:1", "pan lever:1")
+    assert {"nod plate:1", "tilt servo:1", "pan servo:1", "head mount:1"} <= set(tilt.direct.driven)
+    assert "cervical carrier:1" not in tilt.direct.driven
+    assert tilt.direct.reaction and "tilt horn:1" in tilt.direct.reaction.driven
+    assert "head mount:1" in pan.loops[0].rockers and "pan servo:1" not in pan.loops[0].rockers
+
+
+def test_pan_has_the_actual_standard_case_mass_and_five_volt_working_limit():
+    """The micro servo cannot hold the measured C0 load; the actual standard actuator must reach every model seam."""
+    from model import electrical, sim
+
+    case = stages.neck_sub().parts["pan servo:1"]
+    assert stages.stem(case.file) == "standard servo"
+    assert case.material == (55, "documented")
+    assert sim.limits("pan horn")["rated_kgf_cm"] == pytest.approx(3.222)
+    assert electrical.servo.profile("pan")["stall_a"] == pytest.approx(1.4)
+
+
+def test_a_stock_horn_and_its_printed_adapter_share_one_real_motor_joint(tmp_path, monkeypatch):
+    """A bolted adapter is rigidly driven with its stock horn in both the poses and the physical actuator model."""
+    mesh = tmp_path / "gimbal frame.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    parts = {
+        n: stages.Part(str(mesh), stages.translate(p), (1.0, "documented"), None)
+        for n, p in (("fixed:1", (0, 0, 0)), ("stock:1", (10, 0, 0)), ("adapter:1", (0, 10, 0)))
+    }
+    horn = stages.Horn({"point": (0, 0, 0), "axis": g.Z}, (-45, 45), ("stock:1", "adapter:1"), [], [], np.eye(4))
+    doc = "mech-back-mechanical"
+    stage = stages.Doc(doc, parts, {"pan horn": horn})
+    pose = stages.pose(stage, "pan horn", 20)
+    for name in ("stock:1", "adapter:1"):
+        expected = neck.linkage.rotation(g.Z, 20) @ parts[name].matrix
+        assert pose.parts[name] == pytest.approx(expected)
+    monkeypatch.setitem(stages.STAGES, doc, stage)
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    data = mjcf.pose(model, {"pan horn": 20})
+    for name in ("stock:1", "adapter:1"):
+        assert data.body(name).xpos == pytest.approx(pose.parts[name][:3, 3] / 1000, abs=0.0002)
+
+
+def test_the_physical_jaw_hinge_meets_the_actual_fitted_condylar_patches():
+    """#968: measured public #874 v7 patch centres, not the obsolete gimbal hinge or target empties."""
+    pivot = stages.jaw_sub().horns["jaw horn"].loops[0].rocker_pivot[0]
+    for condyle in ((42.17778, 60.06154, -41.61859), (-42.43407, 60.05559, -41.59603)):
+        assert np.linalg.norm(np.subtract(condyle[1:], pivot[1:])) < 0.05
+
+
+@pytest.mark.parametrize("sign", (-1, 1))
+def test_a_direct_servo_turns_its_carrier_and_riders_but_not_its_fixed_reaction(sign):
+    """A servo case on the moving plate reacts against a fixed horn; its output sign reverses (#902)."""
+    parts = {
+        name: stages.Part("unused.stl", stages.translate(point), (1.0, "documented"), None)
+        for name, point in (("fixed:1", (0, 0, 0)), ("plate:1", (0, 10, 0)), ("head:1", (0, 20, 0)))
+    }
+    horn = stages.Horn(
+        {"point": (0, 0, 0), "axis": g.X},
+        (-20, 20),
+        "plate:1",
+        [],
+        [],
+        np.eye(4),
+        direct=stages.Direct("tilt pivot", ["plate:1", "head:1"], sign),
+    )
+    pose = stages.pose(stages.Doc("direct", parts, {"tilt horn": horn}), "tilt horn", 20)
+    assert pose.joints["tilt pivot"] == 20 * sign
+    assert np.allclose(pose.parts["fixed:1"], parts["fixed:1"].matrix)
+    for name, radius in (("plate:1", 10), ("head:1", 20)):
+        assert pose.parts[name][:3, 3] == pytest.approx(
+            (0, radius * np.cos(np.deg2rad(20)), sign * radius * np.sin(np.deg2rad(20)))
+        )
+
+
+@pytest.mark.parametrize("sign", (-1, 1))
+def test_a_direct_servo_in_mujoco_drives_its_joint_and_riders_with_the_physical_sign(tmp_path, monkeypatch, sign):
+    """#902: the real actuator, not just the kinematic command map, turns the rigid carrier against ground."""
+    mesh = tmp_path / "gimbal frame.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    parts = {
+        name: stages.Part(str(mesh), stages.translate(point), (16.0, "documented"), None)
+        for name, point in (("fixed:1", (0, 0, 0)), ("plate:1", (0, 10, 0)), ("head:1", (0, 20, 0)))
+    }
+    horn = stages.Horn(
+        {"point": (0, 0, 0), "axis": g.Z},
+        (-45, 45),
+        "plate:1",
+        [],
+        [],
+        np.eye(4),
+        direct=stages.Direct("pan pivot", ["plate:1", "head:1"], sign),
+    )
+    doc = "mech-back-mechanical"
+    monkeypatch.setitem(stages.STAGES, doc, stages.Doc(doc, parts, {"pan horn": horn}))
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    assert model.actuator("pan horn").trnid[0] == model.joint("pan pivot").id
+    assert model.actuator("pan horn").gear[0] == sign
+    data = mjcf.pose(model, {"pan horn": 20})
+    assert np.degrees(data.joint("pan pivot").qpos[0]) == pytest.approx(20 * sign, abs=0.5)
+    assert data.body("fixed:1").xpos == pytest.approx((0, 0, 0))
+    assert data.body("head:1").xpos == pytest.approx(
+        (-sign * 0.02 * np.sin(np.deg2rad(20)), 0.02 * np.cos(np.deg2rad(20)), 0), abs=0.0002
+    )
+
+
+@pytest.mark.parametrize("command", (-20, 20))
+def test_a_moving_case_parallelogram_drives_the_real_motor_joint_and_closes_its_reaction_bar(
+    tmp_path, monkeypatch, command
+):
+    mesh = tmp_path / "gimbal frame.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    p = np.array(neck.HEAD_AXES["tilt"][0])
+    q, b = p + (0, 0, 40), p + (0, 12.75, 0)
+    a = q + (0, 12.75, 0)
+    frame = stages.align(*neck.HEAD_FRAME)
+    parts = {
+        name: stages.Part(str(mesh), frame @ stages.translate(point), (grams, "documented"), None)
+        for name, point, grams in (
+            ("fixed:1", p, 1),
+            ("plate:1", p + (0, -10, 20), 100),
+            ("servo:1", q, 55),
+            ("lever:1", q, 1),
+            ("bar:1", (a + b) / 2, 1),
+        )
+    }
+    reaction = stages.Reaction(tuple(q), tuple(a), tuple(b), ["lever:1"], "bar:1", "fixed:1")
+    horn = stages.Horn(
+        {"point": tuple(p), "axis": g.X},
+        (-20, 20),
+        "lever:1",
+        [],
+        [],
+        frame,
+        direct=stages.Direct("tilt pivot", ["plate:1", "servo:1", "lever:1"], -1, reaction),
+    )
+    doc = "mech-back-mechanical"
+    monkeypatch.setitem(stages.STAGES, doc, stages.Doc(doc, parts, {"tilt horn": horn}))
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    assert model.actuator("tilt horn").trnid[0] == model.joint("tilt horn").id  # the actual offset motor shaft
+    data = mjcf.pose(model, {"tilt horn": command})
+    assert np.degrees(data.joint("tilt horn").qpos[0]) == pytest.approx(command, abs=0.5)
+    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-command, abs=0.5)
+    assert max(mjcf.residuals(model, data).values()) < 0.05
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +190,7 @@ def report():
     return neck.report(HEAD)
 
 
-@pytest.mark.parametrize("drive", ["pan", "tilt", "jaw"])
+@pytest.mark.parametrize("drive", ["jaw", "tilt"])
 def test_every_drive_reaches_its_range_within_the_servos_travel_at_40_deg_or_better(report, drive):
     """#641: each bar meets its lever at a transmission angle of at least 40 deg over the whole range, and the servo
     turns no further than its travel to get there."""
@@ -27,15 +201,14 @@ def test_every_drive_reaches_its_range_within_the_servos_travel_at_40_deg_or_bet
 
 def test_the_servo_angles_give_the_ranges_ends():
     for drive, (lo, hi) in neck.RANGES.items():
-        solve = neck.LINKAGES[drive]
         for out in (lo, hi):
-            assert solve(neck.servo_for(drive, out))[0] == pytest.approx(out, abs=1e-3)
+            assert neck.output(drive, neck.servo_for(drive, out)) == pytest.approx(out, abs=1e-3)
 
 
 def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
     """At rest each horn and its lever lie parallel, the bar square to both: a transmission angle of 90 deg."""
-    for drive in neck.RANGES:
-        assert neck.transmission(drive, 0.0) == pytest.approx(90.0, abs=1e-6)
+    for drive, expected in (("pan", 90.0), ("jaw", 86.89235)):
+        assert neck.transmission(drive, 0.0) == pytest.approx(expected, abs=1e-4)
 
 
 def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report):
@@ -44,10 +217,10 @@ def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(re
     the spring turns it back as much, and its rate is the weight's lever's change, 300 g x 30 mm = 0.9 kgf.cm a radian;
     tilted 20 deg the spring's line misses the weight's turn by 0.08 kgf.cm, the servo holding that through the linkage.
     Straight over the axis the spring takes the 40 mm's change alone: nothing at rest."""
-    ahead = neck.report((300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0)))["tilt"]
+    ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
     assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
     assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
-    assert 0.25 * 0.079 < ahead["hold_kgf_cm"] < 0.079
+    assert ahead["hold_kgf_cm"] == pytest.approx(0.079)  # 1:1 now, not the retired four-bar's torque reduction
     tilt = report["tilt"]
     assert tilt["spring"] == {"rest_kgf_cm": 0.0, "rate_kgf_cm_rad": 1.2} and tilt["rest_kgf_cm"] == pytest.approx(0.0)
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}
@@ -57,7 +230,7 @@ def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bar
     """#830: one spring holds the head with its Skin on and off. A bare head of 300 g 40 mm in front of the axis and 30
     over it wants -1.2 kgf.cm at rest and 0.9 a radian; its Skin doubles it, -2.4 and 1.8. The spring wound between them,
     -1.8 and 1.35, misses each by 0.6 kgf.cm at rest, which the servo holds through the linkage's gain, alike."""
-    bare = (300.0, (0.0, neck.AXIS[0] - 40.0, neck.AXIS[1] + 30.0))
+    bare = (300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0))
     tilt = neck.report((600.0, bare[1]), bare)["tilt"]
     assert tilt["spring"] == {"rest_kgf_cm": -1.8, "rate_kgf_cm_rad": 1.35}
     assert tilt["rest_kgf_cm"] == pytest.approx(0.6 * tilt["gain"], abs=2e-3)
@@ -76,7 +249,7 @@ def test_the_pan_span_bends_in_an_s_and_the_tilt_spans_arc_breathes(report):
     two arcs of (15^2 + 6.89^2) / 13.78 = 19.78 mm. Tilt: a 45 deg arc of 22 mm radius opened by 20 deg to 65 deg
     spreads the same length over more turn: 22 x 45 / 65 = 15.23 mm."""
     assert report["spans"]["pan"]["bend_mm"] == pytest.approx(19.78, abs=0.01)
-    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(15.23, abs=0.01)
+    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(16.62, abs=0.01)
 
 
 @pytest.mark.parametrize("doc", g.MECH)

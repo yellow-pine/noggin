@@ -123,9 +123,11 @@ def neck_problems(report):
     m, out = report.get("neck"), []
     if not m:
         return out
+    if m["tilt"].get("spring_verified") is False:
+        out.append("neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)")
     for drive in neck.RANGES:
         d = m[drive]
-        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+        if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
             out.append(
                 f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
             )
@@ -133,8 +135,13 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        if t["hold_kgf_cm"] > sim.RATED_KGF_CM:
-            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+        rated = (
+            sim.limits("tilt horn")["rated_kgf_cm"]
+            if m["tilt"].get("drive") in {"direct", "parallelogram"}
+            else sim.RATED_KGF_CM
+        )
+        if t["hold_kgf_cm"] > rated:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
@@ -142,6 +149,14 @@ def neck_problems(report):
         if m["spans"][span]["bend_mm"] < floor
     ]
     return out
+
+
+def test_an_unverified_balance_spring_cannot_make_a_neck_report_acceptable():
+    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1], neck.HEAD_AXES["tilt"][0][2] + 40))
+    assert (
+        "neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)"
+        in neck_problems({"neck": neck.report(head)})
+    )
 
 
 def deeper(pair):

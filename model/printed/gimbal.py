@@ -128,13 +128,17 @@ def bail(mechanical=False):
     the rod, each arm a round strut; printed as drawn (its bores across the layers)."""
     by, bz = gm.BAIL
     end, top, tip = gm.EYE["L"][0] + gm.BAIL_END, gm.LEVER - gm.BALL_R - 1.2, by + gm.BAIL_IN
+    x0, x1 = gm.BAIL_INPUT_X
+    ix = (x0 + x1) / 2
     if not mechanical:
         bed = bz - 3
         out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
-        out = out.union(bone.bone((0, by, bed), (0, tip, bed), *BAIL_INPUT).intersect(box((-2, 2), (0, 99), (bed, 99))))
+        out = out.union(
+            bone.bone((ix, by, bed), (ix, tip, bed), *BAIL_INPUT).intersect(box((x0, x1), (0, 99), (bed, 99)))
+        )
     else:
         out = cyl("x", (0, by, bz), 3.0, (-end, end))
-        out = out.union(box((-2, 2), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (-2, 2)))
+        out = out.union(box((x0, x1), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (x0, x1)))
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
         if (
@@ -146,7 +150,7 @@ def bail(mechanical=False):
             out = out.union(box((x - 1.5, x + 1.5), (by - ARM / 2, by + ARM / 2), (bz, top)))
             out = out.union(ball_on(top, (x, by, gm.LEVER)))
         out = out.cut(cyl("x", (0, by, bz), gm.PIN_R, sorted((s * end, s * (end - 8)))))
-    return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (-2, 2)))
+    return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (x0, x1)))
 
 
 @bone.carved
@@ -319,11 +323,11 @@ def frame(mechanical=False):
         out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
-            out = out.union(box(lx, (jy - neck.BOSS_R, jy + neck.BOSS_R), (top, jz))).union(
-                cyl("x", (0, jy, jz), neck.BOSS_R, lx)
+            out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
+                cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
-            for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.BOSS_R)):
+            for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.JAW_FIXED_R)):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
                 # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)
                 x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2 - 0.25
@@ -334,8 +338,14 @@ def frame(mechanical=False):
         out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux).cut(cyl("x", (0, jy, jz), TAP_R, lx))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
+    out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
+    for sign in (-1, 1):
+        out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
     servos = [gm.servo_matrix(face, shaft, tab) for face, shaft, tab, _ in gm.drives().values()]
     servos.append(gm.servo_matrix(*neck.drives()["mouth"][:3]))  # the mouth's, hanging behind the jaw (#838)
+    tz0 = envelopes.SERVO["tabs"][2][0]
+    lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
+    out = out.union(box((lo[0], hi[0]), (lo[1], y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
     for m in servos:  # on the plate's top, or hanging from its underside

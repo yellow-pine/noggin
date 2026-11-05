@@ -16,7 +16,7 @@ ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third
 CORNER = 4.0  # as Bones: the Torso's upright corners round
 # the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
 # 1 mm down, BORDER in from its edge
-PLAQUE, BORDER = ((-16.0, 16.0), (-156.0, -146.0)), 9.0  # under the shirt's Seats
+PLAQUE, BORDER = ((-16.0, 16.0), (-168.0, -158.0)), 9.0  # under the shirt's Seats
 LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 
@@ -43,7 +43,10 @@ def torso(mechanical=False):
         out = out.cut(cq.Workplane("YZ", origin=(px0, 0, 0)).polyline(sunk).close().extrude(px1 - px0))
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
     ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
-    return out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    out = out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
+    for x, y in nk.CARRIER_FEET:
+        out = out.cut(cyl("z", (x, y, 0), 1.7, (z0, floor)))
+    return out
 
 
 def _ledge(top):
@@ -73,6 +76,14 @@ def lid(mechanical=False):
     out = box((x0 + a, x1 - a), (y0 + a, y1 - a), (z1 - nb.LID_T, z1))
     out = out.cut(cyl("z", (0, y_axis, 0), hole, (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(box((-hole, hole), (y_axis, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
+    # Separate lateral rails pass through the lid; rear slots let it lift off without removing the cervical frame.
+    ys, zs = zip(*nk.CERVICAL_PATH)
+    import numpy as np
+
+    rail_y = min(float(np.interp(z, zs, ys)) for z in (z1 - nb.LID_T, z1))
+    for sign in (-1, 1):
+        ends = [sign * float(np.interp(z, zs, nk.CERVICAL_X)) for z in (z1 - nb.LID_T, z1)]
+        out = out.cut(box((min(ends) - 4.5, max(ends) + 4.5), (rail_y - 5, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(cyl("z", (*nb.SWITCH_AT, 0), 6.0, (z1 - nb.LID_T - 1, z1 + 1)))  # a finger down to the switch's lever
     if not mechanical:
         inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))
@@ -85,12 +96,15 @@ def tray(mechanical=False):
     Skeleton, so drawn one way (mechanical alike): its plate over the eyes' drives that the Cores lie on, two legs
     behind the bail down to the gimbal frame's plate, and the hub's riser on the plate from
     the R foot forward, a hole in it round the head mount's rear L screw's nut."""
-    y0, y1 = nb.LEG_Y
-    edge = max(abs(x) for leg in nb.LEG_X.values() for x in leg) + 6
-    out = box(nb.TRAY_X, (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z).union(box((-edge, edge), (y0, y1), nb.TRAY_Z))
-    for leg in nb.LEG_X.values():
-        out = out.union(box(leg, (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
-    riser = box((nb.LEG_X["R"][0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
+    (x0, x1), (y0, y1) = nb.LEG_X, nb.LEG_Y
+    px, py, _ = nk.PAN_ANCHOR
+    out = box(nb.TRAY_X, (nb.CORES_AT[1] - 17, y1), nb.TRAY_Z).union(box((-x1, x1), (py - 6.6, y1), nb.TRAY_Z))
+    for s in (-1, 1):
+        out = out.union(box(sorted((s * x0, s * x1)), (y0, y1), (gm.PLATE_Z[1], nb.TRAY_Z[0])))
+    # The real head-rocker post passes through the tray; an open rear slot keeps the tray removable.
+    out = out.cut(box((px - 7.8, px + 7.8), (py + 2.2, y1 + 1), nb.TRAY_Z))
+    # Carry the relocated hub from the negative-X leg; its riser is physically connected, not a floating plate.
+    riser = box((nb.HUB_X[0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
     return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
 

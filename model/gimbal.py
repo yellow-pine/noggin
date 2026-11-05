@@ -107,7 +107,8 @@ CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in 
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
 PRINT_SCALE = 0.0075  # in-plane print error (docs/research/2026-11-02-literature-cams-am.md [ZF]), on one eye's cranks
 GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
-PITCH_BAR_X = (2.0, 5.0)  # the pitch bar's slab; the bail's input arm is x +-2, the pitch horn outboard of the bar
+PITCH_BAR_X = (24.0, 27.0)  # #978: translate the planar drive along its X axis, clear of the C0 bearing/cable
+BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the bar; YZ linkage unchanged
 # |x| from each eye's centre (#698): outboard each lid's boss, clear of the yawing yoke (24.3), which turns on a shank
 # from the frame's upright beside the caps; inboard the lid bar on the horn's face (behind the yoke, so nearer the eye:
 # its servo under the eye then clears the pitch servo's collar), then the link and the lids' ears face to face, within
@@ -149,7 +150,7 @@ def drives():
     beside the pitch bar, each lid servo upright behind its eye (#838), its horn between the eyes on the lid bar (#698)."""
     out = {
         "yaw": ((0.0, YAW_Y, TIE_Z[0]), g.Z, (-1, 0, 0), g.Y),  # its case across, in front of the mouth servo (#838)
-        "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), g.Y, g.Y),
+        "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), (0, 0, -1), g.Y),
     }
     for s, sign in (("L", 1), ("R", -1)):
         x = EYE[s][0] - sign * LID_X["bar"][0]

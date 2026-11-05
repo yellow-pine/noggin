@@ -2,14 +2,16 @@
 drawn where it sits at rest. Turning bores take the busy pivots' M3 shanks (model/gimbal.py PIN_R); the part a shank
 is fixed in has a tapping hole instead. A tie slot through a tab clamps each end of a flexing span."""
 
+import functools
 import math
 
 import cadquery as cq
 import numpy as np
 
+from model import envelopes
 from model import gimbal as gm
 from model import neck as nk
-from model.envelopes import box
+from model.envelopes import box, hull
 from model.printed import bone
 from model.printed.gimbal import LID_BONE, collar, cyl, lid_bone, link
 
@@ -108,74 +110,226 @@ def yoke(mechanical=False):
     return out.cut(cyl("z", (0, lever, 0), TAP_R, nk.DISC_Z))
 
 
-@bone.carved
-def head_mount(mechanical=False):
-    """The head mount (printed on its side, its bores along Z): a flange screwed under the gimbal frame's plate's back,
-    behind the mouth servo, the tilt lugs outside the cheeks (the tilt shanks turn in them; the cheeks' bosses rise into
-    slots in the flange), the tilt lever behind, and the tilt span's head clamp straight behind the tilt axis, under the
-    flange (#708, #838). As Bones (#708): the flange a frame of Bones flat on the plate from screw to screw round the
-    back, the lever a Bone."""
-    f0, top = nk.FLANGE_Z
-    rho, _ = nk.TILT_SPAN
-    ly = Y + nk.TILT_LEVER
-    (x0, y0), (x1, y1) = (nk.HEAD_SCREWS[1], nk.HEAD_SCREWS[2])
-    if mechanical:
-        out = box((nk.LOOP_X[0], -nk.LOOP_X[0]), (y0 - 2.5, ly + 3), nk.FLANGE_Z)
-        hang = f0
-    else:  # the Bones flat on the plate's underside, domed down within the flange's 3 mm
-        flat = dict(z=top, down=True)
-        out = bone.chain([(x0, y0), (x0, y1), (x1, y1), (x1, y0)], *FLANGE_BONE, **flat)  # OCCT fuses no ring of them
-        out = out.union(bone.chain([(0.0, y1), (0.0, ly)], *FLANGE_BONE, **flat))
-        hang = top - 1  # the lugs and the lever up into the Bones
-    for x, y in nk.HEAD_SCREWS:
-        out = out.cut(cyl("z", (x, y, 0), 1.7, nk.FLANGE_Z))
-    for s in (-1, 1):
-        xs = sorted(s * c for c in nk.LUG_X)
-        out = out.union(box(xs, (Y - nk.BOSS_R, Y + nk.BOSS_R), (Z, hang))).union(cyl("x", (0, Y, Z), nk.BOSS_R, xs))
-        out = out.cut(cyl("x", (0, Y, Z), gm.PIN_R, xs))
-    out = out.union(box((-1.5, 1.5), (ly - 3, ly + 3), (Z, hang))).union(cyl("x", (0, ly, Z), 3.0, (-1.5, 1.5)))
-    out = out.cut(cyl("x", (0, ly, Z), TAP_R, (-1.5, 1.5))).cut(_clear())
-    return out.union(tie(sum(nk.LOOP_X) / 2, Y + rho, Z))
-
-
-def _clear():
-    """What the flange leaves open: a slot round each cheek's boss and one round the tilt bar's top end."""
-    x0, x1 = nk.TILT_BAR_X
-    out = box((x0, x1 + 0.5), _around(Y + nk.TILT_LEVER), nk.FLANGE_Z)
-    for s in (-1, 1):
-        out = out.union(box(sorted(s * c for c in (nk.CHEEK_X[0] - 0.5, nk.CHEEK_X[1])), (Y - 6, Y + 6), nk.FLANGE_Z))
+def cervical_carrier():
+    """Fixed split lateral load path into the Torso; the centre remains open for the anatomical wire canal."""
+    _, y, z = nk.HEAD_AXES["tilt"][0]
+    out = box((-20, 20), (56, 72), nk.MOUNT_Z)
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in (18.0, 22.4))
+        rail = box(sorted(sign * x for x in (14, 18)), (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
+        points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
+        for a, b in zip(points, points[1:]):
+            rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
+        rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
+        out = out.union(rail)
+    # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
+    anchor = nk.TILT_ANCHOR
+    root = (-10.5, *nk.CERVICAL_PATH[-2])
+    elbow = (-10.5, 90.0, -78.0)
+    for a, b in ((root, elbow), (elbow, (-9.8, anchor[1], anchor[2]))):
+        out = out.union(strut(a, b, (4, 3), (3.5, 2.5)))
+    out = out.union(cq.Workplane().sphere(2.8).translate(elbow))
+    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-11.3, nk.REACTION_TAP_X[1])))
+    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-11.3, nk.REACTION_TAP_X[1])))
+    out = out.union(tie(20.0, 78.5, -65.7))
+    for x, fy in nk.CARRIER_FEET:
+        out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
     return out
 
 
-def _around(y, r=nk.BOSS_R + 0.5):
-    return (y - r, y + r)
+def nod_plate():
+    """Tilting cervical carrier, hollow pan spindle and the two real standard-servo tab cradles."""
+    _, y, z = nk.HEAD_AXES["tilt"][0]
+    out = hull("XY", [(0, y, 12), (-13.8, y, 3.6), (13.8, y, 3.6)], 5, (0, 0, nk.NOD_Z[0]))
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in (13.4, 17.4))
+        out = out.union(box(xs, (y - 3.6, y + 3.6), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
+        out = out.union(cyl("x", (0, y, z), 3.6, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
+        for fy in (y - 12, y + 12):
+            out = out.union(_flat([(0, fy), (sign * 14, fy)], 5, nk.NOD_Z))
+        out = out.union(_flat([(sign * 14, y - 12), (sign * 14, y + 12)], 4, nk.NOD_Z))
+    out = out.cut(box((-3, 3), (y - 13.5, y - 9.5), (nk.NOD_Z[0] + 1.75, nk.NOD_Z[0] + 3.25)))
+    # The tube is integral with the nod carrier: head weight never reaches either servo spline.
+    out = out.union(pan_wire_candidate()["spindle"])
+    out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R, (nk.NOD_Z[0], nk.PAN_STUDY_Z[1])))
+    # Low rear tilt cradle: actual tab faces, four M2 tapping bores, an upper header clear of the case and rear Skin.
+    sx, sy, sz = nk.TILT_SHAFT
+    tabs = (sx + 10.4, sx + 13.4)
+    front, rear = sy - 13.4, sy + 34.1
+    for fy in (front, rear):
+        out = out.union(box(tabs, (fy - 3.1, fy + 3.1), (sz - 8.1, sz + 22.0)))
+        for fz in (sz - 5, sz + 5):
+            out = out.cut(cyl("x", (0, fy, fz), 0.8, tabs))
+    out = out.union(box((sx + 10.4, sx + 16.9), (front - 3.1, rear + 3.1), (sz + 11.5, sz + 22.0)))
+    out = out.union(box((sx + 10.4, 25.0), (sy - 10.0, sy + 2.0), (sz + 11.5, sz + 22.0)))
+    # Crown pan cradle: a rear dogleg bypasses the entire rotating frame and the electronics tray.
+    mast = [
+        (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
+        (26, 127, -40),
+        (25, 126, 31),
+        (18, 110, 65),
+        (18, nk.PAN_SHAFT[1] + 34.1, nk.PAN_SHAFT[2] + 9.4),
+    ]
+    out = out.union(_flat([tuple(mast[0][:2]), tuple(mast[1][:2])], 15, nk.NOD_Z))
+    for u, v in zip(mast[1:], mast[2:]):
+        out = out.union(strut(u, v, (6.8, 6.8), (6.8, 6.8)))
+    for v in mast[1:]:
+        out = out.union(cq.Workplane().sphere(6.6).translate(v))
+    fore, aft = nk.PAN_SHAFT[1] - 13.4, nk.PAN_SHAFT[1] + 34.1
+    plate = (nk.PAN_SHAFT[2] + 5.4, nk.PAN_SHAFT[2] + 13.4)
+    out = out.union(_flat([(18, fore), (18, aft)], 6.2, plate))
+    for fy in (fore, aft):
+        out = out.union(_flat([(-5, fy), (18, fy)], 6.2, plate))
+        for x in (-5, 5):
+            out = out.cut(cyl("z", (x, fy, 0), 0.8, plate))
+    for xs in ((17.7, 26), (-26, -17.7)):
+        out = out.cut(cyl("x", (0, y, z), 8.5, xs))
+    return out
 
 
-@bone.carved
+def tilt_lever():
+    """Adapter on the supplied round horn, with an outboard standoff clear of the actual case and tabs."""
+    x, y, z = nk.TILT_SHAFT
+    outer = x + envelopes.STANDARD_HORN["face"]
+    span = (outer - 5, outer)  # counterbore leaves a full 2 mm printed floor over the stock retaining screw
+    out = cyl("x", (0, y, z), 11.5, span)
+    out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 7)], span[1] - span[0], (span[0], 0, 0)))
+    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (span[0], nk.REACTION_TAP_X[1])))
+    out = out.cut(cyl("x", (0, y, z), 1.6, span))
+    out = out.cut(cyl("x", (0, y, z), 2.8, (outer - 3, outer)))
+    for dy, dz in envelopes.STANDARD_HORN["mounts"]:
+        out = out.cut(cyl("x", (0, y + dy, z + dz), 1.1, span))
+    return out.cut(cyl("x", (0, *nk.TILT_PIN[1:]), TAP_R, nk.REACTION_TAP_X))
+
+
+def tilt_reaction_bar():
+    """A rigid bent bar around the electronics; endpoint geometry, not the shape between them, closes the parallelogram."""
+    from model.printed.gimbal import lid_mechanical
+
+    pins = [tuple(point[1:]) for point in nk.TILT_BAR_PATH]
+    out = lid_mechanical(pins, nk.REACTION_BAR_X)
+    for point in (nk.TILT_ANCHOR, nk.TILT_PIN):
+        out = out.union(cyl("x", (0, *point[1:]), 3.8, nk.REACTION_BAR_X)).cut(
+            cyl("x", (0, *point[1:]), gm.PIN_R, nk.REACTION_BAR_X)
+        )
+    return out
+
+
+def head_mount():
+    """Bearing-supported rotating head carrier, including its real pan rocker post."""
+    return pan_wire_candidate()["head carrier"]
+
+
+def pan_fixed_cap():
+    return pan_wire_candidate()["fixed cap"]
+
+
+def pan_moving_cap():
+    return pan_wire_candidate()["moving cap"]
+
+
+def pan_lever():
+    """Printed adapter on the standard round horn; the bar shares the head post's horizontal pin plane."""
+    x, y, _ = nk.PAN_SHAFT
+    pin = nk.PAN_PIN[:2]
+    mounts = [(x + dx, y + dy, 2.2 if dy < 0 else 3.2) for dx, dy in envelopes.STANDARD_HORN["mounts"]]
+    out = hull("XY", [*mounts, (*pin, 4.5)], nk.PAN_LEVER_Z[1] - nk.PAN_LEVER_Z[0], (0, 0, nk.PAN_LEVER_Z[0]))
+    out = out.union(cyl("z", (*pin, 0), 4.5, (nk.PAN_LEVER_Z[0], nk.PAN_TAP_Z[1])))
+    out = out.cut(cyl("z", (*pin, 0), TAP_R, nk.PAN_TAP_Z))
+    out = out.cut(cyl("z", (x, y, 0), 2.8, nk.PAN_LEVER_Z))
+    for dx, dy in envelopes.STANDARD_HORN["mounts"]:
+        out = out.cut(cyl("z", (x + dx, y + dy, 0), 1.1, nk.PAN_LEVER_Z))
+    return out
+
+
+@functools.cache
+def pan_wire_candidate():
+    """Unaccepted retained C0 bearing study; immediate CAD/STEP evidence, outside the production part registry."""
+    y = nk.HEAD_AXES["tilt"][0][1]
+    (bore, outside, _), (bottom, top) = nk.PAN_STUDY_BEARING, nk.PAN_STUDY_Z
+    bolts = [(7.1 * math.cos(a), y + 7.1 * math.sin(a)) for a in np.radians((0, 120, 240))]
+    tube_top = bottom - 6.3
+    spindle = cyl("z", (0, y, 0), 6.2, (nk.NOD_Z[1], tube_top))
+    flare = cq.Solid.makeCone(6.2, 11.5, 5.3, cq.Vector(0, y, tube_top), cq.Vector(0, 0, 1))
+    spindle = spindle.union(cq.Workplane().add(flare)).union(cyl("z", (0, y, 0), 11.5, (bottom - 1, bottom)))
+    spindle = spindle.union(cyl("z", (0, y, 0), bore / 2, (bottom, top)))
+    spindle = spindle.cut(cyl("z", (0, y, 0), nk.WIRE_R, (nk.NOD_Z[1], top)))
+    fixed_cap = cyl("z", (0, y, 0), 11.5, (top, top + 4)).cut(cyl("z", (0, y, 0), nk.WIRE_R, (top, top + 4)))
+    for x, fy in bolts:
+        spindle = spindle.cut(cyl("z", (x, fy, 0), 0.8, (top - 6.5, top)))
+        fixed_cap = fixed_cap.cut(cyl("z", (x, fy, 0), 1.1, (top, top + 4)))
+    bearing = cyl("z", (0, y, 0), outside / 2, (bottom, top)).cut(cyl("z", (0, y, 0), bore / 2, (bottom, top)))
+    carrier = cyl("z", (0, y, 0), 18.5, (bottom - 2, top)).cut(
+        cyl("z", (0, y, 0), 15, (bottom - 2, bottom)).union(cyl("z", (0, y, 0), outside / 2, (bottom, top)))
+    )
+    moving_cap = cyl("z", (0, y, 0), 18.5, (top, top + 4)).cut(cyl("z", (0, y, 0), 15, (top, top + 4)))
+    for a in np.radians((0, 120, 240)):
+        x, fy = 20.6 * math.cos(a), y + 20.6 * math.sin(a)
+        carrier = carrier.union(cyl("z", (x, fy, 0), 3.2, (bottom - 2, top))).cut(
+            cyl("z", (x, fy, 0), 0.8, (top - 6.5, top))
+        )
+        moving_cap = moving_cap.union(cyl("z", (x, fy, 0), 3.2, (top, top + 4))).cut(
+            cyl("z", (x, fy, 0), 1.1, (top, top + 4))
+        )
+    for x, fy in nk.PAN_STUDY_SCREWS:
+        delta = np.array((x, fy - y))
+        start = delta / np.linalg.norm(delta) * 19.5 + (0, y)
+        feet = gm.PLATE_Z[1]
+        carrier = carrier.union(_flat([tuple(start), (x, fy)], 6, (bottom + 1, bottom + 4)))
+        carrier = carrier.union(cyl("z", (x, fy, 0), 3.8, (feet, bottom + 4))).cut(
+            cyl("z", (x, fy, 0), 1.7, (feet, bottom + 4))
+        )
+    # The post's lower step joins the rotor below the removable cap, without using cap screws as a beam joint.
+    carrier = carrier.union(box((-24.8, -17), (y - 10, y + 10), (bottom + 1, top)))
+    carrier = carrier.union(box((-24.8, -18.8), (y - 10, y + 10), (top - 0.5, top + 13)))
+    px, py, _ = nk.PAN_ANCHOR
+    # The lower column stands behind the crank sweep; its top arm reaches the coupler above the crank plate.
+    rear = (px, py + 10)
+    carrier = carrier.union(_flat([(-26.3, y), rear], 15, (top + 4, top + 13)))
+    carrier = carrier.union(cyl("z", (*rear, 0), 7.5, (top + 4, nk.PAN_TAP_Z[1])))
+    arm_z = (nk.PAN_LEVER_Z[1] + 1.5, nk.PAN_TAP_Z[1])
+    carrier = carrier.union(hull("XY", [(*rear, 7.5), (px, py, 5.0)], arm_z[1] - arm_z[0], (0, 0, arm_z[0])))
+    carrier = carrier.cut(cyl("z", (px, py, 0), TAP_R, nk.PAN_TAP_Z))
+    carrier = carrier.cut(box((-24.8, -18.8), (y - 2, y + 2), (top + 6.25, top + 7.75)))
+    return {
+        "spindle": spindle,
+        "fixed cap": fixed_cap,
+        "bearing": bearing,
+        "head carrier": carrier,
+        "moving cap": moving_cap,
+    }
+
+
+@bone.grown
 def jaw(mechanical=False):
-    """The jaw (printed on its side): a boss outside each of the frame's lugs at the condyles (the jaw shanks turn in
-    them), an arm down from each (the mandible's ramus) to the body, which runs forward round to the chin as the
-    mandible's (#838), and a boss down the L arm round the jaw bar's pin. As Bones (#708): each arm a strut, the body
-    and the chin one chain of Bones flat on its underside."""
+    """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
+    from model import skin
+
+    points = {}
+    for side, border in nk.MANDIBLE_BORDER.items():
+        sign = 1 if side == "L" else -1
+        points[side] = [(x - sign * 2.5, y, z + (3 if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)]
+        points[side].append(tuple(np.add(nk.MENTON, (0, 0, 3))))
+    out = None
+    for chain in points.values():
+        for a, b in zip(chain, chain[1:]):
+            link = strut(a, b, (3.2, 2.2), (2.8, 2))
+            out = link if out is None else out.union(link)
     jy, jz = nk.JAW
-    x0, x1 = nk.JAW_X
-    x, (z0, _) = (x0 + x1) / 2, nk.JAW_ARM_Z
-    half = [(x, jy), *nk.JAW_BODY]
-    points = [*half, (0.0, nk.CHIN_Y + 2.0), *((-px, py) for px, py in reversed(half))]
-    if mechanical:
-        out = _flat(points, x1 - x0, nk.JAW_ARM_Z)
-        for s in (-1, 1):
-            out = out.union(box(sorted((s * x0, s * x1)), (jy - nk.BOSS_R, jy + nk.BOSS_R), (z0, jz)))
-    else:
-        out = bone.chain(points, *JAW_BONE, z=z0)
-        for s in (-1, 1):  # from inside the body's Bones up into the boss, inside its faces
-            out = out.union(strut((s * x, jy, z0 + 1), (s * x, jy, jz - 1), (3.0, 1.8), (2.4, 1.5)))
-    pin = (0, jy, jz - nk.JAW_LEVER)
-    out = out.union(cyl("x", pin, 3.0, (x0, x1)))
-    for s in (-1, 1):
-        xs = sorted((s * x0, s * x1))
+    for sign in (-1, 1):
+        xs = sorted(sign * x for x in nk.JAW_X)
         out = out.union(cyl("x", (0, jy, jz), nk.BOSS_R, xs)).cut(cyl("x", (0, jy, jz), gm.PIN_R, xs))
-    return out.cut(cyl("x", pin, TAP_R, (x0, x1)))
+    # The actual ramus, not a vertical extension of the old L, takes the drive pin.
+    x = sum(nk.JAW_X) / 2
+    pin = (x, *nk.JAW_PIN)
+    out = out.union(strut(points["L"][2], pin, (3, 2.2), (2.5, 1.8)))
+    pin_r = 4.0 if mechanical else 3.5
+    out = out.union(cyl("x", (0, *nk.JAW_PIN), pin_r, nk.JAW_X)).cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, nk.JAW_X))
+    # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
+    seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
+    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad / 2))
+    out = out.union(strut(points["L"][-1], at, (3.2, 2.4), (2.8, 2)))
+    return out
 
 
 def _flat(points, w, zs):
@@ -189,18 +343,11 @@ def _flat(points, w, zs):
     return out
 
 
-@bone.carved
-def pan_bar(mechanical=False):
-    """The pan bar, flat under the yoke's floor: the yoke's lever pin to the pan horn's; mechanical or a Bone (#708)."""
-    y = Y + nk.PAN_LEVER
-    if mechanical:
-        out = box((0, nk.PAN_BAR), (y - 3, y + 3), nk.PAN_Z)
-        for x in (0, nk.PAN_BAR):
-            out = out.union(cyl("z", (x, y, 0), 3.0, nk.PAN_Z))
-    else:
-        out = bone.chain([(0.0, y), (nk.PAN_BAR, y)], *LID_BONE, z=nk.PAN_Z[0])
-    for x in (0, nk.PAN_BAR):
-        out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, nk.PAN_Z))
+def pan_bar():
+    """The real horizontal coupler between the standard horn adapter and the bearing-supported head post."""
+    out = _flat([tuple(nk.PAN_PIN[:2]), tuple(nk.PAN_ANCHOR[:2])], 7.6, nk.PAN_LINK_Z)
+    for point in (nk.PAN_PIN, nk.PAN_ANCHOR):
+        out = out.cut(cyl("z", (*point[:2], 0), gm.PIN_R, nk.PAN_LINK_Z))
     return out
 
 
@@ -213,6 +360,6 @@ def tilt_bar(mechanical=False):
 @bone.carved
 def jaw_bar(mechanical=False):
     """The jaw bar: the jaw's lever pin back to the mouth horn's (#838)."""
-    jy, jz = nk.JAW
-    hy, hz = nk.MOUTH_HORN
-    return link((jy, jz - nk.JAW_LEVER), (hy, hz + nk.CRANK), nk.JAW_BAR_X, mechanical, BAR_BONE)
+    solve = nk.LINKAGES["jaw"]
+    _, a, b = solve(0)
+    return link(tuple(a[1:]), tuple(b[1:]), nk.JAW_BAR_X, mechanical, BAR_BONE)

@@ -29,6 +29,7 @@ from model import geometry as g
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
+ANATOMY_LOADS = os.path.join(BUILD, "skeleton", "loads.json")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
@@ -83,22 +84,42 @@ SERVO = {
 }
 
 
-def drive(s, joint, values=SERVO, delay_max_s=None):
+def motor(horn):
+    """Per-axis motor on the actual 5 V rail; the micro's filmed fit never fits the standard tilt."""
+    p = electrical.servo.profile(horn.removesuffix(" horn"), electrical.SERVO_RAIL_V)
+    stall = p["stall_kgfcm"] * 0.0980665
+    return {
+        "volts": p["volts"],
+        "stall_nm": stall,
+        "no_load_rad_s": math.radians(60 / p["s_per_60"]),
+        "kp": stall / math.radians(0.5),
+        "armature": p["armature"],
+        "delay_s": 0.02,
+        "travel_deg": p["travel_deg"],
+        **(json.load(open(FIT)) if horn != "tilt horn" and os.path.exists(FIT) else {}),
+    }
+
+
+def drive(s, joint, values=None, delay_max_s=None, *, name=None, gear=1):
     """A servo on the spec's hinge `joint` (an actuator of its name): a dcmotor at SERVO_V whose position loop commands
     torque (MuJoCo's controller adds back-EMF to its voltage, as a current-driven motor: optimistic for the servo's
     voltage H-bridge below the clamp), its voltage clamped at SERVO_V, so it stalls at stall_nm and runs no faster than
     no_load_rad_s; its command read delay_s late from a history of delay_max_s (default delay_s)."""
+    values = motor(name or joint) if values is None else values
+    volts = values.get("volts", SERVO_V)
     kd = 2 * math.sqrt(values["kp"] * values["armature"])
     s.joint(joint).armature = values["armature"]
-    servo = s.add_actuator(name=joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
+    servo = s.add_actuator(name=name or joint, target=joint, trntype=mujoco.mjtTrn.mjTRN_JOINT)
     servo.set_to_dcmotor(
         motorconst=[0, 0],
         resistance=0,
-        nominal=[SERVO_V, values["stall_nm"], values["no_load_rad_s"]],
-        controller=[values["kp"], 0, kd, 0, 0, SERVO_V],
+        nominal=[volts, values["stall_nm"], values["no_load_rad_s"]],
+        controller=[values["kp"], 0, kd, 0, 0, volts],
         ctrlspec=mujoco.mjtCtrlInput.mjINPUT_POS,
     )
-    servo.ctrlrange = [-math.pi / 2, math.pi / 2]  # the servo's 0..180
+    travel = math.radians(values.get("travel_deg", 180) / 2)
+    servo.ctrlrange = [-travel, travel]
+    servo.gear = [gear, 0, 0, 0, 0, 0]
     servo.nsample = math.ceil((delay_max_s or values["delay_s"]) / s.option.timestep - 1e-9)
     servo.delay, servo.interp = values["delay_s"], 1  # linear (XMLreference actuator interp), so the fit can move it
 
@@ -157,6 +178,48 @@ def _quat(m):
     return q
 
 
+def anatomy(spec, stage, bodies):
+    """Finished-export mass/COM/inertia on rigid carriers; realistic meshes remain excluded from collisions (ADR0020)."""
+    with open(ANATOMY_LOADS) as file:
+        loads = json.load(file)
+    required = set(g.SKULL)  # #874 derives this from its one canonical Bone-output registry
+    if (
+        not isinstance(loads.get("source"), str)
+        or not loads["source"].strip()
+        or not required <= loads.get("parts", {}).keys()
+    ):
+        raise ValueError("finished anatomy loads need their export stamp and every head/cervical part")
+    head = stage.horns["tilt horn"].frame
+    for stem, load in loads["parts"].items():
+        role = load["carrier"]
+        if role not in neck.BONE_CARRIERS:
+            raise ValueError(f"invalid anatomical carrier for {stem}")
+        grams, com, tensor = load["mass_g"], np.asarray(load["com_mm"], float), np.asarray(load["inertia_g_mm2"], float)
+        if (
+            not math.isfinite(grams)
+            or grams <= 0
+            or com.shape != (3,)
+            or tensor.shape != (3, 3)
+            or not np.isfinite(com).all()
+            or not np.isfinite(tensor).all()
+            or not np.allclose(tensor, tensor.T)
+        ):
+            raise ValueError(f"invalid finished mass properties for {stem}")
+        carrier = neck.BONE_CARRIERS[role]
+        matrix = np.linalg.inv(stage.parts[carrier].matrix) @ head
+        inertia, axes = np.linalg.eigh(matrix[:3, :3] @ tensor @ matrix[:3, :3].T)
+        if min(inertia) <= 0 or 2 * max(inertia) > sum(inertia) * (1 + 1e-8):
+            raise ValueError(f"nonphysical finished inertia for {stem}")
+        if np.linalg.det(axes) < 0:
+            axes[:, -1] *= -1
+        orientation = np.eye(4)
+        orientation[:3, :3] = axes
+        body = bodies[carrier].add_body(name=f"anatomy {stem}", pos=(matrix @ [*com, 1])[:3] * MM)
+        body.explicitinertial, body.mass = True, grams / 1000
+        body.ipos = [0, 0, 0]  # the explicit inertia is about this child's own origin, already placed at the COM
+        body.inertia, body.iquat = inertia * 1e-9, _quat(orientation)  # g.mm² -> kg.m²
+
+
 def _joints(stage):
     """The document's hinges, in its frame (mm): ({joint: (point, axis)}: each horn (named as the horn) on its servo
     shaft, each coupler (named as its part) on its horn pin, each rocker (named as its stages.Loop joint) on its pivot,
@@ -170,8 +233,23 @@ def _joints(stage):
         def at(p, axis):
             return (f @ [*p, 1])[:3], np.asarray(axis, float) @ f[:3, :3].T
 
+        if horn.direct:
+            hinges[horn.direct.joint] = at(horn.pivot["point"], horn.pivot["axis"])
+            for name in horn.direct.driven:
+                moves[name].add(horn.direct.joint)
+            if reaction := horn.direct.reaction:
+                axis = horn.pivot["axis"]
+                hinges[h] = at(reaction.point, axis)
+                for name in reaction.driven:
+                    moves[name].add(h)
+                bar_joint = reaction.bar + " pivot"
+                hinges[bar_joint] = at(reaction.anchor, axis)
+                moves[reaction.bar].add(bar_joint)
+                closures.append((h + " reaction", reaction.bar, reaction.driven[0], at(reaction.pin, axis)[0]))
+            continue
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
-        moves[horn.crank].add(h)
+        for crank in (horn.crank,) if isinstance(horn.crank, str) else horn.crank:
+            moves[crank].add(h)
         for loop in horn.loops:
             _, a0, b0 = loop.solve(0)
             pivot, axis = loop.rocker_pivot
@@ -303,9 +381,14 @@ def spec(doc, collide=True):
             solref=LOOP_SOLREF,
             solimp=LOOP_SOLIMP,
         )
-    for h in stage.horns:
-        drive(s, h)
-    if "tilt horn" in stage.horns:
+    for h, horn in stage.horns.items():
+        if horn.direct and not horn.direct.reaction:
+            drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
+        else:
+            drive(s, h)
+    if neck.HEAD_CARRIERS["fixed"] in bodies and neck.HEAD_CARRIERS["jaw"] in bodies:
+        anatomy(s, stage, bodies)  # missing finished exports must never silently remove anatomical head weight
+    if "tilt horn" in stage.horns and (neck.HEAD_CARRIERS["fixed"] not in bodies or neck.SPRING_VERIFIED):
         balance(s, doc)
     return s
 
@@ -318,9 +401,13 @@ def head(doc, model, bare=False):
     and what rides the head mount), as the MJCF weighs and places them; bare: less its Skin's Shells (skin.DRAWN)."""
     data = mujoco.MjData(model)
     mujoco.mj_kinematics(model, data)
-    rockers = stages.STAGES[doc].horns["tilt horn"].loops[0].rockers
+    horn = stages.STAGES[doc].horns["tilt horn"]
+    rockers = horn.direct.driven if horn.direct else horn.loops[0].rockers
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
+    ids += [
+        i for i in range(1, model.nbody) if model.body(i).name.startswith("anatomy ") and model.body_parentid[i] in ids
+    ]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
@@ -380,7 +467,7 @@ def pose(model, ctrl, deg_s=SLEW_DEG_S):
             if not quasi:
                 break
             speed = float(np.max(np.abs(data.qvel), initial=0))
-            positions = data.qpos[model.jnt_qposadr[model.actuator_trnid[:, 0]]]
+            positions = data.actuator_length
             error = float(np.max(np.abs(data.ctrl - positions), initial=0))
             if speed <= math.radians(SETTLE_DEG_S) and error <= SERVO["stall_nm"] / SERVO["kp"]:
                 break

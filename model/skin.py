@@ -186,17 +186,17 @@ def _seats(skin):
         # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
         # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
         *[
-            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -157.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
         *[
-            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -157.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
     ]
 
 
-SUNGLASSES = (0.0, -131.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
+SUNGLASSES = (0.0, -156.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
 SEATS += [
     *_seats("morty"),
     *_seats("cansin"),
