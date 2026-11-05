@@ -395,20 +395,25 @@ def c1_window(arrays, scene, original):
         if section is None:
             out["sections"][str(z)] = {"error": "No closed C1 cross-section"}
             continue
-        loops = [Polygon(p[:, :2]) for p in section.discrete if len(p) >= 4 and np.allclose(p[0], p[-1])]
+        paths = section.discrete
+        open_paths = sum(not np.allclose(p[0], p[-1]) for p in paths if len(p) >= 2)
+        loops = [Polygon(p[:, :2]) for p in paths if len(p) >= 4 and np.allclose(p[0], p[-1])]
         loops = [p for p in loops if p.is_valid and p.area > 0]
         holes = [p for p in loops if sum(q.contains(p) for q in loops if q is not p) % 2]
-        enclosed = [p for p in holes if p.contains(axis)]
-        if not enclosed:
-            out["sections"][str(z)] = {"shaft_axis_inside_neural_air": False}
+        if not loops:
+            out["sections"][str(z)] = {"error": "No valid closed C1 material contours", "open_paths": open_paths}
             continue
-        radius = float(min(enclosed, key=lambda p: p.area).exterior.distance(axis))
+        in_bone = sum(p.contains(axis) for p in loops) % 2 == 1
+        radius = float(min(p.exterior.distance(axis) for p in loops))
+        certified_air = not in_bone and open_paths == 0
         out["sections"][str(z)] = {
-            "shaft_axis_inside_neural_air": True,
+            "axis_in_bone_material": in_bone,
+            "axis_in_enclosed_neural_hole": any(p.contains(axis) for p in holes),
+            "open_paths": open_paths,
             "clear_radius_about_actual_axis_mm": radius,
-            "OD12_plus1_6_clear": radius >= 7.6,
-            "OD20_plus1_6_clear": radius >= 11.6,
-            "OD23_shoulder_plus1_6_clear": radius >= 13.1,
+            "OD12_plus1_6_clear_at_this_plane": certified_air and radius >= 7.6,
+            "OD20_plus1_6_clear_at_this_plane": certified_air and radius >= 11.6,
+            "OD23_shoulder_plus1_6_clear_at_this_plane": certified_air and radius >= 13.1,
         }
     return out
 
