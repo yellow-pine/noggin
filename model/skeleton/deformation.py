@@ -174,6 +174,21 @@ def solve(
             "initial_constr_penalty": 1000.0,
         },
     )
+    # Interior steps preserve the strain budget; an active-set finish resolves thin-triangle boundary constraints.
+    if room(result.x).min() < -1e-6 or strains(result.x).min() < -1e-6:
+        polished = minimize(
+            lambda c: (float(c @ c), 2 * c),
+            result.x,
+            jac=True,
+            method="SLSQP",
+            constraints=[
+                {"type": "ineq", "fun": strains, "jac": strain_jac},
+                {"type": "ineq", "fun": room, "jac": room_jac},
+            ],
+            options={"maxiter": maxiter, "ftol": 1e-10},
+        )
+        if room(polished.x).min() >= -1e-6 and strains(polished.x).min() >= -1e-6:
+            result = polished
     sigma, _, det, _ = lengths(result.x)
     _, surface, _ = principal_lengths(baseline_tangent, tangent_modes, result.x)
     minimum_room = float(room(result.x).min())
