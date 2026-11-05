@@ -82,7 +82,7 @@ def test_the_face_and_hair_meet_without_overlapping(skin_shape, heads):
     assert heads[skin_shape]["face"].intersect(heads[skin_shape]["hair"]).Volume() < 0.1
 
 
-@pytest.mark.parametrize("glued", [s for s, (c, _) in sk.GLUED.items() if s.split()[1] in ("cansin", "bart")])
+@pytest.mark.parametrize("glued", [s for s in sk.GLUED if s.split()[0] in sk.DOTTED])
 def test_the_glued_shells_fill_their_pockets_without_overlapping(glued):
     """#813, #807: Cansin's brows in the face, his teeth in the mouth cover, each pupil plug (Bart's too) in its cap's
     jagged seat and its dot in the plug: each in its pocket, within its fit of what carries it, sharing no volume."""

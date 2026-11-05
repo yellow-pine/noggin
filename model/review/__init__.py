@@ -10,15 +10,19 @@ on its largest flat face, packed on BED plates); `before` adds a scene of main's
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
 
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
-it): a closed arm-free mesh named Morty, in morty-fixed.stl's raw frame, with painted material slots named by Skin Colour
-group. It stays local and editable; the recipe reads it without changing it, applies the Default Skin palette and
-cuts it at the model's floor. Without this sectioned reference, Morty's layer stays empty, including in a fresh clone.
+it): a collection `Morty reference` of editable semantic meshes in morty-fixed.stl's raw frame, with painted material
+slots named by Skin Colour group. Each mesh names its `reference_region`, `display_region` and optional live `carrier`
+part. Neck, shoulders and torso have no carrier. The recipe reads it without changing it, applies the Default Skin
+palette and cuts it at the model's floor. Without this reference, Morty's layer stays empty, including in a fresh clone.
+Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
+anatomical surfaces for the output's motion checks; their positions stay private with the reference.
 """
 
 import fcntl
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -29,6 +33,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skeleton, skin, stages
 from model.render import pictures, scene
+from scripts.gx10 import blender_ceiling
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
 # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
@@ -36,7 +41,7 @@ SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S1
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
 QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
-CEILING_KB = 3_000_000  # a Blender process's RSS past this is killed: the laptop swaps to a crash
+CEILING_KB = blender_ceiling(sys.platform, os.environ)  # the Mac remains protected; GX10 also has a whole-job cgroup
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
 REGIONS = {
     "eyes": "Skull",
@@ -188,8 +193,8 @@ def plates(stage):
 
 
 def _morty(stage):
-    """Morty's place and section colours: eyes on the Mech's, scaled to their spacing; regions at the head's bottom
-    and Pedestal's top, with one flat cut at the Pedestal's floor."""
+    """Morty's place and section colours: eyes on the Mech's, scaled to their spacing, with one flat cut at the
+    Pedestal's floor. Motion ownership belongs to the editable private reference, never to mechanical height bounds."""
     eyes = stages.align(*stages.DOCS[DOC]["eyes"])
     mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
     raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
@@ -202,12 +207,9 @@ def _morty(stage):
     )
     region, box = regions(), pictures.boxes(DOC)
     bare = [n for n, p in stage.parts.items() if stages.stem(p.file) not in (*g.BONES, *skin.SHELLS)]
-    skull = min(box[n][0][2] for n in bare if region[n] == "Skull")
-    pedestal = max(box[n][1][2] for n in bare if region[n] == "Pedestal")
     return {
         "blend": MORTY,
         "at": at.tolist(),
-        "planes": [float(pedestal), float(skull)],
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
     }
@@ -252,6 +254,7 @@ def _blender(args, ceiling_kb=CEILING_KB):
     log = tempfile.TemporaryFile("w+")  # a file, not a pipe: a full pipe would stall Blender
     p = subprocess.Popen([skeleton.BLENDER, "-b", "--factory-startup", *args], stdout=log, stderr=subprocess.STDOUT)
     peak = 0
+    step = "inspect" if "--python-expr" in args else args[-1]
     while p.poll() is None:
         rss = subprocess.run(["ps", "-o", "rss=", "-p", str(p.pid)], capture_output=True, text=True).stdout.strip()
         peak = max(peak, int(rss or 0))
@@ -263,8 +266,9 @@ def _blender(args, ceiling_kb=CEILING_KB):
     log.seek(0)
     log = log.read()
     if p.returncode or "review: done" not in log:
-        raise RuntimeError(f"Blender failed on {args[-1]}:\n{log[-4000:]}")
-    print(f"review: {args[-1]} in {peak // 1000} MB", flush=True)
+        raise RuntimeError(f"Blender failed on {step}:\n{log[-4000:]}")
+    print(f"review: {step} in {peak // 1000} MB", flush=True)
+    return log
 
 
 def lock(path, wait=False):

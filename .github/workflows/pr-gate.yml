@@ -2,7 +2,7 @@ name: PR Gate
 # Runs a PR's slim gate: `just check-light` (ruff, pyright and the fast tests), then the required `Checks`.
 # Everything heavier is main's Checks (checks.yml), which fixes forward what it catches (#283, #696, #714). Its own
 # workflow (#722), so a PR lists no job that every PR skips (test_workflows.py). `Checks` is the required check: it
-# fails unless Code passed (a skipped required check passes, so this one never skips). Code runs in our base image
+# fails unless Code passed, including when a draft skips Code (a skipped required check would pass). Code runs in our base image
 # (ci/base.Dockerfile).
 on:
   pull_request:   # never on edited: a title or body edit would cancel this run, or green a red one (#496)
@@ -38,16 +38,15 @@ jobs:
         if: always()
         run: |
           { echo '```'; sed -n '/slowest .*durations/,/ in [0-9.]*s/p' "$RUNNER_TEMP/pytest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-  # the required check (#496): Code passed. A skipped required check passes, so this one never skips; a failed need
-  # fails it
+  # Always report the required check (#972): skipped Code on a draft must block merging, as must a failed need.
   checks:
     name: Checks
     needs: [code]
-    if: ${{ !cancelled() && !github.event.pull_request.draft }}
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Check every job passed
-        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35   # v1.3.0
-        with:
-          jobs: ${{ toJSON(needs) }}
+        env:
+          CODE_RESULT: ${{ needs.code.result }}
+        run: test "$CODE_RESULT" = success

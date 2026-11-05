@@ -2,13 +2,17 @@
 at least 14 days old, its sha256 from the release's own .sha256 file. The listing comes from the first of
 ci/blender.Dockerfile's sources that answers (download.blender.org, then Blender's official mirrors: #367, #370), the
 sha256 only when two of them agree. Rewrites the version and sha256 in every file under .github/ and ci/ that holds the
-current pin, and prints the new version and the sources that agree on its hash; prints nothing when the pin is
-already the newest. Usage: python3 scripts/blender_pin.py"""
+current pin, including the native GX10 source archive's SHA-256 computed from matching official mirrors. Prints the
+new version and the sources that agree on its binary hash; prints nothing when the pin is already the newest.
+Usage: python3 scripts/blender_pin.py"""
 
+import hashlib
 import re
 import subprocess
+import time
 import urllib.request
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from http.client import HTTPException
 from pathlib import Path
@@ -74,6 +78,10 @@ def agreed_sha256(version: str, fetch: Callable[[str], str]) -> tuple[str, list[
             sums[source] = tarball_sha256(fetch(url), version)
         except (OSError, ValueError, HTTPException):
             pass
+    return agreement(version, sums)
+
+
+def agreement(version: str, sums: dict[str, str]) -> tuple[str, list[str]]:
     if len(sums) < 2 or len(set(sums.values())) > 1:
         raise ValueError(f"Blender {version}'s sha256 needs two sources that agree and none that differs: {sums}")
     return next(iter(sums.values())), list(sums)
@@ -98,6 +106,28 @@ def lookup(old: str, now: datetime, fetch: Callable[[str], str] = get) -> tuple[
     return new, agreed_sha256(old, fetch)[0], new_sha, sources
 
 
+def source_sha256(version: str) -> str:
+    """Source archives publish MD5, so compute SHA-256 from the official mirrors, retaining the two-source rule."""
+
+    def archive_hash(source):
+        url = f"https://{source}/source/blender-{version}.tar.xz"
+        try:
+            digest, deadline = hashlib.sha256(), time.monotonic() + 180
+            with urllib.request.urlopen(url, timeout=20) as archive:  # noqa: S310 our own official https URLs
+                while chunk := archive.read(1024 * 1024):
+                    digest.update(chunk)
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("source mirror exceeded its download budget")
+            return source, digest.hexdigest()
+        except (OSError, HTTPException):
+            return None
+
+    # Source archives are large; concurrent, bounded streams keep the weekly updater within its ten-minute job.
+    with ThreadPoolExecutor(max_workers=len(SOURCES)) as pool:
+        sums = dict(item for item in pool.map(archive_hash, SOURCES) if item is not None)
+    return agreement(version, sums)[0]
+
+
 def main() -> None:
     tracked = subprocess.run(["git", "ls-files", ".github", "ci"], capture_output=True, text=True, check=True)
     files = [Path(f) for f in tracked.stdout.split()]
@@ -108,8 +138,13 @@ def main() -> None:
     new, old_sha, new_sha, sources = found
     pinned = [f for f in files if old_sha in f.read_text()]
     assert pinned, f"no file holds Blender {old}'s official sha256 {old_sha}"
+    native = next(f for f in files if f.name == "gx10-blender-build.sh")
+    old_source_sha = re.search(r"^BLENDER_SOURCE_SHA256=([0-9a-f]{64})$", native.read_text(), re.M)
+    assert old_source_sha, "native Blender source hash missing"
+    native_text = repin(native.read_text(), old, new, old_source_sha[1], source_sha256(new))
     for f in pinned:
         f.write_text(repin(f.read_text(), old, new, old_sha, new_sha))
+    native.write_text(native_text)
     print(new, *sources)
 
 
