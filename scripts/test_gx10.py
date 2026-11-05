@@ -130,7 +130,7 @@ def test_a_reachable_transfer_error_is_reported(monkeypatch):
 
 
 def test_private_fit_inputs_are_immutable_and_changed_inputs_stage_separately(tmp_path, monkeypatch):
-    remote, source = tmp_path / "remote", tmp_path / "neutral-world.npz"
+    remote, source = tmp_path / "remote", tmp_path / "fit-data.npz"
     source.write_bytes(b"original private fit data")
     monkeypatch.setattr(gx10, "ssh", lambda host, args, **kw: subprocess.run(args, **kw))
     monkeypatch.setattr(gx10, "transfer", lambda host, src, dest, **kw: shutil.copyfile(src, dest))
