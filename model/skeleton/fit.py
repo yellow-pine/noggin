@@ -5,6 +5,7 @@ Blender exports/applies this public exchange; the private reference never travel
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, cast
@@ -16,7 +17,8 @@ from scipy.interpolate import RBFInterpolator
 from scipy.optimize import Bounds, NonlinearConstraint, minimize
 from shapely.geometry import Point, Polygon
 
-from model.skeleton import budget
+from model.skeleton import budget, deformation, refine
+from model.skeleton.envelope import Envelope
 
 REGIONS = {"Skull": "skull", "Mandible": "jaw", "Ribcage": "upper_chest"} | {f"C{i}": "cervicals" for i in range(1, 8)}
 
@@ -561,12 +563,14 @@ def affine_head_room(arrays, scene, envelope, cage):
     return report
 
 
-def refit(arrays, scene, envelope, seed_only=False):
+def refit(arrays, scene, envelope, seed_only=False, skin=None):
     """Original anatomy, four declared uniform regions, then one bounded residual field.
 
     The similarity sizes are chosen BEFORE shape deformation from fixed eye/C0 anchors and measured Skin room.
     Original cervical curvature is retained; no independent Bone poses or interpolated C2-C7 targets are used.
     """
+    if skin is not None and not seed_only:
+        return fit_bust(arrays, scene, envelope, skin)
     import copy
     import hashlib
 
@@ -708,6 +712,810 @@ def refit(arrays, scene, envelope, seed_only=False):
     return result, report
 
 
+def floor_extended_skin(vertices, faces, extension_mm=250.0):
+    """Extend the horizontal Z=0 bust base cut downward without altering any Z>0 sidewall or shoulder triangle."""
+    v = np.asarray(vertices, dtype=float)
+    f = np.asarray(faces, dtype=np.int64)
+    tri = v[f]
+    centroids = tri.mean(axis=1)
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    normals = cross / np.maximum(np.linalg.norm(cross, axis=1, keepdims=True), 1e-12)
+    is_floor = (centroids[:, 2] <= 1.0) & (normals[:, 2] < -0.95)
+    if not is_floor.any():
+        return v.copy(), f.copy()
+    side_faces = f[~is_floor]
+    floor_faces = f[is_floor].copy()
+    side_v = set(np.unique(side_faces).tolist())
+    floor_v = set(np.unique(floor_faces).tolist())
+    shared = sorted(side_v & floor_v)
+    floor_only = sorted(floor_v - side_v)
+    out_v = v.copy()
+    if floor_only:
+        out_v[floor_only, 2] -= extension_mm
+    dup = {idx: len(out_v) + i for i, idx in enumerate(shared)}
+    dup_v = v[shared].copy()
+    dup_v[:, 2] -= extension_mm
+    out_v = np.vstack((out_v, dup_v))
+    remap = np.arange(len(v), dtype=np.int64)
+    for idx, new_idx in dup.items():
+        remap[idx] = new_idx
+    floor_faces = remap[floor_faces]
+    floor_half = {(int(row[i]), int(row[(i + 1) % 3])) for row in f[is_floor] for i in range(3)}
+    walls = []
+    for row in side_faces:
+        for i in range(3):
+            a, b = int(row[i]), int(row[(i + 1) % 3])
+            if (b, a) in floor_half:
+                walls.append((a, dup[b], b))
+                walls.append((a, dup[a], dup[b]))
+    out_f = np.vstack((side_faces, np.asarray(walls, dtype=np.int64), floor_faces))
+    return out_v, out_f
+
+
+def hair_vault_guides(skin_vertices, skin_faces, skull_mesh, head_matrix, inset_mm=4.2):
+    """Subordinate cranial-vault guide pairs from the inner/crease trough of the reference hair cap."""
+    skin_mesh = trimesh.Trimesh(skin_vertices, skin_faces, process=False)
+    inv_a = np.linalg.inv(head_matrix[:3, :3])
+    origin_world = np.array((0.0, -78.0, 185.0))
+    origin_native = (origin_world - head_matrix[:3, 3]) @ inv_a.T
+    directions = []
+    for phi_deg in (18, 32, 48, 64, 78):
+        phi = np.deg2rad(phi_deg)
+        for theta_deg in range(-150, 180, 30):
+            theta = np.deg2rad(theta_deg)
+            d = np.array((np.sin(phi) * np.sin(theta), -np.sin(phi) * np.cos(theta), np.cos(phi)))
+            # Keep superior vault dome and posterior occipital/parietal dome above the hair-cap crease.
+            if phi_deg <= 50 or d[1] > -0.25:
+                directions.append(d / np.linalg.norm(d))
+    directions = np.asarray(directions)
+    locs, rays, _ = skin_mesh.ray.intersects_location(np.tile(origin_world, (len(directions), 1)), directions)
+    world_targets, valid_dirs = [], []
+    for i, d in enumerate(directions):
+        pts = locs[rays == i]
+        dists = (pts - origin_world) @ d
+        pos = dists[dists > 10.0]
+        if len(pos):
+            r = float(pos.min()) - (inset_mm + 1.0)
+            if r > 20.0:
+                world_targets.append(origin_world + r * d)
+                valid_dirs.append(d)
+    if not world_targets:
+        return np.empty((0, 3)), np.empty((0, 3))
+    world_targets = np.asarray(world_targets)
+    native_targets = (world_targets - head_matrix[:3, 3]) @ inv_a.T
+    native_sources = outer_cortex(skull_mesh, native_targets, origin_native)
+    return native_sources, world_targets
+
+
+JOINT_SPECS = (
+    ("C0 L", "occipital bone", "C1", "L", 3.5, "cross_region"),
+    ("C0 R", "occipital bone", "C1", "R", 3.5, "cross_region"),
+    ("TMJ L L", "mandible", "L temporal bone", "L", 3.5, "cross_region"),
+    ("TMJ R R", "mandible", "R temporal bone", "R", 3.5, "cross_region"),
+    ("C7 T1 L", "C7", "T1", "L", 3.5, "cross_region"),
+    ("C7 T1 R", "C7", "T1", "R", 3.5, "cross_region"),
+    ("SC L", "manubrium", "L clavicle", "L", 3.5, "intra_region"),
+    ("SC R", "manubrium", "R clavicle", "R", 3.5, "intra_region"),
+    ("AC L", "L clavicle", "L scapula", "L", 5.0, "intra_region"),
+    ("AC R", "R clavicle", "R scapula", "R", 5.0, "intra_region"),
+    ("Manubriosternal", "manubrium", "body of sternum", None, 3.5, "intra_region"),
+    ("Costovertebral T1 L", "T1", "L rib 1", "L", 3.5, "intra_region"),
+    ("Costovertebral T1 R", "T1", "R rib 1", "R", 3.5, "intra_region"),
+    ("Sternocostal 1 L", "manubrium", "L costal cartilage 1", "L", 3.5, "intra_region"),
+    ("Sternocostal 1 R", "manubrium", "R costal cartilage 1", "R", 3.5, "intra_region"),
+    *((f"C{i} C{i + 1}", f"C{i}", f"C{i + 1}", None, 3.5, "intra_region") for i in range(1, 7)),
+)
+
+
+def joint_witnesses(arrays, scene):
+    """Extract deterministic opposing surface patches on native Basis for cross-region and intra-region joints."""
+    by_name = {b["name"]: b for b in scene["bones"]}
+    meshes = {}
+    for name, b in by_name.items():
+        key = b["key"]
+        refinement = b.get("refinement")
+        basis = np.asarray(arrays[key + "_basis"], dtype=float)
+        if refinement and key + "_refinement_original_faces" in arrays:
+            basis = basis[: int(refinement["original_vertex_count"])]
+            faces = np.asarray(arrays[key + "_refinement_original_faces"], dtype=np.int64)
+        else:
+            faces = np.asarray(arrays[key + "_faces"], dtype=np.int64)
+        meshes[name] = trimesh.Trimesh(basis, faces, process=False)
+    joints = {}
+    for label, name_a, name_b, side, radius, kind in JOINT_SPECS:
+        if name_a not in meshes or name_b not in meshes:
+            continue
+        ma, mb = meshes[name_a], meshes[name_b]
+        va, vb = np.asarray(ma.vertices), np.asarray(mb.vertices)
+        mask_a = np.ones(len(va), dtype=bool)
+        mask_b = np.ones(len(vb), dtype=bool)
+        if side == "L":
+            mask_a &= va[:, 0] > 2.0
+            mask_b &= vb[:, 0] > 2.0
+        elif side == "R":
+            mask_a &= va[:, 0] < -2.0
+            mask_b &= vb[:, 0] < -2.0
+        idx_a = np.flatnonzero(mask_a)
+        idx_b = np.flatnonzero(mask_b)
+        closest_b, dist_a, _ = trimesh.proximity.closest_point(mb, va[idx_a])
+        closest_a, dist_b, _ = trimesh.proximity.closest_point(ma, vb[idx_b])
+        sel_a = dist_a <= radius
+        sel_b = dist_b <= radius
+        if not sel_a.any() or not sel_b.any():
+            continue
+        ids_a = idx_a[sel_a]
+        ids_b = idx_b[sel_b]
+        gaps = np.r_[dist_a[sel_a], dist_b[sel_b]]
+        joints[label] = {
+            "bone_a": name_a,
+            "bone_b": name_b,
+            "kind": kind,
+            "side": side,
+            "max_distance_mm": float(radius),
+            "a_vertex_count": int(len(ids_a)),
+            "b_vertex_count": int(len(ids_b)),
+            "a_vertex_ids": ids_a.tolist(),
+            "b_vertex_ids": ids_b.tolist(),
+            "a_patch_centroid_native": va[ids_a].mean(0).tolist(),
+            "b_patch_centroid_native": vb[ids_b].mean(0).tolist(),
+            "a_paired_on_b_centroid_native": closest_b[sel_a].mean(0).tolist(),
+            "b_paired_on_a_centroid_native": closest_a[sel_b].mean(0).tolist(),
+            "native_gap_mm": {
+                "min": float(gaps.min()),
+                "median": float(np.median(gaps)),
+                "max": float(gaps.max()),
+            },
+        }
+    return {
+        "scope": "Native BodyParts3D opposing articular surface patches (before any affine/nonlinear fit)",
+        "joints": joints,
+    }
+
+
+def evaluate_joint_witnesses(witnesses, world_by_name, faces_by_name):
+    """Measure deformed patch centroids and surface-to-surface articular gaps across all witnessed joints."""
+    meshes = {name: trimesh.Trimesh(world_by_name[name], faces_by_name[name], process=False) for name in world_by_name}
+    out = {}
+    for label, info in witnesses["joints"].items():
+        na, nb = info["bone_a"], info["bone_b"]
+        va = world_by_name[na][info["a_vertex_ids"]]
+        vb = world_by_name[nb][info["b_vertex_ids"]]
+        _, da, _ = trimesh.proximity.closest_point(meshes[nb], va)
+        _, db, _ = trimesh.proximity.closest_point(meshes[na], vb)
+        gaps = np.r_[da, db]
+        ca, cb = va.mean(0), vb.mean(0)
+        out[label] = {
+            "bone_a": na,
+            "bone_b": nb,
+            "kind": info.get("kind", "cross_region"),
+            "a_centroid_world": ca.tolist(),
+            "b_centroid_world": cb.tolist(),
+            "centroid_distance_mm": float(np.linalg.norm(ca - cb)),
+            "deformed_gap_mm": {
+                "min": float(gaps.min()),
+                "median": float(np.median(gaps)),
+                "max": float(gaps.max()),
+            },
+            "native_gap_mm": info["native_gap_mm"],
+        }
+    return out
+
+
+def _fps(points, count):
+    points = np.asarray(points, dtype=float)
+    if len(points) <= count:
+        return np.arange(len(points), dtype=np.int64)
+    chosen = [int(np.argmax(np.sum((points - points.mean(0)) ** 2, axis=1)))]
+    dist2 = np.sum((points - points[chosen[0]]) ** 2, axis=1)
+    for _ in range(1, count):
+        nxt = int(np.argmax(dist2))
+        chosen.append(nxt)
+        dist2 = np.minimum(dist2, np.sum((points - points[nxt]) ** 2, axis=1))
+    return np.array(chosen, dtype=np.int64)
+
+
+def _diverse_violators(world_points, margins, limit=64, min_dist_mm=3.5):
+    bad = np.flatnonzero(margins < 1e-4)
+    if not len(bad):
+        return []
+    order = bad[np.argsort(margins[bad])]
+    picked = [int(order[0])]
+    min_d2 = min_dist_mm**2
+    for idx in order[1:]:
+        if len(picked) >= limit:
+            break
+        p = world_points[idx]
+        if all(np.sum((p - world_points[j]) ** 2) >= min_d2 for j in picked):
+            picked.append(int(idx))
+    for idx in order[: min(16, len(order))]:
+        if int(idx) not in picked:
+            picked.append(int(idx))
+    return picked
+
+
+def _load_skin(skin):
+    if isinstance(skin, tuple) and len(skin) == 2:
+        return np.asarray(skin[0], dtype=float), np.asarray(skin[1], dtype=np.int64)
+    if isinstance(skin, (str, Path)):
+        data = np.load(skin)
+        return np.asarray(data["vertices"], dtype=float), np.asarray(data["faces"], dtype=np.int64)
+    return np.asarray(skin["vertices"], dtype=float), np.asarray(skin["faces"], dtype=np.int64)
+
+
+def fit_bust(arrays, scene, envelope, skin):
+    """Solve the 4 connected anatomical regions inside the exact Skin Envelope with conforming adaptive refinement."""
+    import copy
+    import hashlib
+
+    skin_v, skin_f = _load_skin(skin)
+    inset = float(envelope.get("inset_mm", 4.2))
+    head_env = Envelope(skin_v, skin_f)
+    ext_v, ext_f = floor_extended_skin(skin_v, skin_f, extension_mm=250.0)
+    chest_env = Envelope(ext_v, ext_f)
+    head_margin = lambda p: head_env.distance(p) - inset
+    chest_margin = lambda p: chest_env.distance(p) - inset
+
+    historical = copy.deepcopy(scene.get("landmarks", {}))
+    arrays = {k: np.asarray(v).copy() for k, v in arrays.items()}
+    digest = hashlib.sha256()
+    for bone in scene["bones"]:
+        key = bone["key"]
+        digest.update(bone["name"].encode())
+        digest.update((arrays[key + "_sculpt"] - arrays[key + "_warp"]).tobytes())
+        arrays[key + "_sculpt"] = arrays[key + "_warp"].copy()
+    scene["historical_sculpt_policy"] = {
+        "policy": "Original-anatomy refit starts with zero working Sculpt residual; historical source/Git/exchange remain unchanged",
+        "original_delta_sha256": digest.hexdigest(),
+    }
+    facts = original_facts(arrays, scene)
+    allowance = budget.reference(arrays, scene["bones"], facts)
+    scene["anatomical_budget"] = allowance
+    support = budget.support_mesh(arrays, scene["bones"])
+    witnesses = joint_witnesses(arrays, scene)
+
+    bone_meta = {}
+    for bone in scene["bones"]:
+        key = bone["key"]
+        basis = np.asarray(arrays[key + "_basis"], dtype=float)
+        faces = np.asarray(arrays[key + "_faces"], dtype=np.int64)
+        v_caps = budget.caps(bone["name"], basis, allowance, support)
+        f_caps = budget.face_caps(bone["name"], basis[faces], allowance, support)
+        eff_v = v_caps.copy()
+        np.minimum.at(eff_v, faces[:, 0], f_caps)
+        np.minimum.at(eff_v, faces[:, 1], f_caps)
+        np.minimum.at(eff_v, faces[:, 2], f_caps)
+        tri = basis[faces]
+        fc = tri.mean(axis=1)
+        em = 0.5 * (tri + np.roll(tri, -1, axis=1)).reshape(-1, 3)
+        bone_meta[bone["name"]] = {
+            "bone": bone,
+            "key": key,
+            "basis": basis,
+            "faces": faces,
+            "v_caps": v_caps,
+            "f_caps": f_caps,
+            "eff_v_caps": eff_v,
+            "fc": fc,
+            "em": em,
+        }
+
+    def solve_region(
+        region_name,
+        bones,
+        pose_candidates_fn,
+        margin_fn,
+        width_mm,
+        n_centres,
+        guides_fn=None,
+        rounds=8,
+        maxiter=120,
+    ):
+        metas = [bone_meta[b["name"]] for b in bones]
+        all_v = np.vstack([m["basis"] for m in metas])
+        all_v_caps = np.concatenate([m["eff_v_caps"] for m in metas])
+        all_fc = np.vstack([m["fc"] for m in metas])
+        all_fc_caps = np.concatenate([m["f_caps"] for m in metas])
+        all_em = np.vstack([m["em"] for m in metas])
+        all_check = np.vstack((all_v, all_fc, all_em))
+        bone_v_slices = []
+        offset = 0
+        for m in metas:
+            n = len(m["basis"])
+            bone_v_slices.append((offset, offset + n))
+            offset += n
+
+        candidates = pose_candidates_fn(all_v, margin_fn)
+        best_result = None
+        for cand_idx, (src_anc, dst_anc, scale, pitch, matrix, pose_rep) in enumerate(candidates):
+            world_v = all_v @ matrix[:3, :3].T + matrix[:3, 3]
+            fixed = src_anc @ matrix[:3, :3].T + matrix[:3, 3]
+            d_anc = np.linalg.norm(world_v[:, None] - fixed[None], axis=2).min(axis=1)
+            far_v = world_v[d_anc >= 0.35 * width_mm]
+            if len(far_v) < 4:
+                far_v = world_v
+            centres = far_v[_fps(far_v, n_centres)]
+            guides = guides_fn(matrix, scale) if guides_fn is not None else None
+
+            pool_pts = np.vstack((all_v, all_fc))
+            pool_caps = np.concatenate((all_v_caps, all_fc_caps))
+            s_idx = set(_fps(pool_pts, min(len(pool_pts), 1100)).tolist())
+            # Always include transition points where allowance > 1.25 meets 1.25.
+            trans = np.flatnonzero((pool_caps > 1.2501) & (pool_caps < 1.499))
+            if len(trans):
+                s_idx.update(trans[_fps(pool_pts[trans], min(len(trans), 250))].tolist())
+
+            w_check = all_check @ matrix[:3, :3].T + matrix[:3, 3]
+            m_init = margin_fn(w_check)
+            c_idx = set(_fps(w_check, min(len(w_check), 48)).tolist())
+            c_idx.update(_diverse_violators(w_check, m_init, limit=72, min_dist_mm=4.0))
+            for a, b in bone_v_slices:
+                c_idx.add(a + int(np.argmin(m_init[a:b])))
+
+            field = None
+            solver_rep = {}
+            for r in range(rounds):
+                s_list = sorted(s_idx)
+                c_list = sorted(c_idx)
+                s_caps = np.where(pool_caps[s_list] > 1.254, pool_caps[s_list] - 0.003, 1.25)
+                field, solver_rep = deformation.solve(
+                    pool_pts[s_list],
+                    matrix,
+                    scale,
+                    src_anc,
+                    centres,
+                    width_mm,
+                    margin_fn,
+                    all_check[c_list],
+                    maximum=s_caps,
+                    maxiter=maxiter,
+                    initial=field,
+                    guides=guides,
+                    minimum=0.753,
+                )
+                moved_check, _ = deformation.evaluate(all_check, field)
+                margins = margin_fn(moved_check)
+                _, grad_pool = deformation.evaluate(pool_pts, field)
+                sv = np.linalg.svd(grad_pool, compute_uv=False) / scale
+                s_violation = np.maximum(
+                    0.7525 - sv[:, 2], sv[:, 0] - np.where(pool_caps > 1.254, pool_caps - 0.002, 1.25)
+                )
+                bad_s = np.flatnonzero(s_violation > 0)
+                new_s = 0
+                if len(bad_s):
+                    top_s = bad_s[np.argsort(-s_violation[bad_s])[:120]]
+                    before_s = len(s_idx)
+                    s_idx.update(map(int, top_s))
+                    new_s = len(s_idx) - before_s
+                min_m = float(margins.min())
+                print(
+                    f"fit[{region_name}]: cand {cand_idx + 1} round {r + 1}/{rounds} "
+                    f"min_margin={min_m:.4f} mm constraints={len(c_idx)} strains={len(s_idx)}",
+                    flush=True,
+                )
+                if min_m >= -1e-5 and new_s == 0:
+                    break
+                before_c = len(c_idx)
+                c_idx.update(_diverse_violators(moved_check, margins, limit=64, min_dist_mm=2.5 if r < 2 else 1.0))
+                for a, b in bone_v_slices:
+                    if margins[a:b].min() < 0:
+                        c_idx.add(a + int(np.argmin(margins[a:b])))
+                if len(c_idx) == before_c and new_s == 0:
+                    break
+
+            assert field is not None
+            moved_v, _ = deformation.evaluate(all_v, field)
+            min_v_margin = float(margin_fn(moved_v).min())
+            if best_result is None or min_v_margin > best_result[0]:
+                best_result = (min_v_margin, src_anc, dst_anc, scale, pitch, matrix, pose_rep, field, solver_rep)
+            if min_v_margin >= -1e-5:
+                break
+
+        assert best_result is not None
+        _, src_anc, dst_anc, scale, pitch, matrix, pose_rep, field, solver_rep = best_result
+        return {
+            "source_anchors": src_anc,
+            "target_anchors": dst_anc,
+            "scale": scale,
+            "pitch_deg": pitch,
+            "affine_matrix": matrix,
+            "pose_report": pose_rep,
+            "field": field,
+            "solver_report": solver_rep,
+        }
+
+    # 1. Solve SKULL
+    eye_l, eye_r = (np.asarray(facts["landmarks"][f"LM {side} orbit"], dtype=float) for side in ("L", "R"))
+    src_eyes = np.array((eye_l, eye_r))
+    dst_eyes = np.array(((36.35, -150.0, 177.0), (-36.35, -150.0, 177.0)))
+    skull_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == "skull"]
+    vault_names = {
+        "frontal bone",
+        "L parietal bone",
+        "R parietal bone",
+        "occipital bone",
+        "L temporal bone",
+        "R temporal bone",
+    }
+    skull_vault_mesh = trimesh.util.concatenate(
+        [
+            trimesh.Trimesh(bone_meta[b["name"]]["basis"], bone_meta[b["name"]]["faces"], process=False)
+            for b in skull_bones
+            if b["name"] in vault_names
+        ]
+    )
+
+    def skull_candidates(all_v, margin_fn):
+        scored = []
+        for s in (0.865, 0.875, 0.855, 0.885):
+            for p in (2.0, 0.0, 4.0, -2.0):
+                try:
+                    mat, rep = regional_pose(src_eyes, dst_eyes, uniform_size=s, pitch_deg=p)
+                except ValueError:
+                    continue
+                m = margin_fn(all_v @ mat[:3, :3].T + mat[:3, 3])
+                score = float(m.min()) + 0.5 * float(np.percentile(m, 5))
+                scored.append((score, (src_eyes, dst_eyes, s, p, mat, rep)))
+        scored.sort(key=lambda x: -x[0])
+        return [x[1] for x in scored[:2]]
+
+    skull_sol = solve_region(
+        "skull",
+        skull_bones,
+        skull_candidates,
+        head_margin,
+        width_mm=38.0,
+        n_centres=48,
+        guides_fn=lambda mat, _s: (*hair_vault_guides(skin_v, skin_f, skull_vault_mesh, mat, inset_mm=inset), 2e-3),
+        rounds=8,
+        maxiter=130,
+    )
+    skull_field = skull_sol["field"]
+
+    def paired_candidates(joint_l, joint_r, a_is_parent, scale_bounds, pitches, extra_score_fn=None):
+        jl, jr = witnesses["joints"][joint_l], witnesses["joints"][joint_r]
+        if a_is_parent:
+            parent_l_v = bone_meta[jl["bone_a"]]["basis"][jl["a_vertex_ids"]]
+            parent_r_v = bone_meta[jr["bone_a"]]["basis"][jr["a_vertex_ids"]]
+            parent_l_nat = np.asarray(jl["a_patch_centroid_native"], dtype=float)
+            parent_r_nat = np.asarray(jr["a_patch_centroid_native"], dtype=float)
+            child_l_nat = np.asarray(jl["a_paired_on_b_centroid_native"], dtype=float)
+            child_r_nat = np.asarray(jr["a_paired_on_b_centroid_native"], dtype=float)
+            parent_field = skull_field if REGIONS[bone_meta[jl["bone_a"]]["bone"]["group"]] == "skull" else cerv_field
+        else:
+            parent_l_v = bone_meta[jl["bone_b"]]["basis"][jl["b_vertex_ids"]]
+            parent_r_v = bone_meta[jr["bone_b"]]["basis"][jr["b_vertex_ids"]]
+            parent_l_nat = np.asarray(jl["b_patch_centroid_native"], dtype=float)
+            parent_r_nat = np.asarray(jr["b_patch_centroid_native"], dtype=float)
+            child_l_nat = np.asarray(jl["b_paired_on_a_centroid_native"], dtype=float)
+            child_r_nat = np.asarray(jr["b_paired_on_a_centroid_native"], dtype=float)
+            parent_field = skull_field
+        pl_world = deformation.evaluate(parent_l_v, parent_field)[0].mean(0)
+        pr_world = deformation.evaluate(parent_r_v, parent_field)[0].mean(0)
+        delta_l = child_l_nat - parent_l_nat
+        delta_r = child_r_nat - parent_r_nat
+        src = np.array((child_l_nat, child_r_nat))
+        ratio = float(np.linalg.norm(pl_world - pr_world) / np.linalg.norm(src[0] - src[1]))
+        lo = max(scale_bounds[0], ratio / 1.20)
+        hi = min(scale_bounds[1], ratio / 0.82)
+        if lo > hi:
+            lo, hi = ratio / 1.23, ratio / 0.78
+
+        def build(all_v, margin_fn):
+            scored = []
+            for s in np.linspace(lo, hi, 5):
+                for p in pitches:
+                    try:
+                        _, rep0 = regional_pose(
+                            src, np.array((pl_world, pr_world)), uniform_size=float(s), pitch_deg=float(p)
+                        )
+                        rot = np.asarray(rep0["declared_uniform_frame"])[:3, :3] / float(s)
+                        dst = np.array((pl_world + rot @ (float(s) * delta_l), pr_world + rot @ (float(s) * delta_r)))
+                        mat, rep = regional_pose(src, dst, uniform_size=float(s), pitch_deg=float(p))
+                    except ValueError:
+                        continue
+                    w = all_v @ mat[:3, :3].T + mat[:3, 3]
+                    m = margin_fn(w)
+                    score = float(m.min()) + 0.5 * float(np.percentile(m, 5))
+                    if extra_score_fn is not None:
+                        score += float(extra_score_fn(mat, float(s)))
+                    scored.append((score, (src, dst, float(s), float(p), mat, rep)))
+            scored.sort(key=lambda x: -x[0])
+            return [x[1] for x in scored[:2]]
+
+        return build
+
+    # 2. Solve JAW (mandible) coupled at bilateral TMJ
+    jaw_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == "jaw"]
+    jaw_sol = solve_region(
+        "jaw",
+        jaw_bones,
+        paired_candidates(
+            "TMJ L L", "TMJ R R", a_is_parent=False, scale_bounds=(0.76, 0.92), pitches=(-8, -4, 0, 4, 8)
+        ),
+        head_margin,
+        width_mm=28.0,
+        n_centres=24,
+        rounds=6,
+        maxiter=110,
+    )
+
+    # 3. Solve CERVICALS (C1..C7) coupled at bilateral C0 condyles
+    cerv_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == "cervicals"]
+    c7_l_nat = np.asarray(witnesses["joints"]["C7 T1 L"]["a_patch_centroid_native"], dtype=float)
+    c7_r_nat = np.asarray(witnesses["joints"]["C7 T1 R"]["a_patch_centroid_native"], dtype=float)
+    c7_mid_nat = 0.5 * (c7_l_nat + c7_r_nat)
+    c7_half_x = 0.5 * float(c7_l_nat[0] - c7_r_nat[0]) * 0.80
+    t1_corridor_center = np.array(envelope["canal_ends"]["T1"], dtype=float)
+
+    def cerv_guide_fn(mat, _s):
+        w_mid = c7_mid_nat @ mat[:3, :3].T + mat[:3, 3]
+        target_mid = np.array((0.0, 0.5 * (w_mid[1] + t1_corridor_center[1]), w_mid[2]))
+        dst = np.array(
+            (
+                target_mid + np.array((c7_half_x, 0.0, 0.0)),
+                target_mid + np.array((-c7_half_x, 0.0, 0.0)),
+            )
+        )
+        return np.array((c7_l_nat, c7_r_nat)), dst, 2e-3
+
+    cerv_sol = solve_region(
+        "cervicals",
+        cerv_bones,
+        paired_candidates(
+            "C0 L",
+            "C0 R",
+            a_is_parent=True,
+            scale_bounds=(0.78, 0.90),
+            pitches=(-12, -8, -4, 0, 4, 8, 12),
+            extra_score_fn=lambda mat, _s: (
+                -0.25 * float(np.linalg.norm((c7_mid_nat @ mat[:3, :3].T + mat[:3, 3])[:2] - t1_corridor_center[:2]))
+            ),
+        ),
+        head_margin,
+        width_mm=28.0,
+        n_centres=24,
+        guides_fn=cerv_guide_fn,
+        rounds=6,
+        maxiter=110,
+    )
+    cerv_field = cerv_sol["field"]
+
+    # 4. Solve UPPER CHEST (Ribcage) coupled at bilateral C7/T1 facets
+    chest_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == "upper_chest"]
+    chest_sol = solve_region(
+        "upper_chest",
+        chest_bones,
+        paired_candidates(
+            "C7 T1 L",
+            "C7 T1 R",
+            a_is_parent=True,
+            scale_bounds=(0.74, 0.84),
+            pitches=(-10, -6, -2, 0, 2, 6, 10),
+        ),
+        chest_margin,
+        width_mm=42.0,
+        n_centres=56,
+        rounds=8,
+        maxiter=130,
+    )
+
+    region_solutions = {
+        "skull": (skull_sol, head_margin),
+        "jaw": (jaw_sol, head_margin),
+        "cervicals": (cerv_sol, head_margin),
+        "upper_chest": (chest_sol, chest_margin),
+    }
+
+    regions_out = {}
+    fields_out = {}
+    for r_name, (sol, _) in region_solutions.items():
+        declared = np.asarray(sol["pose_report"]["declared_uniform_frame"], dtype=float)
+        regions_out[r_name] = {
+            "scale": float(sol["scale"]),
+            "pitch_deg": float(sol["pitch_deg"]),
+            "matrix": declared.tolist(),
+            "pose_report": sol["pose_report"],
+        }
+        fields_out[r_name] = sol["field"]
+    scene["anatomical_regions"] = regions_out
+    scene.pop("warp_blend", None)
+    scene["original_anatomical_landmarks"] = historical
+
+    # Adaptive conforming refinement and final verification per bone.
+    result = {}
+    stretch_report = {}
+    world_by_name = {}
+    faces_by_name = {}
+    containment_by_region = {}
+    total_orig_faces = 0
+    total_ref_faces = 0
+
+    for bone in scene["bones"]:
+        name = bone["name"]
+        key = bone["key"]
+        r_name = REGIONS[bone["group"]]
+        sol, m_fn = region_solutions[r_name]
+        field = sol["field"]
+        scale = float(sol["scale"])
+        declared = np.asarray(regions_out[r_name]["matrix"], dtype=float)
+        inv_decl = np.linalg.inv(declared[:3, :3])
+        bone["matrix"] = declared.tolist()
+
+        meta = bone_meta[name]
+        orig_keys = {
+            "basis": meta["basis"],
+            "warp": arrays[key + "_warp"],
+            "sculpt": arrays[key + "_sculpt"],
+        }
+        orig_faces = meta["faces"]
+        parent_f_caps = meta["f_caps"]
+        total_orig_faces += len(orig_faces)
+
+        refined_keys, refined_faces, lineage = refine.adapt(
+            orig_keys,
+            orig_faces,
+            lambda p, fld=field: deformation.evaluate(p, fld)[0],
+            scale,
+            face_maximum=parent_f_caps,
+            margin_fn=m_fn,
+            max_edge=0.15,
+            aspect=20.0,
+            rounds=8,
+        )
+        total_ref_faces += len(refined_faces)
+        ref_basis = refined_keys["basis"]
+        moved_warp, grad = deformation.evaluate(ref_basis, field)
+        sculpt_delta = refined_keys["sculpt"] - refined_keys["warp"]
+        moved_sculpt = moved_warp + sculpt_delta @ declared[:3, :3].T
+        local_warp = (moved_warp - declared[:3, 3]) @ inv_decl.T
+        local_sculpt = (moved_sculpt - declared[:3, 3]) @ inv_decl.T
+
+        ref_v_caps = budget.caps(name, ref_basis, allowance, support)
+        child_f_caps = budget.face_caps(name, ref_basis[refined_faces], allowance, support)
+        effective_f_caps = np.minimum(parent_f_caps[lineage["parent_faces"]], child_f_caps)
+
+        stretch_report[name] = {
+            "region": r_name,
+            "declared_uniform_scale": scale,
+            "field": check_stretch(grad, scale, ref_v_caps),
+            "surface_including_sculpt": check_surface_stretch(
+                ref_basis, moved_sculpt, refined_faces, scale, ref_v_caps, effective_f_caps
+            ),
+            "refined_faces": int(len(refined_faces)),
+            "original_faces": int(len(orig_faces)),
+        }
+
+        result[key + "_basis"] = ref_basis
+        result[key + "_faces"] = refined_faces.astype(np.int32)
+        result[key + "_warp"] = local_warp
+        result[key + "_sculpt"] = local_sculpt
+        result[key + "_refinement_original_faces"] = lineage["original_faces"].astype(np.int32)
+        result[key + "_refinement_parent_faces"] = lineage["parent_faces"].astype(np.int32)
+        result[key + "_refinement_vertex_parent_face"] = lineage["vertex_parent_face"].astype(np.int32)
+        result[key + "_refinement_vertex_barycentric"] = lineage["vertex_barycentric"].astype(np.float64)
+        bone["refinement"] = {
+            "original_sha256": lineage["original_sha256"],
+            "original_vertex_count": int(lineage["original_vertex_count"]),
+            "original_face_count": int(len(lineage["original_faces"])),
+            "refined_vertex_count": int(len(ref_basis)),
+            "refined_face_count": int(len(refined_faces)),
+            "settings": lineage["settings"],
+        }
+        world_by_name[name] = moved_sculpt
+        faces_by_name[name] = refined_faces
+        containment_by_region.setdefault(r_name, []).append(moved_sculpt)
+
+    # Global 14^3 Jacobian probe check per region + all bone vertices.
+    min_jac = np.inf
+    for r_name, (sol, _) in region_solutions.items():
+        r_bones = [b for b in scene["bones"] if REGIONS[b["group"]] == r_name]
+        pts = np.vstack([result[b["key"] + "_basis"] for b in r_bones])
+        grid = np.stack(
+            np.meshgrid(*[np.linspace(a, b, 14) for a, b in zip(pts.min(0), pts.max(0))], indexing="ij"), -1
+        ).reshape(-1, 3)
+        probes = np.vstack((grid, pts, sol["source_anchors"]))
+        _, g = deformation.evaluate(probes, sol["field"])
+        dets = np.linalg.det(g / float(sol["scale"]))
+        min_jac = min(min_jac, float(dets.min()))
+    if min_jac <= 0.1:
+        raise ValueError(f"Connected bust field folds or collapses: min_jacobian={min_jac:.6f}")
+
+    # Record bilateral regional functional anchors in scene["landmarks"] and scene["anatomical_constraints"].
+    scene["landmarks"] = {}
+    constraints = {}
+    anchor_labels = {
+        "skull": ("LM fixed L orbit", "LM fixed R orbit"),
+        "jaw": ("LM TMJ L", "LM TMJ R"),
+        "cervicals": ("LM C0 L", "LM C0 R"),
+        "upper_chest": ("LM C7 T1 L", "LM C7 T1 R"),
+    }
+    anchor_errors = {}
+    for r_name, (sol, _) in region_solutions.items():
+        declared = np.asarray(regions_out[r_name]["matrix"], dtype=float)
+        src_a = sol["source_anchors"]
+        dst_a = sol["target_anchors"]
+        moved_a, _ = deformation.evaluate(src_a, sol["field"])
+        for i, label in enumerate(anchor_labels[r_name]):
+            src_w = src_a[i] @ declared[:3, :3].T + declared[:3, 3]
+            scene["landmarks"][label] = {"source": src_w.tolist(), "target": moved_a[i].tolist(), "region": r_name}
+            constraints[label] = {
+                "source_native": src_a[i].tolist(),
+                "region": r_name,
+                "target": dst_a[i].tolist(),
+            }
+            anchor_errors[label] = float(np.linalg.norm(moved_a[i] - dst_a[i]))
+    scene["anatomical_constraints"] = constraints
+    scene["regional_fields"] = fields_out
+    max_anchor_err = float(max(anchor_errors.values()))
+
+    # Skin containment report (including explicit Z>=0 vs Z<0 floor-cut classification for upper_chest).
+    skin_report = {}
+    for r_name in ("skull", "jaw", "cervicals"):
+        pts = np.vstack(containment_by_region[r_name])
+        m = head_margin(pts)
+        skin_report[r_name] = {
+            "envelope": "exact_vtk_skin_4.2mm",
+            "vertex_count": int(len(pts)),
+            "min_margin_mm": float(m.min()),
+            "violating_vertices": int((m < -1e-5).sum()),
+        }
+    chest_pts = np.vstack(containment_by_region["upper_chest"])
+    chest_m = chest_margin(chest_pts)
+    above_z0 = chest_pts[:, 2] >= 0.0
+    raw_above_m = head_margin(chest_pts[above_z0]) if above_z0.any() else np.array([0.0])
+    skin_report["upper_chest"] = {
+        "envelope": "floor_extended_vtk_skin_4.2mm",
+        "vertex_count": int(len(chest_pts)),
+        "min_margin_mm": float(chest_m.min()),
+        "violating_vertices": int((chest_m < -1e-5).sum()),
+        "above_floor_z0_vertex_count": int(above_z0.sum()),
+        "above_floor_z0_min_wall_margin_mm": float(chest_m[above_z0].min()) if above_z0.any() else None,
+        "below_floor_z0_base_cut_vertex_count": int((~above_z0).sum()),
+        "below_floor_z0_min_z_mm": float(chest_pts[:, 2].min()),
+        "raw_z0_floor_cap_proximity_min_mm": float(raw_above_m.min()),
+        "floor_cut_classification": "Vertices with Z < 0 cross the intentional horizontal Z = 0 bust base cut plane while remaining >= 4.2 mm inside the extruded thoracic perimeter wall",
+    }
+
+    # Canal verification after deformation.
+    canals_after = {}
+    for bone in scene["bones"]:
+        if bone["name"] not in facts["canals"]:
+            continue
+        name = bone["name"]
+        r_name = REGIONS[bone["group"]]
+        sol, _ = region_solutions[r_name]
+        c_nat = np.asarray(facts["canals"][name]["centre"], dtype=float)[None]
+        _, g_c = deformation.evaluate(c_nat, sol["field"])
+        src_normal = (
+            np.array((0.0, np.sin(np.deg2rad(15)), np.cos(np.deg2rad(15))))
+            if name == "C2"
+            else np.array((0.0, 0.0, 1.0))
+        )
+        normal = g_c[0] @ src_normal
+        normal /= np.linalg.norm(normal)
+        canals_after[name] = canal(trimesh.Trimesh(world_by_name[name], faces_by_name[name]), normal, details=True)
+
+    joint_report = evaluate_joint_witnesses(witnesses, world_by_name, faces_by_name)
+    report = {
+        "min_jacobian": float(min_jac),
+        "landmark_error_mm": max_anchor_err,
+        "anatomical_anchor_errors_mm": anchor_errors,
+        "declared_regional_sizes": {k: v["scale"] for k, v in regions_out.items()},
+        "declared_regional_pitches_deg": {k: v["pitch_deg"] for k, v in regions_out.items()},
+        "anatomical_budget_version": 1,
+        "refinement_summary": {
+            "original_total_faces": int(total_orig_faces),
+            "refined_total_faces": int(total_ref_faces),
+            "added_faces": int(total_ref_faces - total_orig_faces),
+        },
+        "skin_containment": skin_report,
+        "joint_witnesses": joint_report,
+        "actual_canals_after_sculpt": canals_after,
+        "regional_stretch": stretch_report,
+    }
+    return result, report
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "--c1-window":
         report = c1_window(np.load(sys.argv[2]), json.load(open(sys.argv[3])), np.load(sys.argv[4]))
@@ -737,6 +1545,24 @@ if __name__ == "__main__":
         Path(sys.argv[5]).write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report, indent=2))
         sys.exit()
+    if sys.argv[1] == "--joint-witnesses":
+        report = joint_witnesses(np.load(sys.argv[2]), json.load(open(sys.argv[3])))
+        Path(sys.argv[4]).parent.mkdir(parents=True, exist_ok=True)
+        Path(sys.argv[4]).write_text(json.dumps(report, indent=2) + "\n")
+        print(json.dumps(report, indent=2))
+        sys.exit()
+    if sys.argv[1] == "--skin":
+        skin_path, path, metadata, out = sys.argv[2:6]
+        scene = json.load(open(metadata))
+        with open("model/skeleton/envelope.json") as f:
+            envelope = json.load(f)
+        result, report = fit_bust(np.load(path), scene, envelope, skin_path)
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(out + ".npz", **result)
+        with open(out + ".json", "w") as f:
+            json.dump(scene | {"fit_report": report}, f, indent=2)
+        print(json.dumps(report, indent=2), flush=True)
+        sys.exit()
     landmarks = sys.argv[1] == "--landmarks"
     seed_only = sys.argv[1] == "--regional-seed"
     path, metadata, out = sys.argv[2:] if landmarks or seed_only else sys.argv[1:]
@@ -746,7 +1572,8 @@ if __name__ == "__main__":
     else:
         with open("model/skeleton/envelope.json") as f:
             envelope = json.load(f)
-        result, report = refit(np.load(path), scene, envelope, seed_only=seed_only)
+        skin_env = os.environ.get("NOGGIN_PRIVATE_SKIN_NPZ")
+        result, report = refit(np.load(path), scene, envelope, seed_only=seed_only, skin=skin_env)
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out + ".npz", **result)
     with open(out + ".json", "w") as f:

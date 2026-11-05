@@ -88,3 +88,28 @@ def test_final_skinny_source_triangles_obey_the_budget_even_when_the_smooth_deri
     assert proof["minimum"] >= 0.75 - 1e-6
     assert proof["maximum"] <= 1.25 + 1e-6
     assert report["sampled_feasible"]
+
+
+def test_subordinate_guides_never_override_hard_room_strain_or_anchors():
+    points = np.array([(x, y, z) for x in np.linspace(-3, 3, 13) for y in (-0.1, 0.1) for z in (-0.1, 0.1)])
+    anchors = np.array(((-3, 0, 0), (3, 0, 0)), float)
+    guide_src = np.array(((0.0, 0.0, 0.0),))
+    # Request an unreachable guide target above the hard ceiling y <= 0.15; hard constraints must win.
+    field, report = deformation.solve(
+        points,
+        np.eye(4),
+        1.0,
+        anchors,
+        np.array(((0, 0, 0),)),
+        2.0,
+        lambda p: 0.15 - p[:, 1],
+        np.array(((0, 0, 0),)),
+        guides=(guide_src, np.array(((0.0, 5.0, 0.0),)), 10.0),
+    )
+    fixed, _ = deformation.evaluate(anchors, field)
+    middle, _ = deformation.evaluate(guide_src, field)
+    assert fixed == pytest.approx(anchors, abs=1e-8)
+    assert 0.05 < middle[0, 1] <= 0.15 + 1e-6
+    assert report["minimum_length"] >= 0.75 - 1e-6
+    assert report["maximum_length"] <= 1.25 + 1e-6
+    assert report["sampled_feasible"]

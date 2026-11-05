@@ -9,29 +9,50 @@ import hashlib
 import numpy as np
 
 
-def mesh(keys, faces, max_edge=1.0, aspect=20.0, rounds=8):
-    """Refine long thin SOURCE triangles; return extended keys, triangles and reversible original lineage.
+def mesh(keys, faces, max_edge=1.0, aspect=20.0, rounds=8, select=None, lineage=None):
+    """Refine long thin or predicate-selected SOURCE triangles; return extended keys, triangles and original lineage.
 
     The source-only stopping rule is not an acceptance gate. The caller still checks every final child triangle,
     actual shared-field Jacobian, Sculpt residual and original parent allowance after deformation.
     """
-    original = np.asarray(keys["basis"], dtype=float)
-    original_faces = np.asarray(faces, dtype=np.int64)
-    if original.ndim != 2 or original.shape[1] != 3 or not np.isfinite(original).all():
-        raise ValueError("Refinement needs finite original Basis coordinates")
-    if original_faces.ndim != 2 or original_faces.shape[1] != 3 or not len(original_faces):
-        raise ValueError("Refinement needs original source triangles")
-    if original_faces.min() < 0 or original_faces.max() >= len(original):
-        raise ValueError("Invalid original source triangle index")
     if max_edge <= 0 or aspect <= 0 or not isinstance(rounds, int) or rounds < 0:
         raise ValueError("Invalid source refinement resolution")
+    basis = np.asarray(keys["basis"], dtype=float)
+    if basis.ndim != 2 or basis.shape[1] != 3 or not np.isfinite(basis).all():
+        raise ValueError("Refinement needs finite original Basis coordinates")
     values = {kind: np.asarray(v, dtype=float).copy() for kind, v in keys.items()}
-    if any(v.shape != original.shape or not np.isfinite(v).all() for v in values.values()):
+    if any(v.shape != basis.shape or not np.isfinite(v).all() for v in values.values()):
         raise ValueError("All authored shape keys must share the original Basis topology")
-    triangles = original_faces.copy()
-    parents = np.arange(len(triangles), dtype=np.int64)
-    vertex_parent = [-1] * len(original)
-    barycentric = [np.zeros(3) for _ in original]
+    if lineage is None:
+        original = basis.copy()
+        original_faces = np.asarray(faces, dtype=np.int64)
+        if original_faces.ndim != 2 or original_faces.shape[1] != 3 or not len(original_faces):
+            raise ValueError("Refinement needs original source triangles")
+        if original_faces.min() < 0 or original_faces.max() >= len(original):
+            raise ValueError("Invalid original source triangle index")
+        triangles = original_faces.copy()
+        parents = np.arange(len(triangles), dtype=np.int64)
+        vertex_parent = [-1] * len(original)
+        barycentric = [np.zeros(3) for _ in original]
+    else:
+        original_count = int(lineage["original_vertex_count"])
+        original_faces = np.asarray(lineage["original_faces"], dtype=np.int64)
+        if original_count <= 0 or original_count > len(basis):
+            raise ValueError("Invalid original vertex count in refinement lineage")
+        original = basis[:original_count].copy()
+        expected = hashlib.sha256(
+            original.astype(np.float64).tobytes() + original_faces.astype(np.int32).tobytes()
+        ).hexdigest()
+        if expected != lineage["original_sha256"]:
+            raise ValueError("Refinement lineage does not match immutable original Basis/faces")
+        triangles = np.asarray(faces, dtype=np.int64).copy()
+        parents = np.asarray(lineage["parent_faces"], dtype=np.int64).copy()
+        if triangles.ndim != 2 or triangles.shape[1] != 3 or len(triangles) != len(parents):
+            raise ValueError("Refinement triangles and parent_faces must match")
+        vertex_parent = list(map(int, lineage["vertex_parent_face"]))
+        barycentric = list(np.asarray(lineage["vertex_barycentric"], dtype=float))
+        if len(vertex_parent) != len(basis) or len(barycentric) != len(basis):
+            raise ValueError("Refinement vertex lineage must match current vertex count")
     for _ in range(rounds):
         points = values["basis"][triangles]
         edges = np.stack((triangles[:, [0, 1]], triangles[:, [1, 2]], triangles[:, [2, 0]]), axis=1)
@@ -41,8 +62,32 @@ def mesh(keys, faces, max_edge=1.0, aspect=20.0, rounds=8):
             raise ValueError("A source triangle is degenerate; refinement cannot erase it")
         longest = length2.argmax(axis=1)
         maximum = length2.max(axis=1)
-        selected = (maximum > max_edge**2) & (maximum / area2 > aspect)
-        requested = sorted({tuple(sorted(e)) for e in edges[np.flatnonzero(selected), longest[selected]]})
+        thin = (maximum > max_edge**2) & (maximum / area2 > aspect)
+        if select is None:
+            selected = thin
+            requested = sorted({tuple(sorted(e)) for e in edges[np.flatnonzero(selected), longest[selected]]})
+        else:
+            flagged = np.asarray(select(values["basis"], triangles, parents), dtype=bool)
+            if flagged.shape != (len(triangles),):
+                raise ValueError("Refinement selector must return one boolean per current triangle")
+            edge_set = set()
+            for f in np.flatnonzero(flagged):
+                threshold = 0.3 * maximum[f] if thin[f] else 0.0
+                for i in range(3):
+                    if length2[f, i] >= threshold and length2[f, i] > max_edge**2:
+                        edge_set.add(tuple(sorted(edges[f, i])))
+            while edge_set:
+                added = False
+                for f in np.flatnonzero(thin):
+                    row = [tuple(sorted(e)) for e in edges[f]]
+                    if any(e in edge_set for e in row):
+                        for i, e in enumerate(row):
+                            if length2[f, i] >= 0.3 * maximum[f] and length2[f, i] > max_edge**2 and e not in edge_set:
+                                edge_set.add(e)
+                                added = True
+                if not added:
+                    break
+            requested = sorted(edge_set)
         if not requested:
             break
         ids = {edge: len(values["basis"]) + i for i, edge in enumerate(requested)}
@@ -109,3 +154,36 @@ def mesh(keys, faces, max_edge=1.0, aspect=20.0, rounds=8):
             "settings": {"max_edge_mm": max_edge, "aspect": aspect, "rounds": rounds},
         },
     )
+
+
+def adapt(
+    keys,
+    faces,
+    world_fn,
+    scale,
+    face_maximum=1.25,
+    margin_fn=None,
+    lineage=None,
+    max_edge=0.2,
+    aspect=20.0,
+    rounds=8,
+):
+    """Adaptively split only triangles whose deformed chord stretch or midpoint clearance violates the budget."""
+    original_count = len(faces) if lineage is None else len(lineage["original_faces"])
+    parent_caps = np.broadcast_to(face_maximum, (original_count,))
+
+    def select(basis, triangles, parents):
+        target = np.asarray(world_fn(basis), dtype=float)[triangles]
+        source = basis[triangles]
+        a = np.stack((source[:, 1] - source[:, 0], source[:, 2] - source[:, 0]), axis=2)
+        b = np.stack((target[:, 1] - target[:, 0], target[:, 2] - target[:, 0]), axis=2)
+        _, r = np.linalg.qr(a)
+        sigma = np.linalg.svd(b @ np.linalg.inv(r), compute_uv=False) / scale
+        caps = parent_caps[parents]
+        bad = (sigma[:, 1] < 0.75 + 1e-4) | (sigma[:, 0] > caps - 1e-4)
+        if margin_fn is not None:
+            midpoints = 0.5 * (target + np.roll(target, -1, axis=1)).reshape(-1, 3)
+            bad |= (np.asarray(margin_fn(midpoints)).reshape(len(triangles), 3) < 0).any(axis=1)
+        return bad
+
+    return mesh(keys, faces, max_edge=max_edge, aspect=aspect, rounds=rounds, select=select, lineage=lineage)

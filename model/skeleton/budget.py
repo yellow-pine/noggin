@@ -27,9 +27,17 @@ SUPPORT = (
 def stamp(arrays, bones):
     h = hashlib.sha256()
     for b in sorted(bones, key=lambda b: b["name"]):
+        key = b["key"]
+        refinement = b.get("refinement")
+        basis = np.asarray(arrays[key + "_basis"], dtype=np.float64)
+        if refinement and key + "_refinement_original_faces" in arrays:
+            basis = basis[: int(refinement["original_vertex_count"])]
+            faces = np.asarray(arrays[key + "_refinement_original_faces"], dtype=np.int32)
+        else:
+            faces = np.asarray(arrays[key + "_faces"], dtype=np.int32)
         h.update(b["name"].encode())
-        h.update(np.asarray(arrays[b["key"] + "_basis"], dtype=np.float64).tobytes())
-        h.update(np.asarray(arrays[b["key"] + "_faces"], dtype=np.int32).tobytes())
+        h.update(basis.tobytes())
+        h.update(faces.tobytes())
     return h.hexdigest()
 
 
@@ -47,11 +55,19 @@ def reference(arrays, bones, facts):
 def support_mesh(arrays, bones):
     import trimesh
 
-    members = [
-        trimesh.Trimesh(arrays[b["key"] + "_basis"], arrays[b["key"] + "_faces"], process=False)
-        for b in bones
-        if b["name"] in SUPPORT
-    ]
+    members = []
+    for b in bones:
+        if b["name"] not in SUPPORT:
+            continue
+        key = b["key"]
+        refinement = b.get("refinement")
+        basis = np.asarray(arrays[key + "_basis"], dtype=np.float64)
+        if refinement and key + "_refinement_original_faces" in arrays:
+            basis = basis[: int(refinement["original_vertex_count"])]
+            faces = np.asarray(arrays[key + "_refinement_original_faces"], dtype=np.int32)
+        else:
+            faces = np.asarray(arrays[key + "_faces"], dtype=np.int32)
+        members.append(trimesh.Trimesh(basis, faces, process=False))
     if not members:
         raise ValueError("Missing original support geometry for rib attachment protection")
     return trimesh.util.concatenate(members)

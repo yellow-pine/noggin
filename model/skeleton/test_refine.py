@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import trimesh
 
-from model.skeleton import refine
+from model.skeleton import deformation, fit, refine
 
 
 def test_conforming_refinement_retains_original_geometry_vertices_and_authored_keys():
@@ -37,3 +37,49 @@ def test_conforming_refinement_retains_original_geometry_vertices_and_authored_k
     assert np.array_equal(result["basis"], repeated["basis"])
     assert np.array_equal(triangles, repeated_faces)
     assert np.array_equal(lineage["vertex_barycentric"], repeated_lineage["vertex_barycentric"])
+
+
+def test_adaptive_refinement_resolves_curved_chord_strain_without_rebasing_lineage():
+    basis = np.array(((0, 0, 0), (1, 0, 0), (0.5, 0.0001, 0), (0.5, 0, 0.2)), float)
+    faces = np.array(((0, 2, 1), (0, 1, 3), (1, 2, 3), (2, 0, 3)))
+    keys = {"basis": basis, "warp": basis.copy(), "sculpt": basis.copy()}
+    field, report = deformation.solve(
+        basis,
+        np.eye(4),
+        1.0,
+        np.array(((-3, 0, 0), (3, 0, 0))),
+        np.array(((0.5, 0, 0),)),
+        2.0,
+        lambda p: p[:, 1] - 0.02,
+        np.array(((0.5, 0, 0),)),
+    )
+    assert report["sampled_feasible"]
+    moved, _ = deformation.evaluate(basis, field)
+    with pytest.raises(ValueError, match="surface stretch"):
+        fit.check_surface_stretch(basis, moved, faces, 1.0)
+    refined, triangles, lineage = refine.adapt(
+        keys,
+        faces,
+        lambda p: deformation.evaluate(p, field)[0],
+        1.0,
+        max_edge=0.05,
+    )
+    continued, triangles, lineage = refine.mesh(
+        refined,
+        triangles,
+        max_edge=0.05,
+        select=lambda _b, t, _p: np.arange(len(t)) == 0,
+        lineage=lineage,
+        rounds=1,
+    )
+    assert lineage["original_vertex_count"] == 4
+    assert np.array_equal(lineage["original_faces"], faces)
+    final, gradient = deformation.evaluate(continued["basis"], field)
+    assert fit.check_stretch(gradient, 1.0)["minimum"] >= 0.75 - 1e-6
+    surface = fit.check_surface_stretch(continued["basis"], final, triangles, 1.0)
+    assert surface["minimum"] >= 0.75 - 1e-6
+    assert surface["maximum"] <= 1.25 + 1e-6
+    for i in range(4, len(continued["basis"])):
+        parent = lineage["vertex_parent_face"][i]
+        barycentric = lineage["vertex_barycentric"][i]
+        assert continued["basis"][i] == pytest.approx(barycentric @ basis[faces[parent]], abs=1e-11)

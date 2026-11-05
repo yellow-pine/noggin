@@ -198,3 +198,45 @@ def test_coarse_head_constraint_keeps_a_real_diagonal_groove():
     margins = fit.coarse_head_margin(q, cage, 4.2)
     assert margins[0] < -20
     assert margins[1] > 0
+
+
+def test_floor_extended_skin_removes_false_z0_base_cut_penalty_without_altering_sidewalls():
+    from model.skeleton.envelope import Envelope
+
+    box = trimesh.creation.box(bounds=((-50, -50, 0), (50, 50, 100)))
+    raw_env = Envelope(box.vertices, box.faces)
+    ext_v, ext_f = fit.floor_extended_skin(box.vertices, box.faces, extension_mm=200.0)
+    ext_env = Envelope(ext_v, ext_f)
+    # A point at z=1 mm near the center of the chest is only 1 mm from the artificial z=0 cut,
+    # but 49 mm inside the actual ±50 mm sidewalls.
+    probe = np.array(((0.0, 0.0, 1.0), (0.0, 0.0, 50.0)))
+    assert raw_env.distance(probe)[0] == pytest.approx(1.0, abs=1e-5)
+    assert ext_env.distance(probe)[0] == pytest.approx(50.0, abs=1e-5)
+    assert ext_env.distance(probe)[1] == pytest.approx(50.0, abs=1e-5)
+
+
+def test_joint_witnesses_extract_and_evaluate_opposing_articular_patches():
+    b0 = trimesh.creation.box(bounds=((10, -10, 100), (25, 10, 110)))
+    b1 = trimesh.creation.box(bounds=((10, -10, 88.5), (25, 10, 98.5)))
+    arrays = {
+        "b0_basis": np.asarray(b0.vertices, float),
+        "b0_faces": np.asarray(b0.faces, np.int32),
+        "b1_basis": np.asarray(b1.vertices, float),
+        "b1_faces": np.asarray(b1.faces, np.int32),
+    }
+    scene = {
+        "bones": [
+            {"name": "occipital bone", "key": "b0", "group": "Skull", "matrix": np.eye(4).tolist()},
+            {"name": "C1", "key": "b1", "group": "C1", "matrix": np.eye(4).tolist()},
+        ]
+    }
+    witnesses = fit.joint_witnesses(arrays, scene)
+    assert "C0 L" in witnesses["joints"]
+    c0 = witnesses["joints"]["C0 L"]
+    assert c0["native_gap_mm"]["min"] == pytest.approx(1.5, abs=1e-5)
+    evaluated = fit.evaluate_joint_witnesses(
+        witnesses,
+        {"occipital bone": arrays["b0_basis"] + (0, 0, 5), "C1": arrays["b1_basis"] + (0, 0, 5)},
+        {"occipital bone": arrays["b0_faces"], "C1": arrays["b1_faces"]},
+    )
+    assert evaluated["C0 L"]["deformed_gap_mm"]["min"] == pytest.approx(1.5, abs=1e-5)

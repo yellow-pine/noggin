@@ -81,25 +81,52 @@ def apply(prefix, out):
         original = {}
         for bone in scene["bones"]:
             o = bpy.data.objects[bone["name"]]
-            original[bone["key"] + "_basis"] = coordinates(o.data.shape_keys.key_blocks["Basis"].data)
-            o.data.calc_loop_triangles()
-            original[bone["key"] + "_faces"] = np.array([t.vertices[:] for t in o.data.loop_triangles], dtype=np.int32)
+            key = bone["key"]
+            scene_basis = coordinates(o.data.shape_keys.key_blocks["Basis"].data)
+            if "refinement" in bone and key + "_refinement_original_faces" in arrays:
+                count = int(bone["refinement"]["original_vertex_count"])
+                assert np.array_equal(scene_basis[:count], arrays[key + "_basis"][:count]), bone["name"]
+                original[key + "_basis"] = scene_basis[:count]
+                original[key + "_faces"] = np.asarray(arrays[key + "_refinement_original_faces"], dtype=np.int32)
+            else:
+                original[key + "_basis"] = scene_basis
+                o.data.calc_loop_triangles()
+                original[key + "_faces"] = np.array([t.vertices[:] for t in o.data.loop_triangles], dtype=np.int32)
         assert budget.stamp(original, scene["bones"]) == scene["anatomical_budget"]["basis_sha256"], (
             "Growth allowances belong to a different original anatomical Basis/topology"
         )
     basis = {}
     for bone in scene["bones"]:
         o = bpy.data.objects[bone["name"]]
+        key = bone["key"]
         keys = o.data.shape_keys.key_blocks
-        basis[o.name] = hashlib.sha256(coordinates(keys["Basis"].data).tobytes()).digest()
+        raw_basis = coordinates(keys["Basis"].data)
+        count = int(bone["refinement"]["original_vertex_count"]) if "refinement" in bone else len(raw_basis)
+        basis[o.name] = (count, hashlib.sha256(raw_basis[:count].tobytes()).digest())
         matrix = np.asarray(bone["matrix"])
         assert matrix.shape == (4, 4) and np.isfinite(matrix).all()
         o.matrix_world = Matrix(matrix)
+        target_points = arrays[f"{key}_warp"]
+        if len(target_points) != len(o.data.vertices):
+            assert "refinement" in bone and key + "_basis" in arrays and key + "_faces" in arrays, bone["name"]
+            new_basis = np.asarray(arrays[key + "_basis"], dtype=float)
+            new_faces = np.asarray(arrays[key + "_faces"], dtype=np.int32)
+            assert np.array_equal(new_basis[:count], raw_basis[:count]), bone["name"]
+            o.shape_key_clear()
+            o.data.clear_geometry()
+            o.data.from_pydata(new_basis.tolist(), [], new_faces.tolist())
+            o.data.update()
+            for name in ("Basis", "Warp", "Sculpt"):
+                o.shape_key_add(name=name, from_mix=False)
+            keys = o.data.shape_keys.key_blocks
+            keys["Basis"].data.foreach_set("co", new_basis.ravel())
         for kind in ("Warp", "Sculpt"):
-            points = arrays[f"{bone['key']}_{kind.lower()}"]
+            points = arrays[f"{key}_{kind.lower()}"]
             assert points.shape == (len(o.data.vertices), 3) and np.isfinite(points).all()
             keys[kind].data.foreach_set("co", points.ravel())
             keys[kind].value = 1.0
+        if "refinement" in bone:
+            o["refinement"] = json.dumps(bone["refinement"])
         o.data.update()
     landmarks = bpy.data.collections["Landmarks"]
     for name, pair in scene["landmarks"].items():
@@ -114,8 +141,8 @@ def apply(prefix, out):
     for o in landmarks.all_objects:
         if not o.name.endswith(" target") and o.name not in scene["landmarks"]:
             o.hide_set(True)
-    for name, digest in basis.items():
-        points = coordinates(bpy.data.objects[name].data.shape_keys.key_blocks["Basis"].data)
+    for name, (count, digest) in basis.items():
+        points = coordinates(bpy.data.objects[name].data.shape_keys.key_blocks["Basis"].data)[:count]
         assert hashlib.sha256(points.tobytes()).digest() == digest, name
     bpy.context.scene["fit_report"] = json.dumps(report)
     bpy.context.scene["anatomical_regions"] = json.dumps(scene["anatomical_regions"])

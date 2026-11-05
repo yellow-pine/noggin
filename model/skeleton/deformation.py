@@ -71,18 +71,22 @@ def solve(
     triangles=None,
     triangle_maximum=1.25,
     initial=None,
+    guides=None,
+    minimum=0.75,
 ):
     """Find the smallest nonlinear residual satisfying this FIXED sampled constraint set.
 
     `margin` returns one signed inside distance per WORLD point. The caller scans held-out geometry and adds
     violating source points between solves; a sampled fit is never a whole-Skin or volume-strain certificate.
-    Crown fill is absent from this feasibility objective. The declared uniform size is fixed before this solve.
+    Optional `guides` adds a subordinate quadratic attraction inside the hard feasibility set.
     """
     matrix, points, anchors, centres = map(np.asarray, (matrix, points, anchors, centres))
     if scale <= 0 or width <= 0 or not np.isfinite(matrix).all():
         raise ValueError("A shared field needs finite placement, positive uniform size and kernel width")
+    if minimum < 0.75 or minimum >= 1.0:
+        raise ValueError("Minimum anatomical length factor cannot be weakened below 0.75")
     limits = np.broadcast_to(maximum, (len(points),))
-    if (limits < 1.25).any() or (limits > 1.5).any():
+    if (limits < 1.25 - 1e-6).any() or (limits > 1.5).any() or (limits <= minimum).any():
         raise ValueError("Source-frozen anatomical length allowances must be1.25..1.50")
     fixed = anchors @ matrix[:3, :3].T + matrix[:3, 3]
     world = points @ matrix[:3, :3].T + matrix[:3, 3]
@@ -104,8 +108,36 @@ def solve(
     phi = phi.reshape(len(triangles), 3, count)
     tangent_modes = np.stack((phi[:, 1] - phi[:, 0], phi[:, 2] - phi[:, 0]), axis=2) @ inverse
     surface_limits = np.broadcast_to(triangle_maximum, (len(triangles),))
-    if (surface_limits < 1.25).any() or (surface_limits > 1.5).any():
+    if (surface_limits < 1.25 - 1e-6).any() or (surface_limits > 1.5).any():
         raise ValueError("Original triangle allowances must be1.25..1.50")
+    guide_phi = guide_delta = None
+    guide_weight = 0.0
+    hessian = 2 * np.eye(count * 3)
+    h_base = np.eye(count)
+    g_linear = np.zeros(count * 3)
+    if guides is not None:
+        guide_native = np.asarray(guides[0], dtype=float)
+        guide_target = np.asarray(guides[1], dtype=float)
+        guide_weight = float(guides[2]) if len(guides) > 2 else 1e-2
+        if guide_native.shape != guide_target.shape or guide_native.ndim != 2 or guide_native.shape[1] != 3:
+            raise ValueError("Subordinate guides need matching (N, 3) native and world coordinates")
+        if guide_weight < 0 or not np.isfinite(guide_weight):
+            raise ValueError("Subordinate guide weight must be finite and non-negative")
+        guide_world = guide_native @ matrix[:3, :3].T + matrix[:3, 3]
+        guide_phi, _ = _basis(guide_world, centres, fixed, width, affine=True)
+        guide_delta = guide_target - guide_world
+        h_base = np.eye(count) + guide_weight * (guide_phi.T @ guide_phi)
+        g_linear = (-2 * guide_weight * (guide_phi.T @ guide_delta)).ravel()
+        hessian = 2 * np.kron(h_base, np.eye(3))
+
+    def objective(c):
+        if guide_phi is None or guide_delta is None:
+            return float(c @ c), 2 * c
+        m = c.reshape(count, 3)
+        residual = guide_phi @ m - guide_delta
+        val = float(c @ c + guide_weight * np.sum(residual * residual))
+        grad = (2 * (h_base @ m)).ravel() + g_linear
+        return val, grad
 
     def principal_lengths(baseline, modes, c):
         gradient = (baseline + np.einsum("nkj,ki->nij", modes, c.reshape(count, 3))) / scale
@@ -132,10 +164,10 @@ def solve(
         sigma, _, det, _ = lengths(c)
         _, surface, _ = principal_lengths(baseline_tangent, tangent_modes, c)
         return np.r_[
-            (sigma - 0.75).ravel(),
+            (sigma - minimum).ravel(),
             (limits[:, None] - sigma).ravel(),
             det - 0.1,
-            (surface - 0.75).ravel(),
+            (surface - minimum).ravel(),
             (surface_limits[:, None] - surface).ravel(),
         ]
 
@@ -180,10 +212,10 @@ def solve(
     # SciPy's installed constructor annotation narrows jac to str despite its documented callable support.
     constraint = cast(Any, NonlinearConstraint)
     result = minimize(
-        lambda c: (float(c @ c), 2 * c),
+        objective,
         start,
         jac=True,
-        hess=lambda c: 2 * np.eye(len(c)),
+        hess=lambda _: hessian,
         method="trust-constr",
         constraints=[
             constraint(strains, 0, np.inf, jac=strain_jac, keep_feasible=True),
@@ -203,7 +235,7 @@ def solve(
     # Interior steps preserve the strain budget; an active-set finish resolves thin-triangle boundary constraints.
     if room(result.x).min() < -1e-6 or strains(result.x).min() < -1e-6:
         polished = minimize(
-            lambda c: (float(c @ c), 2 * c),
+            objective,
             result.x,
             jac=True,
             method="SLSQP",
@@ -239,6 +271,11 @@ def solve(
         "minimum_triangle_length": float(surface.min()) if len(surface) else None,
         "maximum_triangle_length": float(surface.max()) if len(surface) else None,
         "minimum_sampled_room_mm": minimum_room,
+        "guide_rms_mm": (
+            float(np.sqrt(np.mean(np.sum((guide_phi @ result.x.reshape(count, 3) - guide_delta) ** 2, axis=1))))
+            if guide_phi is not None and guide_delta is not None and len(guide_delta)
+            else None
+        ),
         "sampled_feasible": bool(strains(result.x).min() >= -1e-6 and minimum_room >= -1e-6),
         "scope": "SAMPLED field constraints only; full original/Sculpt surfaces, joints and exact Skin remain mandatory",
     }
