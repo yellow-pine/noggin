@@ -226,13 +226,9 @@ render: venv ours trajectories
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
 
-# scipy for Blender's own Python (model/skeleton/rewarp.py) in the repo's gitignored .blender-site, never into Blender.app (docs/adr/0025): the venv's scipy, for Blender's Python version
-blender-site: venv
-    @v=$({{BLENDER}} -b --factory-startup --python-expr 'import sys; print("PY=%d.%d" % sys.version_info[:2])' | sed -n 's/^PY=//p') && uv pip install -q --target .blender-site --python-version "$v" --no-deps "scipy==$({{PY}} -c 'import scipy; print(scipy.__version__)')"
-
-# the Skeleton scene's Warp re-run from its Landmarks, and the scene saved (model/skeleton/rewarp.py); open it with open model/skeleton/skeleton.blend
-rewarp: blender-site
-    PYTHONPATH=.blender-site {{BLENDER}} -b --python-use-system-env model/skeleton/skeleton.blend -P model/skeleton/rewarp.py
+# The public Skeleton Landmarks solved on GX10; Blender only exports/applies keys under its RSS ceiling/lock.
+rewarp: venv
+    BLENDER={{BLENDER}} NOGGIN_GX10={{GX10}} {{PY}} -m model.skeleton.warp_job
 
 # the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
 review quality="coarse" before="": venv

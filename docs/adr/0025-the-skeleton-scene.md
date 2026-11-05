@@ -6,8 +6,8 @@
 The realistic Skeleton's bones are authored by hand, landmark by landmark, until Cansin has no more edits, and Cansin
 audits them by turning them in Blender, not in code or pictures. So their source is one committed Blender scene,
 `model/skeleton/skeleton.blend` (the Skeleton scene, GLOSSARY), not a Python module: its bones, each with a Warp shape
-key (rewarp.py's thin-plate spline from the Landmarks, scipy loaded from the gitignored `.blender-site/`, never installed
-into Blender) and a Sculpt key over it for hand edits, and a Finish per exported bone (a live Geometry Nodes SDF stack:
+key (fit.py's thin-plate spline from the Landmarks, solved on GX10; Blender only exports/applies the public Bone
+keys under its resource lock and RSS ceiling) and a Sculpt key over it for hand edits, and a Finish per exported bone (a live Geometry Nodes SDF stack:
 the cranium shelled, the mechanism carved round with clearance, crumbs dropped, meshed). CI fits it to the Mech it just
 built: Blender opens the scene, deletes its Scene Mech, puts the Stage 3 document's parts where each bone sees them
 (at rest and over every horn's range), runs every Finish and exports each bone (model/skeleton `finish()`, part of `just
@@ -21,7 +21,7 @@ in unchanged and removed `model/printed/skull.py`; the bones themselves change f
 - **ADR 0019 (and 0024):** nothing changes in what is published: the exported bones, their pictures and GLB, as before.
 - **ADR 0020:** the realistic Skeleton's bones stay visual only; physics runs on the mechanical documents.
 - **ADR 0023:** from #874 the bones are one source, BodyParts3D 4.0 (treated as CC BY-SA 2.1 JP, its own LICENSE.md),
-  warped into Morty at life size (the cranium within ±10% of an adult's), in place of 3Demon and the atlas-axis. The real
+  warped into Morty at the unchanged reference scale and eye centres, in place of 3Demon and the atlas-axis. The real
   Morty sculpt is a fit reference kept local only (`docs/references`), never committed or published; a coarse hull of
   our own (low-poly, no sculpt detail) may be committed, so CI can check the bones lie inside him (Cansin, 2026-11-04).
 
@@ -33,3 +33,45 @@ in unchanged and removed `model/printed/skull.py`; the bones themselves change f
   output (ADR 0009).
 - Git LFS for the scene: past the free tier's bandwidth for a public repo's clones; a compressed scene under a cap
   instead.
+
+## 2026-11-04 fit amendment
+
+Cansin confirmed the inner Skin as the primary cranial envelope (#893/#874), superseding the original adult-cranium
+±10% cap wherever it prevents that fit. Preserve anatomical features, walls and mechanical clearances. The connected
+skull, all seven cervicals and upper chest use one original anatomical frame and one shared field; the true central
+spinal canal, not a projected lateral foramen, registers the skull base through T1. Regional outer-surface gaps and
+signed containment are separate evidence; neither pose-empty coordinates nor a good landmark residual proves fit.
+
+The initial regional working budgets reserve 1.6 mm Skin wall plus 1.6 mm clearance. Raw-vault targets add the finish's
+growth reserve. Crown, temple, back and forehead vault regions aim for outer-reference median gaps at most 4.8 mm
+and p90 at most 6.4 mm. Natural openings and unavoidable functional keep-outs are named with their evidence; budgets
+are not retuned to accept a result. The warp rejects a least Jacobian at or below 0.1 or a landmark miss over 1 mm.
+Numerical jobs run on GX10; the private Morph mesh and semantic profiles remain on the Mac.
+
+## 2026-11-05 anatomy and compute amendments
+
+Cansin's confirmed decisions on #893 supersede the preceding maximum-fill targets and Mac-only compute restriction.
+Anatomy takes priority over filling unused Skin space. Crown, forehead and vault-fill targets are soft objectives;
+actual Skin containment, walls, functional eye/orbit registration, true articular joints, canal continuity and the
+hardware wiring corridor remain hard requirements. The old inferred T1/shoulder height and the C1 canal centroid
+are not anatomical joint datums: C0 and TMJ registration uses corresponding original articular surfaces. A color
+boundary or a mesh's box cannot establish the shoulder girdle's position.
+
+Start from original BodyParts3D Basis coordinates. Report each declared anatomical region's uniform resize and
+rigid placement, then enforce local length factors of 0.75–1.25, including the final Sculpt residual. Fixed,
+source-stamped posterior/inferior cranial masks and rib/cartilage masks alone may increase their upper bound
+smoothly to 1.50, while protecting face, orbit, jaw, C0 and attachment regions. Other bones retain 1.25. No per-Bone
+normalization, inherited anisotropic baseline, vertex clamp or automatic budget increase can establish acceptance.
+One anatomical frame and joint continuity permit smooth regional fields; they do not require one global TPS.
+Saved and interactive rewarps must evaluate the same field and metadata. Optimizer success, positive Jacobians
+at sampled points and small landmark residuals each remain insufficient without independent actual geometry checks.
+
+The confirmed reference restores the original arms/body above one horizontal functional base, provisionally the
+current CAD floor at world Z=0. Old arm-cut width and whole arm span cannot serve as ribcavity dimensions. The body,
+neck, shoulders and arms stay fixed, with head, jaw and eyes moving on their own actual carriers. Original visible
+eye geometry stays intact; spherical guides do not replace it.
+
+Under #979, the canonical authored private reference stays on the Mac, while immutable, hash-versioned copies and
+dense fitting data may travel by SSH to the trusted GX10 private ignored cache. They remain excluded from git,
+public CI, published artifacts and public source scenes. GX10 supplies normal heavy numerical/Blender compute;
+the Mac remains the review viewer with its existing resource limit and backup-preserving atomic publication.
