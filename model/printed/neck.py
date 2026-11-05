@@ -7,6 +7,7 @@ import math
 import cadquery as cq
 import numpy as np
 
+from model import envelopes
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box, hull
