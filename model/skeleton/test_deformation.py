@@ -35,6 +35,20 @@ def test_bounded_nonlinear_bend_keeps_joint_anchors_exact():
     backward, _ = deformation.evaluate(points - delta, field)
     assert (forward - backward) / 2e-4 == pytest.approx(gradient[:, :, 0], abs=1e-7)
     assert np.max(np.abs(moved - points)) > 0.1
+    continued, continued_report = deformation.solve(
+        points,
+        np.eye(4),
+        1.0,
+        anchors,
+        np.array(((0, 0, 0),)),
+        2.0,
+        lambda p: p[:, 1] - 0.3,
+        np.array(((0, 0, 0),)),
+        initial=field,
+    )
+    continued_fixed, _ = deformation.evaluate(anchors, continued)
+    assert continued_fixed == pytest.approx(anchors, abs=1e-8)
+    assert continued_report["sampled_feasible"]
 
 
 def test_joint_pinned_global_shape_modes_do_not_require_large_gaussian_coefficients():
