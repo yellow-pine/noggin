@@ -3,6 +3,9 @@
 import fcntl
 import hashlib
 import json
+import shutil
+import stat
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
@@ -103,7 +106,7 @@ def test_an_empty_promised_output_is_a_failure(tmp_path):
         snapshot_outputs(repo, tmp_path / "snapshot", ["model/build/finished"])
 
 
-def test_a_disconnected_transfer_retries_without_recomputing(monkeypatch):
+def test_a_reset_transfer_retries_even_if_ssh_recovers_immediately(monkeypatch):
     copies, sleeps = [], []
     outcomes = iter([255, 0])
 
@@ -112,7 +115,7 @@ def test_a_disconnected_transfer_retries_without_recomputing(monkeypatch):
         return SimpleNamespace(returncode=next(outcomes))
 
     monkeypatch.setattr(gx10.subprocess, "run", copy)
-    monkeypatch.setattr(gx10, "ssh", lambda *args, **kwargs: SimpleNamespace(returncode=255))
+    monkeypatch.setattr(gx10, "ssh", lambda *args, **kwargs: SimpleNamespace(returncode=0))
     monkeypatch.setattr(gx10.time, "sleep", sleeps.append)
     gx10.transfer("gx10", "candidate.blend", "/private/candidate.part", upload=True)
     assert copies == [["scp", "-q", "candidate.blend", "gx10:/private/candidate.part"]] * 2
@@ -124,3 +127,63 @@ def test_a_reachable_transfer_error_is_reported(monkeypatch):
     monkeypatch.setattr(gx10, "ssh", lambda *args, **kwargs: SimpleNamespace(returncode=0))
     with pytest.raises(RuntimeError, match="reachable"):
         gx10.transfer("gx10", "/private/result.blend", "candidate.blend")
+
+
+def test_private_fit_inputs_are_immutable_and_changed_inputs_stage_separately(tmp_path, monkeypatch):
+    remote, source = tmp_path / "remote", tmp_path / "neutral-world.npz"
+    source.write_bytes(b"original private fit data")
+    monkeypatch.setattr(gx10, "ssh", lambda host, args, **kw: subprocess.run(args, **kw))
+    monkeypatch.setattr(gx10, "transfer", lambda host, src, dest, **kw: shutil.copyfile(src, dest))
+    first = gx10.stage_inputs("gx10", remote, {"NOGGIN_PRIVATE_FIT": source}, "first")
+    staged = first["NOGGIN_PRIVATE_FIT"]
+    path = gx10.Path(staged["path"])
+    assert path.read_bytes() == b"original private fit data"
+    assert staged["sha256"] == hashlib.sha256(b"original private fit data").hexdigest()
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    source.write_bytes(b"changed private fit data")
+    second = gx10.stage_inputs("gx10", remote, {"NOGGIN_PRIVATE_FIT": source}, "second")
+    assert second["NOGGIN_PRIVATE_FIT"]["path"] != staged["path"]
+    assert path.read_bytes() == b"original private fit data"
+
+
+def test_a_measured_32_gib_oom_retries_once_at_64_and_retains_both_attempts():
+    calls = []
+
+    def native_job(gib):
+        calls.append(gib)
+        return {"id": "same-job", "commit": "same-source", "returncode": 137, "oom_killed": True, "memory_gib": gib}
+
+    result = gx10.bounded_attempts(32, native_job)
+    assert calls == [32, 64]
+    assert result["id"] == "same-job" and result["commit"] == "same-source"
+    assert [a["memory_gib"] for a in result["attempts"]] == [32, 64]
+
+
+def test_a_geometry_error_does_not_request_more_memory():
+    calls = []
+
+    def native_job(gib):
+        calls.append(gib)
+        return {"returncode": 1, "oom_killed": False}
+
+    gx10.bounded_attempts(32, native_job)
+    assert calls == [32]
+
+
+def test_retry_stops_if_fresh_headroom_cannot_support_64_gib():
+    available = iter([100 * 1024**3, 70 * 1024**3])
+    launched = []
+
+    def native_job(gib):
+        try:
+            memory_limit(gib, next(available))
+        except ValueError as error:
+            return {"returncode": 1, "error": str(error)}
+        launched.append(gib)
+        return {"returncode": 137, "oom_killed": True}
+
+    result = gx10.bounded_attempts(32, native_job)
+    assert launched == [32]
+    assert "headroom" in result["error"]
+    assert len(result["attempts"]) == 2

@@ -4,8 +4,9 @@
 
 The trusted GX10 runs heavy Python, CAD, fitting, Blender finishing, rendering and validation. Its isolated native ARM64
 container builds the project's pinned Blender from checksum-verified official source and matching dependencies. Python
-and Blender share one measured 32 GiB worker limit; after an OOM, an agent may raise it to 64 GiB while retaining at
-least 8 GiB of host headroom. The Mac keeps its existing 3 GB Blender safety limit and remains the interactive viewer.
+and Blender share one measured 32 GiB worker limit; a measured cgroup OOM retries the same job once at 64 GiB after a
+fresh check retains at least 8 GiB of host headroom. The Mac keeps its existing 3 GB Blender safety limit and remains
+the interactive viewer.
 
 Cansin's editable private Morty reference remains authoritative on the Mac. Its full mesh, paint and fit data may travel
 over the existing Tailscale SSH connection to GX10-local, private, hash-versioned input directories. One writer owns

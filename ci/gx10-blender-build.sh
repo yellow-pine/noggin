@@ -1,6 +1,8 @@
 #!/bin/sh
 # Build the pinned native worker inside gx10-blender.Dockerfile, with /work persisted across attempts.
 set -eu
+BLENDER=5.2.3
+BLENDER_SOURCE_SHA256=5c66e0ab20da26d684deecfc27e84c4d39e456daaa9112b47eeb45d0e0283876
 cd /work
 export LD_LIBRARY_PATH="/work/deps/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec 9>/work/install.lock
@@ -12,7 +14,7 @@ fetch() {
     [ -f "$file" ] || mv "$file.part" "$file"
     echo "$checksum  $file" | sha256sum -c -
 }
-fetch blender-5.2.3.tar.xz https://download.blender.org/source/blender-5.2.3.tar.xz 5c66e0ab20da26d684deecfc27e84c4d39e456daaa9112b47eeb45d0e0283876
+fetch "blender-$BLENDER.tar.xz" "https://download.blender.org/source/blender-$BLENDER.tar.xz" "$BLENDER_SOURCE_SHA256"
 fetch openvdb-13.0.0.tar.gz https://github.com/AcademySoftwareFoundation/openvdb/archive/refs/tags/v13.0.0.tar.gz 4d6a91df5f347017496fe8d22c3dbb7c4b5d7289499d4eb4d53dd2c75bb454e1
 fetch sse2neon.tar.gz https://github.com/DLTcollab/sse2neon/archive/227cc413fb2d50b2a10073087be96b59d5364aea.tar.gz 3427a495743bb6fd1b5f9f806b80f57d67b1ac7ccf39a5f44aedd487fd7e6da1
 fetch fmt-12.1.0.tar.gz https://github.com/fmtlib/fmt/archive/refs/tags/12.1.0.tar.gz ea7de4299689e12b6dddd392f9896f08fb0777ac7168897a244a6d6085043fea
@@ -21,7 +23,7 @@ fetch openimageio-3.1.13.1.tar.gz https://github.com/AcademySoftwareFoundation/O
 fetch eigen.tar.gz https://gitlab.com/libeigen/eigen/-/archive/8a1083e9bf41b91fdea6546681f806154efdc25a/eigen-8a1083e9bf41b91fdea6546681f806154efdc25a.tar.gz cc28a84fdec496c6777596350ea805519bf10f717d21044ae6ba3dd562183a26
 fetch abseil-cpp-20250814.1.tar.gz https://github.com/abseil/abseil-cpp/releases/download/20250814.1/abseil-cpp-20250814.1.tar.gz 1692f77d1739bacf3f94337188b78583cf09bab7e420d2dc6c5605a4f86785a1
 fetch ceres.tar.gz https://github.com/ceres-solver/ceres-solver/archive/0c70ed3a1a2d6ba47c06c7e8b3b040880bc474db.tar.gz bf0bcc78fae884e59dd893693e52510da7cc6866a7444fdae9ba8f19eae266cd
-[ -d blender-5.2.3 ] || tar -xJf blender-5.2.3.tar.xz
+[ -d "blender-$BLENDER" ] || tar -xJf "blender-$BLENDER.tar.xz"
 [ -d openvdb-13.0.0 ] || tar -xzf openvdb-13.0.0.tar.gz
 mkdir -p deps/include
 tar -xzf sse2neon.tar.gz --strip-components=1 -C deps/include --wildcards '*/sse2neon.h'
@@ -70,7 +72,7 @@ cmake -S ceres-solver-0c70ed3a1a2d6ba47c06c7e8b3b040880bc474db -B ceres-build -G
     -DEigen3_DIR=/work/deps/share/eigen3/cmake -Dabsl_DIR=/work/deps/lib/cmake/absl
 cmake --build ceres-build --parallel 8
 cmake --install ceres-build
-cmake -S blender-5.2.3 -B blender-build -G Ninja \
+cmake -S "blender-$BLENDER" -B blender-build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/work/install -DCMAKE_INSTALL_RPATH=/work/deps/lib \
     -DCMAKE_PREFIX_PATH=/work/deps -DOPENVDB_ROOT_DIR=/work/deps \
     -DOpenImageIO_DIR=/work/deps/lib/cmake/OpenImageIO \
@@ -91,10 +93,10 @@ cmake --build blender-build --parallel 8
 rm -f install/ready.json
 cmake --install blender-build
 uv pip install --python /usr/bin/python3.13 --require-hashes \
-    --target /work/install/share/blender/5.2/python/lib/python3.13/dist-packages \
+    --target "/work/install/share/blender/${BLENDER%.*}/python/lib/python3.13/dist-packages" \
     -r /work/runtime-requirements.txt
 install/bin/blender -b --factory-startup --version
-install/bin/blender --python-exit-code 1 -b --factory-startup --python-expr "import bpy; assert bpy.app.version == (5,2,3); assert bpy.app.build_options.openvdb; t=bpy.data.node_groups.new('Native SDF check','GeometryNodeTree'); [t.nodes.new(n) for n in ('GeometryNodeMeshToSDFGrid','GeometryNodeSDFGridOffset','GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; print('native build: startup and SDF nodes verified')" > startup.log 2>&1
+install/bin/blender --python-exit-code 1 -b --factory-startup --python-expr "import bpy; assert bpy.app.version == tuple(map(int, '$BLENDER'.split('.'))); assert bpy.app.build_options.openvdb; t=bpy.data.node_groups.new('Native SDF check','GeometryNodeTree'); [t.nodes.new(n) for n in ('GeometryNodeMeshToSDFGrid','GeometryNodeSDFGridOffset','GeometryNodeSDFGridBoolean','GeometryNodeSDFGridMean')]; print('native build: startup and SDF nodes verified')" > startup.log 2>&1
 cat startup.log
 if grep -Eq 'Traceback|ModuleNotFoundError|Exception in module register' startup.log; then exit 1; fi
 mkdir -p bin
@@ -103,5 +105,5 @@ cat > bin/blender <<'SH'
 exec /work/install/bin/blender --python-exit-code 1 "$@"
 SH
 chmod +x bin/blender
-printf '%s\n' '{"version":"5.2.3","source_sha256":"5c66e0ab20da26d684deecfc27e84c4d39e456daaa9112b47eeb45d0e0283876","openvdb":true}' > install/ready.json.tmp
+printf '%s\n' "{\"version\":\"$BLENDER\",\"source_sha256\":\"$BLENDER_SOURCE_SHA256\",\"openvdb\":true}" > install/ready.json.tmp
 mv install/ready.json.tmp install/ready.json

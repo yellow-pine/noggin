@@ -138,14 +138,18 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   worker; `FETCH` names repo-relative outputs returned from its immutable job snapshot. `just gx10-setup` builds the CI
   Blender pin and its required dependencies from checksum-verified source in an ARM64 container (#979). Python, CAD,
   Blender finishing, rendering and validation run there; bone checks execute with Blender present. Required GitHub
-  checks and architecture-specific CI evidence still run normally. The worker starts at 32 GiB; after measuring an OOM,
-  agents may use `NOGGIN_GX10_MEMORY_GIB=64`, subject to the worker's system-headroom check. Keep the Mac's 3 GB Blender
+  checks and architecture-specific CI evidence still run normally. The worker starts at 32 GiB; a measured cgroup OOM
+  retries the same job once at 64 GiB after a fresh system-headroom check, recording both attempts. Keep the Mac's 3 GB Blender
   safety ceiling. The SSH controller is detached, so computation continues when the Mac disconnects.
 
   Cansin's editable Morty reference stays authoritative on the Mac. Its full mesh, paint and fit data may be staged over
   the existing Tailscale SSH connection into the trusted GX10's private, hash-versioned input cache. These inputs and
   reference-containing results stay excluded from git, public CI uploads and publication; a shared writable mount is
   unnecessary. One writer owns each source; the remote worker reads immutable inputs and returns candidates.
+  Ordinary fitting jobs select additional local files with `NOGGIN_GX10_INPUTS`, a JSON map such as
+  `{"NOGGIN_PRIVATE_FIT":"/local/neutral-world.npz"}`; the named environment variable inside the worker points to its
+  immutable staged copy. Names use `NOGGIN_PRIVATE_...` or `NOGGIN_MORTY`; an explicit local `NOGGIN_MORTY` is also staged
+  for ordinary jobs. The generated-review command selects the canonical reference automatically.
 
   `just review` builds and checks on GX10, then delivers a version/commit/hash-verified review with a backup and atomic
   publication. An older job cannot replace a newer requested review. The Mac remains the interactive Blender viewer;

@@ -132,7 +132,7 @@ def setup(host):
     pin = re.search(r"^ARG BLENDER=([\d.]+)$", (repo / "ci/blender.Dockerfile").read_text(), re.M)
     assert pin
     version = pin[1]
-    if f"fetch blender-{version}.tar.xz " not in (repo / "ci/gx10-blender-build.sh").read_text():
+    if f"\nBLENDER={version}\n" not in (repo / "ci/gx10-blender-build.sh").read_text():
         raise ValueError("the native build source checksums need updating for the CI Blender pin")
     home = ssh(host, ["printenv", "HOME"], check=True, capture_output=True, text=True).stdout.strip()
     tools = f"{home}/noggin-tools/blender-{version}"
@@ -195,13 +195,59 @@ def setup(host):
         time.sleep(5)
 
 
+def stage_inputs(host, home, inputs, job_id):
+    """Explicit private file inputs become immutable, owner-only content-addressed remote files."""
+    staged = {}
+    for name, source in inputs.items():
+        if not re.fullmatch(r"NOGGIN_(?:MORTY|PRIVATE_[A-Z0-9_]+)", name):
+            raise ValueError("private input names must be NOGGIN_MORTY or NOGGIN_PRIVATE_...")
+        source = Path(source)
+        digest = checksum(source)
+        private = Path(home) / "noggin-private"
+        folder = private / "inputs" / digest
+        remote = str(folder / source.name)
+        ssh(host, ["mkdir", "-p", folder], check=True)
+        ssh(host, ["chmod", "700", private, private / "inputs", folder], check=True)
+        existing = ssh(host, ["sha256sum", remote], capture_output=True, text=True)
+        if existing.returncode or existing.stdout.split()[0] != digest:
+            part = f"{remote}.{job_id}.part"
+            transfer(host, source, part, upload=True)
+            received = ssh(host, ["sha256sum", part], check=True, capture_output=True, text=True)
+            if received.stdout.split()[0] != digest:
+                raise ValueError("private input changed during transfer")
+            ssh(host, ["mv", part, remote], check=True)
+        ssh(host, ["chmod", "600", remote], check=True)
+        staged[name] = {"path": remote, "sha256": digest}
+    return staged
+
+
+def bounded_attempts(gib, run):
+    """Retry a measured 32 GiB cgroup OOM once; source, input identity and job ID remain unchanged."""
+    attempts = []
+    for ceiling in (32, 64) if gib == 32 else (64,):
+        result = run(ceiling)
+        attempts.append(result.copy())
+        if result["returncode"] == 0 or not result.get("oom_killed"):
+            break
+    return {**result, "attempts": attempts}
+
+
 def worker(request_path):
-    """Detached host controller: retain the clone lock through computation AND output snapshotting."""
     request_path = Path(request_path).resolve()
     request = json.loads(request_path.read_text())
+    (request_path.parent / "controller.pid").write_text(str(os.getpid()))
+    start = time.monotonic()
+    result = bounded_attempts(
+        request["memory_gib"], lambda gib: native_attempt(request_path, {**request, "memory_gib": gib})
+    )
+    result["seconds"] = time.monotonic() - start
+    atomic_json(request_path.parent / "result.json", result)
+
+
+def native_attempt(request_path, request):
+    """Detached host controller: retain the clone lock through computation AND output snapshotting."""
     root, home = request_path.parent, Path.home()
-    (root / "controller.pid").write_text(str(os.getpid()))
-    result = {"id": request["id"], "commit": request["commit"], "returncode": 1}
+    result = {"id": request["id"], "commit": request["commit"], "returncode": 1, "memory_gib": request["memory_gib"]}
     start = time.monotonic()
     tools_lock = None
     try:
@@ -228,10 +274,17 @@ def worker(request_path):
             private, cache = home / "noggin-private", home / "noggin-cache"
             private.mkdir(mode=0o700, exist_ok=True)
             cache.mkdir(mode=0o700, exist_ok=True)
-            morty = request.get("morty")
-            if morty and checksum(morty["path"]) != morty["sha256"]:
-                raise ValueError("private input checksum mismatch")
+            inputs = request.get("inputs", {})
+            for name, source in inputs.items():
+                if not re.fullmatch(r"NOGGIN_(?:MORTY|PRIVATE_[A-Z0-9_]+)", name):
+                    raise ValueError("invalid private input name")
+                if not Path(source["path"]).resolve().is_relative_to(private.resolve() / "inputs"):
+                    raise ValueError("private input must use its immutable staging directory")
+                if checksum(source["path"]) != source["sha256"]:
+                    raise ValueError("private input checksum mismatch")
+            result["input_sha256"] = {name: source["sha256"] for name, source in inputs.items()}
             name = f"noggin-{request['id']}"
+            (root / "memory.peak").unlink(missing_ok=True)
             command = [
                 "docker",
                 "run",
@@ -276,8 +329,7 @@ def worker(request_path):
                 "XDG_CACHE_HOME": "/cache/xdg",
                 "LD_LIBRARY_PATH": "/work/deps/lib:/usr/local/cuda/lib64",
             }
-            if morty:
-                env["NOGGIN_MORTY"] = morty["path"]
+            env.update({name: source["path"] for name, source in inputs.items()})
             for key, value in env.items():
                 command += ["--env", f"{key}={value}"]
             executable = "/work/install/bin/blender"
@@ -310,7 +362,7 @@ def worker(request_path):
                         str(repo / "model/review/verify.py"),
                         "--",
                         str(root / "verification.json"),
-                        "1" if morty else "0",
+                        "1" if "NOGGIN_MORTY" in inputs else "0",
                     ]
                 )
             flow += f"; code=$?; cat /sys/fs/cgroup/memory.peak >{shlex.quote(str(root / 'memory.peak'))}; exit $code"
@@ -321,7 +373,9 @@ def worker(request_path):
                 flow,
             ]
             peak = 0
-            with (root / "output.log").open("w") as log:
+            with (root / "output.log").open("a") as log:
+                log.write(f"gx10: attempt at {request['memory_gib']} GiB\n")
+                log.flush()
                 process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
                 while process.poll() is None:
                     state = subprocess.run(
@@ -355,7 +409,7 @@ def worker(request_path):
         if tools_lock:
             tools_lock.close()
     result["seconds"] = time.monotonic() - start
-    atomic_json(root / "result.json", result)
+    return result
 
 
 def transfer(host, source, destination, recursive=False, upload=False):
@@ -366,7 +420,10 @@ def transfer(host, source, destination, recursive=False, upload=False):
         copied = subprocess.run(["scp", "-qr" if recursive else "-q", origin, target])
         if copied.returncode == 0:
             return
-        if ssh(host, ["true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+        if (
+            copied.returncode != 255
+            and ssh(host, ["true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+        ):
             raise RuntimeError("GX10 transfer failed while the host is reachable")
         time.sleep(5)
 
@@ -444,6 +501,11 @@ def submit(host, command, fetch, review=False):
     target = Path(os.environ.get("NOGGIN_REVIEW", Path.home() / "Desktop/noggin-stage3.blend")).resolve()
     latest = target.with_suffix(".blend.request.json")
     request["target"] = str(target)
+    inputs = json.loads(os.environ.get("NOGGIN_GX10_INPUTS", "{}"))
+    if not isinstance(inputs, dict):
+        raise ValueError("NOGGIN_GX10_INPUTS must map private input names to local files")
+    if os.environ.get("NOGGIN_MORTY"):
+        inputs.setdefault("NOGGIN_MORTY", os.environ["NOGGIN_MORTY"])
     if review:
         target.parent.mkdir(parents=True, exist_ok=True)
         begin_review(target, latest, {"id": job_id, "commit": commit})
@@ -452,26 +514,10 @@ def submit(host, command, fetch, review=False):
                 ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], text=True
             ).strip()
         ).parent
-        source = Path(
-            os.environ.get("NOGGIN_MORTY", common / "docs/references/morty/chelscct-morty-smith/morty-review.blend")
-        )
+        source = common / "docs/references/morty/chelscct-morty-smith/morty-review.blend"
         if source.is_file():
-            digest = checksum(source)
-            folder = f"{home}/noggin-private/inputs/{digest}"
-            remote = folder + "/morty-review.blend"
-            ssh(host, ["mkdir", "-p", folder], check=True)
-            ssh(host, ["chmod", "700", f"{home}/noggin-private", f"{home}/noggin-private/inputs", folder], check=True)
-            existing = ssh(host, ["sha256sum", remote], capture_output=True, text=True)
-            if existing.returncode or existing.stdout.split()[0] != digest:
-                transfer(host, source, f"{remote}.{job_id}.part", upload=True)
-                received = ssh(
-                    host, ["sha256sum", f"{remote}.{job_id}.part"], check=True, capture_output=True, text=True
-                )
-                if received.stdout.split()[0] != digest:
-                    raise ValueError("private input changed during transfer")
-                ssh(host, ["mv", f"{remote}.{job_id}.part", remote], check=True)
-            ssh(host, ["chmod", "600", remote], check=True)
-            request["morty"] = {"path": remote, "sha256": digest}
+            inputs.setdefault("NOGGIN_MORTY", str(source))
+    request["inputs"] = stage_inputs(host, home, inputs, job_id)
     atomic_json(local / "request.json", request)
     transfer(host, local / "request.json", f"{root}/request.json", upload=True)
     transfer(host, Path(__file__).resolve(), f"{root}/worker.py", upload=True)
