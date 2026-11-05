@@ -41,6 +41,17 @@ def test_the_real_neck_uses_a_fixed_cervical_carrier_then_nod_plate_then_pan_bea
     assert "head mount:1" in pan.direct.driven and "pan servo:1" not in pan.direct.driven
 
 
+def test_pan_has_the_actual_standard_case_mass_and_five_volt_working_limit():
+    """The micro servo cannot hold the measured C0 load; the actual standard actuator must reach every model seam."""
+    from model import electrical, sim
+
+    case = stages.neck_sub().parts["pan servo:1"]
+    assert stages.stem(case.file) == "standard servo"
+    assert case.material == (55, "documented")
+    assert sim.limits("pan horn")["rated_kgf_cm"] == pytest.approx(3.222)
+    assert electrical.servo.profile("pan")["stall_a"] == pytest.approx(1.4)
+
+
 def test_the_physical_jaw_hinge_meets_the_actual_fitted_condylar_patches():
     """#968: measured public #874 v7 patch centres, not the obsolete gimbal hinge or target empties."""
     pivot = stages.jaw_sub().horns["jaw horn"].loops[0].rocker_pivot[0]
