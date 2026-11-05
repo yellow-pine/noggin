@@ -47,3 +47,31 @@ growth reserve. Crown, temple, back and forehead vault regions aim for outer-ref
 and p90 at most 6.4 mm. Natural openings and unavoidable functional keep-outs are named with their evidence; budgets
 are not retuned to accept a result. The warp rejects a least Jacobian at or below 0.1 or a landmark miss over 1 mm.
 Numerical jobs run on GX10; the private Morph mesh and semantic profiles remain on the Mac.
+
+## 2026-11-05 anatomy and compute amendments
+
+Cansin's confirmed decisions on #893 supersede the preceding maximum-fill targets and Mac-only compute restriction.
+Anatomy takes priority over filling unused Skin space. Crown, forehead and vault-fill targets are soft objectives;
+actual Skin containment, walls, functional eye/orbit registration, true articular joints, canal continuity and the
+hardware wiring corridor remain hard requirements. The old inferred T1/shoulder height and the C1 canal centroid
+are not anatomical joint datums: C0 and TMJ registration uses corresponding original articular surfaces. A color
+boundary or a mesh's box cannot establish the shoulder girdle's position.
+
+Start from original BodyParts3D Basis coordinates. Report each declared anatomical region's uniform resize and
+rigid placement, then enforce local length factors of 0.75–1.25, including the final Sculpt residual. Fixed,
+source-stamped posterior/inferior cranial masks and rib/cartilage masks alone may increase their upper bound
+smoothly to 1.50, while protecting face, orbit, jaw, C0 and attachment regions. Other bones retain 1.25. No per-Bone
+normalization, inherited anisotropic baseline, vertex clamp or automatic budget increase can establish acceptance.
+One anatomical frame and joint continuity permit smooth regional fields; they do not require one global TPS.
+Saved and interactive rewarps must evaluate the same field and metadata. Optimizer success, positive Jacobians
+at sampled points and small landmark residuals each remain insufficient without independent actual geometry checks.
+
+The confirmed reference restores the original arms/body above one horizontal functional base, provisionally the
+current CAD floor at world Z=0. Old arm-cut width and whole arm span cannot serve as ribcavity dimensions. The body,
+neck, shoulders and arms stay fixed, with head, jaw and eyes moving on their own actual carriers. Original visible
+eye geometry stays intact; spherical guides do not replace it.
+
+Under #979, the canonical authored private reference stays on the Mac, while immutable, hash-versioned copies and
+dense fitting data may travel by SSH to the trusted GX10 private ignored cache. They remain excluded from git,
+public CI, published artifacts and public source scenes. GX10 supplies normal heavy numerical/Blender compute;
+the Mac remains the review viewer with its existing resource limit and backup-preserving atomic publication.
