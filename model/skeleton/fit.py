@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import trimesh
 from scipy.interpolate import RBFInterpolator
+from scipy.optimize import Bounds, NonlinearConstraint, minimize
 from shapely.geometry import Polygon
 
 REGIONS = {"Skull": "skull", "Mandible": "jaw", "Ribcage": "upper_chest"} | {f"C{i}": "cervicals" for i in range(1, 8)}
@@ -44,6 +45,90 @@ def check_surface_stretch(basis, final_sculpt, faces, regional_scale):
         raise ValueError("Original anatomical Basis has a degenerate triangle")
     tangent = b @ np.linalg.inv(r)
     return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch")
+
+
+def constrained_affine(source, target, inequalities=None):
+    """Fit one anatomical region with three EXACT anchors and an explicitly optimized uniform size.
+
+    Three noncollinear anchors fix two columns; only the third column and the declared size are optimized.
+    Optional inequality values are positive inside the caller's fixed constraint set. Final independent SVD and
+    anchor/inequality checks determine feasibility, not the optimizer's success flag alone.
+    """
+    source, target = np.asarray(source), np.asarray(target)
+    if source.shape != (3, 3) or target.shape != (3, 3):
+        raise ValueError("An affine regional fit needs three noncollinear anatomical anchors")
+    ratios = [
+        np.linalg.norm(target[i] - target[j]) / np.linalg.norm(source[i] - source[j])
+        for i, j in ((0, 1), (0, 2), (1, 2))
+    ]
+    low, high = max(ratios) / 1.25, min(ratios) / 0.75
+    if low >= high:
+        raise ValueError("affine anchor scale interval is empty; nonlinear-field infeasibility is NOT established")
+    centre, dest = source[:2].mean(0), target[:2].mean(0)
+    length = np.linalg.norm(source[1] - source[0])
+    x = (source[1] - source[0]) / length
+    q = source[2] - centre
+    along = q @ x
+    y = q - along * x
+    height = np.linalg.norm(y)
+    if height < 1e-8:
+        raise ValueError("An affine regional fit needs three noncollinear anatomical anchors")
+    y /= height
+    frame = np.column_stack((x, y, np.cross(x, y)))
+    b0 = (target[1] - target[0]) / length
+    b1 = (target[2] - dest - along * b0) / height
+    normal = np.cross(b0, b1)
+    normal /= np.linalg.norm(normal)
+    initial_scale = np.sqrt(min(ratios) * max(ratios))
+
+    def unpack(parameters):
+        matrix = np.eye(4)
+        matrix[:3, :3] = np.column_stack((b0, b1, parameters[:3])) @ frame.T
+        matrix[:3, 3] = dest - matrix[:3, :3] @ centre
+        return matrix, np.exp(parameters[3])
+
+    def gram(parameters):
+        matrix, scale = unpack(parameters)
+        a = matrix[:3, :3] / scale
+        return a.T @ a
+
+    def principal_minors(m):
+        return [*np.diag(m), *(np.linalg.det(m[np.ix_(p, p)]) for p in ((0, 1), (0, 2), (1, 2))), np.linalg.det(m)]
+
+    def stretch_constraints(parameters):
+        g = gram(parameters)
+        matrix, scale = unpack(parameters)
+        return np.array(
+            principal_minors(g - 0.75**2 * np.eye(3))
+            + principal_minors(1.25**2 * np.eye(3) - g)
+            + [np.linalg.det(matrix[:3, :3] / scale) - 0.1]
+        )
+
+    constraints = [NonlinearConstraint(stretch_constraints, 0, np.inf, keep_feasible=True)]
+    if inequalities is not None:
+        constraints.append(NonlinearConstraint(lambda p: inequalities(unpack(p)[0]), 0, np.inf))
+    solution = minimize(
+        lambda p: np.square(gram(p) - np.eye(3)).sum(),
+        np.r_[normal * initial_scale, np.log(initial_scale)],
+        method="trust-constr",
+        bounds=Bounds([-np.inf] * 3 + [np.log(low)], [np.inf] * 3 + [np.log(high)]),
+        constraints=constraints,
+        options={"maxiter": 150, "gtol": 1e-9, "xtol": 1e-10, "barrier_tol": 1e-10},
+    )
+    matrix, scale = unpack(solution.x)
+    stretch = check_stretch(matrix[None, :3, :3], scale)
+    error = float(np.linalg.norm(source @ matrix[:3, :3].T + matrix[:3, 3] - target, axis=1).max())
+    if error > 1e-6 or (inequalities is not None and np.min(inequalities(matrix)) < -1e-6):
+        raise ValueError(f"No feasible affine candidate found: {solution.message}; anchor error {error:.6g} mm")
+    return matrix, {
+        "uniform_scale": float(scale),
+        "scale_interval_from_anchors": [float(low), float(high)],
+        "stretch": stretch,
+        "anchor_error_mm": error,
+        "optimizer_success": bool(solution.success),
+        "optimizer_message": str(solution.message),
+        "iterations": int(solution.nit),
+    }
 
 
 def outer_cortex(mesh, targets, origin):
