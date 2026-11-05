@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 import trimesh
 
-from model.skeleton import fit
-from model.skeleton import budget
+from model.skeleton import budget, fit
 
 REFERENCE = {
     "c0": [0, 0, 0],
