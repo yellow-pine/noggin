@@ -34,7 +34,7 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the gimbal frame's lugs, scaled for Morty's jawline about the model's existing hinge; it turns down to
+1. **Jaw** on the gimbal frame's lugs, scaled for Morty's jawline about its pivot; it turns down to
    open the mouth.
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
