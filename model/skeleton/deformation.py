@@ -55,7 +55,20 @@ def evaluate(points, field):
     return moved, gradient
 
 
-def solve(points, matrix, scale, anchors, centres, width, margin, constrained_points, maximum=1.25, maxiter=150):
+def solve(
+    points,
+    matrix,
+    scale,
+    anchors,
+    centres,
+    width,
+    margin,
+    constrained_points,
+    maximum=1.25,
+    maxiter=150,
+    triangles=None,
+    triangle_maximum=1.25,
+):
     """Find the smallest nonlinear residual satisfying this FIXED sampled constraint set.
 
     `margin` returns one signed inside distance per WORLD point. The caller scans held-out geometry and adds
@@ -76,13 +89,30 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
     target = np.asarray(constrained_points) @ matrix[:3, :3].T + matrix[:3, 3]
     values, _ = _basis(target, centres, fixed, width, affine=True)
     count = values.shape[1]
+    triangles = np.empty((0, 3, 3)) if triangles is None else np.asarray(triangles)
+    source_edges = np.stack((triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]), axis=2)
+    _, r = np.linalg.qr(source_edges)
+    if (np.abs(np.linalg.det(r)) < 1e-12).any():
+        raise ValueError("Original anatomical Basis has a degenerate triangle")
+    inverse = np.linalg.inv(r)
+    baseline_tangent = matrix[:3, :3] @ source_edges @ inverse
+    triangle_world = triangles.reshape(-1, 3) @ matrix[:3, :3].T + matrix[:3, 3]
+    phi, _ = _basis(triangle_world, centres, fixed, width, affine=True)
+    phi = phi.reshape(len(triangles), 3, count)
+    tangent_modes = np.stack((phi[:, 1] - phi[:, 0], phi[:, 2] - phi[:, 0]), axis=2) @ inverse
+    surface_limits = np.broadcast_to(triangle_maximum, (len(triangles),))
+    if (surface_limits < 1.25).any() or (surface_limits > 1.5).any():
+        raise ValueError("Original triangle allowances must be1.25..1.50")
+
+    def principal_lengths(baseline, modes, c):
+        gradient = (baseline + np.einsum("nkj,ki->nij", modes, c.reshape(count, 3))) / scale
+        u, sigma, vh = np.linalg.svd(gradient, full_matrices=False)
+        right = np.einsum("nkj,nlj->nkl", modes, vh)
+        jac = np.einsum("nil,nkl->nlki", u, right).reshape(len(gradient), gradient.shape[2], count * 3) / scale
+        return gradient, sigma, jac
 
     def lengths(c):
-        gradient = (matrix[None, :3, :3] + np.einsum("nkj,ki->nij", d, c.reshape(count, 3))) / scale
-        u, sigma, vh = np.linalg.svd(gradient)
-        # Derivative of each singular value w.r.t. a WORLD residual coefficient.
-        right = np.einsum("nkj,nlj->nkl", d, vh)
-        jac = np.einsum("nil,nkl->nlki", u, right).reshape(len(points), 3, -1) / scale
+        gradient, sigma, jac = principal_lengths(matrix[None, :3, :3], d, c)
         det = np.linalg.det(gradient)
         cofactors = np.stack(
             (
@@ -97,12 +127,21 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
 
     def strains(c):
         sigma, _, det, _ = lengths(c)
-        return np.r_[(sigma - 0.75).ravel(), (limits[:, None] - sigma).ravel(), det - 0.1]
+        _, surface, _ = principal_lengths(baseline_tangent, tangent_modes, c)
+        return np.r_[
+            (sigma - 0.75).ravel(),
+            (limits[:, None] - sigma).ravel(),
+            det - 0.1,
+            (surface - 0.75).ravel(),
+            (surface_limits[:, None] - surface).ravel(),
+        ]
 
     def strain_jac(c):
         _, jac, _, det_jac = lengths(c)
         j = jac.reshape(-1, count * 3)
-        return np.vstack((j, -j, det_jac))
+        _, _, sj = principal_lengths(baseline_tangent, tangent_modes, c)
+        sj = sj.reshape(-1, count * 3)
+        return np.vstack((j, -j, det_jac, sj, -sj))
 
     def room(c):
         return np.asarray(margin(target + values @ c.reshape(count, 3)))
@@ -126,6 +165,7 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
         options={"maxiter": maxiter, "ftol": 1e-9},
     )
     sigma, _, det, _ = lengths(result.x)
+    _, surface, _ = principal_lengths(baseline_tangent, tangent_modes, result.x)
     minimum_room = float(room(result.x).min())
     field = {
         "version": 1,
@@ -145,6 +185,8 @@ def solve(points, matrix, scale, anchors, centres, width, margin, constrained_po
         "minimum_length": float(sigma.min()),
         "maximum_length": float(sigma.max()),
         "minimum_determinant": float(det.min()),
+        "minimum_triangle_length": float(surface.min()) if len(surface) else None,
+        "maximum_triangle_length": float(surface.max()) if len(surface) else None,
         "minimum_sampled_room_mm": minimum_room,
         "sampled_feasible": bool(strains(result.x).min() >= -1e-6 and minimum_room >= -1e-6),
         "scope": "SAMPLED field constraints only; full original/Sculpt surfaces, joints and exact Skin remain mandatory",
