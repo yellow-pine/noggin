@@ -5,7 +5,7 @@ JSON, so saved and interactive rewarps evaluate the SAME mapping. Optimizer succ
 """
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import NonlinearConstraint, minimize
 
 
 def _basis(points, centres, anchors, width, affine=False):
@@ -157,12 +157,21 @@ def solve(
         lambda c: (float(c @ c), 2 * c),
         np.zeros(count * 3),
         jac=True,
-        method="SLSQP",
+        hess=lambda c: 2 * np.eye(len(c)),
+        method="trust-constr",
         constraints=[
-            {"type": "ineq", "fun": strains, "jac": strain_jac},
-            {"type": "ineq", "fun": room, "jac": room_jac},
+            NonlinearConstraint(strains, 0, np.inf, jac=strain_jac, keep_feasible=True),
+            NonlinearConstraint(room, 0, np.inf, jac=room_jac),
         ],
-        options={"maxiter": maxiter, "ftol": 1e-9},
+        options={
+            "maxiter": maxiter,
+            "gtol": 1e-9,
+            "xtol": 1e-10,
+            "barrier_tol": 1e-10,
+            "sparse_jacobian": True,
+            "factorization_method": "AugmentedSystem",
+            "initial_barrier_parameter": 1e-4,
+        },
     )
     sigma, _, det, _ = lengths(result.x)
     _, surface, _ = principal_lengths(baseline_tangent, tangent_modes, result.x)
