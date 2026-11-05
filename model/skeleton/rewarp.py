@@ -29,7 +29,12 @@ def export(prefix):
         scene["warp_blend"] = json.loads(bpy.context.scene["warp_blend"])
     if "anatomical_regions" in bpy.context.scene:
         scene["anatomical_regions"] = json.loads(bpy.context.scene["anatomical_regions"])
-    for key in ("original_anatomical_landmarks", "anatomical_constraints"):
+    for key in (
+        "original_anatomical_landmarks",
+        "anatomical_constraints",
+        "anatomical_budget",
+        "historical_sculpt_policy",
+    ):
         if key in bpy.context.scene:
             scene[key] = json.loads(bpy.context.scene[key])
     groups = {"Skull", "Mandible", "Ribcage"} | {f"C{i}" for i in range(1, 8)}
@@ -65,7 +70,10 @@ def apply(prefix, out):
     assert set(report["regional_stretch"]) == set(inventory), "Missing confirmed regional/Sculpt deformation proof"
     for bone in report["regional_stretch"].values():
         for kind in ("field", "surface_including_sculpt"):
-            assert bone[kind]["minimum"] >= 0.75 - 1e-6 and bone[kind]["maximum"] <= 1.25 + 1e-6
+            upper = bone[kind].get("maximum_allowance", 1.25)
+            if upper > 1.25:
+                assert report["anatomical_budget_version"] == scene["anatomical_budget"]["version"] == 1
+            assert upper <= 1.5 and bone[kind]["minimum"] >= 0.75 - 1e-6 and bone[kind]["maximum"] <= upper + 1e-6
     basis = {}
     for bone in scene["bones"]:
         o = bpy.data.objects[bone["name"]]
@@ -98,7 +106,12 @@ def apply(prefix, out):
         assert hashlib.sha256(points.tobytes()).digest() == digest, name
     bpy.context.scene["fit_report"] = json.dumps(report)
     bpy.context.scene["anatomical_regions"] = json.dumps(scene["anatomical_regions"])
-    for key in ("original_anatomical_landmarks", "anatomical_constraints"):
+    for key in (
+        "original_anatomical_landmarks",
+        "anatomical_constraints",
+        "anatomical_budget",
+        "historical_sculpt_policy",
+    ):
         if key in scene:
             bpy.context.scene[key] = json.dumps(scene[key])
     if "warp_blend" in scene:

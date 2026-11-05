@@ -14,28 +14,39 @@ from scipy.interpolate import RBFInterpolator
 from scipy.optimize import Bounds, NonlinearConstraint, minimize
 from shapely.geometry import Polygon
 
+from model.skeleton import budget
+
 REGIONS = {"Skull": "skull", "Mandible": "jaw", "Ribcage": "upper_chest"} | {f"C{i}": "cervicals" for i in range(1, 8)}
 
 
-def _stretch_report(lengths, label):
+def _stretch_report(lengths, label, maximum=1.25):
     if not np.isfinite(lengths).all() or not lengths.size:
         raise ValueError(f"Invalid {label} measurement")
+    limits = np.broadcast_to(maximum, lengths.shape[:-1])
+    if not np.isfinite(limits).all() or (limits < 1.25).any() or (limits > 1.5).any():
+        raise ValueError("Invalid source-anatomical growth allowance")
     low, high = float(lengths.min()), float(lengths.max())
-    if low < 0.75 - 1e-6 or high > 1.25 + 1e-6:
-        raise ValueError(f"{label} {low:.6f}..{high:.6f} exceeds confirmed 0.75..1.25")
-    return {"minimum": low, "maximum": high}
+    if low < 0.75 - 1e-6 or (lengths > limits[:, None] + 1e-6).any():
+        raise ValueError(f"{label} {low:.6f}..{high:.6f} exceeds its fixed anatomical stretch allowance")
+    return {
+        "minimum": low,
+        "maximum": high,
+        "exception_allowed": int((limits > 1.25 + 1e-6).sum()),
+        "exception_used": int((lengths.max(axis=1) > 1.25 + 1e-6).sum()),
+        "maximum_allowance": float(limits.max()),
+    }
 
 
-def check_stretch(gradients, regional_scale):
+def check_stretch(gradients, regional_scale, maximum=1.25):
     """Principal local lengths from ORIGINAL Basis, after only a declared regional UNIFORM resize."""
     if not np.isfinite(regional_scale) or regional_scale <= 0:
         raise ValueError("Declare a positive uniform anatomical-region size")
     if not np.isfinite(gradients).all() or (np.linalg.det(gradients) <= 0).any():
         raise ValueError("A local stretch mapping folds or has invalid gradients")
-    return _stretch_report(np.linalg.svd(gradients, compute_uv=False) / regional_scale, "local stretch")
+    return _stretch_report(np.linalg.svd(gradients, compute_uv=False) / regional_scale, "local stretch", maximum)
 
 
-def check_surface_stretch(basis, final_sculpt, faces, regional_scale):
+def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.25):
     """Exact triangle tangent lengths include every final Sculpt edit; no per-Bone fitted normalization."""
     source, target = np.asarray(basis)[faces], np.asarray(final_sculpt)[faces]
     a = np.stack((source[:, 1] - source[:, 0], source[:, 2] - source[:, 0]), axis=2)
@@ -44,7 +55,8 @@ def check_surface_stretch(basis, final_sculpt, faces, regional_scale):
     if (np.abs(np.linalg.det(r)) < 1e-12).any():
         raise ValueError("Original anatomical Basis has a degenerate triangle")
     tangent = b @ np.linalg.inv(r)
-    return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch")
+    limits = np.broadcast_to(maximum, (len(basis),))[faces].min(axis=1)
+    return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch", limits)
 
 
 def constrained_affine(source, target, inequalities=None):
@@ -191,6 +203,16 @@ def warp(arrays, scene):
     anatomical_regions = scene.get("anatomical_regions")
     if not anatomical_regions:
         raise ValueError("Declare uniform anatomical_regions from original Basis before warping")
+    allowance = scene.get("anatomical_budget")
+    support = None
+    if allowance:
+        if allowance["version"] != 1 or allowance["basis_sha256"] != budget.stamp(arrays, scene["bones"]):
+            raise ValueError("The anatomical growth mask must match the immutable original Basis/topology")
+        if any(
+            b["name"].startswith(("L rib ", "R rib ", "L costal cartilage ", "R costal cartilage "))
+            for b in scene["bones"]
+        ):
+            support = budget.support_mesh(arrays, scene["bones"])
     for bone in scene["bones"]:
         declared = anatomical_regions[REGIONS[bone["group"]]]
         matrix = np.asarray(declared["matrix"])
@@ -253,15 +275,16 @@ def warp(arrays, scene):
     for bone in scene["bones"]:
         key, matrix = bone["key"], np.asarray(bone["matrix"])
         scale = anatomical_regions[REGIONS[bone["group"]]]["scale"]
+        maximum = budget.caps(bone["name"], arrays[key + "_basis"], allowance, support) if allowance else 1.25
         n = len(arrays[key + "_basis"])
         gradient = (jac[offset : offset + n] + np.eye(3)) @ matrix[:3, :3]
         final = result[key + "_sculpt"] @ matrix[:3, :3].T + matrix[:3, 3]
         stretch[bone["name"]] = {
             "region": REGIONS[bone["group"]],
             "declared_uniform_scale": scale,
-            "field": check_stretch(gradient, scale),
+            "field": check_stretch(gradient, scale, maximum),
             "surface_including_sculpt": check_surface_stretch(
-                arrays[key + "_basis"], final, arrays[key + "_faces"], scale
+                arrays[key + "_basis"], final, arrays[key + "_faces"], scale, maximum
             ),
         }
         offset += n
@@ -269,6 +292,7 @@ def warp(arrays, scene):
         "min_jacobian": determinant,
         "landmark_error_mm": error,
         "regional_stretch": stretch,
+        "anatomical_budget_version": 1 if allowance else None,
     }
 
 
@@ -460,6 +484,7 @@ def refit(arrays, scene, envelope, seed_only=False):
         "original_delta_sha256": digest.hexdigest(),
     }
     facts = original_facts(arrays, scene)
+    scene["anatomical_budget"] = budget.reference(arrays, scene["bones"], facts)
     eye_l, eye_r = (np.array(facts["landmarks"][f"LM {side} orbit"]) for side in ("L", "R"))
     c1, t1 = (np.array(facts["canals"][name]["centre"]) for name in ("C1", "T1"))
     fixed_c0 = np.array(envelope["canal_ends"]["C1"])
