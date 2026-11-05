@@ -19,7 +19,7 @@ CRANIAL = {
 }
 SUPPORT = (
     {f"C{i}" for i in range(1, 8)}
-    | {f"T{i}" for i in range(1, 5)}
+    | {f"T{i}" for i in range(1, 13)}
     | {"manubrium", "body of sternum", "xiphoid process"}
 )
 
@@ -62,6 +62,20 @@ def smooth(t):
     return t**3 * (t * (6 * t - 15) + 10)
 
 
+def cranial_weight(y, z, reference):
+    c0, eyes = np.asarray(reference["c0"]), np.asarray(reference["eyes"])
+    posterior = smooth((y - c0[1]) / 20)
+    inferior = smooth((eyes[:, 2].mean() - 20 - z) / 20) * smooth((y - (c0[1] - 20)) / 20)
+    return 1 - (1 - posterior) * (1 - inferior)
+
+
+def protected(reference):
+    for key, radius in (("c0", 35), ("eyes", 45), ("condyles", 20)):
+        centres = np.asarray(reference[key]).reshape(-1, 3)
+        for centre in centres:
+            yield centre, radius
+
+
 def caps(bone, basis, reference, support=None):
     """Per-source-vertex upper length factor. No fitted position, transform or target changes this mask.
 
@@ -78,16 +92,32 @@ def caps(bone, basis, reference, support=None):
         _, distance, _ = trimesh.proximity.closest_point(support, basis)
         weight = smooth((distance - 15) / 20)
     elif bone in CRANIAL:
-        c0 = np.asarray(reference["c0"])
-        eyes = np.asarray(reference["eyes"])
-        tmj = np.asarray(reference["condyles"])
-        orbit_z = eyes[:, 2].mean()
-        posterior = smooth((basis[:, 1] - c0[1]) / 20)
-        inferior = smooth((orbit_z - 20 - basis[:, 2]) / 20) * smooth((basis[:, 1] - (c0[1] - 20)) / 20)
-        weight = 1 - (1 - posterior) * (1 - inferior)
-        for centres, radius in (([c0], 35), (eyes, 45), (tmj, 20)):
-            for centre in centres:
-                weight *= smooth((np.linalg.norm(basis - centre, axis=1) - radius) / 10)
+        weight = cranial_weight(basis[:, 1], basis[:, 2], reference)
+        for centre, radius in protected(reference):
+            weight *= smooth((np.linalg.norm(basis - centre, axis=1) - radius) / 10)
     else:
         weight = np.zeros(len(basis))
+    return 1.25 + 0.25 * weight
+
+
+def face_caps(bone, triangles, reference, support=None):
+    """Conservative allowance valid EVERYWHERE on a source triangle, including protected-core crossings."""
+    import trimesh
+
+    if bone in CRANIAL:
+        # Plane weights increase with Y and decrease with Z; these extrema bound their smooth union below.
+        weight = cranial_weight(triangles[:, :, 1].min(axis=1), triangles[:, :, 2].max(axis=1), reference)
+        for centre, radius in protected(reference):
+            closest = trimesh.triangles.closest_point(triangles, np.broadcast_to(centre, (len(triangles), 3)))
+            distance = np.linalg.norm(closest - centre, axis=1)
+            weight *= smooth((distance - radius) / 10)
+    elif bone.startswith(("L rib ", "R rib ", "L costal cartilage ", "R costal cartilage ")):
+        if support is None:
+            raise ValueError("Missing original support geometry for rib attachment protection")
+        _, d, _ = trimesh.proximity.closest_point(support, triangles.reshape(-1, 3))
+        diameter = np.linalg.norm(triangles - np.roll(triangles, 1, axis=1), axis=2).max(axis=1)
+        # Distance to a fixed surface is1-Lipschitz; subtracting the whole triangle diameter is conservative.
+        weight = smooth((d.reshape(-1, 3).min(axis=1) - diameter - 15) / 20)
+    else:
+        weight = np.zeros(len(triangles))
     return 1.25 + 0.25 * weight

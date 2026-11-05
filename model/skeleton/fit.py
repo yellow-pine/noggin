@@ -46,7 +46,7 @@ def check_stretch(gradients, regional_scale, maximum=1.25):
     return _stretch_report(np.linalg.svd(gradients, compute_uv=False) / regional_scale, "local stretch", maximum)
 
 
-def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.25):
+def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.25, face_maximum=None):
     """Exact triangle tangent lengths include every final Sculpt edit; no per-Bone fitted normalization."""
     source, target = np.asarray(basis)[faces], np.asarray(final_sculpt)[faces]
     a = np.stack((source[:, 1] - source[:, 0], source[:, 2] - source[:, 0]), axis=2)
@@ -55,7 +55,7 @@ def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.
     if (np.abs(np.linalg.det(r)) < 1e-12).any():
         raise ValueError("Original anatomical Basis has a degenerate triangle")
     tangent = b @ np.linalg.inv(r)
-    limits = np.broadcast_to(maximum, (len(basis),))[faces].min(axis=1)
+    limits = np.broadcast_to(maximum, (len(basis),))[faces].min(axis=1) if face_maximum is None else face_maximum
     return _stretch_report(np.linalg.svd(tangent, compute_uv=False) / regional_scale, "surface stretch", limits)
 
 
@@ -276,6 +276,11 @@ def warp(arrays, scene):
         key, matrix = bone["key"], np.asarray(bone["matrix"])
         scale = anatomical_regions[REGIONS[bone["group"]]]["scale"]
         maximum = budget.caps(bone["name"], arrays[key + "_basis"], allowance, support) if allowance else 1.25
+        face_maximum = (
+            budget.face_caps(bone["name"], arrays[key + "_basis"][arrays[key + "_faces"]], allowance, support)
+            if allowance
+            else None
+        )
         n = len(arrays[key + "_basis"])
         gradient = (jac[offset : offset + n] + np.eye(3)) @ matrix[:3, :3]
         final = result[key + "_sculpt"] @ matrix[:3, :3].T + matrix[:3, 3]
@@ -284,7 +289,7 @@ def warp(arrays, scene):
             "declared_uniform_scale": scale,
             "field": check_stretch(gradient, scale, maximum),
             "surface_including_sculpt": check_surface_stretch(
-                arrays[key + "_basis"], final, arrays[key + "_faces"], scale, maximum
+                arrays[key + "_basis"], final, arrays[key + "_faces"], scale, maximum, face_maximum
             ),
         }
         offset += n
