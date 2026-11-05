@@ -115,7 +115,7 @@ def cervical_carrier():
     _, y, z = nk.HEAD_AXES["tilt"][0]
     out = box((-20, 20), (56, 72), nk.MOUNT_Z)
     for sign in (-1, 1):
-        xs = sorted(sign * x for x in (6.8, 11.2))
+        xs = sorted(sign * x for x in (18.0, 22.4))
         rail = box(sorted(sign * x for x in (14, 18)), (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
         points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
         for a, b in zip(points, points[1:]):
@@ -141,7 +141,7 @@ def nod_plate():
     _, y, z = nk.HEAD_AXES["tilt"][0]
     out = hull("XY", [(0, y, 12), (-13.8, y, 3.6), (13.8, y, 3.6)], 5, (0, 0, nk.NOD_Z[0]))
     for sign in (-1, 1):
-        xs = sorted(sign * x for x in (11.8, 15.8))
+        xs = sorted(sign * x for x in (13.4, 17.4))
         out = out.union(box(xs, (y - 3.6, y + 3.6), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
         out = out.union(cyl("x", (0, y, z), 3.6, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
         for fy in (y - 12, y + 12):
@@ -160,16 +160,22 @@ def nod_plate():
             out = out.cut(cyl("x", (0, fy, fz), 0.8, tabs))
     out = out.union(box(tabs, (front - 3.1, rear + 3.1), (sz + 12.7, sz + 17.7)))
     path = [
-        (-13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
-        (-18, 115, nk.NOD_Z[0] + 2.5),
-        (-30, 115, -17),
-        (-30, 115, sz + 15.2),
-        (sum(tabs) / 2, front, sz + 15.2),
+        (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
+        (26, 135, nk.NOD_Z[0] + 2.5),
+        (26, 135, sz + 17),
+        (sum(tabs) / 2, front, sz + 17),
     ]
-    for u, v in zip(path, path[1:]):
+    out = out.union(_flat([tuple(p[:2]) for p in path[:2]], 8, nk.NOD_Z))
+    for u, v in zip(path[1:], path[2:]):
         out = out.union(strut(u, v, (4, 4), (4, 4)))
     # Crown pan cradle: a rear dogleg bypasses the entire rotating frame and the electronics tray.
-    mast = [(13.8, y + 2.5, nk.NOD_Z[0] + 2.5), (30, 135, -40), (30, 132, 31), (18, 110, 63), (18, 100.35, 68.4)]
+    mast = [
+        (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
+        (30, 135, -40),
+        (30, 132, 31),
+        (18, 110, 63),
+        (18, nk.PAN_SHAFT[1] + 34.1, nk.PAN_SHAFT[2] + 9.4),
+    ]
     out = out.union(_flat([tuple(mast[0][:2]), tuple(mast[1][:2])], 15, nk.NOD_Z))
     for u, v in zip(mast[1:], mast[2:]):
         out = out.union(strut(u, v, (7.5, 7.5), (7.5, 7.5)))
@@ -182,7 +188,7 @@ def nod_plate():
         out = out.union(_flat([(-5, fy), (18, fy)], 6.2, plate))
         for x in (-5, 5):
             out = out.cut(cyl("z", (x, fy, 0), 0.8, plate))
-    for xs in ((6.5, 11.5), (-11.5, -6.5)):
+    for xs in ((17.7, 26), (-26, -17.7)):
         out = out.cut(cyl("x", (0, y, z), 8.5, xs))
     return out
 
@@ -283,8 +289,11 @@ def pan_wire_candidate():
     carrier = carrier.union(box((-24.8, -17), (y - 10, y + 10), (bottom + 1, top)))
     carrier = carrier.union(box((-24.8, -18.8), (y - 10, y + 10), (top - 0.5, top + 13)))
     px, py, _ = nk.PAN_ANCHOR
-    carrier = carrier.union(_flat([(-26.3, y), (px, py)], 15, (top + 4, top + 13)))
-    carrier = carrier.union(cyl("z", (px, py, 0), 7.5, (top + 4, nk.PAN_TAP_Z[1])))
+    # The lower column stands behind the crank sweep; its top arm reaches the coupler above the crank plate.
+    rear = (px, py + 10)
+    carrier = carrier.union(_flat([(-26.3, y), rear], 15, (top + 4, top + 13)))
+    carrier = carrier.union(cyl("z", (*rear, 0), 7.5, (top + 4, nk.PAN_TAP_Z[1])))
+    carrier = carrier.union(_flat([rear, (px, py)], 15, (nk.PAN_LEVER_Z[1] + 2, nk.PAN_TAP_Z[1])))
     carrier = carrier.cut(cyl("z", (px, py, 0), TAP_R, nk.PAN_TAP_Z))
     return {
         "spindle": spindle,

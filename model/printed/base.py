@@ -80,9 +80,10 @@ def lid(mechanical=False):
     ys, zs = zip(*nk.CERVICAL_PATH)
     import numpy as np
 
-    rail_y = float(np.interp(z1 - nb.LID_T, zs, ys))
-    for x in (-16, 16):
-        out = out.cut(box((x - 4, x + 4), (rail_y - 5, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
+    rail_y = min(float(np.interp(z, zs, ys)) for z in (z1 - nb.LID_T, z1))
+    for sign in (-1, 1):
+        ends = [sign * float(np.interp(z, zs, nk.CERVICAL_X)) for z in (z1 - nb.LID_T, z1)]
+        out = out.cut(box((min(ends) - 4.5, max(ends) + 4.5), (rail_y - 5, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(cyl("z", (*nb.SWITCH_AT, 0), 6.0, (z1 - nb.LID_T - 1, z1 + 1)))  # a finger down to the switch's lever
     if not mechanical:
         inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))

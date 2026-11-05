@@ -42,12 +42,12 @@ PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
 NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
-TILT_SHAFT = (-21.45, 118.0, -3.7)  # lower rear case, outside the tray-leg and head-post sweeps
+TILT_SHAFT = (-3.45, 118.0, -3.7)  # inboard horn clears both rotating tray legs without changing the reaction plane
 TILT_ARM = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
 TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
-PAN_SHAFT = (0.0, 63.25, 57.5)  # crown case; offset leaves real clearance between the two coupler bosses
+PAN_SHAFT = (0.0, 63.25, 58.5)  # crank underside clears the complete Shield envelopes through pan
 PAN_ARM = (-30.0, 0.0)
 PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] - 6.5, PAN_SHAFT[2] - 1.5), (60.7, 64.7), (65.0, 71.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
@@ -63,7 +63,7 @@ CERVICAL_PATH = (
     (78.5, -60.7),
     (76.6, -48.7),
 )  # (y,z), over the pack into the true canal
-CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 9.0)  # the upper rail clears the hollow nod tube and its actual trunnion relief
+CERVICAL_X = (16.0, 8.0, 8.0, 22.0, 22.0)  # upper fixed rails outside the moving trunnions, leaving the canal open
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
 

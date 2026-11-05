@@ -23,11 +23,12 @@ import numpy as np
 
 from model import envelopes, gimbal, neck
 
-# the Torso's outside, the realistic skull's box pedestal (#838): x, y, and z from its foot to its lid's top (as tall as
-# when the pan was in it: #858 keeps the Mech's height), round the power-path board in front of the neck mount's foot,
+# the Torso's outside, x, y, and z from its foot to its lid's top: the highest board is 22.76 mm above the foot;
+# a 27 mm lid underside leaves 4.24 mm for service, instead of retaining the obsolete pan-servo space.
+# Round the power-path board in front of the neck mount's foot,
 # the pack in its cradle behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan
 # axis
-TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 49.0))
+TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 27.0))
 LID_T, POST_GAP = 3.0, 1.0  # the Torso's lid, the post's room in its hole
 PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
