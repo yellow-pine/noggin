@@ -52,6 +52,30 @@ def test_pan_has_the_actual_standard_case_mass_and_five_volt_working_limit():
     assert electrical.servo.profile("pan")["stall_a"] == pytest.approx(1.4)
 
 
+def test_a_stock_horn_and_its_printed_adapter_share_one_real_motor_joint(tmp_path, monkeypatch):
+    """A bolted adapter is rigidly driven with its stock horn in both the poses and the physical actuator model."""
+    mesh = tmp_path / "adapter.stl"
+    trimesh.creation.box((2, 2, 2)).export(mesh)
+    parts = {
+        n: stages.Part(str(mesh), stages.translate(p), (1.0, "documented"), None)
+        for n, p in (("fixed:1", (0, 0, 0)), ("stock:1", (10, 0, 0)), ("adapter:1", (0, 10, 0)))
+    }
+    horn = stages.Horn({"point": (0, 0, 0), "axis": g.Z}, (-45, 45), ("stock:1", "adapter:1"), [], [], np.eye(4))
+    doc = "mech-back-mechanical"
+    stage = stages.Doc(doc, parts, {"pan horn": horn})
+    pose = stages.pose(stage, "pan horn", 20)
+    for name in ("stock:1", "adapter:1"):
+        expected = neck.linkage.rotation(g.Z, 20) @ parts[name].matrix
+        assert pose.parts[name] == pytest.approx(expected)
+    monkeypatch.setitem(stages.STAGES, doc, stage)
+    spec = mjcf.spec(doc, collide=False)
+    spec.modelfiledir = mjcf.BUILD
+    model = spec.compile()
+    data = mjcf.pose(model, {"pan horn": 20})
+    for name in ("stock:1", "adapter:1"):
+        assert data.body(name).xpos == pytest.approx(pose.parts[name][:3, 3] / 1000, abs=0.0002)
+
+
 def test_the_physical_jaw_hinge_meets_the_actual_fitted_condylar_patches():
     """#968: measured public #874 v7 patch centres, not the obsolete gimbal hinge or target empties."""
     pivot = stages.jaw_sub().horns["jaw horn"].loops[0].rocker_pivot[0]
