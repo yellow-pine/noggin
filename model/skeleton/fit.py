@@ -7,9 +7,11 @@ Blender exports/applies this public exchange; the private reference never travel
 import json
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import trimesh
+from numpy.typing import ArrayLike
 from scipy.interpolate import RBFInterpolator
 from scipy.optimize import Bounds, NonlinearConstraint, minimize
 from shapely.geometry import Point, Polygon
@@ -19,7 +21,7 @@ from model.skeleton import budget
 REGIONS = {"Skull": "skull", "Mandible": "jaw", "Ribcage": "upper_chest"} | {f"C{i}": "cervicals" for i in range(1, 8)}
 
 
-def _stretch_report(lengths, label, maximum=1.25):
+def _stretch_report(lengths, label, maximum: ArrayLike = 1.25):
     if not np.isfinite(lengths).all() or not lengths.size:
         raise ValueError(f"Invalid {label} measurement")
     limits = np.broadcast_to(maximum, lengths.shape[:-1])
@@ -37,7 +39,7 @@ def _stretch_report(lengths, label, maximum=1.25):
     }
 
 
-def check_stretch(gradients, regional_scale, maximum=1.25):
+def check_stretch(gradients, regional_scale, maximum: ArrayLike = 1.25):
     """Principal local lengths from ORIGINAL Basis, after only a declared regional UNIFORM resize."""
     if not np.isfinite(regional_scale) or regional_scale <= 0:
         raise ValueError("Declare a positive uniform anatomical-region size")
@@ -46,7 +48,7 @@ def check_stretch(gradients, regional_scale, maximum=1.25):
     return _stretch_report(np.linalg.svd(gradients, compute_uv=False) / regional_scale, "local stretch", maximum)
 
 
-def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum=1.25, face_maximum=None):
+def check_surface_stretch(basis, final_sculpt, faces, regional_scale, maximum: ArrayLike = 1.25, face_maximum=None):
     """Exact triangle tangent lengths include every final Sculpt edit; no per-Bone fitted normalization."""
     source, target = np.asarray(basis)[faces], np.asarray(final_sculpt)[faces]
     a = np.stack((source[:, 1] - source[:, 0], source[:, 2] - source[:, 0]), axis=2)
@@ -171,7 +173,8 @@ def constrained_affine(source, target, inequalities=None):
         lambda p: np.square(gram(p) - np.eye(3)).sum(),
         np.r_[normal * initial_scale, np.log(initial_scale)],
         method="trust-constr",
-        bounds=Bounds([-np.inf] * 3 + [np.log(low)], [np.inf] * 3 + [np.log(high)]),
+        # SciPy accepts array bounds; its installed default-value annotation incorrectly narrows these to float.
+        bounds=cast(Any, Bounds)([-np.inf] * 3 + [np.log(low)], [np.inf] * 3 + [np.log(high)]),
         constraints=constraints,
         options={"maxiter": 150, "gtol": 1e-9, "xtol": 1e-10, "barrier_tol": 1e-10},
     )
@@ -286,10 +289,10 @@ def warp(arrays, scene):
             selected = shared | (regions == region)
             fields[region] = RBFInterpolator(source[selected], (target - source)[selected], kernel="thin_plate_spline")
 
-        def field(points):
-            t = np.clip((points @ normal - low) / (high - low), 0, 1)
+        def field(x):
+            t = np.clip((x @ normal - low) / (high - low), 0, 1)
             weight = (t**3 * (t * (6 * t - 15) + 10))[:, None]  # C2-smooth, including both ends
-            return weight * fields["head"](points) + (1 - weight) * fields["body"](points)
+            return weight * fields["head"](x) + (1 - weight) * fields["body"](x)
 
     else:
         field = RBFInterpolator(source, target - source, kernel="thin_plate_spline")
