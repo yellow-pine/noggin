@@ -42,15 +42,14 @@ PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
 NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
-TILT_SHAFT = (-21.45, 114.0, -3.7)  # lower rear case, outside the tray-leg sweep
-_tilt_offset = np.subtract(TILT_SHAFT, HEAD_AXES["tilt"][0])[1:]
-TILT_ARM = tuple(28 * np.array((_tilt_offset[1], -_tilt_offset[0])) / np.linalg.norm(_tilt_offset))
+TILT_SHAFT = (-21.45, 118.0, -3.7)  # lower rear case, outside the tray-leg and head-post sweeps
+TILT_ARM = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_ARM[0], TILT_SHAFT[2] + TILT_ARM[1])
 TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_ARM[0], HEAD_AXES["tilt"][0][2] + TILT_ARM[1])
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
-PAN_SHAFT = (0.0, 66.25, 59.0)  # crown case, shaft downward; two-millimetre full-face Skin cover checked at five pans
+PAN_SHAFT = (0.0, 63.25, 57.5)  # crown case; offset leaves real clearance between the two coupler bosses
 PAN_ARM = (-30.0, 0.0)
-PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (52.5, 57.5), (60.7, 64.7), (65.0, 71.0)
+PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] - 6.5, PAN_SHAFT[2] - 1.5), (60.7, 64.7), (65.0, 71.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 REACTION_BAR_X = (-4.5, 1.5)  # actual standard-servo stall bending load, not a micro-servo bar
@@ -64,7 +63,7 @@ CERVICAL_PATH = (
     (78.5, -60.7),
     (76.6, -48.7),
 )  # (y,z), over the pack into the true canal
-CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 8.0)  # medial rails keep the C0 trunnions inside the condyles' pan sweep
+CERVICAL_X = (16.0, 8.0, 8.0, 8.0, 9.0)  # the upper rail clears the hollow nod tube and its actual trunnion relief
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
 

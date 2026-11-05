@@ -162,16 +162,18 @@ def nod_plate():
     path = [
         (-13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
         (-18, 115, nk.NOD_Z[0] + 2.5),
-        (-18, 115, -29),
+        (-30, 115, -17),
+        (-30, 115, sz + 15.2),
         (sum(tabs) / 2, front, sz + 15.2),
     ]
     for u, v in zip(path, path[1:]):
         out = out.union(strut(u, v, (4, 4), (4, 4)))
     # Crown pan cradle: a rear dogleg bypasses the entire rotating frame and the electronics tray.
     mast = [(13.8, y + 2.5, nk.NOD_Z[0] + 2.5), (30, 135, -40), (30, 132, 31), (18, 110, 63), (18, 100.35, 68.4)]
-    for u, v in zip(mast, mast[1:]):
+    out = out.union(_flat([tuple(mast[0][:2]), tuple(mast[1][:2])], 15, nk.NOD_Z))
+    for u, v in zip(mast[1:], mast[2:]):
         out = out.union(strut(u, v, (7.5, 7.5), (7.5, 7.5)))
-    for v in mast:
+    for v in mast[1:]:
         out = out.union(cq.Workplane().sphere(7.3).translate(v))
     fore, aft = nk.PAN_SHAFT[1] - 13.4, nk.PAN_SHAFT[1] + 34.1
     plate = (nk.PAN_SHAFT[2] + 5.4, nk.PAN_SHAFT[2] + 13.4)
@@ -230,8 +232,7 @@ def pan_lever():
     """Printed adapter on the standard round horn; the bar shares the head post's horizontal pin plane."""
     x, y, _ = nk.PAN_SHAFT
     pin = nk.PAN_PIN[:2]
-    out = _flat([(x, y), tuple(pin)], 20, nk.PAN_LEVER_Z)
-    out = out.union(cyl("z", (x, y, 0), 11.5, nk.PAN_LEVER_Z))
+    out = hull("XY", [(x, y, 11.5), (*pin, 5)], nk.PAN_LEVER_Z[1] - nk.PAN_LEVER_Z[0], (0, 0, nk.PAN_LEVER_Z[0]))
     out = out.union(cyl("z", (*pin, 0), 5, (nk.PAN_LEVER_Z[0], nk.PAN_TAP_Z[1])))
     out = out.cut(cyl("z", (*pin, 0), TAP_R, nk.PAN_TAP_Z))
     out = out.cut(cyl("z", (x, y, 0), 1.6, nk.PAN_LEVER_Z))
