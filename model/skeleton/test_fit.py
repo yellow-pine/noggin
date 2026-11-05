@@ -167,3 +167,21 @@ def test_affine_anchor_incompatibility_is_not_reported_as_global_shape_impossibi
     target = np.array(((0, 0, 0), (3, 0, 0), (0, 0.5, 0)), float)
     with pytest.raises(ValueError, match="affine.*scale"):
         fit.constrained_affine(source, target)
+
+
+def test_coarse_head_constraint_keeps_a_real_diagonal_groove():
+    cage = {
+        "radial_first_exits": {
+            "210": {
+                "origin_world_x_mm": 0,
+                "origin_world_y_mm": 0,
+                "radius_mm_by_angle_deg": {
+                    str(i * 45): r for i, r in enumerate((100, 100, 100, 100, 100, 47, 92.5, 47))
+                },
+            }
+        }
+    }
+    q = np.array(((-65 / np.sqrt(2), -65 / np.sqrt(2), 210), (0, -65, 210)))
+    margins = fit.coarse_head_margin(q, cage, 4.2)
+    assert margins[0] < -20
+    assert margins[1] > 0
