@@ -4,6 +4,7 @@ the recipe runs this file after each build)."""
 
 import json
 import os
+import shutil
 
 import pytest
 
@@ -355,6 +356,8 @@ print('review: done',flush=True)
 @pytest.mark.parametrize("nonuniform", [False, True])
 def test_saved_reference_preserves_authored_normals_and_still_cuts_the_floor(tmp_path, nonuniform):
     """A public thin triangle with authored normals; no private reference or generated model parts needed."""
+    if not shutil.which(review.skeleton.BLENDER):
+        pytest.skip(f"no Blender found at {review.skeleton.BLENDER}")
     prefix = f"FOLDER={str(tmp_path)!r}\nSCRIPT={review.SCRIPT!r}\nNONUNIFORM={nonuniform!r}\n"
     script = tmp_path / "reference.py"
     script.write_text(prefix + NORMAL_REFERENCE)
