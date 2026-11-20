@@ -224,8 +224,14 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if v[1].startswi
 # the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none. Its bones as they show bare (SKULL), and
 # the skull and mandible carved round every Skin's Shells too (WORN), printed to wear a Skin (Cansin, 2026-11-03): the
 # documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones
-SKULL = ("skull", "mandible", "atlas", "axis")
-WORN = {"skull": "worn skull", "mandible": "worn mandible"}
+BONE_PARTS = {
+    "calvaria": {"source": "Skull", "half": "upper", "carrier": "head", "worn": True},
+    "skull": {"source": "Skull", "half": "lower", "carrier": "head", "worn": True},
+    "mandible": {"source": "Mandible", "half": None, "carrier": "jaw", "worn": True},
+    **{f"c{i}": {"source": f"C{i}", "half": None, "carrier": "fixed", "worn": False} for i in range(1, 8)},
+}
+SKULL = tuple(BONE_PARTS)
+WORN = {stem: "worn " + stem for stem, part in BONE_PARTS.items() if part["worn"]}
 BONES = (*SKULL, *WORN.values())
 PRINTED |= dict.fromkeys(BONES, ("Bones", "PETG HF"))
 SKULL_SUB = "skull"
