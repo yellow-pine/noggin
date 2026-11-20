@@ -64,6 +64,12 @@ Every Shell of one Character, pulled off and pressed on together to swap Charact
 its Shape morty, bart or cansin, or none: the Skeleton bare, its full bones on; its Palette morty, bart or Default.
 _Avoid_: shell set, character shells, kit, costume
 
+**Motion region**:
+A part of a Skin that moves as one with the Skeleton part that carries it: the head, the jaw, each eye, each lid; the
+neck, shoulders and torso carried by nothing, fixed whatever the head does. The Morty reference and the Shells share
+the same regions.
+_Avoid_: band, section (a Colour group's), zone
+
 **Character**:
 Who the Mech looks like, Morty or Bart: its Skin and its gaze speed, picked in the noggin service's settings.
 _Avoid_: persona, theme

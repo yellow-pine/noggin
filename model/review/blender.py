@@ -66,25 +66,26 @@ def morty(m):
     source = dst.collections[0]
     objects = [o for o in source.all_objects if o.type == "MESH"]
     roles = [o.get("reference_region") for o in objects]
-    fixed = {"neck", "shoulders", "torso"}
-    if (
-        not all(isinstance(r, str) and r for r in roles)
-        or len(set(roles)) != len(roles)
-        or not (fixed | {"head"}) <= set(roles)
-    ):
-        raise ValueError("review: Morty needs distinct head, neck, shoulders and torso surfaces")
+    carriers = m["carriers"]  # skin.MOTION: the one source the Shells ride by too
+    fixed = {r for r, c in carriers.items() if c is None}
+    if not all(r in carriers for r in roles) or len(set(roles)) != len(roles) or not (fixed | {"head"}) <= set(roles):
+        raise ValueError(
+            f"review: Morty needs distinct Motion regions of {sorted(carriers)}, head, neck, shoulders and torso among them"
+        )
     witnesses = {"witness neck": "neck", "witness L shoulder": "shoulders", "witness R shoulder": "shoulders"}
     if not witnesses.keys() <= {g.name for o in objects for g in o.vertex_groups}:
         raise ValueError("review: local Morty needs independent neck and shoulder vertex witnesses")
     ratio = min(1.0, MORTY_FACES / max(1, sum(len(o.data.polygons) for o in objects)))
     for o in objects:
-        carrier = o.get("carrier")
+        carrier = carriers[o["reference_region"]]
+        if o.get("carrier", carrier) != carrier:
+            raise ValueError(f"review: Morty's {o['reference_region']} names carrier {o['carrier']}, not {carrier}")
+        if carrier:
+            o["carrier"] = carrier
         if any(witnesses[g.name] != o["reference_region"] for g in o.vertex_groups if g.name in witnesses):
             raise ValueError("review: Morty's independent anatomical witness is in the wrong semantic region")
         if o.get("display_region") not in REGIONS or "part" in o:
             raise ValueError("review: private reference surfaces need a display_region and must not be print parts")
-        if (o["reference_region"] in fixed and carrier) or (o["reference_region"] not in fixed and not carrier):
-            raise ValueError("review: neck, shoulders and torso stay fixed; moving surfaces need a live carrier")
         if carrier and carrier not in JOB_REST:
             raise ValueError(f"review: Morty's carrier {carrier} is absent from the live model")
         if not o.data.polygons or not o.data.materials:
@@ -208,7 +209,6 @@ def animate(scene, objects):
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
-    moving = []
     parts = {o["part"]: o for o in scene.objects if "part" in o}
     for o in objects:
         if carrier := o.get("carrier"):
@@ -218,9 +218,12 @@ def animate(scene, objects):
             o.parent = parts[carrier]
             o.matrix_parent_inverse = parts[carrier].matrix_world.inverted()
             o.matrix_world = world
-        part = o.get("part")
-        if part and any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"]):
-            moving.append((o, part, o.matrix_world.copy()))
+    # every moving part, a helper too: a hidden eyeball cap still carries Morty's eye (#969)
+    moving = [
+        (o, part, o.matrix_world.copy())
+        for part, o in parts.items()
+        if any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"])
+    ]
     for o, _, _ in moving:
         o.rotation_mode = "QUATERNION"
         o.animation_data_create().action = action

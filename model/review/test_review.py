@@ -10,7 +10,7 @@ import shutil
 import pytest
 
 from model import geometry as g
-from model import review, skeleton, stages
+from model import review, skeleton, skin, stages
 
 STAGE = stages.STAGES[review.DOC]
 
@@ -60,15 +60,18 @@ def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
     review.lock(path).close()
 
 
-REFERENCE_CARRIERS = {
-    role: stages.RIDES[shell]
-    for role, shell in {
-        "head": "morty face:1",
-        "jaw": "morty mouth cover:1",
-        "L eye": "morty L pupil:1",
-        "R eye": "morty R pupil:1",
-    }.items()
-}
+REFERENCE_CARRIERS = {r: c for r, c in review.CARRIERS.items() if c}  # the moving Motion regions'
+
+
+def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
+    """#969: a reference surface's carrier is its Motion region's, the part Morty's Shells of that region ride, and it is
+    in the review's document; the body's regions have none."""
+    assert set(review.CARRIERS) == set(skin.MOTION)
+    assert review.CARRIERS["neck"] is review.CARRIERS["shoulders"] is review.CARRIERS["torso"] is None
+    for shell, region in {"morty face": "head", "morty mouth cover": "jaw", "morty L pupil": "L eye"}.items():
+        assert stages.RIDES[f"{shell}:1"] == REFERENCE_CARRIERS[region]
+    assert set(REFERENCE_CARRIERS.values()) <= set(STAGE.parts)
+
 
 INSPECT = (
     f"EXPECTED_REFERENCE = {REFERENCE_CARRIERS!r}\n"
@@ -124,6 +127,7 @@ for o in bpy.data.collections["Morty"].all_objects:
 actors = {o["part"]: o for o in a.objects if o.get("part")}
 actor_rest = {role: np.array(actors[part].matrix_world) for role, part in EXPECTED_REFERENCE.items() if part in actors}
 actor_back = {role: np.linalg.inv(m) for role, m in actor_rest.items()}
+out["carriers"] = {part: [] for part in EXPECTED_REFERENCE.values() if part in actors}
 out["reference_motion"] = {o["reference_region"]: {"vertices": len(v), "travel": 0.0,
     "carrier_error": None, "own_travel": 0.0}
     for o, v, rest in reference.values()}
@@ -131,6 +135,8 @@ for f in range(a.frame_start, a.frame_end + 2):
     a.frame_set(f)
     for o in horns:
         deg[o.name[5:]].append(o["deg"])
+    for part, mats in out["carriers"].items():
+        mats.append([f, [list(r) for r in actors[part].matrix_world]])
     for o, v, rest in reference.values():
         m = np.array(o.matrix_world)
         travel = np.linalg.norm(v @ m[:3, :3].T + m[:3, 3] - rest, axis=1).max()
@@ -256,12 +262,25 @@ def test_the_reference_jaw_and_eyes_follow_their_live_carriers_independently_of_
     if not blend["morty"]:
         pytest.skip("no local Morty reference")
     motion = blend["reference_motion"]
-    for role in REFERENCE_CARRIERS:
+    assert {"head", "jaw", "L eye", "R eye"} <= motion.keys()
+    for role in REFERENCE_CARRIERS.keys() & motion.keys():  # a lid once the reference has its own (#992)
         assert motion[role]["vertices"] > 0
         assert motion[role]["carrier_error"] is not None, role
         assert motion[role]["carrier_error"] < 1e-3, role
     assert motion["head"]["own_travel"] < 1e-3
     assert all(motion[role]["own_travel"] > 1.0 for role in ("jaw", "L eye", "R eye"))
+
+
+def test_each_reference_carrier_moves_where_the_document_poses_it(blend):
+    """#969: a carrier hidden in helpers (an eyeball cap, a Shell) is keyed too, so what it carries moves: each one's
+    world matrix on every keyed frame is the document's pose there."""
+    poses = dict(review.motion(STAGE, review.keys(STAGE)))
+    assert blend["carriers"].keys() == set(REFERENCE_CARRIERS.values())
+    for part, frames in blend["carriers"].items():
+        checked = [(f, m) for f, m in frames if f in poses]
+        assert len(checked) > 10, part
+        for f, m in checked:
+            assert m == pytest.approx(poses[f][part].tolist(), abs=1e-3), (part, f)
 
 
 def test_exploded_and_print_bed_materials_are_opaque(blend):
@@ -309,7 +328,7 @@ for role in ('head','neck','shoulders','torso'):
     obj=bpy.data.objects.new(role,mesh)
     obj['reference_region']=role
     obj['display_region']='Pedestal' if role=='torso' else 'Mechanism' if role=='neck' else 'Skull'
-    if role=='head': obj['carrier']='carrier:1'
+    if role=='head': obj['carrier']='carrier:1'  # the one CARRIERS names, which it must agree with
     for witness in {'neck':['witness neck'],'shoulders':['witness L shoulder','witness R shoulder']}.get(role,[]):
         obj.vertex_groups.new(name=witness).add([0],1,'REPLACE')
     reference.objects.link(obj)
@@ -337,7 +356,8 @@ job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
      'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},
      'motion':[[1,{'carrier:1':list(identity)}]],
      'morty':{'blend':str(source),'at':list(at),'floor':1538,
-              'colours':{'face':'#F7CED7','clothes':'#FFFFFF'}}}
+              'colours':{'face':'#F7CED7','clothes':'#FFFFFF'},
+              'carriers':{'head':'carrier:1','neck':None,'shoulders':None,'torso':None}}}
 job_path=folder/'job.json'
 job_path.write_text(json.dumps(job,default=list))
 output=folder/'review.blend'
