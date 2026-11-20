@@ -151,7 +151,8 @@ def numbers(job):
     """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Round) on every finish."""
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]
-        rounded(mod.node_group)
+        if mod.node_group:  # a Finish not wired yet (the review's stand-in scene) has nothing to round
+            rounded(mod.node_group)
         for key, value in job["numbers"].items():
             if key != "Round" or key in mod.node_group.interface.items_tree:  # Round: the skull's alone
                 getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
