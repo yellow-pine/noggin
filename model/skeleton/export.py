@@ -153,7 +153,7 @@ def numbers(job):
         mod = o.modifiers["Finish"]
         rounded(mod.node_group)
         for key, value in job["numbers"].items():
-            if key in mod.node_group.interface.items_tree:
+            if key != "Round" or key in mod.node_group.interface.items_tree:  # Round: the skull's alone
                 getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
 
 
