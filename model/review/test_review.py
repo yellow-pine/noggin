@@ -2,6 +2,7 @@
 and the written .blend itself read by headless Blender, locally once `just review` wrote it (NOGGIN_REVIEW names it:
 the recipe runs this file after each build)."""
 
+import inspect
 import json
 import os
 import shutil
@@ -9,7 +10,7 @@ import shutil
 import pytest
 
 from model import geometry as g
-from model import review, stages
+from model import review, skeleton, stages
 
 STAGE = stages.STAGES[review.DOC]
 
@@ -39,6 +40,15 @@ def test_pack_keeps_every_piece_on_a_plate_clear_of_its_edge():
     assert len({p for p, _, _ in review.pack(sizes)}) > 1
     with pytest.raises(ValueError):
         review.pack([(review.BED, 10)])
+
+
+def test_the_review_finishes_at_the_print_files_pitch_unless_coarse_is_asked_for():
+    """#993: `just review` alone finishes the bones at skeleton.PITCH, the print files' voxel; coarse stays an option."""
+    assert review.QUALITY["production"] == skeleton.PITCH < review.QUALITY["coarse"]
+    for f in (review.job, review.build):
+        assert inspect.signature(f).parameters["quality"].default == "production"
+    just = open(os.path.join(stages.REPO, "justfile")).read()
+    assert 'review quality="production"' in just and '_review-build quality="production"' in just
 
 
 def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
