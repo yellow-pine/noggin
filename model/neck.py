@@ -34,8 +34,8 @@ HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "h
 BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
 SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anchors are not certified yet
-# Unaccepted C0 component study: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners.
-# It does not change HEAD_AXES or the production document until the complete drive and anatomical fit pass.
+# The C0 pan bearing: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners; anatomical
+# registration of HEAD_AXES remains #874's.
 PAN_STUDY_BEARING = (20.0, 32.0, 7.0)
 PAN_STUDY_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (23.7, 30.7))
 PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
@@ -288,18 +288,14 @@ def report(head, bare=None):
             "transmission_deg": round(min(transmission(drive, s) for s in sweep), 1),
             "gain": round((solve(0.5)[0] - solve(-0.5)[0]), 3),
         }
-    for drive in ("tilt",):
-        out[drive] = {
-            "drive": "direct",
-            "range_deg": list(RANGES[drive]),
-            "servo_deg": [servo_for(drive, d) for d in RANGES[drive]],
-            "gain": 1.0,
-        }
-    out["tilt"] |= {
-        "drive": "parallelogram",
-        "transmission_deg": round(min(transmission("tilt", s) for s in _sweep("tilt")), 1),
-    }
     sweep = _sweep("tilt")
+    out["tilt"] = {
+        "drive": "parallelogram",
+        "range_deg": list(RANGES["tilt"]),
+        "servo_deg": [servo_for("tilt", d) for d in RANGES["tilt"]],
+        "gain": 1.0,
+        "transmission_deg": round(min(transmission("tilt", s) for s in sweep), 1),
+    }
     spring = balance(head, bare)
 
     def holds(h):

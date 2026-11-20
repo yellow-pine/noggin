@@ -104,7 +104,8 @@ def stamp(doc):
     it is stale."""
     h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
     paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
-    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= stages.STAGES[doc].parts.keys():
+    carriers = {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]}
+    if carriers <= stages.STAGES[doc].parts.keys() and os.path.exists(mjcf.ANATOMY_LOADS):  # mjcf.spec's shortcut
         paths.append(mjcf.ANATOMY_LOADS)
     for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(
         {p.file for p in stages.STAGES[doc].parts.values()}

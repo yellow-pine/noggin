@@ -9,7 +9,7 @@ from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box
 from model.printed import bone
-from model.printed.gimbal import cyl
+from model.printed.gimbal import cyl, frame
 
 WALL, RIM = 2.0, 6.0  # the Torso's and the pack cradle's walls; the cradle's height, 0.5 mm clear round the pack
 ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third of it
@@ -121,4 +121,4 @@ def stand(mechanical=False):
     out = out.union(box((-x + WALL, x - WALL), (nb.STAND_TOP_Y, y[1] - WALL), (top - nb.TRAY_T, top)))
     for sx, sy in nk.HEAD_SCREWS:
         out = out.cut(cyl("z", (sx, sy, 0), 1.7, (top - nb.TRAY_T, top)))
-    return out
+    return out.cut(frame(mechanical=True))  # the jaw's lugs and the mouth servo's post hang under the plate (#978)

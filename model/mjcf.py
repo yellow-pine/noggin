@@ -386,8 +386,10 @@ def spec(doc, collide=True):
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
-    if neck.HEAD_CARRIERS["fixed"] in bodies and neck.HEAD_CARRIERS["jaw"] in bodies:
-        anatomy(s, stage, bodies)  # missing finished exports must never silently remove anatomical head weight
+    # shortcut: nothing writes ANATOMY_LOADS until #874's finished export does; until then physics runs on the
+    # mechanical parts alone, as before #978, and a present but invalid file still fails loudly in anatomy()
+    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and os.path.exists(ANATOMY_LOADS):
+        anatomy(s, stage, bodies)
     if "tilt horn" in stage.horns and (neck.HEAD_CARRIERS["fixed"] not in bodies or neck.SPRING_VERIFIED):
         balance(s, doc)
     return s

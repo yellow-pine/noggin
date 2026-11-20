@@ -259,7 +259,7 @@ _solid = functools.cache(lambda build: build().val())
         (
             neck.nod_plate,
             neck.cervical_carrier,
-            ((12.4, *nk.HEAD_AXES["tilt"][0][1:]), (8, *nk.HEAD_AXES["tilt"][0][1:])),
+            ((15.4, *nk.HEAD_AXES["tilt"][0][1:]), (20.2, *nk.HEAD_AXES["tilt"][0][1:])),  # mid lug, mid boss
             (0, 1, 0),
         ),
         (
