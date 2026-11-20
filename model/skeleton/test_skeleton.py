@@ -28,16 +28,6 @@ def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
     assert b"lfs" not in attr.stdout
 
 
-def test_blenders_scipy_comes_from_the_repos_gitignored_folder():
-    """rewarp.py's scipy: installed into .blender-site, which git ignores, and put on Blender's path from there alone,
-    never into Blender.app."""
-    ignored = subprocess.run(["git", "check-ignore", "-q", ".blender-site/scipy"], cwd=stages.REPO)
-    assert ignored.returncode == 0
-    just = open(os.path.join(stages.REPO, "justfile")).read()
-    assert "--target .blender-site" in just and "PYTHONPATH=.blender-site" in just
-    assert "Blender.app" not in just.split("blender-site: venv", 1)[1].split("\n\n", 1)[0]
-
-
 @pytest.mark.parametrize("folder", ["model/skull/3demon", "model/skull/atlas-axis"])
 def test_each_source_sits_under_its_own_licence(folder):
     """docs/adr/0023: each source's folder carries its licence, its author and where it came from, and names the

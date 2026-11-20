@@ -1,0 +1,346 @@
+{
+  "kind": "authored coarse radial cage; no private mesh topology",
+  "origin": [
+    0.0,
+    -75.0,
+    215.0
+  ],
+  "inset_mm": 4.2,
+  "landmarks": [
+    {
+      "azimuth": -180,
+      "elevation": 0,
+      "outer_radius_mm": 102
+    },
+    {
+      "azimuth": -135,
+      "elevation": 0,
+      "outer_radius_mm": 100
+    },
+    {
+      "azimuth": -90,
+      "elevation": 0,
+      "outer_radius_mm": 93
+    },
+    {
+      "azimuth": -45,
+      "elevation": 0,
+      "outer_radius_mm": 103
+    },
+    {
+      "azimuth": 0,
+      "elevation": 0,
+      "outer_radius_mm": 103
+    },
+    {
+      "azimuth": 45,
+      "elevation": 0,
+      "outer_radius_mm": 94
+    },
+    {
+      "azimuth": 90,
+      "elevation": 0,
+      "outer_radius_mm": 90
+    },
+    {
+      "azimuth": 135,
+      "elevation": 0,
+      "outer_radius_mm": 94
+    },
+    {
+      "azimuth": -180,
+      "elevation": 30,
+      "outer_radius_mm": 88
+    },
+    {
+      "azimuth": -135,
+      "elevation": 30,
+      "outer_radius_mm": 91
+    },
+    {
+      "azimuth": -90,
+      "elevation": 30,
+      "outer_radius_mm": 87
+    },
+    {
+      "azimuth": -45,
+      "elevation": 30,
+      "outer_radius_mm": 92
+    },
+    {
+      "azimuth": 0,
+      "elevation": 30,
+      "outer_radius_mm": 89
+    },
+    {
+      "azimuth": 45,
+      "elevation": 30,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": 90,
+      "elevation": 30,
+      "outer_radius_mm": 80
+    },
+    {
+      "azimuth": 135,
+      "elevation": 30,
+      "outer_radius_mm": 84
+    },
+    {
+      "azimuth": -180,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": -135,
+      "elevation": 60,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": -90,
+      "elevation": 60,
+      "outer_radius_mm": 90
+    },
+    {
+      "azimuth": -45,
+      "elevation": 60,
+      "outer_radius_mm": 85
+    },
+    {
+      "azimuth": 0,
+      "elevation": 60,
+      "outer_radius_mm": 82
+    },
+    {
+      "azimuth": 45,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 90,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 135,
+      "elevation": 60,
+      "outer_radius_mm": 81
+    },
+    {
+      "azimuth": 0,
+      "elevation": 90,
+      "outer_radius_mm": 77
+    }
+  ],
+  "canal_ends": {
+    "C1": [
+      0,
+      -73.4,
+      129.66735687562277
+    ],
+    "T1": [
+      0,
+      -65.32692156301607,
+      29.725203238828158
+    ]
+  },
+  "canal_ends_status": "inferred provisional anatomical endpoints, independent of head pan bearing; final corridor/joins require mesh proof",
+  "excluded_openings": [
+    {
+      "azimuths": [
+        -135,
+        -90,
+        -45
+      ],
+      "elevation": 0,
+      "reason": "orbital/brow opening below the glabella; this is not a cranial vault surface"
+    }
+  ],
+  "bone_landmarks": {
+    "LM correction L nasal bone surface": {
+      "source": [
+        -1.2608111500740051,
+        -184.20221487381787,
+        169.85014365063398
+      ],
+      "target": [
+        0.39290422201156616,
+        -169.17030334472656,
+        175.91033935546875
+      ],
+      "region": "head"
+    },
+    "LM correction R nasal bone surface": {
+      "source": [
+        -2.173101007938385,
+        -185.4400053385034,
+        169.92665137871518
+      ],
+      "target": [
+        -0.6217435002326965,
+        -169.12965393066406,
+        176.5128173828125
+      ],
+      "region": "head"
+    },
+    "LM correction L scapula surface": {
+      "source": [
+        162.09558433294296,
+        -44.432457136110315,
+        0.673596207430819
+      ],
+      "target": [
+        58.53594970703125,
+        -51.88410568237305,
+        7.573319911956787
+      ],
+      "region": "body"
+    },
+    "LM correction R scapula surface": {
+      "source": [
+        -157.71159034967422,
+        -43.21777793750152,
+        -0.8583077687071636
+      ],
+      "target": [
+        -56.102210998535156,
+        -50.80916976928711,
+        5.802826404571533
+      ],
+      "region": "body"
+    },
+    "LM correction C5 surface": {
+      "source": [
+        -1.9756210446357727,
+        -46.476010174465046,
+        62.738741198787466
+      ],
+      "target": [
+        -0.9945201873779297,
+        -42.4669189453125,
+        70.95526123046875
+      ],
+      "region": "body"
+    },
+    "LM correction second L scapula": {
+      "source": [
+        149.1419100165367,
+        -74.23317651579418,
+        15.632256578915985
+      ],
+      "target": [
+        70.35587310791016,
+        -59.37129211425781,
+        15.332507133483887
+      ],
+      "region": "body"
+    },
+    "LM correction second R scapula": {
+      "source": [
+        -134.2864347100258,
+        -80.88822562620771,
+        -22.99364961500396
+      ],
+      "target": [
+        -67.24211120605469,
+        -54.5722541809082,
+        -10.57266902923584
+      ],
+      "region": "body"
+    },
+    "LM correction second T3": {
+      "source": [
+        0.5502019990235567,
+        -13.841466121539156,
+        -26.41083929911838
+      ],
+      "target": [
+        -0.22164316475391388,
+        -25.620376586914062,
+        -9.928339004516602
+      ],
+      "region": "body"
+    },
+    "LM correction second T4": {
+      "source": [
+        0.30399590730667114,
+        -12.730086673308278,
+        -45.136922140431125
+      ],
+      "target": [
+        -0.22527173161506653,
+        -25.083576202392578,
+        -25.22314453125
+      ],
+      "region": "body"
+    },
+    "LM correction second body of sternum": {
+      "source": [
+        -8.828260958194733,
+        -206.28042187492247,
+        -138.4330815471767
+      ],
+      "target": [
+        -3.0904390811920166,
+        -136.5909423828125,
+        -99.02640533447266
+      ],
+      "region": "body"
+    },
+    "LM correction second xiphoid process": {
+      "source": [
+        -6.259070932865143,
+        -205.84637529120664,
+        -144.0413545963238
+      ],
+      "target": [
+        -2.233524799346924,
+        -136.73992919921875,
+        -103.3980941772461
+      ],
+      "region": "body"
+    }
+  },
+  "chest_frame": [
+    [
+      0.34855767488479616,
+      0.0,
+      0.0,
+      -0.003667152626439929
+    ],
+    [
+      0.0,
+      0.5243674516677856,
+      0.0,
+      -26.083236694335938
+    ],
+    [
+      0.0,
+      0.0,
+      0.7338183522224426,
+      -970.868408203125
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "chest_frame_status": "inferred coherent upper-chest affine; 0.9 of prototype width, subject to exact containment and joint/wall gates",
+  "chest_forward": {
+    "offset_mm": 7.0,
+    "fade_z_mm": [
+      -180.0,
+      -80.0
+    ],
+    "status": "inferred coherent upper-chest shear; C0/eyes fixed; lower sternum/floor preserved; all surface/joint/wire gates still required"
+  },
+  "regional_room": {
+    "upper_chest_outer_width_mm": 135.4587,
+    "head_outer_top_mm": 293.064,
+    "provenance": "Local immutable Morph volume/capped-bust scalar sections, 2026-11-04; private geometry stays on Mac. Width excludes arm span.",
+    "status": "Seed containment budgets only; exact full-surface fit remains required."
+  }
+}
