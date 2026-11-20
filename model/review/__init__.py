@@ -1,11 +1,11 @@
 """The review file (#915): Cansin's one Blender file of the Mech, rebuilt the same way every time from what is committed
 plus the local Morty reference, which Cansin's Blender reloads once it is written (docs' startup script, #886).
 
-`just review [coarse|medium] [before]` (`python -m model.review`): the Skeleton scene (docs/adr/0025) with the Stage 3
+`just review [production|coarse] [before]` (`python -m model.review`): the Skeleton scene (docs/adr/0025) with the Stage 3
 document just built (just ours) in place of its Scene Mech, each of the document's bones finished at the quality's
-voxel, one Blender process a bone under CEILING_KB, then three scenes on the same meshes (model/review/blender.py):
-Assembled (Mech, Skeleton and Morty, each in Skull, Mechanism and Pedestal, at ALPHA; a looping motion through every
-horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
+voxel (production: the print files' skeleton.PITCH; coarse when asked), one Blender process a bone under CEILING_KB,
+then three scenes on the same meshes (model/review/blender.py): Assembled (Mech, Skeleton and Morty, each in Skull,
+Mechanism and Pedestal, at ALPHA; a looping motion through every horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
 on its largest flat face, packed on BED plates); `before` adds a scene of main's bones beside the branch's. Run it in a
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
 
@@ -40,7 +40,7 @@ OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage
 SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
-QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
+QUALITY = {"production": skeleton.PITCH, "coarse": 1.6}  # the finish's voxel, mm
 CEILING_KB = blender_ceiling(sys.platform, os.environ)  # the Mac remains protected; GX10 also has a whole-job cgroup
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
 REGIONS = {
@@ -215,7 +215,7 @@ def _morty(stage):
     }
 
 
-def job(quality="coarse", before=None):
+def job(quality="production", before=None):
     """What blender.py needs, JSON-ready: skeleton.job() (the parts, the carving, the finish's numbers at the quality's
     voxel), each part's region, layer, colour, Exploded offset and plate, the motion's horn curves and poses, Morty
     (None without the local reference) and main's scene for `before`."""
@@ -286,7 +286,7 @@ def lock(path, wait=False):
     return f
 
 
-def build(out=OUT, quality="coarse", before=False):
+def build(out=OUT, quality="production", before=False):
     """The review file at `out`: written beside it and renamed into place, under its lock (one writer) and the Blender
     slot (one Blender)."""
     held, part = [lock(out + ".lock")], out.removesuffix(".blend") + ".tmp.blend"  # beside it: one disk's rename

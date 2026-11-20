@@ -120,12 +120,41 @@ def _corners(me):
     return [(a, b, c) for a in (lo[0], hi[0]) for b in (lo[1], hi[1]) for c in (lo[2], hi[2])]
 
 
+def rounded(group):
+    """The skull's Finish (the one cutting the Openings) opened by Round before its Mean, once: eroded, then grown back,
+    so every piece thinner than twice Round goes (#838's floor) and every convex edge, the orbits' and the nose's rims
+    among them, comes out rounded to it (#993). Older scenes' Finishes get it here, at export; build.py's are born with
+    it."""
+    N, L = group.nodes, group.links
+    cuts = {n.inputs["Collection"].default_value for n in N if n.bl_idname == "GeometryNodeCollectionInfo"}
+    if "Round erode" in N or bpy.data.collections.get(OPENINGS) not in cuts:
+        return
+    if "Round" not in group.interface.items_tree:
+        group.interface.new_socket("Round", in_out="INPUT", socket_type="NodeSocketFloat")
+    gi = next(n for n in N if n.bl_idname == "NodeGroupInput")
+    mean = next(n for n in N if n.bl_idname == "GeometryNodeSDFGridMean")
+    grid = mean.inputs["Grid"].links[0].from_socket
+    less = N.new("ShaderNodeMath")
+    less.operation = "MULTIPLY"
+    L.new(gi.outputs["Round"], less.inputs[0])
+    less.inputs[1].default_value = -1.0
+    for name, distance in (("Round erode", less.outputs[0]), ("Round grow", gi.outputs["Round"])):
+        o = N.new("GeometryNodeSDFGridOffset")
+        o.name = name
+        L.new(grid, o.inputs["Grid"])
+        L.new(distance, o.inputs["Distance"])
+        grid = o.outputs[0]
+    L.new(grid, mean.inputs["Grid"])
+
+
 def numbers(job):
-    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP) on every finish."""
+    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Round) on every finish."""
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]
+        rounded(mod.node_group)
         for key, value in job["numbers"].items():
-            getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
+            if key != "Round" or key in mod.node_group.interface.items_tree:  # Round: the skull's alone
+                getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
 
 
 def _stl(path, me):

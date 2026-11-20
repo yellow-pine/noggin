@@ -24,6 +24,7 @@ SCENE, EXPORT = "model/skeleton/skeleton.blend", "model/skeleton/export.py"
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
 DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
+FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
 
@@ -77,7 +78,7 @@ def job():
         "worn": g.WORN,
         "orbits": [[list(e), gm.LOWER_R[1] + CLEAR_MM] for e in gm.EYE.values()],
         "reach": REACH,
-        "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP},
+        "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP, "Round": FLOOR / 2},
     }
 
 
