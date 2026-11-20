@@ -150,7 +150,10 @@ def _built_head(t, sections=40, k=96):
     lo, hi = sk.HEAD_Z[0] + t, sk.HEAD_Z[1] - t  # the ends a hair's caps, `t` in
     wires = []
     for z in lo + (hi - lo) * (1 - np.cos(np.linspace(0.005, math.pi - 0.005, sections))) / 2:
-        a, front, back, n = sk.head_section(z, t)
+        # out of the head, its ends past HEAD_Z: each section read where it is stretched back into it, since past its
+        # ends they are all the end's, whose loft left a crumb at the hair's crown (#850)
+        at = z if t >= 0 else sk.HEAD_Z[0] + (z - lo) * (sk.HEAD_Z[1] - sk.HEAD_Z[0]) / (hi - lo)
+        a, front, back, n = sk.head_section(at, t)
         c, s = (
             np.cos(np.linspace(0, 2 * math.pi, k, endpoint=False)),
             np.sin(np.linspace(0, 2 * math.pi, k, endpoint=False)),
@@ -211,7 +214,8 @@ def _ear(s):
 
 def face():
     """Morty's face (face): the head's shell under the hairline, the nose between the eyes, an ear each side and the
-    mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its temples."""
+    mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on webs back from
+    its forehead."""
     out = _skull(0.0).cut(_hair(0.1))
     r, z, out_of = NOSE
     out = out.union(ball(r, (0, sk.head_section(z)[1] - out_of, z)).cut(_head(sk.WALL)))
@@ -227,7 +231,7 @@ def face():
 
 def hair():
     """Morty's hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto
-    the gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples."""
+    the gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face under it."""
     out = _skull(-sk.HAIR).intersect(_hair(-0.1))
     for seat in (s for s in sk.SEATS if s.shell == "next morty hair" and s.carrier == "next gimbal frame"):
         x, y, z = seat.at

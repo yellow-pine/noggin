@@ -110,8 +110,7 @@ def head_x(y, z):
     return a * max(1 - abs(d) ** n, 0.0) ** (1 / n)
 
 
-# outside: half-width, front to back, z
-HEAD_X = HEAD_W[0]
+# outside: front to back
 HEAD_Y = (float(min(_profile()[0][0])), float(max(_profile()[1][0])))
 MUZZLE_Y = HEAD_Y[0]  # the face's front at its most forward, over the jaw's chin
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
@@ -157,14 +156,15 @@ SEATS = [
         for x in (-45.0, 45.0)
     ],
     # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-    # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
+    # the face under the hair, over each eye behind the forehead, clear over the lids' covers (each Seat on a web back
+    # from the forehead, each boss up to the hair's wall, cut at its outside), so the hair lifts straight off (#850)
     *[
         Seat("next morty hair", "next gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
         for x in (-_BACK[0], _BACK[0])
     ],
     *[
-        Seat("next morty hair", "next morty face", (x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0, 1)
-        for x in (-40.0, 40.0)
+        Seat("next morty hair", "next morty face", (x, 0.0, 41.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 41.0, 1)
+        for x in (-25.0, 25.0)
     ],
     # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
     # (inside the jaw's U), flush with its front: under the chin it would make the head taller (#708's gate)

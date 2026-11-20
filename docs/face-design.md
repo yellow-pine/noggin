@@ -40,9 +40,10 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 ## Morty's Shells
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
 size inferred):
-- the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
-  the head mount, square from above where the mouth servo's corners and the cheeks' Cores need it; 140 x 140 x 150 mm
-  but for the ears (model/printed/test_skin.py);
+- the head: one smooth sculpted shell, round from every angle (#850): a loft of superelliptic sections between an egg
+  from the front, widest low round the jaw's arms, and a smooth curve from the side, upright over the eyes, its chin
+  forward of them and its back closed but under the head mount; 140 x 140 x 150 mm, ears and all
+  (model/printed/test_skin.py);
 - the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
   reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;
 - the hair (hair): the head's top and back over his hairline, from over the forehead down behind the ears to the
@@ -63,8 +64,8 @@ size inferred):
   the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
   1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
   front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
-  front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in
-  their own faces.
+  front Seats, over each eye behind the forehead, so the hair lifts straight off upward. The cores, the lids and the
+  gimbal frame plate's back (the hair's back Seats, #838) take theirs in their own faces.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
   covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
