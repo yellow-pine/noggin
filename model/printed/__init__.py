@@ -24,13 +24,17 @@ PARTS = {
     "R lower lid": functools.partial(gimbal.lower_lid, "R"),
     "gimbal frame": gimbal.frame,
     # the Mech's neck and jaw (#641)
-    "neck mount": neck.mount,
-    "pan yoke": neck.yoke,
+    "cervical carrier": neck.cervical_carrier,
+    "nod plate": neck.nod_plate,
     "head mount": neck.head_mount,
-    "jaw": neck.jaw,
+    "pan fixed cap": neck.pan_fixed_cap,
+    "pan moving cap": neck.pan_moving_cap,
+    "pan lever": neck.pan_lever,
     "pan bar": neck.pan_bar,
-    "tilt bar": neck.tilt_bar,
+    "jaw": neck.jaw,
     "jaw bar": neck.jaw_bar,
+    "tilt lever": neck.tilt_lever,
+    "tilt reaction bar": neck.tilt_reaction_bar,
     # the Mech's Torso (#685) and the cranium tray, which carries the Cores in the head (#858)
     "torso": base.torso,
     "torso lid": base.lid,
@@ -44,14 +48,27 @@ STYLED = {
     **{stem: PARTS[stem] for stem in ("yaw yoke", "tie-bar", "bail", "push-rod", "pitch bar")},
     **{stem: PARTS[stem] for stem in ("lid bar", "lid link", "gimbal frame")},
     **{f"{s} {lid}": PARTS[f"{s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
-    **{stem: PARTS[stem] for stem in ("neck mount", "pan yoke", "head mount", "jaw")},
-    **{stem: PARTS[stem] for stem in ("pan bar", "tilt bar", "jaw bar")},
+    **{stem: PARTS[stem] for stem in ("jaw", "jaw bar")},
     **{stem: PARTS[stem] for stem in ("torso", "torso lid", "test stand")},
 }
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
+    **dict.fromkeys(
+        (
+            "cervical carrier",
+            "nod plate",
+            "head mount",
+            "tilt lever",
+            "tilt reaction bar",
+            "pan fixed cap",
+            "pan moving cap",
+            "pan lever",
+            "pan bar",
+        ),
+        "hidden structural bearing and servo interfaces (#902)",
+    ),
 } | dict.fromkeys(
     BONES,
     "the realistic Skeleton's skull, a mesh (the Skeleton scene, model/skeleton): the mechanical Skeleton has none (#838)",

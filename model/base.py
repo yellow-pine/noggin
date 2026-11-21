@@ -23,11 +23,12 @@ import numpy as np
 
 from model import envelopes, gimbal, neck
 
-# the Torso's outside, the realistic skull's box pedestal (#838): x, y, and z from its foot to its lid's top (as tall as
-# when the pan was in it: #858 keeps the Mech's height), round the power-path board in front of the neck mount's foot,
+# the Torso's outside, x, y, and z from its foot to its lid's top: the highest board is 22.76 mm above the foot;
+# a 27 mm lid underside leaves 4.24 mm for service, instead of retaining the obsolete pan-servo space.
+# Round the power-path board in front of the neck mount's foot,
 # the pack in its cradle behind it and the switch board beside the pack; its front reaches on to 62 in front of the pan
 # axis
-TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 49.0))
+TORSO = ((-60.0, 60.0), (neck.AXIS[0] - 62.0, neck.AXIS[0] + 54.0), (neck.MOUNT_Z[0] - 3, neck.MOUNT_Z[0] + 27.0))
 LID_T, POST_GAP = 3.0, 1.0  # the Torso's lid, the post's room in its hole
 PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the neck mount's foot; its lead out to -x
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
@@ -55,11 +56,10 @@ POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 # and over the head mount's rear L screw; the bulk capacitor lying across x on the tray behind the Cores (CAP_Y); the
 # hub's back end and the capacitor's top kept off the hair's inside, which runs 0.4 and 3 mm past them (#921); every
 # number inferred, held inside the skull by model/test_base.py
-TRAY_Z, LEG_Y = (30.0, 33.0), (74.0, 80.0)
+TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (44.0, 48.0), (81.0, 87.0)  # #978: outside the lower standard case's pan sweep
 TRAY_X = (-30.5, 30.5)  # the plate under the Cores; at the back behind the bail it widens to the legs
-LEG_X = {"L": (40.0, 44.0), "R": (-24.5, -20.5)}  # L outside the pitch servo; R joins the hub's riser
 CORES_AT = ((-16.0, 16.0), 50.0)
-HUB_X, HUB_Y, HUB_Z = (-20.2, 0.2), 85.0, gimbal.PLATE_Z[1] + 4.0
+HUB_X, HUB_Y, HUB_Z = (-46.2, -25.8), 85.0, gimbal.PLATE_Z[1] + 4.0  # #978: leave C0's retained bearing accessible
 HUB_LENGTH = 31.6  # the hub's, port to back: model/envelopes.py hub's (model/test_base.py)
 CAP_Y = 71.0
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
@@ -156,10 +156,16 @@ def leads(stage):
     and not the other."""
 
     def rides(part):
-        return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers}
+        return {loop.joint for h in stage.horns.values() for loop in h.loops if part in loop.rockers} | {
+            h.direct.joint for h in stage.horns.values() if h.direct and part in h.direct.driven
+        }
 
     shield, switch, power = rides("Shield 1:1"), rides("switch board:1"), rides("power-path board:1")
-    ends = [(rides(n), shield) for n, p in stage.parts.items() if os.path.basename(p.file) == "servo.stl"]
+    ends = [
+        (rides(n), shield)
+        for n, p in stage.parts.items()
+        if os.path.basename(p.file) in ("servo.stl", "standard servo.stl")
+    ]
     ends += [(rides(n), power) for n, p in stage.parts.items() if os.path.basename(p.file) == "battery.stl"]
     ends += [(power, switch), (switch, shield), (shield, power)]  # the neck cable's two pairs
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}

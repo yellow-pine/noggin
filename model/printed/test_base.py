@@ -33,7 +33,7 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
-        "neck mount:1",
+        "cervical carrier:1",
         "pan servo:1",
         "pack:1",
         "switch board:1",
@@ -41,7 +41,7 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "neck mount:1", "power-path board:1")]
+    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "cervical carrier:1", "power-path board:1")]
     assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
     assert _shape(parts["pan servo:1"]).BoundingBox().zmin > z1  # over the lid, on the post (#858)
 
@@ -54,11 +54,15 @@ def placed(request):
 
 @pytest.mark.model
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
-    """No two overlap where one is the base's or the boards'."""
+    """No two overlap where one is the base's or the boards', but the hair's KNOWN_HAIR meetings #850 clears."""
+    from model.printed.test_skin import _known
+
     pairs = [
         (a, b)
         for a, b in itertools.combinations(placed, 2)
-        if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
+        if (a.startswith(BASE) or b.startswith(BASE))
+        and frozenset((a, b)) not in PLUGGED
+        and not (_known(a, b) or _known(b, a))
     ]
     assert _overlaps(placed, pairs) == []
 
@@ -69,7 +73,12 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
 def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
-    rides = [n for n in stage.horns["tilt horn"].loops[0].rockers if n.removesuffix(":1") not in skin.DRAWN]  # Skeleton
+    tilt = stage.horns["tilt horn"]
+    rides = [
+        n
+        for n in (tilt.direct.driven if tilt.direct else tilt.loops[0].rockers)
+        if n.removesuffix(":1") not in skin.DRAWN
+    ]  # Skeleton
     solids = [_shape(stage.parts[n]) for n in rides if n.removesuffix(":1") not in g.BONES]
     for n in (n for n in rides if n.removesuffix(":1") in g.BONES):  # a mesh (#838): its STL's box
         (x0, y0, z0), (x1, y1, z1) = trimesh.load(stage.parts[n].file).apply_transform(stage.parts[n].matrix).bounds

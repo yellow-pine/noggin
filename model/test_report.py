@@ -39,9 +39,7 @@ KNOWN_FULL_SPEED = {
     )
 }
 # (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why.
-KNOWN_NECK_HOLDS = {
-    ("mech-back-mechanical", "the bare head (its Skin off)"): f"0.341 kgf.cm against the rated 0.33 on {OLD_NECK}"
-}
+KNOWN_NECK_HOLDS = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
@@ -135,7 +133,7 @@ def neck_problems(report):
         return out
     for drive in neck.RANGES:
         d = m[drive]
-        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+        if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
             out.append(
                 f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
             )
@@ -143,8 +141,13 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        if t["hold_kgf_cm"] > sim.RATED_KGF_CM and (report["doc"], head) not in KNOWN_NECK_HOLDS:
-            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+        rated = (
+            sim.limits("tilt horn")["rated_kgf_cm"]
+            if m["tilt"].get("drive") in {"direct", "parallelogram"}
+            else sim.RATED_KGF_CM
+        )
+        if t["hold_kgf_cm"] > rated and (report["doc"], head) not in KNOWN_NECK_HOLDS:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
@@ -152,6 +155,14 @@ def neck_problems(report):
         if m["spans"][span]["bend_mm"] < floor
     ]
     return out
+
+
+def test_an_unverified_balance_spring_cannot_make_a_neck_report_acceptable():
+    """Until #902 certifies the spring, the tilt servo's hold is the whole head's weight, the spring's help left out."""
+    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1] + 20, neck.HEAD_AXES["tilt"][0][2] + 40))
+    tilt = neck.report(head)["tilt"]
+    assert not tilt["spring_verified"] and tilt["spring"]["rest_kgf_cm"] != 0
+    assert tilt["rest_kgf_cm"] == pytest.approx(abs(neck._weight(head, 0.0)), abs=1e-3)
 
 
 def deeper(pair):

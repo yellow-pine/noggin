@@ -24,7 +24,8 @@ def head(doc, model):
     (base.shelled): its box, mm, as gimbal.HEAD_MM (width, depth, height), and how far up the box the eye centres sit
     (0 its bottom, 1 its top)."""
     eyes = np.array(stages.DOCS[doc]["eyes"][0])
-    rides = stages.STAGES[doc].horns["tilt horn"].loops[0].rockers
+    tilt = stages.STAGES[doc].horns["tilt horn"]
+    rides = tilt.direct.driven if tilt.direct else tilt.loops[0].rockers
     v = _drawn(model, _rest(model), [n for n in rides if n.removesuffix(":1") not in skin.DRAWN]) - eyes
     lo, hi = base.shelled(v.min(axis=0), v.max(axis=0))
     return [round(float(s), 1) for s in hi - lo], round(float(-lo[2] / (hi[2] - lo[2])), 2)
