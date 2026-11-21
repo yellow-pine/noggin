@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 
+import numpy as np
 import pytest
 
 from model import geometry as g
@@ -280,7 +281,7 @@ def test_each_reference_carrier_moves_where_the_document_poses_it(blend):
         checked = [(f, m) for f, m in frames if f in poses]
         assert len(checked) > 10, part
         for f, m in checked:
-            assert m == pytest.approx(poses[f][part].tolist(), abs=1e-3), (part, f)
+            np.testing.assert_allclose(m, poses[f][part], atol=1e-3, err_msg=f"{part} at frame {f}")
 
 
 def test_exploded_and_print_bed_materials_are_opaque(blend):
