@@ -84,11 +84,10 @@ def test_the_file_holds_one_scene_with_the_four_layers_each_labelled_at_rest(ble
         assert not c["moving"], layer
 
 
-@pytest.mark.model
 def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason(tmp_path):
     """Small fixture inputs: one candidate whose Mech is a cube at (110, 0, 0), its head at (100, 0, 0); the other
     layers' exports failed or found no Morty."""
-    if not skeleton.blender():
+    if not os.path.isfile(skeleton.BLENDER):  # a Mac's local check; CI's light jobs have no Blender
         pytest.skip("no Blender on this host")
     cand = str(tmp_path / "assembled.blend")
     make = (
