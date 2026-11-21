@@ -295,6 +295,12 @@ document, in Assembled (Mech, Skeleton and Morty layers, a looping motion), Expl
 committed or published.
 _Avoid_: the Desktop file, the preview
 
+**Latest file**:
+Cansin's second local Blender file (`just latest`, model/latest): one rest-pose scene with each layer (Mechanism,
+Skeleton, Skin reference, Skin Shells) from its candidate, the newest of main and the open PRs whose changes touch that
+layer, labelled with where it came from and its gate status. Never committed or published.
+_Avoid_: the dashboard, the overview, the status file
+
 **Scene Mech**:
 The light copy of the Stage 3 Mech saved in the Skeleton scene, so it opens fitted; CI deletes it and fits the bones
 to the Mech it just built.

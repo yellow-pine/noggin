@@ -1,0 +1,176 @@
+"""The latest file (#998): Cansin's one Blender file of where the Mech stands, each layer from its newest candidate.
+
+`just latest` (`python -m model.latest`, local only, never the GX10 or CI) writes LATEST: one rest-pose scene in the
+head's frame with four collections, Mechanism, Skeleton, Skin reference (the private Morty) and Skin Shells, each from
+its layer's candidate (pick: the newest pushed of main and the open PRs whose changes touch the layer's files, else
+main) and labelled with its PR or branch, commit, date and gate status. A candidate's commit is exported once and
+cached by commit (CACHE): its parts built without the Finish (`model.ours` without Blender), then its own review's
+assemble step (model/review, export.py); the Skeleton is the raw warped bones of the candidate's own Skeleton scene,
+so it shows even when the candidate's assemble fails. Written beside LATEST and
+renamed into place with the review's receipt, under its own lock and the Mac's heavy lock (review.SLOT); Cansin's
+Blender reloads it like the review (model/review/reload.py). Nothing here is committed, uploaded or published: the
+Morty reference is read in place, and the file and cache stay on the Mac.
+"""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+
+from model import review, skeleton, stages
+from scripts.gx10 import atomic_json, checksum
+
+LATEST = os.environ.get("NOGGIN_LATEST", os.path.expanduser("~/Desktop/noggin-latest.blend"))  # Cansin's latest file
+CACHE = os.environ.get("NOGGIN_LATEST_CACHE", os.path.expanduser("~/Library/Caches/noggin-latest"))  # by commit
+LAYERS = ("Mechanism", "Skeleton", "Skin reference", "Skin Shells")
+# a layer's files: the Skeleton scene and its pipeline; the Skin and Shell code and the Morty reference workflow
+# (model/review's); the rest of the model is the Mechanism's (this recipe and CI's test timings aside)
+SKELETON = re.compile(r"model/(skeleton|skull)/")
+SKIN = re.compile(r"model/(.+/)?(test_)?skin\.py$|model/review/")
+NOT_MODEL = re.compile(r"model/(latest/|durations\.json$)")
+OK, WAIT = {"SUCCESS", "SKIPPED", "NEUTRAL"}, {None, "", "PENDING", "EXPECTED"}
+PRS = 30  # shortcut: GitHub's node limit refuses more PRs with their commits in one query; page them past that
+SCRIPT, EXPORT = (os.path.join(os.path.dirname(os.path.abspath(__file__)), f) for f in ("blender.py", "export.py"))
+
+
+def layers(path):
+    """The layers a changed file touches."""
+    if not path.startswith("model/") or NOT_MODEL.match(path):
+        return set()
+    if SKELETON.match(path):
+        return {"Skeleton"}
+    if SKIN.match(path):
+        return {"Skin reference", "Skin Shells"}
+    return {"Mechanism"}
+
+
+def gate(checks):
+    """pass, `pending: <names>` or `fail: <names>` from [(check, conclusion)], a conclusion None while it runs."""
+    fail = [n for n, c in checks if c not in OK | WAIT]
+    wait = [n for n, c in checks if c in WAIT]
+    return f"fail: {', '.join(fail)}" if fail else f"pending: {', '.join(wait)}" if wait else "pass"
+
+
+def pick(main, prs):
+    """{layer: candidate}: of the open PRs whose changes touch the layer, the most recently pushed, else main. Each
+    record is {name, sha, date (ISO), files, checks: [(name, conclusion)]}; each candidate adds its label."""
+    out = {}
+    for layer in LAYERS:
+        touching = [p for p in prs if any(layer in layers(f) for f in p["files"])]
+        c = max(touching, key=lambda p: p["date"]) if touching else main
+        out[layer] = c | {"label": f"{c['name']} {c['sha'][:7]} {c['date'][:10]} {gate(c['checks'])}"}
+    return out
+
+
+def _run(args, **kw):
+    return subprocess.run(args, check=True, capture_output=True, text=True, cwd=stages.REPO, **kw).stdout
+
+
+def _checks(rollup):
+    """[(name, conclusion)] from GitHub's check runs and status contexts."""
+    return [
+        (c.get("name") or c.get("context"), (c.get("conclusion") or c.get("state") or "").upper() or None)
+        for c in rollup
+    ]
+
+
+def records():
+    """(main, [open PR]) as pick reads them, from origin and gh; each PR's push time is its head commit's date."""
+    _run(["git", "fetch", "-q", "origin", "main"])
+    sha = _run(["git", "rev-parse", "origin/main"]).strip()
+    date = _run(["git", "show", "-s", "--format=%cd", "--date=iso-strict-local", sha], env=os.environ | {"TZ": "UTC"})
+    runs = json.loads(_run(["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{sha}/check-runs", "--paginate"]))
+    main = {"name": "main", "sha": sha, "date": date.strip(), "files": [], "checks": _checks(runs["check_runs"])}
+    fields = "number,headRefOid,files,commits,statusCheckRollup"
+    prs = [
+        {
+            "name": f"PR #{p['number']}",
+            "sha": p["headRefOid"],
+            "date": p["commits"][-1]["committedDate"],
+            "files": [f["path"] for f in p["files"]],
+            "checks": _checks(p["statusCheckRollup"]),
+        }
+        for p in json.loads(_run(["gh", "pr", "list", "--state", "open", "--limit", str(PRS), "--json", fields]))
+    ]
+    if len(prs) == PRS:
+        print(f"latest: only the {PRS} most recently opened PRs are read", flush=True)
+    return main, prs
+
+
+def export(c, morty=review.MORTY):
+    """The candidate's assembled review file (model/review's assemble step, at rest, no Finish) and its job, cached by
+    commit and the Morty reference's stamp; raises with the reason when its export fails."""
+    home = os.path.join(CACHE, c["sha"])
+    stamp = os.stat(morty).st_mtime_ns if os.path.isfile(morty) else "none"
+    blend = os.path.join(home, f"assembled-{stamp}.blend")
+    if os.path.isfile(blend):
+        return blend, os.path.join(home, f"job-{stamp}.json")
+    src = os.path.join(home, "src")
+    py, log = os.path.join(stages.REPO, ".venv/bin/python"), os.path.join(home, "export.log")
+    if not os.path.isfile(os.path.join(src, "model/build/ours/.done")):
+        if c["name"].startswith("PR #"):
+            _run(["git", "fetch", "-q", "origin", f"pull/{c['name'][4:]}/head"])
+        shutil.rmtree(src, ignore_errors=True)
+        os.makedirs(src)
+        archive = subprocess.Popen(["git", "archive", c["sha"]], cwd=stages.REPO, stdout=subprocess.PIPE)
+        subprocess.run(["tar", "-x", "-C", src], stdin=archive.stdout, check=True)
+        if archive.wait():
+            raise RuntimeError(f"git archive {c['sha'][:7]} failed")
+        print(f"latest: building {c['label']}'s parts (no Finish)", flush=True)
+        # shortcut: main's venv runs every candidate; a PR that changes uv.lock builds with main's dependencies
+        # no Blender: no Finish, so its Skeleton is the raw warped bones
+        _logged("its parts", [py, "-m", "model.ours"], src, log, BLENDER="/nonexistent")
+        open(os.path.join(src, "model/build/ours/.done"), "w").close()
+    print(f"latest: assembling {c['label']}", flush=True)
+    _logged("its assemble", [py, EXPORT, blend, morty], src, log, PYTHONPATH=src)
+    return blend, os.path.join(home, f"job-{stamp}.json")
+
+
+def _logged(what, args, cwd, log, **env):
+    """Runs args in cwd, its output appended to log; raises with its last line on a failure."""
+    with open(log, "a") as f:
+        r = subprocess.run(args, cwd=cwd, stdout=f, stderr=subprocess.STDOUT, env=os.environ | env)
+    if r.returncode:
+        last = open(log).read().strip().splitlines()[-1:] or ["no output"]
+        raise RuntimeError(f"{what} failed: {last[0][:200]} (log: {log})")
+
+
+def build(out=LATEST, morty=review.MORTY):
+    """The latest file at `out`: each layer's candidate exported (cached), then composed in one Blender, written beside
+    `out` and renamed into place with its receipt, under its lock (one writer) and the heavy lock (one heavy job)."""
+    main, prs = records()
+    picked = pick(main, prs)
+    held, part = [review.lock(out + ".lock")], out.removesuffix(".blend") + ".tmp.blend"
+    try:
+        held.append(review.lock(review.SLOT, wait=True))
+        layers_, done = {}, {}
+        for layer, c in picked.items():
+            if c["sha"] not in done:
+                try:
+                    done[c["sha"]] = (*export(c, morty), None)
+                except Exception as e:  # noqa: BLE001 the layer stays empty, its reason in its label
+                    done[c["sha"]] = (None, None, str(e))
+            blend, job, reason = done[c["sha"]]
+            home = os.path.join(CACHE, c["sha"])
+            if layer == "Skeleton" and os.path.isfile(os.path.join(home, "head.json")):  # its own scene's raw bones
+                blend, job, reason = os.path.join(home, "src", skeleton.SCENE), os.path.join(home, "head.json"), None
+            if not reason and layer == "Skin reference" and not os.path.isfile(morty):
+                reason = f"no Morty reference at {morty}"
+            layers_[layer] = {"label": c["label"], "sha": c["sha"], "blend": None if reason else blend, "job": job}
+            layers_[layer]["reason"] = reason
+            print(f"latest: {layer}: {c['label']}" + (f" (empty: {reason})" if reason else ""), flush=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "latest.json")
+            with open(path, "w") as f:
+                json.dump({"layers": layers_}, f)
+            review._blender(["-P", SCRIPT, "--", path, part])
+        os.replace(part, out)
+        atomic_json(out.removesuffix(".blend") + ".blend.ready.json", {"sha256": checksum(out), "layers": layers_})
+    finally:
+        if os.path.exists(part):
+            os.remove(part)
+        for f in held:
+            f.close()
+    print(f"latest: wrote {out}", flush=True)
