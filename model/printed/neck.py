@@ -66,7 +66,7 @@ def nod_plate():
     for sign in (-1, 1):
         xs = sorted(sign * x for x in (13.4, 17.4))
         out = out.union(box(xs, (y - 3.6, y + 3.6), tuple(sorted((z, nk.NOD_Z[0] + 1)))))
-        out = out.union(cyl("x", (0, y, z), 3.6, xs)).cut(cyl("x", (0, y, z), gm.PIN_R, xs))
+        out = out.union(cyl("x", (0, y, z), 3.6, xs))  # bored at the end, after the mast's flat
         for fy in (y - 12, y + 12):
             out = out.union(_flat([(0, fy), (sign * 14, fy)], 5, nk.NOD_Z))
         out = out.union(_flat([(sign * 14, y - 12), (sign * 14, y + 12)], 4, nk.NOD_Z))
@@ -87,8 +87,8 @@ def nod_plate():
     # Crown pan cradle: a rear dogleg bypasses the entire rotating frame and the electronics tray.
     mast = [
         (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
-        (29.5, 127, -41),  # its sphere sinks into the plate's flat; the strut clears the tilt case's end (x 21.45)
-        (29.5, 126, 31),
+        (29.5, 133, -41),  # clears the tilt case's end (x 21.45) and, behind y 126, the frame's plate at pan 45
+        (29.5, 132, 31),
         (18, 110, 65),
         (18, nk.PAN_SHAFT[1] + 34.1, nk.PAN_SHAFT[2] + 9.4),
     ]
@@ -106,6 +106,8 @@ def nod_plate():
             out = out.cut(cyl("z", (x, fy, 0), 0.8, plate))
     for xs in ((17.7, 26), (-26, -17.7)):
         out = out.cut(cyl("x", (0, y, z), 8.5, xs))
+    for xs in ((13.4, 17.4), (-17.4, -13.4)):  # the trunnions' shank bores, which the mast's flat crosses
+        out = out.cut(cyl("x", (0, y, z), gm.PIN_R, xs))
     return out
 
 
