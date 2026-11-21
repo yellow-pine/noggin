@@ -31,7 +31,17 @@ SKELETON = re.compile(r"model/(skeleton|skull)/")
 SKIN = re.compile(r"model/(.+/)?(test_)?skin\.py$|model/review/")
 NOT_MODEL = re.compile(r"model/(latest/|durations\.json$)")
 OK, WAIT = {"SUCCESS", "SKIPPED", "NEUTRAL"}, {None, "", "PENDING", "EXPECTED"}
-PRS = 30  # shortcut: GitHub's node limit refuses more PRs with their commits in one query; page them past that
+PRS = 100  # shortcut: the open PRs read in one query; page them once there are more
+TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}  # whose PR code runs on this Mac, from a branch of this repo alone
+BOTS = {"dependabot", "noggin-release"}  # the bots this repo already trusts (Dependabot, its Release App)
+QUERY = (
+    """query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) {
+  pullRequests(states: OPEN, first: %d) { nodes { number headRefOid isCrossRepository authorAssociation author { login }
+    files(first: 100) { nodes { path } }
+    commits(last: 1) { nodes { commit { committedDate statusCheckRollup { contexts(first: 100) { nodes {
+      ... on CheckRun { name conclusion } ... on StatusContext { context state } } } } } } } } } } }"""
+    % PRS
+)
 SCRIPT, EXPORT = (os.path.join(os.path.dirname(os.path.abspath(__file__)), f) for f in ("blender.py", "export.py"))
 
 
@@ -53,12 +63,18 @@ def gate(checks):
     return f"fail: {', '.join(fail)}" if fail else f"pending: {', '.join(wait)}" if wait else "pass"
 
 
+def trusted(pr):
+    """Whether a PR's code may run here: its branch in this repo (no fork) and its author a member or a trusted bot."""
+    return not pr["fork"] and (pr["association"] in TRUSTED or pr["author"] in BOTS)
+
+
 def pick(main, prs):
-    """{layer: candidate}: of the open PRs whose changes touch the layer, the most recently pushed, else main. Each
-    record is {name, sha, date (ISO), files, checks: [(name, conclusion)]}; each candidate adds its label."""
+    """{layer: candidate}: of the trusted open PRs whose changes touch the layer, the most recently pushed, else main.
+    Each record is {name, sha, date (ISO), files, checks: [(name, conclusion)]} and a PR's {fork, author,
+    association}; each candidate adds its label."""
     out = {}
     for layer in LAYERS:
-        touching = [p for p in prs if any(layer in layers(f) for f in p["files"])]
+        touching = [p for p in prs if trusted(p) and any(layer in layers(f) for f in p["files"])]
         c = max(touching, key=lambda p: p["date"]) if touching else main
         out[layer] = c | {"label": f"{c['name']} {c['sha'][:7]} {c['date'][:10]} {gate(c['checks'])}"}
     return out
@@ -81,21 +97,33 @@ def records():
     _run(["git", "fetch", "-q", "origin", "main"])
     sha = _run(["git", "rev-parse", "origin/main"]).strip()
     date = _run(["git", "show", "-s", "--format=%cd", "--date=iso-strict-local", sha], env=os.environ | {"TZ": "UTC"})
-    runs = json.loads(_run(["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{sha}/check-runs", "--paginate"]))
-    main = {"name": "main", "sha": sha, "date": date.strip(), "files": [], "checks": _checks(runs["check_runs"])}
-    fields = "number,headRefOid,files,commits,statusCheckRollup"
-    prs = [
-        {
-            "name": f"PR #{p['number']}",
-            "sha": p["headRefOid"],
-            "date": p["commits"][-1]["committedDate"],
-            "files": [f["path"] for f in p["files"]],
-            "checks": _checks(p["statusCheckRollup"]),
-        }
-        for p in json.loads(_run(["gh", "pr", "list", "--state", "open", "--limit", str(PRS), "--json", fields]))
-    ]
+    runs = _run(
+        ["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{sha}/check-runs", "--paginate", "--jq", ".check_runs[]"]
+    )
+    checks = _checks(json.loads(line) for line in runs.splitlines())
+    main = {"name": "main", "sha": sha, "date": date.strip(), "files": [], "checks": checks}
+    nodes = json.loads(
+        _run(["gh", "api", "graphql", "-F", "owner={owner}", "-F", "name={repo}", "-f", f"query={QUERY}"])
+    )["data"]["repository"]["pullRequests"]["nodes"]
+    prs = []
+    for p in nodes:
+        head = p["commits"]["nodes"][0]["commit"]
+        prs.append(
+            {
+                "name": f"PR #{p['number']}",
+                "sha": p["headRefOid"],
+                "date": head["committedDate"],
+                "files": [f["path"] for f in p["files"]["nodes"]],
+                "checks": _checks((head["statusCheckRollup"] or {"contexts": {"nodes": []}})["contexts"]["nodes"]),
+                "fork": p["isCrossRepository"],
+                "author": (p["author"] or {}).get("login"),
+                "association": p["authorAssociation"],
+            }
+        )
+        if not trusted(prs[-1]):
+            print(f"latest: skipped PR #{p['number']}: a fork or an outside author, whose code never runs here")
     if len(prs) == PRS:
-        print(f"latest: only the {PRS} most recently opened PRs are read", flush=True)
+        print(f"latest: only the {PRS} oldest open PRs are read", flush=True)
     return main, prs
 
 

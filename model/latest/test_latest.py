@@ -13,7 +13,11 @@ MAIN = {"name": "main", "sha": "a" * 40, "date": "2026-11-20T10:00:00Z", "files"
 
 
 def pr(n, date, files, checks=(("Review", "SUCCESS"),)):
-    return {"name": f"PR #{n}", "sha": f"{n}".ljust(40, "0"), "date": date, "files": files, "checks": list(checks)}
+    sha = f"{n}".ljust(40, "0")
+    return {"name": f"PR #{n}", "sha": sha, "date": date, "files": files, "checks": list(checks)} | MEMBER
+
+
+MEMBER = {"fork": False, "author": "cansin", "association": "MEMBER"}
 
 
 def test_the_newest_push_touching_a_layer_is_its_candidate():
@@ -111,3 +115,12 @@ def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason
     assert got["Mechanism"]["label"] == label and got["Mechanism"]["name"] == f"Mechanism: {label}"
     assert got["Skin reference"]["meshes"] == 0 and "no Morty reference" in got["Skin reference"]["label"]
     assert got["Skeleton"]["reason"] == "export.py failed: boom"
+
+
+def test_a_fork_or_an_outside_authors_pr_is_never_picked_its_code_never_runs_here():
+    """Only a branch of this repo by a member or a trusted bot: anyone can open a PR on a public repo."""
+    fork = pr(1, "2026-11-22T00:00:00Z", ["model/gimbal.py"]) | {"fork": True}
+    outside = pr(2, "2026-11-22T00:00:00Z", ["model/skeleton/fit.py"]) | {"author": "someone", "association": "NONE"}
+    assert {c["name"] for c in latest.pick(MAIN, [fork, outside]).values()} == {"main"}
+    bot = pr(3, "2026-11-22T00:00:00Z", ["model/skin.py"]) | {"author": "dependabot", "association": "CONTRIBUTOR"}
+    assert latest.pick(MAIN, [bot])["Skin Shells"]["name"] == "PR #3"
