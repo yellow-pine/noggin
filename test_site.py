@@ -140,6 +140,10 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
         "| Core | 1 | 1 |  |",
         "| Shield | 1 | 1 |  |",
         "| battery pack |  | 1 |  |",
+        "| M3 x 16 mm pivot screw | 23 | 7 | 4 |",  # #964: the fasteners, stages.fasteners
+        "| M2 x 8 mm servo screw | 8 | 8 | 2 |",
+        "| M3 x 10 mm head screw | 4 |  |  |",
+        "| M3 nut | 4 |  |  |",
     ]:
         assert row in table, row
     parts = (ROOT / "docs" / "build" / "parts.md").read_text()
@@ -163,6 +167,7 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
         "| Core | 1 | bought |",
         f"| L eyeball cap | 1 | eye whites: {WHITES} |",
         "| servo | 4 | bought |",
+        "| M3 x 16 mm pivot screw | 23 | bought |",
         "| Shield | 1 | bought |",
         f"| test stand | 1 | Bones: {BONES} |",
     ]:

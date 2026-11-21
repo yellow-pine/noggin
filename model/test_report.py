@@ -29,9 +29,19 @@ def known(pair):
     return frozenset(pair) in KNOWN_PAIRS
 
 
-# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
-# servos are DC motors (#625).
-KNOWN_FULL_SPEED = {}
+# The old neck's findings since the head grew (#942, #956): #978 replaces that neck, so its new head mechanism passes
+# these gates on its own and its PR drops the entries (Cansin, #1003).
+OLD_NECK = "the old neck, which #978 replaces; its PR drops this entry (#1003)"
+# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does, with why.
+KNOWN_FULL_SPEED = {
+    ("mech-back-mechanical", "pan horn", min(stages.STAGES["mech-back-mechanical"].horns["pan horn"].limits)): (
+        f"the heavier head swung to the pan's end settles 5.75 deg off the slow pose on {OLD_NECK}"
+    )
+}
+# (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why.
+KNOWN_NECK_HOLDS = {
+    ("mech-back-mechanical", "the bare head (its Skin off)"): f"0.341 kgf.cm against the rated 0.33 on {OLD_NECK}"
+}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
@@ -140,7 +150,7 @@ def neck_problems(report):
             if m["tilt"].get("drive") in {"direct", "parallelogram"}
             else sim.RATED_KGF_CM
         )
-        if t["hold_kgf_cm"] > rated:
+        if t["hold_kgf_cm"] > rated and (report["doc"], head) not in KNOWN_NECK_HOLDS:
             out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
@@ -338,8 +348,12 @@ def test_fixture_reports(name):
 def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
     swing lands, or a KNOWN_PEAKS servo peaks under the mark, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
-    going, swings, low, peaks = set(), set(), set(), set()
+    going, swings, low, peaks, holds = set(), set(), set(), set(), set()
     for doc in g.SIMULATED:
+        n = built(doc).get("neck")
+        if n:
+            heads = (("the head", n["tilt"]), ("the bare head (its Skin off)", n["tilt"]["bare"]))
+            holds |= {(doc, head) for head, t in heads if t["hold_kgf_cm"] > sim.RATED_KGF_CM}
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
@@ -350,3 +364,4 @@ def test_known_mujoco_exceptions_are_still_there():
     assert swings == set(KNOWN_FULL_SPEED)
     assert low == set(KNOWN_TRANSMISSION)
     assert peaks == set(KNOWN_PEAKS)
+    assert holds == set(KNOWN_NECK_HOLDS)

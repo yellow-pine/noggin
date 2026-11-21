@@ -123,6 +123,7 @@ def finish_group(stem, bone):
     st.inputs["Material"].default_value = bpy.data.materials["Bone"]
     L.new(drop.outputs[0], st.inputs["Geometry"])
     L.new(st.outputs[0], go.inputs[0])
+    export.rounded(g)
     return g
 
 

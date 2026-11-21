@@ -332,7 +332,7 @@ def stage_guides():
     parts, servos, before, horns = {}, {}, Counter(), set()
     for n, doc in enumerate(BONY, 1):
         d = stages.STAGES[doc]
-        now = Counter(stages.stem(p.file) for p in d.parts.values())
+        now = Counter(stages.stem(p.file) for p in d.parts.values()) + Counter(stages.fasteners(doc))
         added = [(HARDWARE.get(s, s), k, made.get(s, "bought")) for s, k in (now - before).items()]
         rows = ["| Part | Count | Printed in |", "|---|---|---|"]
         rows += [f"| {name} | {k} | {m} |" for name, k, m in sorted(added, key=lambda r: r[0].lower())]
@@ -351,10 +351,10 @@ def stage_guides():
 
 def shopping():
     """The buy list per Stage (docs/build/parts.md, #900): how many of each bought part (not in geometry.PRINTED) each
-    Stage adds to the one before, as stage_guides() counts them."""
+    Stage adds to the one before, its fasteners too (stages.fasteners, #964), as stage_guides() counts them."""
     rows, before = {}, Counter()
     for n, doc in enumerate(BONY):
-        now = Counter(stages.stem(p.file) for p in stages.STAGES[doc].parts.values())
+        now = Counter(stages.stem(p.file) for p in stages.STAGES[doc].parts.values()) + Counter(stages.fasteners(doc))
         for s, k in (now - before).items():
             if s not in g.PRINTED:
                 rows.setdefault(HARDWARE.get(s, s), [""] * len(BONY))[n] = str(k)

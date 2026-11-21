@@ -149,3 +149,26 @@ def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
     moved = stages.pose(one, "yaw horn", 10)
     for name in ("test stand:1", "gimbal frame:1", "Core 1:1"):
         assert np.allclose(moved.parts[name], one.parts[name].matrix), name
+
+
+def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take():
+    """#964: a Stage's fasteners, counted from the model's pivots, servos and head screws, by hand from the parts' bores:
+    Stage 1's eyes take 23 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, each lid drive 5, its
+    lower lid on the upper's shank, the push-rods on balls), 2 screws per servo and the test stand's 4 screws and nuts;
+    Stage 2 adds the pan's 3 and the tilt's 4 (its horn's and reaction bar's pins, its trunnions' pair), 4 screws
+    per standard servo, and moves the stand's screws to the head mount; Stage 3 the jaw's 4."""
+    shank, tab, head, nut = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
+    assert [stages.fasteners(d) for d in ("stage1", "stage2", "mech-back")] == [
+        {shank: 23, tab: 8, head: 4, nut: 4},
+        {shank: 30, tab: 16, head: 4, nut: 4},
+        {shank: 34, tab: 18, head: 4, nut: 4},
+    ]
+
+
+def test_every_irregular_pivot_names_a_joint_the_mech_has():
+    """#964: each pivot whose shank count is not one (stages.SHANKS) is a joint of the Mech's horns, so a renamed joint
+    cannot drop out of the count unseen."""
+    mech = stages.STAGES["mech-back"].horns.values()
+    joints = {j for h in mech for j in [loop.joint for loop in h.loops] + [r.hinge[0] for r in h.rods]}
+    joints |= {h.direct.joint for h in mech if h.direct}
+    assert set(stages.SHANKS) <= joints
