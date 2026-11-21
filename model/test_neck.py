@@ -211,12 +211,14 @@ def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
         assert neck.transmission(drive, 0.0) == pytest.approx(expected, abs=1e-4)
 
 
-def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report):
+def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report, monkeypatch):
     """#838: the tilt axis behind the head's centre of mass, a torsion spring on its shank holds the head. A head of
     300 g 40 mm in front of the axis and 30 over it turns itself face down with 300 g x 40 mm = 1.2 kgf.cm at rest, so
     the spring turns it back as much, and its rate is the weight's lever's change, 300 g x 30 mm = 0.9 kgf.cm a radian;
     tilted 20 deg the spring's line misses the weight's turn by 0.08 kgf.cm, the servo holding that through the linkage.
-    Straight over the axis the spring takes the 40 mm's change alone: nothing at rest."""
+    Straight over the axis the spring takes the 40 mm's change alone: nothing at rest. (The spring once #902 certifies it:
+    until then the report leaves it out.)"""
+    monkeypatch.setattr(neck, "SPRING_VERIFIED", True)
     ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
     assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
     assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
@@ -226,10 +228,11 @@ def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(re
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}
 
 
-def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bare():
+def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bare(monkeypatch):
     """#830: one spring holds the head with its Skin on and off. A bare head of 300 g 40 mm in front of the axis and 30
     over it wants -1.2 kgf.cm at rest and 0.9 a radian; its Skin doubles it, -2.4 and 1.8. The spring wound between them,
     -1.8 and 1.35, misses each by 0.6 kgf.cm at rest, which the servo holds through the linkage's gain, alike."""
+    monkeypatch.setattr(neck, "SPRING_VERIFIED", True)  # the spring once #902 certifies it
     bare = (300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0))
     tilt = neck.report((600.0, bare[1]), bare)["tilt"]
     assert tilt["spring"] == {"rest_kgf_cm": -1.8, "rate_kgf_cm_rad": 1.35}

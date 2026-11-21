@@ -39,9 +39,7 @@ KNOWN_FULL_SPEED = {
     )
 }
 # (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why.
-KNOWN_NECK_HOLDS = {
-    ("mech-back-mechanical", "the bare head (its Skin off)"): f"0.341 kgf.cm against the rated 0.33 on {OLD_NECK}"
-}
+KNOWN_NECK_HOLDS = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
@@ -133,8 +131,6 @@ def neck_problems(report):
     m, out = report.get("neck"), []
     if not m:
         return out
-    if m["tilt"].get("spring_verified") is False:
-        out.append("neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)")
     for drive in neck.RANGES:
         d = m[drive]
         if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
@@ -162,11 +158,11 @@ def neck_problems(report):
 
 
 def test_an_unverified_balance_spring_cannot_make_a_neck_report_acceptable():
-    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1], neck.HEAD_AXES["tilt"][0][2] + 40))
-    assert (
-        "neck tilt: balance spring attachment and finished-load calibration remain unverified (#902)"
-        in neck_problems({"neck": neck.report(head)})
-    )
+    """Until #902 certifies the spring, the tilt servo's hold is the whole head's weight, the spring's help left out."""
+    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1] + 20, neck.HEAD_AXES["tilt"][0][2] + 40))
+    tilt = neck.report(head)["tilt"]
+    assert not tilt["spring_verified"] and tilt["spring"]["rest_kgf_cm"] != 0
+    assert tilt["rest_kgf_cm"] == pytest.approx(abs(neck._weight(head, 0.0)), abs=1e-3)
 
 
 def deeper(pair):

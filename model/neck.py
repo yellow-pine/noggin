@@ -297,10 +297,11 @@ def report(head, bare=None):
         "transmission_deg": round(min(transmission("tilt", s) for s in sweep), 1),
     }
     spring = balance(head, bare)
+    held = spring if SPRING_VERIFIED else (0.0, 0.0)  # an uncertified spring is not fitted: the servo holds it all
 
     def holds(h):
-        at = [_hold(h, spring, output("tilt", s), 1.0) for s in sweep]
-        return {"rest_kgf_cm": round(_hold(h, spring, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
+        at = [_hold(h, held, output("tilt", s), 1.0) for s in sweep]
+        return {"rest_kgf_cm": round(_hold(h, held, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
 
     out["tilt"] |= {
         **holds(head),

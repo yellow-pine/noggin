@@ -106,7 +106,10 @@ def tray(mechanical=False):
     # Carry the relocated hub from the negative-X leg; its riser is physically connected, not a floating plate.
     riser = box((nb.HUB_X[0], nb.HUB_X[1]), (nb.HUB_Y - nb.HUB_LENGTH, nb.HUB_Y), (gm.PLATE_Z[1], nb.HUB_Z))
     sx, sy = next((x, y) for x, y in nk.HEAD_SCREWS if x < 0 and y > nb.HUB_Y - nb.HUB_LENGTH)
-    return out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
+    out = out.union(riser.cut(cyl("z", (sx, sy, 0), 3.5, (gm.PLATE_Z[1], nb.HUB_Z))))
+    # the hub's end passes 2.2 mm into the R leg's inner face: a notch round it (0.2 mm clear), the leg's outer 1.6 mm
+    notch = ((nb.HUB_X[0] - 0.2, -nb.LEG_X[0] + 0.2), (nb.HUB_Y - 6, nb.HUB_Y + 0.2), (nb.HUB_Z, nb.HUB_Z + 5.0))
+    return out.cut(box(*notch))
 
 
 @bone.carved

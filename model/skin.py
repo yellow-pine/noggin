@@ -196,7 +196,10 @@ def _seats(skin):
     ]
 
 
-SUNGLASSES = (0.0, -156.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
+SUNGLASSES = (
+    0.0,
+    -153.0,
+)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813), 6 under it
 SEATS += [
     *_seats("morty"),
     *_seats("cansin"),

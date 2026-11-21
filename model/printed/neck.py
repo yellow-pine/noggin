@@ -251,7 +251,7 @@ def jaw(mechanical=False):
     out = out.union(cyl("x", (0, *nk.JAW_PIN), pin_r, nk.JAW_X)).cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, nk.JAW_X))
     # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
     seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
-    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad / 2))
+    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad * 0.75))  # the strut's slanted end stays in the pad
     out = out.union(strut(points["L"][-1], at, (3.2, 2.4), (2.8, 2)))
     return out
 
