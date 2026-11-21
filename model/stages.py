@@ -400,6 +400,33 @@ class _Stages(dict):
 STAGES = _Stages()  # built on first use: a document per DOCS key
 
 
+# The pivots whose shanks are not one (#964): the bail, each core and the head turn on a pair, one each side, each lower
+# lid on its upper lid's shank
+SHANKS = {
+    "bail pivot": 2,
+    **{f"{s} eyeball pitch": 2 for s in gimbal.EYE},
+    **{f"{s} lower lid pivot": 0 for s in gimbal.EYE},
+    "tilt pivot": 2,
+    "jaw pivot": 2,
+}
+PIVOT, TAB, HEAD, NUT = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
+
+
+def fasteners(doc):
+    """{fastener: count} the document takes (#964), counted from its horns, servos and head screws: per horn its pin on
+    the coupler, per loop the coupler's pin on the rocker and the rocker's pivot (SHANKS), per rod its two pins (none on
+    balls, a universal joint) and its hinge; two tab screws per servo; the head screws (model/neck.py), each with its
+    nut, through the test stand or the head mount. Sizes inferred (docs/build/parts.md)."""
+    d = STAGES[doc]
+    pins = 0
+    for horn in d.horns.values():
+        pins += 1 + sum(1 + SHANKS.get(loop.joint, 1) for loop in horn.loops)
+        pins += sum((0 if np.ndim(r.axes) == 2 else 2) + SHANKS.get(r.hinge[0], 1) for r in horn.rods)
+    servos = sum(stem(p.file) == "servo" for p in d.parts.values())
+    head = len(neck.HEAD_SCREWS) if {"test stand:1", "head mount:1"} & set(d.parts) else 0
+    return {PIVOT: pins, TAB: 2 * servos, HEAD: head, NUT: head}
+
+
 def pose(stage, horn_name, deg):
     """Every part's world 4x4 with the horn at `deg` (degrees from neutral about its pivot axis) and the driven
     joint angles. Raises linkage.Unreachable when a loop cannot close."""

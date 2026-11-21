@@ -1,4 +1,5 @@
-"""Blender startup script: refresh the published review while retaining the interactive view (#979).
+"""Blender startup script: refresh the published review, or the latest file (model/latest), while retaining the
+interactive view (#979, #998).
 
 Cansin permits discarding incidental edits to this generated review. Editable sources are separate files.
 Only a matching publisher checksum permits a refresh; partial transfers keep the previous open review.
@@ -11,13 +12,22 @@ from pathlib import Path
 
 import bpy
 
-TARGET = Path(os.environ.get("NOGGIN_REVIEW", Path.home() / "Desktop/noggin-stage3.blend")).resolve()
+TARGETS = {
+    Path(os.environ.get("NOGGIN_REVIEW", Path.home() / "Desktop/noggin-stage3.blend")).resolve(),
+    Path(os.environ.get("NOGGIN_LATEST", Path.home() / "Desktop/noggin-latest.blend")).resolve(),
+}
 _seen = None
 
 
-def _stamp():
+def _open():
+    """The generated file open in this Blender, if one is."""
+    path = Path(bpy.data.filepath).resolve() if bpy.data.filepath else None
+    return path if path in TARGETS else None
+
+
+def _stamp(target):
     try:
-        s = TARGET.stat()
+        s = target.stat()
         return s.st_mtime_ns, s.st_size
     except OSError:
         return None
@@ -65,29 +75,29 @@ def _restore(views):
 @bpy.app.handlers.persistent
 def _loaded(_):
     global _seen
-    if Path(bpy.data.filepath).resolve() == TARGET:
-        _seen = _stamp()
+    if target := _open():
+        _seen = _stamp(target)
 
 
 def _tick():
     global _seen
-    if not bpy.data.filepath or Path(bpy.data.filepath).resolve() != TARGET:
+    if not (target := _open()):
         return 2.0
-    now = _stamp()
+    now = _stamp(target)
     if now is None or now == _seen:
         return 2.0
     try:
-        ready = json.loads(TARGET.with_suffix(".blend.ready.json").read_text())
+        ready = json.loads(target.with_suffix(".blend.ready.json").read_text())
         if not isinstance(ready, dict) or not isinstance(ready.get("sha256"), str):
             return 2.0
-        with TARGET.open("rb") as source:
+        with target.open("rb") as source:
             checksum = hashlib.file_digest(source, "sha256").hexdigest()
         if checksum != ready["sha256"]:
             return 2.0
     except (OSError, ValueError, KeyError):
         return 2.0
     views = _views()
-    bpy.ops.wm.open_mainfile(filepath=str(TARGET), load_ui=False, use_scripts=False)
+    bpy.ops.wm.open_mainfile(filepath=str(target), load_ui=False, use_scripts=False)
     _restore(views)
     _seen = now
     return 2.0

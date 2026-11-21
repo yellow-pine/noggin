@@ -117,6 +117,7 @@ test("Stage 1's and Stage 3's guides load each of their viewers, a part= one fin
 
 test("the home opens on Stage 3's hero loop, only turns, and its reset takes it back to the view it opened on", async ({ page }) => {
   test.skip(!existsSync(new URL('dist/viewer/stage1.glb', import.meta.url)) && !process.env.CI, 'no GLB: just web');
+  test.slow(); // a GLB load allowed 45 s in CI's software GL, then a drag and a reset: 37 s on one runner, past 60 on a slower (#985)
   // its poster is the live site's: a blank PNG, and no request of ours
   const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
   await page.route('https://yellowpine.com/**', (r) => r.fulfill({ contentType: 'image/png', body: Buffer.from(PNG, 'base64') }));

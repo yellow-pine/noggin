@@ -155,6 +155,9 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   publication. An older job cannot replace a newer requested review. The Mac remains the interactive Blender viewer;
   `model/review/reload.py` is its startup watcher, which consumes the matching publication receipt, discards authorized
   incidental review edits and preserves the active view. Keep authored source files separate from that generated review.
+  `just latest` is the Mac-only second file (model/latest, #998): each layer from its newest candidate, main or an open
+  PR, exported once a commit under the heavy lock and cached outside the repo; the coordinator reruns it after a push or
+  merge that touches a layer, and the same watcher reloads it.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
