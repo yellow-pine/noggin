@@ -6,7 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "cadquery>=2.8.0",
     "coacd>=1.0.14",
-    "magpylib>=6.0.0",
+    "magpylib>=6.2.0",
     "mujoco[sysid]>=3.17.0",  # sysid: model/servo_fit.py
     "numpy>=2.5.4",
     "opencv-python-headless>=5.0.0.93",
@@ -26,15 +26,15 @@ blender = [  # installed only into the isolated GX10 Blender's Python 3.13, expo
 dev = [
     "pytest>=8",
     "mpremote>=1.24",
-    "ruff>=0.17.3",
+    "ruff>=0.17.4",
     "pyright>=1.1.414",
     "micropython-esp32-esp32_generic_c3-stubs==1.23.*",  # the Core's MicroPython ([tool.noggin]): pyright on its files
     "micropython-stdlib-stubs==1.23.*",
     "mpy-cross==1.23.*",  # .mpy for the Core: mpy v6.3, what its 1.23 loads
     "pytest-xdist==3.8.0",
     "pytest-split>=0.11.0",  # --store-durations: the model shards' measured seconds (model/shards.py)
-    "imageio-ffmpeg>=0.7.0",
-    "zizmor>=1.31.1",
+    "imageio-ffmpeg>=0.8.1",
+    "zizmor>=1.32.0",
     "actionlint-py>=1.7.12.25",
     "hadolint-bin>=2.15.1",
     "rust-just>=1.59.0",  # just runs the recipes (justfile, docs/adr/0016)
