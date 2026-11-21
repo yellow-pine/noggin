@@ -39,9 +39,11 @@ FINE_MM = {
     # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
     f"gimbal frame{g.MECHANICAL}": 1.0,
 } | {
-    # each lower lid's shell nests 1 mm outside the upper's (#698): pieces within 0.5 mm of it, not chords across the gap
-    f"{s} lower lid{style}": 0.5
+    # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
+    # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
+    f"{s} {lid} lid{style}": 0.5
     for s in "LR"
+    for lid in ("upper", "lower")
     for style in ("", g.MECHANICAL)
 }
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many

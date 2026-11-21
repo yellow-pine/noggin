@@ -56,6 +56,21 @@ def test_each_lid_bar_meets_its_crank_at_the_transmission_floor_or_more():
         )
 
 
+@pytest.mark.parametrize("side", ["L", "R"])
+def test_the_tie_bar_meets_each_yoke_crank_at_the_transmission_floor_or_more(side):
+    """#1003: the tie-bar is a parallelogram, so each eye's bar (from the yaw horn's pin to the yoke's) keeps its
+    direction, the horn's axis to the eye's centre, while the crank turns with the yaw; the angle between them, folded
+    to 0..90, stays at the MuJoCo report's floor over the yaw's range (22 mm behind the eyes it fell to 33.8)."""
+    bar = np.array([gimbal.EYE[side][0], -gimbal.YAW_Y]) / math.hypot(gimbal.EYE[side][0], gimbal.YAW_Y)
+    for yaw in np.linspace(-gimbal.YAW, gimbal.YAW, 41):
+        a = math.radians(yaw)
+        crank = (-math.sin(a), math.cos(a))  # the cranks point +y at rest, turned about z
+        assert (
+            math.degrees(math.asin(min(1.0, abs(float(bar[0] * crank[1] - bar[1] * crank[0])))))
+            >= mujoco_report.TRANSMISSION_DEG
+        )
+
+
 def test_both_eyes_turn_together_and_the_pitch_rod_couples_to_yaw_in_the_hooke_form():
     """The tie-bar is a parallelogram: both eyes take the yaw servo's angle. At yaw 0 the pitch push-rods are
     parallelograms too, so both eyes pitch as the bail; with the eyes yawed the push-rod sets the lever's fore-aft
