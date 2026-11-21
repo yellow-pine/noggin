@@ -11,8 +11,9 @@ branch's worktree to review that branch. Written beside OUT and renamed into pla
 
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
 it): a collection `Morty reference` of editable semantic meshes in morty-fixed.stl's raw frame, with painted material
-slots named by Skin Colour group. Each mesh names its `reference_region`, `display_region` and optional live `carrier`
-part. Neck, shoulders and torso have no carrier. The recipe reads it without changing it, applies the Default Skin
+slots named by Skin Colour group. Each mesh names its `reference_region`, a Motion region (skin.MOTION: head, jaw, an
+eye, a lid, or the fixed neck, shoulders and torso), which names the live part carrying it (CARRIERS), and its
+`display_region`; a `carrier` it still names must agree. The recipe reads it without changing it, applies the Default Skin
 palette and cuts it at the model's floor. Without this reference, Morty's layer stays empty, including in a fresh clone.
 Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
 anatomical surfaces for the output's motion checks; their positions stay private with the reference.
@@ -55,6 +56,7 @@ BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each 
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
 # the Morty sculpt's eye centres, raw mm (#872's measure on its front depth map, inferred), z up, -y forward
 MORTY_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
+CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
 
@@ -210,6 +212,7 @@ def _morty(stage):
     return {
         "blend": MORTY,
         "at": at.tolist(),
+        "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
     }

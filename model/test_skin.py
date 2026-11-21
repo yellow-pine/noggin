@@ -113,3 +113,26 @@ def test_a_glued_shell_is_keyed_in_what_carries_it():
     assert skin.GLUED["cansin teeth"][0] == "cansin mouth cover"
     assert skin.GLUED["cansin R brow"][0] == "cansin face"
     assert set(skin.SHELLS) == {n for n in g.PRINTED if n.split()[0] in g.SKINS} | {f"{s} eyeball cap" for s in "LR"}
+
+
+def test_every_shell_belongs_to_one_motion_region():
+    """#969: each Shell moves with the Motion region it shows: the head's on the head, the mouth on the jaw, a lid cover
+    on its lid, a cap or pupil on its eye, the shirt on the fixed torso; the neck, shoulders and torso have no carrier."""
+    assert {skin.region(s) for s in skin.SHELLS} <= skin.MOTION.keys()
+    assert skin.MOTION["neck"] is skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    for shell, region in {
+        "morty face": "head",
+        "morty hair": "head",
+        "cansin L brow": "head",
+        "morty mouth cover": "jaw",
+        "cansin teeth": "jaw",
+        "morty L upper lid cover": "L upper lid",
+        "bart R lower lid cover": "R lower lid",
+        "L eyeball cap": "L eye",
+        "cansin R pupil plug": "R eye",
+        "morty shirt front": "torso",
+        "cansin sunglasses": "torso",
+    }.items():
+        assert skin.region(shell) == region, shell
+    with pytest.raises(KeyError):
+        skin.region("morty tail")

@@ -231,6 +231,29 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.i
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
 # their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
+# The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
+# One source for the Shells (model/stages.py RIDES, held to it by model/printed/test_skin.py) and the private Morty
+# reference's semantic meshes (model/review), so a seam cut on either side lands on the same region.
+MOTION = {
+    "head": "gimbal frame",
+    "jaw": "jaw",
+    **{f"{s} eye": f"{s} eyeball cap" for s in "LR"},
+    **{f"{s} {lid} lid": f"{s} {lid} lid" for s in "LR" for lid in ("upper", "lower")},
+    **dict.fromkeys(("neck", "shoulders", "torso")),
+}
+# {a word of a Shell's name: its region}, an eye's or a lid's after the Shell's side
+_WORDS = {"face": "head", "hair": "head", "brow": "head", "mouth": "jaw", "teeth": "jaw", "shirt": "torso"}
+_WORDS |= {"sunglasses": "torso", "pupil": "eye", "eyeball": "eye", "upper": "upper lid", "lower": "lower lid"}
+
+
+def region(shell):
+    """The Motion region `shell` shows (MOTION); KeyError for a Shell no word of _WORDS names."""
+    words = shell.split()
+    own = [_WORDS[w] for w in words if w in _WORDS]
+    if not own:
+        raise KeyError(shell)
+    side = next((w for w in words if w in ("L", "R")), None)
+    return own[0] if own[0] in MOTION else f"{side} {own[0]}"
 
 
 @functools.cache
