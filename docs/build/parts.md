@@ -36,15 +36,23 @@ beside the test stand until the Torso holds them (inferred). Buy both with Stage
 | power-path board | nomo's BQ25886 2S charge board on Tindie, its 18650 holder snapped off and ICHGSET swapped to 2.87 kΩ for 0.75 A | BQ25886 |
 | USB-C hub | Adafruit CH334F Mini 4-Port USB Hub Breakout | 5997 |
 | bulk capacitor | a 470 µF 16 V low-ESR electrolytic, across the Y lead where it enters the Shields | 470 µF 16 V |
+| M3 x 16 mm pivot screw | a steel M3 x 16 mm socket-head screw, greased: each busy pivot's shank | generic |
+| M2 x 8 mm servo screw | an M2 x 8 mm self-tapping screw, two through each servo's tabs | generic |
+| M3 x 10 mm head screw | an M3 x 10 mm screw, four holding the test stand, then the head mount, under the gimbal frame's plate | generic |
+| M3 nut | an M3 nut, one on each head screw | generic |
 
 The CyberBrick Beginner Hardware Kit ZK004 holds both Cores, one Shield (its other shield is the transmitter, which the
 Mech doesn't use), a switch board, a pack, its USB charger and one usable servo; the Battery Upgrade Kit ZL003 adds a
 second pack, to keep one on charge.
 
+The screws and nuts are counted from the model: a pivot screw for each pin and pivot its linkages turn on, two servo
+screws per servo, and the four head screws with their nuts. Their lengths are inferred: one pivot screw length covers
+the deepest pin (the pan's), so cut each shallower pin's screw to its depth. A bar's end on a servo horn takes a pivot
+screw in the model, though the horn's own hole is smaller (inferred). The model doesn't fix the boards yet, so it counts
+no screws for them.
+
 Also needed, which the model doesn't count as parts:
 
-- M3 screws, about 10 mm, as the busy pivots' greased shanks, and M2 screws and nuts for the servos and boards
-  (inferred).
 - From Stage 2: a Y lead from the switch board to both Shields, four 24 AWG conductors up the neck from the Torso to
   the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
   to the head; inferred).
@@ -73,7 +81,7 @@ every Palette's filaments are in the table on [Themes](../face-design.md).
 - A printer with a 0.4 mm nozzle that prints PETG and PLA; every printed part fits a 256 mm bed (#893). Our parts
   print from `just stl` (model/build/stl, mm).
 - A small flat screwdriver and a small cross-head one, a ruler, superglue for the magnets and the glued-in Shells, and
-  grease for the pivots (inferred).
+  grease for the pivots, and a screw cutter for the pivot screws (the M3 hole in wire strippers; inferred).
 - A soldering iron, for the power-path board's resistor, the capacitor and the leads (inferred).
 - Print the [clearance coupon](tests.md#the-clearance-coupon) first: it finds the fit your printer gives a pivot and a
   magnet pocket.
