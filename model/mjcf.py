@@ -59,10 +59,11 @@ VIEW = {"#000000": "#5A5A60", "#FFFFFF": "#E8E8E8"}
 TIMESTEP, SETTLE_S = 0.0005, 0.5
 # A life-size head still rings after two seconds near the pan's end: static readings wait for quiet, bounded at four.
 SETTLE_MAX_S, SETTLE_DEG_S = 4.0, 0.1
-# A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.99 (the
+# A connect holds to LOOP_SOLREF's time constant (4 steps, over refsafe's 2) at a constant impedance of 0.998 (the
 # default's 0.9..0.95 lets the loaded tilt pin open 0.12 mm and the pan bar ring near its toggle): the violation at rest
-# scales with (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), microns here.
-LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.99, 0.99, 0.001, 0.5, 2.0)
+# is au (1 - d) tc^2 (docs/research/2026-11-01-mujoco-loops.md 2), au the unconstrained acceleration at the pin, which a
+# light bar carrying the head's weight makes large: at 0.99 the tilt's reduction bar read 0.059 mm (#978), 0.012 here.
+LOOP_SOLREF, LOOP_SOLIMP = (0.002, 1.0), (0.998, 0.998, 0.001, 0.5, 2.0)
 # shortcut: pose() slews at a quarter of the servo's rated 428 deg/s by default: at the rated speed the position actuator
 # once carried a head through its pan four-bar's toggle; the DC motor (#625) lands that swing (model/mujoco_report.py
 # full_speed), so the rated speed may do now; revisit with Core 2's choreography.

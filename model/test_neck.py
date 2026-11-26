@@ -148,7 +148,8 @@ def test_a_moving_case_reduction_drives_the_real_motor_joint_and_reads_the_bar_a
     tmp_path, monkeypatch, command
 ):
     """#978: a 10 mm crank on the moving case and a 25 mm fixed arm about the tilt axis, both square to a 40 mm bar at
-    rest: the head turns 0.4 of the servo's turn, reversed, the loop closes, and gates.loops reads the bar against the
+    rest: the head turns 0.4 of the servo's turn, reversed, the loop closes under a head's weight on its light bar
+    (MuJoCo's soft connect opens au (1 - d) tc^2, mjcf.LOOP_SOLIMP), and gates.loops reads the bar against the
     fixed arm (90 deg at rest), the angle the case sees, not against the line from the tilt axis to the crank's pin
     (atan(25 / 40) = 32 deg at rest), which no load of the bar turns about."""
     from model import gates, linkage
@@ -163,10 +164,10 @@ def test_a_moving_case_reduction_drives_the_real_motor_joint_and_reads_the_bar_a
         name: stages.Part(str(mesh), frame @ stages.translate(point), (grams, "documented"), None)
         for name, point, grams in (
             ("fixed:1", p, 1),
-            ("plate:1", p + (0, -10, 20), 100),
+            ("plate:1", p + (0, -30, 40), 750),  # a head's weight, hung in front of the axis
             ("servo:1", q, 55),
             ("lever:1", q, 1),
-            ("bar:1", (a + b) / 2, 1),
+            ("bar:1", (a + b) / 2, 1.3),
         )
     }
     solve = linkage.four_bar(tuple(q), tuple(a), tuple(p), tuple(b), g.X)
