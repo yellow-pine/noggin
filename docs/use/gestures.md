@@ -1,6 +1,6 @@
 # Gestures and behaviour
 
-Each gesture as the model plays it: [the home page](../index.md#gestures).
+Each gesture as the model plays it, in the viewer: [Pictures](../pictures.md#in-motion).
 
 ## Which event plays what
 

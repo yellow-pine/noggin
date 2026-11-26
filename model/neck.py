@@ -1,24 +1,19 @@
-"""The next Mech's neck and jaw (#641): our own design, clean-room (#618). Its numbers (one source: model/printed/neck.py
-draws the parts from them, model/stages.py places them), its kinematics and its report.
+"""The Mech's neck and jaw (#902/#978), clean-room (#618): geometry, kinematics and report in the eye gimbal's
+head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
-Frame: the eye gimbal's (model/gimbal.py), which is the head's: x along the eye line (the L eye at +x), -y forward, z
-up, the origin midway between the eye centres. The head is the gimbal with the head mount screwed under its plate; it
-turns on its own pivots and every servo drives through a bar, so the splines carry torque only:
-- pan: the pan yoke turns on the neck mount about a vertical axis, the pan servo (on the mount) driving the yoke's lever;
-- tilt: the head turns on the yoke's cheeks about an x axis under its plate, where the realistic skull's foramen magnum
-  is (AXIS, #838): behind the head's centre of mass, whose weight a balance spring on the tilt shank holds (balance()),
-  the tilt servo (on the yoke) driving the head mount's lever;
-- jaw: the jaw turns on the gimbal frame's lugs about an x axis through the realistic mandible's condyles (#838), the
-  mouth servo (on the frame, behind the jaw) driving it.
-Each drive is a four-bar whose horn and lever lie parallel at rest, the bar square to both (model/linkage.py). Each
-busy pivot is a steel shank (an M3 screw from the kit's spares, greased) turning in a bore printed along Z and threaded
-into the part it is fixed in: the yoke turns on the mount's shank, the head mount (printed on its side) on the cheeks',
-the jaw (on its side) on the frame's, each bar (flat) on its lever's.
-The leads cross pan and tilt in two flexing spans (GLOSSARY): pan's runs up beside the pan axis, so the turn is a twist
-and a gentle S over its free length; tilt's is an arc about the tilt axis whose radius breathes as the head turns. The
-pack's Y lead crosses as one pair and splits after the joints (#51). Angles are degrees: pan positive toward +x's
-left (right-handed about +z), tilt and jaw right-handed about +x (the face down, the jaw open). Every size is ours and
-inferred (no build settles one yet), each chosen against the gates in report()."""
+A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
+low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 22 mm crank and the
+carrier's 46 mm arm turn the head about 2.1x slower than the servo, reversed, so the servo holds under its rating with
+no balance spring.
+The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
+inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
+power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
+The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
+
+Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
+power leads require a real continuous route and flexing spans across both head joints. The full #902
+torque/current/stability proof with finished anatomical/Skin loads remains open.
+Angles are degrees, right-handed about +z for pan and +x for tilt and jaw (face down and mouth open)."""
 
 import math
 
@@ -28,46 +23,149 @@ from scipy.optimize import brentq
 from model import geometry as g
 from model import linkage
 
+# #902's actual mechanical interface in the head's frame. #874 verifies anatomical registration and finished loads;
+# prototype canal estimates are not anatomical anchors.
+HEAD_FRAME = g._HEAD
+HEAD_AXES = {
+    "tilt": ((0.0, 76.6, -48.7), g.X),
+    "pan": ((0.0, 76.6, -21.5), g.Z),  # actual new bearing line; anatomical registration remains unverified
+    "jaw": ((0.0, 60.05856, -41.60731), g.X),  # measured #874 v7 condylar patch line, within 0.03 mm of +X
+}
+HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
+HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
+BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
+HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
+# The C0 pan bearing: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners; anatomical
+# registration of HEAD_AXES remains #874's.
+PAN_STUDY_BEARING = (20.0, 32.0, 7.0)
+PAN_STUDY_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (23.7, 30.7))
+PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
+NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
+NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
+BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
+# #978: the tilt case stands upright (its long axis up, TILT_CASE) low behind the canal, inside the compact head's back
+# (y <= 135.9 with its lever's disc), under the frame plate's and the bail's pan sweeps (inferred, held by
+# model/printed/test_base.py)
+TILT_SHAFT = (-21.45, 123.8, -62.0)
+TILT_CASE = (0.0, 0.0, 1.0)
+# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) 22 mm down and back, the
+# fixed carrier's arm 46 mm down and back from the tilt axis, so the head turns at most 0.48 of the servo's turn over the
+# range, and the bar meets both the crank and the arm at 35 deg or more (inferred). The pin clears the case's corner; the bar runs inboard
+# of the jaw's sweep to an anchor behind the R rail, so it never crosses the rail.
+TILT_ARMS = ((22.0, -76.0), (46.0, -72.0))  # (mm, deg from +y toward +z): the crank's, the carrier's arm's
+
+
+def _arm(i):
+    length, deg = TILT_ARMS[i]
+    return length * math.cos(math.radians(deg)), length * math.sin(math.radians(deg))
+
+
+TILT_CRANK = _arm(0)
+TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_CRANK[0], TILT_SHAFT[2] + TILT_CRANK[1])
+TILT_ANCHOR = (0.0, *np.add(HEAD_AXES["tilt"][0][1:], _arm(1)).tolist())
+TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
+# #978: the pan case behind the C0 axis, hung shaft down over the tray, its shaft at its back (PAN_CASE: its long axis
+# forward), its lever and crank under it, over the tray and clear of the Shields' and capacitor's sweeps; its top sets
+# the head's height (inferred, held by model/printed/test_base.py)
+PAN_SHAFT = (0.0, 118.4, 36.0)
+PAN_CASE = (0.0, -1.0, 0.0)
+PAN_ARM = (-30.0, 0.0)
+PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
+PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
+PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
+PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
+REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the case's shaft end (inferred)
+REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
+PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
+WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
+CERVICAL_PATH = (
+    (64.0, -171.0),
+    (76.0, -154.0),
+    (91.6, -146.0),
+    (78.5, -60.7),
+    (76.6, -48.7),
+)  # (y,z), over the pack into the true canal
+CERVICAL_X = (16.0, 8.0, 8.0, 22.0, 22.0)  # upper fixed rails outside the moving trunnions, leaving the canal open
+CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
+FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
+
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
 SERVO_DEG, TRANSMISSION_DEG = 90.0, 40.0  # a servo's travel either side of its centre; the bars' floor (#641)
 RANGES = {"pan": (-45.0, 45.0), "tilt": (-20.0, 20.0), "jaw": (0.0, 25.0)}  # the eyes take +-25 more (#51)
-AXIS = (61.0, -42.0)  # (y, z) where the pan axis (vertical, x 0) meets the tilt axis (along x): under the realistic
-# skull's foramen magnum, at its base (#838), the cheeks' bosses (BOSS_R) up into the head mount's flange, 0.5 under the
-# gimbal frame's plate (#708)
+AXIS = (61.0, -42.0)  # legacy base/Skin layout datum; actual physical joint axes are HEAD_AXES
 FLANGE_Z = (-41.0, -38.0)  # the head mount's flange, under the gimbal frame's plate's back (model/gimbal.py PLATE_Z)
-HEAD_SCREWS = (
-    (16.0, 48.0),
-    (-16.0, 48.0),
-    (16.0, 83.0),
-    (-16.0, 83.0),
-)  # (x, y): the flange to the plate, nuts on top, behind the mouth servo, the rear pair by the tilt span's clamp
-CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 3.5  # the yoke's cheeks, the head's tilt lugs outside them
-# The neck as a spine (#838): the pan in the Torso, under its lid, the yoke's post rising from its disc there through
-# the lid to its top floor, on which the tilt servo stands under the head, the cheeks up from it to the tilt axis
-DISC_R, DISC_Z = 15.0, (-134.0, -130.0)  # the yoke's disc on the mount's thrust face, under the Torso's lid
-POST_R, TOP_Z = 5.0, (-80.0, -76.0)  # the yoke's post, and its top floor under the tilt servo
+HEAD_SCREWS = PAN_STUDY_SCREWS
+CHEEK_X, LUG_X, BOSS_R = (9.0, 13.0), (13.0, 17.0), 4.0
+JAW_FIXED_R = 3.3  # M3 tapping bore r1.25 leaves 2.05 mm; clears the upper C0 knuckle through pan
+# The neck as a spine (#838): the neck mount's post rising from its foot on the Torso's floor through the lid, hollow for
+# the neck cable, and the pan at its top under the head (#858): the yoke's disc on it under its top floor, on which the
+# tilt servo stands, the cheeks up from it to the tilt axis; the pan servo hangs on the post over the lid
+DISC_R, DISC_Z = 15.0, (-84.0, -80.0)  # the yoke's disc on the post's thrust face, under its top floor
+POST_R, TOP_Z = 10.0, (-80.0, -76.0)  # the neck mount's post, and the yoke's top floor under the tilt servo
 MOUNT_Z = (-174.0, -171.0)  # the neck mount's foot: the base (#642) carries it
-PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-137.0, -134.0)  # the yoke's lever back along +y; the bar along x under it
+SHELF_Z = (-123.5, -120.5)  # the post's shelf under the pan servo, 1.5 mm over the Torso's lid (model/base.py)
+PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back along +y; the bar along x under it
 # the head's lever back along +y; the bar down to the horn, its servo on the yoke's top floor, clear of the Skin's back
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
-JAW = (26.0, -24.0)  # (y, z) of the jaw's hinge: the realistic mandible's condyles (#838)
+JAW = HEAD_AXES["jaw"][0][1:]
+# the jaw x1.08 about its hinge across and fore-aft (#901, #872: its arms inside Morty's life-size mandible), its floor
+# where it was, over the Torso as the head tilts; its drive keeps its size
+JAW_K = 1.08
+
+
+def jaw_y(y):
+    """y of the jaw at y as first drawn, grown JAW_K about its hinge."""
+    return JAW[0] + (y - JAW[0]) * JAW_K
+
+
 # the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
 # horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
 # neck's cheeks however the head tilts (#838)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = 20.0, (37.0, -56.75), (30.0, 33.0)  # its tabs up through the plate's slot
-JAW_LUG_X, JAW_X = (28.0, 31.0), (33.0, 37.0)  # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
-CHIN_Y = -29.0  # its chin's front, the mandible's
-JAW_BODY = ((27.0, 0.0), (14.0, -20.0))  # (x, y) its body forward from the L arm round to the chin, the mandible's
+# the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
+JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
+JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
+# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978, inferred)
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (29.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
+# #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
+# Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.
+MANDIBLE_BORDER = {
+    "L": (
+        (42.17778, *JAW),
+        (39.66932, 62.19767, -52.96658),
+        (36.54052, 55.94899, -66.98728),
+        (29.96298, 52.41924, -79.70661),
+        (29.74866, 40.96716, -94.45120),
+        (22.17178, 24.88939, -99.41578),
+        (15.00794, 10.05259, -100.09533),
+    ),
+    "R": (
+        (-42.43407, *JAW),
+        (-40.85832, 63.96941, -49.35478),
+        (-36.71729, 55.38586, -66.82533),
+        (-30.42063, 51.63572, -79.25589),
+        (-26.50951, 36.86854, -94.26046),
+        (-20.49186, 24.76519, -99.17967),
+        (-10.29882, 10.31181, -99.83649),
+    ),
+}
+MENTON = (0.0, -1.4201, -97.7819)
+CHIN_Y = -33.4  # existing Skin rest contour; moving the anatomical carrier must not reshape a resting Skin
+JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
+JAW_CHAIN_UP = 8.0  # #978: the carrier's lower chain over the measured border, in the mandible's body (inferred)
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
-LEAD_OD = 1.4  # the thickest lead that crosses, the pack's pair (inferred: 24 AWG)
+# the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
+# VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
+# docs/research/2026-11-03-usb-c-power.md 7)
+LEAD_OD = 1.6
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
-PAN_SPAN = (18.0, (-162.0, -132.0))  # its clamps in front of the pan axis at this radius: the mount's, then the yoke's
+# its clamps in front of the pan axis at this radius: the post's, over where the neck cable leaves it, then the yoke's disc's
+PAN_SPAN = (18.0, (-112.0, -82.0))
 # its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
-TILT_SPAN = (22.0, 45.0)
+TILT_SPAN = (24.0, 45.0)
 LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug
 # the parts the tilt turns with the eye gimbal: model/report.py weighs the head from them
-HEAD = ("next head mount:1", "next jaw:1", "next jaw bar:1", "next mouth servo:1", "next mouth horn:1")
+HEAD = ("head mount:1", "jaw:1", "jaw bar:1", "mouth servo:1", "mouth horn:1")
 
 
 def _four_bar(o4, lever, horn, axis, turn=1):
@@ -84,12 +182,29 @@ def pins():
     return {
         "pan": ((0, y, pan_z), (0, y + PAN_LEVER, pan_z), (PAN_BAR, y + PAN_LEVER - CRANK, pan_z), g.Z),
         "tilt": ((0, y, z), (0, y + TILT_LEVER, z), (0, y + TILT_LEVER - CRANK, z - TILT_BAR), g.X),
-        "jaw": ((0, *JAW), (0, JAW[0], JAW[1] - JAW_LEVER), (0, *MOUTH_HORN), g.X),
+        "jaw": ((0, *JAW), (0, *JAW_PIN), (0, *MOUTH_HORN), g.X),
     }
 
 
 TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
-LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items()}
+LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
+LINKAGES["pan"] = linkage.four_bar(PAN_SHAFT, PAN_PIN, HEAD_AXES["pan"][0], PAN_ANCHOR, g.Z)
+# seen from the moving case, the fixed carrier is the rocker: the head turns the other way (model/stages.py Reaction)
+TILT_LOOP = linkage.four_bar(TILT_SHAFT, TILT_PIN, HEAD_AXES["tilt"][0], TILT_ANCHOR, g.X)
+
+
+def _tilt(servo_deg):
+    rocker, a, b = TILT_LOOP(servo_deg)
+    return -rocker, a, b
+
+
+_tilt.o4, _tilt.axis = TILT_LOOP.o4, TILT_LOOP.axis
+LINKAGES["tilt"] = _tilt
+
+
+def output(drive, servo_deg):
+    """Physical output angle from a servo command."""
+    return LINKAGES[drive](servo_deg)[0]
 
 
 def drives():
@@ -100,13 +215,20 @@ def drives():
     return {
         "pan": ((pan[0], pan[1], PAN_Z[0]), g.Z, g.Y, g.Y),
         "tilt": ((TILT_BAR_X[1], *tilt[1:]), (-1, 0, 0), (0, -1, 0), g.Y),
-        "mouth": ((JAW_BAR_X[0], *jaw[1:]), g.X, (0, 0, -1), g.Z),
+        "mouth": (
+            (JAW_BAR_X[0], *jaw[1:]),
+            g.X,
+            (0, 0, -1),
+            tuple(-np.subtract(p["jaw"][1], p["jaw"][0]) / math.dist(p["jaw"][1], p["jaw"][0])),
+        ),
     }
 
 
 def servo_for(drive, out):
     """The servo angle (deg from its centre) that turns the drive's output to `out` deg: walked out from rest a degree at
     a time, then found within the degree."""
+    if out == 0:
+        return 0.0
     solve = LINKAGES[drive]
     step = 1.0 if (solve(1.0)[0] > 0) == (out > 0) else -1.0
     s = 0.0
@@ -117,7 +239,8 @@ def servo_for(drive, out):
 
 
 def transmission(drive, servo_deg):
-    """The angle between the bar and its lever at the servo's angle, folded to 0..90 (0 at the toggle)."""
+    """The angle between the bar and its lever at the servo's angle, folded to 0..90 (0 at the toggle); the tilt's lever
+    is the fixed carrier's arm, as the moving case sees it."""
     solve = LINKAGES[drive]
     _, a, b = solve(servo_deg)
     u, v = linkage._PLANE[tuple(solve.axis)]
@@ -134,32 +257,20 @@ def _weight(head, deg):
     """kgf.cm the head's weight turns it with about the tilt axis at `deg`, right-handed about +x: its grams times its
     com's horizontal distance from the axis (g x mm / 10^4 = kgf.cm)."""
     grams, (_, cy, cz) = head
-    dy, dz = cy - AXIS[0], cz - AXIS[1]
+    _, y, z = HEAD_AXES["tilt"][0]
+    dy, dz = cy - y, cz - z
     a = math.radians(deg)
     return -grams * (dy * math.cos(a) - dz * math.sin(a)) / 1e4
 
 
-def balance(head, bare=None):
-    """The balance spring on the tilt shank (#838), for a head of (grams, centre of mass in this frame, mm): (kgf.cm it
-    turns the head with at rest, its rate in kgf.cm a radian), a torsion spring wound against the weight's turn, so that
-    turn and its change as the head tilts cancel at rest. Its torque at `deg` is rest - rate x rad, right-handed about +x;
-    model/mjcf.py sets it on the tilt pivot (stiffness and springref). With the head's `bare` one too (its Skin off,
-    #830): one spring for both, wound halfway between theirs, so each misses by half the Skin's turn."""
-    springs = [
-        (-_weight(h, 0.0), (_weight(h, 0.5) - _weight(h, -0.5)) / math.radians(1.0)) for h in (head, bare or head)
-    ]
-    assert all(r > 0 for _, r in springs), (
-        "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
-    )
-    rest, rate = np.mean(springs, axis=0).tolist()
-    return rest, rate
+def _gain(drive, servo_deg):
+    """deg the drive's output turns a degree of its servo's at `servo_deg`."""
+    return output(drive, servo_deg + 0.5) - output(drive, servo_deg - 0.5)
 
 
-def _hold(head, spring, deg, gain):
-    """kgf.cm the tilt servo holds the head with at `deg`, through the linkage's speed ratio `gain` there: the head's
-    weight's turn less the balance spring's."""
-    rest, rate = spring
-    return abs((_weight(head, deg) + rest - rate * math.radians(deg)) * gain)
+def _hold(head, servo_deg):
+    """kgf.cm the tilt servo holds the head with at `servo_deg`: the weight's turn through the four-bar's gain there."""
+    return abs(_weight(head, output("tilt", servo_deg)) * _gain("tilt", servo_deg))
 
 
 def _spans():
@@ -176,36 +287,29 @@ def _spans():
 
 def report(head, bare=None):
     """The neck's numbers against #641's gates, for a head of (grams, centre of mass in this frame, mm), and its `bare`
-    one (its Skin off, #830) on the same balance spring: per drive its output range, the servo angles that reach it, the
-    bar's worst transmission angle on the way and the gain at rest; for tilt each head's hold at rest and at worst; where
-    the head's centre of mass sits from the tilt axis; and the flexing spans' tightest bends against their floor."""
+    one (its Skin off, #830): per drive its output range, the servo angles that reach it, the bar's worst transmission
+    angle on the way and the gain at rest; for tilt each head's hold at rest and at worst; where the head's centre of mass
+    sits from the tilt axis; and the flexing spans' tightest bends against their floor."""
     out = {}
-    for drive, solve in LINKAGES.items():
+    for drive in LINKAGES:
         sweep = _sweep(drive)
         out[drive] = {
             "range_deg": list(RANGES[drive]),
             "servo_deg": [round(servo_for(drive, d), 1) for d in RANGES[drive]],
             "transmission_deg": round(min(transmission(drive, s) for s in sweep), 1),
-            "gain": round((solve(0.5)[0] - solve(-0.5)[0]), 3),
+            "gain": round(_gain(drive, 0.0), 3),
         }
     sweep = _sweep("tilt")
-    solve = LINKAGES["tilt"]
-    spring = balance(head, bare)
 
     def holds(h):
-        at = [_hold(h, spring, solve(s)[0], (solve(s + 0.5)[0] - solve(s - 0.5)[0])) for s in sweep]
-        return {"rest_kgf_cm": round(_hold(h, spring, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
+        return {"rest_kgf_cm": round(_hold(h, 0.0), 3), "hold_kgf_cm": round(max(_hold(h, s) for s in sweep), 3)}
 
-    out["tilt"] |= {
-        **holds(head),
-        "bare": holds(bare or head),
-        "spring": {"rest_kgf_cm": round(spring[0], 3), "rate_kgf_cm_rad": round(spring[1], 3)},
-    }
+    out["tilt"] |= {"drive": "reduction four-bar", **holds(head), "bare": holds(bare or head)}
     grams, (_, cy, cz) = head
     out["head"] = {
         "grams": round(grams, 1),
-        "above_tilt_mm": round(cz - AXIS[1], 1),
-        "behind_tilt_mm": round(cy - AXIS[0], 1),
+        "above_tilt_mm": round(cz - HEAD_AXES["tilt"][0][2], 1),
+        "behind_tilt_mm": round(cy - HEAD_AXES["tilt"][0][1], 1),
     }
     out["spans"] = _spans()
     return out

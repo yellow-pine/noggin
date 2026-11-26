@@ -4,8 +4,12 @@
 > **Being designed, not built yet.** This guide is read off the model (model/stages.py, model/geometry.py STAGES,
 > [Model notes](../model-notes.md)); every size in it is inferred until the Mech is printed (#51).
 
+[Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3)
+
 Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. The Skin's Shells go on after
-it ([Themes](../face-design.md)).
+it ([Themes](../face-design.md)). In the realistic Skeleton the skull and its first two vertebrae are adapted from
+others' meshes ([Credits](../credits.md)); *Upcoming (#874): a life-size BodyParts3D teaching skull (calvaria cap,
+face and skull base, mandible, held on magnets) and all seven cervical vertebrae, warped into Morty*.
 
 ## Parts it adds, from the model
 
@@ -30,13 +34,20 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the gimbal frame's lugs, its hinge where the realistic skull's condyles are; it turns down to open the
-   mouth.
-2. **Jaw servo** in the gimbal frame's collar, hanging under its plate behind the jaw; the **jaw bar** joins its horn
+1. **Jaw** on the gimbal frame's lugs, scaled for Morty's jawline about its pivot through the measured mandibular
+   condylar patches; it turns down to open the mouth. The hidden carrier follows the measured ramus and body rather
+   than scaling the old bracket. *Upcoming (#968): finished anatomical attachment and moving Bone/Skin clearance proof.*
+
+   [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
+
+2. **Jaw servo** in the gimbal frame's collar, forward under its plate; the **jaw bar** joins its horn
    to the jaw's lever.
 
-The jaw rides the head mount, so it pans and tilts with the head.
+The jaw rides the head mount, so it pans and tilts with the head. Each sub-assembly apart:
+
+[Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&explode=1)
 
 ## Wiring
 
-The jaw servo goes to the neck Core, on its port in [Wiring](wiring.md).
+The jaw servo goes to the neck Core, on its port in [Wiring](wiring.md). *Upcoming (#929): the neck Core drives the
+jaw, so a gesture opens the mouth; today the jaw plays in the model and the viewer alone.*

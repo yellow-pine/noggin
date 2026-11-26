@@ -1,8 +1,8 @@
-"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield,
-Core, switch board, battery) so the model and the renders need no vendor file. Each is drawn in its STEP file's own
-frame, registered in ENVELOPES by its mesh's name. Interfaces
-(mount holes, shaft, connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates
-and circle hulls of the STEP's outer faces; inner detail is dropped."""
+"""Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield, Core, switch
+board, battery, USB-C hub, power-path board, bulk capacitor) so the model and the renders need no vendor file. Each is
+drawn in its STEP file's own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft,
+connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of
+the STEP's outer faces; inner detail is dropped."""
 
 import cadquery as cq
 import numpy as np
@@ -55,6 +55,44 @@ def servo():
     sx, sy = s["shaft"]
     spline = cq.Workplane("XY", origin=(sx, sy, s["tip_z"])).circle(s["spline_r"]).extrude(bz0 - s["tip_z"])
     return case.union(tabs).union(top).union(spline)
+
+
+# Standard tilt servo, shaft tip at the origin along +Z. Manufacturer overall dimensions; tab/shaft interfaces
+# inferred from the class envelope, kept separate from the owned micro servo (research 2026-11-04).
+STANDARD_SERVO = {
+    "case": ((-10.0, 30.7), (-9.85, 9.85), (-42.9, -5.9)),
+    "tabs": ((-16.9, 37.6), (-9.85, 9.85), (-15.9, -13.4)),
+    "holes": ((-13.4, -5), (-13.4, 5), (34.1, -5), (34.1, 5)),
+}
+
+
+def standard_servo():
+    s = STANDARD_SERVO
+    out = box(*s["case"]).union(box(*s["tabs"]))
+    out = out.union(cq.Workplane("XY", origin=(0, 0, -5.9)).circle(3).extrude(5.9))
+    for x, y in s["holes"]:
+        out = out.cut(cq.Workplane("XY", origin=(x, y, -16)).circle(2).extrude(3))
+    return out.cut(cq.Workplane("XY", origin=(0, 0, -6)).circle(1.25).extrude(6))  # inferred M3 centre thread
+
+
+def pan_bearing():
+    """SKF 61804-2RS1: 20 mm bore, 32 mm outer diameter, 7 mm height; the central neck tube remains hollow."""
+    return cq.Workplane("XY").circle(16).circle(10).extrude(7)
+
+
+STANDARD_HORN = {"radius": 10.0, "face": -1.5, "back": 3.0, "mounts": ((8, 0), (-8, 0), (0, 8), (0, -8))}
+
+
+def standard_horn():
+    """Inferred round horn: +Z toward the case, 3 mm spline engagement and an outer M3 retaining shoulder."""
+    h = STANDARD_HORN
+    out = cq.Workplane("XY", origin=(0, 0, h["face"])).circle(h["radius"]).extrude(h["back"] - h["face"])
+    out = out.cut(cq.Workplane("XY").circle(3).extrude(h["back"]))
+    out = out.cut(cq.Workplane("XY", origin=(0, 0, h["face"])).circle(1.6).extrude(h["back"] - h["face"]))
+    # The adapter's four M2 screws transfer torque through real bores; hole pattern is a drilling inference.
+    for x, y in h["mounts"]:
+        out = out.cut(cq.Workplane("XY", origin=(x, y, h["face"])).circle(0.8).extrude(h["back"] - h["face"]))
+    return out
 
 
 # Horn (the kit's short single arm, "half arm1"): the r 3.63 hub on (0, 20), z 0..4.15, with the r 2.14 spline bore
@@ -211,4 +249,39 @@ def battery():
     return hull("XZ", BATTERY["cells"], -BATTERY["length"])
 
 
+# USB-C hub (#858: a CH334F 4-port breakout, 31.6 x 20.4 x 4.8 mm overall, its maker's figures; inferred until one is
+# measured): PCB x 0..31.6 by y +-10.2, z 0..1.6; on top the upstream USB-C socket (x +-4.47 as the Core's) at its +x
+# end, its mouth on the PCB's edge, up to z 4.8.
+HUB = {"pcb": ((0.0, 31.6), (-10.2, 10.2), (0.0, 1.6)), "usb": ((24.2, 31.6), (-4.47, 4.47), (1.6, 4.8))}
+
+
+def hub():
+    return boxes([HUB["pcb"], HUB["usb"]])
+
+
+# Power-path board (#858: a BQ25886 2S charger board, its 18650 holder snapped off): its listing gives 105 x 90 x 25
+# mm with the holder, so the charger half a box 105 x 40 x 15 mm, its underside z 0 (inferred until one is measured).
+POWER = ((-52.5, 52.5), (-20.0, 20.0), (0.0, 15.0))
+
+
+def power():
+    return box(*POWER)
+
+
+# Bulk capacitor (#858: 470 uF 16 V low-ESR electrolytic across the Y lead at the Shields): a can 8 mm across, 11.5
+# tall, its leads' end z 0 (a common size for the rating, inferred).
+CAPACITOR = (4.0, 11.5)
+
+
+def capacitor():
+    r, h = CAPACITOR
+    return cq.Workplane("XY").circle(r).extrude(h)
+
+
 ENVELOPES = {"servo": servo, "horn": horn, "receiver": shield, "core": core, "switch": switch, "battery": battery}
+ENVELOPES |= {"hub": hub, "power": power, "capacitor": capacitor}
+ENVELOPES |= {
+    "standard servo": standard_servo,
+    "standard horn": standard_horn,
+    "pan bearing": pan_bearing,
+}

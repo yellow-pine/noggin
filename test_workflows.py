@@ -46,25 +46,24 @@ def test_every_workflow_is_title_case_in_its_kebab_case_file():
 
 
 def test_every_run_has_a_descriptive_title():
-    """#773: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
-    dispatched or workflow_run run by the workflow's name alone. Those set `run-name`: '<Workflow>: weekly <what>',
-    '<Workflow>: manual by <actor>', '<Workflow>: <triggering run's title>' (a push's: its commit's first line;
-    Default Branch Failure names the workflow it reports unless that title does); an empty result keeps GitHub's title
-    for the other events."""
+    """#773, #866: GitHub titles a push's run by its commit and a PR's or an issue's by its title, but a scheduled,
+    dispatched or workflow_run run by the workflow's name alone. Those set `run-name`, a Conventional Commit
+    (ci/commitlint.test.mjs lints it): 'ci(ci): weekly <Workflow> <what>', 'ci(ci): manual <Workflow> run by <actor>',
+    or the triggering run's title as-is; an empty result keeps GitHub's title for the other events."""
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
         on, name, title = flow[True], flow["name"], flow.get("run-name", "")
         on = set(on) if isinstance(on, (dict, list)) else {on}
         want = {
-            "schedule": f"'{name}: weekly ",
-            "workflow_dispatch": f"format('{name}: manual by {{0}}', github.actor)",
+            "schedule": f"'ci(ci): weekly {name} ",
+            "workflow_dispatch": f"format('ci(ci): manual {name} run by {{0}}', github.actor)",
             "workflow_run": "github.event.workflow_run.display_title",
         }
         parts = [w for e, w in want.items() if e in on]
         if parts and on - set(want) and not title.endswith(" || '' }}"):
             wrong.append((f.name, "keeps GitHub's title"))
-        if not all(p in title for p in parts) or bool(parts) != bool(title) or (title and f"'{name}: " not in title):
+        if not all(p in title for p in parts) or bool(parts) != bool(title):
             wrong.append((f.name, title))
     assert wrong == []
 
@@ -86,42 +85,55 @@ def test_the_convention_itself():
     assert not any(sentence_case(n) for n in ["set up uv", "Restore The Parts Cache", "Run just check."])
 
 
+def test_every_job_has_a_timeout():
+    """#944: a hung Blender or sim never holds a runner for GitHub's six hours. Each limit is at least twice the job's
+    longest measured run (its PR lists them); a job calling a reusable workflow takes its jobs' limits."""
+    jobs = [(f.name, i, j) for f in WORKFLOWS for i, j in yaml.safe_load(f.read_text())["jobs"].items()]
+    assert [(f, i) for f, i, j in jobs if "uses" not in j and not isinstance(j.get("timeout-minutes"), int)] == []
+
+
+def test_claude_reviews_the_commit_its_run_read():
+    """#950: no run is cancelled early (#944), so an older push's Review can end after a newer push. The hook (main's
+    scripts/claude_approved.py) posts the review on the commit the run read, never the model; the hook and `Check the
+    verdict` judge that commit, and the gate fails once the PR moved past it."""
+    (job,) = [
+        j
+        for j in yaml.safe_load((WORKFLOWS[0].parent / "claude-review.yml").read_text())["jobs"].values()
+        if any(s.get("id") == "claude" for s in j["steps"])
+    ]
+    steps = {s["name"]: s for s in job["steps"]}
+    claude, sha = steps["Run Claude's review"]["with"], "${{ github.event.pull_request.head.sha }}"
+    # the model posts nothing itself: no raw `gh api` (an injected prompt could call any endpoint) nor `gh pr review`
+    assert not re.search(r"gh (api|pr review)", claude["claude_args"] + claude["prompt"])
+    assert f"REVIEWED_SHA={sha} python3 -I -S" in claude["settings"]
+    assert steps["Check the verdict"]["env"]["REVIEWED_SHA"] == sha
+
+
 def test_no_workflow_runs_on_ubuntu_latest():
     """#392: `ubuntu-latest` moves under us when GitHub says so (26.04 from 2026-10-19); a named image moves when we
     do (ADR 0012)."""
     assert [f.name for f in WORKFLOWS if "ubuntu-latest" in f.read_text()] == []
 
 
-def test_a_new_push_cancels_a_prs_superseded_runs_but_never_a_deploy_or_release():
-    """#675: every workflow on pull_request runs one PR's newest commit only, so a push cancels the run in progress;
-    Checks' Deploy, Release and Release Assets never cancel a run mid-way. #689: Checks, which deploys (#795) and
-    Release waits on (main's alone since #722), runs every push to main to completion, queued, or merges minutes apart
-    never deploy."""
+def test_no_run_or_job_is_cancelled_early():
+    """#944 (docs/adr/0009): a run cancelled early lists its real failures as `cancelled` (#937), so every run on a PR
+    and on main runs to its end. No workflow has a concurrency group, which drops a queued run when a newer one comes;
+    only Checks' Deploy and Release's Release keep a job's group, never cancelling one in progress, so a newer commit's
+    deploy or release replaces a queued older one and an older site never lands after a newer."""
     flows = {f.name: yaml.safe_load(f.read_text()) for f in WORKFLOWS}
-    wrong = []
-    for name, flow in flows.items():
-        group = str(flow.get("concurrency", {}).get("group", ""))
-        if "pull_request" in flow[True] and not (
-            "github.workflow" in group
-            and "github.event.pull_request.number" in group
-            and flow["concurrency"].get("cancel-in-progress") is True
-        ):
-            wrong.append(name)
-    assert wrong == []
-    awaited = set(flows["release.yml"][True]["workflow_run"]["workflows"])
-    by_name = {flow["name"]: flow for flow in flows.values()}
-    assert awaited and {w: by_name[w]["concurrency"]["cancel-in-progress"] for w in awaited} == dict.fromkeys(
-        awaited, False
-    )
-    assert flows["checks.yml"]["jobs"]["deploy"]["concurrency"]["cancel-in-progress"] is False
-    for name in ("checks.yml", "release.yml", "release-assets.yml"):
-        assert "cancel-in-progress: true" not in (WORKFLOWS[0].parent / name).read_text(), name
+    assert [n for n, flow in flows.items() if "concurrency" in flow] == []
+    assert [f.name for f in WORKFLOWS if "cancel-in-progress: true" in f.read_text()] == []
+    groups = {
+        (n, i): j["concurrency"] for n, flow in flows.items() for i, j in flow["jobs"].items() if "concurrency" in j
+    }
+    assert set(groups) == {("checks.yml", "deploy"), ("release.yml", "release")}
+    assert all(g["cancel-in-progress"] is False and "${{" not in g["group"] for g in groups.values()), groups
 
 
-def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
-    """#414: the release PR waits as a draft, so a draft runs nothing and marking it ready runs everything once. Each
-    job a draft could start skips it: a job with no needs, and one that runs past a skipped need (`always()`,
-    `!cancelled()`) unless it needs that one's success. Dependabot's auto-merge acts only on its own PRs, not drafts."""
+def test_pr_workflows_skip_drafts_except_the_blocking_required_gates():
+    """#414, #972: drafts skip substantive work. Required PR and Checks instead run tiny failing guards, since a
+    skipped required job satisfies GitHub's gate. Marking ready starts the actual work; neither draft guard passed."""
+    blocking = {("pr-checks.yml", "pr"), ("pr-gate.yml", "checks")}
     wrong = []
     for f in WORKFLOWS:
         flow = yaml.safe_load(f.read_text())
@@ -132,6 +144,8 @@ def test_every_pr_workflow_skips_drafts_and_runs_when_ready():
         if "ready_for_review" not in (pr or {}).get("types", []):
             wrong.append((f.name, "types"))
         for id_, job in flow["jobs"].items():
+            if (f.name, id_) in blocking:
+                continue  # the executable guard tests below hold these two exceptions to fail closed
             cond = str(job.get("if", ""))
             past_skips = any(f in cond for f in ("cancelled()", "always()", "failure()")) and "== 'success'" not in cond
             starts = not job.get("needs") or past_skips
@@ -214,12 +228,10 @@ FULL = "${{ github.event_name != 'schedule' && github.event_name != 'workflow_di
 def test_main_skips_by_input_and_a_weekly_or_dispatched_run_runs_everything():
     """#471: a push to main filters its changed paths against main's last commit whose checks passed; the weekly
     scheduled run on main does not, so every job runs, nor does a dispatch on any branch (#562: the full render for a
-    look's approval, its Checks a real one). Its own concurrency group, so it never cancels a push's run (whose deploy
-    would then never happen) nor one of those cancels it."""
+    look's approval, its Checks a real one)."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     assert "cron" in flow[True]["schedule"][0]
     assert "workflow_dispatch" in flow[True]
-    assert "github.event_name" in flow["concurrency"]["group"]
     steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
     assert steps["filter"]["if"] == FULL
     assert steps["filter"]["with"]["base"] == "${{ steps.checked.outputs.sha }}"  # main's last green commit
@@ -231,13 +243,13 @@ CACHED = "${{ github.event_name != 'schedule' && (github.event_name != 'workflow
 
 
 def test_release_s_manual_run_renders_and_simulates_only_what_changed():
-    """#839: Release's manual run (workflow_call with deploy, its event the caller's dispatch) looks up the next Mech's
+    """#839: Release's manual run (workflow_call with deploy, its event the caller's dispatch) looks up the Mech's
     pictures and the sim reports cached for the same inputs, as a push's run does; the weekly run and a dispatch on any
     branch still render and simulate everything, the lookups' safety net."""
     flow = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())
     assert flow[True]["workflow_call"]["inputs"]["deploy"]["default"] is False
     steps = {s.get("id"): s for s in flow["jobs"]["changes"]["steps"]}
-    assert steps["next"]["if"] == steps["sim"]["if"] == CACHED
+    assert steps["pictures"]["if"] == steps["sim"]["if"] == CACHED
 
 
 def test_a_pr_runs_the_slim_gate_alone():
@@ -254,13 +266,39 @@ def test_a_pr_runs_the_slim_gate_alone():
         "Link the image's venv",
         "Run just check-light",
         "List the slowest tests",
-        "Cancel the run on failure",  # #769
     ]
     assert "uv run just check-light " in jobs["code"]["steps"][2]["run"]
     justfile = (WORKFLOWS[0].parents[2] / "justfile").read_text()
     recipes = dict(re.findall(r"(?m)^([\w-]+):[^\n]*\n((?:    [^\n]*\n)+)", justfile))
     assert re.findall(r"-m (\w+)", recipes["lint"] + recipes["check-light"]) == ["ruff", "ruff", "pyright", "pytest"]
     assert [s["name"] for s in jobs["checks"]["steps"]] == ["Check every job passed"]  # no CI budget (#732)
+
+
+@pytest.mark.parametrize("result", ("skipped", "failure", "cancelled", "", "pending", "success"))
+def test_the_required_pr_gate_blocks_until_code_actually_succeeds(result):
+    """#972: run the workflow's real guard; GitHub accepts a skipped required job as passing."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-gate.yml").read_text())["jobs"]["checks"]
+    assert job["needs"] == ["code"]  # a ready run waits for Code; no pending result can reach the gate
+    assert job["if"] == "${{ always() }}"  # report failure even when Code was skipped on a draft or cancelled
+    (step,) = job["steps"]
+    env = {key: result for key, value in step["env"].items() if value == "${{ needs.code.result }}"}
+    assert env  # exercise the actual dependency binding, not a test-only input
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (result == "success"), done
+
+
+@pytest.mark.parametrize("draft", ("true", "false", "", "unknown"))
+def test_required_pr_validation_blocks_drafts_before_doing_any_work(draft):
+    """#972: the other required check must not leave an accepted skipped result behind on a draft."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "pr-checks.yml").read_text())["jobs"]["pr"]
+    assert not job.get("if")  # report a failing guard instead of skipping the required job
+    step = job["steps"][0]
+    env = {key: draft for key, value in step["env"].items() if value == "${{ github.event.pull_request.draft }}"}
+    assert env
+    done = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, capture_output=True, text=True)
+    assert (done.returncode == 0) is (draft == "false"), done
+    # Only the body and dependency checks run past a failed step; they must also stay off drafts.
+    assert all("!github.event.pull_request.draft" in s["if"] for s in job["steps"][1:] if "if" in s)
 
 
 def test_a_pr_lists_no_job_every_pr_skips():
@@ -280,12 +318,12 @@ DERIVED = re.compile(r"model/build/(ours|convex|images|pictures)|web/build|site/
 BLENDER = re.compile(r"just (?:\w+=\S+ )*(pictures|web|render)\b([^\n|&;]*)")
 
 
-def test_ci_draws_uploads_and_serves_the_next_mech_alone():
+def test_ci_draws_uploads_and_serves_the_mech_alone():
     """#640, #649 (docs/adr/0019): a public repo's artifacts and release assets are anyone's to download, so the
-    workflows render and bake the next Mech alone (just pictures next, just web next), upload only the site, never a
-    part, its cut, a mesh or a frame, put only the next-* pictures and GLBs in the site, and attach none of it to a
-    release (no release's docs since #778, docs/adr/0021). The Actions cache carries the parts between jobs: nobody
-    outside the repo's workflows reads it."""
+    workflows render and bake the Mech alone (just pictures all, just web all), upload only the site, never a
+    part, its cut, a mesh or a frame, put only the pictures and GLBs the Model publishes in the site, and attach none
+    of it to a release (no release's docs since #778, docs/adr/0021). The Actions cache carries the parts between
+    jobs: nobody outside the repo's workflows reads it."""
     from model.render import pictures
 
     steps = [
@@ -293,7 +331,7 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     ]
     runs = [s.get("run", "") for s in steps]
     drawn = {(m[1], m[2].strip()) for r in runs for m in BLENDER.finditer(r)}
-    assert drawn == {("pictures", pictures.NEXT), ("web", pictures.NEXT)}
+    assert drawn == {("pictures", pictures.ALL), ("web", pictures.ALL)}
     assert not re.findall(r"-m (model\.render\.\w+|web\.\w+)", "\n".join(runs))  # just recipes alone draw
     uploaded = {
         line.strip()
@@ -305,24 +343,23 @@ def test_ci_draws_uploads_and_serves_the_next_mech_alone():
     assert uploaded == {"site/dist"}  # #673: no PR preview
     site = re.search(r"(?m)^site:[^\n]*\n((?:    [^\n]*\n)+)", (WORKFLOWS[0].parents[2] / "justfile").read_text())[1]
     into_site = re.findall(r"cp (?:-\w+ )?(\S+) site/dist/(?:images|viewer)", "\n".join([*runs, site]))
-    assert into_site and all(re.search(r"/next-\*(\.glb)?$", c) for c in into_site)
+    # what just pictures and just web make (pictures.published, build.PUBLIC, test_site.py), nothing else
+    assert into_site == ["model/build/images/*.webp", "web/build/*.glb"]
     assert not [r for r in runs if re.search(r"gh release upload|curl", r) and DERIVED.search(r)]
 
 
-def test_blender_joins_every_render_shard():
-    """#770: each Render shard saves its share of the pictures, and Blender restores every one of them, so a shard added
-    to the matrix is never left out of the site. #839: eight shards, each uploading its pictures' measured seconds for
-    `just model-durations`."""
+def test_render_builds_the_parts_and_trajectories_once_and_saves_what_site_restores():
+    """#898: six stills no longer need eight shards: one Render job draws the pictures and the GLBs on the parts and
+    trajectories it built once, and saves them under the one key Site restores."""
     jobs = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]
-    assert jobs["render"]["strategy"]["matrix"]["shard"] == list(range(8))
-    (up,) = [s for s in jobs["render"]["steps"] if "upload-artifact" in s.get("uses", "")]
-    assert up["with"]["name"].startswith("durations-")
-    saved = [s["with"]["key"] for s in jobs["render"]["steps"] if "cache/save" in s.get("uses", "")]
-    restored = [s["with"]["key"] for s in jobs["blender"]["steps"] if "cache/restore" in s.get("uses", "")]
-    assert saved == ["next-${{ matrix.shard }}-${{ needs.changes.outputs.next-hash }}"]
-    assert restored == [
-        saved[0].replace("${{ matrix.shard }}", str(i)) for i in jobs["render"]["strategy"]["matrix"]["shard"]
-    ]
+    render = jobs["render"]
+    assert "strategy" not in render and "blender" not in jobs
+    drawn = [m[1] for s in render["steps"] for m in BLENDER.finditer(s.get("run", ""))]
+    assert drawn == ["pictures", "web"]
+    (saved,) = [s["with"]["key"] for s in render["steps"] if "cache/save" in s.get("uses", "")]
+    restored = [s["with"]["key"] for s in jobs["site"]["steps"] if "cache/restore" in s.get("uses", "")]
+    assert saved == "pictures-${{ needs.changes.outputs.pictures-hash }}" and saved in restored
+    assert "render" in jobs["site"]["needs"]
 
 
 def test_a_job_names_an_environment_only_to_deploy():
@@ -340,13 +377,13 @@ def test_a_job_names_an_environment_only_to_deploy():
 
 def test_no_check_job_writes():
     """#673: the PR preview's sticky comment and its `pr-previews` release are gone, and with them the one job of
-    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), but may cancel its own run
-    (`actions: write`, cancel-on-failure, #769), and main's Deploy writes Pages (#795)."""
+    Checks that wrote; every job reads alone, in main's Checks as in a PR's gate (#722), and main's Deploy writes Pages
+    (#795). No job cancels its own run any more (#944)."""
     for f in ("checks.yml", "pr-gate.yml"):
         flow = yaml.safe_load((WORKFLOWS[0].parent / f).read_text())
         jobs = [j for i, j in flow["jobs"].items() if i != "deploy"]
         perms = [flow["permissions"], *(j.get("permissions", {}) for j in jobs)]
-        assert not [p for p in perms if "write" in [v for k, v in p.items() if k != "actions"]], f
+        assert not [p for p in perms if "write" in p.values()], f
 
 
 def test_zizmor_asks_githubs_api_only_off_prs():
@@ -489,8 +526,10 @@ def test_a_manual_release_runs_the_full_checks_then_tags_the_commit_they_passed(
     assert release["needs"] == "checks" and "needs.checks.result == 'success'" in release["if"]
     called = yaml.safe_load((wf / "checks.yml").read_text())
     assert called[True]["workflow_call"]["inputs"]["deploy"] == {"type": "boolean", "default": False}
-    asked = {k: v for j in called["jobs"].values() for k, v in j.get("permissions", {}).items() if v == "write"}
-    assert asked.items() <= checks["permissions"].items()
+    # every scope a called job asks for, granted at least at its level: a nested job asking more makes Release invalid
+    level = {"none": 0, "read": 1, "write": 2}
+    asked = [(k, v) for j in called["jobs"].values() for k, v in j.get("permissions", {}).items()]
+    assert [(k, v) for k, v in asked if level[checks["permissions"].get(k, "none")] < level[v]] == []
     steps = {s["name"]: s for s in release["steps"]}
     assert steps["Check whether main moved on"]["if"] == "${{ github.event_name == 'workflow_dispatch' }}"
     moved = "${{ steps.tip.outputs.branch != '' }}"
@@ -665,63 +704,29 @@ def gh_calls(tmp_path: Path) -> list[str]:
     return [c for c in log.read_text().splitlines() if not c.startswith("run view")] if log.exists() else []
 
 
-CANCEL = {"name": "Cancel the run on failure", "if": "${{ failure() }}", "uses": "./.github/actions/cancel-on-failure"}
-
-
-def needs(job: dict) -> list[str]:
-    n = job.get("needs", [])
-    return [n] if isinstance(n, str) else n
-
-
-def test_a_failed_job_cancels_the_rest_of_its_run():
-    """#769 (Cansin: across the board, PR CI too): a failed run can neither pass a PR's gate nor deploy or release main,
-    and main's runs queue one at a time (#689; a 15-minute Blender held ~20 merges back), so every job of Checks and PR
-    Gate but the gate ends in cancel-on-failure, the one job permission it adds `actions: write`, and a matrix fails
-    fast. Every other workflow runs its jobs one after another (each needs the one before) or one per event, so a
-    failed job leaves none running."""
-    action = yaml.safe_load((WORKFLOWS[0].parents[1] / "actions" / "cancel-on-failure" / "action.yml").read_text())
-    assert [s["run"] for s in action["runs"]["steps"]] == ['gh run cancel "$GITHUB_RUN_ID"']
-    for f in ("checks.yml", "pr-gate.yml"):
-        for id_, job in yaml.safe_load((WORKFLOWS[0].parent / f).read_text())["jobs"].items():
-            cancels = id_ not in ("checks", "deploy")  # the gate, every job before it its need, and the deploy after
-            assert (job["steps"][-1] == CANCEL) == cancels, (f, id_)
-            assert (job.get("permissions", {}).get("actions") == "write") == cancels, (f, id_)
-            assert job.get("strategy", {}).get("fail-fast", True) is True, (f, id_)
-    side_by_side = []
-    for f in WORKFLOWS:
-        jobs = yaml.safe_load(f.read_text())["jobs"]
-        if f.name in ("checks.yml", "pr-gate.yml", "issue-labels.yml"):  # issue-labels: a PR's job or an issue's
-            continue
-        before = {j: set(needs(jobs[j])) for j in jobs}
-        for _ in jobs:  # every job's needs, theirs and so on
-            before = {j: b.union(*(before[n] for n in b)) for j, b in before.items()}
-        side_by_side += [
-            (f.name, a, b) for a in jobs for b in jobs if a < b and a not in before[b] and b not in before[a]
-        ]
-    assert side_by_side == []
+def test_no_job_cancels_its_run_and_a_matrix_keeps_githubs_fail_fast():
+    """#944: cancel-on-failure (#769) cancelled the whole run at a job's first failed step, its own job too, so a real
+    failure read `cancelled` (#937); it is gone, with the `actions: write` it took. A matrix keeps GitHub's default
+    fail-fast, but Image Scan, whose two images are scanned apart."""
+    assert not (WORKFLOWS[0].parents[1] / "actions" / "cancel-on-failure").exists()
+    assert [f.name for f in WORKFLOWS if "cancel-on-failure" in f.read_text() or "run cancel" in f.read_text()] == []
+    jobs = {(f.name, i): j for f in WORKFLOWS for i, j in yaml.safe_load(f.read_text())["jobs"].items()}
+    fail_fast = {k: j["strategy"]["fail-fast"] for k, j in jobs.items() if "fail-fast" in j.get("strategy", {})}
+    assert fail_fast == {("image-scan.yml", "scan"): False}
 
 
 @pytest.mark.skipif(shutil.which("jq") is None, reason="jq is CI's image's (ci/base.Dockerfile)")
-@pytest.mark.parametrize(
-    ("conclusions", "calls"),
-    [
-        (["failure", "cancelled"], ["issue list --label", "issue create --title"]),  # its failed step cancelled it
-        (["success", "cancelled"], ["issue list --label"]),  # cancelled by hand, nothing failed
-        ([], ["issue list --label"]),  # superseded while it waited: no job ran
-    ],
-)
-def test_default_branch_failure_files_a_cancelled_run_whose_job_failed(tmp_path, conclusions, calls):
-    """#769: a failed step cancels its run (cancel-on-failure), its own job too, so run and job may read cancelled; a
-    failed step still makes it red."""
+@pytest.mark.parametrize("conclusion", ["cancelled", "timed_out", "startup_failure"])
+def test_default_branch_failure_files_a_failed_run_alone(tmp_path, conclusion):
+    """#944: no run is cancelled early, so a red run ends as `failure`; any other run, a cancelled one past a failed
+    job too, starts no report and, run anyway, files nothing. A success still closes the issue."""
     (job,) = yaml.safe_load((WORKFLOWS[0].parent / "default-branch-failure.yml").read_text())["jobs"].values()
+    assert 'contains(fromJSON(\'["failure", "success"]\'), github.event.workflow_run.conclusion)' in job["if"]
     (step,) = job["steps"]
-    jobs = [
-        {"name": f"Job {i}", "conclusion": "cancelled", "steps": [{"conclusion": c}]} for i, c in enumerate(conclusions)
-    ]
-    env = fake_gh(tmp_path, jobs)
-    env |= {"WORKFLOW": "Checks", "CONCLUSION": "cancelled", "RUN_URL": "u", "SHA": "s"}
+    env = fake_gh(tmp_path, [{"name": "Code", "conclusion": "failure", "steps": [{"conclusion": "failure"}]}])
+    env |= {"WORKFLOW": "Checks", "CONCLUSION": conclusion, "RUN_URL": "u", "SHA": "s"}
     subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, check=True, timeout=10)
-    assert gh_calls(tmp_path) == calls
+    assert gh_calls(tmp_path) == ["issue list --label"]
 
 
 def test_an_issue_title_is_checked_by_mains_commitlint_and_flagged_never_blocked():

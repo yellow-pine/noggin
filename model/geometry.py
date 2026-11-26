@@ -1,6 +1,6 @@
 """The Mech's shared data (mm, degrees): the bought hardware's vendor STEP frames, the Cores' servos, the Themes, the
-Colour groups and materials of the printed parts, and the next Mech's documents. Today's Mech left the model (#720): the
-physical Mech still runs on CHANNELS (the noggin service, the eye program). Pure Python, no imports."""
+Colour groups and materials of the printed parts, and the Mech's documents. The
+physical Mech runs on CHANNELS (the noggin service, the eye program). Pure Python, no imports."""
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 
@@ -19,14 +19,15 @@ HORN_STEP = {"hub": (0.0, 20.0, 0.0), "pin": 12.75, "height": 4.15}
 # Battery STEP, local mm: pack floor z=-8.15, pack along +Y from 0 (51.2 long, 28.4 wide), lead fused to the pack body
 # beyond y=56
 BATTERY_STEP = {"floor_z": -8.15, "lead_y": 56.0}
-# The servos by the names the remote config and calibration use, and their Mech labels. Core 1 drives the eyes
-# (docs/build/wiring.md servo ports), Core 2 tilt/mouth/pan (guide step 10, the designer's config JSON).
-CHANNELS = {"core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
+# The servos by the names the remote config and calibration use, and their Mech labels (Stage 1's horns, model/stages.py
+# eyes_sub). Core 1 drives the eye gimbal (docs/build/wiring.md servo ports, #896): a lid servo per eye, one yaw and
+# one pitch servo for both eyes; Core 2 tilt/mouth/pan.
+CHANNELS = {"core1": {1: "l_lid", 2: "yaw", 3: "r_lid", 4: "pitch"}, "core2": {1: "tilt", 2: "mouth", 3: "pan"}}
 SERVO_LABEL = {
     "l_lid": "L lid",
-    "l_eye": "L eye",
+    "yaw": "yaw",
     "r_lid": "R lid",
-    "r_eye": "R eye",
+    "pitch": "pitch",
     "tilt": "tilt",
     "mouth": "jaw",
     "pan": "pan",
@@ -59,7 +60,7 @@ def align_rows(to_origin, to_x=None, to_z=None, from_origin=(0, 0, 0), from_x=(1
     return [r[0] + [t[0]], r[1] + [t[1]], r[2] + [t[2]], [0.0, 0.0, 0.0, 1.0]]
 
 
-# Themes (#805, #819, docs/adr/0022): the next Mech's look on four axes, a Shape and a Palette per category (the
+# Themes (#805, #819, docs/adr/0022): the Mech's look on four axes, a Shape and a Palette per category (the
 # Skeleton: the PETG parts, the Skin: the PLA Shells). The Palettes of a category share its Colour groups, so any paints
 # any Shape; each prints each group in one filament, at most 4 a Palette: (line, name, code, hex), the hex its slicer's
 # filaments_color_codes.json (the picks' research: ADR 0022)
@@ -81,7 +82,7 @@ THEMES = {
         },
         "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    "Skin shape": ("morty", "bart", "cansin"),
+    "Skin shape": (SKINLESS := "none", "morty", "bart", "cansin"),  # none: the Skeleton bare, the stills' look (#876)
     # face: face, ears, nose, lids (Bart's spikes); hair: hair, brows; eye whites: and teeth; accessories: Cansin's
     # sunglasses, in a colour of its own Palette's in the others
     "Skin palette": {
@@ -101,7 +102,7 @@ THEMES = {
             "eye whites": ("PLA Matte", "Ivory White", "11100", "#FFFFFF"),
             "accessories": charcoal,
         },
-        "cansin": {  # #813: PLA Pure, all four owned
+        "default": {  # #813: PLA Pure, all four owned
             "face": ("PLA Pure", "Milky Pink", "17200", "#F7CED7"),
             "hair": (black := ("PLA Pure", "Absolute Black", "17101", "#000000")),
             "pupils": black,
@@ -112,11 +113,11 @@ THEMES = {
     },
 }
 # Presets (#819): a named Theme, its value on each axis in THEMES' order; the first the default, which the README, the
-# site's first visit and the default pictures show. Cansin's build's Skin is Morty's Shape until #813's Shells exist.
+# site's first visit and the default pictures show. A Skin shape without its own Shells yet (SKINS) wears Morty's.
 PRESETS = {
     name: dict(zip(THEMES, axes, strict=True))
     for name, axes in {
-        "Cansin's build": ("mechanical", "black", "cansin", "cansin"),
+        "Default build": ("mechanical", "black", SKINLESS, "default"),  # no Skin, the default Skin palette (#889)
         "Morty": ("realistic", "anatomical", "morty", "morty"),
         "Bart": ("realistic", "anatomical", "bart", "bart"),
     }.items()
@@ -127,12 +128,14 @@ SKELETON_SUFFIX = {v: f"-{v}" if i else "" for i, v in enumerate(THEMES["Skeleto
 
 
 def slug(preset):
-    """A Preset's name in an address and a picture's: "cansins-build"."""
+    """A Preset's name in an address and a picture's: "default-build"."""
     return preset.lower().replace("'", "").replace(" ", "-")
 
 
 def shape(doc):
-    """A document's Skeleton shape: the one its name ends in (-mechanical), else the first."""
+    """A document's Skeleton shape: the one its name, less its Skin's (undressed), ends in (-mechanical), else the
+    first."""
+    doc = undressed(doc)
     return next((v for v, s in SKELETON_SUFFIX.items() if s and doc.endswith(s)), THEMES["Skeleton shape"][0])
 
 
@@ -147,7 +150,7 @@ def filament(group, theme):
 
 
 # Each spool variant from its maker's TDS (100% infill, ISO 527 tensile; docs/research/2026-11-02-literature-cams-am.md,
-# 2026-10-31-filament.md), in-layer (xy) and across layers (z, #626). PETG for the next Mech's skeleton (#51): HF is the
+# 2026-10-31-filament.md), in-layer (xy) and across layers (z, #626). PETG for the Mech's skeleton (#51): HF is the
 # worst case until the spool's variant is confirmed.
 MATERIALS = {
     "PLA Pure": {"density_g_cm3": 1.24, "E_mpa": {"xy": 2481, "z": 2196}, "tensile_mpa": {"xy": 51.5, "z": 30.0}},
@@ -156,76 +159,103 @@ MATERIALS = {
 }
 # Printed parts: each one's Colour group (THEMES) and material (model/mjcf.py mass() reads it)
 _SKELETON = {
-    "Bones": ("next gimbal frame", "next neck mount", "next head mount", "next jaw", "next test stand"),
-    "Joints": ("next eyeball core", "next yaw yoke", "next bail", "next pan yoke"),
+    "Bones": ("gimbal frame", "cervical carrier", "head mount", "jaw", "test stand"),
+    "Joints": ("eyeball core", "yaw yoke", "bail", "nod plate", "pan fixed cap", "pan moving cap"),
     "Linkages": (
-        "next tie-bar",
-        "next push-rod",
-        "next pitch bar",
-        "next lid bar",
-        "next lid link",
-        "next L upper lid",
-        "next R upper lid",
-        "next L lower lid",
-        "next R lower lid",
-        "next pan bar",
-        "next tilt bar",
-        "next jaw bar",
+        "tie-bar",
+        "push-rod",
+        "pitch bar",
+        "lid bar",
+        "lid link",
+        "L upper lid",
+        "R upper lid",
+        "L lower lid",
+        "R lower lid",
+        "jaw bar",
+        "tilt lever",
+        "tilt reaction bar",
+        "pan lever",
+        "pan bar",
     ),
-    "Mounts": ("next torso", "next torso lid"),  # the realistic skull's black box pedestal (#838)
+    "Mounts": ("torso", "torso lid", "cranium tray"),  # the realistic skull's black box pedestal (#838)
 }
 PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
-    "next L eyeball cap": ("eye whites", "PLA Pure"),
-    "next R eyeball cap": ("eye whites", "PLA Pure"),
+    "L eyeball cap": ("eye whites", "PLA Pure"),
+    "R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# Morty's Shells (#665, model/skin.py) by Colour group, the eyeball caps above his too: each Skin's in its own
-_MORTY = {
-    "face": ("next morty face", "next morty mouth cover")
-    + tuple(f"next morty {s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower")),
-    "hair": ("next morty hair",),
-    "pupils": ("next morty L pupil", "next morty R pupil"),
-    "clothes": ("next morty shirt front", "next morty shirt back"),
+# The Skin shapes drawn so far (model/skin.py, model/printed/skin.py), each its sub-assembly: Morty's (#665) the
+# documents' own, the eyeball caps above his too; Cansin's (#813) and Bart's (#807) on the same Seats. Each one's Shells
+# by Colour group
+SKINS = {"morty": "morty", "cansin": "cansin", "bart": "bart"}
+_LIDS = tuple(f"{s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower"))
+_SHELLS = {
+    "morty": {
+        "face": ("face", "mouth cover", *_LIDS),  # the face with his nose and ears
+        "hair": ("hair",),
+        "pupils": ("L pupil", "R pupil"),  # jagged
+        "clothes": ("shirt front", "shirt back"),
+    },
+    "cansin": {
+        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
+        "hair": ("hair", "L brow", "R brow"),  # the hair tufted on top
+        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat
+        "eye whites": ("L pupil plug", "R pupil plug", "teeth"),
+        "clothes": ("shirt front", "shirt back"),  # the jacket over the tee, its lapels on the front
+        "accessories": ("sunglasses",),  # aviators hooked on the tee's neckline
+    },
+    "bart": {
+        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
+        "hair": ("hair",),  # his crown, the spikes on it
+        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat, as Cansin's
+        "eye whites": ("L pupil plug", "R pupil plug"),
+        "clothes": ("shirt front", "shirt back"),
+    },
 }
-PRINTED |= {name: (group, "PLA Pure") for group, names in _MORTY.items() for name in names}
+PRINTED |= {
+    f"{skin} {name}": (group, "PLA Pure")
+    for skin, groups in _SHELLS.items()
+    for group, names in groups.items()
+    for name in names
+}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
-PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if name.startswith("next ") and v[1].startswith("PETG")}
-# The realistic Skeleton's skull (#838, model/printed/skull.py): meshes under their sources' licences (docs/adr/0023), on
+PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if v[1].startswith("PETG")}
+# The realistic Skeleton's skull (#838; the Skeleton scene, model/skeleton, docs/adr/0025): meshes under their sources' licences (docs/adr/0023), on
 # the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none. Its bones as they show bare (SKULL), and
 # the skull and mandible carved round every Skin's Shells too (WORN), printed to wear a Skin (Cansin, 2026-11-03): the
 # documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones
-SKULL = ("next skull", "next mandible", "next atlas", "next axis")
-WORN = {"next skull": "next worn skull", "next mandible": "next worn mandible"}
+SKULL = ("skull", "mandible", "atlas", "axis")
+WORN = {"skull": "worn skull", "mandible": "worn mandible"}
 BONES = (*SKULL, *WORN.values())
 PRINTED |= dict.fromkeys(BONES, ("Bones", "PETG HF"))
-SKULL_SUB = "next-skull"
+SKULL_SUB = "skull"
 
-# The next Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own
+# The Mech (#51, #629), clean-room (#618's licence check): only our Envelopes of the hardware we own and our own
 # parts: the eye gimbal (#630, model/gimbal.py) on the neck and jaw (#641, model/neck.py) on the Torso, one document per
 # head variant (#686, model/base.py) with the sub-assemblies that carry its boards, all in the head's frame, the Torso's
 # foot on z 0 (base.TORSO, model/test_neck.py).
 _HEAD = ((0, -150, 177), X, Z)
-NEXT = {
-    f"next-mech-{v}": {sub: _HEAD for sub in ("next-neck", "next-jaw", "next-eyes", "next-base", *carriers)}
-    for v, carriers in (("back", ["next-morty", SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
-    # Skin on it (#665): one Skin shape drawn so far, which every Preset wears until #807 and #813
+MECH = {
+    f"mech-{v}": {sub: _HEAD for sub in ("neck", "jaw", "eyes", "cranium", "base", *carriers)}
+    for v, carriers in (("back", [SKINS["morty"], SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
+    # Skin on it (#665), the other Skins on DRESSED's
 }
-# The next Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
+# The Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
 # mount; 3 adds the jaw and the mouth: the whole Mech, the leading head variant's document
 _STAND = ((0, -150, 78), X, Z)
 STAGES = {
-    "next-stage1": {"next-eyes": _STAND, "next-stand": _STAND},
-    "next-stage2": {sub: _HEAD for sub in ("next-neck", "next-eyes", "next-base")},
-    **dict([next(iter(NEXT.items()))]),
+    "stage1": {"eyes": _STAND, "stand": _STAND},
+    "stage2": {sub: _HEAD for sub in ("neck", "eyes", "cranium", "base")},
+    **dict([next(iter(MECH.items()))]),
 }
 # each document also in every other Skeleton (#704, #805: theme()), under -<value>: realistic and mechanical, the skull
 # the realistic one's alone
-NEXT |= {
+MECH |= {
     doc + s: {k: f for k, f in subs.items() if k != SKULL_SUB}
-    for doc, subs in NEXT.items()
+    for doc, subs in MECH.items()
     for s in SKELETON_SUFFIX.values()
     if s
 }
@@ -235,7 +265,27 @@ STAGES |= {
     for s in SKELETON_SUFFIX.values()
     if s
 }
+# Stage 3 in each other Skin shape drawn (#813): each document of MECH under -<shape> after its Skeleton's suffix (the
+# viewer's GLB names, site/src/viewer/state.mjs), that Skin's Shells for Morty's; not simulated: Cansin's sit on
+# Morty's Seats, which his document's sim holds
+DRESSED = {
+    f"{doc}-{skin}": {(sub if sub != SKINS["morty"] else SKINS[skin]): f for sub, f in subs.items()}
+    for doc, subs in MECH.items()
+    for skin in list(SKINS)[1:]
+}
+
+
+def undressed(doc):
+    """The document a DRESSED one wears its Skin on (its name less -<shape>), else itself."""
+    return next((doc.removesuffix(f"-{s}") for s in list(SKINS)[1:] if doc.endswith(f"-{s}")), doc)
+
+
+def dressed(doc, skin):
+    """The document in the Skin shape `skin`: its DRESSED one where that Skin is drawn on it, else itself."""
+    return f"{doc}-{skin}" if f"{doc}-{skin}" in DRESSED else doc
+
+
 # Physics runs on the mechanical documents alone (#809): each Bone is carved from its mechanical part, so clearance,
 # overlap, torque, strength, the sim and its gates measured there hold for realistic too, whose figures are these. The
 # sim takes the whole Mech and Stage 1 (its test stand): Stage 2 moves as the whole Mech less parts
-SIMULATED = [d for d in STAGES if d.endswith(SKELETON_SUFFIX["mechanical"]) and not d.startswith("next-stage2")]
+SIMULATED = [d for d in STAGES if d.endswith(SKELETON_SUFFIX["mechanical"]) and not d.startswith("stage2")]

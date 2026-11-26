@@ -1,4 +1,4 @@
-"""Seam: the next Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
+"""Seam: the Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
 shank beside them: no two overlap."""
 
 import itertools
@@ -15,7 +15,7 @@ from model import gimbal as gm
 from model.printed import bone, gimbal
 
 # a horn's hub on its servo's spline: the Envelopes overlap there by design
-ON_SPLINE = {frozenset((f"next {d} servo:1", f"next {d} horn:1")) for d in gm.drives()}
+ON_SPLINE = {frozenset((f"{d} servo:1", f"{d} horn:1")) for d in gm.drives()}
 
 
 GROW_MM = 0.1  # a box read off the tessellation can fall short of a curved face: grown, it misses no touching pair
@@ -45,6 +45,19 @@ def rest():
 def test_no_two_parts_overlap_at_rest(rest):
     pairs = [(a, b) for a, b in itertools.combinations(rest, 2) if frozenset((a, b)) not in ON_SPLINE]
     assert _overlaps(rest, pairs) == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+@pytest.mark.parametrize("yaw", [-gm.YAW, gm.YAW])
+@pytest.mark.parametrize("pitch", [-gm.PITCH, gm.PITCH])
+@pytest.mark.parametrize("lid", list(np.subtract(gm.LID_EDGES, gm.LID_REST)))
+def test_each_lower_lid_clears_the_exact_cap_at_every_combined_travel_end(rest, side, yaw, pitch, lid):
+    """#937: a rearward spoke stays clear even with the eye yawed and pitched under the closing lid."""
+    moved = gm.moved(lid, pitch, yaw)
+    cap, lower = (f"{side} {part}:1" for part in ("eyeball cap", "lower lid"))
+    a, b = (rest[name].moved(gimbal._at(moved[name])) for name in (cap, lower))
+    assert a.distance(b) >= gm.LID_CLEAR_MM
 
 
 @pytest.mark.model
@@ -135,7 +148,7 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
     """SF 2 (beams.MIN_SF) in PETG across its layers along its waist, pinned at both joints: on its strength and against
     Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809)."""
     solid = (gimbal.tie_bar if part == "tie-bar" else gimbal.push_rod)(mechanical=True).val()
-    mat = g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    mat = g.MATERIALS[g.PRINTED[part][1]]
     force = beams.stall_force_n() * load
     area, least = min(_section(solid, a, b, t) for t in (0.3, 0.4, 0.5, 0.6, 0.7))
     assert mat["tensile_mpa"]["z"] * area / force >= beams.MIN_SF
@@ -147,7 +160,7 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
 # on an end would hang an arm and its ball in the air)
 Y = gm.YOKE
 BALLS = [(s * gm.EYE["L"][0], gm.BAIL[0], gm.LEVER) for s in (-1, 1)]
-TIP = (0.0, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
+TIP = (sum(gm.BAIL_INPUT_X) / 2, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
 
 
 def test_the_yoke_keeps_its_bores():
@@ -220,7 +233,7 @@ MEMBERS = {
         f"arm at x {x:+.1f}": (gimbal.bail, (x, BY, BZ + 4), (x, BY, BZ + 11), F * gm.BAIL_IN / z, "y", z - 4)
         for x, _, z in BALLS
     },
-    "input arm": (gimbal.bail, (0, BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
+    "input arm": (gimbal.bail, (TIP[0], BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
 }
 
 
@@ -278,7 +291,7 @@ def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
     half-width), and the straight link against Euler buckling. On the mechanical part, which its Bone is carved from
     (#809)."""
     make, joints = LID_BONES[part]
-    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[f"next {part}"][1]]
+    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[part][1]]
     force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):

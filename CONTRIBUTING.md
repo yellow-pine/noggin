@@ -27,7 +27,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - Every ready PR gets Claude's review (`.github/workflows/claude-review.yml`: mattpocock code-review plus ponytail):
   claude[bot] approves or requests changes (a bug, a spec miss, a security issue or a breach of a documented rule;
   ponytail suggestions never block), and the required `Review` check fails with a request for changes, or when no
-  approval lands on the head (re-run the job, #389). Its approval resolves its own threads a later push outdated
+  approval lands on the head (re-run the job, #389). Each run reviews its own push's commit and names it (`commit_id`);
+  a run that ends after a newer push fails, and the newer push's run decides (#950). Its approval resolves its own threads a later push outdated
   (`scripts/claude_approved.py`). A PR that edits claude-review.yml gets no review and needs Cansin's bypass. When main's
   claude-review.yml changed since the branch's base, `Review` rebases the branch itself and fails, and the review re-runs on
   the new head (#433): `git pull --rebase` before your next push. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret twice,
@@ -55,9 +56,13 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
 - A PR's body links its issue: `Closes #N` (or Fixes/Resolves, GitHub's closing keywords) for the issue it finishes,
   `Refs #N` for one it only moves along, or whose proof (measurements, screenshots from CI's run) is not in the body
   yet. The required `PR` check (`scripts/pr_issue.py` as on main) fails without one.
-- Issue state labels, one per state: `ready for agent` (can start), `in progress` (picked up and not in main yet; a
-  spec from its first ticket until its last reaches main), `blocked` (waits on something named in the issue: another
-  ticket, hardware), `on hold` (paused by Cansin). `blocked` and `on hold` are set by hand. The implementer sets
+- Issue state labels, at most one per open issue: `ready for agent` (can start), `in progress` (picked up and not in
+  main yet; a spec from its first ticket until its last reaches main), `blocked` (waits on something no issue can
+  stand for, named in the issue: hardware, sudo, an outside party), `on hold` (paused by Cansin). A wait on another
+  ticket is GitHub's own blocked-by relationship alone, set when the ticket is filed (`gh api -X POST
+  repos/{owner}/{repo}/issues/N/dependencies/blocked_by -F issue_id=$(gh api repos/{owner}/{repo}/issues/M --jq
+  .id)` for N blocked by M); GitHub already shows the issue as blocked, so no label. An issue's type is its
+  Conventional Commit title, so no `enhancement` label. `blocked` and `on hold` are set by hand. The implementer sets
   `in progress` on pickup; the `Issue Labels` workflow sets it too once a PR links the issue (the backstop for a PR
   opened by hand), and clears every state label when the issue closes.
 - Releases: the whole repo has one version, noggin vX.Y.Z, and it is the git tag (docs/adr/0010, 0017; `pyproject.toml`
@@ -103,8 +108,10 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   once when that moved an agent's file (retry it). A dirty or branched checkout stays put, with a warning (#577).
 - CI names follow GitHub's UI: every job a Title Case name (`Fetch Skills`, `Model (rest)`) under a kebab-case id,
   every step a short sentence-case imperative like its `Set up job`, every workflow a Title Case name in its kebab-case
-  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`: `<Workflow>:
-  weekly <what>`, `<Workflow>: manual by <actor>`, `<Workflow>: <triggering run's title>` (#773, `test_workflows.py`). After renaming a required check, rename it in
+  file (Default Branch Failure in `default-branch-failure.yml`). A run with no commit, PR or issue to title it gets a `run-name`, a Conventional
+  Commit like every title: `ci(ci): weekly <Workflow> <what>`, `ci(ci): manual <Workflow> run by <actor>`, or a
+  `workflow_run`'s triggering run's title as-is, since GitHub shows the workflow's name beside every run (#773, #866;
+  `test_workflows.py`, `ci/commitlint.test.mjs`). After renaming a required check, rename it in
   main's ruleset too (`Code` fails while the ruleset names a check no gate job does: its `Check the required checks`
   step, yq and comm) and run `gh pr update-branch` on every open PR so it reports the new name. A required check names
   a gate job, one without a matrix (today `PR`, `Checks`, `Fetch Skills`, `Review`), never a matrix job (#570).
@@ -126,37 +133,63 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests not marked `model` (every test that builds
   or reads our parts is, and runs in the `Model` shards, #808).
+  A heavy Python job an agent needs before CI (the sim, CoACD, every test, the warp maths) runs on Cansin's GX10, never
+  the laptop: `just gx10 <command>` (`just gx10 uv run just test`) runs the branch's pushed commits in the bounded native
+  worker; `FETCH` names repo-relative outputs returned from its immutable job snapshot. `just gx10-setup` builds the CI
+  Blender pin and its required dependencies from checksum-verified source in an ARM64 container (#979). Python, CAD,
+  Blender finishing, rendering and validation run there; bone checks execute with Blender present. Required GitHub
+  checks and architecture-specific CI evidence still run normally. The worker starts at 32 GiB; a measured cgroup OOM
+  retries the same job once at 64 GiB after a fresh system-headroom check, recording both attempts. Keep the Mac's 3 GB Blender
+  safety ceiling. The SSH controller is detached, so computation continues when the Mac disconnects.
+
+  Cansin's editable Morty reference stays authoritative on the Mac. Its full mesh, paint and fit data may be staged over
+  the existing Tailscale SSH connection into the trusted GX10's private, hash-versioned input cache. These inputs and
+  reference-containing results stay excluded from git, public CI uploads and publication; a shared writable mount is
+  unnecessary. One writer owns each source; the remote worker reads immutable inputs and returns candidates.
+  Ordinary fitting jobs select additional local files with `NOGGIN_GX10_INPUTS`, a JSON map such as
+  `{"NOGGIN_PRIVATE_FIT":"/local/neutral-world.npz"}`; the named environment variable inside the worker points to its
+  immutable staged copy. Names use `NOGGIN_PRIVATE_...` or `NOGGIN_MORTY`; an explicit local `NOGGIN_MORTY` is also staged
+  for ordinary jobs. The generated-review command selects the canonical reference automatically.
+
+  `just review` builds and checks on GX10, then delivers a version/commit/hash-verified review with a backup and atomic
+  publication. An older job cannot replace a newer requested review. The Mac remains the interactive Blender viewer;
+  `model/review/reload.py` is its startup watcher, which consumes the matching publication receipt, discards authorized
+  incidental review edits and preserves the active view. Keep authored source files separate from that generated review.
+  `just latest` is the Mac-only second file (model/latest, #998): each layer from its newest candidate, main or an open
+  PR, exported once a commit under the heavy lock and cached outside the repo; the coordinator reruns it after a push or
+  merge that touches a layer, and the same watcher reloads it.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
   at a time: several at once took the Mac to ~30 GB.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
-  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Blender,
+  #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Render,
   the smoke) runs on main after the merge, CodeQL weekly (#728), and a red default branch files its own issue (`fix(<the
   failed job's scope>): \`Checks\` fail on the default branch at <sha7> (<job>)`), labelled `default branch failure`
   and found by it (#697, #745, #767, #791). Only the main session runs the full run on a
   branch (`gh workflow run checks.yml --ref <branch>`, #562), to debug a main failure; an implementer's branch runs the
   slim gate alone.
-  Each workflow runs only the newest commit of a PR, so a cancelled PR run means a newer one superseded it: every
-  workflow on `pull_request` keys its `concurrency` on itself and the PR with `cancel-in-progress` (#675,
-  `test_workflows.py`); one on `pull_request` alone tests no event, so it lists no job every PR skips (#722). Checks,
-  which deploys and Release waits on, never cancels: main's runs queue and each finishes, so merges minutes apart
-  still deploy; a newer push replaces a run still waiting, never one running (#689). A run whose job failed can
-  neither deploy nor release, so every job of Checks and PR Gate but the gate ends in `cancel-on-failure`
-  (`.github/actions/`), which cancels the rest of the run at once, and Default Branch Failure files it all the same
-  (#769).
-  Checks' `Deploy`, Release and Release Assets never cancel a run mid-way.
+  No run or job is cancelled early (#944, docs/adr/0009, `test_workflows.py`): every run, each push to a PR and each
+  merge to main, runs to its end and lists every failure it has as `failure`, never `cancelled`. No workflow has a
+  `concurrency` group; only Checks' `Deploy` and Release's `Release` jobs keep one, never cancelling one in progress,
+  so a newer commit's deploy or release replaces a waiting older one. Jobs still wait on their `needs:`, a matrix keeps
+  GitHub's default fail-fast, and every job has a `timeout-minutes` at least twice its longest measured run (#948).
+  Default Branch Failure files a run that ends as `failure` alone. A workflow on `pull_request` alone tests no event,
+  so it lists no job every PR skips (#722).
 - The required `Checks` is PR Gate's gate (`.github/workflows/pr-gate.yml`, #722): it fails unless `Code` passed.
+  Drafts skip Code and substantive PR validation, but the lightweight required `Checks` and `PR` guards report failure
+  (#972): GitHub accepts a skipped required check as passing. Marking ready runs Code and PR validation; both required
+  gates must actually succeed before merging. This is the narrow exception to keeping drafts idle.
   Main's Checks (`.github/workflows/checks.yml`, #496) ends in a gate of the same name, which fails unless every job
   there passed or was skipped. Its `Changes` job (dorny/paths-filter, plus cache lookups) skips the work whose inputs
   did not change, against main's last commit whose Checks passed on a push (#471); `test_derived.py` holds each filter to its
-  inputs. `Site` runs after Blender unless a job before it failed: it builds the deploy with the next Mech's pictures,
+  inputs. `Site` runs after Render unless a job before it failed: it builds the deploy with the Mech's pictures,
   tests it and plays it in Chrome, once (#732). The sim's reports are keyed on what they are made from
   (`scripts/inputs.py`, as the pictures'), so a CI edit runs no sim.
 - `Model` runs on eight shards, `just mech` one of their units, balanced by the seconds CI measured in
-  `model/durations.json`, and `Render` on eight, its pictures balanced by their Blender seconds there (#839); `just
-  model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
+  `model/durations.json`, and `Render` in one job, its parts and trajectories built once for its six stills and the
+  GLBs (#898); `just model-durations <id>` refreshes it from a run's `durations-*` artifacts. A cold parts
   cache is built and cut in `Convex`, which saves it for the shards. CI renders no picture and bakes no GLB, and no
   workflow uploads an artifact or release asset with the parts, their cut, a picture or a GLB: every artifact of a
   public repo is anyone's (ADR 0019, `test_workflows.py`); the
@@ -164,11 +197,12 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   among the shards' units (`SIM_PART`), which `Sim` merges and thresholds (`just sim-merge`, #809). Its reports are
   never committed: main's are on the site at /reports (ADR 0009), and a run that changes their inputs diffs its reports
   against main's last in its job summary.
-- Each job's slowest tests are in its run summary. On CI a test gets 15 s (pytest-timeout's `--timeout`, in `Code` and
+- Each job's slowest tests are in its run summary. On CI a test gets 60 s (pytest-timeout's `--timeout`, in `Code` and
   the `Model` shards' tests; just mech's live checks wait on the Core's real timers and get none), its fixtures aside
   (`timeout_func_only`): the parts a module's tests share are built once a worker in a fixture, whose seconds show as
-  setup. A slower test is made fast or split (parametrized: by part, member, motion or a chunk of pairs) before it
-  merges (#808).
+  setup. The limit is at least twice the slowest test CI measured, rounded up (Cansin, 2026-11-04, #945: a Skin
+  clearance check's first pose took 15 s); one near it is made fast or split (parametrized: by part, member, motion or
+  a chunk of pairs) before it merges (#808).
 - The jobs that need a system tool uv can't install run in our CI images (`ci/`, ADR 0009, #288) by their `:main` tag;
   every other job stays on the bare runner, since an image pull costs ~30-40 s a job. The base image carries the venv
   synced from uv.lock, which its jobs link as `.venv` (#725). Only main pushes the images, when a Dockerfile or the

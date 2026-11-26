@@ -49,14 +49,14 @@ def test_hook_json_reaches_the_board_and_mute_persists(tmp_path):
     state = tmp_path / "mute"
     fake = FakeSerial()
     cal = tmp_path / "calibration.json"
-    cal.write_text('{"lid_rest": 0.28, "l_eye_lo": 58}')
+    cal.write_text('{"lid_rest": 0.28, "yaw_lo": 65}')
     d = Service(sock_path=sock, open_serial=lambda: fake, mute_file=state, cal_file=cal, beacon_port=0)
     t = threading.Thread(target=d.run, daemon=True)
     t.start()
     assert wait_for(lambda: d.ready)
     send(sock, json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "x"}) + "\n")
     assert wait_for(
-        lambda: fake.buf == b"set lid_rest 0.28\nset l_eye_lo 58\nrest\nthinking\n"
+        lambda: fake.buf == b"set lid_rest 0.28\nset yaw_lo 65\nrest\nthinking\n"
     )  # calibration + mode on connect, then the Trigger
     send(sock, "off\n")
     assert wait_for(lambda: state.exists())
@@ -371,15 +371,27 @@ def test_the_frame_is_the_core_programs():
     assert service.FRAME * 1000 == service._replay()._eyes().FRAME
 
 
-def test_flash_names_the_core_and_defaults_to_the_eyes(tmp_path):
+def test_flash_names_the_core_and_defaults_to_the_eyes(tmp_path, monkeypatch):
     """#29: the live check flashes the neck Core over Wi-Fi too; `flash` alone stays the eyes Core's (just flash)."""
     build = tmp_path / "build"
     build.mkdir()
     for f in service.FLASH_FILES:
         (build / f).write_bytes(b"x")
+    connected, proceed = threading.Event(), threading.Event()
+    write = FakeSerial.write
+
+    def connect(fake, data):
+        write(fake, data)
+        connected.set()
+        assert proceed.wait(2)
+
+    monkeypatch.setattr(FakeSerial, "write", connect)
     s, sock, _ = start(tmp_path)
+    assert connected.wait(2)
+    s.wifi.send = lambda name, lines: []  # startup calibration can reach the now-fresh neck before the flash command
     s.wifi.fresh = lambda name, now: True
     s.wifi.flash = lambda name, files: f"flashed {name}: {' '.join(files)}, uptime 1s"
+    proceed.set()
     assert ask(sock, "flash neck\n").startswith("flashed neck: ")
     assert ask(sock, "flash\n").startswith("flashed eyes: ")
     assert ask(sock, "flash nose\n") == "flash failed: no Core nose (eyes, neck)\n"

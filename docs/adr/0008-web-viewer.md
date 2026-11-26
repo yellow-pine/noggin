@@ -29,17 +29,17 @@
 > Amended 2026-11-02 (#547): "Built in CI" describes the Checks workflow and Site Deploy, not the Pages workflow.
 > Amended 2026-11-02 (#640, ADR 0019): the viewer is off the site and CI bakes no GLB until the clean-room Mech;
 > `just web` bakes them locally.
-> Amended 2026-11-02 (#649, ADR 0019): the viewer is back on the site at /viewer/ for the Next Mech alone
-> (`next-mech.glb`, baked by Checks' `Blender` job); it is still, so its GLB has no clips and the page no gesture bar.
-> Amended 2026-11-02 (#642): a GLB per Base candidate (`next-mech-a.glb`, `next-mech-b.glb`), one viewer each.
-> Amended 2026-11-02 (#686): a GLB per head variant (`next-mech-back.glb`, `-crown`, `-split`) in their place, its
+> Amended 2026-11-02 (#649, ADR 0019): the viewer is back on the site at /viewer/ for the Mech alone
+> (`mech.glb`, baked by Checks' `Blender` job); it is still, so its GLB has no clips and the page no gesture bar.
+> Amended 2026-11-02 (#642): a GLB per Base candidate (`mech-a.glb`, `mech-b.glb`), one viewer each.
+> Amended 2026-11-02 (#686): a GLB per head variant (`mech-back.glb`, `-crown`, `-split`) in their place, its
 > button in the ranking's order, marked with what it fails.
-> Amended 2026-11-02 (#712): Back alone (`next-mech-back.glb`), Cansin's pick; its one button keeps the ranking's
+> Amended 2026-11-02 (#712): Back alone (`mech-back.glb`), Cansin's pick; its one button keeps the ranking's
 > order and marks, so a later variant comes back beside it.
 > Amended 2026-11-02 (#704, ADR 0020): Back twice, its Skeleton as Bones ("Back") and plain ("Back plain",
-> `next-mech-back-plain.glb`), a button each.
+> `mech-back-plain.glb`), a button each.
 > Amended 2026-11-03 (#805, ADR 0022): the look switch is the Skeleton switch, Realistic and Mechanical
-> (`next-mech-back-mechanical.glb`), each GLB in its Theme's colours.
+> (`mech-back-mechanical.glb`), each GLB in its Theme's colours.
 > Amended 2026-11-03 (#806, ADR 0022): the header's Theme bar picks the Skeleton for every page, the viewer's
 > GLB too, in place of the viewer's own Skeleton switch.
 > Amended 2026-11-03 (#819, ADR 0022): the bar picks a Preset; the viewer draws its Skeleton shape's GLB, one per
@@ -58,6 +58,17 @@
 > Stage's isometric panel) in its place until then, and of those on screen the three that came into view or were
 > touched last animate, the rest holding their last frame. The README's and the home's stills link to the viewer
 > deep-linked to their Stage, Explode level and Preset. The poster's camera of #597 is gone.
+> Amended 2026-11-03 (#883): the /viewer page's viewer alone has the bar (Stage, gestures, Explode, the mix); one in
+> a page shows its Stage and motion with no control. With no Preset picked, every viewer opens on the bare realistic
+> Skeleton in the anatomical Palette (ADR 0022).
+> Amended 2026-11-04 (#894, ADR 0024): the embed link gains `view=` (front, side, isometric; the default framing
+> without it) and `part=` (that part alone at full look, every other ghosted). Every embed holds a plain link to its
+> deep link ("Open … in the viewer"), which GitHub shows and the viewer replaces. Every viewer opens on the hero loop
+> in the Default build (ADR 0022), unless its link names a gesture; a Stage with no `hero` clip plays Rest. Every
+> viewer but the /viewer page only rotates (no zoom, no pan: the wheel and a pinch scroll the page past it), with one
+> reset icon, labelled for screen readers, that appears once the reader turned it and brings the camera back to the
+> view it opened on; /viewer keeps its bar, zoom and pan. The black Skeleton's lift (a charcoal whose ramp, highlight
+> and lines still read) is one look number Blender writes into the GLB's extras, so the viewer holds none of its own.
 
 The README's stills and GIFs show the Mech from fixed angles. The web viewer is a public page on GitHub Pages
 (yellow-pine.github.io/noggin, linked from the README) where anyone can orbit and zoom a Stage, play each gesture and

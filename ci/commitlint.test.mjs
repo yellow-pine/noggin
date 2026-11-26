@@ -2,7 +2,7 @@
 // Run: npm ci --prefix ci && node --test ci/commitlint.test.mjs (Checks' Code job)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -76,6 +76,17 @@ test('the issues Default Branch Failure files have valid titles (#767, #791)', (
         assert.ok(!filed.includes('$'), filed);
         assert.ok(passes(filed, { env: { PR_AUTHOR_TYPE: 'Bot' } }), filed);
       }
+});
+
+test('every workflow run-name\'s titles are valid (#866)', () => {
+  const workflows = join(ci, '../.github/workflows');
+  const titles = readdirSync(workflows)
+    .map((f) => readFileSync(join(workflows, f), 'utf8').match(/^run-name:(.*(?:\n .*)*)/m)?.[1] ?? '')
+    .flatMap((runName) => [...runName.matchAll(/'([^']*)'/g)].map((m) => m[1]))
+    .filter((literal) => literal.includes(' ')) // an event name ('schedule') or '' is no title
+    .map((literal) => literal.replace('{0}', 'cansin'));
+  assert.ok(titles.length > 0);
+  for (const title of titles) assert.ok(passes(title), title);
 });
 
 // subject-case fails a subject whose first letter is a capital, acronym or not; backticked text is skipped (#509)

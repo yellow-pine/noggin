@@ -2,7 +2,7 @@
 angle (loops(), docs/research/2026-11-02-literature-graphics.md 1) and the clearance of every pair of parts certified
 along a played motion (certify(), docs/research/2026-11-02-literature-simulation.md 4). The sim report gates the
 first over each horn's sweep (model/mujoco_report.py, model/test_report.py), model/test_trajectories.py the second over
-every gesture and the hero, model/printed/gimbal.py over the next Mech's lid drives."""
+every gesture and the hero, model/printed/gimbal.py over the Mech's lid drives."""
 
 import functools
 import math

@@ -5,11 +5,11 @@
 set lazy
 
 REPO := justfile_directory()
-BIN := REPO / ".venv/bin"
+BIN := env_var_or_default("UV_PROJECT_ENVIRONMENT", REPO / ".venv") / "bin"
 PY := BIN / "python"
 MPR := BIN / "mpremote"
 MPYC := BIN / "mpy-cross"
-BLENDER := "/Applications/Blender.app/Contents/MacOS/Blender"
+BLENDER := env_var_or_default("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
 NOGGIN := "noggin/noggin"
 # one heavy command (MuJoCo, CoACD, Blender) at a time on this machine, the next waits (#246); the recipes that take
 # it are in the heavy group, which .claude/settings.json's deny list keeps for CI
@@ -21,6 +21,9 @@ _program := shell('$1 -m noggin.core', PY)
 PROGRAM := if _program == "" { error("noggin/core.py listed no eye program") } else { _program }
 # a Core on USB (the noggin service's PORT_GLOB)
 PORTS := "/dev/cu.usbmodem*"
+# just gx10's ssh host and the paths it copies back (space-separated, repo-relative)
+GX10 := "gx10"
+FETCH := ""
 # which way just flash goes: Wi-Fi while the eyes Core's beacon is fresh or no Core is on USB, else USB
 FLASH_VIA := shell('if ls $1 >/dev/null 2>&1 && ! $2 status 2>/dev/null | grep -q "^eyes wifi "; then echo usb; else echo wifi; fi', PORTS, NOGGIN)
 # the Core's MicroPython (pyproject [tool.noggin]): flash-usb's hmac and the stand-in build from it, CI caches
@@ -56,10 +59,23 @@ worktrees-clean:
 check-light: venv lint
     {{PY}} -m pytest -q -n auto -m "not model"
 
-# just ours, then the pytest arguments given, in CI's base image as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
+# just ours, then the pytest arguments given, in CI's Blender image (the base image and Blender, for the bones: docs/adr/0025) as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
 [positional-arguments]
 linux-test +args:
-    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-base:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-blender:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin BLENDER=blender ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+
+# the committed command on the native GX10 worker (#979), with bounded memory, private inputs and immutable FETCH snapshots
+[positional-arguments]
+gx10 +args: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --fetch '{{FETCH}}' -- "$@"
+
+# install the pinned native ARM64 Blender and dependencies in an isolated GX10 container; resumes an active build
+gx10-setup: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --setup
+
+# resume a detached job's verified delivery after its local client was closed
+gx10-resume job: venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --resume {{job}}
 
 # main's Code job: just check-light, the workflows (actionlint; zizmor, offline and here alone), the CI images' Dockerfiles (hadolint), wizard and hook script syntax (here alone), plist validity (the site's own tests: npm --prefix site test, Checks)
 [group('heavy')]
@@ -87,9 +103,9 @@ sim-merge: venv
     {{PY}} -m model.report --merge
     {{PY}} -m pytest -q model/test_report.py
 
-# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
+# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws), then the realistic Skeleton's bones Blender finishes round them from the Skeleton scene (model/skeleton, docs/adr/0025); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
 ours: venv
-    @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
+    @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else BLENDER={{BLENDER}} {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
 
 # print-ready STLs of our printed parts (mm, the designer's frames, L and R each) and the clearance coupon in model/build/stl
 stl: venv
@@ -189,26 +205,46 @@ restore-stock: interrupt
     cd eyes/stock-backup && for f in *; do {{MPR}} resume cp -r $f : || exit 1; done
     {{PY}} eyes/interrupt.py reset
 
-# a document (default next-mech-back-mechanical, which physics runs on: #809; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
+# a document (default mech-back-mechanical, which physics runs on: #809; any stages.DOCS key) in MuJoCo's viewer, from its MJCF (model/mjcf.py)
 [group('heavy')]
-view doc="next-mech-back-mechanical": venv ours
+view doc="mech-back-mechanical": venv ours
     {{HEAVY}} {{PY}} -m model.mjcf {{doc}}
     {{PY}} -m mujoco.viewer --mjcf=model/build/mjcf/{{doc}}.xml
 
-# MuJoCo plays each gesture, Rest and the next hero on each of the next Mech's documents, or on the documents named (next: all of them; or in TRAJ_DOCS): every part's world pose per 100 ms frame in model/build/trajectories (a document whose files carry its stamp is skipped)
+# MuJoCo plays each gesture, Rest and the hero on each of the Mech's documents, or on the documents named (all: all of them; or in TRAJ_DOCS): every part's world pose per 100 ms frame in model/build/trajectories (a document whose files carry its stamp is skipped)
 [group('heavy')]
 trajectories *docs=env("TRAJ_DOCS", ""): venv ours
     {{HEAVY}} {{PY}} -m model.trajectories {{docs}}
 
-# Blender pictures, each of the next Mech's documents at rest from its trajectories: the panels (model/build/pictures)
+# Blender pictures, the Mech's six stills from its trajectories (model/build/pictures, #898)
 [group('heavy')]
 render: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures views
 
-# the site's pictures (model/render/pictures.py published) in model/build/images: the next Mech's panels and a picture per part, stills alone (Checks' Render shards run `just pictures next`, each its share by PICTURES_SHARD, balanced on model/durations.json, #649, #770, #839)
+# the site's pictures (model/render/pictures.py published) in model/build/images: six stills, the front doors' three and a poster per Stage (Checks' Render runs `just pictures all`, #649, #898)
 [group('heavy')]
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
+
+# scipy for Blender's own Python (model/skeleton/rewarp.py) in the repo's gitignored .blender-site, never into Blender.app (docs/adr/0025): the venv's scipy, for Blender's Python version
+blender-site: venv
+    @v=$({{BLENDER}} -b --factory-startup --python-expr 'import sys; print("PY=%d.%d" % sys.version_info[:2])' | sed -n 's/^PY=//p') && uv pip install -q --target .blender-site --python-version "$v" --no-deps "scipy==$({{PY}} -c 'import scipy; print(scipy.__version__)')"
+
+# the Skeleton scene's Warp re-run from its Landmarks, and the scene saved (model/skeleton/rewarp.py); open it with open model/skeleton/skeleton.blend
+rewarp: blender-site
+    PYTHONPATH=.blender-site {{BLENDER}} -b --python-use-system-env model/skeleton/skeleton.blend -P model/skeleton/rewarp.py
+
+# the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
+review quality="production" before="": venv
+    {{PY}} scripts/gx10.py --host {{GX10}} --review {{quality}} {{before}}
+
+# the latest file (model/latest, #998): each layer's newest candidate, main or an open PR, in ~/Desktop/noggin-latest.blend, on the Mac alone (never the GX10 or CI), under the heavy lock it takes itself; then its file test
+latest: venv
+    @out=$({{PY}} -c 'from model import latest; print(latest.LATEST)') && BLENDER={{BLENDER}} {{PY}} -m model.latest && NOGGIN_LATEST="$out" {{PY}} -m pytest -q model/latest
+
+# internal worker entry: generates and checks the review before the controller snapshots or publishes anything
+_review-build quality="production" before="": venv ours
+    @out=$({{PY}} -c 'from model import review; print(review.OUT)') && BLENDER={{BLENDER}} {{PY}} -m model.review {{quality}} {{before}} && NOGGIN_REVIEW="$out" {{PY}} -m pytest -q model/review
 
 # the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)
 model-shards-list: venv
@@ -216,20 +252,20 @@ model-shards-list: venv
 
 # model/durations.json from a Checks run's measured seconds (its durations-* artifacts): just model-durations <run id>
 model-durations run:
-    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^(just|render) ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
+    @d=$(mktemp -d) && gh run download {{run}} -p 'durations-*' -D $d && jq -S -s '(.[0] | with_entries(select(.key | test("^just ")))) + (.[1:] | add)' model/durations.json $d/*/*.json > $d/all.json && mv $d/all.json model/durations.json; rm -rf $d
 
-# the web viewer's GLBs in web/build, Blender's per next Mech document (or the documents named; next: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
+# the web viewer's GLBs in web/build, Blender's per Mech document (or the documents named; all: all of them, the ones the site serves, #649) from their trajectories (docs/adr/0008), then their tests; look with just site
 [group('heavy')]
 web *docs: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m web.build web/build {{docs}}
     {{PY}} -m pytest -q web
 
-# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the next Mech's pictures and GLB (the next-* ones, never today's: docs/adr/0019) go to site/dist/images and viewer once just pictures next and just web made them, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
+# the site in site/dist (docs/adr/0009, 0013): the numbers from the code (macros.py), then Astro Starlight builds the docs and the viewer's page; the Mech's pictures and GLBs go to site/dist/images and viewer once just pictures all and just web made them, the sim reports to site/dist/reports once just sim did; look with npm --prefix site run preview, check with npm --prefix site test
 site: venv && site-reports
     {{PY}} -m macros
     cd site && npm ci --ignore-scripts --no-audit --no-fund && npm run build
-    ! ls model/build/images/next-* >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/next-* site/dist/images/; }
-    ! ls web/build/next-*.glb >/dev/null 2>&1 || cp web/build/next-*.glb site/dist/viewer/
+    ! ls model/build/images/*.webp >/dev/null 2>&1 || { mkdir -p site/dist/images && cp model/build/images/*.webp site/dist/images/; }
+    ! ls web/build/*.glb >/dev/null 2>&1 || cp web/build/*.glb site/dist/viewer/
 
 # the sim reports (model/build/reports, once just sim made them) into the built site's site/dist/reports with an index; Checks' Deploy reruns it on main's site with the reports Checks saved
 site-reports:

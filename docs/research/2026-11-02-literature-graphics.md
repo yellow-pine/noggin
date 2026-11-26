@@ -1,4 +1,4 @@
-# Computational design of mechanical characters, and stylised gaze, for the next Mech
+# Computational design of mechanical characters, and stylised gaze, for the Mech
 
 Researched 2026-11-02. Purpose: the computer-graphics literature that bears on #51. It covers mechanisms designed from motion (the Coros 2013 line) and how they could run in our model (CadQuery parts, MuJoCo). It also covers procedural gaze and eyelid models, only where they add to `2026-10-31-natural-eye-motion.md` and `2026-11-01-blink-kinematics.md`.
 

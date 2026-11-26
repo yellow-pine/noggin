@@ -47,7 +47,7 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   the placements, fits, beams and the electrical budget, and commits the MJCF it measured as model/reports/<doc>.xml;
   the stamp covers model/mjcf.py, model/mujoco_report.py and the mujoco and coacd versions. model/test_report.py fails a pair whose pieces go 0.05 mm deeper
   than at rest (the pieces' own error is in the rest reading; an overlap at rest fails model/test_mjcf.py), a four-bar open over 0.05 mm, a servo holding more than
-  its rated 0.4 kgf.cm (the stall 1.0 is the actuator's limit, reported beside it), a joint a swing at the rated
+  its rated torque (model/sim.py RATED_KGF_CM, its figure on the Shield's 5 V rail since #861; the stall 1.0 is the actuator's limit, reported beside it), a joint a swing at the rated
   428 deg/s leaves over 1 degree off the slow pose, and the centre of mass off the base footprint. The listed
   exceptions carry the exact meshes' reading (docs/research/2026-11-01-mujoco-report.md).
 - **Blender draws every picture** (#150): everything public-facing (README, docs, PR pictures: views, the Stage strip,

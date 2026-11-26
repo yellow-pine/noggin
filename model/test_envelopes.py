@@ -17,6 +17,10 @@ BOXES = {  # the STEP's box as the model uses it (servo and battery leads cut, m
     "core": ((-11.6, -10.68, -13.39), (11.6, -2.3, 14.5)),
     "switch": ((-7.25, -4.6, -16.0), (13.25, 15.16, 16.0)),
     "battery": ((-14.18, 0.0, -8.15), (14.18, 51.2, 8.15)),
+    # no STEP yet (#858): the hub's maker's overall size, the power-path board's and the capacitor's guesses
+    "hub": ((0.0, -10.2, 0.0), (31.6, 10.2, 4.8)),
+    "power": ((-52.5, -20.0, 0.0), (52.5, 20.0, 15.0)),
+    "capacitor": ((-4.0, -4.0, 0.0), (4.0, 4.0, 11.5)),
 }
 
 
@@ -42,6 +46,24 @@ def test_servo_tab_holes_are_open_on_the_tab_plate():
     for x in (-2.55, 25.25):
         assert not inside("servo", x, 5.9, -1.8)
         assert inside("servo", x, 5.9 + 1.5, -1.8)
+
+
+def test_the_standard_horn_has_spline_engagement_and_a_retaining_screw_shoulder():
+    """The included round horn seats on the shaft but its outer shoulder retains the M3 centre screw."""
+    horn = solid("standard horn")
+    shaft = solid("standard servo").rotate((0, 0, 0), (1, 0, 0), 180)  # horn's +Z points into its shaft
+    assert horn.intersect(shaft).Volume() < 1e-6
+    assert horn.distance(shaft) < 1e-6
+    assert horn.BoundingBox().zmin < 0 < horn.BoundingBox().zmax
+    assert horn.isInside(cq.Vector(2.5, 0, -0.75))  # screw head bears on the shoulder outside its clearance bore
+    assert not horn.isInside(cq.Vector(1.5, 0, -0.75))
+    assert not horn.isInside(cq.Vector(2.5, 0, 1.5))  # shaft continues through the rear spline seat
+
+
+def test_the_standard_servo_shaft_accepts_the_retaining_screws_thread():
+    """The M3 centre screw has an actual inferred tapping bore, rather than terminating in a solid shaft."""
+    assert not solid("standard servo").isInside(cq.Vector(1.2, 0, -2))
+    assert solid("standard servo").isInside(cq.Vector(1.5, 0, -2))
 
 
 def test_servo_shaft_is_the_r_2_35_spline_on_x_16_69_to_z_minus_14_52():

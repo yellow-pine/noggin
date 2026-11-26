@@ -21,7 +21,7 @@ def test_align_rows_take_a_local_frame_onto_a_world_frame():
 def test_one_channel_table_maps_each_cores_headers_to_its_servos():
     # docs/build/wiring.md (servo ports) and the designer's config JSON for Core 2
     assert g.CHANNELS == {
-        "core1": {1: "l_lid", 2: "l_eye", 3: "r_lid", 4: "r_eye"},
+        "core1": {1: "l_lid", 2: "yaw", 3: "r_lid", 4: "pitch"},
         "core2": {1: "tilt", 2: "mouth", 3: "pan"},
     }
     assert set(g.SERVO_LABEL) == {s for ch in g.CHANNELS.values() for s in ch.values()}
@@ -33,11 +33,11 @@ def test_the_horn_seats_on_the_spline_and_pins_its_bar_at_the_second_hole_from_t
     assert g.HORN_STEP["pin"] == 12.75 and g.SERVO_STEP["horn_seat"] == 11.52
 
 
-CANSINS_BUILD = {
+DEFAULT_BUILD = {
     "Skeleton shape": "mechanical",
     "Skeleton palette": "black",
-    "Skin shape": "cansin",
-    "Skin palette": "cansin",
+    "Skin shape": "none",  # no Skin (#889, #938)
+    "Skin palette": "default",
 }
 MORTY = {
     "Skeleton shape": "realistic",
@@ -47,26 +47,26 @@ MORTY = {
 }
 
 
-def test_a_theme_is_four_axes_and_each_preset_names_one_cansins_build_the_default():
-    """#819: a Shape and a Palette per category; the Presets in order, Cansin's build first, the default."""
+def test_a_theme_is_four_axes_and_each_preset_names_one_the_default_build_first():
+    """#819: a Shape and a Palette per category; the Presets in order, Default build first, the default."""
     assert {a: list(v) for a, v in g.THEMES.items()} == {
         "Skeleton shape": ["realistic", "mechanical"],
         "Skeleton palette": ["anatomical", "robot", "black"],
-        "Skin shape": ["morty", "bart", "cansin"],
-        "Skin palette": ["morty", "bart", "cansin"],
+        "Skin shape": ["none", "morty", "bart", "cansin"],  # none: the Skeleton bare (#876)
+        "Skin palette": ["morty", "bart", "default"],
     }
-    assert list(g.PRESETS) == ["Cansin's build", "Morty", "Bart"]
-    assert g.PRESETS["Cansin's build"] == g.THEME == CANSINS_BUILD and g.PRESETS["Morty"] == MORTY
+    assert list(g.PRESETS) == ["Default build", "Morty", "Bart"]
+    assert g.PRESETS["Default build"] == g.THEME == DEFAULT_BUILD and g.PRESETS["Morty"] == MORTY
     assert g.PRESETS["Bart"] == MORTY | {"Skin shape": "bart", "Skin palette": "bart"}
-    assert [g.slug(p) for p in g.PRESETS] == ["cansins-build", "morty", "bart"]
+    assert [g.slug(p) for p in g.PRESETS] == ["default-build", "morty", "bart"]
 
 
 def test_a_document_is_drawn_in_its_skeleton_shape_in_the_first_preset_of_that_shape():
     """#805, #819: a -mechanical document's Skeleton shape is mechanical, else realistic, each Stage in both; its
     colours the first Preset's in its Shape (the GLBs', which the viewer repaints)."""
-    assert g.theme("next-stage1") == MORTY
-    assert g.theme("next-mech-back-mechanical") == CANSINS_BUILD
-    assert {"next-stage1", "next-stage1-mechanical", "next-mech-back-mechanical"} <= set(g.STAGES)
+    assert g.theme("stage1") == MORTY
+    assert g.theme("mech-back-mechanical") == DEFAULT_BUILD
+    assert {"stage1", "stage1-mechanical", "mech-back-mechanical"} <= set(g.STAGES)
 
 
 def test_each_colour_group_is_printed_in_its_palettes_filament():
@@ -76,14 +76,27 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
     # Cansin, 2026-11-03: the red lids read badly, then the dark brown; pink, matte
     assert g.filament("Linkages", MORTY) == ("PETG Matte", "Pink", "35700", "#FABBCB")
     assert g.filament("Bones", MORTY | {"Skeleton palette": "robot"}) == ("PETG Matte", "Gray", "35102", "#7F7E83")
-    assert g.filament("Joints", CANSINS_BUILD) == ("PETG Basic", "Black", "30105", "#000000")
+    assert g.filament("Joints", DEFAULT_BUILD) == ("PETG Basic", "Black", "30105", "#000000")
     assert g.filament("eye whites", MORTY) == ("PLA Basic", "Jade White", "10100", "#FFFFFF")
     assert g.filament("pupils", g.PRESETS["Bart"]) == ("PLA Matte", "Charcoal", "11101", "#000000")
-    assert g.filament("face", CANSINS_BUILD) == ("PLA Pure", "Milky Pink", "17200", "#F7CED7")
-    assert g.filament("accessories", CANSINS_BUILD) == ("PLA Pure", "Apricot", "17300", "#FFB673")
-    assert g.filament("clothes", CANSINS_BUILD) == g.filament("eye whites", CANSINS_BUILD)
+    assert g.filament("face", DEFAULT_BUILD) == ("PLA Pure", "Milky Pink", "17200", "#F7CED7")
+    assert g.filament("accessories", DEFAULT_BUILD) == ("PLA Pure", "Apricot", "17300", "#FFB673")
+    assert g.filament("clothes", DEFAULT_BUILD) == g.filament("eye whites", DEFAULT_BUILD)
     for axis in ("Skeleton palette", "Skin palette"):
         palettes = g.THEMES[axis].values()
         assert len({tuple(p) for p in palettes}) == 1  # one set of Colour groups
         assert all(len(set(p.values())) <= 4 for p in palettes)
     assert all(g.filament(group, t) for t in g.PRESETS.values() for group, _ in g.PRINTED.values())
+
+
+def test_stage_3_is_drawn_in_each_skin_shape_with_shells_after_its_skeleton_shape():
+    """#813: Morty's Shells are the documents' own; each other Skin shape drawn wears its own Shells for his on Stage 3,
+    under -<shape> after the Skeleton's suffix, as the viewer names its GLB (site/src/viewer/state.mjs glb)."""
+    assert sorted(g.DRESSED) == sorted(f"mech-back{s}-{k}" for k in ("bart", "cansin") for s in ("", "-mechanical"))
+    assert "cansin" in g.DRESSED["mech-back-cansin"] and "morty" not in g.DRESSED["mech-back-cansin"]
+    assert g.shape("mech-back-mechanical-cansin") == "mechanical" and g.shape("mech-back-cansin") == "realistic"
+    assert g.undressed("mech-back-mechanical-cansin") == "mech-back-mechanical"
+    assert g.dressed("mech-back-mechanical", "cansin") == "mech-back-mechanical-cansin"
+    assert g.dressed("mech-back", "bart") == "mech-back-bart"  # #807
+    assert g.dressed("mech-back", "none") == "mech-back"
+    assert g.dressed("stage2", "cansin") == "stage2"  # no Skin before Stage 3

@@ -8,13 +8,13 @@
 > Jade White (10100); bart's face is PLA Basic Sunflower Yellow (10402), his shirt PLA Matte Scarlet Red (11200), his
 > eye whites PLA Matte Ivory White (11100) and his pupils PLA Matte Charcoal (11101). The catalogue (§1, §2) stands.
 
-The next Mech's docs, Viewer and pictures get theme dropdowns. A theme is one **Skeleton** (realistic | mechanical,
+The Mech's docs, Viewer and pictures get theme dropdowns. A theme is one **Skeleton** (realistic | mechanical,
 PETG) and one **Skin** (morty | bart, PLA Shells). Each Skeleton uses up to 4 PETG colours and each Skin up to 4 PLA
 colours. Which real Bambu Lab filaments come closest to each, which are sold in the US store, and which does Cansin
 already own?
 
 The mapping, confirmed in the repo: "realistic" is the Skeleton drawn as Bones (GLOSSARY "Bone", ADR 0020,
-`next-mech-back`), "mechanical" the same parts drawn plain (`next-mech-back-plain`), so the colours below suit organic
+`mech-back`), "mechanical" the same parts drawn plain (`mech-back-plain`), so the colours below suit organic
 Bones and boxy plain parts respectively.
 
 Read on 2026-11-03. Every hex comes from Bambu: its colour-code file in BambuStudio and the "Hex Code" tables linked

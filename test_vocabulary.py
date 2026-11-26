@@ -150,3 +150,32 @@ def test_our_recipes_run_with_just_never_make():
         if stale.search(line)
     ]
     assert recipes and not hits, "\n".join(hits)
+
+
+def test_there_is_one_mech():
+    """The project starts at the Mech's Stage 1 (ADR 0024, #895): no tracked file says "next Mech" or "today's Mech",
+    nor names a file, document or cache `next-`; git history keeps its words, lockfiles their packages', and
+    GLOSSARY.md names them to avoid."""
+    retired = re.compile(r"(?i:\b(?:next|today['’]s) mech\b)|\bnext-(?=[\w*$])")
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    hits = [
+        f"{f}:{n}: {line.strip()[:120]}"
+        for f in tracked
+        if f not in {"test_vocabulary.py", "GLOSSARY.md"}
+        and not f.endswith("package-lock.json")
+        and (ROOT / f).is_file()
+        for n, line in enumerate((ROOT / f).read_text(errors="ignore").splitlines(), 1)
+        if retired.search(line)
+    ]
+    assert not hits, f"{len(hits)} lines\n" + "\n".join(hits)
+
+
+def test_the_scenes_name_one_mech():
+    """A committed Blender scene (model/skeleton/skeleton.blend, ADR 0025) names its objects as the Model does: no ID
+    says "next " (#895), or the scene's lookups by part name miss (main's Convex, after #928)."""
+    from compression import zstd
+
+    for blend in ROOT.glob("model/**/*.blend"):
+        data = blend.read_bytes()
+        data = zstd.decompress(data) if data[:4] == b"\x28\xb5\x2f\xfd" else data
+        assert b"next " not in data, blend

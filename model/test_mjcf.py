@@ -1,6 +1,7 @@
 import functools
 import itertools
 import math
+import os
 
 import mujoco
 import numpy as np
@@ -8,89 +9,97 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, neck, stages
+from model import gimbal, mjcf, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
 # Pairs that touch by design.
 TOUCH = {
-    # the next Mech's eye gimbal (#630): its exact solids overlap nowhere but the horns' splines
+    # the Mech's eye gimbal (#630): its exact solids overlap nowhere but the horns' splines
     # (model/printed/test_gimbal.py); the convex pieces fill its cups, bores and windows where parts meet
     **{
-        frozenset((f"next {s} push-rod:1", p)): "the push-rod's cup round the ball"
+        frozenset((f"{s} push-rod:1", p)): "the push-rod's cup round the ball"
         for s in "LR"
-        for p in (f"next {s} eyeball core:1", "next bail:1")
+        for p in (f"{s} eyeball core:1", "bail:1")
     },
     **{
-        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on the frame's collar"
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on the frame's collar"
         for d in gimbal.drives()
-        for p in (f"next {d} horn:1", "next gimbal frame:1")
+        for p in (f"{d} horn:1", "gimbal frame:1")
     },
     **{
         frozenset(pair): "a horn on its bar, pin-joined faces, the cap on its seat (0.0 mm, designed contacts)"
         for pair in [
-            ("next yaw horn:1", "next tie-bar:1"),
-            ("next pitch horn:1", "next pitch bar:1"),
-            ("next pitch bar:1", "next bail:1"),
-            ("next bail:1", "next gimbal frame:1"),
-            *[(f"next {s} lid horn:1", f"next {s} lid bar:1") for s in "LR"],
-            *[(f"next {s} upper lid:1", f"next {s} lid bar:1") for s in "LR"],
-            *[(f"next {s} lid bar:1", f"next {s} lid link:1") for s in "LR"],
-            *[(f"next {s} lid link:1", f"next {s} lower lid:1") for s in "LR"],
-            *[(f"next {s} upper lid:1", f"next {s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
-            *[(f"next {s} yaw yoke:1", p) for s in "LR" for p in ("next tie-bar:1", "next gimbal frame:1")],
-            *[(f"next {s} eyeball cap:1", f"next {s} eyeball core:1") for s in "LR"],
+            ("yaw horn:1", "tie-bar:1"),
+            ("pitch horn:1", "pitch bar:1"),
+            ("pitch bar:1", "bail:1"),
+            ("bail:1", "gimbal frame:1"),
+            *[(f"{s} lid horn:1", f"{s} lid bar:1") for s in "LR"],
+            *[(f"{s} upper lid:1", f"{s} lid bar:1") for s in "LR"],
+            *[(f"{s} lid bar:1", f"{s} lid link:1") for s in "LR"],
+            *[(f"{s} lid link:1", f"{s} lower lid:1") for s in "LR"],
+            *[(f"{s} upper lid:1", f"{s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
+            *[(f"{s} yaw yoke:1", p) for s in "LR" for p in ("tie-bar:1", "gimbal frame:1")],
+            *[(f"{s} eyeball cap:1", f"{s} eyeball core:1") for s in "LR"],
         ]
     },
-    # the next Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
+    # the Mech's neck and jaw (#641, #978): the same, the head mount screwed under the gimbal frame's plate
     **{
-        frozenset((f"next {d} servo:1", p)): "the horn on its spline, the tabs on their collar"
-        for d, mount in (("pan", "next neck mount:1"), ("tilt", "next pan yoke:1"), ("mouth", "next gimbal frame:1"))
-        for p in (f"next {d} horn:1", mount)
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their cradle or collar"
+        for d, mount in (("pan", "nod plate:1"), ("tilt", "nod plate:1"), ("mouth", "gimbal frame:1"))
+        for p in (f"{d} horn:1", mount)
     },
     **{
-        frozenset(
-            pair
-        ): "screwed faces, the yoke on the mount's thrust face, pin-joined faces (0.0 mm, designed contacts)"
+        frozenset(pair): "screwed faces, bearing seats, pin-joined faces (0.0 mm, designed contacts)"
         for pair in [
-            ("next head mount:1", "next gimbal frame:1"),
-            ("next head mount:1", "next pan yoke:1"),
-            ("next pan yoke:1", "next neck mount:1"),
-            ("next pan bar:1", "next pan yoke:1"),
-            ("next pan bar:1", "next pan horn:1"),
-            ("next tilt bar:1", "next tilt horn:1"),
-            ("next tilt bar:1", "next head mount:1"),
-            ("next jaw bar:1", "next mouth horn:1"),
-            ("next jaw bar:1", "next jaw:1"),
-            ("next jaw:1", "next gimbal frame:1"),  # its lugs at the condyles (#838)
+            ("head mount:1", "gimbal frame:1"),
+            ("pan horn:1", "pan lever:1"),
+            ("tilt horn:1", "tilt lever:1"),
+            ("pan bar:1", "pan lever:1"),
+            ("pan bar:1", "head mount:1"),
+            ("tilt reaction bar:1", "tilt lever:1"),
+            ("tilt reaction bar:1", "cervical carrier:1"),
+            ("nod plate:1", "cervical carrier:1"),  # its C0 trunnions
+            *(("pan bearing:1", p) for p in ("nod plate:1", "head mount:1", "pan fixed cap:1", "pan moving cap:1")),
+            ("pan fixed cap:1", "nod plate:1"),
+            ("pan moving cap:1", "head mount:1"),
+            ("jaw bar:1", "mouth horn:1"),
+            ("jaw bar:1", "jaw:1"),
+            ("jaw:1", "gimbal frame:1"),  # its lugs at the condyles (#838)
         ]
     },
     # gaps under a millimetre the frame's and the yoke's coarse pieces fill (#838), each pair one MuJoCo filters (a body
     # and its weld body's parent): their exact solids clear (model/printed/test_gimbal.py, test_neck.py)
-    **{
-        frozenset((f"next {s} lower lid:1", "next gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright"
-        for s in "LR"
-    },
-    frozenset(("next gimbal frame:1", "next pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
-    # the Torso (#685), the Cores in it (#838): the same
-    **{frozenset((f"next Core {n}:1", f"next Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
+    **{frozenset((f"{s} lower lid:1", "gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright" for s in "LR"},
+    # the Cores on the cranium tray (#858): the same
+    **{frozenset((f"Core {n}:1", f"Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            *(("next torso:1", f"next Core {n}:1") for n in (1, 2)),
+            *(
+                ("cranium tray:1", p)
+                for p in (
+                    "Core 1:1",
+                    "Core 2:1",
+                    "hub:1",
+                    "bulk capacitor:1",
+                    "gimbal frame:1",
+                )
+            ),
             # Stage 1's test stand (#720): under the gimbal frame's plate, the eyes Core against its back face
-            *(("next test stand:1", p) for p in ("next gimbal frame:1", "next Core 1:1", "next Shield 1:1")),
+            *(("test stand:1", p) for p in ("gimbal frame:1", "Core 1:1", "Shield 1:1")),
         ]
     },
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("next torso:1", "next neck mount:1"),
-            ("next torso:1", "next torso lid:1"),
-            # the yoke's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838)
-            ("next torso lid:1", "next pan yoke:1"),
-            ("next torso:1", "next pack:1"),
-            ("next torso:1", "next switch board:1"),
+            ("torso:1", "cervical carrier:1"),
+            ("torso:1", "torso lid:1"),
+            # the carrier's rails up through the lid's slots: the lid's pieces fill the slots (#838, #978)
+            ("torso lid:1", "cervical carrier:1"),
+            ("torso:1", "pack:1"),
+            ("torso:1", "switch board:1"),
+            ("torso:1", "power-path board:1"),
         ]
     },
 }
@@ -113,6 +122,22 @@ def forward(doc):
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     return model, data
+
+
+@functools.cache
+def _faces(file):
+    return len(trimesh.load(file, force="mesh").faces)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", list(g.MECH))
+def test_mujoco_plays_no_bone_and_loads_every_mesh_within_its_stl_limit(doc):
+    """MuJoCo's STL reader takes at most 200 000 faces, and the realistic skull's are past it (#855): its bones are no
+    body (physics runs on the mechanical documents, #809; model/trajectories.py poses() puts them on their carriers)."""
+    s = mjcf.spec(doc, collide=False)
+    bones = {n for n, p in stages.STAGES[doc].parts.items() if stages.stem(p.file) in g.BONES}
+    assert bones.isdisjoint(b.name for b in s.bodies)
+    assert [m.file for m in s.meshes if _faces(os.path.join(mjcf.BUILD, m.file)) >= 200_000] == []
 
 
 @pytest.mark.parametrize("doc", grouped(g.SIMULATED))
@@ -168,9 +193,9 @@ def test_the_viewer_look_stays_as_cansin_kept_it():
 
     theme = g.theme(DOC)
     for part, group in (
-        ("next torso:1", "Mounts"),
-        ("next gimbal frame:1", "Bones"),
-        ("next L eyeball cap:1", "eye whites"),
+        ("torso:1", "Mounts"),
+        ("gimbal frame:1", "Bones"),
+        ("L eyeball cap:1", "eye whites"),
     ):
         hexc = g.filament(group, theme)[3]
         assert np.allclose(drawn[part], rgba(mjcf.VIEW.get(hexc, hexc))), part
@@ -222,19 +247,63 @@ def test_every_four_bar_and_push_rod_closes_by_a_connect(doc):
     """Each four-bar and push-rod is closed by a connect at its coupler's rocker pin; its loops are gated by the sim
     report's sweep, where the ranking can mark them (#705, model/test_report.py)."""
     model = built(doc)
-    assert model.neq == sum(len(h.loops) + len(h.rods) for h in stages.STAGES[doc].horns.values())
+    horns = stages.STAGES[doc].horns.values()
+    reactions = sum(bool(h.direct and h.direct.reaction) for h in horns)  # a moving case's reaction bar (#902)
+    assert model.neq == sum(len(h.loops) + len(h.rods) for h in horns) + reactions
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
-    """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
-    within 0.5 degrees of the four-bar kinematics (model/linkage.py, stages.pose) at that horn angle."""
+    """Across each horn's sweep the servo holds its command within its full-torque band (a loaded standard servo sags
+    inside it, #978) and every driven joint (lid, eyeball, tilt, pan, jaw) is within 0.5 degrees of the
+    four-bar kinematics (model/linkage.py, stages.pose) at the angle the horn holds."""
     stage = stages.STAGES[doc]
     for (h, d), data in sweep(doc).items():
-        expected = {h: d, **stages.pose(stage, h, d).joints}
+        held, values = math.degrees(data.joint(h).qpos[0]), mjcf.motor(h)
+        assert abs(held - d) < values["band_deg"], (h, d, held)
+        expected = {h: held, **stages.pose(stage, h, held).joints}
         for joint, deg in expected.items():
             actual = math.degrees(data.joint(joint).qpos[0])
             assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)
+
+
+@pytest.mark.parametrize("doc", grouped(["mech-back-mechanical"]))
+def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
+    """#937: this sweep point was still ringing a degree off after the old half-second hold."""
+    model, command = built(doc), {"pan horn": -16.0854752692}
+    data = mjcf.pose(model, command)
+    assert math.degrees(data.joint("pan horn").qpos[0]) == pytest.approx(-16.0854752692, abs=TURN_DEG)
+    assert np.abs(np.degrees(data.qvel)).max() < 0.5  # a static reading, not a frame from the remaining swing
+    rated = math.degrees(mjcf.SERVO["no_load_rad_s"])
+    fast = mjcf.pose(model, command, rated)
+    assert fast.time == pytest.approx(0.5 + abs(command["pan horn"]) / rated, abs=model.opt.timestep)
+
+
+def test_the_standard_servo_reaches_full_torque_at_its_band_and_the_micro_at_its_deadband():
+    """#978: the MG996R's proportional band (mjcf.STANDARD_BAND_DEG, inferred); the 9 g micro keeps #625's model."""
+    for horn, band in (
+        ("tilt horn", mjcf.STANDARD_BAND_DEG),
+        ("pan horn", mjcf.STANDARD_BAND_DEG),
+        ("L lid horn", 0.5),
+    ):
+        values = mjcf.motor(horn)
+        assert math.degrees(values["stall_nm"] / values["kp"]) == pytest.approx(band)
+
+
+def test_a_quiet_but_stalled_pose_fails_and_restores_the_callers_contact_flags():
+    model = mujoco.MjModel.from_xml_string("""
+    <mujoco>
+      <option timestep="0.0005" gravity="0 0 0"/>
+      <worldbody><body><joint name="stalled" type="hinge"/>
+        <geom type="sphere" size="0.01" mass="0.1"/>
+      </body></worldbody>
+      <actuator><position name="stalled" joint="stalled" kp="0"/></actuator>
+    </mujoco>
+    """)
+    flags = model.opt.disableflags
+    with pytest.raises(RuntimeError, match="did not settle"):
+        mjcf.pose(model, {"stalled": 10})
+    assert model.opt.disableflags == flags
 
 
 def test_every_part_weighs_its_mass_spread_over_its_pieces():
@@ -246,24 +315,19 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
         assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
 
 
-def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
-    """#838: the tilt pivot's stiffness and springref are neck.balance's rate and its torque at rest for the head this
-    MJCF weighs (N.m), in its Skin and bare (#830), so the turns of their weights at rest split their miss."""
-    model = built(DOC)
-    rest, rate = neck.balance(mjcf.head(DOC, model), mjcf.head(DOC, model, bare=True))
-    joint = model.joint("tilt pivot")
-    # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
-    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)
-    spring = model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0]
-    assert spring == pytest.approx(rest * mjcf.KGF_CM, rel=1e-4)
-
-
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))
 def test_a_grown_part_cuts_into_no_more_pieces_than_its_cap(stem):
     assert 0 < len(mjcf.convex(stages.stl(stem))) <= mjcf.MAX_PIECES[stem]
 
 
 def test_mass_follows_density_or_the_documented_figure():
-    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3
-    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(1.24)
+    """#1003: a printed part weighs as it prints, a skin SKIN_MM thick round its INFILL core; a part thinner than two
+    skins prints solid; hardware weighs its documented figure or its STEP volume at its density."""
+    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3, 600 mm2: a 510 mm3 skin round a 490 mm3 core at 15%
+    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(
+        1.24 * (510 + 0.15 * 490) / 1000, abs=1e-3
+    )  # mass() rounds to the mg
+    plate = trimesh.creation.box((40.0, 40.0, 1.6))  # its two faces' skins fill it
+    assert mjcf.mass(plate, (1.24, "PLA Pure")) == pytest.approx(1.24 * 40 * 40 * 1.6 / 1000, abs=1e-3)
+    assert mjcf.mass(cube, (1.9, "step volume x 1.9 g/cm3")) == pytest.approx(1.9)
     assert mjcf.mass(cube, (16.0, "documented")) == 16.0

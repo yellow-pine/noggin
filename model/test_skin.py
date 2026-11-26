@@ -51,3 +51,112 @@ def test_the_upper_lid_cover_stays_above_where_the_lower_lid_passes_over_the_upp
         lower_top = gm.LOWER_REST + gm.lower(s)  # the lower lid's edge, as the upper lid's at LID_REST + s
         assert lower_top < skin.UPPER_COVER[0] + s - 0.5
     assert gm.LID_R[1] + skin.GAP + skin.COVER < gm.LOWER_R[1] + skin.GAP  # the lower cover rides outside the upper one
+    # forward of that band, its skin stays inside the lower lid's path, with the clearance and the mesh's 0.02 to spare
+    assert gm.LID_R[1] + skin.GAP + skin.BAND + gm.LID_CLEAR_MM + 0.02 < gm.LOWER_R[0]
+
+
+def _hidden(r, x, deg, cover_r, span, xs):
+    """Whether the ray straight forward (-y) from each lid point (radius r, x across, deg up from forward as turned)
+    passes through its cover (from inner radius cover_r out, span deg as turned, over xs)."""
+    seen = np.degrees(np.arcsin(np.sqrt(r**2 - x**2) * np.sin(np.radians(deg)) / np.sqrt(cover_r**2 - x**2)))
+    return (xs[0] <= x) & (x <= xs[1]) & (span[0] <= seen) & (seen <= span[1])
+
+
+@pytest.mark.parametrize("lid", ["upper", "lower"])
+def test_no_lid_shows_past_its_cover_from_the_front(lid):
+    """#881: every point of each lid's main shell (both faces, so its free edge's face too) is behind its cover seen
+    from the front, over the lid servo's whole range: the lids turn with their servo alone, which follows the eye's
+    look within LID_EDGES. LID_SHELL_X bounds the main shell that printed/gimbal.py _lid draws."""
+    xs = np.linspace(*gm.LID_SHELL_X[lid], 47)
+    for s in np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), 73):
+        if lid == "upper":
+            radii, span, turn = gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), s
+            cover_r, cover, cover_x = gm.LID_R[1] + skin.GAP, skin.UPPER_SKIN, skin.COVER_X
+        else:
+            radii, span, turn = gm.LOWER_R, (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST), gm.lower(s)
+            cover_r, cover, cover_x = gm.LOWER_R[1] + skin.GAP, skin.LOWER_COVER, skin.LOWER_X
+        x, r, deg = np.meshgrid(xs, radii, np.linspace(*span, 53))
+        hidden = _hidden(r, x, deg + turn, cover_r, np.add(cover, turn), cover_x)
+        assert hidden.all(), (s, x[~hidden].min(), x[~hidden].max(), deg[~hidden].min(), deg[~hidden].max())
+
+
+def _on_skeleton(skin_shape):
+    """{(the Shell less its Skin's name, carrier, at, normal)}: the Skin's Seats on the Skeleton."""
+    prefix = f"{skin_shape} "
+    return {
+        (s.shell.removeprefix(prefix), s.carrier, s.at, s.normal)
+        for s in skin.SEATS
+        if s.shell.startswith(prefix) and not s.carrier.startswith(prefix)
+    }
+
+
+def test_every_skin_sits_on_the_same_seats_on_the_skeleton():
+    """#51, #813: one Skeleton for every Skin; each Skin's Shells come off and on the same kinematic Seats."""
+    assert len(_on_skeleton("morty")) == 13  # 4 lid covers, 2 face, 2 hair, the mouth, 4 shirt
+    for skin_shape in g.SKINS:
+        assert _on_skeleton(skin_shape) == _on_skeleton("morty"), skin_shape
+
+
+def test_cansins_sunglasses_hang_by_a_magnet_on_his_tees_neckline():
+    """#813: aviators hooked on the tee's neckline, a small separate magnetic part in Apricot."""
+    (seat,) = (s for s in skin.SEATS if s.shell == "cansin sunglasses")
+    assert seat.carrier == "cansin shirt front" and seat.normal == (0.0, -1.0, 0.0)
+    assert g.PRINTED["cansin sunglasses"][0] == "accessories"
+    assert g.filament("accessories", g.PRESETS["Default build"])[1] == "Apricot"
+
+
+def test_a_glued_shell_is_keyed_in_what_carries_it():
+    """The pupils (#51: keyed, not held by magnets alone), and Cansin's plugs, brows and teeth (#813)."""
+    assert skin.GLUED["morty L pupil"] == ("L eyeball cap", (0.0, -1.0, 0.0))
+    assert skin.GLUED["cansin L pupil"][0] == "cansin L pupil plug"
+    assert skin.GLUED["cansin L pupil plug"][0] == "L eyeball cap"
+    assert skin.GLUED["cansin teeth"][0] == "cansin mouth cover"
+    assert skin.GLUED["cansin R brow"][0] == "cansin face"
+    assert set(skin.SHELLS) == {n for n in g.PRINTED if n.split()[0] in g.SKINS} | {f"{s} eyeball cap" for s in "LR"}
+
+
+def test_every_shell_belongs_to_one_motion_region():
+    """#969: each Shell moves with the Motion region it shows: the head's on the head, the mouth on the jaw, a lid cover
+    on its lid, a cap or pupil on its eye, the shirt on the fixed torso; the neck, shoulders and torso have no carrier."""
+    assert {skin.region(s) for s in skin.SHELLS} <= skin.MOTION.keys()
+    assert skin.MOTION["neck"] is skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    for shell, region in {
+        "morty face": "head",
+        "morty hair": "head",
+        "cansin L brow": "head",
+        "morty mouth cover": "jaw",
+        "cansin teeth": "jaw",
+        "morty L upper lid cover": "L upper lid",
+        "bart R lower lid cover": "R lower lid",
+        "L eyeball cap": "L eye",
+        "cansin R pupil plug": "R eye",
+        "morty shirt front": "torso",
+        "cansin sunglasses": "torso",
+    }.items():
+        assert skin.region(shell) == region, shell
+    with pytest.raises(KeyError):
+        skin.region("morty tail")
+
+
+def _inside(points, poly):
+    """Even-odd: which (n, 2) points lie inside the closed polygon."""
+    a, b = poly, np.roll(poly, -1, axis=0)
+    x, y = points[:, :1], points[:, 1:]
+    span = (a[:, 1] > y) != (b[:, 1] > y)
+    t = (y - a[:, 1]) / np.where(span, b[:, 1] - a[:, 1], 1.0)
+    return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
+
+
+def test_mortys_contours_sit_round_his_eyes_as_his_model_sheet_draws_them():
+    """#992: each eye white round its eye (gm.EYE, the sheet's eyes on ours), its pupil inside it; the hairline over the
+    forehead and down behind to the nape, the mouth line under the eyes, the collar under the mouth (the head's frame)."""
+    for s in "LR":
+        white, pupil = skin.outline(f"{s} eye white"), skin.outline(f"{s} pupil")
+        x, _, z = gm.EYE[s]
+        assert _inside(np.array([(x, z)]), white).all()
+        assert _inside(pupil, white).all()
+        assert np.linalg.norm(white - (x, z), axis=1) == pytest.approx(0.39 * gm.SPACING, rel=0.15)
+    hair, mouth, collar = (skin.contour(n) for n in ("hairline", "mouth", "collar"))
+    assert hair[0][1] > 0 > hair[-1][1] and hair[0][0] < hair[-1][0]  # forehead first, nape behind and under the eyes
+    assert collar[:, 1].max() < mouth[:, 1].min() < mouth[:, 1].max() < 0
+    assert _inside(np.array([(0.0, -skin.FAR / 2)]), skin.outline("mouth")).all()  # the jaw under the mouth line

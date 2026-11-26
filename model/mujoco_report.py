@@ -5,10 +5,10 @@ distance between the convex pieces, within CLEARANCE_MM), the four-bars' residua
 angles (model/gates.py), the force each servo holds against
 its rated and stall torque, and the centre of mass against the base footprint. Each horn is also swung to its ends at
 the servo's rated speed, to see whether the joints land where the slow pose puts them. Every motion the Mech plays (each
-gesture, Rest and the next hero: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
+gesture, Rest and the hero: model/trajectories.py) is played through the servos' dynamics, and MuJoCo's
 inverse dynamics reads each servo's torque along it, held against gravity and turning its load, beside its hold at
 Rest; the centre of mass, shifted by its acceleration, against the footprint (and the footprint's size); and, for
-ranking the next Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
+ranking the Mech (#51), the neck's vibration figures (vibration()). just sim writes it into
 model/build/reports/<doc>-sim.json under "mujoco" (model/report.py), beside the MJCF model/build/reports/<doc>.xml;
 model/test_report.py thresholds it (research note docs/research/2026-11-01-mujoco-report.md)."""
 
@@ -83,7 +83,7 @@ def _plate(model, data):
     """The base's (the Torso's) foot: its drawn mesh's vertices in MuJoCo's world (mm), where they are, within FOOT_MM
     of its lowest: its outline is the footprint, what stands on the table (the Seats' pads on its walls stand off it,
     #665)."""
-    v = vertices(model, data, model.body("next torso:1").id)
+    v = vertices(model, data, model.body("torso:1").id)
     return v[v[:, 2] <= v[:, 2].min() + FOOT_MM]
 
 
@@ -99,7 +99,7 @@ def margin(outline, xy):
 
 def torques(model, data, moving=True):
     """N.m each actuator's servo turns its load with at data's pose, by MuJoCo's inverse dynamics (mj_rne, which leaves
-    out the servo's own rotor, its armature) less the balance spring's turn, with the four-bars rigid: the servos'
+    out the servo's own rotor, its armature), with the four-bars rigid: the servos'
     torques and the rocker pins' forces that balance it, by least squares. moving: at data's speed and acceleration;
     else held, against gravity alone."""
     mujoco.mj_kinematics(model, data)
@@ -108,10 +108,8 @@ def torques(model, data, moving=True):
     if not moving:
         data.qvel[:] = 0
     mujoco.mj_rne(model, data, int(moving), need)
-    mujoco.mj_passive(model, data)  # the balance spring's share (mjcf.balance), not the dampers'
-    need -= data.qfrc_spring
     data.qvel[:] = qvel
-    cols = [np.eye(model.nv)[:, model.jnt_dofadr[model.actuator_trnid[:, 0]]]]
+    cols = [np.eye(model.nv)[:, model.jnt_dofadr[model.actuator_trnid[:, 0]]] * model.actuator_gear[:, 0]]
     for i in range(model.neq):  # each connect: its two sites' Jacobians apart (mjcf.spec's closures)
         a, b = np.zeros((3, model.nv)), np.zeros((3, model.nv))
         mujoco.mj_jacSite(model, data, a, None, model.eq_obj1id[i])
@@ -173,15 +171,14 @@ def _motions(doc, model, plate, names):
                 if moving is None or mm < moving["margin_mm"]:
                     shift = float(np.linalg.norm(at - c[:2]))
                     moving = {"margin_mm": round(mm, 1), "at": {"motion": name, "ms": ms}, "shift_mm": round(shift, 1)}
-    stall = round(mjcf.STALL_NM / KGF_CM, 3)
-    out = {h: {**s, "rated_kgf_cm": sim.RATED_KGF_CM, "stall_kgf_cm": stall} for h, s in servos.items()}
+    out = {h: {**s, **sim.limits(h)} for h, s in servos.items()}
     grams = {n: mjcf.mass(trimesh.load(p.file, force="mesh"), p.material) for n, p in seated.items()}
     shells = {n: {"g": grams[n], **peaks[n]} for n in peaks}
     return {"names": names, "servos": out, "shells": shells}, moving
 
 
 def vibration(doc, model, data, slow):
-    """The neck's figures for ranking the next Mech's head variants (#51), at data's pose: the head's mass times its centre
+    """The neck's figures for ranking the Mech's head variants (#51), at data's pose: the head's mass times its centre
     of mass's height above the tilt axis, and per neck servo the inertia its output joint turns, its gain (the output's
     span over the servo's, from the slow sweep's ends) and the servo loop's own mode through it (the servo's kp on its
     rotor plus the load referred to its shaft). Not the lowest mode: the printed parts' compliance and the gears' backlash,
@@ -190,12 +187,13 @@ def vibration(doc, model, data, slow):
     mujoco.mj_fullM(model, data, full)
     for h in (TILT, PAN):
         lo, hi = stage.horns[h].limits
-        j = model.joint(stage.horns[h].loops[0].joint)
+        horn = stage.horns[h]
+        j = model.joint(horn.direct.joint if horn.direct else horn.loops[0].joint)
         q = model.jnt_qposadr[j.id]
         gain = abs(slow[(h, hi)][q] - slow[(h, lo)][q]) / math.radians(hi - lo)
         inertia = full[model.jnt_dofadr[j.id], model.jnt_dofadr[j.id]]
         rotor = model.dof_armature[model.jnt_dofadr[model.actuator(h).trnid[0]]]
-        hz = math.sqrt(mjcf.SERVO["kp"] / (rotor + gain**2 * inertia)) / (2 * math.pi)
+        hz = math.sqrt(mjcf.motor(h)["kp"] / (rotor + gain**2 * inertia)) / (2 * math.pi)
         out[h] = {"inertia_g_cm2": round(inertia * 1e7, 1), "gain": round(gain, 3), "servo_loop_hz": round(hz, 1)}
         if h == TILT:
             body = model.jnt_bodyid[j.id]
@@ -262,10 +260,11 @@ def measure(doc, model, part=(0, 1)):
         for d in horn.limits:
             if (h, d) not in slow:  # its end in another part's share of the sweep
                 slow[(h, d)] = mjcf.pose(model, {h: d}).qpos.copy()
-            fast = mjcf.pose(model, {h: d}, RATED_DEG_S).qpos
+            rated_speed = 60 / electrical.servo.profile(h.removesuffix(" horn"))["s_per_60"]
+            fast = mjcf.pose(model, {h: d}, rated_speed).qpos
             off = math.degrees(float(np.abs(fast - slow[(h, d)]).max()))  # every DOF is a hinge
             if h not in full_speed or off > full_speed[h]["off_deg"]:
-                full_speed[h] = {"deg_s": round(RATED_DEG_S, 1), "off_deg": round(off, 2), "at": d}
+                full_speed[h] = {"deg_s": round(rated_speed, 1), "off_deg": round(off, 2), "at": d}
     out = {
         "mujoco": version("mujoco"),
         "step_deg": STEP_DEG,
@@ -275,10 +274,7 @@ def measure(doc, model, part=(0, 1)):
         "pairs": sorted(pairs.values(), key=lambda p: p["pair"]),
         "residuals": residuals,
         "loops": loops,
-        "actuators": {
-            h: {**a, "rated_kgf_cm": sim.RATED_KGF_CM, "stall_kgf_cm": round(mjcf.STALL_NM / KGF_CM, 3)}
-            for h, a in actuators.items()
-        },
+        "actuators": {h: {**a, **sim.limits(h)} for h, a in actuators.items()},
         "full_speed": full_speed,
     }
     out["motions"], moving = _motions(doc, model, plate, share(trajectories.motions(doc), part))

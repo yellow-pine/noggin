@@ -5,36 +5,69 @@ import { AXES, PALETTES, PRESETS } from "../theme.mjs";
 
 export const title = (s) => s[0].toUpperCase() + s.slice(1);
 
-// what plays, and the Claude Code event that plays it; the Tour (no gesture) plays every gesture in turn
-export const caption = (gesture) => (gesture ? `${title(gesture)}: ${moments[gesture]}` : "Tour: every gesture in turn");
+// what plays: a gesture's Claude Code event, Rest's and the hero loop's own line
+const OWN_LINE = { rest: "the Mech at rest, between gestures", hero: "the demo loop, every move in one" };
+export function caption(clip) {
+  return `${title(clip)}: ${moments[clip] ?? OWN_LINE[clip]}`;
+}
 
-// a Stage's GLB in a Skeleton shape: its name as Bones and the Shape's suffix (#704, #805: "-mechanical"), as macros.py
-// stage_switch has them; Blender draws the GLBs per Shape alone (#819)
-export const glb = (stage, shape) => stage + (published.stages.skeletons[shape] ?? "");
+// what a viewer plays with no gesture named, round and round: its Stage's hero loop, else Rest (Stage 1: no neck)
+export const looped = (clips) => clips.find((c) => c === "hero") ?? "rest";
 
-// the viewer's mix (#819): the Preset's value on each axis (src/theme.mjs), unless the address names another
-// (?skeleton-palette=black)
+// a Stage's GLB in a Skeleton shape and a Skin shape: its name as Bones, the Skeleton shape's suffix (#704, #805:
+// "-mechanical"), then the Skin shape's where the site serves that GLB (#876: none's "-bare", Stage 3's alone), as
+// macros.py stage_switch has them; Blender draws the GLBs per Shape alone, the viewer paints each Palette (#819)
+export function glb(stage, shape, skin) {
+  const bones = stage + (published.stages.skeletons[shape] ?? ""), bare = bones + (published.stages.skins[skin] ?? "");
+  return published.viewer.includes(`${bare}.glb`) ? bare : bones;
+}
+
+// the viewer's mix (#819): the picked Preset's value on each axis (src/theme.mjs), else the Default build's (#889: no
+// Skin), unless the address names another (?skeleton-palette=black)
 export function mixed(search, preset) {
-  const link = new URLSearchParams(search);
+  const link = new URLSearchParams(search), from = PRESETS[preset] ?? Object.values(PRESETS)[0];
   return Object.fromEntries(
-    Object.entries(AXES).map(([a, values]) => [a, values.includes(link.get(a)) ? link.get(a) : PRESETS[preset][a]]),
+    Object.entries(AXES).map(([a, values]) => [a, values.includes(link.get(a)) ? link.get(a) : from[a]]),
   );
 }
 
-// {Colour group: hex} a mix paints a GLB's materials in, each named by its group (web/glb.py): its Palettes'
-export const paint = (mix) => Object.assign({}, ...Object.entries(PALETTES).map(([a, palettes]) => palettes[mix[a]]));
+// {Colour group: hex} a mix paints a GLB's materials in, each named by its group (web/glb.py): its Palettes', black
+// as `black`, the charcoal the GLB's look draws it in (web/glb.py, #914)
+export const paint = (mix, black) =>
+  Object.fromEntries(
+    Object.entries(PALETTES).flatMap(([a, palettes]) =>
+      Object.entries(palettes[mix[a]] ?? {}).map(([group, hex]) => [group, hex === "#000000" ? black : hex]),
+    ),
+  );
 
 // Explode's levels (#811), each a button: every part home, each sub-assembly apart, each part apart
 export const LEVELS = ["Assembled", "Sub-assemblies", "Parts"];
 
-// a deep link, ?stage=<n>&gesture=<g>&explode=<level>: the page's nth Stage button's Stage (else `fallback`, the
-// viewer's own), its gesture, and its Explode level (LEVELS' index, 0 by default); its Shapes and Palettes are the
-// mix's (mixed)
+// the camera's direction from the Stage, in glTF's Y-up (the eyes face +Z, the Mech's left is +X): view= picks one, as
+// the pictures' (model/render/pictures.py VIEWS, FRONT); without it the default framing, the old hero GIF's view, 15
+// deg to the Mech's right and 15 deg up
+export const VIEWS = { front: [0, 0, 1], side: [1, 0, 0], isometric: [1, 1, 1] };
+export const VIEW = [-0.25, 0.259, 0.933];
+
+// a deep link, ?stage=<n>&gesture=<g>&explode=<level>&view=<view>&part=<part>: the page's nth Stage button's Stage
+// (else `fallback`, the viewer's own), its gesture, its Explode level (LEVELS' index, 0 by default), its view (VIEWS)
+// and the one part it shows at full look (none: every part); its Shapes and Palettes are the mix's (mixed)
 export function opened(search, stages, fallback) {
   const link = new URLSearchParams(search), stage = stages[link.get("stage") - 1] ?? fallback;
   const explode = Math.min(Math.max(parseInt(link.get("explode")) || 0, 0), LEVELS.length - 1);
-  return { stage, gesture: link.get("gesture"), explode };
+  return { stage, gesture: link.get("gesture"), explode, view: VIEWS[link.get("view")] ?? VIEW, part: link.get("part") };
 }
+
+// whether a GLB's node (its part's name, Blender's copy number after a colon) is drawn at full look: every one, or the
+// part= one's copies alone, the rest ghosted
+export const shows = (part, node) => !part || node.replace(/:\d+$/, "") === part;
+// a mesh's part: the glTF name of the node it is or sits in (Blender's object, web/glb.py), which GLTFLoader keeps in
+// userData.name (its .name is sanitised: "jaw:1" becomes "jaw1")
+export const partOf = (o) => o.userData.name ?? (o.parent ? partOf(o.parent) : "");
+
+// what the reader's drag may do (OrbitControls): an embed only turns, the wheel and a pinch left to scroll the page past
+// it; the /viewer page's zooms and pans too
+export const moves = (full) => ({ enableRotate: true, enableZoom: full, enablePan: full });
 
 // the deep link to what plays: the Stage by its button (where the page has them), the gesture, the Explode level; the
 // rest of the address (the Preset, the mix) kept

@@ -1,4 +1,4 @@
-"""Seam: model/gimbal.py, the next Mech's eye gimbal (#630): the eyes a pair of servo angles gives, the servo angles a
+"""Seam: model/gimbal.py, the Mech's eye gimbal (#630): the eyes a pair of servo angles gives, the servo angles a
 gaze needs, and the report's numbers against #630's gates."""
 
 import itertools
@@ -8,6 +8,17 @@ import numpy as np
 import pytest
 
 from model import envelopes, gimbal, mujoco_report
+
+
+def test_the_eyes_are_mortys_at_life_size():
+    """#901 (#872 step 3 round 2): the eyes sit on Morty's pupils, 72.7 mm apart; the cap is his eye's 40.4 mm sphere,
+    the core x1.5 with it; the upper lid rides 1 mm off it. At rest each lid's edge is on his outline (68 deg over the
+    gaze, 52 under) or, past the cap's 45 deg rim, on the rim: no eye white shows beyond it."""
+    assert gimbal.SPACING == pytest.approx(72.7)
+    assert gimbal.CAP_R == pytest.approx(40.4)
+    assert gimbal.CORE_R == pytest.approx(13.0 * 1.5)
+    assert gimbal.LID_R[0] == pytest.approx(41.4)
+    assert gimbal.LID_REST == pytest.approx(45) and gimbal.LOWER_REST == pytest.approx(-45, abs=0.5)
 
 
 @pytest.mark.parametrize("drive", ["yaw", "pitch", "L lid", "R lid"])
@@ -28,7 +39,8 @@ def test_each_lid_servo_drives_from_the_inner_side_of_its_eye(side):
     face, shaft, _, _ = gimbal.drives()[f"{side} lid"]
     x = gimbal.EYE[side][0]
     assert 0 < abs(face[0]) < abs(x) and np.sign(shaft[0]) == -np.sign(x)
-    assert gimbal.SPACING + 2 * gimbal.LID_X["upright"][1] <= 120  # the lids' frame across both eyes (today's 138)
+    # the lids' frame across both eyes within Morty's life-size cranium (#901)
+    assert gimbal.SPACING + 2 * gimbal.LID_X["upright"][1] <= gimbal.HEAD_MM[0]
 
 
 def test_each_lid_bar_meets_its_crank_at_the_transmission_floor_or_more():
@@ -39,7 +51,23 @@ def test_each_lid_bar_meets_its_crank_at_the_transmission_floor_or_more():
         a = math.radians(lid)
         crank = np.array([[math.cos(a), math.sin(a)], [-math.sin(a), math.cos(a)]]) @ gimbal.LID_PIN / gimbal.CRANK
         assert (
-            math.degrees(math.asin(abs(float(bar[0] * crank[1] - bar[1] * crank[0])))) >= mujoco_report.TRANSMISSION_DEG
+            math.degrees(math.asin(min(1.0, abs(float(bar[0] * crank[1] - bar[1] * crank[0])))))
+            >= mujoco_report.TRANSMISSION_DEG
+        )
+
+
+@pytest.mark.parametrize("side", ["L", "R"])
+def test_the_tie_bar_meets_each_yoke_crank_at_the_transmission_floor_or_more(side):
+    """#1003: the tie-bar is a parallelogram, so each eye's bar (from the yaw horn's pin to the yoke's) keeps its
+    direction, the horn's axis to the eye's centre, while the crank turns with the yaw; the angle between them, folded
+    to 0..90, stays at the MuJoCo report's floor over the yaw's range (22 mm behind the eyes it fell to 33.8)."""
+    bar = np.array([gimbal.EYE[side][0], -gimbal.YAW_Y]) / math.hypot(gimbal.EYE[side][0], gimbal.YAW_Y)
+    for yaw in np.linspace(-gimbal.YAW, gimbal.YAW, 41):
+        a = math.radians(yaw)
+        crank = (-math.sin(a), math.cos(a))  # the cranks point +y at rest, turned about z
+        assert (
+            math.degrees(math.asin(min(1.0, abs(float(bar[0] * crank[1] - bar[1] * crank[0])))))
+            >= mujoco_report.TRANSMISSION_DEG
         )
 
 
@@ -86,10 +114,11 @@ def test_the_hooke_error_is_the_literatures_and_the_command_map_takes_it_out(rep
 
 
 def test_the_gaze_gate_counts_the_pupils_seating_beside_the_play(report):
-    """#650 (#51 perception [GH]): a pupil keyed with 0.3 mm of seat play strays 0.15 mm from its seat's centre, 0.32
-    deg on the 27 mm cap; it can stray the way the play does, so the two add, and the total stays under 2 deg."""
-    assert report["pupil_deg"] == pytest.approx(0.32, abs=0.005)
-    assert report["gaze_deg"] == pytest.approx(report["play_deg"] + 0.32, abs=0.015)
+    """#650 (#51 perception [GH]): a pupil keyed with 0.3 mm of seat play strays 0.15 mm from its seat's centre, 0.21
+    deg on Morty's 40.4 mm cap (#901); it can stray the way the play does, so the two add, and the total stays under 2
+    deg."""
+    assert report["pupil_deg"] == pytest.approx(0.21, abs=0.005)
+    assert report["gaze_deg"] == pytest.approx(report["play_deg"] + 0.21, abs=0.015)
     assert report["gaze_deg"] <= gimbal.GAZE_DEG
 
 
@@ -99,11 +128,11 @@ def test_a_print_error_splits_the_eyes_a_little(report):
 
 def test_the_lids_cover_the_cap_shut_and_track_the_pitch(report):
     """Shut, the upper lid reaches past the cap's top rim and the lower past its bottom one; the servo's range runs from
-    shut tracking a pitch down to the upper edge over the pupil at full pitch up (#51 lid = rest + pitch, #698)."""
+    shut tracking a pitch down to the upper edge on the cap's rim at full pitch up (#51 lid = rest + pitch, #698, #901)."""
     lid = report["lid"]
     assert lid["shut_deg"][0] + gimbal.LID_SPAN > gimbal.CAP_HALF
     assert lid["shut_deg"][1] - gimbal.LOWER_SPAN < -gimbal.CAP_HALF
-    assert lid["edge_deg"] == pytest.approx([gimbal.LID_SHUT - gimbal.PITCH, gimbal.PUPIL_DEG + 2 + gimbal.PITCH])
+    assert lid["edge_deg"] == pytest.approx([gimbal.LID_SHUT - gimbal.PITCH, gimbal.CAP_HALF + gimbal.PITCH])
 
 
 def test_the_lower_lid_turns_against_the_upper_at_about_0_8_and_they_meet_below_the_middle():
@@ -133,15 +162,15 @@ def test_the_moved_parts_keep_their_pins_together(lid, pitch):
     one point in both, so the sweep poses an assembly, not loose parts."""
     m = gimbal.moved(lid, pitch)
     c, (hy, hz), (by, bz) = gimbal.CRANK, gimbal.PITCH_HORN, gimbal.BAIL
-    pins = [(("next pitch horn:1", "next pitch bar:1"), (0, hy + c, hz))]
-    pins.append((("next bail:1", "next pitch bar:1"), (0, by + gimbal.BAIL_IN, bz)))
+    pins = [(("pitch horn:1", "pitch bar:1"), (0, hy + c, hz))]
+    pins.append((("bail:1", "pitch bar:1"), (0, by + gimbal.BAIL_IN, bz)))
     for s, (x, _, _) in gimbal.EYE.items():
-        pins.append(((f"next {s} upper lid:1", f"next {s} lid bar:1"), (x, *gimbal.LID_PIN)))
-        pins.append(((f"next {s} lid bar:1", f"next {s} lid link:1"), (x, *gimbal.LINK_PIN)))
-        pins.append(((f"next {s} lid link:1", f"next {s} lower lid:1"), (x, *gimbal.LOWER_PIN)))
-        pins.append(((f"next {s} lid bar:1", f"next {s} lid horn:1"), (x, *np.add(gimbal.LID_HORN, gimbal.LID_PIN))))
-        pins.append(((f"next {s} eyeball core:1", f"next {s} push-rod:1"), (x, 0, gimbal.LEVER)))
-        pins.append((("next bail:1", f"next {s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
+        pins.append(((f"{s} upper lid:1", f"{s} lid bar:1"), (x, *gimbal.LID_PIN)))
+        pins.append(((f"{s} lid bar:1", f"{s} lid link:1"), (x, *gimbal.LINK_PIN)))
+        pins.append(((f"{s} lid link:1", f"{s} lower lid:1"), (x, *gimbal.LOWER_PIN)))
+        pins.append(((f"{s} lid bar:1", f"{s} lid horn:1"), (x, *np.add(gimbal.LID_HORN, gimbal.LID_PIN))))
+        pins.append(((f"{s} eyeball core:1", f"{s} push-rod:1"), (x, 0, gimbal.LEVER)))
+        pins.append((("bail:1", f"{s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
     for (a, b), p in pins:
         assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
 
@@ -153,21 +182,21 @@ def test_a_yaw_keeps_the_tie_bar_and_the_push_rods_on_their_pins(yaw, pitch):
     lever's ball and its bail arm's: the motion pictures pose an assembly."""
     m = gimbal.moved(0, pitch, yaw)
     c, (by, bz) = gimbal.CRANK, gimbal.BAIL
-    pins = [(("next yaw horn:1", "next tie-bar:1"), (0, gimbal.YAW_Y + c, 0))]
+    pins = [(("yaw horn:1", "tie-bar:1"), (0, gimbal.YAW_Y + c, 0))]
     for s, (x, _, _) in gimbal.EYE.items():
-        pins.append(((f"next {s} yaw yoke:1", "next tie-bar:1"), (x, c, 0)))
-        pins.append(((f"next {s} eyeball core:1", f"next {s} push-rod:1"), (x, 0, gimbal.LEVER)))
-        pins.append((("next bail:1", f"next {s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
+        pins.append(((f"{s} yaw yoke:1", "tie-bar:1"), (x, c, 0)))
+        pins.append(((f"{s} eyeball core:1", f"{s} push-rod:1"), (x, 0, gimbal.LEVER)))
+        pins.append((("bail:1", f"{s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
     for (a, b), p in pins:
         assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
-    front = m["next L eyeball core:1"] @ (gimbal.EYE["L"][0], -1, 0, 1)
+    front = m["L eyeball core:1"] @ (gimbal.EYE["L"][0], -1, 0, 1)
     assert math.degrees(math.atan2(front[0] - gimbal.EYE["L"][0], -front[1])) == pytest.approx(yaw, abs=1e-3)
 
 
 def test_each_lid_takes_its_own_servo():
     """A wink (#656): one eye's lids shut while the other's stay open."""
     m = gimbal.moved({"L": -21, "R": 0}, 0)
-    edge = {s: m[f"next {s} upper lid:1"] @ (x, -1, 0, 1) for s, (x, _, _) in gimbal.EYE.items()}
+    edge = {s: m[f"{s} upper lid:1"] @ (x, -1, 0, 1) for s, (x, _, _) in gimbal.EYE.items()}
     assert [round(math.degrees(math.atan2(e[2], -e[1]))) for e in edge.values()] == [-21, 0]
 
 
@@ -177,8 +206,8 @@ def test_the_lid_and_the_eyes_turn_as_commanded():
     m = gimbal.moved(12, 10)
     x = gimbal.EYE["L"][0]
     for part, turn in (("upper lid", 12), ("lower lid", gimbal.lower(12))):
-        edge = m[f"next L {part}:1"] @ (x, -1, 0, 1)
+        edge = m[f"L {part}:1"] @ (x, -1, 0, 1)
         assert math.degrees(math.atan2(edge[2], -edge[1])) == pytest.approx(turn)
     assert gimbal.lower(12) < -6  # opening, the lower lid drops
-    front = m["next L eyeball core:1"] @ (x, -1, 0, 1)
+    front = m["L eyeball core:1"] @ (x, -1, 0, 1)
     assert math.degrees(math.atan2(front[2], -front[1])) == pytest.approx(10, abs=1e-3)

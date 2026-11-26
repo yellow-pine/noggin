@@ -1,7 +1,7 @@
-"""The next hero (#117, #642): the next Mech mid-conversation, an 8 s loop keyed by hand. The jaw talks in two phrases,
+"""The hero (#117, #642): the Mech mid-conversation, an 8 s loop keyed by hand. The jaw talks in two phrases,
 the head glances aside and back twice and nods while it listens. The head's keys are in head degrees (the pan and tilt
-pivots' own), the jaw's in today's horn degrees from neutral, scaled to the next jaw's open end; each turned into its
-servo's degrees through the next Mech's own four-bars (model/neck.py servo_for). Minimum-jerk between keys. Played by
+pivots' own), the jaw's in today's horn degrees from neutral, scaled to the jaw's open end; each turned into its
+servo's degrees through the Mech's own four-bars (model/neck.py servo_for). Minimum-jerk between keys. Played by
 MuJoCo (model/trajectories.py)."""
 
 import numpy as np
@@ -47,8 +47,8 @@ def _eased(keys, t):
     return a + (b - a) * _ease(min(1.0, max(0.0, (t - t0) / (t1 - t0))))
 
 
-def next_at(t):
-    """The next Mech's hero at t seconds (#642), {servo: horn degrees from neutral}: the head keys through its own
+def keys_at(t):
+    """The Mech's hero at t seconds (#642), {servo: horn degrees from neutral}: the head keys through its own
     four-bars (model/neck.py servo_for), the jaw's phrases scaled from the deepest syllable to the jaw's open end. The
     eyes stay still: the gestures move them."""
     deepest, wide = -min(d for _, d in MOUTH), max(neck.RANGES["jaw"])

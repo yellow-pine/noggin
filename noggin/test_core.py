@@ -18,13 +18,6 @@ def test_gestures_are_the_ones_the_core_plays():
     assert core.GESTURES == tuple(eyes.Eyes.GESTURES)
 
 
-def test_the_eye_program_drives_the_servos_on_the_ports_the_model_wires():
-    """eyes/eyes.py keeps its own GPIO -> servo map (the Core runs it alone): it must be CHANNELS' eyes Core."""
-    names = {pin: name for pin, name in eyes.NAME.items() if pin != eyes.PAN}
-    assert {eyes.PORT_GPIO[str(port)]: servo for port, servo in core.CORES["eyes"].items()} == names
-    assert eyes.NAME[eyes.PAN] in core.CORES["neck"].values()  # the neck Core's, by its core.json (#688)
-
-
 def test_the_neck_core_drives_the_rest():
     assert list(core.CORES) == ["eyes", "neck"]  # the names each Core beacons and core.json carries
     assert {*core.CORES["eyes"].values(), *core.CORES["neck"].values()} == set(SERVO_LABEL)

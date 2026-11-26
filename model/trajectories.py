@@ -1,5 +1,5 @@
-"""Trajectories (#179): each motion the next Mech plays, the eye program's gestures and Rest through its eye gimbal's
-command map (model/traces.py next_commands, #663) and the next hero (model/render/hero.py, #642), played on each document
+"""Trajectories (#179): each motion the Mech plays, the eye program's gestures and Rest through its eye gimbal's
+command map (model/traces.py commands, #663) and the hero (model/render/hero.py, #642), played on each document
 by MuJoCo (model/mjcf.py) through the servos' own dynamics, every part's place in the world per 100 ms frame: the one
 source of motion the pictures render from (#150, poses()) and the web viewer's GLBs bake (web/build.py).
 Each command goes straight to its servo, a DC motor behind its own P loop that reads it one PWM frame late
@@ -22,7 +22,7 @@ import mujoco
 import numpy as np
 import trimesh
 
-from model import geometry, mjcf, stages, traces
+from model import geometry, mjcf, neck, stages, traces
 from model.render import hero, scene
 
 OUT = os.path.join(mjcf.BUILD, "trajectories")
@@ -33,9 +33,9 @@ PWM_MS = 20  # a hobby servo takes a new pulse every 20 ms (50 Hz): the hero is 
 SOURCES = [
     "model/geometry.py",
     "model/stages.py",
-    "model/gimbal.py",  # the next Mech's (#663)
+    "model/gimbal.py",  # the Mech's (#663)
     "model/skin.py",  # the Skin's Shells, drawn alone (#665)
-    "model/neck.py",  # the next Mech's (#641, #642), which stages.py places from
+    "model/neck.py",  # the Mech's (#641, #642), which stages.py places from
     "model/linkage.py",
     "model/base.py",
     "model/electrical.py",
@@ -55,17 +55,17 @@ SOURCES = [
 
 
 def hero_commands():
-    """The next hero as servo writes every PWM_MS, its first pose held from before ms 0 (the rest a gesture starts
+    """The hero as servo writes every PWM_MS, its first pose held from before ms 0 (the rest a gesture starts
     from)."""
     ms = round(hero.SECONDS * 1000)
-    writes = [(t, s, d) for t in range(-PWM_MS, ms, PWM_MS) for s, d in hero.next_at(max(t, 0) / 1000).items()]
+    writes = [(t, s, d) for t in range(-PWM_MS, ms, PWM_MS) for s, d in hero.keys_at(max(t, 0) / 1000).items()]
     return writes, range(0, ms, traces.FRAME_MS)
 
 
 def commands(doc, motion):
-    """(writes, frame times) of the motion: a gesture or Rest through the eye gimbal (#663), or the next hero (#642), the
+    """(writes, frame times) of the motion: a gesture or Rest through the eye gimbal (#663), or the hero (#642), the
     one motion that turns the neck and jaw."""
-    return hero_commands() if motion == "next hero" else traces.next_commands(motion)
+    return hero_commands() if motion == "hero" else traces.commands(motion)
 
 
 def play(model, writes, times, read=lambda data: (data.xpos.copy(), data.xquat.copy())):
@@ -104,6 +104,9 @@ def stamp(doc):
     it is stale."""
     h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
     paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
+    carriers = {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]}
+    if carriers <= stages.STAGES[doc].parts.keys() and os.path.exists(mjcf.ANATOMY_LOADS):  # mjcf.spec's shortcut
+        paths.append(mjcf.ANATOMY_LOADS)
     for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(
         {p.file for p in stages.STAGES[doc].parts.values()}
     ):
@@ -112,9 +115,9 @@ def stamp(doc):
 
 
 def motions(doc):
-    """The document's motions: every gesture and Rest through its eye gimbal (#663), and the next hero (#642) on a Stage
+    """The document's motions: every gesture and Rest through its eye gimbal (#663), and the hero (#642) on a Stage
     with the neck."""
-    return [*traces.NEXT_MOTIONS, *(["next hero"] if "pan horn" in stages.STAGES[doc].horns else [])]
+    return [*traces.MOTIONS, *(["hero"] if "pan horn" in stages.STAGES[doc].horns else [])]
 
 
 def bake(doc, names=None):
@@ -144,8 +147,17 @@ def stale(doc):
 
 def poses(doc, motion):
     """The baked motion as [{part: 4x4 world matrix, metres} per frame]: what Blender poses each picture from (#150) and
-    the web viewer's GLBs are baked from (web/build.py)."""
-    parts = json.load(open(os.path.join(OUT, doc, motion + ".json")))["parts"]
+    the web viewer's GLBs are baked from (web/build.py); a Stage in another Skin (geometry.DRESSED) plays the one it
+    wears it on. Each part MuJoCo plays none of (the skull's bones, mjcf.spec; that Skin's Shells) rides its carrier
+    (stages.RIDES) as model/stages.py places it on it, or stays where it is placed (a Shell on the Torso)."""
+    parts = json.load(open(os.path.join(OUT, geometry.undressed(doc), motion + ".json")))["parts"]
+    placed = stages.STAGES[doc].parts
+    parts = {n: p for n, p in parts.items() if n in placed}
+    rides = {}
+    for name in (n for n in placed if n not in parts):
+        carrier = stages.RIDES.get(name)  # one that rides needs its carrier baked
+        rides[name] = (carrier, np.linalg.inv(placed[carrier].matrix if carrier else np.eye(4)) @ placed[name].matrix)
+        rides[name][1][:3, 3] /= 1000  # mm to MuJoCo's metres
     frames = []
     for i in range(len(next(iter(parts.values()))["pos"])):
         frames.append({})
@@ -153,9 +165,11 @@ def poses(doc, motion):
             m = trimesh.transformations.quaternion_matrix(p["quat"][i])  # w x y z, as MuJoCo's
             m[:3, 3] = p["pos"][i]
             frames[-1][name] = m
+        for name, (carrier, rel) in rides.items():
+            frames[-1][name] = frames[-1][carrier] @ rel if carrier else rel
     return frames
 
 
 if __name__ == "__main__":
-    for doc in [d for a in sys.argv[1:] for d in (geometry.STAGES if a == "next" else [a])] or geometry.STAGES:
+    for doc in [d for a in sys.argv[1:] for d in (geometry.STAGES if a == "all" else [a])] or geometry.STAGES:
         print(f"{doc}: {len(bake(doc))} trajectories" if stale(doc) else f"{doc}: fresh")

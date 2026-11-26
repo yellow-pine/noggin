@@ -8,17 +8,16 @@ import os
 import subprocess
 
 import pytest
+import trimesh
 
-from model import base, fits, gimbal, mujoco_report, neck, report, sim, skin, stages
+from model import base, fits, gimbal, mjcf, mujoco_report, neck, report, sim, skin, stages
 from model import geometry as g
 
 HERE = os.path.dirname(__file__)
 # MuJoCo pairs (model/mujoco_report.py) that go deeper than at rest across a sweep, with why. Since #190 the pieces read
 # what the exact meshes do (model/test_mjcf.py).
 KNOWN_PAIRS = {
-    frozenset(
-        (f"next {s} push-rod:1", "next bail:1")
-    ): "the push-rod's cup round the bail arm's ball: its convex pieces"
+    frozenset((f"{s} push-rod:1", "bail:1")): "the push-rod's cup round the bail arm's ball: its convex pieces"
     " fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the exact solids"
     " share no volume at pitch -15, 0 and 15 (#663)"
     for s in "LR"
@@ -30,19 +29,15 @@ def known(pair):
     return frozenset(pair) in KNOWN_PAIRS
 
 
-# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
-# servos are DC motors (#625).
+# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does, with why.
+# None since #978's neck: its pan lands at either end (#1003).
 KNOWN_FULL_SPEED = {}
-# (document, servo) whose load peaks over half its stall along a motion, with why.
-KNOWN_PEAKS = {
-    (doc, horn): "the next hero (#642) turns the next Mech's heavier head on the hero's keys, timed for Stage 3's: each"
-    " 20 ms command step saturates the servo (~0.66 kgf.cm, the tilt's 1.1 with the head in its Skin (#830), Stage 3's"
-    " 0.43); its own gestures, minimum jerk under an"
-    " acceleration cap (#51), are a later ticket"
-    for doc in g.SIMULATED
-    if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
-    for horn in ("pan horn", "tilt horn")
-}
+# (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why. None since
+# printed parts weigh at their infill (#1003).
+KNOWN_NECK_HOLDS = {}
+# (document, servo) whose load peaks over half its stall along a motion, with why. None since the standard servo's
+# band (#978): the hero's 20 ms command steps no longer saturate it.
+KNOWN_PEAKS = {}
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {}
 
@@ -70,7 +65,7 @@ def problems(report):
 
 
 def variant_problems(report):
-    """The next Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
+    """The Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
     eyes sit in its lower half (base.EYES_UP, #708), in each look: a hard gate."""
     v, out = report.get("variant"), []
     if not v:
@@ -84,7 +79,7 @@ def variant_problems(report):
 
 
 def gimbal_problems(report):
-    """The next Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
+    """The Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
     lids' clearance to what moves inside them and to each other, their servo range, its bounding box in the compact
     head (#684), and the lid drives' sweep (#650, model/printed/gimbal.py sweep())."""
     m, out = report.get("gimbal"), []
@@ -118,7 +113,7 @@ def gimbal_problems(report):
 
 
 def neck_problems(report):
-    """The next Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
+    """The Mech's neck and jaw (model/neck.py report(), #641): each bar's transmission angle and its servo's
     travel, the tilt servo's hold of the head in its Skin and bare against the rated torque, the flexing spans' bends
     against their floor."""
     m, out = report.get("neck"), []
@@ -126,7 +121,7 @@ def neck_problems(report):
         return out
     for drive in neck.RANGES:
         d = m[drive]
-        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+        if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
             out.append(
                 f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
             )
@@ -134,8 +129,9 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        if t["hold_kgf_cm"] > sim.RATED_KGF_CM:
-            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+        rated = sim.limits("tilt horn")["rated_kgf_cm"]
+        if t["hold_kgf_cm"] > rated and (report["doc"], head) not in KNOWN_NECK_HOLDS:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
@@ -244,8 +240,34 @@ def test_built_report_is_clean(doc):
     assert problems(r) == []
 
 
+@pytest.mark.parametrize("doc", [d for d in g.DRESSED if g.undressed(d) in g.SIMULATED])
+def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(doc):
+    """#813: physics runs on Morty's Skin alone (geometry.DRESSED); every other Skin sits on his Seats (model/skin.py),
+    so each of its Shells, what is glued in it too, is held at the peak acceleration the sim measured his there (or
+    what carries it, where he has none: Cansin's sunglasses on the shirt)."""
+    peaks = built(g.undressed(doc))["mujoco"]["motions"]["shells"]
+    stage, theirs = stages.STAGES[doc], f"{doc.rsplit('-', 1)[1]} "
+
+    def grams(stem):
+        p = stage.parts[f"{stem}:1"]
+        glued = [s for s, (carrier, _) in skin.GLUED.items() if carrier == stem]
+        return mjcf.mass(trimesh.load(p.file, force="mesh"), p.material) + sum(map(grams, glued))
+
+    weak = []
+    for seat in {s.shell: s for s in skin.SEATS if s.shell.startswith(theirs)}.values():
+        his = next(
+            f"{n.replace(theirs, 'morty ')}:1"
+            for n in (seat.shell, seat.carrier)
+            if f"{n.replace(theirs, 'morty ')}:1" in peaks
+        )
+        holds = skin.hold_n() * sum(s.shell == seat.shell for s in skin.SEATS)
+        if holds < skin.SF * grams(seat.shell) / 1000 * peaks[his]["peak_m_s2"]:
+            weak.append((seat.shell, round(holds), round(grams(seat.shell), 1), peaks[his]))
+    assert weak == []
+
+
 @pytest.mark.parametrize("doc", sorted(report.RANKED))
-def test_the_next_mechs_footprint_is_reported_and_is_its_torsos(doc):
+def test_the_mechs_footprint_is_reported_and_is_its_torsos(doc):
     """#685: the shirt is the base, so the footprint the tip-over gate reads is the Torso's foot, x by y mm."""
     (x0, x1), (y0, y1), _ = base.TORSO
     assert built(doc)["mujoco"]["tip_over"]["footprint_mm"] == [x1 - x0, y1 - y0]
@@ -267,8 +289,7 @@ FIXTURE_PROBLEMS = {
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
         "mujoco tilt horn: peaks at 0.55 kgf.cm at {'motion': 'hero', 'ms': 410} > half its stall 1.0",
-        "mujoco next morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero',"
-        " 'ms': 410})",
+        "mujoco morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero', 'ms': 410})",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
         "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
         " {'motion': 'hero', 'ms': 410}",
@@ -276,15 +297,15 @@ FIXTURE_PROBLEMS = {
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
-        "gimbal block: 150.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 140.0 x 140.0 x 150.0",
-        "gimbal sweep: next L lid bar:1 / next L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
-        "gimbal sweep: next L lid bar:1 / next gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
+        "gimbal block: 170.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
+        "gimbal sweep: L lid bar:1 / L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
+        "gimbal sweep: L lid bar:1 / gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
         "neck pan servo: 95.0 deg past its 90.0",
-        "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.4",
-        "neck tilt: holds the bare head (its Skin off) with 0.42 kgf.cm > the rated 0.4",
+        "neck tilt: holds the head with 3.45 kgf.cm > the rated 3.222",
+        "neck tilt: holds the bare head (its Skin off) with 3.42 kgf.cm > the rated 3.222",
         "neck tilt span: bends to 12.0 mm < 14.0",
-        "variant head: 120.0 x 141.5 x 149.0 mm (W x D x H) past the compact head's 140.0 x 140.0 x 150.0",
+        "variant head: 120.0 x 177.5 x 149.0 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
         "variant eyes: 0.62 of the head's height up > 0.55",
     ],
 }
@@ -299,8 +320,12 @@ def test_fixture_reports(name):
 def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
     swing lands, or a KNOWN_PEAKS servo peaks under the mark, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
-    going, swings, low, peaks = set(), set(), set(), set()
+    going, swings, low, peaks, holds = set(), set(), set(), set(), set()
     for doc in g.SIMULATED:
+        n = built(doc).get("neck")
+        if n:
+            heads = (("the head", n["tilt"]), ("the bare head (its Skin off)", n["tilt"]["bare"]))
+            holds |= {(doc, head) for head, t in heads if t["hold_kgf_cm"] > sim.limits("tilt horn")["rated_kgf_cm"]}
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
@@ -311,3 +336,4 @@ def test_known_mujoco_exceptions_are_still_there():
     assert swings == set(KNOWN_FULL_SPEED)
     assert low == set(KNOWN_TRANSMISSION)
     assert peaks == set(KNOWN_PEAKS)
+    assert holds == set(KNOWN_NECK_HOLDS)

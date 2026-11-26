@@ -2,11 +2,16 @@
 and the re-pin moves the version, series directory and hash and nothing else; sources fall back in the Dockerfile's
 order."""
 
+import re
 from datetime import UTC, datetime
+from io import BytesIO
+from pathlib import Path
+from types import SimpleNamespace
 from urllib.error import HTTPError
 
 import pytest
 
+from scripts import blender_pin
 from scripts.blender_pin import SOURCES, lookup, newest, repin, tarball_sha256
 
 NOW = datetime(2026, 11, 1, tzinfo=UTC)
@@ -113,3 +118,50 @@ def test_sources_that_disagree_do_not_pin():
 def test_every_source_failing_fails_the_run():
     with pytest.raises(ExceptionGroup):
         lookup("5.2.2", LATER, recorded({}))
+
+
+def test_the_weekly_update_moves_both_binary_and_native_source_pins(tmp_path, monkeypatch):
+    repo = Path(blender_pin.__file__).parents[1]
+    files = [tmp_path / "blender.Dockerfile", tmp_path / "gx10-blender-build.sh"]
+    for destination in files:
+        destination.write_text((repo / "ci" / destination.name).read_text())
+    version_pin = re.search(r"^ARG BLENDER=([\d.]+)$", files[0].read_text(), re.M)
+    binary_pin = re.search(r"^ARG BLENDER_SHA256=([0-9a-f]{64})$", files[0].read_text(), re.M)
+    assert version_pin and binary_pin
+    old, binary_sha = version_pin[1], binary_pin[1]
+    new = f"{int(old.split('.')[0]) + 1}.0.0"
+    monkeypatch.setattr(
+        blender_pin.subprocess, "run", lambda *args, **kw: SimpleNamespace(stdout="\n".join(map(str, files)))
+    )
+    monkeypatch.setattr(blender_pin, "lookup", lambda *args: (new, binary_sha, "e" * 64, ["mirror"]))
+    monkeypatch.setattr(blender_pin, "source_sha256", lambda version: "f" * 64)
+    blender_pin.main()
+    assert f"BLENDER={new}" in files[0].read_text()
+    assert "e" * 64 in files[0].read_text()
+    native = files[1].read_text()
+    assert f"BLENDER={old}\n" not in native
+    assert f"BLENDER={new}" in native
+    assert "f" * 64 in native
+
+
+def test_one_official_source_archive_alone_does_not_pin(monkeypatch):
+    def archive(url, **kwargs):
+        if url.startswith("https://download.blender.org/source/"):
+            return BytesIO(b"abc")
+        raise OSError("mirror unavailable")
+
+    monkeypatch.setattr(blender_pin.urllib.request, "urlopen", archive)
+    with pytest.raises(ValueError, match="two sources"):
+        blender_pin.source_sha256("5.3.0")
+
+
+def test_source_archives_must_match_across_the_official_mirrors(monkeypatch):
+    monkeypatch.setattr(blender_pin.urllib.request, "urlopen", lambda *args, **kw: BytesIO(b"abc"))
+    assert blender_pin.source_sha256("5.3.0") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+    def changed_mirror(url, **kwargs):
+        return BytesIO(b"changed" if SOURCES[-1] in url else b"abc")
+
+    monkeypatch.setattr(blender_pin.urllib.request, "urlopen", changed_mirror)
+    with pytest.raises(ValueError, match="none that differs"):
+        blender_pin.source_sha256("5.3.0")

@@ -8,6 +8,7 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
+import pytest
 import yaml
 
 from model import trajectories
@@ -63,8 +64,8 @@ DOCKERFILES = sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("ci/*.Dockerfil
 MADE_FROM = {
     "ours-convex": (["model/ours.py"], ["model/mjcf.py", "uv.lock"]),
     "sim": (["model/report.py", "model/test_report.py", "model/ours.py"], ["uv.lock"]),  # just sim: ours, report, test
-    # the next Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
-    "next": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
+    # the Mech's pictures and GLB (#649): the render code, the parts' make and Blender's pin
+    "pictures": (["model/render/pictures.py", "web/build.py", "model/ours.py"], ["ci/blender.Dockerfile", "uv.lock"]),
     "mech": (["mech/standin.py", "mech/test_mech.py"], ["eyes/boot.py", "justfile"]),  # the Core's program, its tag
     # the release and title rules' tests (#732): the rules, their tests and the packages they run through (ADR 0010,
     # 0017)
@@ -149,7 +150,7 @@ def test_every_cache_key_and_paths_filter_covers_what_it_is_made_from():
     assert missed == set()
 
 
-def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
+def test_the_mechs_key_hashes_no_justfile_workflow_or_test():
     """A justfile, workflow or test edit renders no picture and bakes no GLB (#469, #649): its key hashes only what the
     render code reads."""
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
@@ -158,11 +159,11 @@ def test_the_next_mechs_key_hashes_no_justfile_workflow_or_test():
         for f in tracked
         if f == "justfile" or f.startswith(".github/") or PurePosixPath(f).name.startswith(("test_", "conftest"))
     ]
-    assert {f for globs in patterns()["next"] for f in tooling if covered(f, globs)} == set()
+    assert {f for globs in patterns()["pictures"] for f in tooling if covered(f, globs)} == set()
 
 
 def test_the_sim_key_hashes_no_justfile_or_workflow():
-    """A CI edit re-runs no 10-13 min sim (#732): its key hashes what the reports are made from, as the next Mech's."""
+    """A CI edit re-runs no 10-13 min sim (#732): its key hashes what the reports are made from, as the Mech's."""
     tooling = ("justfile", ".github/workflows/checks.yml")
     assert {f for globs in patterns()["sim"] for f in tooling if covered(f, globs)} == set()
 
@@ -206,3 +207,59 @@ def test_claude_codes_deny_list_bans_the_heavy_recipes_and_no_other():
     assert {r for r in deny if re.match(r"Bash\((uv run )?just ", r)} == {
         f"Bash({runner}just {name} *)" for name in HEAVY for runner in ("", "uv run ")
     }
+
+
+def _table_servos(table, column):
+    """The servo names in a Markdown table's column, by its header."""
+    head, _, *rows = table.splitlines()
+    i = [c.strip() for c in head.strip("|").split("|")].index(column)
+    return [r.strip("|").split("|")[i].strip() for r in rows if r.startswith("|")]
+
+
+def test_the_eye_program_drives_stage_1s_servos_on_their_ports():
+    """One yaw and one pitch servo for both eyes and a lid servo per eye (#896): the eyes Core's ports are Stage 1's
+    horns, and the eye program (eyes/eyes.py keeps its own GPIO -> servo map: the Core runs it alone) names what each
+    GPIO drives as the ports do; the wiring table and Stage 1's servo table name the same servos."""
+    import eyes  # the Core's program (eyes/ is on sys.path: conftest.py)
+    import macros
+    from model.geometry import SERVO_LABEL
+
+    names = {pin: name for pin, name in eyes.NAME.items() if pin != eyes.PAN}
+    assert {eyes.PORT_GPIO[str(port)]: servo for port, servo in CORES["eyes"].items()} == names
+    assert eyes.NAME[eyes.PAN] in CORES["neck"].values()  # the neck Core's, by its core.json (#688)
+    stage_1 = _table_servos(macros.stage_guides()[1]["1"], "Servo")
+    assert sorted(SERVO_LABEL[s] for s in CORES["eyes"].values()) == sorted(stage_1)
+    wiring = macros.wiring()
+    wired = zip(_table_servos(wiring, "Core"), _table_servos(wiring, "Servo"), strict=True)
+    assert sorted(s for core, s in wired if core == "1 (eyes)") == sorted(stage_1)
+
+
+def test_the_standard_tilts_model_tables_use_its_actual_travel_midpoint():
+    import macros
+
+    rows = {
+        cells[3]: cells
+        for row in macros.wiring().splitlines()[2:]
+        if (cells := [c.strip() for c in row.strip("|").split("|")])[0] == "2 (neck)"
+    }
+    assert rows["tilt"][4:] == ["32.1..124.1", "79.5"]  # 159° envelope; the head ±20° via the four-bar (#978)
+    assert rows["pan"][4:] == ["34.5..124.5", "79.5"]
+    assert "| neck | tilt | 32.1..124.1 |" in macros.stage_guides()[1]["2"]
+
+
+def test_the_calibration_is_the_models_nominals_until_a_stage_1_is_calibrated():
+    """eyes/calibration.json and the eye program's fallback are Stage 1's horns about their 90 neutral (#896,
+    inferred): the yaw over its range, the pitch centred where the gaze is level and as far each way as both ends
+    allow, each lid closed where its lids meet, resting with its edge over the pupil, open at its open edge."""
+    import eyes
+    from model import gimbal, stages
+
+    cal = json.loads((ROOT / "eyes/calibration.json").read_text())
+    horns = stages.SUBS["eyes"]().horns
+    yaw, pitch = horns["yaw horn"].limits, horns["pitch horn"].limits
+    level, reach = 90 + gimbal.servos(0, 0)[1], min(-pitch[0], pitch[1])
+    lid = {"lo": gimbal.LID_SHUT, "rest": gimbal.LID_REST, "hi": gimbal.LID_EDGES[1]}
+    nominal = {"yaw_lo": 90 + yaw[0], "yaw_hi": 90 + yaw[1], "pitch_lo": level - reach, "pitch_hi": level + reach}
+    nominal |= {f"{s}_lid_{k}": 90 + edge - gimbal.LID_REST for s in "lr" for k, edge in lid.items()}
+    assert {k: cal[k] for k in nominal} == pytest.approx(nominal, abs=0.05)
+    assert {k: eyes.DEFAULT_CAL[k] for k in cal} == cal

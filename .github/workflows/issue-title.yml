@@ -7,14 +7,12 @@ name: Issue Title
 on:
   issues:
     types: [opened, edited]
-concurrency:   # one run per issue; a newer edit supersedes the one in progress
-  group: ${{ github.workflow }}-${{ github.event.issue.number }}
-  cancel-in-progress: true
 permissions: {}
 jobs:
   title:
     name: Title
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:

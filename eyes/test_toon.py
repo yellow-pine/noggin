@@ -12,7 +12,7 @@ import servo
 
 CAL = json.load(open(os.path.join(os.path.dirname(__file__), "calibration.json")))
 EYES = replay._eyes()
-R_LID, L_LID, L_EYE = EYES.R_LID, EYES.L_LID, EYES.L_EYE
+R_LID, L_LID, YAW = EYES.R_LID, EYES.L_LID, EYES.YAW
 RATE = servo.rate(min(servo.SPEC))  # 428 deg/s: the slower rated slew, at the pack's low end (4.8 V)
 
 
@@ -136,11 +136,11 @@ def test_a_jump_past_the_budget_waits_a_whole_move():
     """All four servos asked to jump at once: the first two go, the other two start once one of them arrived, on a
     frame (stagger by whole move durations: two minimum-jerk moves together peak at 2.0x, 0.3 T apart at 1.42x)."""
     lids_open = {R_LID: lid(CAL["lid_open"]), L_LID: lid(CAL["lid_open"], L_LID)}
-    js = jumps([lambda e: e.step({**lids_open, L_EYE: 108, EYES.R_EYE: 108})])
+    js = jumps([lambda e: e.step({**lids_open, YAW: 108, EYES.PITCH: 100})])
     starts = {p: s for s, _, p in js}
     first = min(end for s, end, p in js if p in lids_open)
     assert starts[R_LID] == starts[L_LID] and most_at_once(js) == 2
-    assert starts[L_EYE] == starts[EYES.R_EYE] >= first and (starts[L_EYE] - starts[R_LID]) % 20 == 0
+    assert starts[YAW] == starts[EYES.PITCH] >= first and (starts[YAW] - starts[R_LID]) % 20 == 0
 
 
 def test_a_glide_is_minimum_jerk_at_rest_at_both_ends():
@@ -160,7 +160,7 @@ def test_a_short_move_stretches_to_the_acceleration_cap():
     """#619: a 4 deg eye move asked in one frame takes two. Minimum jerk peaks at 5.77 D/T^2, so at the cap (half the
     stall torque at 4.8 V on the rotor's inertia through the gears, 28,094 deg/s^2) it needs T = 29 ms, where the slew
     alone (1.875 D/T at 428 deg/s) allows 18."""
-    ev, _ = after_rest(lambda e: e.eyes(EYES.EYE_CENTER + 4, 20), pin=L_EYE)
+    ev, _ = after_rest(lambda e: e.eyes(EYES.EYE_CENTER + 4, 20), pin=YAW)
     assert len(ev) == 2
 
 
@@ -193,7 +193,7 @@ def test_wink_closes_fully_holds_and_the_other_lid_squints():
     open, the 8 deg glance held through it."""
     ev, _ = after_rest("wink 2")
     other, _ = after_rest("wink 2", pin=L_LID)
-    eye, _ = after_rest("wink 2", pin=L_EYE)
+    eye, _ = after_rest("wink 2", pin=YAW)
     shut = lid(CAL["lid_closed"])
     closed = [t for t, a in ev if a == pytest.approx(shut)]
     assert len(closed) == 1  # one write at lid_closed, then held until the reopen
@@ -207,7 +207,7 @@ def test_wink_closes_fully_holds_and_the_other_lid_squints():
     squint = max(a for _, a in other)  # the left servo is mirrored: closing is up
     assert squint == pytest.approx(lid(0.8 * CAL["lid_rest"], L_LID))
     glance = [a for t, a in eye if t <= start]
-    assert abs(glance[-1] - (88 - 8)) < 0.01  # centre 88, 8 deg toward the right lid
+    assert abs(glance[-1] - (90 - 8)) < 0.01  # centre 90, 8 deg toward the right lid
     assert not [t for t, _ in eye if start < t <= t_open]  # and held through the wink
 
 
@@ -234,7 +234,7 @@ def test_rest_blinks_every_3_to_6_s():
     gaps = [b - a for a, b in zip(shut, shut[1:], strict=False)]
     assert 9 <= len(shut) <= 20 and min(gaps) >= 3000 and max(gaps) <= 6600, gaps
     assert max(gaps) - min(gaps) > 1000  # random, not a metronome
-    eye, _ = after_rest(clocked_ticks, pin=L_EYE)
+    eye, _ = after_rest(clocked_ticks, pin=YAW)
     assert not eye  # the eyes stay centred
 
 

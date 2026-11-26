@@ -1,6 +1,5 @@
 """Seam: `just model-shards-list`, Checks' model matrix (#305, #474, #496): eight shards (#839) balanced on the measured
-durations (model/durations.json), every unit (each document, the rest, just sim's parts, just mech) on one, from the code;
-and renders(), the Render shards' pictures by their measured Blender seconds (#839)."""
+durations (model/durations.json), every unit (each document, the rest, just sim's parts, just mech) on one, from the code."""
 
 import json
 import os
@@ -79,19 +78,6 @@ def test_tests_count_under_the_unit_that_picks_them_and_an_unmeasured_unit_weigh
     took = shards.seconds({f"model/test_mjcf.py::test_x[{doc}]": 4, "just sim 0/3": 6, "just mech": 8})
     assert (took[doc], took["sim 0/3"], took["mech"]) == (4, 6, 8)
     assert took["rest"] == took["sim 1/3"] == 6  # the mean of the measured units
-
-
-def test_a_picture_s_render_seconds_weigh_it_alone_and_an_unmeasured_picture_the_mean():
-    """#839: Render's units are its pictures, each by the Blender seconds CI measured (`render <picture>`), none of them
-    a model unit's."""
-    doc = next(iter(stages.DOCS))
-    durations = {f"render {doc}-side.webp": 3, "render b.webp": 5, f"model/test_x.py::test_y[{doc}]": 2}
-    assert shards.seconds(durations)[doc] == 2
-    assert shards.renders(durations, [f"{doc}-side.webp", "b.webp", "c.webp"]) == {
-        f"{doc}-side.webp": 3,
-        "b.webp": 5,
-        "c.webp": 4,
-    }
 
 
 def test_deal_puts_each_unit_longest_first_on_the_lightest_load():

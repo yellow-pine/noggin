@@ -1,7 +1,7 @@
-# Simulation, robotics and HRI for the next Mech
+# Simulation, robotics and HRI for the Mech
 
 Researched 2026-11-02. Purpose: what the robotics and HRI literature says about modelling PG001-class servos in MuJoCo,
-optimising the next Mech's mechanism in simulation, the degrees of freedom that carry gaze and expression, and checking
+optimising the Mech's mechanism in simulation, the degrees of freedom that carry gaze and expression, and checking
 the clearance of moving shells. Input to #51 (on hold).
 
 Builds on `2026-11-01-mujoco-loops.md`, `2026-11-01-mujoco-report.md`, `2026-11-01-coacd-tuning.md`, model/mjcf.py

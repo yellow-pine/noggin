@@ -1,6 +1,6 @@
-# Cams, automata and printed mechanisms for the next Mech
+# Cams, automata and printed mechanisms for the Mech
 
-Researched 2026-11-02. Purpose: literature basis for the next Mech's (#51) PETG skeleton and PLA shells: cams and servo-driven coupling, what automata teach, FDM fits, anisotropy, creep, fasteners, magnet pockets, snap fits and printed pivots. Builds on `2026-10-31-filament.md` (PLA Pure colours, density), `2026-10-31-shafts.md` (horn geometry) and `model/beams.py` (beam checks); does not repeat them.
+Researched 2026-11-02. Purpose: literature basis for the Mech's (#51) PETG skeleton and PLA shells: cams and servo-driven coupling, what automata teach, FDM fits, anisotropy, creep, fasteners, magnet pockets, snap fits and printed pivots. Builds on `2026-10-31-filament.md` (PLA Pure colours, density), `2026-10-31-shafts.md` (horn geometry) and `model/beams.py` (beam checks); does not repeat them.
 
 Tags: [A] abstract only (full text not read), [I] my inference. No tag means the source's full text or the cited page was read.
 

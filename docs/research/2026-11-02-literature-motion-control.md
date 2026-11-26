@@ -1,6 +1,6 @@
-# Motion control for open-loop hobby servos (the next Mech)
+# Motion control for open-loop hobby servos (the Mech)
 
-Researched 2026-11-02. Purpose: the trajectory, vibration, current and hold rules the next Mech's (#51) bigger head on 9 g servos needs. This builds on `2026-11-01-blink-kinematics.md` (servo slew against human speed), `2026-11-01-toon-eyes.md` and `2026-10-31-neck.md`, and does not repeat them. Servo figures (PG001 stall 0.55/0.65 A, standby 8 mA, 428 °/s) are from `2026-10-31-electrical.md`.
+Researched 2026-11-02. Purpose: the trajectory, vibration, current and hold rules the Mech's (#51) bigger head on 9 g servos needs. This builds on `2026-11-01-blink-kinematics.md` (servo slew against human speed), `2026-11-01-toon-eyes.md` and `2026-10-31-neck.md`, and does not repeat them. Servo figures (PG001 stall 0.55/0.65 A, standby 8 mA, 428 °/s) are from `2026-10-31-electrical.md`.
 
 Sources:
 - [FH] Flash & Hogan 1985, J Neurosci 5:1688, minimum jerk. https://doi.org/10.1523/JNEUROSCI.05-07-01688.1985 [A]: only the abstract was readable; it confirms "bell-shaped tangential velocity profiles" from minimising squared jerk. The quintic below is the standard closed form; the numbers derived from it are mine.

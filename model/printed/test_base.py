@@ -1,6 +1,6 @@
-"""Seam: the next Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
-gimbal: the Torso holds the neck mount, the pan servo, the pack and the Cores inside its walls (#838); its boards
-overlap nothing."""
+"""Seam: the Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
+gimbal: the Torso holds the neck mount, the pack, the switch board and the power-path board inside its walls (the
+pan servo rides the head since #978); its boards, the cranium tray's and the tray overlap nothing."""
 
 import itertools
 
@@ -19,23 +19,29 @@ from model.printed.base import WALL
 from model.printed.test_gimbal import _overlaps
 from model.printed.test_neck import _shape
 
-PLUGGED = {frozenset((f"next Core {n}:1", f"next Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
-BASE = ("next torso", "next pack", "next board", "next switch", "next Core", "next Shield", "next test stand")
+PLUGGED = {frozenset((f"Core {n}:1", f"Shield {n}:1")) for n in (1, 2)}  # each Core in its Shield's header
+BASE = ("torso", "pack", "switch", "power-path", "test stand")  # and the cranium's (#858)
+BASE += ("cranium tray", "Core", "Shield", "hub")
 
 
 @pytest.mark.model
-def test_the_torso_holds_the_neck_mount_the_pan_servo_and_the_pack_inside_its_walls():
+def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside_its_walls():
     """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pack lying on its floor; the Torso's
     bottom is the foot, so nothing hangs below it."""
-    (x0, x1), (y0, y1), (z0, _) = base.TORSO
-    parts = stages.next_neck().parts | stages.next_base().parts
+    (x0, x1), (y0, y1), (z0, z1) = base.TORSO
+    parts = stages.neck_sub().parts | stages.base_sub().parts
     foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
-    for name in ("next neck mount:1", "next pan servo:1", "next pack:1", "next Shield 1:1", "next Shield 2:1"):
+    for name in (
+        "cervical carrier:1",
+        "pack:1",
+        "switch board:1",
+        "power-path board:1",
+    ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("next pack:1", "next neck mount:1")]
-    assert lying[0] == pytest.approx(lying[1])  # the pack on the floor the neck mount stands on
+    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "cervical carrier:1", "power-path board:1")]
+    assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
 
 
 @pytest.fixture(params=g.SIMULATED)  # the whole Mech and Stage 1's test stand (#720), mechanical (#809)
@@ -46,20 +52,31 @@ def placed(request):
 
 @pytest.mark.model
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
-    """No two overlap where one is the base's or the boards'."""
+    """No two overlap where one is the base's or the boards', but the hair's KNOWN_HAIR meetings #850 clears."""
+    from model.printed.test_skin import _known
+
     pairs = [
         (a, b)
         for a, b in itertools.combinations(placed, 2)
-        if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
+        if (a.startswith(BASE) or b.startswith(BASE))
+        and frozenset((a, b)) not in PLUGGED
+        and not (_known(a, b) or _known(b, a))
     ]
     assert _overlaps(placed, pairs) == []
 
 
-@pytest.fixture(params=sorted(g.NEXT))
+@pytest.fixture(
+    params=[pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.MECH[d] else d for d in sorted(g.MECH)]
+)
 def head(request):
     """(the document, the box round the parts its tilt turns at rest), built in setup: CI's 15 s times the test alone."""
     stage = stages.STAGES[request.param]
-    rides = [n for n in stage.horns["tilt horn"].loops[0].rockers if n.removesuffix(":1") not in skin.DRAWN]  # Skeleton
+    tilt = stage.horns["tilt horn"]
+    rides = [
+        n
+        for n in (tilt.direct.driven if tilt.direct else tilt.loops[0].rockers)
+        if n.removesuffix(":1") not in skin.DRAWN
+    ]  # Skeleton
     solids = [_shape(stage.parts[n]) for n in rides if n.removesuffix(":1") not in g.BONES]
     for n in (n for n in rides if n.removesuffix(":1") in g.BONES):  # a mesh (#838): its STL's box
         (x0, y0, z0), (x1, y1, z1) = trimesh.load(stage.parts[n].file).apply_transform(stage.parts[n].matrix).bounds
@@ -73,7 +90,7 @@ def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(he
     base.shelled), fit gimbal.HEAD_MM (W x D x H), the eye centres at most base.EYES_UP of the way up them (the sim
     report reads the same off the MJCF: model/candidates.py)."""
     doc, b = head
-    eyes = np.array(stages.DOCS[doc]["next-eyes"][0])
+    eyes = np.array(stages.DOCS[doc]["eyes"][0])
     lo, hi = base.shelled(np.array((b.xmin, b.ymin, b.zmin)) - eyes, np.array((b.xmax, b.ymax, b.zmax)) - eyes)
     assert all(s <= h for s, h in zip(hi - lo, gm.HEAD_MM))
     assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP

@@ -1,0 +1,42 @@
+---
+// The Roadmap (docs/adr/0024): every mark on the pages, grouped by its issue, each linking where it sits. Derived,
+// never listed: the Markdown plugin (src/markdown.mjs, marks) collects them as each page renders.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getCollection, render } from 'astro:content';
+import { HOME, REPO } from '../pages.mjs';
+
+const byIssue = new Map();
+for (const entry of await getCollection('docs')) {
+  const { remarkPluginFrontmatter } = await render(entry);
+  for (const mark of remarkPluginFrontmatter.marks ?? []) {
+    const href = `${HOME}/${entry.id === 'index' ? '' : `${entry.id}/`}${mark.anchor ? `#${mark.anchor}` : ''}`;
+    if (!byIssue.has(mark.issue)) byIssue.set(mark.issue, []);
+    byIssue.get(mark.issue).push({ ...mark, href, page: entry.data.title });
+  }
+}
+const issues = [...byIssue].sort(([a], [b]) => a - b);
+const KIND = { change: 'Changes', upcoming: 'Upcoming', section: 'Upcoming section' };
+---
+
+<StarlightPage frontmatter={{ title: 'Roadmap', tableOfContents: false }}>
+  <p>
+    What the open issues will change or bring, gathered from the marks on the pages: a value struck through with
+    what it will be beside it, a line saying Upcoming, and a note opening a section still to come (ADR 0024). Each
+    issue links its decision on GitHub, each line the page it is marked on.
+  </p>
+  {issues.length === 0 && <p>No page marks an open issue.</p>}
+  {
+    issues.map(([n, marks]) => (
+      <section data-issue={n}>
+        <h2><a href={`${REPO}/issues/${n}`}>#{n}</a></h2>
+        <ul>
+          {marks.map((m) => (
+            <li>
+              <a href={m.href}>{m.page}</a>: {KIND[m.kind]}{m.text && `: ${m.text}`}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</StarlightPage>
