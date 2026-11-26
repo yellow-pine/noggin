@@ -146,6 +146,7 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     moment = force * abs(ry * fz - rz * fy)
     chain = [np.subtract(p, (2.5, 0, 0)) for p in nk.MANDIBLE_BORDER["L"]] + [np.asarray(nk.MENTON)]
     chain = [p + (0, 0, nk.JAW_CHAIN_UP if i >= 4 else 0) for i, p in enumerate(chain)]
+    weak = []
     for a, b in zip(chain, chain[1:]):
         along = (b - a) / np.linalg.norm(b - a)
         u = np.subtract(g.X, along * along[0])
@@ -155,9 +156,11 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
             area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
             inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
             fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
-            stress = force / area + moment * fibre / inertia
-            print(tuple(np.round(a, 1)), t, round(area, 1), round(mat["tensile_mpa"]["z"] / stress, 2))
-            assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (tuple(a), t)
+            sf = mat["tensile_mpa"]["z"] / (force / area + moment * fibre / inertia)
+            print(tuple(np.round(a, 1)), t, round(area, 1), round(sf, 2))
+            if sf < beams.MIN_SF:
+                weak.append((tuple(np.round(a, 1)), t, round(sf, 2)))
+    assert weak == []
 
 
 @pytest.fixture(scope="module")

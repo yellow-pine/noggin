@@ -17,6 +17,7 @@ from model.printed.gimbal import cyl, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mechanical bar's round ends
+RAMUS = ((4.2, 2.4), (3.8, 2.2))  # the jaw's ramus struts (head, waist): fore-aft, then across
 
 
 def tie(x, y, z):
@@ -244,8 +245,11 @@ def jaw(mechanical=False):
         points[side].append(tuple(np.add(nk.MENTON, (0, 0, nk.JAW_CHAIN_UP))))
     out = None
     for chain in points.values():
-        for a, b in zip(chain, chain[1:]):
-            link = strut(a, b, (3.2, 2.2), (2.8, 2))
+        for i, (a, b) in enumerate(zip(chain, chain[1:])):
+            if i < 3:  # #968: the ramus, condyle to angle, deep fore and aft as the bone is, for the mouth servo's stall
+                link = bone.bone(a, b, *RAMUS, up=(1, 0, 0), round=True, heads=False)
+            else:
+                link = strut(a, b, (3.2, 2.2), (2.8, 2))
             out = link if out is None else out.union(link)
     jy, jz = nk.JAW
     for sign in (-1, 1):
