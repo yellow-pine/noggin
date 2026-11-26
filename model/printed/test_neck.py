@@ -99,7 +99,7 @@ def test_the_tilt_reaction_bar_holds_the_actual_standard_servo_at_stall():
 
 @pytest.mark.model
 def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
-    from model.printed.test_gimbal import _bending_sf, _slice
+    from model.printed.test_gimbal import _slice
 
     solid, mat = _built("tilt lever"), g.MATERIALS[g.PRINTED["tilt lever"][1]]
     shaft, pin = nk.TILT_SHAFT, nk.TILT_PIN
@@ -111,10 +111,7 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
         area, _, bend, half = _slice(solid, shaft[1:], pin[1:], t)
         stress = force / area + tangent * radius * (1 - t) * half / bend
         assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, t
-    a, b = (shaft[0], *pin[1:]), (sum(nk.REACTION_BAR_X) / 2, *pin[1:])
-    assert (
-        _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.65)) >= beams.MIN_SF
-    )  # the pin boss ends at the bar
+    # #978: no printed boss reaches out to the bar: its steel shank does, from the lever's tapped face
 
 
 @pytest.fixture(scope="module")
@@ -281,6 +278,18 @@ _solid = functools.cache(lambda build: build().val())
             neck.nod_plate,
             neck.cervical_carrier,
             ((15.4, *nk.HEAD_AXES["tilt"][0][1:]), (20.2, *nk.HEAD_AXES["tilt"][0][1:])),  # mid lug, mid boss
+            (0, 1, 0),
+        ),
+        (  # #978: the reduction's bar on its crank's pin and on the carrier's anchor
+            neck.tilt_reaction_bar,
+            neck.tilt_lever,
+            ((sum(nk.REACTION_BAR_X) / 2, *nk.TILT_PIN[1:]), (sum(nk.REACTION_TAP_X) / 2, *nk.TILT_PIN[1:])),
+            (0, 1, 0),
+        ),
+        (
+            neck.tilt_reaction_bar,
+            neck.cervical_carrier,
+            ((sum(nk.REACTION_BAR_X) / 2, *nk.TILT_ANCHOR[1:]), (sum(nk.REACTION_TAP_X) / 2, *nk.TILT_ANCHOR[1:])),
             (0, 1, 0),
         ),
         (

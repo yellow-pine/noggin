@@ -2,16 +2,17 @@
 head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
 A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
-low rear cradle and reacts through an equal-arm parallelogram against the fixed carrier, reversing the motor angle.
+low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 12 mm crank and the
+carrier's 30 mm arm turn the head about 2.5x slower than the servo, reversed, so the servo holds under its rating with
+no balance spring.
 The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
 inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
 power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
 The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
 
 Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
-power leads require a real continuous route and flexing spans across both head joints. balance() computes ideal
-spring targets; SPRING_VERIFIED blocks accepted load reports and automatic production balancing until real anchors
-and finished anatomical/Skin loads are certified. The full #902 torque/current/stability proof remains open.
+power leads require a real continuous route and flexing spans across both head joints. The full #902
+torque/current/stability proof with finished anatomical/Skin loads remains open.
 Angles are degrees, right-handed about +z for pan and +x for tilt and jaw (face down and mouth open)."""
 
 import math
@@ -34,7 +35,6 @@ HEAD_PARENTS = {"tilt": None, "pan": "tilt", "jaw": "pan"}
 HEAD_CARRIERS = {"fixed": "cervical carrier:1", "tilt": "nod plate:1", "pan": "head mount:1", "jaw": "jaw:1"}
 BONE_CARRIERS = {"head": HEAD_CARRIERS["pan"], "jaw": HEAD_CARRIERS["jaw"], "fixed": HEAD_CARRIERS["fixed"]}
 HEAD_SERVOS = {"tilt": "tilt", "pan": "tilt", "mouth": "pan"}  # cases: both head servos on the nod plate
-SPRING_VERIFIED = False  # #902: finished loads and real fixed/moving spring anchors are not certified yet
 # The C0 pan bearing: SKF 61804-2RS1, 20x32x7, with an 8 mm wire bore and three retained M2 fasteners; anatomical
 # registration of HEAD_AXES remains #874's.
 PAN_STUDY_BEARING = (20.0, 32.0, 7.0)
@@ -44,13 +44,27 @@ NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
 # #978: the tilt case stands upright (its long axis up, TILT_CASE) low behind the canal, inside the compact head's back
-# (y <= 135.9 with its lever's disc), under the frame plate's and the bail's pan sweeps; its crank down, square to the
-# bar at rest, the pin under the case and inside the head's floor (inferred, held by model/printed/test_base.py)
+# (y <= 135.9 with its lever's disc), under the frame plate's and the bail's pan sweeps (inferred, held by
+# model/printed/test_base.py)
 TILT_SHAFT = (-21.45, 123.8, -62.0)
 TILT_CASE = (0.0, 0.0, 1.0)
-TILT_CRANK = (-6.8, -24.1)
+# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) and the fixed carrier's arm
+# about the tilt axis both square to the bar at rest, on the bar's same side (down), so the head turns crank / arm =
+# 0.4 of the servo's turn there and less toward the range's ends (inferred). The pin stays behind the case's front and
+# inside the head's floor over the sweep; the anchor sits on the R rail.
+TILT_ARMS = (12.0, 30.0)
+
+
+def _tilt_normal():
+    (_, sy, sz), (_, oy, oz) = TILT_SHAFT, HEAD_AXES["tilt"][0]
+    d = math.hypot(sy - oy, sz - oz)
+    a = math.atan2(sz - oz, sy - oy) - math.acos((TILT_ARMS[1] - TILT_ARMS[0]) / d)  # the lower of the two
+    return math.cos(a), math.sin(a)
+
+
+TILT_CRANK = tuple(TILT_ARMS[0] * c for c in _tilt_normal())
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_CRANK[0], TILT_SHAFT[2] + TILT_CRANK[1])
-TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_CRANK[0], HEAD_AXES["tilt"][0][2] + TILT_CRANK[1])
+TILT_ANCHOR = tuple((0.0, *(HEAD_AXES["tilt"][0][i + 1] + TILT_ARMS[1] * c for i, c in enumerate(_tilt_normal()))))
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
 # #978: the pan case behind the C0 axis, hung shaft down over the tray, its shaft at its back (PAN_CASE: its long axis
 # forward), its lever and crank under it, over the tray and clear of the Shields' and capacitor's sweeps; its top sets
@@ -62,8 +76,10 @@ PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
 PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
-REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the case's shaft end (inferred)
-REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
+# the bar outboard of the lever (its outer face at x -27.95, model/printed/neck.py), clear of the case's x; the pin's
+# tapping bore in the lever and the anchor's in the carrier's boss, inboard of it (inferred)
+REACTION_BAR_X = (-33.25, -28.25)
+REACTION_TAP_X = (REACTION_BAR_X[1] + 0.3, REACTION_BAR_X[1] + 4.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
 CERVICAL_PATH = (
@@ -177,11 +193,22 @@ def pins():
 TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
 LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
 LINKAGES["pan"] = linkage.four_bar(PAN_SHAFT, PAN_PIN, HEAD_AXES["pan"][0], PAN_ANCHOR, g.Z)
+# seen from the moving case, the fixed carrier is the rocker: the head turns the other way (model/stages.py Reaction)
+TILT_LOOP = linkage.four_bar(TILT_SHAFT, TILT_PIN, HEAD_AXES["tilt"][0], TILT_ANCHOR, g.X)
+
+
+def _tilt(servo_deg):
+    rocker, a, b = TILT_LOOP(servo_deg)
+    return -rocker, a, b
+
+
+_tilt.o4, _tilt.axis = TILT_LOOP.o4, TILT_LOOP.axis
+LINKAGES["tilt"] = _tilt
 
 
 def output(drive, servo_deg):
-    """Physical output angle from a servo command; the moving tilt case reacts against a fixed horn."""
-    return LINKAGES[drive](servo_deg)[0] if drive in LINKAGES else servo_deg * (-1 if drive == "tilt" else 1)
+    """Physical output angle from a servo command."""
+    return LINKAGES[drive](servo_deg)[0]
 
 
 def drives():
@@ -206,8 +233,6 @@ def servo_for(drive, out):
     a time, then found within the degree."""
     if out == 0:
         return 0.0
-    if drive not in LINKAGES:
-        return -out if drive == "tilt" else out
     solve = LINKAGES[drive]
     step = 1.0 if (solve(1.0)[0] > 0) == (out > 0) else -1.0
     s = 0.0
@@ -218,13 +243,8 @@ def servo_for(drive, out):
 
 
 def transmission(drive, servo_deg):
-    """The angle between the bar and its lever at the servo's angle, folded to 0..90 (0 at the toggle)."""
-    if drive == "tilt":
-        theta = math.radians(-servo_deg)
-        dy, dz = np.subtract(TILT_SHAFT, HEAD_AXES["tilt"][0])[1:]
-        bar = np.array((dy * math.cos(theta) - dz * math.sin(theta), dy * math.sin(theta) + dz * math.cos(theta)))
-        lever = np.array(TILT_CRANK)  # the closed parallelogram keeps the reaction arms fixed in world orientation
-        return math.degrees(math.acos(np.clip(abs(bar @ lever) / (np.linalg.norm(bar) * np.linalg.norm(lever)), 0, 1)))
+    """The angle between the bar and its lever at the servo's angle, folded to 0..90 (0 at the toggle); the tilt's lever
+    is the fixed carrier's arm, as the moving case sees it."""
     solve = LINKAGES[drive]
     _, a, b = solve(servo_deg)
     u, v = linkage._PLANE[tuple(solve.axis)]
@@ -247,27 +267,14 @@ def _weight(head, deg):
     return -grams * (dy * math.cos(a) - dz * math.sin(a)) / 1e4
 
 
-def balance(head, bare=None):
-    """The balance spring on the tilt shank (#838), for a head of (grams, centre of mass in this frame, mm): (kgf.cm it
-    turns the head with at rest, its rate in kgf.cm a radian), a torsion spring wound against the weight's turn, so that
-    turn and its change as the head tilts cancel at rest. Its torque at `deg` is rest - rate x rad, right-handed about +x;
-    model/mjcf.py sets it on the tilt pivot (stiffness and springref). With the head's `bare` one too (its Skin off,
-    #830): one spring for both, wound halfway between theirs, so each misses by half the Skin's turn."""
-    springs = [
-        (-_weight(h, 0.0), (_weight(h, 0.5) - _weight(h, -0.5)) / math.radians(1.0)) for h in (head, bare or head)
-    ]
-    assert all(r > 0 for _, r in springs), (
-        "the head's centre of mass is under the tilt axis: a spring's rate would push it over"
-    )
-    rest, rate = np.mean(springs, axis=0).tolist()
-    return rest, rate
+def _gain(drive, servo_deg):
+    """deg the drive's output turns a degree of its servo's at `servo_deg`."""
+    return output(drive, servo_deg + 0.5) - output(drive, servo_deg - 0.5)
 
 
-def _hold(head, spring, deg, gain):
-    """kgf.cm the tilt servo holds the head with at `deg`, through the linkage's speed ratio `gain` there: the head's
-    weight's turn less the balance spring's."""
-    rest, rate = spring
-    return abs((_weight(head, deg) + rest - rate * math.radians(deg)) * gain)
+def _hold(head, servo_deg):
+    """kgf.cm the tilt servo holds the head with at `servo_deg`: the weight's turn through the four-bar's gain there."""
+    return abs(_weight(head, output("tilt", servo_deg)) * _gain("tilt", servo_deg))
 
 
 def _spans():
@@ -284,39 +291,24 @@ def _spans():
 
 def report(head, bare=None):
     """The neck's numbers against #641's gates, for a head of (grams, centre of mass in this frame, mm), and its `bare`
-    one (its Skin off, #830) on the same balance spring: per drive its output range, the servo angles that reach it, the
-    bar's worst transmission angle on the way and the gain at rest; for tilt each head's hold at rest and at worst; where
-    the head's centre of mass sits from the tilt axis; and the flexing spans' tightest bends against their floor."""
+    one (its Skin off, #830): per drive its output range, the servo angles that reach it, the bar's worst transmission
+    angle on the way and the gain at rest; for tilt each head's hold at rest and at worst; where the head's centre of mass
+    sits from the tilt axis; and the flexing spans' tightest bends against their floor."""
     out = {}
-    for drive, solve in LINKAGES.items():
+    for drive in LINKAGES:
         sweep = _sweep(drive)
         out[drive] = {
             "range_deg": list(RANGES[drive]),
             "servo_deg": [round(servo_for(drive, d), 1) for d in RANGES[drive]],
             "transmission_deg": round(min(transmission(drive, s) for s in sweep), 1),
-            "gain": round((solve(0.5)[0] - solve(-0.5)[0]), 3),
+            "gain": round(_gain(drive, 0.0), 3),
         }
     sweep = _sweep("tilt")
-    out["tilt"] = {
-        "drive": "parallelogram",
-        "range_deg": list(RANGES["tilt"]),
-        "servo_deg": [servo_for("tilt", d) for d in RANGES["tilt"]],
-        "gain": 1.0,
-        "transmission_deg": round(min(transmission("tilt", s) for s in sweep), 1),
-    }
-    spring = balance(head, bare)
-    held = spring if SPRING_VERIFIED else (0.0, 0.0)  # an uncertified spring is not fitted: the servo holds it all
 
     def holds(h):
-        at = [_hold(h, held, output("tilt", s), 1.0) for s in sweep]
-        return {"rest_kgf_cm": round(_hold(h, held, 0.0, out["tilt"]["gain"]), 3), "hold_kgf_cm": round(max(at), 3)}
+        return {"rest_kgf_cm": round(_hold(h, 0.0), 3), "hold_kgf_cm": round(max(_hold(h, s) for s in sweep), 3)}
 
-    out["tilt"] |= {
-        **holds(head),
-        "bare": holds(bare or head),
-        "spring": {"rest_kgf_cm": round(spring[0], 3), "rate_kgf_cm_rad": round(spring[1], 3)},
-        "spring_verified": SPRING_VERIFIED,
-    }
+    out["tilt"] |= {"drive": "reduction four-bar", **holds(head), "bare": holds(bare or head)}
     grams, (_, cy, cz) = head
     out["head"] = {
         "grams": round(grams, 1),

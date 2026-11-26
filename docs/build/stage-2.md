@@ -8,7 +8,7 @@
 
 The eye block leaves its test stand for the neck: the head turns left and right (pan) and nods (tilt) on its own
 pivots: the cervical carrier holds a nod plate for tilt, and the head pans on a thrust bearing on that plate. Both
-servos sit inside the skull; the tilt uses a standard metal-gear servo and a reaction parallelogram, the pan a micro
+servos sit inside the skull; the tilt uses a standard metal-gear servo and a reduction four-bar, the pan a micro
 servo and keyed torque coupling (#978). The Torso under it holds the pack, its switch and the power-path board;
 both Cores ride in the head's cranium, the hub's USB-C port at the back of the skull base. Two more servos, on the neck
 Core.
@@ -42,10 +42,10 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
    **cervical carrier** bolted to its floor, its two medial rails through the **torso lid** beside the wire corridor.
    The lid drops onto its ledge inside the walls, flush with their top.
 2. **Nod plate** turning on the carrier's C0 trunnions. The standard tilt servo's case stands upright in its low rear
-   cradle, behind the wire corridor; the supplied horn and printed adapter react through a closed parallelogram to the
-   carrier. Its output reverses the servo's rotation. The standard pan servo hangs shaft down from the cradle's rear
-   mast, behind the pan bearing; both cases ride inside the compact head (#978). A torsion balance spring at the tilt
-   pivot supports the head's weight.
+   cradle, behind the wire corridor; the supplied horn and printed adapter react through a reduction four-bar to the
+   carrier: a 12 mm crank and a 30 mm arm on the carrier, so the head turns about 0.4 of the servo's turn, reversed,
+   and the servo holds the head's weight with no spring. The standard pan servo hangs shaft down from the cradle's rear
+   mast, behind the pan bearing; both cases ride inside the compact head (#978).
 3. **Head mount** on the C0 pan bearing on the nod plate's hollow spindle. The pan servo turns it
    through a parallelogram four-bar; the bearing carries the head's load, and the power leads pass its 8 mm bore. Pan
    follows tilt in the joint order. From the side:

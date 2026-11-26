@@ -136,11 +136,7 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        rated = (
-            sim.limits("tilt horn")["rated_kgf_cm"]
-            if m["tilt"].get("drive") in {"direct", "parallelogram"}
-            else sim.RATED_KGF_CM
-        )
+        rated = sim.limits("tilt horn")["rated_kgf_cm"]
         if t["hold_kgf_cm"] > rated and (report["doc"], head) not in KNOWN_NECK_HOLDS:
             out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
@@ -150,14 +146,6 @@ def neck_problems(report):
         if m["spans"][span]["bend_mm"] < floor
     ]
     return out
-
-
-def test_an_unverified_balance_spring_cannot_make_a_neck_report_acceptable():
-    """Until #902 certifies the spring, the tilt servo's hold is the whole head's weight, the spring's help left out."""
-    head = (300.0, (0.0, neck.HEAD_AXES["tilt"][0][1] + 20, neck.HEAD_AXES["tilt"][0][2] + 40))
-    tilt = neck.report(head)["tilt"]
-    assert not tilt["spring_verified"] and tilt["spring"]["rest_kgf_cm"] != 0
-    assert tilt["rest_kgf_cm"] == pytest.approx(abs(neck._weight(head, 0.0)), abs=1e-3)
 
 
 def deeper(pair):
@@ -321,8 +309,8 @@ FIXTURE_PROBLEMS = {
         "gimbal sweep: L lid bar:1 / gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
         "neck pan servo: 95.0 deg past its 90.0",
-        "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.33",
-        "neck tilt: holds the bare head (its Skin off) with 0.42 kgf.cm > the rated 0.33",
+        "neck tilt: holds the head with 3.45 kgf.cm > the rated 3.222",
+        "neck tilt: holds the bare head (its Skin off) with 3.42 kgf.cm > the rated 3.222",
         "neck tilt span: bends to 12.0 mm < 14.0",
         "variant head: 120.0 x 177.5 x 149.0 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
         "variant eyes: 0.62 of the head's height up > 0.55",
@@ -344,7 +332,7 @@ def test_known_mujoco_exceptions_are_still_there():
         n = built(doc).get("neck")
         if n:
             heads = (("the head", n["tilt"]), ("the bare head (its Skin off)", n["tilt"]["bare"]))
-            holds |= {(doc, head) for head, t in heads if t["hold_kgf_cm"] > sim.RATED_KGF_CM}
+            holds |= {(doc, head) for head, t in heads if t["hold_kgf_cm"] > sim.limits("tilt horn")["rated_kgf_cm"]}
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}

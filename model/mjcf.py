@@ -259,10 +259,14 @@ def _joints(stage):
                 hinges[h] = at(reaction.point, axis)
                 for name in reaction.driven:
                     moves[name].add(h)
+                # the bar hangs on the crank's pin and closes on the fixed anchor, as a four-bar's coupler on its
+                # horn's pin closes on its rocker's: gates.loops then reads the bar against the carrier's arm, the
+                # transmission angle the case sees (#978); closed at the pin it would read the bar against the line
+                # from the tilt axis to the pin, which no load of the bar turns about
                 bar_joint = reaction.bar + " pivot"
-                hinges[bar_joint] = at(reaction.anchor, axis)
-                moves[reaction.bar].add(bar_joint)
-                closures.append((h + " reaction", reaction.bar, reaction.driven[0], at(reaction.pin, axis)[0]))
+                hinges[bar_joint] = at(reaction.pin, axis)
+                moves[reaction.bar] |= {h, horn.direct.joint, bar_joint}
+                closures.append((h + " reaction", reaction.bar, reaction.fixed, at(reaction.anchor, axis)[0]))
             continue
         hinges[h] = at(horn.pivot["point"], horn.pivot["axis"])
         for crank in (horn.crank,) if isinstance(horn.crank, str) else horn.crank:
@@ -407,8 +411,6 @@ def spec(doc, collide=True):
     # mechanical parts alone, as before #978, and a present but invalid file still fails loudly in anatomy()
     if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and os.path.exists(ANATOMY_LOADS):
         anatomy(s, stage, bodies)
-    if "tilt horn" in stage.horns and (neck.HEAD_CARRIERS["fixed"] not in bodies or neck.SPRING_VERIFIED):
-        balance(s, doc)
     return s
 
 
@@ -430,18 +432,6 @@ def head(doc, model, bare=False):
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
-
-
-def balance(s, doc):
-    """The balance spring on the tilt pivot (#838, neck.balance) for the head as `s` weighs it, in its Skin and bare
-    (#830): its rate as the joint's stiffness, its torque at rest as the angle it is wound from (MuJoCo's passive force
-    -stiffness (q - springref))."""
-    s.modelfiledir, s.meshdir = BUILD, "."  # the meshes' paths are BUILD's (write() puts them beside its MJCF)
-    model = s.compile()
-    rest, rate = neck.balance(head(doc, model), head(doc, model, bare=True))
-    joint = s.joint("tilt pivot")
-    joint.stiffness = [rate * KGF_CM, 0.0, 0.0]
-    joint.springref = rest / rate
 
 
 def write(doc, folder=MJCF, *, collide=True):

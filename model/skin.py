@@ -232,7 +232,7 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.i
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
-# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
+# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the tilt servo holds too
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Shells (model/stages.py RIDES, held to it by model/printed/test_skin.py) and the private Morty

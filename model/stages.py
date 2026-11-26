@@ -25,8 +25,12 @@ BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
-Reaction = namedtuple("Reaction", "point pin anchor driven bar fixed")  # moving-case parallelogram, parallel hinge axes
-Direct = namedtuple("Direct", "joint driven sign reaction", defaults=(None,))  # 1:1 output, concentric or parallelogram
+# A moving case's four-bar (#978): its crank from `point` to `pin`, the bar from `pin` to the fixed `anchor`; `solve` is
+# linkage.four_bar seen from the case (the fixed part its rocker), the output its rocker's turn times Direct's sign
+Reaction = namedtuple("Reaction", "point pin anchor driven bar fixed solve")
+Direct = namedtuple(
+    "Direct", "joint driven sign reaction", defaults=(None,)
+)  # concentric 1:1, or a moving case's four-bar
 Horn = namedtuple(
     "Horn", "pivot limits crank loops still frame rods direct", defaults=((), None)
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
@@ -316,11 +320,12 @@ def neck_sub():
         ["tilt lever:1", "tilt horn:1"],
         "tilt reaction bar:1",
         "cervical carrier:1",
+        neck.TILT_LOOP,
     )
     horns = {
         "tilt horn": Horn(
             {"point": tilt, "axis": g.X},
-            (-20, 20),
+            tuple(sorted(neck.servo_for("tilt", d) for d in neck.RANGES["tilt"])),
             "nod plate:1",
             [],
             [],
@@ -502,12 +507,13 @@ def pose(stage, horn_name, deg):
         mats[name] = f @ delta @ f_inv @ mats[name]
 
     if horn.direct:
-        output = horn.direct.sign * deg
+        reaction = horn.direct.reaction
+        output = horn.direct.sign * (reaction.solve(deg)[0] if reaction else deg)
         turn = linkage.rotation(horn.pivot["axis"], output, horn.pivot["point"])
         for name in horn.direct.driven:
             move(name, turn)
         joints = {**dict.fromkeys(horn.still, 0.0), horn.direct.joint: round(output, 2)}
-        if reaction := horn.direct.reaction:
+        if reaction:
             for name in reaction.driven:
                 mats[name] = (
                     f
@@ -516,8 +522,13 @@ def pose(stage, horn_name, deg):
                     @ f_inv
                     @ stage.parts[name].matrix
                 )
-            move(reaction.bar, linkage.rotation(horn.pivot["axis"], output, reaction.anchor))
-            joints |= {horn_name: deg, reaction.bar + " pivot": output}
+            _, a, b = reaction.solve(deg)  # the bar's turn as the case sees it, then the case's
+            twist = _angle(horn.pivot["axis"], np.subtract(b, a)) - _angle(
+                horn.pivot["axis"], np.subtract(reaction.anchor, reaction.pin)
+            )
+            bar = output + math.degrees(twist)
+            move(reaction.bar, linkage.rotation(horn.pivot["axis"], bar, reaction.anchor))
+            joints |= {horn_name: deg, reaction.bar + " pivot": round(bar - output - deg, 2)}  # on the crank's pin
         return Pose(mats, joints)
     for crank in (horn.crank,) if isinstance(horn.crank, str) else horn.crank:
         move(crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))

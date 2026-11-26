@@ -143,15 +143,21 @@ def test_a_direct_servo_in_mujoco_drives_its_joint_and_riders_with_the_physical_
     )
 
 
-@pytest.mark.parametrize("command", (-20, 20))
-def test_a_moving_case_parallelogram_drives_the_real_motor_joint_and_closes_its_reaction_bar(
+@pytest.mark.parametrize("command", (-40, 0, 40))
+def test_a_moving_case_reduction_drives_the_real_motor_joint_and_reads_the_bar_against_the_fixed_arm(
     tmp_path, monkeypatch, command
 ):
+    """#978: a 10 mm crank on the moving case and a 25 mm fixed arm about the tilt axis, both square to a 40 mm bar at
+    rest: the head turns 0.4 of the servo's turn, reversed, the loop closes, and gates.loops reads the bar against the
+    fixed arm (90 deg at rest), the angle the case sees, not against the line from the tilt axis to the crank's pin
+    (atan(25 / 40) = 32 deg at rest), which no load of the bar turns about."""
+    from model import gates, linkage
+
     mesh = tmp_path / "gimbal frame.stl"
     trimesh.creation.box((2, 2, 2)).export(mesh)
     p = np.array(neck.HEAD_AXES["tilt"][0])
-    q, b = p + (0, 0, 40), p + (0, 12.75, 0)
-    a = q + (0, 12.75, 0)
+    q = p + (0, 40, -15)
+    a, b = q + (0, 0, -10), p + (0, 0, -25)
     frame = stages.align(*neck.HEAD_FRAME)
     parts = {
         name: stages.Part(str(mesh), frame @ stages.translate(point), (grams, "documented"), None)
@@ -163,10 +169,11 @@ def test_a_moving_case_parallelogram_drives_the_real_motor_joint_and_closes_its_
             ("bar:1", (a + b) / 2, 1),
         )
     }
-    reaction = stages.Reaction(tuple(q), tuple(a), tuple(b), ["lever:1"], "bar:1", "fixed:1")
+    solve = linkage.four_bar(tuple(q), tuple(a), tuple(p), tuple(b), g.X)
+    reaction = stages.Reaction(tuple(q), tuple(a), tuple(b), ["lever:1"], "bar:1", "fixed:1", solve)
     horn = stages.Horn(
         {"point": tuple(p), "axis": g.X},
-        (-20, 20),
+        (-60, 60),
         "lever:1",
         [],
         [],
@@ -174,15 +181,24 @@ def test_a_moving_case_parallelogram_drives_the_real_motor_joint_and_closes_its_
         direct=stages.Direct("tilt pivot", ["plate:1", "servo:1", "lever:1"], -1, reaction),
     )
     doc = "mech-back-mechanical"
-    monkeypatch.setitem(stages.STAGES, doc, stages.Doc(doc, parts, {"tilt horn": horn}))
+    stage = stages.Doc(doc, parts, {"tilt horn": horn})
+    monkeypatch.setitem(stages.STAGES, doc, stage)
+    assert solve(0.5)[0] - solve(-0.5)[0] == pytest.approx(0.4, abs=1e-3)
+    posed = stages.pose(stage, "tilt horn", command)
+    assert posed.joints["tilt pivot"] == pytest.approx(-solve(command)[0], abs=0.01)
+    bar = posed.parts["bar:1"] @ np.linalg.inv(parts["bar:1"].matrix)
+    assert (bar @ [*(frame @ [*b, 1])[:3], 1])[:3] == pytest.approx((frame @ [*b, 1])[:3])  # the anchor stays put
     spec = mjcf.spec(doc, collide=False)
     spec.modelfiledir = mjcf.BUILD
     model = spec.compile()
     assert model.actuator("tilt horn").trnid[0] == model.joint("tilt horn").id  # the actual offset motor shaft
     data = mjcf.pose(model, {"tilt horn": command})
     assert np.degrees(data.joint("tilt horn").qpos[0]) == pytest.approx(command, abs=0.5)
-    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-command, abs=0.5)
+    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-solve(command)[0], abs=0.5)
     assert max(mjcf.residuals(model, data).values()) < 0.05
+    if command == 0:
+        ((_, angle),) = gates.loops(model, data).values()
+        assert angle == pytest.approx(90.0, abs=1.0)
 
 
 @pytest.fixture(scope="module")
@@ -208,38 +224,21 @@ def test_the_servo_angles_give_the_ranges_ends():
 def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
     """At rest the pan's horn and its lever lie parallel, the bar square to both: a transmission angle of 90 deg; the
     jaw's bar runs from the measured ramus pin back to the mouth horn behind the yaw servo (#978), 78.2 deg."""
-    for drive, expected in (("pan", 90.0), ("jaw", 78.1682)):
+    for drive, expected in (("pan", 90.0), ("jaw", 78.1682), ("tilt", 90.0)):
         assert neck.transmission(drive, 0.0) == pytest.approx(expected, abs=1e-4)
 
 
-def test_the_balance_spring_holds_the_heads_weight_and_the_servo_what_is_left(report, monkeypatch):
-    """#838: the tilt axis behind the head's centre of mass, a torsion spring on its shank holds the head. A head of
-    300 g 40 mm in front of the axis and 30 over it turns itself face down with 300 g x 40 mm = 1.2 kgf.cm at rest, so
-    the spring turns it back as much, and its rate is the weight's lever's change, 300 g x 30 mm = 0.9 kgf.cm a radian;
-    tilted 20 deg the spring's line misses the weight's turn by 0.08 kgf.cm, the servo holding that through the linkage.
-    Straight over the axis the spring takes the 40 mm's change alone: nothing at rest. (The spring once #902 certifies it:
-    until then the report leaves it out.)"""
-    monkeypatch.setattr(neck, "SPRING_VERIFIED", True)
+def test_the_tilt_servo_holds_the_heads_weight_through_a_reduction_of_2_to_3_at_rest(report):
+    """#978: no balance spring; a reduction four-bar between the moving case and the fixed carrier turns the head
+    about 2.5x slower than its servo, so the servo holds about 0.4 of the head's turn. A head of 300 g 40 mm in front of
+    the tilt axis turns itself face down with 300 g x 40 mm = 1.2 kgf.cm at rest: the servo holds 1.2 x the gain."""
     ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
-    assert ahead["spring"] == {"rest_kgf_cm": -1.2, "rate_kgf_cm_rad": 0.9}
-    assert ahead["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)
-    assert ahead["hold_kgf_cm"] == pytest.approx(0.079)  # 1:1 now, not the retired four-bar's torque reduction
-    tilt = report["tilt"]
-    assert tilt["spring"] == {"rest_kgf_cm": 0.0, "rate_kgf_cm_rad": 1.2} and tilt["rest_kgf_cm"] == pytest.approx(0.0)
+    assert 1 / 3 <= abs(ahead["gain"]) <= 1 / 2
+    assert ahead["rest_kgf_cm"] == pytest.approx(1.2 * abs(ahead["gain"]), abs=2e-3)
+    assert ahead["hold_kgf_cm"] < 1.2  # under the head's own turn at every pose of the range
+    assert "spring" not in ahead
+    assert report["tilt"]["rest_kgf_cm"] == pytest.approx(0.0, abs=1e-3)  # straight over the axis
     assert report["head"] == {"grams": 300.0, "above_tilt_mm": 40.0, "behind_tilt_mm": 0.0}
-
-
-def test_one_balance_spring_splits_its_miss_between_the_head_in_its_skin_and_bare(monkeypatch):
-    """#830: one spring holds the head with its Skin on and off. A bare head of 300 g 40 mm in front of the axis and 30
-    over it wants -1.2 kgf.cm at rest and 0.9 a radian; its Skin doubles it, -2.4 and 1.8. The spring wound between them,
-    -1.8 and 1.35, misses each by 0.6 kgf.cm at rest, which the servo holds through the linkage's gain, alike."""
-    monkeypatch.setattr(neck, "SPRING_VERIFIED", True)  # the spring once #902 certifies it
-    bare = (300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0))
-    tilt = neck.report((600.0, bare[1]), bare)["tilt"]
-    assert tilt["spring"] == {"rest_kgf_cm": -1.8, "rate_kgf_cm_rad": 1.35}
-    assert tilt["rest_kgf_cm"] == pytest.approx(0.6 * tilt["gain"], abs=2e-3)
-    assert tilt["bare"]["rest_kgf_cm"] == tilt["rest_kgf_cm"]
-    assert tilt["bare"]["hold_kgf_cm"] >= tilt["bare"]["rest_kgf_cm"]
 
 
 def test_each_flexing_span_bends_no_tighter_than_ten_lead_diameters(report):

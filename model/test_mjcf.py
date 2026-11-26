@@ -9,7 +9,7 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, neck, stages
+from model import gimbal, mjcf, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -299,20 +299,6 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
     for name, part in stage.parts.items():
         grams = mjcf.mass(mjcf._mesh(part.file, part.clip), part.material)
         assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
-
-
-def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
-    """#838: the tilt pivot's stiffness and springref are neck.balance's rate and its torque at rest for the head this
-    MJCF weighs (N.m), in its Skin and bare (#830), so the turns of their weights at rest split their miss."""
-    model = built(DOC)
-    rest, rate = neck.balance(mjcf.head(DOC, model), mjcf.head(DOC, model, bare=True))
-    if not neck.SPRING_VERIFIED:  # an uncertified spring is not fitted (model/mjcf.py)
-        rest, rate = 0.0, 0.0
-    joint = model.joint("tilt pivot")
-    # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
-    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)
-    spring = model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0]
-    assert spring == pytest.approx(rest * mjcf.KGF_CM, rel=1e-4)
 
 
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))

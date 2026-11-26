@@ -191,13 +191,12 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
-  weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The tilt axis lies 40 mm or
-  so behind the head's centre of mass since #838, more than the 9 g servo's rated torque (`sim.RATED_KGF_CM`, its 5 V figure) holds, so a torsion spring on
-  its shank balances it (`neck.balance`, `tilt.spring` in the report: wound to the head's weight's turn at rest, its
-  rate the turn's change; the MJCF sets it as the tilt pivot's stiffness and springref, the servos' torques count it),
-  and the servo holds only what the spring's straight line misses. One spring holds the head in its Skin and bare
-  (#830): wound halfway between the two heads' springs, it misses each by half the Skin's turn, which the servo holds
-  (`tilt.bare` in the report): a spring for Morty's head alone leaves the bare head past the servo's rating. The neck is a spine since #838: since #858 the neck
+  weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The head's centre of mass
+  hangs in front of the tilt axis, so since #978 the standard tilt servo turns it through a reduction four-bar (a
+  12 mm crank on the moving case, a 30 mm arm on the fixed carrier, `neck.TILT_ARMS`): the head turns 0.4 of the
+  servo's turn at rest and less toward the ends, so the servo holds the head in its Skin and bare (`tilt.bare`) under
+  its rating with no balance spring. The MJCF hangs the bar on the crank's pin and closes it on the carrier's anchor,
+  so the transmission gate reads the bar against the carrier's arm, the angle the moving case sees. The neck is a spine since #838: since #858 the neck
   mount's hollow post (20 mm) rises from the Torso's floor through its lid, the pan servo on it over the lid and the
   pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there;
   the neck cable runs up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture

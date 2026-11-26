@@ -57,8 +57,7 @@ no screws for them.
 Also needed, which the model doesn't count as parts:
 
 - From Stage 2: a Y lead from the switch board to both Shields, four 22 AWG conductors up the neck from the Torso to
-  the head, and the balance spring, a torsion spring on the tilt shank holding the head's weight (the model sizes it
-  to the head; inferred).
+  the head. No balance spring: the tilt's reduction four-bar lets its servo hold the head (#978).
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
   sources ([Stage 2](stage-2.md#wiring)).*
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
@@ -68,7 +67,7 @@ Also needed, which the model doesn't count as parts:
   (20 × 32 × 7 mm) for pan, all inside the skull and still to order. The interpolated 5 V stall torque is about
   9.67 kgf·cm; the model's continuous allowance is an inferred third of stall, not a manufacturer continuous rating
   ([servo source and assumptions](../research/2026-11-04-standard-tilt-servo.md)). *Upcoming (#902): finished-head
-  load, spring, current-budget and stability certification.*
+  load, current-budget and stability certification.*
 
 ### Filament
 

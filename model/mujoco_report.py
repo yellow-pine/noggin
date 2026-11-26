@@ -99,7 +99,7 @@ def margin(outline, xy):
 
 def torques(model, data, moving=True):
     """N.m each actuator's servo turns its load with at data's pose, by MuJoCo's inverse dynamics (mj_rne, which leaves
-    out the servo's own rotor, its armature) less the balance spring's turn, with the four-bars rigid: the servos'
+    out the servo's own rotor, its armature), with the four-bars rigid: the servos'
     torques and the rocker pins' forces that balance it, by least squares. moving: at data's speed and acceleration;
     else held, against gravity alone."""
     mujoco.mj_kinematics(model, data)
@@ -108,8 +108,6 @@ def torques(model, data, moving=True):
     if not moving:
         data.qvel[:] = 0
     mujoco.mj_rne(model, data, int(moving), need)
-    mujoco.mj_passive(model, data)  # the balance spring's share (mjcf.balance), not the dampers'
-    need -= data.qfrc_spring
     data.qvel[:] = qvel
     cols = [np.eye(model.nv)[:, model.jnt_dofadr[model.actuator_trnid[:, 0]]] * model.actuator_gear[:, 0]]
     for i in range(model.neq):  # each connect: its two sites' Jacobians apart (mjcf.spec's closures)

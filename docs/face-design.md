@@ -95,7 +95,7 @@ held at the peak acceleration the sim reads for Morty's there (model/test_report
   (about 4.6 N a pair) at least twice its weight times the peak acceleration the sim reads at its centroid along
   every motion.
 - The sim weighs every Shell (#830), but collides the Skeleton and the eyeball caps alone: the other Shells are drawn
-  whole, so the servos carry the Skin, and the balance spring holds Morty's head and the bare head alike. Their
+  whole, so the servos carry the Skin; the tilt's reduction four-bar holds Morty's head and the bare head alike. Their
   clearance is checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo
   at either end (model/printed/test_skin.py).
 
