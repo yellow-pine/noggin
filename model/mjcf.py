@@ -163,11 +163,26 @@ def _mesh(file, clip):
     return mesh
 
 
+# A printed part weighs as it prints (#1003): the slicer's default process, two walls, five 0.2 mm top layers, three
+# bottom, 15% sparse infill (docs/research/2026-11-26-print-infill.md), so a skin about 0.85 mm thick round a 15% core.
+# Inferred: Cansin's own slicer settings aren't recorded. shortcut: MuJoCo spreads that mass evenly through the mesh, so
+# a part's inertia about its own centre reads a little low (its skin lies outside); weigh the skin as its own shell if a
+# gate ever sits that close
+SKIN_MM, INFILL = 0.85, 0.15
+
+
 def mass(mesh, material):
-    """g of a mesh of `material` (stages.Part): (g/cm3, label) at the mesh's volume, or (g, 'documented') for hardware
-    whose mass is known (the servo)."""
+    """g of a mesh of `material` (stages.Part): (g/cm3, label) at the mesh's volume, a printed one's (its label a
+    geometry.MATERIALS filament) as it prints, its skin round its infill; or (g, 'documented') for hardware whose mass is
+    known (the servo)."""
     density, source = material
-    return round(density if source == "documented" else density * abs(mesh.volume) / 1000, 3)
+    if source == "documented":
+        return density
+    mm3 = abs(mesh.volume)
+    if source in g.MATERIALS:
+        skin = min(mm3, mesh.area * SKIN_MM)
+        mm3 = skin + INFILL * (mm3 - skin)
+    return round(density * mm3 / 1000, 3)
 
 
 def _convex(args):

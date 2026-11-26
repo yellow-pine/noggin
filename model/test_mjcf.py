@@ -316,6 +316,13 @@ def test_a_grown_part_cuts_into_no_more_pieces_than_its_cap(stem):
 
 
 def test_mass_follows_density_or_the_documented_figure():
-    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3
-    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(1.24)
+    """#1003: a printed part weighs as it prints, a skin SKIN_MM thick round its INFILL core; a part thinner than two
+    skins prints solid; hardware weighs its documented figure or its STEP volume at its density."""
+    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3, 600 mm2: a 510 mm3 skin round a 490 mm3 core at 15%
+    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(
+        1.24 * (510 + 0.15 * 490) / 1000, abs=1e-3
+    )  # mass() rounds to the mg
+    plate = trimesh.creation.box((40.0, 40.0, 1.6))  # its two faces' skins fill it
+    assert mjcf.mass(plate, (1.24, "PLA Pure")) == pytest.approx(1.24 * 40 * 40 * 1.6 / 1000, abs=1e-3)
+    assert mjcf.mass(cube, (1.9, "step volume x 1.9 g/cm3")) == pytest.approx(1.9)
     assert mjcf.mass(cube, (16.0, "documented")) == 16.0

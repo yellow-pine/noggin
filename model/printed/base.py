@@ -2,9 +2,13 @@
 (#720) as CadQuery parts, every size from model/base.py, each drawn where it sits at rest in the head's frame
 (model/neck.py)."""
 
+import itertools
+
 import cadquery as cq
+import numpy as np
 
 from model import base as nb
+from model import envelopes
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box
@@ -121,6 +125,11 @@ def stand(mechanical=False):
     y = (gm.PLATE_Y[0] - 5.0, gm.PLATE_Y[1])  # its front behind the lower lids' sweep, before the yaw servo (#901)
     out = _box((-x, x), y, (nb.STAND_Z, top), r)
     out = out.cut(_box((-x + WALL, x - WALL), (y[0] + WALL, y[1] - WALL), (nb.STAND_Z, top), r and r - WALL))
+    # the front wall's window round the hanging yaw servo and its collar (its tabs 2 mm out), 1 mm clear: since #1005
+    # it hangs 6 mm forward, through the wall's line
+    face, shaft, tab, _ = gm.drives()["yaw"]
+    tabs = gm.servo_matrix(face, shaft, tab) @ np.c_[list(itertools.product(*envelopes.SERVO["tabs"])), np.ones(8)].T
+    out = out.cut(box((tabs[0].min() - 3.0, tabs[0].max() + 3.0), (y[0] - 1.0, y[0] + WALL + 1.0), (nb.STAND_Z, top)))
     out = out.union(box((-x + WALL, x - WALL), (nb.STAND_TOP_Y, y[1] - WALL), (top - nb.TRAY_T, top)))
     for sx, sy in nk.HEAD_SCREWS:
         out = out.cut(cyl("z", (sx, sy, 0), 1.7, (top - nb.TRAY_T, top)))
