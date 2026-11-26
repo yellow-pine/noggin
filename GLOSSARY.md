@@ -338,11 +338,6 @@ _Avoid_: rod, linkage
 **Crank**:
 The lever on a turning part that a Bar drives: the yaw yoke's, each upper lid's.
 
-**Balance spring**:
-The torsion spring on the Mech's tilt pivot that holds the head's weight, which hangs in front of the pivot under
-the skull's base, so the tilt servo moves the head without holding it up.
-_Avoid_: counterweight, gas spring, return spring
-
 **Printed part**:
 A part we print, by our name (model/printed); the Skeleton's:
 - gimbal frame: the eye block's plate, carrying the eyes' pivots and the four eye servos;

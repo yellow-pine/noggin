@@ -25,8 +25,14 @@ BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
+# A moving case's four-bar (#978): its crank from `point` to `pin`, the bar from `pin` to the fixed `anchor`; `solve` is
+# linkage.four_bar seen from the case (the fixed part its rocker), the output its rocker's turn times Direct's sign
+Reaction = namedtuple("Reaction", "point pin anchor driven bar fixed solve")
+Direct = namedtuple(
+    "Direct", "joint driven sign reaction", defaults=(None,)
+)  # concentric 1:1, or a moving case's four-bar
 Horn = namedtuple(
-    "Horn", "pivot limits crank loops still frame rods", defaults=((),)
+    "Horn", "pivot limits crank loops still frame rods direct", defaults=((), None)
 )  # still: joints recorded as 0 (not in this chain); frame: the sub-assembly's 4x4; rods: its Rods
 # A rod riding another moving part, the `carrier` (the Mech's pitch push-rods on the bail, #663; each lower lid's
 # link on its lid bar, #698): `part` on a `joint` at `arm` (about `axes`: two, a universal joint), its other end on
@@ -275,11 +281,67 @@ def _neck_drives(labels, drives, stems):
 
 
 def neck_sub():
-    """neck: the Mech's neck (#641, model/neck.py) at rest, in the head's frame (the gimbal's): the neck mount,
-    the pan yoke, the head mount and the pan and tilt bars, the neck Core's pan and tilt servos with their horns on the
-    drives."""
-    stems = ("neck mount", "pan yoke", "head mount", "pan bar", "tilt bar")
-    return _neck_drives(("pan", "tilt"), ("pan", "tilt"), stems)
+    """Fixed cervical carrier, inverse nod drive, then a hollow bearing and standard-servo pan four-bar."""
+    parts = {
+        name: part(stl(name.removesuffix(":1")), None, printed(name.removesuffix(":1")))
+        for role, name in neck.HEAD_CARRIERS.items()
+        if role != "jaw"
+    }
+    tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
+    for stem in ("tilt lever", "tilt reaction bar", "pan lever", "pan bar", "pan fixed cap", "pan moving cap"):
+        parts[stem + ":1"] = part(stl(stem), None, printed(stem))
+    parts["tilt servo:1"] = part(
+        stl("standard servo"), align(neck.TILT_SHAFT, neck.TILT_CASE, (-1, 0, 0)), (55, "documented")
+    )
+    parts["tilt horn:1"] = part(stl("standard horn"), align(neck.TILT_SHAFT, g.Y, g.X), BOARD)
+    parts["pan servo:1"] = part(
+        stl("standard servo"), align(neck.PAN_SHAFT, neck.PAN_CASE, (0, 0, -1)), (55, "documented")
+    )
+    parts["pan horn:1"] = part(stl("standard horn"), align(neck.PAN_SHAFT, g.X, g.Z), BOARD)
+    parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.PAN_STUDY_Z[0])), (18, "documented"))
+    head = [*neck.HEAD, "pan moving cap:1"]
+    carried = [
+        "nod plate:1",
+        "tilt servo:1",
+        "tilt horn:1",
+        "tilt lever:1",
+        "pan servo:1",
+        "pan horn:1",
+        "pan lever:1",
+        "pan bar:1",
+        "pan fixed cap:1",
+        "pan bearing:1",
+        *head,
+    ]
+    reaction = Reaction(
+        neck.TILT_SHAFT,
+        neck.TILT_PIN,
+        neck.TILT_ANCHOR,
+        ["tilt lever:1", "tilt horn:1"],
+        "tilt reaction bar:1",
+        "cervical carrier:1",
+        neck.TILT_LOOP,
+    )
+    horns = {
+        "tilt horn": Horn(
+            {"point": tilt, "axis": g.X},
+            tuple(sorted(neck.servo_for("tilt", d) for d in neck.RANGES["tilt"])),
+            "nod plate:1",
+            [],
+            [],
+            None,
+            direct=Direct("tilt pivot", carried, -1, reaction),
+        ),
+        "pan horn": Horn(
+            {"point": neck.PAN_SHAFT, "axis": g.Z},
+            (-45, 45),
+            ("pan horn:1", "pan lever:1"),
+            [Loop("pan pivot", neck.LINKAGES["pan"], "pan bar:1", head, (pan, g.Z))],
+            ["tilt pivot"],
+            None,
+        ),
+    }
+    return Sub(parts, horns)
 
 
 def jaw_sub():
@@ -351,8 +413,8 @@ RIDES = {
     "mandible:1": "jaw:1",
     "worn skull:1": "gimbal frame:1",
     "worn mandible:1": "jaw:1",
-    "atlas:1": "pan yoke:1",
-    "axis:1": "pan yoke:1",
+    "atlas:1": "cervical carrier:1",
+    "axis:1": "cervical carrier:1",
 }  # clamped to that part (a sub-assembly's every part, or one part)
 
 
@@ -387,7 +449,10 @@ def assemble(doc, frames):
 
     for h, horn in horns.items():
         loops = [loop._replace(rockers=carried(loop.rockers)) for loop in horn.loops]
-        horns[h] = horn._replace(loops=loops, rods=[rod._replace(driven=carried(rod.driven)) for rod in horn.rods])
+        direct = horn.direct._replace(driven=carried(horn.direct.driven)) if horn.direct else None
+        horns[h] = horn._replace(
+            loops=loops, rods=[rod._replace(driven=carried(rod.driven)) for rod in horn.rods], direct=direct
+        )
     return Doc(doc, parts, horns)
 
 
@@ -415,16 +480,20 @@ PIVOT, TAB, HEAD, NUT = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x
 def fasteners(doc):
     """{fastener: count} the document takes (#964), counted from its horns, servos and head screws: per horn its pin on
     the coupler, per loop the coupler's pin on the rocker and the rocker's pivot (SHANKS), per rod its two pins (none on
-    balls, a universal joint) and its hinge; two tab screws per servo; the head screws (model/neck.py), each with its
+    balls, a universal joint) and its hinge, per direct drive its reaction bar's anchor pin and its joint's shanks; two
+    tab screws per servo, four per standard servo; the head screws (model/neck.py), each with its
     nut, through the test stand or the head mount. Sizes inferred (docs/build/parts.md)."""
     d = STAGES[doc]
     pins = 0
     for horn in d.horns.values():
         pins += 1 + sum(1 + SHANKS.get(loop.joint, 1) for loop in horn.loops)
         pins += sum((0 if np.ndim(r.axes) == 2 else 2) + SHANKS.get(r.hinge[0], 1) for r in horn.rods)
+        if horn.direct and horn.direct.reaction:  # its reaction bar's pin on the fixed part, and the joint's own shanks
+            pins += 1 + SHANKS.get(horn.direct.joint, 1)
     servos = sum(stem(p.file) == "servo" for p in d.parts.values())
+    standards = sum(stem(p.file) == "standard servo" for p in d.parts.values())
     head = len(neck.HEAD_SCREWS) if {"test stand:1", "head mount:1"} & set(d.parts) else 0
-    return {PIVOT: pins, TAB: 2 * servos, HEAD: head, NUT: head}
+    return {PIVOT: pins, TAB: 2 * servos + 4 * standards, HEAD: head, NUT: head}  # a standard: two per tab
 
 
 def pose(stage, horn_name, deg):
@@ -437,7 +506,32 @@ def pose(stage, horn_name, deg):
     def move(name, delta):
         mats[name] = f @ delta @ f_inv @ mats[name]
 
-    move(horn.crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
+    if horn.direct:
+        reaction = horn.direct.reaction
+        output = horn.direct.sign * (reaction.solve(deg)[0] if reaction else deg)
+        turn = linkage.rotation(horn.pivot["axis"], output, horn.pivot["point"])
+        for name in horn.direct.driven:
+            move(name, turn)
+        joints = {**dict.fromkeys(horn.still, 0.0), horn.direct.joint: round(output, 2)}
+        if reaction:
+            for name in reaction.driven:
+                mats[name] = (
+                    f
+                    @ turn
+                    @ linkage.rotation(horn.pivot["axis"], deg, reaction.point)
+                    @ f_inv
+                    @ stage.parts[name].matrix
+                )
+            _, a, b = reaction.solve(deg)  # the bar's turn as the case sees it, then the case's
+            twist = _angle(horn.pivot["axis"], np.subtract(b, a)) - _angle(
+                horn.pivot["axis"], np.subtract(reaction.anchor, reaction.pin)
+            )
+            bar = output + math.degrees(twist)
+            move(reaction.bar, linkage.rotation(horn.pivot["axis"], bar, reaction.anchor))
+            joints |= {horn_name: deg, reaction.bar + " pivot": round(bar - output - deg, 2)}  # on the crank's pin
+        return Pose(mats, joints)
+    for crank in (horn.crank,) if isinstance(horn.crank, str) else horn.crank:
+        move(crank, linkage.rotation(horn.pivot["axis"], deg, horn.pivot["point"]))
     joints, coupled = {j: 0.0 for j in horn.still}, set()
     for loop in horn.loops:
         rocker, a, b = loop.solve(deg)

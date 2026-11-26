@@ -13,10 +13,13 @@ which is its Shell's too. One polarity rule: the carrier's magnet shows N to its
 Seat of an L/R pair, so a Shell on the other side's Seat is pushed off. Every size is ours and inferred (no build settles one yet)."""
 
 import functools
+import json
 import math
+import os
 from collections import namedtuple
 
 import numpy as np
+from scipy import interpolate
 
 from model import base as nb
 from model import geometry as g
@@ -113,11 +116,54 @@ HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
 HEAD_Z = (-80.0, max(v + r for _, v, r in FRONT))
 MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
-# The hairline (his model sheet's): the hair is the head inside a circle along x, (y, z, r), from over the forehead down
-# behind the ears, and all behind NAPE, so the hair comes off upward and the face forward; it stands HAIR proud of the face
-HAIRLINE = grown(99.4, 67.4, 111.5)
-NAPE = 78.0 * GROW
+# Morty's contours (#991, #992): our control points traced off his model sheet (contours.json, its research note), in his
+# eyes' spacing from their midpoint, each in the view it was traced in, front (x, z) or side (y, z), and swept through
+# the head along that view's axis. One source for the Shells' hair seam (model/printed/skin.py) and the private
+# reference's cut (model/review). The Shells' hair also takes all behind NAPE, where the head starts to narrow (TOP), so
+# the hair comes off upward and the face forward; it stands HAIR proud of the face
+with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
+    _SHEET = json.load(_f)
+CONTOURS = _SHEET["contours"]
+# (y, z): the sheet's face front, on the side view's midline over the eyes. His drawn eyes stand out of his face where
+# ours sit behind it, so the eyes alone set no depth: a side view's contour moves along y to meet a head's own front there
+FACE_FRONT = _SHEET["face front"]
+FACE_Y = min(u - r for u, _, r in SIDE[0])  # the Shells' face's front over the eyes
+FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
+NAPE = TOP[2][1]
 HAIR = 1.5
+
+
+def contour(name, step=2.0):
+    """The contour `name` (CONTOURS) in the head's frame, mm, in its view's plane: a smooth spline through its points,
+    scaled by the eyes' spacing, sampled about every `step` mm (at least 48 points)."""
+    c = CONTOURS[name]
+    pts = np.array(c["points"]) * gm.SPACING
+    closed = c.get("closed", False)
+    pts = np.vstack([pts, pts[:1]]) if closed else pts
+    tck, _ = interpolate.splprep(pts.T, s=0, per=closed)
+    n = max(48, int(np.linalg.norm(np.diff(pts, axis=0), axis=1).sum() / step))
+    return np.array(interpolate.splev(np.linspace(0, 1, n, endpoint=not closed), tck)).T
+
+
+def outline(name, front=None, step=2.0):
+    """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's or a pupil's its own; the
+    hair above and behind the hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
+    its corners, each closed FAR out. A side view's moves along y so the sheet's face front meets `front` (mm)."""
+    p = contour(name, step)
+    if front is not None and CONTOURS[name]["view"] == "side":
+        p = p + (front - FACE_FRONT[0] * gm.SPACING, 0.0)
+    (a0, b0), (a1, b1) = p[0], p[-1]  # (y, z) on a side view, (x, z) on a front one
+    if name == "hairline":  # on past the forehead along its end, out of the head
+        t = (p[0] - p[1]) / np.linalg.norm(p[0] - p[1])
+        a0, b0 = p[0] + FAR * t
+        return np.vstack([(a0, b0), p, (FAR, b1), (FAR, FAR), (a0, FAR)])
+    if name == "collar":
+        return np.vstack([(-FAR, b0), p, (FAR, b1), (FAR, -FAR), (-FAR, -FAR)])
+    if name == "mouth":
+        return np.vstack([p, (a1, -FAR), (a0, -FAR)])
+    return p
+
+
 NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
 BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
 # in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
@@ -163,13 +209,14 @@ def _seats(skin):
             for x in (-45.0, 45.0)
         ],
         # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
+        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside),
+        # far enough back that the boss rises into the hair over the sheet's hairline, not the face (#992)
         *[
             Seat(f"{skin} hair", "gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
             for x in (-_BACK[0], _BACK[0])
         ],
         *[
-            Seat(f"{skin} hair", f"{skin} face", grown(x, -2.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0 * GROW, 1)
+            Seat(f"{skin} hair", f"{skin} face", grown(x, 10.0, 42.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 42.0 * GROW, 1)
             for x in (-40.0, 40.0)
         ],
         # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
@@ -186,17 +233,20 @@ def _seats(skin):
         # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
         # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
         *[
-            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -157.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
         *[
-            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -157.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
     ]
 
 
-SUNGLASSES = (0.0, -131.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
+SUNGLASSES = (
+    0.0,
+    -153.0,
+)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813), 6 under it
 SEATS += [
     *_seats("morty"),
     *_seats("cansin"),
@@ -229,7 +279,7 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.i
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
-# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
+# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the tilt servo holds too
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Shells (model/stages.py RIDES, held to it by model/printed/test_skin.py) and the private Morty

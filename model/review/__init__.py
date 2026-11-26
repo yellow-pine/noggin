@@ -144,14 +144,21 @@ def motion(stage, curves):
     return out
 
 
-def flat(mesh):
-    """4x4 laying `mesh` on its largest flat face (its convex hull's), its long side along x, its box's low corner at
-    the origin."""
+def flat(mesh, fit=BED - 2 * GAP):
+    """4x4 laying `mesh` on its largest flat face (its convex hull's) whose footprint fits a `fit` square, else its
+    largest (an open Shell's largest is its opening, which can lie corner to corner: #992's hair), its long side along
+    x, its box's low corner at the origin."""
     hull = mesh.convex_hull
-    down = hull.facets_normal[np.argmax(hull.facets_area)]
-    turn = trimesh.geometry.align_vectors(down, [0, 0, -1])
-    v = trimesh.transform_points(hull.vertices, turn)
-    lo, hi = v.min(axis=0), v.max(axis=0)
+    for k in np.argsort(-hull.facets_area):
+        turn = trimesh.geometry.align_vectors(hull.facets_normal[k], [0, 0, -1])
+        v = trimesh.transform_points(hull.vertices, turn)
+        lo, hi = v.min(axis=0), v.max(axis=0)
+        if max(hi[:2] - lo[:2]) <= fit:
+            break
+    else:
+        turn = trimesh.geometry.align_vectors(hull.facets_normal[np.argmax(hull.facets_area)], [0, 0, -1])
+        v = trimesh.transform_points(hull.vertices, turn)
+        lo, hi = v.min(axis=0), v.max(axis=0)
     if hi[1] - lo[1] > hi[0] - lo[0]:
         turn = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 0, 1]) @ turn
         v = trimesh.transform_points(hull.vertices, turn)
@@ -215,7 +222,17 @@ def _morty(stage):
         "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
+        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the contours'
+        "contours": contours(),
+        "eyes": gm.EYE,  # in the head's frame: each eye's lids part at its height
+        "face": [c * gm.SPACING for c in skin.FACE_FRONT],  # the sheet's face front, to meet the sculpt's
     }
+
+
+def contours():
+    """{contour: (its view, the region it bounds)}, skin.outline's: what the reference is cut along (#992), as the
+    Shells' hair is."""
+    return {n: (c["view"], skin.outline(n).tolist()) for n, c in skin.CONTOURS.items()}
 
 
 def job(quality="production", before=None):

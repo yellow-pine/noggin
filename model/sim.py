@@ -10,3 +10,13 @@ RATED_KGF_CM = round(
     _s0["rated_kgfcm"] + (_s1["rated_kgfcm"] - _s0["rated_kgfcm"]) * (electrical.SERVO_RAIL_V - _v0) / (_v1 - _v0),
     2,
 )
+
+
+def limits(horn):
+    p = electrical.servo.profile(horn.removesuffix(" horn"), electrical.SERVO_RAIL_V)
+    return {
+        "rated_kgf_cm": round(p["rated_kgfcm"], 3),
+        "stall_kgf_cm": round(p["stall_kgfcm"], 3),
+        "rated_source": p["rated_source"],
+        "volts": p["volts"],
+    }

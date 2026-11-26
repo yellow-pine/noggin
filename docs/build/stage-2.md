@@ -7,8 +7,9 @@
 [Open Stage 2 in the viewer](https://yellowpine.com/noggin/viewer/?stage=2)
 
 The eye block leaves its test stand for the neck: the head turns left and right (pan) and nods (tilt) on its own
-pivots, each servo driving it through a bar ~~from the neck under the head~~ *from inside the skull, the tilt on a
-standard metal-gear servo and the pan on a thrust bearing (#902)*. The Torso under it holds the pack, its switch and the power-path board;
+pivots: the cervical carrier holds a nod plate for tilt, and the head pans on a thrust bearing on that plate. Both
+servos sit inside the skull; the tilt uses a standard metal-gear servo and a reduction four-bar, the pan a micro
+servo and keyed torque coupling (#978). The Torso under it holds the pack, its switch and the power-path board;
 both Cores ride in the head's cranium, the hub's USB-C port at the back of the skull base. Two more servos, on the neck
 Core.
 
@@ -38,15 +39,16 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
 1. **Torso**: ~~the box pedestal the Mech stands on~~ *a T1–T4 ribcage of primitives on a floor plate, the Mech
    standing on the plate (#879)*, the pack lying low in it, the switch board lying flat beside the
    pack's lead end, its lever reached through a hole in the lid, the power-path board lying flat in front, and the
-   **neck mount** standing on its floor, its hollow post rising through the **torso lid**, the neck cable up inside it,
-   the pan servo on its shelf over the lid (*Upcoming (#902): the neck mount, the pan yoke and the post go, and the
-   neck cable runs up the cervical canal*). The lid slides onto the post from behind through its slot, over the walls,
-   then drops onto its ledge inside them, flush with their top, where it cannot slide off.
-2. **Pan yoke** turning on the post's top under the head, the tilt servo on its floor; the **pan bar** joins it to the
-   pan servo's horn.
-3. **Head mount** turning on the yoke's cheeks, the tilt pivot under the skull's base behind the head's centre of mass,
-   a torsion spring on its shank holding the head's weight (the balance spring); the **tilt bar** joins it to the tilt
-   servo's horn. From the side, where the tilt pivot sits under the skull's base:
+   **cervical carrier** bolted to its floor, its two medial rails through the **torso lid** beside the wire corridor.
+   The lid drops onto its ledge inside the walls, flush with their top.
+2. **Nod plate** turning on the carrier's C0 trunnions. The standard tilt servo's case stands upright in its low rear
+   cradle, behind the wire corridor; the supplied horn and printed adapter react through a reduction four-bar to the
+   carrier: a short crank on the horn and a longer arm on the carrier, so the head turns about half the servo's turn,
+   reversed, and the servo holds the head's weight with no spring. The standard pan servo hangs shaft down from the cradle's rear
+   mast, behind the pan bearing; both cases ride inside the compact head (#978).
+3. **Head mount** on the C0 pan bearing on the nod plate's hollow spindle. The pan servo turns it
+   through a parallelogram four-bar; the bearing carries the head's load, and the power leads pass its 8 mm bore. Pan
+   follows tilt in the joint order. From the side:
 
    [Open Stage 2 in the viewer](https://yellowpine.com/noggin/viewer/?stage=2&view=side)
 
