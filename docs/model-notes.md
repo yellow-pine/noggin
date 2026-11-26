@@ -226,9 +226,11 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/skeleton/test_skeleton.py holds
   it to the finished bones), whose bones ride the realistic documents alone.
   Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
-  model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): 3Demon's cranium and
-  mandible scaled to the head's 150 mm height (2 mm spare for the remesh), its orbits on the eyes with the caps 7 mm
-  proud, and the atlas and axis at the skull's scale round the post, the atlas under the tilt lugs. `just ours` has Blender
+  model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): since #874
+  BodyParts3D's skull, mandible and C1 to C7, each region resized uniformly and the skull and mandible warped by one
+  smooth field each (model/skeleton/fit.py) within the confirmed local length budget: the orbits on the eyes, the
+  condyles on the jaw's hinge, the occipital condyles on the tilt axis, the skull filling the compact head's box
+  (`base.DOME`), and the vertebrae stacked down the cervical canal's path, the atlas round the pan axis. `just ours` has Blender
   finish them on a 0.8 mm SDF grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.

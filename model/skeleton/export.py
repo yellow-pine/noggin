@@ -74,8 +74,12 @@ def swap(job, ratio=None):
     frame = Matrix.Translation(job["frame"])
     corners = {path: _corners(me) for path, me in meshes.items()}
     for bone, kinds in job["bones"].items():
-        o = bpy.data.objects[bone]
-        box = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        o = bpy.data.objects.get(bone)  # the skull: its bones' collection (model/skeleton/bodyparts.py)
+        box = [
+            p.matrix_world @ Vector(c)
+            for p in ([o] if o else bpy.data.collections[f"{bone} bones"].objects)
+            for c in p.bound_box
+        ]
         lo = Vector([min(p[i] for p in box) for i in range(3)]) - Vector((2,) * 3)
         hi = Vector([max(p[i] for p in box) for i in range(3)]) + Vector((2,) * 3)
         for kind, places in kinds.items():
@@ -192,3 +196,5 @@ if __name__ == "__main__":
     numbers(job)
     write(job)
     print("export: done", flush=True)
+    if not bpy.app.background:  # run with its window open (Cansin watches local Blender runs)
+        bpy.ops.wm.quit_blender()

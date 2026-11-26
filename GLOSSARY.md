@@ -313,12 +313,14 @@ to the Mech it just built.
 _Avoid_: stand-in (the Mech stand-in is the Link's), placeholder, decimated Mech
 
 **Warp**:
-The one smooth deformation that carries the bones from their anatomy onto their Landmarks' targets, held as a shape key
-under the hand edits.
+The deformation that carries the bones from their anatomy onto the Mech: each region (skull, mandible, neck) resized
+uniformly and placed, the skull and the mandible then by one smooth field each within the local length budget, held as
+a shape key under the hand edits (model/skeleton/fit.py).
 _Avoid_: morph, fit, deform
 
 **Landmark**:
-A point on a bone's anatomy and the target the Warp carries it to; one with no target is a fixed point.
+A point on a bone's anatomy (an orbit, a condyle, the menton) that the Warp carries to its target on the Mech (an eye's
+centre, the jaw's hinge, the head's box), the target derived from the Mech's own numbers.
 _Avoid_: control point, pin
 
 **Finish**:

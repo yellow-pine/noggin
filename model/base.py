@@ -40,7 +40,7 @@ EYES_UP = 0.55
 # the realistic skull's box in the head's frame (the eyes' middle at the origin), its mandible's chin to its cranium's
 # top (#838; model/skeleton/test_skeleton.py holds it to the finished bones): what the head's
 # shell covers in every Skeleton
-DOME = ((-49.6, 50.6), (-34.6, 102.3), (-78.2, 69.8))
+DOME = ((-78.2, 77.6), (-25.8, 134.9), (-93.4, 80.0))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand's back face
 # the switch board's frame on the Torso's floor: beside the pack's lead end (-x), 5 mm off its cradle; the board lies

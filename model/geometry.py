@@ -226,7 +226,8 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if v[1].startswi
 # the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none. Its bones as they show bare (SKULL), and
 # the skull and mandible carved round every Skin's Shells too (WORN), printed to wear a Skin (Cansin, 2026-11-03): the
 # documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones
-SKULL = ("skull", "mandible", "atlas", "axis")
+NECK = ("atlas", "axis", *(f"c{i}" for i in range(3, 8)))  # C1 to C7, BodyParts3D's (#874)
+SKULL = ("skull", "mandible", *NECK)
 WORN = {"skull": "worn skull", "mandible": "worn mandible"}
 BONES = (*SKULL, *WORN.values())
 PRINTED |= dict.fromkeys(BONES, ("Bones", "PETG HF"))
