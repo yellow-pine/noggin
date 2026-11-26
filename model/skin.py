@@ -145,22 +145,22 @@ def contour(name, step=2.0):
     return np.array(interpolate.splev(np.linspace(0, 1, n, endpoint=not closed), tck)).T
 
 
-def outline(name, front=None):
+def outline(name, front=None, step=2.0):
     """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's or a pupil's its own; the
     hair above and behind the hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
     its corners, each closed FAR out. A side view's moves along y so the sheet's face front meets `front` (mm)."""
-    p = contour(name)
+    p = contour(name, step)
     if front is not None and CONTOURS[name]["view"] == "side":
         p = p + (front - FACE_FRONT[0] * gm.SPACING, 0.0)
-    (y0, z0), (y1, z1) = p[0], p[-1]
+    (a0, b0), (a1, b1) = p[0], p[-1]  # (y, z) on a side view, (x, z) on a front one
     if name == "hairline":  # on past the forehead along its end, out of the head
         t = (p[0] - p[1]) / np.linalg.norm(p[0] - p[1])
-        y0, z0 = p[0] + FAR * t
-        return np.vstack([(y0, z0), p, (FAR, z1), (FAR, FAR), (y0, FAR)])
+        a0, b0 = p[0] + FAR * t
+        return np.vstack([(a0, b0), p, (FAR, b1), (FAR, FAR), (a0, FAR)])
     if name == "collar":
-        return np.vstack([(-FAR, z0), p, (FAR, z1), (FAR, -FAR), (-FAR, -FAR)])
+        return np.vstack([(-FAR, b0), p, (FAR, b1), (FAR, -FAR), (-FAR, -FAR)])
     if name == "mouth":
-        return np.vstack([p, (y1, -FAR), (y0, -FAR)])
+        return np.vstack([p, (a1, -FAR), (a0, -FAR)])
     return p
 
 

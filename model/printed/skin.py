@@ -233,8 +233,11 @@ LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.
 
 def _hair(grow, skin="morty"):
     """The hair's region (model/skin.py outline("hairline"), NAPE), `grow` mm out of it; Cansin's less his temples."""
+    # sampled every 5 mm: within 0.1 mm of the curve, with few enough planes for OCCT's booleans (#992)
     side = (
-        cq.Workplane("YZ", origin=(-200, 0, 0)).polyline([tuple(p) for p in sk.outline("hairline", sk.FACE_Y)]).close()
+        cq.Workplane("YZ", origin=(-200, 0, 0))
+        .polyline([tuple(p) for p in sk.outline("hairline", sk.FACE_Y, 5.0)])
+        .close()
     )
     out = side.offset2D(grow, "intersection").extrude(400).union(box((-200, 200), (sk.NAPE - grow, 300), (-300, 300)))
     if skin == "cansin":

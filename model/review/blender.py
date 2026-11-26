@@ -226,11 +226,11 @@ def contoured(m, objects):
         bm.from_mesh(o.data)
         bmesh.ops.transform(bm, matrix=head, verts=bm.verts)
         own, names = o["reference_region"], [x.name for x in o.data.materials]
-        front = lambda c: c.y < 0  # noqa: E731 a front view's contours cut the face, not the head's back behind it
+        ahead = lambda c: c.y < 0  # noqa: E731 a front view's contours cut the face, not the head's back behind it
         cut(bm, poly["hairline"], "side")
         if own in MOVING:
             for n in ("L eye white", "R eye white", "L pupil", "R pupil", "mouth"):
-                cut(bm, poly[n], "front", front)
+                cut(bm, poly[n], "front", ahead)
             if own.endswith(" eye"):  # the lids part at the eye's height
                 z = m["eyes"][own[0]][2]
                 bmesh.ops.bisect_plane(
@@ -290,6 +290,8 @@ def contoured(m, objects):
             continue
         o = by_region.get(region)
         if o is None:  # a lid: a new surface like its eye's, carried by its lid
+            if not region.endswith(" lid"):
+                raise ValueError(f"review: Morty's reference needs a {region} surface for the faces that fall in it")
             eye = by_region[f"{region[0]} eye"]
             o = eye.copy()
             o.data = eye.data.copy()
