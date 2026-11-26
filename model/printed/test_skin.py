@@ -1,7 +1,7 @@
 """Seam: the Skins' Shells (model/printed/skin.py: Morty's, Cansin's) and the Seats cut into what carries them, as
 model/stages.py places them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part but
-what carries it, at rest, with each servo at either end and with the jaw open at each corner of the head's pan and
-tilt, in each Skin."""
+what carries it, at rest, with each servo at either end and with the jaw open as the head nods and pans to its
+ends, in each Skin."""
 
 import functools
 import itertools
@@ -181,6 +181,13 @@ def _tree(stem):
     return cKDTree(_cloud(stem))
 
 
+PANS = (nk.RANGES["pan"][0], 0, nk.RANGES["pan"][1])  # the head straight and panned to either end
+
+
+def _jaw_open(pan, tilt):
+    return f"pan {pan:g} tilt {tilt:g} jaw open"
+
+
 @functools.cache
 def _poses(doc=DOC):
     stage = stages.STAGES[doc]
@@ -190,9 +197,9 @@ def _poses(doc=DOC):
     # #968: the jaw open with the head nodded to either end, straight and panned to either end, each drive's motion
     # composed on the one it rides (the jaw on the pan on the tilt)
     rest, jaw = out["rest"], stages.pose(stage, "jaw horn", nk.servo_for("jaw", nk.RANGES["jaw"][1])).parts
-    for pan, tilt in itertools.product((nk.RANGES["pan"][0], 0, nk.RANGES["pan"][1]), nk.RANGES["tilt"]):
+    for pan, tilt in itertools.product(PANS, nk.RANGES["tilt"]):
         t, p = (stages.pose(stage, f"{d} horn", nk.servo_for(d, a)).parts for d, a in (("tilt", tilt), ("pan", pan)))
-        out[f"pan {pan:g} tilt {tilt:g} jaw open"] = {
+        out[_jaw_open(pan, tilt)] = {
             n: t[n] @ np.linalg.inv(m) @ p[n] @ np.linalg.inv(m) @ jaw[n] for n, m in rest.items()
         }
     return out
@@ -243,12 +250,11 @@ def _known(shell, part):
 
 
 # the poses every Skin's mouth cover meets the Torso box's top in: the head nodded down, the jaw open (#1020 clears them)
-KNOWN_CHIN = [
-    f"pan {p:g} tilt {nk.RANGES['tilt'][1]:g} jaw open" for p in (nk.RANGES["pan"][0], 0, nk.RANGES["pan"][1])
-]
+KNOWN_CHIN = [_jaw_open(pan, nk.RANGES["tilt"][1]) for pan in PANS]
 
 
 def _chin(shell, part, pose):
+    """Whether (Shell, part) at `pose` is a KNOWN_CHIN meeting, placed names."""
     return pose in KNOWN_CHIN and shell.endswith(" mouth cover:1") and part == "torso:1"
 
 

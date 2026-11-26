@@ -17,7 +17,9 @@ from model.printed.gimbal import cyl, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mechanical bar's round ends
-RAMUS = ((4.2, 2.4), (3.8, 2.2))  # the jaw's ramus struts (head, waist): fore-aft, then across
+# #968: the jaw's ramus Bones, its chain's first spans (condyle to angle), deep fore and aft as the ramus is, to hold the
+# mouth servo's stall: (head, waist), each its half-depth fore and aft, then across
+RAMUS, RAMUS_SPANS = ((5.4, 2.4), (5.0, 2.2)), 3
 
 
 def tie(x, y, z):
@@ -231,11 +233,8 @@ def pan_wire_candidate():
     }
 
 
-@bone.grown
-def jaw(mechanical=False):
-    """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
-    from model import skin
-
+def jaw_chains():
+    """{side: the jaw's chain of joints}: each measured border 2.5 mm in, its body raised JAW_CHAIN_UP, to the chin."""
     points = {}
     for side, border in nk.MANDIBLE_BORDER.items():
         sign = 1 if side == "L" else -1
@@ -243,11 +242,19 @@ def jaw(mechanical=False):
             (x - sign * 2.5, y, z + (nk.JAW_CHAIN_UP if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)
         ]
         points[side].append(tuple(np.add(nk.MENTON, (0, 0, nk.JAW_CHAIN_UP))))
+    return points
+
+
+@bone.grown
+def jaw(mechanical=False):
+    """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
+    from model import skin
+
+    points = jaw_chains()
     out = None
     for chain in points.values():
         for i, (a, b) in enumerate(zip(chain, chain[1:])):
-            # #968: the ramus, condyle to angle, deep fore and aft as the bone is, for the mouth servo's stall
-            if i < 3:
+            if i < RAMUS_SPANS:
                 link = bone.bone(a, b, *RAMUS, up=(1, 0, 0), round=True, heads=False)
             else:
                 link = strut(a, b, (3.2, 2.2), (2.8, 2))
