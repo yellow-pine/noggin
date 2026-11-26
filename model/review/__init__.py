@@ -1,18 +1,19 @@
 """The review file (#915): Cansin's one Blender file of the Mech, rebuilt the same way every time from what is committed
 plus the local Morty reference, which Cansin's Blender reloads once it is written (docs' startup script, #886).
 
-`just review [coarse|medium] [before]` (`python -m model.review`): the Skeleton scene (docs/adr/0025) with the Stage 3
+`just review [production|coarse] [before]` (`python -m model.review`): the Skeleton scene (docs/adr/0025) with the Stage 3
 document just built (just ours) in place of its Scene Mech, each of the document's bones finished at the quality's
-voxel, one Blender process a bone under CEILING_KB, then three scenes on the same meshes (model/review/blender.py):
-Assembled (Mech, Skeleton and Morty, each in Skull, Mechanism and Pedestal, at ALPHA; a looping motion through every
-horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
+voxel (production: the print files' skeleton.PITCH; coarse when asked), one Blender process a bone under CEILING_KB,
+then three scenes on the same meshes (model/review/blender.py): Assembled (Mech, Skeleton and Morty, each in Skull,
+Mechanism and Pedestal, at ALPHA; a looping motion through every horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
 on its largest flat face, packed on BED plates); `before` adds a scene of main's bones beside the branch's. Run it in a
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
 
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
 it): a collection `Morty reference` of editable semantic meshes in morty-fixed.stl's raw frame, with painted material
-slots named by Skin Colour group. Each mesh names its `reference_region`, `display_region` and optional live `carrier`
-part. Neck, shoulders and torso have no carrier. The recipe reads it without changing it, applies the Default Skin
+slots named by Skin Colour group. Each mesh names its `reference_region`, a Motion region (skin.MOTION: head, jaw, an
+eye, a lid, or the fixed neck, shoulders and torso), which names the live part carrying it (CARRIERS), and its
+`display_region`; a `carrier` it still names must agree. The recipe reads it without changing it, applies the Default Skin
 palette and cuts it at the model's floor. Without this reference, Morty's layer stays empty, including in a fresh clone.
 Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
 anatomical surfaces for the output's motion checks; their positions stay private with the reference.
@@ -40,7 +41,7 @@ OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage
 SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
-QUALITY = {"coarse": 1.6, "medium": skeleton.PITCH}  # the finish's voxel, mm
+QUALITY = {"production": skeleton.PITCH, "coarse": 1.6}  # the finish's voxel, mm
 CEILING_KB = blender_ceiling(sys.platform, os.environ)  # the Mac remains protected; GX10 also has a whole-job cgroup
 ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
 REGIONS = {
@@ -55,6 +56,7 @@ BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each 
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
 # the Morty sculpt's eye centres, raw mm (#872's measure on its front depth map, inferred), z up, -y forward
 MORTY_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
+CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
 
@@ -142,14 +144,21 @@ def motion(stage, curves):
     return out
 
 
-def flat(mesh):
-    """4x4 laying `mesh` on its largest flat face (its convex hull's), its long side along x, its box's low corner at
-    the origin."""
+def flat(mesh, fit=BED - 2 * GAP):
+    """4x4 laying `mesh` on its largest flat face (its convex hull's) whose footprint fits a `fit` square, else its
+    largest (an open Shell's largest is its opening, which can lie corner to corner: #992's hair), its long side along
+    x, its box's low corner at the origin."""
     hull = mesh.convex_hull
-    down = hull.facets_normal[np.argmax(hull.facets_area)]
-    turn = trimesh.geometry.align_vectors(down, [0, 0, -1])
-    v = trimesh.transform_points(hull.vertices, turn)
-    lo, hi = v.min(axis=0), v.max(axis=0)
+    for k in np.argsort(-hull.facets_area):
+        turn = trimesh.geometry.align_vectors(hull.facets_normal[k], [0, 0, -1])
+        v = trimesh.transform_points(hull.vertices, turn)
+        lo, hi = v.min(axis=0), v.max(axis=0)
+        if max(hi[:2] - lo[:2]) <= fit:
+            break
+    else:
+        turn = trimesh.geometry.align_vectors(hull.facets_normal[np.argmax(hull.facets_area)], [0, 0, -1])
+        v = trimesh.transform_points(hull.vertices, turn)
+        lo, hi = v.min(axis=0), v.max(axis=0)
     if hi[1] - lo[1] > hi[0] - lo[0]:
         turn = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 0, 1]) @ turn
         v = trimesh.transform_points(hull.vertices, turn)
@@ -210,12 +219,23 @@ def _morty(stage):
     return {
         "blend": MORTY,
         "at": at.tolist(),
+        "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
+        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the contours'
+        "contours": contours(),
+        "eyes": gm.EYE,  # in the head's frame: each eye's lids part at its height
+        "face": [c * gm.SPACING for c in skin.FACE_FRONT],  # the sheet's face front, to meet the sculpt's
     }
 
 
-def job(quality="coarse", before=None):
+def contours():
+    """{contour: (its view, the region it bounds)}, skin.outline's: what the reference is cut along (#992), as the
+    Shells' hair is."""
+    return {n: (c["view"], skin.outline(n).tolist()) for n, c in skin.CONTOURS.items()}
+
+
+def job(quality="production", before=None):
     """What blender.py needs, JSON-ready: skeleton.job() (the parts, the carving, the finish's numbers at the quality's
     voxel), each part's region, layer, colour, Exploded offset and plate, the motion's horn curves and poses, Morty
     (None without the local reference) and main's scene for `before`."""
@@ -286,7 +306,7 @@ def lock(path, wait=False):
     return f
 
 
-def build(out=OUT, quality="coarse", before=False):
+def build(out=OUT, quality="production", before=False):
     """The review file at `out`: written beside it and renamed into place, under its lock (one writer) and the Blender
     slot (one Blender)."""
     held, part = [lock(out + ".lock")], out.removesuffix(".blend") + ".tmp.blend"  # beside it: one disk's rename

@@ -231,11 +231,15 @@ rewarp: venv
     BLENDER={{BLENDER}} NOGGIN_GX10={{GX10}} {{PY}} -m model.skeleton.warp_job
 
 # the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
-review quality="coarse" before="": venv
+review quality="production" before="": venv
     {{PY}} scripts/gx10.py --host {{GX10}} --review {{quality}} {{before}}
 
+# the latest file (model/latest, #998): each layer's newest candidate, main or an open PR, in ~/Desktop/noggin-latest.blend, on the Mac alone (never the GX10 or CI), under the heavy lock it takes itself; then its file test
+latest: venv
+    @out=$({{PY}} -c 'from model import latest; print(latest.LATEST)') && BLENDER={{BLENDER}} {{PY}} -m model.latest && NOGGIN_LATEST="$out" {{PY}} -m pytest -q model/latest
+
 # internal worker entry: generates and checks the review before the controller snapshots or publishes anything
-_review-build quality="coarse" before="": venv ours
+_review-build quality="production" before="": venv ours
     @out=$({{PY}} -c 'from model import review; print(review.OUT)') && BLENDER={{BLENDER}} {{PY}} -m model.review {{quality}} {{before}} && NOGGIN_REVIEW="$out" {{PY}} -m pytest -q model/review
 
 # the model tests' and just mech's eight shards, balanced on model/durations.json, as JSON (Checks' model matrix, #305, #474, #496; MODEL=false or MECH=false leaves those out)

@@ -29,19 +29,15 @@ def known(pair):
     return frozenset(pair) in KNOWN_PAIRS
 
 
-# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does. None since the
-# servos are DC motors (#625).
+# (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does, with why.
+# None since #978's neck: its pan lands at either end (#1003).
 KNOWN_FULL_SPEED = {}
-# (document, servo) whose load peaks over half its stall along a motion, with why.
-KNOWN_PEAKS = {
-    (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
-    " 20 ms command step saturates the servo (~0.66 kgf.cm, the tilt's 1.1 with the head in its Skin (#830), Stage 3's"
-    " 0.43); its own gestures, minimum jerk under an"
-    " acceleration cap (#51), are a later ticket"
-    for doc in g.SIMULATED
-    if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
-    for horn in ("pan horn", "tilt horn")
-}
+# (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why. None since
+# printed parts weigh at their infill (#1003).
+KNOWN_NECK_HOLDS = {}
+# (document, servo) whose load peaks over half its stall along a motion, with why. None since the standard servo's
+# band (#978): the hero's 20 ms command steps no longer saturate it.
+KNOWN_PEAKS = {}
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {}
 
@@ -125,7 +121,7 @@ def neck_problems(report):
         return out
     for drive in neck.RANGES:
         d = m[drive]
-        if d["transmission_deg"] < neck.TRANSMISSION_DEG:
+        if d.get("drive") != "direct" and d["transmission_deg"] < neck.TRANSMISSION_DEG:
             out.append(
                 f"neck {drive}: the bar meets its lever at {d['transmission_deg']} deg < {neck.TRANSMISSION_DEG}"
             )
@@ -133,8 +129,9 @@ def neck_problems(report):
             f"neck {drive} servo: {s} deg past its {neck.SERVO_DEG}" for s in d["servo_deg"] if abs(s) > neck.SERVO_DEG
         ]
     for head, t in (("the head", m["tilt"]), ("the bare head (its Skin off)", m["tilt"]["bare"])):
-        if t["hold_kgf_cm"] > sim.RATED_KGF_CM:
-            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {sim.RATED_KGF_CM}")
+        rated = sim.limits("tilt horn")["rated_kgf_cm"]
+        if t["hold_kgf_cm"] > rated and (report["doc"], head) not in KNOWN_NECK_HOLDS:
+            out.append(f"neck tilt: holds {head} with {t['hold_kgf_cm']} kgf.cm > the rated {rated}")
     floor = m["spans"]["floor_mm"]
     out += [
         f"neck {span} span: bends to {m['spans'][span]['bend_mm']} mm < {floor}"
@@ -305,8 +302,8 @@ FIXTURE_PROBLEMS = {
         "gimbal sweep: L lid bar:1 / gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
         "neck pan servo: 95.0 deg past its 90.0",
-        "neck tilt: holds the head with 0.45 kgf.cm > the rated 0.33",
-        "neck tilt: holds the bare head (its Skin off) with 0.42 kgf.cm > the rated 0.33",
+        "neck tilt: holds the head with 3.45 kgf.cm > the rated 3.222",
+        "neck tilt: holds the bare head (its Skin off) with 3.42 kgf.cm > the rated 3.222",
         "neck tilt span: bends to 12.0 mm < 14.0",
         "variant head: 120.0 x 177.5 x 149.0 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
         "variant eyes: 0.62 of the head's height up > 0.55",
@@ -323,8 +320,12 @@ def test_fixture_reports(name):
 def test_known_mujoco_exceptions_are_still_there():
     """When the model changes so a KNOWN_PAIRS entry no longer goes deeper than at rest at all, or a KNOWN_FULL_SPEED
     swing lands, or a KNOWN_PEAKS servo peaks under the mark, drop it. (Any depth, not the threshold: CI's Linux pieces may read a little differently.)"""
-    going, swings, low, peaks = set(), set(), set(), set()
+    going, swings, low, peaks, holds = set(), set(), set(), set(), set()
     for doc in g.SIMULATED:
+        n = built(doc).get("neck")
+        if n:
+            heads = (("the head", n["tilt"]), ("the bare head (its Skin off)", n["tilt"]["bare"]))
+            holds |= {(doc, head) for head, t in heads if t["hold_kgf_cm"] > sim.limits("tilt horn")["rated_kgf_cm"]}
         m = built(doc)["mujoco"]
         going |= {frozenset(p["pair"]) for p in m["pairs"] if deeper(p) > 0}
         swings |= {(doc, h, f["at"]) for h, f in m["full_speed"].items() if f["off_deg"] > mujoco_report.TURN_DEG}
@@ -335,3 +336,4 @@ def test_known_mujoco_exceptions_are_still_there():
     assert swings == set(KNOWN_FULL_SPEED)
     assert low == set(KNOWN_TRANSMISSION)
     assert peaks == set(KNOWN_PEAKS)
+    assert holds == set(KNOWN_NECK_HOLDS)

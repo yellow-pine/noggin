@@ -8,8 +8,8 @@ import types
 from pathlib import Path
 
 
-def watcher(tmp_path, monkeypatch):
-    path = tmp_path.resolve() / "noggin-stage3.blend"
+def watcher(tmp_path, monkeypatch, name="noggin-stage3.blend", env="NOGGIN_REVIEW"):
+    path = tmp_path.resolve() / name
     path.write_bytes(b"previous review")
     callbacks, opened = [], []
     bpy = types.SimpleNamespace(
@@ -25,7 +25,7 @@ def watcher(tmp_path, monkeypatch):
         ops=types.SimpleNamespace(wm=types.SimpleNamespace(open_mainfile=lambda **kw: opened.append(kw))),
     )
     monkeypatch.setitem(sys.modules, "bpy", bpy)
-    monkeypatch.setenv("NOGGIN_REVIEW", str(path))
+    monkeypatch.setenv(env, str(path))
     spec = importlib.util.spec_from_file_location("noggin_reload_test", Path(__file__).with_name("reload.py"))
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -45,6 +45,13 @@ def test_a_verified_review_refreshes_despite_incidental_viewer_edits(tmp_path, m
     path, callbacks, opened = watcher(tmp_path, monkeypatch)
     publish(path)
     assert callbacks[0]() == 2.0
+    assert opened == [{"filepath": str(path), "load_ui": False, "use_scripts": False}]
+
+
+def test_the_latest_file_refreshes_like_the_review(tmp_path, monkeypatch):
+    path, callbacks, opened = watcher(tmp_path, monkeypatch, "noggin-latest.blend", "NOGGIN_LATEST")
+    publish(path)
+    callbacks[0]()
     assert opened == [{"filepath": str(path), "load_ui": False, "use_scripts": False}]
 
 

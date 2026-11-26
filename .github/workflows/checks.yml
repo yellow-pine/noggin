@@ -129,7 +129,7 @@ jobs:
           path: |
             model/build/ours
             model/build/convex
-          key: ours-convex-${{ hashFiles('model/printed/**', 'model/skeleton/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/skin.py', 'model/stages.py', 'uv.lock') }}
+          key: ours-convex-${{ hashFiles('model/printed/**', 'model/skeleton/**', 'model/render/scene.py', 'model/envelopes.py', 'model/fits.py', 'model/gates.py', 'model/geometry.py', 'model/base.py', 'model/gimbal.py', 'model/linkage.py', 'model/neck.py', 'model/ours.py', 'model/mjcf.py', 'model/skin.py', 'model/contours.json', 'model/stages.py', 'uv.lock') }}
           lookup-only: true
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2   # v10.3.3
@@ -411,6 +411,16 @@ jobs:
           path: model/build/main-reports
           key: sim-latest
           restore-keys: sim-
+      # the built parts the report tests weigh (another Skin's Shells, #918), as the Model shards left them under the
+      # exact key; the convex pieces come along only because a cache entry is restored with its whole path list
+      - name: Restore the parts cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: |
+            model/build/ours
+            model/build/convex
+          key: ${{ needs.changes.outputs.parts-key }}
+          fail-on-cache-miss: true
       - name: Download the sim parts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333   # v8.0.2
         with:

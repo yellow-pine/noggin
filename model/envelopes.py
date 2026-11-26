@@ -57,6 +57,44 @@ def servo():
     return case.union(tabs).union(top).union(spline)
 
 
+# Standard tilt servo, shaft tip at the origin along +Z. Manufacturer overall dimensions; tab/shaft interfaces
+# inferred from the class envelope, kept separate from the owned micro servo (research 2026-11-04).
+STANDARD_SERVO = {
+    "case": ((-10.0, 30.7), (-9.85, 9.85), (-42.9, -5.9)),
+    "tabs": ((-16.9, 37.6), (-9.85, 9.85), (-15.9, -13.4)),
+    "holes": ((-13.4, -5), (-13.4, 5), (34.1, -5), (34.1, 5)),
+}
+
+
+def standard_servo():
+    s = STANDARD_SERVO
+    out = box(*s["case"]).union(box(*s["tabs"]))
+    out = out.union(cq.Workplane("XY", origin=(0, 0, -5.9)).circle(3).extrude(5.9))
+    for x, y in s["holes"]:
+        out = out.cut(cq.Workplane("XY", origin=(x, y, -16)).circle(2).extrude(3))
+    return out.cut(cq.Workplane("XY", origin=(0, 0, -6)).circle(1.25).extrude(6))  # inferred M3 centre thread
+
+
+def pan_bearing():
+    """SKF 61804-2RS1: 20 mm bore, 32 mm outer diameter, 7 mm height; the central neck tube remains hollow."""
+    return cq.Workplane("XY").circle(16).circle(10).extrude(7)
+
+
+STANDARD_HORN = {"radius": 10.0, "face": -1.5, "back": 3.0, "mounts": ((8, 0), (-8, 0), (0, 8), (0, -8))}
+
+
+def standard_horn():
+    """Inferred round horn: +Z toward the case, 3 mm spline engagement and an outer M3 retaining shoulder."""
+    h = STANDARD_HORN
+    out = cq.Workplane("XY", origin=(0, 0, h["face"])).circle(h["radius"]).extrude(h["back"] - h["face"])
+    out = out.cut(cq.Workplane("XY").circle(3).extrude(h["back"]))
+    out = out.cut(cq.Workplane("XY", origin=(0, 0, h["face"])).circle(1.6).extrude(h["back"] - h["face"]))
+    # The adapter's four M2 screws transfer torque through real bores; hole pattern is a drilling inference.
+    for x, y in h["mounts"]:
+        out = out.cut(cq.Workplane("XY", origin=(x, y, h["face"])).circle(0.8).extrude(h["back"] - h["face"]))
+    return out
+
+
 # Horn (the kit's short single arm, "half arm1"): the r 3.63 hub on (0, 20), z 0..4.15, with the r 2.14 spline bore
 # down to z 1.85 from the spline side (z 4.15), the screw's r 1.0 hole and r 2.45 counterbore from the outer face (z 0);
 # the 1.55 thick arm along +X tapering to its r 2.0 tip at x 14.05, with r 0.5 holes every 2 mm out to x 14.75 (the bars
@@ -242,3 +280,8 @@ def capacitor():
 
 ENVELOPES = {"servo": servo, "horn": horn, "receiver": shield, "core": core, "switch": switch, "battery": battery}
 ENVELOPES |= {"hub": hub, "power": power, "capacitor": capacitor}
+ENVELOPES |= {
+    "standard servo": standard_servo,
+    "standard horn": standard_horn,
+    "pan bearing": pan_bearing,
+}

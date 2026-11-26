@@ -18,7 +18,13 @@ def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
     hardware = sorted(m for m in meshes if m not in g.PRINTED)
     bought = ["hub", "power", "capacitor"]
-    assert hardware == sorted(["core"] * 2 + ["receiver"] * 2 + ["switch", "battery", *bought] + ["servo", "horn"] * 7)
+    assert hardware == sorted(
+        ["core"] * 2
+        + ["receiver"] * 2
+        + ["switch", "battery", *bought, "pan bearing"]
+        + ["standard servo", "standard horn"] * 2
+        + ["servo", "horn"] * 5
+    )
     assert {m for m in meshes if m in g.PRINTED} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"{d} horn" for d in gimbal.drives())}
@@ -70,7 +76,7 @@ def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys(
         assert set(dressed.horns) == set(three.horns)
         jaw = {n for loop in dressed.horns["jaw horn"].loops for n in loop.rockers}
         assert {"cansin mouth cover:1", "cansin teeth:1"} <= jaw
-        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        tilt = set(dressed.horns["tilt horn"].direct.driven)
         assert {"cansin hair:1", "cansin L brow:1", "cansin R pupil:1"} <= tilt
 
 
@@ -86,7 +92,7 @@ def test_stage_3_in_barts_skin_wears_his_shells_on_mortys_seats():
         three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "bart")]
         morty, bart = ({n + ":1" for n in _drawn(s)} for s in ("morty", "bart"))
         assert set(dressed.parts) == set(three.parts) - morty | bart
-        tilt = {n for loop in dressed.horns["tilt horn"].loops for n in loop.rockers}
+        tilt = set(dressed.horns["tilt horn"].direct.driven)
         assert {"bart face:1", "bart hair:1", "bart R pupil:1"} <= tilt
 
 
@@ -143,3 +149,26 @@ def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
     moved = stages.pose(one, "yaw horn", 10)
     for name in ("test stand:1", "gimbal frame:1", "Core 1:1"):
         assert np.allclose(moved.parts[name], one.parts[name].matrix), name
+
+
+def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take():
+    """#964: a Stage's fasteners, counted from the model's pivots, servos and head screws, by hand from the parts' bores:
+    Stage 1's eyes take 23 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, each lid drive 5, its
+    lower lid on the upper's shank, the push-rods on balls), 2 screws per servo and the test stand's 4 screws and nuts;
+    Stage 2 adds the pan's 3 and the tilt's 4 (its horn's and reaction bar's pins, its trunnions' pair), 4 screws
+    per standard servo, and moves the stand's screws to the head mount; Stage 3 the jaw's 4."""
+    shank, tab, head, nut = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
+    assert [stages.fasteners(d) for d in ("stage1", "stage2", "mech-back")] == [
+        {shank: 23, tab: 8, head: 4, nut: 4},
+        {shank: 30, tab: 16, head: 4, nut: 4},
+        {shank: 34, tab: 18, head: 4, nut: 4},
+    ]
+
+
+def test_every_irregular_pivot_names_a_joint_the_mech_has():
+    """#964: each pivot whose shank count is not one (stages.SHANKS) is a joint of the Mech's horns, so a renamed joint
+    cannot drop out of the count unseen."""
+    mech = stages.STAGES["mech-back"].horns.values()
+    joints = {j for h in mech for j in [loop.joint for loop in h.loops] + [r.hinge[0] for r in h.rods]}
+    joints |= {h.direct.joint for h in mech if h.direct}
+    assert set(stages.SHANKS) <= joints

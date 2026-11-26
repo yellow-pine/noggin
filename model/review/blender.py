@@ -8,12 +8,14 @@ helpers), coloured at their alpha. <bone stem>: that bone's finish baked into it
 Exploded, Print bed and (before) Before and after scenes, linked copies of the same meshes."""
 
 import json
+import math
 import os
 import sys
 
 import bmesh
 import bpy
-from mathutils import Matrix, Vector
+import numpy as np
+from mathutils import Matrix, Vector, kdtree
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skeleton"))
 import export  # noqa: E402
@@ -66,25 +68,26 @@ def morty(m):
     source = dst.collections[0]
     objects = [o for o in source.all_objects if o.type == "MESH"]
     roles = [o.get("reference_region") for o in objects]
-    fixed = {"neck", "shoulders", "torso"}
-    if (
-        not all(isinstance(r, str) and r for r in roles)
-        or len(set(roles)) != len(roles)
-        or not (fixed | {"head"}) <= set(roles)
-    ):
-        raise ValueError("review: Morty needs distinct head, neck, shoulders and torso surfaces")
+    carriers = m["carriers"]  # skin.MOTION: the one source the Shells ride by too
+    fixed = {r for r, c in carriers.items() if c is None}
+    if not all(r in carriers for r in roles) or len(set(roles)) != len(roles) or not (fixed | {"head"}) <= set(roles):
+        raise ValueError(
+            f"review: Morty needs distinct Motion regions of {sorted(carriers)}, head, neck, shoulders and torso among them"
+        )
     witnesses = {"witness neck": "neck", "witness L shoulder": "shoulders", "witness R shoulder": "shoulders"}
     if not witnesses.keys() <= {g.name for o in objects for g in o.vertex_groups}:
         raise ValueError("review: local Morty needs independent neck and shoulder vertex witnesses")
     ratio = min(1.0, MORTY_FACES / max(1, sum(len(o.data.polygons) for o in objects)))
     for o in objects:
-        carrier = o.get("carrier")
+        carrier = carriers[o["reference_region"]]
+        if o.get("carrier", carrier) != carrier:
+            raise ValueError(f"review: Morty's {o['reference_region']} names carrier {o['carrier']}, not {carrier}")
+        if carrier:
+            o["carrier"] = carrier
         if any(witnesses[g.name] != o["reference_region"] for g in o.vertex_groups if g.name in witnesses):
             raise ValueError("review: Morty's independent anatomical witness is in the wrong semantic region")
         if o.get("display_region") not in REGIONS or "part" in o:
             raise ValueError("review: private reference surfaces need a display_region and must not be print parts")
-        if (o["reference_region"] in fixed and carrier) or (o["reference_region"] not in fixed and not carrier):
-            raise ValueError("review: neck, shoulders and torso stay fixed; moving surfaces need a live carrier")
         if carrier and carrier not in JOB_REST:
             raise ValueError(f"review: Morty's carrier {carrier} is absent from the live model")
         if not o.data.polygons or not o.data.materials:
@@ -138,7 +141,171 @@ def morty(m):
         bm.to_mesh(o.data)
         bm.free()
         o.color, o.hide_render = (1, 1, 1, JOB["alpha"]["Morty"]), True
+    contoured(m, objects)
     bpy.data.collections.remove(source)
+
+
+VIEWS = {"front": (0, 2), "side": (1, 2)}  # a contour's plane's axes in the head's frame; it sweeps along the third
+
+
+def ahead(c):
+    """A front view's contours cut the face in front of the eyes, not the head's back behind it (the head's frame)."""
+    return c.y < 0
+
+
+def inside(points, poly):
+    """Which of the (n, 2) points lie inside the closed polygon (m, 2): even-odd."""
+    a = np.asarray(poly)
+    b = np.roll(a, -1, axis=0)
+    x, y = points[:, :1], points[:, 1:]
+    span = (a[:, 1] > y) != (b[:, 1] > y)
+    t = (y - a[:, 1]) / np.where(span, b[:, 1] - a[:, 1], 1.0)
+    return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
+
+
+def cut(bm, poly, view, near=lambda c: True):
+    """`bm`, in the head's frame, cut along the closed polygon `poly` swept along its view's axis: each side's plane
+    through the faces near that side (and `near`), so a face lies on one side of the contour, never across it."""
+    i, j = VIEWS[view]
+    axis = Vector([float(k not in (i, j)) for k in range(3)])
+    piece = bm.faces.layers.int.get("piece") or bm.faces.layers.int.new("piece")
+    faces = []
+    for f in bm.faces:
+        f[piece] = -1
+        if near(f.calc_center_median()):
+            f[piece] = len(faces)
+            faces.append(f)
+    if not faces:
+        return
+    tree, pieces, reach = kdtree.KDTree(len(faces)), {}, 0.0
+    for k, f in enumerate(faces):
+        c = f.calc_center_median()
+        tree.insert((c[i], c[j], 0.0), k)
+        pieces[k] = {f}
+        reach = max(reach, *(math.hypot(v.co[i] - c[i], v.co[j] - c[j]) for v in f.verts))
+    tree.balance()
+    for a, b in zip(poly, poly[1:] + poly[:1], strict=True):
+        hit = tree.find_range(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 0.0), math.dist(a, b) / 2 + reach)
+        hit = {f for _, k, _ in hit for f in pieces[k] if f.is_valid}
+        p, q = Vector((0, 0, 0)), Vector((0, 0, 0))
+        p[i], p[j], q[i], q[j] = *a, *b
+        if not hit or (q - p).length < 1e-9:
+            continue
+        geom = [*hit, *{e for f in hit for e in f.edges}, *{v for f in hit for v in f.verts}]
+        done = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=p, plane_no=(q - p).cross(axis).normalized(), dist=1e-6)
+        for e in done["geom_cut"]:
+            if isinstance(e, bmesh.types.BMEdge):
+                for f in e.link_faces:
+                    pieces.setdefault(f[piece], set()).add(f)
+
+
+def contoured(m, objects):
+    """#992: each reference surface cut along the model sheet's contours (the job's, the Shells' hair seam's too) and each
+    face given the Motion region and Colour group it falls in. On the moving surfaces, in front of the eyes: inside an
+    eye white its eye's (in its pupil pupils), the rest of an eye's dome round the white its upper or lower lid's, under
+    the mouth line the jaw's; the rest the head's, its hair above and behind the hairline. On the fixed body, the hair
+    above and behind the hairline, the shirt under the collar. A lid is a new surface carried by its lid."""
+    head, contours, carriers = Matrix(m["head"]), m["contours"], m["carriers"]
+    moving = [o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith(" lid")]
+    # the sculpt's face front on its midline at the sheet's face front's height, which a side view's contour meets
+    (y, z), near = m["face"], 3.0
+    front = [
+        p.y
+        for o in moving
+        if o["reference_region"] == "head"
+        for p in (head @ v.co for v in o.data.vertices)
+        if abs(p.x) < near and abs(p.z - z) < near
+    ]
+    dy = min(front, default=y) - y
+    print(f"review: the side contours move {dy:.1f} mm along y to the sculpt's face front", flush=True)
+    for o in objects:
+        o["contour shift"] = dy  # mm along y in the head's frame, the side views' (the review's checks read it)
+    poly = {n: [(p[0] + dy * (v == "side"), p[1]) for p in o] for n, (v, o) in contours.items()}
+    if len({tuple(x.name for x in o.data.materials) for o in moving}) > 1:
+        raise ValueError("review: Morty's moving surfaces need the same Colour group slots in the same order")
+    shares = {}  # {moving surface: its bmesh, each face's region in the "region" layer, by MOTION order}
+    regions = list(carriers)
+    for o in objects:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bmesh.ops.transform(bm, matrix=head, verts=bm.verts)
+        own, names = o["reference_region"], [x.name for x in o.data.materials]
+        cut(bm, poly["hairline"], "side")
+        if o in moving:  # the head's, the jaw's and the eyes', which the contours share out
+            for n in (n for n, (v, _) in contours.items() if v == "front"):
+                cut(bm, poly[n], "front", ahead)
+            if own.endswith(" eye"):  # the lids part at the eye's height
+                z = m["eyes"][own[0]][2]
+                bmesh.ops.bisect_plane(
+                    bm, geom=[*bm.verts, *bm.edges, *bm.faces], plane_co=(0, 0, z), plane_no=(0, 0, 1)
+                )
+        else:
+            cut(bm, poly["collar"], "side")
+        c = np.array([f.calc_center_median() for f in bm.faces]).reshape(-1, 3)
+        xz, yz = c[:, [0, 2]], c[:, [1, 2]]
+        hair = inside(yz, poly["hairline"])
+        if o in moving:
+            eye = {s: (c[:, 1] < 0) & inside(xz, poly[f"{s} eye white"]) for s in "LR"}
+            pupil = {s: eye[s] & inside(xz, poly[f"{s} pupil"]) for s in "LR"}
+            jaw = (c[:, 1] < 0) & inside(xz, poly["mouth"])
+        else:
+            shirt = inside(yz, poly["collar"])
+        layer = bm.faces.layers.int.new("region")
+        for k, f in enumerate(bm.faces):
+            region, group = own, "hair" if hair[k] else "face"
+            if o not in moving:
+                group = "hair" if hair[k] else "clothes" if shirt[k] else "face"
+            elif s := next((s for s in "LR" if eye[s][k]), None):
+                region, group = f"{s} eye", "pupils" if pupil[s][k] else "eye whites"
+            elif own.endswith(" eye"):
+                lid = "upper" if c[k, 2] > m["eyes"][own[0]][2] else "lower"
+                region, group = f"{own[0]} {lid} lid", "face"
+            elif jaw[k]:
+                region, group = "jaw", "face"
+            else:
+                region = "head"
+            f[layer], f.material_index = regions.index(region), names.index(group)
+        bmesh.ops.transform(bm, matrix=head.inverted(), verts=bm.verts)
+        bm.faces.layers.int.remove(bm.faces.layers.int["piece"])
+        if o in moving:
+            shares[o] = bm
+        else:
+            bm.faces.layers.int.remove(layer)
+            bm.to_mesh(o.data)
+            bm.free()
+    by_region = {o["reference_region"]: o for o in moving}
+    for code, region in enumerate(regions):
+        whole = bmesh.new()
+        for bm in shares.values():
+            part = bm.copy()
+            layer = part.faces.layers.int["region"]
+            bmesh.ops.delete(part, geom=[f for f in part.faces if f[layer] != code], context="FACES")
+            part.faces.layers.int.remove(layer)
+            me = bpy.data.meshes.new("share")
+            part.to_mesh(me)
+            part.free()
+            whole.from_mesh(me)
+            bpy.data.meshes.remove(me)
+        if not whole.faces:
+            whole.free()
+            if region in by_region:
+                raise ValueError(f"review: no face of Morty's reference falls in its {region} region")
+            continue
+        o = by_region.get(region)
+        if o is None:  # a lid: a new surface like its eye's, carried by its lid
+            if not region.endswith(" lid"):
+                raise ValueError(f"review: Morty's reference needs a {region} surface for the faces that fall in it")
+            eye = by_region[f"{region[0]} eye"]
+            o = eye.copy()
+            o.data = eye.data.copy()
+            o.name = f"Morty {region}"
+            for c in eye.users_collection:
+                c.objects.link(o)
+            o["reference_region"], o["carrier"] = region, carriers[region]
+        whole.to_mesh(o.data)
+        whole.free()
+    for bm in shares.values():
+        bm.free()
 
 
 def assemble():
@@ -208,7 +375,6 @@ def animate(scene, objects):
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
-    moving = []
     parts = {o["part"]: o for o in scene.objects if "part" in o}
     for o in objects:
         if carrier := o.get("carrier"):
@@ -218,9 +384,12 @@ def animate(scene, objects):
             o.parent = parts[carrier]
             o.matrix_parent_inverse = parts[carrier].matrix_world.inverted()
             o.matrix_world = world
-        part = o.get("part")
-        if part and any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"]):
-            moving.append((o, part, o.matrix_world.copy()))
+    # every moving part, a helper too: a hidden eyeball cap still carries Morty's eye (#969)
+    moving = [
+        (o, part, o.matrix_world.copy())
+        for part, o in parts.items()
+        if any(not Matrix(mats[part]) == rest[part] for _, mats in JOB["motion"])
+    ]
     for o, _, _ in moving:
         o.rotation_mode = "QUATERNION"
         o.animation_data_create().action = action

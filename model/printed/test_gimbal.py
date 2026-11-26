@@ -160,7 +160,7 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
 # on an end would hang an arm and its ball in the air)
 Y = gm.YOKE
 BALLS = [(s * gm.EYE["L"][0], gm.BAIL[0], gm.LEVER) for s in (-1, 1)]
-TIP = (0.0, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
+TIP = (sum(gm.BAIL_INPUT_X) / 2, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
 
 
 def test_the_yoke_keeps_its_bores():
@@ -233,7 +233,7 @@ MEMBERS = {
         f"arm at x {x:+.1f}": (gimbal.bail, (x, BY, BZ + 4), (x, BY, BZ + 11), F * gm.BAIL_IN / z, "y", z - 4)
         for x, _, z in BALLS
     },
-    "input arm": (gimbal.bail, (0, BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
+    "input arm": (gimbal.bail, (TIP[0], BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
 }
 
 

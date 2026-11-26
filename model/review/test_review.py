@@ -2,14 +2,18 @@
 and the written .blend itself read by headless Blender, locally once `just review` wrote it (NOGGIN_REVIEW names it:
 the recipe runs this file after each build)."""
 
+import inspect
 import json
 import os
 import shutil
 
+import numpy as np
 import pytest
+import trimesh
 
 from model import geometry as g
-from model import review, stages
+from model import gimbal as gm
+from model import review, skeleton, skin, stages
 
 STAGE = stages.STAGES[review.DOC]
 
@@ -41,6 +45,22 @@ def test_pack_keeps_every_piece_on_a_plate_clear_of_its_edge():
         review.pack([(review.BED, 10)])
 
 
+def test_the_review_finishes_at_the_print_files_pitch_unless_coarse_is_asked_for():
+    """#993: `just review` alone finishes the bones at skeleton.PITCH, the print files' voxel; coarse stays an option."""
+    assert review.QUALITY["production"] == skeleton.PITCH < review.QUALITY["coarse"]
+    for f in (review.job, review.build):
+        assert inspect.signature(f).parameters["quality"].default == "production"
+    just = open(os.path.join(stages.REPO, "justfile")).read()
+    assert 'review quality="production"' in just and '_review-build quality="production"' in just
+
+
+def test_a_piece_lies_on_its_largest_face_that_fits_a_plate():
+    """#992: a piece whose largest face lies past a plate lies on the next largest that fits, here its 200 x 30 end."""
+    box = trimesh.creation.box((250.0, 30.0, 200.0))
+    laid = trimesh.transform_points(box.vertices, review.flat(box)).max(axis=0)
+    assert laid == pytest.approx((200.0, 30.0, 250.0))
+
+
 def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
     path = str(tmp_path / "review.blend.lock")
     held = review.lock(path)
@@ -50,20 +70,65 @@ def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
     review.lock(path).close()
 
 
-REFERENCE_CARRIERS = {
-    role: stages.RIDES[shell]
-    for role, shell in {
-        "head": "morty face:1",
-        "jaw": "morty mouth cover:1",
-        "L eye": "morty L pupil:1",
-        "R eye": "morty R pupil:1",
-    }.items()
-}
+REFERENCE_CARRIERS = {r: c for r, c in review.CARRIERS.items() if c}  # the moving Motion regions'
 
+
+def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
+    """#969: a reference surface's carrier is its Motion region's, the part Morty's Shells of that region ride, and it is
+    in the review's document; the body's regions have none."""
+    assert set(review.CARRIERS) == set(skin.MOTION)
+    assert review.CARRIERS["neck"] is review.CARRIERS["shoulders"] is review.CARRIERS["torso"] is None
+    for shell, region in {"morty face": "head", "morty mouth cover": "jaw", "morty L pupil": "L eye"}.items():
+        assert stages.RIDES[f"{shell}:1"] == REFERENCE_CARRIERS[region]
+    assert set(REFERENCE_CARRIERS.values()) <= set(STAGE.parts)
+
+
+def test_the_reference_is_cut_along_the_contours_the_shells_hair_is():
+    """#992: the review cuts Morty's reference along skin.outline, the one source the Shells' hair seam reads too (ADR
+    0011), each contour in the view it was traced in."""
+    assert review.contours().keys() == skin.CONTOURS.keys()
+    for name, (view, region) in review.contours().items():
+        assert view == skin.CONTOURS[name]["view"]
+        np.testing.assert_allclose(region, skin.outline(name))
+
+
+HEAD = np.linalg.inv(stages.align(*stages.DOCS[review.DOC]["eyes"])).tolist()  # world to the head's frame
 INSPECT = (
-    f"EXPECTED_REFERENCE = {REFERENCE_CARRIERS!r}\n"
+    "import json, bmesh, bpy, numpy as np\n"
+    f"EXPECTED_REFERENCE = {REFERENCE_CARRIERS!r}\nCONTOURS = {review.contours()!r}\nHEAD = np.array({HEAD!r})\n"
     + """
-import json, bpy, numpy as np
+def off(points, poly):
+    # each (n, 2) point's distance to the closed polygon's sides
+    a = np.asarray(poly)
+    d = np.roll(a, -1, axis=0) - a
+    t = np.clip(((points[:, None] - a) * d).sum(-1) / np.maximum((d * d).sum(-1), 1e-12), 0, 1)
+    return np.linalg.norm(points[:, None] - (a + t[..., None] * d), axis=-1).min(axis=1)
+def seams(objects):
+    # {region: {Colour group: faces}}, {region seam: the most mm a seam's vertex lies off the contour it was cut along}:
+    # a Colour group's seam on its contour, an eye's open edge on its eye white's
+    sections, out = {}, {}
+    for o in objects:
+        region, shift = o["reference_region"], o.get("contour shift", 0.0)
+        names = [m.name for m in o.data.materials]
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        group = {f: names[f.material_index] for f in bm.faces}
+        sections[region] = {g: sum(1 for x in group.values() if x == g) for g in set(group.values())}
+        m = HEAD @ np.array(o.matrix_world)
+        for e in bm.edges:
+            pair = sorted({group[f] for f in e.link_faces})
+            if len(e.link_faces) == 1 and region[2:] == "eye":
+                key = f"{region[0]} eye white"
+            elif len(pair) == 2:
+                key = "hairline" if "hair" in pair else f"{region[0]} pupil" if "pupils" in pair else "collar"
+            else:
+                continue
+            view, poly = CONTOURS[key]
+            p = np.array([(m @ [*v.co, 1])[:3] for v in e.verts])
+            p = p[:, [1, 2]] - (shift, 0) if view == "side" else p[:, [0, 2]]
+            out[f"{region} {key}"] = max(out.get(f"{region} {key}", 0.0), float(off(p, poly).max()))
+        bm.free()
+    return sections, out
 def walk(lc):
     yield lc
     for c in lc.children:
@@ -78,6 +143,7 @@ out["layer_material_alpha"] = {c.name: sorted({round(slot.material.diffuse_color
     for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
 out["morty"] = len(bpy.data.collections["Morty"].all_objects)
 out["shading"] = a.display.shading.color_type
+out["sections"], out["seams"] = seams([o for o in bpy.data.collections["Morty"].all_objects if o.get("reference_region")])
 out["skin"] = {o.data.materials[p.material_index].name: list(o.data.materials[p.material_index].diffuse_color)
                for o in bpy.data.collections["Morty"].all_objects for p in o.data.polygons
                if o.data.materials}
@@ -114,6 +180,7 @@ for o in bpy.data.collections["Morty"].all_objects:
 actors = {o["part"]: o for o in a.objects if o.get("part")}
 actor_rest = {role: np.array(actors[part].matrix_world) for role, part in EXPECTED_REFERENCE.items() if part in actors}
 actor_back = {role: np.linalg.inv(m) for role, m in actor_rest.items()}
+out["carriers"] = {part: [] for part in EXPECTED_REFERENCE.values() if part in actors}
 out["reference_motion"] = {o["reference_region"]: {"vertices": len(v), "travel": 0.0,
     "carrier_error": None, "own_travel": 0.0}
     for o, v, rest in reference.values()}
@@ -121,6 +188,8 @@ for f in range(a.frame_start, a.frame_end + 2):
     a.frame_set(f)
     for o in horns:
         deg[o.name[5:]].append(o["deg"])
+    for part, mats in out["carriers"].items():
+        mats.append([f, [list(r) for r in actors[part].matrix_world]])
     for o, v, rest in reference.values():
         m = np.array(o.matrix_world)
         travel = np.linalg.norm(v @ m[:3, :3].T + m[:3, 3] - rest, axis=1).max()
@@ -246,12 +315,56 @@ def test_the_reference_jaw_and_eyes_follow_their_live_carriers_independently_of_
     if not blend["morty"]:
         pytest.skip("no local Morty reference")
     motion = blend["reference_motion"]
-    for role in REFERENCE_CARRIERS:
+    assert {"head", "jaw", "L eye", "R eye"} <= motion.keys()
+    assert LIDS <= motion.keys()  # #992: the lids cut out of the eyes' domes
+    for role in REFERENCE_CARRIERS.keys() & motion.keys():
         assert motion[role]["vertices"] > 0
         assert motion[role]["carrier_error"] is not None, role
         assert motion[role]["carrier_error"] < 1e-3, role
     assert motion["head"]["own_travel"] < 1e-3
     assert all(motion[role]["own_travel"] > 1.0 for role in ("jaw", "L eye", "R eye"))
+
+
+LIDS = {f"{s} {lid} lid" for s in "LR" for lid in ("upper", "lower")}
+
+
+def test_mortys_reference_is_cut_along_his_model_sheets_contours(blend):
+    """#992: every Colour group's seam and each eye white's edge lies on the contour it was cut along (skin.outline), so
+    no boundary steps along the sculpt's triangles; the side views' moved to meet the sculpt's face front."""
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    seams = blend["seams"]
+    assert {"head hairline", "L eye L eye white", "R eye R eye white", "L eye L pupil", "R eye R pupil"} <= seams.keys()
+    assert any(k.endswith(" collar") for k in seams)
+    assert max(seams.values()) < 0.01, seams
+
+
+def test_each_contour_sits_on_its_own_motion_region(blend):
+    """#992, #969: the pupils and eye whites on the eyes alone, the shirt on the fixed body alone, the lids (each eye's
+    dome round its white) and the jaw under the mouth line in the face's colour on their own regions."""
+    if not blend["morty"]:
+        pytest.skip("no local Morty reference")
+    sections = blend["sections"]
+    assert LIDS <= sections.keys()
+
+    def where(group):
+        return {r for r, counts in sections.items() if counts.get(group)}
+
+    assert where("pupils") == where("eye whites") == {"L eye", "R eye"}
+    assert where("clothes") <= {"neck", "shoulders", "torso"}
+    assert all(set(sections[r]) == {"face"} for r in {"jaw", *LIDS})
+
+
+def test_each_reference_carrier_moves_where_the_document_poses_it(blend):
+    """#969: a carrier hidden in helpers (an eyeball cap, a Shell) is keyed too, so what it carries moves: each one's
+    world matrix on every keyed frame is the document's pose there."""
+    poses = dict(review.motion(STAGE, review.keys(STAGE)))
+    assert blend["carriers"].keys() == set(REFERENCE_CARRIERS.values())
+    for part, frames in blend["carriers"].items():
+        checked = [(f, m) for f, m in frames if f in poses]
+        assert len(checked) > 10, part
+        for f, m in checked:
+            np.testing.assert_allclose(m, poses[f][part], atol=1e-3, err_msg=f"{part} at frame {f}")
 
 
 def test_exploded_and_print_bed_materials_are_opaque(blend):
@@ -293,13 +406,12 @@ for role in ('head','neck','shoulders','torso'):
         bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
         mesh=cube.data.copy()
         bpy.data.objects.remove(cube,do_unlink=True)
-    material=bpy.data.materials.get('clothes' if role=='torso' else 'face')
-    material=material or bpy.data.materials.new('clothes' if role=='torso' else 'face')
-    mesh.materials.append(material)
+    for group in (('clothes','face') if role=='torso' else ('face','clothes')):  # every slot the contours paint it
+        mesh.materials.append(bpy.data.materials.get(group) or bpy.data.materials.new(group))
     obj=bpy.data.objects.new(role,mesh)
     obj['reference_region']=role
     obj['display_region']='Pedestal' if role=='torso' else 'Mechanism' if role=='neck' else 'Skull'
-    if role=='head': obj['carrier']='carrier:1'
+    if role=='head': obj['carrier']='carrier:1'  # the one CARRIERS names, which it must agree with
     for witness in {'neck':['witness neck'],'shoulders':['witness L shoulder','witness R shoulder']}.get(role,[]):
         obj.vertex_groups.new(name=witness).add([0],1,'REPLACE')
     reference.objects.link(obj)
@@ -327,7 +439,9 @@ job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
      'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},
      'motion':[[1,{'carrier:1':list(identity)}]],
      'morty':{'blend':str(source),'at':list(at),'floor':1538,
-              'colours':{'face':'#F7CED7','clothes':'#FFFFFF'}}}
+              'colours':{'face':'#F7CED7','clothes':'#FFFFFF'},
+              'carriers':{'head':'carrier:1','neck':None,'shoulders':None,'torso':None},
+              'head':list(identity),'contours':CONTOURS,'eyes':EYES,'face':[0,0]}}
 job_path=folder/'job.json'
 job_path.write_text(json.dumps(job,default=list))
 output=folder/'review.blend'
@@ -359,6 +473,7 @@ def test_saved_reference_preserves_authored_normals_and_still_cuts_the_floor(tmp
     if not shutil.which(review.skeleton.BLENDER):
         pytest.skip(f"no Blender found at {review.skeleton.BLENDER}")
     prefix = f"FOLDER={str(tmp_path)!r}\nSCRIPT={review.SCRIPT!r}\nNONUNIFORM={nonuniform!r}\n"
+    prefix += f"CONTOURS={review.contours()!r}\nEYES={gm.EYE!r}\n"
     script = tmp_path / "reference.py"
     script.write_text(prefix + NORMAL_REFERENCE)
     held = review.lock(review.SLOT, wait=True)

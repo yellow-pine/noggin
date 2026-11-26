@@ -108,6 +108,20 @@ def test_barts_head_holds_mortys_whole_with_a_flat_crown():
     assert morty.intersect(crown.translate(cq.Vector(40, 0, 0))).Volume() < 1e-3
 
 
+def test_the_hair_is_the_head_over_his_model_sheets_hairline_and_behind_the_nape():
+    """#992: the hair's region is the sheet's hairline (model/skin.py outline, which the review's reference is cut by
+    too) swept across the head, its face front on the Shells' (FACE_Y), and all behind NAPE: 1 mm over the line is hair
+    and 1 mm under it face, at the middle and at either side, down to the nape."""
+    region = skin._hair(0.0).val()
+    line = sk.contour("hairline") + (sk.FACE_Y - sk.FACE_FRONT[0] * gm.SPACING, 0.0)
+    t = np.gradient(line, axis=0)
+    over = np.c_[-t[:, 1], t[:, 0]] / np.linalg.norm(t, axis=1)[:, None]  # forehead first: left of it is up and back
+    for (y, z), (dy, dz) in zip(line, over, strict=True):
+        for x in (-60.0, 0.0, 60.0):
+            assert region.isInside(cq.Vector(x, y + dy, z + dz))
+            assert region.isInside(cq.Vector(x, y - dy, z - dz)) == (y - dy > sk.NAPE)
+
+
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
 def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     """The pupil fills its jagged seat to PUPIL_FIT a side, which keys it, and the seat turns TOE_IN toward the other
@@ -186,13 +200,56 @@ def _carriers():
     return out
 
 
+# {part: the poses it meets every Skin's hair in}: the hair, drawn for the old compact head, meets #978's life-size head
+# hardware and the eyes' repacked pitch drive, tray and hub. #850's refit of the Shells clears them and drops each entry.
+KNOWN_HAIR = {
+    **dict.fromkeys(
+        (
+            "cranium tray",
+            "head mount",
+            "hub",
+            "nod plate",
+            "pan horn",
+            "pan lever",
+            "pan servo",
+            "tilt servo",
+        ),
+        ("rest",),
+    ),
+    **dict.fromkeys(("pitch bar", "pitch horn"), ("pitch horn -30", "pitch horn 31")),
+}
+
+
+# the Skins whose hair meets a KNOWN_HAIR part, where not every Skin's does: Bart's, cut higher at the back, clears these
+HAIR_SKINS = dict.fromkeys(("pan horn", "pan lever"), ("morty", "cansin"))
+
+
+def _known(shell, part):
+    """Whether (Shell, part) is a KNOWN_HAIR meeting, placed names or stems."""
+    shell, part = shell.removesuffix(":1"), part.removesuffix(":1")
+    skin_shape, _, rest = shell.partition(" ")
+    return rest == "hair" and part in KNOWN_HAIR and skin_shape in HAIR_SKINS.get(part, g.SKINS)
+
+
 @pytest.mark.model
 @pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])  # its id the document's: its Model shard's -k
 @pytest.mark.parametrize("pose", list(_poses()))
 def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
     """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
-    hardware (#51 shell containment), in each Skin (#813)."""
-    assert _near(doc, pose) == []
+    hardware (#51 shell containment), in each Skin (#813), but the KNOWN_HAIR meetings #850 clears."""
+    assert [n for n in _near(doc, pose) if not _known(*n[:2])] == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])
+@pytest.mark.parametrize("part", list(KNOWN_HAIR))
+def test_the_known_hair_meetings_are_still_there(part, doc):
+    """When #850's refit clears a KNOWN_HAIR part from a Skin's hair in all its poses, drop its entry."""
+    skin_shape = doc.removeprefix(g.undressed(doc)).removeprefix("-") or next(iter(g.SKINS))
+    if skin_shape not in HAIR_SKINS.get(part, g.SKINS):
+        pytest.skip(f"{skin_shape}'s hair is not listed as meeting the {part}")
+    only = {stages.stem(stages.STAGES[doc].parts[f"{part}:1"].file).removesuffix(g.MECHANICAL)}  # a hardware's file
+    assert any(n[1] == f"{part}:1" for pose in KNOWN_HAIR[part] for n in _near(doc, pose, only=only)), part
 
 
 @pytest.mark.model
@@ -226,3 +283,23 @@ def _near(doc, pose, only=None):
             if np.min(d) < CLEAR_MM:
                 near.append((n, other, round(float(np.min(d)), 2)))
     return near
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])
+def test_every_shell_moves_with_its_motion_region_and_the_body_never_moves(doc):
+    """#969: with each servo at either end, each Shell moves exactly as its Motion region's carrier (sk.MOTION) does, and
+    the torso's Shells not at all: no head motion reaches the shirt, no jaw motion the face."""
+    stage = stages.STAGES[doc]
+    rest = {n: p.matrix for n, p in stage.parts.items()}
+    shells = {
+        n: sk.MOTION[sk.region(stages.stem(p.file))] for n, p in stage.parts.items() if stages.stem(p.file) in sk.SHELLS
+    }
+    assert {sk.region(stages.stem(stage.parts[n].file)) for n in shells} >= {"head", "jaw", "torso"}
+    for horn, h in stage.horns.items():
+        for deg in h.limits:
+            mats = _poses(doc)[f"{horn} {deg:.0f}"]
+            for n, carrier in shells.items():
+                moved = mats[n] @ np.linalg.inv(rest[n])
+                by = np.eye(4) if carrier is None else mats[f"{carrier}:1"] @ np.linalg.inv(rest[f"{carrier}:1"])
+                assert np.allclose(moved, by, atol=1e-6), (n, horn, deg)

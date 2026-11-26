@@ -9,7 +9,7 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import gimbal, mjcf, neck, stages
+from model import gimbal, mjcf, stages
 
 pytestmark = pytest.mark.model
 PENETRATION_MM = 0.05
@@ -43,24 +43,26 @@ TOUCH = {
             *[(f"{s} eyeball cap:1", f"{s} eyeball core:1") for s in "LR"],
         ]
     },
-    # the Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
+    # the Mech's neck and jaw (#641, #978): the same, the head mount screwed under the gimbal frame's plate
     **{
-        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their collar"
-        for d, mount in (("pan", "neck mount:1"), ("tilt", "pan yoke:1"), ("mouth", "gimbal frame:1"))
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their cradle or collar"
+        for d, mount in (("pan", "nod plate:1"), ("tilt", "nod plate:1"), ("mouth", "gimbal frame:1"))
         for p in (f"{d} horn:1", mount)
     },
     **{
-        frozenset(
-            pair
-        ): "screwed faces, the yoke on the mount's thrust face, pin-joined faces (0.0 mm, designed contacts)"
+        frozenset(pair): "screwed faces, bearing seats, pin-joined faces (0.0 mm, designed contacts)"
         for pair in [
             ("head mount:1", "gimbal frame:1"),
-            ("head mount:1", "pan yoke:1"),
-            ("pan yoke:1", "neck mount:1"),
-            ("pan bar:1", "pan yoke:1"),
-            ("pan bar:1", "pan horn:1"),
-            ("tilt bar:1", "tilt horn:1"),
-            ("tilt bar:1", "head mount:1"),
+            ("pan horn:1", "pan lever:1"),
+            ("tilt horn:1", "tilt lever:1"),
+            ("pan bar:1", "pan lever:1"),
+            ("pan bar:1", "head mount:1"),
+            ("tilt reaction bar:1", "tilt lever:1"),
+            ("tilt reaction bar:1", "cervical carrier:1"),
+            ("nod plate:1", "cervical carrier:1"),  # its C0 trunnions
+            *(("pan bearing:1", p) for p in ("nod plate:1", "head mount:1", "pan fixed cap:1", "pan moving cap:1")),
+            ("pan fixed cap:1", "nod plate:1"),
+            ("pan moving cap:1", "head mount:1"),
             ("jaw bar:1", "mouth horn:1"),
             ("jaw bar:1", "jaw:1"),
             ("jaw:1", "gimbal frame:1"),  # its lugs at the condyles (#838)
@@ -69,7 +71,6 @@ TOUCH = {
     # gaps under a millimetre the frame's and the yoke's coarse pieces fill (#838), each pair one MuJoCo filters (a body
     # and its weld body's parent): their exact solids clear (model/printed/test_gimbal.py, test_neck.py)
     **{frozenset((f"{s} lower lid:1", "gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright" for s in "LR"},
-    frozenset(("gimbal frame:1", "pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
     # the Cores on the cranium tray (#858): the same
     **{frozenset((f"Core {n}:1", f"Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
@@ -92,10 +93,10 @@ TOUCH = {
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("torso:1", "neck mount:1"),
+            ("torso:1", "cervical carrier:1"),
             ("torso:1", "torso lid:1"),
-            # the neck mount's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838, #858)
-            ("torso lid:1", "neck mount:1"),
+            # the carrier's rails up through the lid's slots: the lid's pieces fill the slots (#838, #978)
+            ("torso lid:1", "cervical carrier:1"),
             ("torso:1", "pack:1"),
             ("torso:1", "switch board:1"),
             ("torso:1", "power-path board:1"),
@@ -246,16 +247,21 @@ def test_every_four_bar_and_push_rod_closes_by_a_connect(doc):
     """Each four-bar and push-rod is closed by a connect at its coupler's rocker pin; its loops are gated by the sim
     report's sweep, where the ranking can mark them (#705, model/test_report.py)."""
     model = built(doc)
-    assert model.neq == sum(len(h.loops) + len(h.rods) for h in stages.STAGES[doc].horns.values())
+    horns = stages.STAGES[doc].horns.values()
+    reactions = sum(bool(h.direct and h.direct.reaction) for h in horns)  # a moving case's reaction bar (#902)
+    assert model.neq == sum(len(h.loops) + len(h.rods) for h in horns) + reactions
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
-    """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
-    within 0.5 degrees of the four-bar kinematics (model/linkage.py, stages.pose) at that horn angle."""
+    """Across each horn's sweep the servo holds its command within its full-torque band (a loaded standard servo sags
+    inside it, #978) and every driven joint (lid, eyeball, tilt, pan, jaw) is within 0.5 degrees of the
+    four-bar kinematics (model/linkage.py, stages.pose) at the angle the horn holds."""
     stage = stages.STAGES[doc]
     for (h, d), data in sweep(doc).items():
-        expected = {h: d, **stages.pose(stage, h, d).joints}
+        held, values = math.degrees(data.joint(h).qpos[0]), mjcf.motor(h)
+        assert abs(held - d) < values["band_deg"], (h, d, held)
+        expected = {h: held, **stages.pose(stage, h, held).joints}
         for joint, deg in expected.items():
             actual = math.degrees(data.joint(joint).qpos[0])
             assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)
@@ -271,6 +277,17 @@ def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
     rated = math.degrees(mjcf.SERVO["no_load_rad_s"])
     fast = mjcf.pose(model, command, rated)
     assert fast.time == pytest.approx(0.5 + abs(command["pan horn"]) / rated, abs=model.opt.timestep)
+
+
+def test_the_standard_servo_reaches_full_torque_at_its_band_and_the_micro_at_its_deadband():
+    """#978: the MG996R's proportional band (mjcf.STANDARD_BAND_DEG, inferred); the 9 g micro keeps #625's model."""
+    for horn, band in (
+        ("tilt horn", mjcf.STANDARD_BAND_DEG),
+        ("pan horn", mjcf.STANDARD_BAND_DEG),
+        ("L lid horn", 0.5),
+    ):
+        values = mjcf.motor(horn)
+        assert math.degrees(values["stall_nm"] / values["kp"]) == pytest.approx(band)
 
 
 def test_a_quiet_but_stalled_pose_fails_and_restores_the_callers_contact_flags():
@@ -298,24 +315,19 @@ def test_every_part_weighs_its_mass_spread_over_its_pieces():
         assert model.body(name).mass[0] * 1000 == pytest.approx(grams, abs=0.01), name
 
 
-def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
-    """#838: the tilt pivot's stiffness and springref are neck.balance's rate and its torque at rest for the head this
-    MJCF weighs (N.m), in its Skin and bare (#830), so the turns of their weights at rest split their miss."""
-    model = built(DOC)
-    rest, rate = neck.balance(mjcf.head(DOC, model), mjcf.head(DOC, model, bare=True))
-    joint = model.joint("tilt pivot")
-    # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
-    assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)
-    spring = model.jnt_stiffness[joint.id] * model.qpos_spring[joint.qposadr][0]
-    assert spring == pytest.approx(rest * mjcf.KGF_CM, rel=1e-4)
-
-
 @pytest.mark.parametrize("stem", sorted(mjcf.MAX_PIECES))
 def test_a_grown_part_cuts_into_no_more_pieces_than_its_cap(stem):
     assert 0 < len(mjcf.convex(stages.stl(stem))) <= mjcf.MAX_PIECES[stem]
 
 
 def test_mass_follows_density_or_the_documented_figure():
-    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3
-    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(1.24)
+    """#1003: a printed part weighs as it prints, a skin SKIN_MM thick round its INFILL core; a part thinner than two
+    skins prints solid; hardware weighs its documented figure or its STEP volume at its density."""
+    cube = trimesh.creation.box((10.0, 10.0, 10.0))  # 1 cm3, 600 mm2: a 510 mm3 skin round a 490 mm3 core at 15%
+    assert mjcf.mass(cube, (1.24, "PLA Pure")) == pytest.approx(
+        1.24 * (510 + 0.15 * 490) / 1000, abs=1e-3
+    )  # mass() rounds to the mg
+    plate = trimesh.creation.box((40.0, 40.0, 1.6))  # its two faces' skins fill it
+    assert mjcf.mass(plate, (1.24, "PLA Pure")) == pytest.approx(1.24 * 40 * 40 * 1.6 / 1000, abs=1e-3)
+    assert mjcf.mass(cube, (1.9, "step volume x 1.9 g/cm3")) == pytest.approx(1.9)
     assert mjcf.mass(cube, (16.0, "documented")) == 16.0

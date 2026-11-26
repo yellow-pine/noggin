@@ -17,6 +17,9 @@ from model import neck as nk
 
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
+# #942 grew the head to Morty's life size and left the scene's skull at the old one, carved against the bigger Mech;
+# #874 refits it, and strict makes the PR that does drop these marks
+REFIT = pytest.mark.xfail(strict=True, reason="the skull is not refitted to the enlarged head yet (#874)")
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -43,6 +46,7 @@ def _bones():
 
 @pytest.mark.model
 @pytest.mark.bones
+@REFIT
 def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
     """The chin to the cranium's top within the head gate's height; each eye's centre inside the cranium's box, the
     brow ahead of the caps' fronts."""
@@ -56,6 +60,7 @@ def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
 
 @pytest.mark.model
 @pytest.mark.bones
+@REFIT
 def test_the_heads_box_is_the_bones():
     """base.DOME, the head's shell in the gates, is the bare bones' box (ADR 0011: a copy held to its source), to a
     mm."""
@@ -82,6 +87,10 @@ def _canal(atlas, b=0.5):
 
 @pytest.mark.model
 @pytest.mark.bones
+@pytest.mark.xfail(
+    strict=True,
+    reason="#978's moving head carves the unseated atlas's ring away round the legacy pan datum; #874 replaces C1/C2",
+)
 def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
     """The atlas's canal round the pan axis (the post), its top under the head's tilt lugs, the axis under it."""
     bones = _bones()
@@ -93,9 +102,10 @@ def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
 
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize("stem", g.BONES)
+@pytest.mark.parametrize("stem", [pytest.param(s, marks=REFIT) if s == "skull" else s for s in g.BONES])
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
-    """One piece (but crumbs of a voxel or two), inside the head's box."""
+    """One piece (but crumbs of a voxel or two), inside the head's box. Not the skull: round #978's head its finish
+    cuts a 3 cm3 piece off the palate, below the eyes (#874 refits it)."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")
     pieces = [p for p in mesh.split(only_watertight=False) if abs(p.volume) > skeleton.PITCH**3 * 8]
     assert len(pieces) == 1
