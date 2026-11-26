@@ -224,7 +224,7 @@ def test_the_servo_angles_give_the_ranges_ends():
 def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
     """At rest the pan's horn and its lever lie parallel, the bar square to both: a transmission angle of 90 deg; the
     jaw's bar runs from the measured ramus pin back to the mouth horn behind the yaw servo (#978), 78.2 deg."""
-    for drive, expected in (("pan", 90.0), ("jaw", 78.1682), ("tilt", 90.0)):
+    for drive, expected in (("pan", 90.0), ("jaw", 78.1682)):
         assert neck.transmission(drive, 0.0) == pytest.approx(expected, abs=1e-4)
 
 

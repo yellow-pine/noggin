@@ -2,8 +2,8 @@
 head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
 A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
-low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 12 mm crank and the
-carrier's 30 mm arm turn the head about 2.5x slower than the servo, reversed, so the servo holds under its rating with
+low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 21 mm crank and the
+carrier's 46 mm arm turn the head about 2.2x slower than the servo, reversed, so the servo holds under its rating with
 no balance spring.
 The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
 inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
@@ -48,23 +48,21 @@ BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs 
 # model/printed/test_base.py)
 TILT_SHAFT = (-21.45, 123.8, -62.0)
 TILT_CASE = (0.0, 0.0, 1.0)
-# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) and the fixed carrier's arm
-# about the tilt axis both square to the bar at rest, on the bar's same side (down), so the head turns crank / arm =
-# 0.4 of the servo's turn there and less toward the range's ends (inferred). The pin stays behind the case's front and
-# inside the head's floor over the sweep; the anchor sits on the R rail.
-TILT_ARMS = (12.0, 30.0)
+# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) 21 mm down and a little
+# back, the fixed carrier's arm 46 mm down and back from the tilt axis, so the head turns about 0.46 of the servo's turn
+# over the whole range (inferred). The crank keeps the pin under the case's corner over its sweep; the bar runs inboard
+# of the jaw's sweep to an anchor behind the R rail, so it never crosses the rail.
+TILT_ARMS = ((21.0, -80.0), (46.0, -72.0))  # (mm, deg from +y toward +z): the crank's, the carrier's arm's
 
 
-def _tilt_normal():
-    (_, sy, sz), (_, oy, oz) = TILT_SHAFT, HEAD_AXES["tilt"][0]
-    d = math.hypot(sy - oy, sz - oz)
-    a = math.atan2(sz - oz, sy - oy) - math.acos((TILT_ARMS[1] - TILT_ARMS[0]) / d)  # the lower of the two
-    return math.cos(a), math.sin(a)
+def _arm(i):
+    length, deg = TILT_ARMS[i]
+    return length * math.cos(math.radians(deg)), length * math.sin(math.radians(deg))
 
 
-TILT_CRANK = tuple(TILT_ARMS[0] * c for c in _tilt_normal())
+TILT_CRANK = _arm(0)
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_CRANK[0], TILT_SHAFT[2] + TILT_CRANK[1])
-TILT_ANCHOR = tuple((0.0, *(HEAD_AXES["tilt"][0][i + 1] + TILT_ARMS[1] * c for i, c in enumerate(_tilt_normal()))))
+TILT_ANCHOR = (0.0, *np.add(HEAD_AXES["tilt"][0][1:], _arm(1)).tolist())
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
 # #978: the pan case behind the C0 axis, hung shaft down over the tray, its shaft at its back (PAN_CASE: its long axis
 # forward), its lever and crank under it, over the tray and clear of the Shields' and capacitor's sweeps; its top sets
@@ -76,10 +74,8 @@ PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
 PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
-# the bar outboard of the lever (its outer face at x -27.95, model/printed/neck.py), clear of the case's x; the pin's
-# tapping bore in the lever and the anchor's in the carrier's boss, inboard of it (inferred)
-REACTION_BAR_X = (-33.25, -28.25)
-REACTION_TAP_X = (REACTION_BAR_X[1] + 0.3, REACTION_BAR_X[1] + 4.3)
+REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the case's shaft end (inferred)
+REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
 CERVICAL_PATH = (

@@ -44,14 +44,14 @@ def cervical_carrier():
             rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
         rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    # A passive bar reacts the low rear moving-case motor (#978) at a pin on the R rail's outer side, the reduction
-    # four-bar's fixed arm (nk.TILT_ARMS): the pin's boss on a strut out from the rail at the pin's height.
+    # A passive bar reacts the low rear moving-case motor (#978) at a pin beside the R rail, the reduction four-bar's
+    # fixed arm (nk.TILT_ARMS), inboard of the jaw's sweep: the pin's boss on a strut from the rail at the pin's height.
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
     t = (az - z0) / (z1 - z0)
     rail = (-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az)
-    boss = (nk.REACTION_TAP_X[0], nk.REACTION_TAP_X[0] + 8.0)  # inboard of the bar
-    out = out.union(strut(rail, (boss[1] - 3.0, ay, az), (3.5, 3), (3, 2.5)))
+    boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
+    out = out.union(strut(rail, (boss[0] + 3.0, ay, az), (3.5, 3), (3, 2.5)))
     out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
     out = out.union(tie(20.0, 78.5, -65.7))
     for x, fy in nk.CARRIER_FEET:
@@ -124,6 +124,7 @@ def tilt_lever():
     span = (outer - 5, outer)  # counterbore leaves a full 2 mm printed floor over the stock retaining screw
     out = cyl("x", (0, y, z), 11.5, span)
     out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 7)], span[1] - span[0], (span[0], 0, 0)))
+    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (span[0], nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
     out = out.cut(cyl("x", (0, y, z), 2.8, (outer - 3, outer)))
     for dy, dz in envelopes.STANDARD_HORN["mounts"]:
@@ -132,7 +133,7 @@ def tilt_lever():
 
 
 def tilt_reaction_bar():
-    """The reduction four-bar's straight bar (#978), outboard of the lever, from its crank's pin to the carrier's anchor."""
+    """The reduction four-bar's straight bar (#978), from its crank's pin to the carrier's anchor."""
     from model.printed.gimbal import lid_mechanical
 
     pins = [tuple(point[1:]) for point in nk.TILT_BAR_PATH]
