@@ -113,7 +113,8 @@ def jaw_y(y):
 # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
 JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (10.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
+# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978)
+JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (29.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
 # #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
 # Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.
 MANDIBLE_BORDER = {
