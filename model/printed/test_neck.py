@@ -112,7 +112,9 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
         stress = force / area + tangent * radius * (1 - t) * half / bend
         assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, t
     a, b = (shaft[0], *pin[1:]), (sum(nk.REACTION_BAR_X) / 2, *pin[1:])
-    assert _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.75)) >= beams.MIN_SF
+    assert (
+        _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.65)) >= beams.MIN_SF
+    )  # the pin boss ends at the bar
 
 
 @pytest.fixture(scope="module")
@@ -203,7 +205,7 @@ def test_the_tray_legs_clear_the_lower_rear_standard_case_through_pan():
 
 @pytest.mark.model
 def test_the_pan_case_clears_the_electronics_tray_and_capacitor_through_pan():
-    """The selected crown case replaces the rejected rear case that failed the real Skin envelope."""
+    """#978: the pan case behind the C0 axis, over the tray, clears the panning tray and capacitor."""
     from model import base as layout
     from model.printed import base
 
