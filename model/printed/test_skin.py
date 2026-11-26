@@ -187,10 +187,10 @@ def _poses(doc=DOC):
     out = {"rest": {n: p.matrix for n, p in stage.parts.items()}}
     for horn, h in stage.horns.items():
         out |= {f"{horn} {deg:.0f}": stages.pose(stage, horn, deg).parts for deg in h.limits}
-    # #968: the jaw open with the head at each corner of its pan and tilt, each drive's motion composed on the one it
-    # rides (the jaw on the pan on the tilt)
+    # #968: the jaw open with the head nodded to either end, straight and panned to either end, each drive's motion
+    # composed on the one it rides (the jaw on the pan on the tilt)
     rest, jaw = out["rest"], stages.pose(stage, "jaw horn", nk.servo_for("jaw", nk.RANGES["jaw"][1])).parts
-    for pan, tilt in itertools.product(nk.RANGES["pan"], nk.RANGES["tilt"]):
+    for pan, tilt in itertools.product((nk.RANGES["pan"][0], 0, nk.RANGES["pan"][1]), nk.RANGES["tilt"]):
         t, p = (stages.pose(stage, f"{d} horn", nk.servo_for(d, a)).parts for d, a in (("tilt", tilt), ("pan", pan)))
         out[f"pan {pan:g} tilt {tilt:g} jaw open"] = {
             n: t[n] @ np.linalg.inv(m) @ p[n] @ np.linalg.inv(m) @ jaw[n] for n, m in rest.items()
@@ -242,13 +242,32 @@ def _known(shell, part):
     return rest == "hair" and part in KNOWN_HAIR and skin_shape in HAIR_SKINS.get(part, g.SKINS)
 
 
+# the poses every Skin's mouth cover meets the Torso box's top in: the head nodded down, the jaw open (#1020 clears them)
+KNOWN_CHIN = [
+    f"pan {p:g} tilt {nk.RANGES['tilt'][1]:g} jaw open" for p in (nk.RANGES["pan"][0], 0, nk.RANGES["pan"][1])
+]
+
+
+def _chin(shell, part, pose):
+    return pose in KNOWN_CHIN and shell.endswith(" mouth cover:1") and part == "torso:1"
+
+
 @pytest.mark.model
 @pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])  # its id the document's: its Model shard's -k
 @pytest.mark.parametrize("pose", list(_poses()))
 def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
-    """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
-    hardware (#51 shell containment), in each Skin (#813), but the KNOWN_HAIR meetings #850 clears."""
-    assert [n for n in _near(doc, pose) if not _known(*n[:2])] == []
+    """At rest, at each servo's ends and with the jaw open as the head nods and pans, each Shell keeps CLEAR_MM from
+    each part it does not sit on, printed or hardware (#51 shell containment), in each Skin (#813), but the KNOWN_HAIR
+    meetings #850 clears and the KNOWN_CHIN ones #1020 does."""
+    assert [n for n in _near(doc, pose) if not (_known(*n[:2]) or _chin(*n[:2], pose))] == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])
+@pytest.mark.parametrize("pose", KNOWN_CHIN)
+def test_the_known_chin_meetings_are_still_there(pose, doc):
+    """When #1020 clears a KNOWN_CHIN pose for every Skin, drop it."""
+    assert any(_chin(*n[:2], pose) for n in _near(doc, pose, only={"torso"})), pose
 
 
 @pytest.mark.model

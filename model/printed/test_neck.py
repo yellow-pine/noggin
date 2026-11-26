@@ -157,7 +157,6 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
             inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
             fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
             sf = mat["tensile_mpa"]["z"] / (force / area + moment * fibre / inertia)
-            print(tuple(np.round(a, 1)), t, round(area, 1), round(sf, 2))
             if sf < beams.MIN_SF:
                 weak.append((tuple(np.round(a, 1)), t, round(sf, 2)))
     assert weak == []
