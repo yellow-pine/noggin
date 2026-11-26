@@ -246,7 +246,9 @@ def jaw(mechanical=False):
     out = None
     for chain in points.values():
         for i, (a, b) in enumerate(zip(chain, chain[1:])):
-            if i < 3:  # #968: the ramus, condyle to angle, deep fore and aft as the bone is, for the mouth servo's stall
+            if (
+                i < 3
+            ):  # #968: the ramus, condyle to angle, deep fore and aft as the bone is, for the mouth servo's stall
                 link = bone.bone(a, b, *RAMUS, up=(1, 0, 0), round=True, heads=False)
             else:
                 link = strut(a, b, (3.2, 2.2), (2.8, 2))
