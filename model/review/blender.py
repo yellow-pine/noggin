@@ -214,6 +214,8 @@ def contoured(m, objects):
     ]
     dy = min(front, default=y) - y
     print(f"review: the side contours move {dy:.1f} mm along y to the sculpt's face front", flush=True)
+    for o in objects:
+        o["contour shift"] = dy  # mm along y in the head's frame, the side views' (the review's checks read it)
     poly = {n: [(p[0] + dy * (v == "side"), p[1]) for p in o] for n, (v, o) in contours.items()}
     if len({tuple(x.name for x in o.data.materials) for o in moving}) > 1:
         raise ValueError("review: Morty's moving surfaces need the same Colour group slots in the same order")

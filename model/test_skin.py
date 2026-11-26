@@ -136,3 +136,27 @@ def test_every_shell_belongs_to_one_motion_region():
         assert skin.region(shell) == region, shell
     with pytest.raises(KeyError):
         skin.region("morty tail")
+
+
+def _inside(points, poly):
+    """Even-odd: which (n, 2) points lie inside the closed polygon."""
+    a, b = poly, np.roll(poly, -1, axis=0)
+    x, y = points[:, :1], points[:, 1:]
+    span = (a[:, 1] > y) != (b[:, 1] > y)
+    t = (y - a[:, 1]) / np.where(span, b[:, 1] - a[:, 1], 1.0)
+    return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
+
+
+def test_mortys_contours_sit_round_his_eyes_as_his_model_sheet_draws_them():
+    """#992: each eye white round its eye (gm.EYE, the sheet's eyes on ours), its pupil inside it; the hairline over the
+    forehead and down behind to the nape, the mouth line under the eyes, the collar under the mouth (the head's frame)."""
+    for s in "LR":
+        white, pupil = skin.outline(f"{s} eye white"), skin.outline(f"{s} pupil")
+        x, _, z = gm.EYE[s]
+        assert _inside(np.array([(x, z)]), white).all()
+        assert _inside(pupil, white).all()
+        assert np.linalg.norm(white - (x, z), axis=1) == pytest.approx(0.39 * gm.SPACING, rel=0.15)
+    hair, mouth, collar = (skin.contour(n) for n in ("hairline", "mouth", "collar"))
+    assert hair[0][1] > 0 > hair[-1][1] and hair[0][0] < hair[-1][0]  # forehead first, nape behind and under the eyes
+    assert collar[:, 1].max() < mouth[:, 1].min() < mouth[:, 1].max() < 0
+    assert _inside(np.array([(0.0, -skin.FAR / 2)]), skin.outline("mouth")).all()  # the jaw under the mouth line
