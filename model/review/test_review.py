@@ -9,6 +9,7 @@ import shutil
 
 import numpy as np
 import pytest
+import trimesh
 
 from model import geometry as g
 from model import gimbal as gm
@@ -51,6 +52,13 @@ def test_the_review_finishes_at_the_print_files_pitch_unless_coarse_is_asked_for
         assert inspect.signature(f).parameters["quality"].default == "production"
     just = open(os.path.join(stages.REPO, "justfile")).read()
     assert 'review quality="production"' in just and '_review-build quality="production"' in just
+
+
+def test_a_piece_lies_on_its_largest_face_that_fits_a_plate():
+    """#992: a piece whose largest face lies past a plate lies on the next largest that fits, here its 200 x 30 end."""
+    box = trimesh.creation.box((250.0, 30.0, 200.0))
+    laid = trimesh.transform_points(box.vertices, review.flat(box)).max(axis=0)
+    assert laid == pytest.approx((200.0, 30.0, 250.0))
 
 
 def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):

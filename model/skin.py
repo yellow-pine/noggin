@@ -216,7 +216,7 @@ def _seats(skin):
             for x in (-_BACK[0], _BACK[0])
         ],
         *[
-            Seat(f"{skin} hair", f"{skin} face", grown(x, 10.0, 47.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 47.0 * GROW, 1)
+            Seat(f"{skin} hair", f"{skin} face", grown(x, 10.0, 42.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 42.0 * GROW, 1)
             for x in (-40.0, 40.0)
         ],
         # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
