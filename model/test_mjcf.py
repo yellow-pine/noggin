@@ -254,11 +254,14 @@ def test_every_four_bar_and_push_rod_closes_by_a_connect(doc):
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
 def test_the_joints_turn_as_the_four_bar_kinematics_solve_them(doc):
-    """Across each horn's sweep the servo holds its command and every driven joint (lid, eyeball, tilt, pan, jaw) is
-    within 0.5 degrees of the four-bar kinematics (model/linkage.py, stages.pose) at that horn angle."""
+    """Across each horn's sweep the servo holds its command within its full-torque band (a loaded standard servo sags
+    inside its 7.5 deg, #978) and every driven joint (lid, eyeball, tilt, pan, jaw) is within 0.5 degrees of the
+    four-bar kinematics (model/linkage.py, stages.pose) at the angle the horn holds."""
     stage = stages.STAGES[doc]
     for (h, d), data in sweep(doc).items():
-        expected = {h: d, **stages.pose(stage, h, d).joints}
+        held, values = math.degrees(data.joint(h).qpos[0]), mjcf.motor(h)
+        assert abs(held - d) < math.degrees(values["stall_nm"] / values["kp"]), (h, d, held)
+        expected = {h: held, **stages.pose(stage, h, held).joints}
         for joint, deg in expected.items():
             actual = math.degrees(data.joint(joint).qpos[0])
             assert abs(actual - deg) < TURN_DEG, (h, d, joint, actual, deg)

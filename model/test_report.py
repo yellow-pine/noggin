@@ -35,15 +35,9 @@ KNOWN_FULL_SPEED = {}
 # (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why. None since
 # printed parts weigh at their infill (#1003).
 KNOWN_NECK_HOLDS = {}
-# (document, servo) whose load peaks over half its stall along a motion, with why.
-KNOWN_PEAKS = {
-    (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
-    " 20 ms command step saturates the standard servo toward its stall (#978); its own gestures, minimum jerk under an"
-    " acceleration cap (#51), are a later ticket"
-    for doc in g.SIMULATED
-    if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
-    for horn in ("pan horn", "tilt horn")
-}
+# (document, servo) whose load peaks over half its stall along a motion, with why. None since the standard servo's
+# band (#978): the hero's 20 ms command steps no longer saturate it.
+KNOWN_PEAKS = {}
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {}
 

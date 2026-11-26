@@ -45,15 +45,17 @@ def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collisio
 
 
 def test_the_standard_tilt_motor_holds_a_load_the_micro_servo_cannot():
-    """200 g on a 100 mm arm requires 2 kgf.cm: below the standard's inferred continuous limit, above micro stall."""
+    """200 g on a 100 mm arm requires 2 kgf.cm: below the standard's inferred continuous limit, above micro stall. It
+    holds it sagging its share of the band (the load over stall, times 7.5 deg: #978)."""
     spec = mujoco.MjSpec.from_string("""<mujoco><worldbody><body>
         <joint name="tilt pivot" axis="0 1 0"/><geom type="sphere" pos="0.1 0 0" size="0.001" mass="0.2"/>
         </body></worldbody></mujoco>""")
     mujoco_report.mjcf.drive(spec, "tilt pivot", name="tilt horn")
     model = spec.compile()
     data = mujoco_report.mjcf.pose(model, {"tilt horn": 0})
-    assert abs(np.degrees(data.joint("tilt pivot").qpos[0])) < 0.5
-    assert abs(data.actuator("tilt horn").force[0]) == pytest.approx(0.2 * 9.81 * 0.1, rel=0.01)
+    load, kp = 0.2 * 9.81 * 0.1, mujoco_report.mjcf.motor("tilt horn")["kp"]
+    assert abs(data.joint("tilt pivot").qpos[0]) == pytest.approx(load / kp, rel=0.02)
+    assert abs(data.actuator("tilt horn").force[0]) == pytest.approx(load, rel=0.01)
 
 
 # A parallelogram: the horn and the rocker 100 mm long, level, their pivots 50 mm apart one above the other, a 100 g
