@@ -120,37 +120,46 @@ def saddle():
     return _built("nod plate")
 
 
+def _section(solid, origin, normal, xdir, size):
+    """The solid's 0.01 mm slice in the plane at `origin`, its window `size` (along xdir, then across)."""
+    plane = cq.Plane(origin=origin, xDir=xdir, normal=normal)
+    return solid.intersect(cq.Workplane(plane).rect(*size).extrude(0.005, both=True).val())
+
+
 @pytest.mark.model
-@pytest.mark.parametrize("member", ("mast", "header", "tab beam"))
-def test_the_standard_servo_saddle_holds_its_actual_stall_reaction(saddle, member):
-    """Actual CAD sections, including eccentric axial loading; the finished anatomical head load stays on its bearing."""
-    shaft, mat = nk.TILT_SHAFT, g.MATERIALS[g.PRINTED["nod plate"][1]]
-    torque = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10
-    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
-    force = torque / np.linalg.norm(nk.TILT_CRANK) / math.sin(math.radians(angle))
-    z = (shaft[2] + nk.HEAD_AXES["tilt"][0][2]) / 2
-    mast = saddle.intersect(cq.Workplane("XY", origin=(0, 0, z)).rect(400, 400).extrude(0.005, both=True).val())
+@pytest.mark.parametrize("member", ("mast", "header", "beam", "pan bar"))
+def test_the_standard_servo_cradles_hold_their_actual_stall_reaction(saddle, member):
+    """#978: actual CAD sections of the nod plate's cradles at each servo's 5 V stall. Each tab takes half the bar's
+    force on its shaft and the case's torque over the tabs' spacing; a member bends that load about its section (the
+    whole mast slab: the tilt shaft's offset from its centroid)."""
+    mat = g.MATERIALS[g.PRINTED["nod plate"][1]]
+    (sx, sy, sz), (_, py, pz) = nk.TILT_SHAFT, nk.PAN_SHAFT
+    spacing = 34.1 + 13.4  # the tabs' hole lines (envelopes.STANDARD_SERVO)
+    torque = {d: sim.limits(f"{d} horn")["stall_kgf_cm"] * beams.G * 10 for d in ("tilt", "pan")}
+    angle = {d: min(nk.transmission(d, s) for s in np.linspace(-r, r, 41)) for d, r in (("tilt", 20), ("pan", 45))}
+    bar = {"tilt": torque["tilt"] / np.linalg.norm(nk.TILT_CRANK), "pan": torque["pan"] / np.linalg.norm(nk.PAN_ARM)}
+    force = {d: bar[d] / math.sin(math.radians(angle[d])) for d in bar}
+    tab = {d: force[d] / 2 + torque[d] / spacing for d in force}
     if member == "mast":
-        cut, axis, bend = mast, 0, 1
-        moment = force * abs(mast.Center().x - shaft[0])
-    else:
-        # Peak reaction at one tab combines the bar force and the motor's case torque over its tab spacing.
-        force = force / 2 + torque / (34.1 + 13.4)
-        top = shaft[2] + 22.0
-        if member == "header":
-            x = shaft[0] + 18.0
-            plane, axis, bend = cq.Plane(origin=(x, shaft[1] - 4.0, top - 5.25), xDir=(0, 1, 0), normal=(1, 0, 0)), 2, 1
-            moment = force * abs(x - (shaft[0] + 11.9))
-            cut = saddle.intersect(cq.Workplane(plane).rect(20, 20).extrude(0.005, both=True).val())
-        else:
-            y = shaft[1] + 17.05
-            plane, axis, bend = cq.Plane(origin=(shaft[0] + 15.4, y, top - 10), xDir=(1, 0, 0), normal=(0, 1, 0)), 2, 0
-            moment = force * abs(shaft[1] + 34.1 - y)
-            cut = saddle.intersect(cq.Workplane(plane).rect(20, 40).extrude(0.005, both=True).val())
+        z = (sz + nk.HEAD_AXES["tilt"][0][2]) / 2
+        cut, axis, bend, load = _section(saddle, (0, 0, z), (0, 0, 1), (1, 0, 0), (400, 400)), 0, 1, force["tilt"]
+        moment = load * abs(cut.Center().x - sx)
+    elif member == "header":  # over the case's top, from the upper tab's block to the mast
+        x = 10.0
+        cut = _section(saddle, (x, sy, sz + 41.0), (1, 0, 0), (0, 1, 0), (24, 10))
+        axis, bend, load, moment = 1, 2, tab["tilt"], tab["tilt"] * abs(x - (sx + 18.4))
+    elif member == "beam":  # in front of the case, from the plate's crossbar down to the lower tab's block
+        z = (sz - 13.4 + nk.NOD_Z[0]) / 2
+        cut = _section(saddle, (-5.0, sy - 17.0, z), (0, 0, 1), (1, 0, 0), (12, 16))
+        axis, bend, load, moment = 1, 0, tab["tilt"], tab["tilt"] * abs(z - (sz - 13.4))
+    else:  # the pan cradle's side bar, from the fore tab's block to the mast
+        y = py - 12.0
+        cut = _section(saddle, (15.0, y, pz + 23.0), (0, 1, 0), (1, 0, 0), (12, 10))
+        axis, bend, load, moment = 0, 2, tab["pan"], tab["pan"] * abs(y - (py - 34.1))
     inertia = np.asarray(cq.Shape.matrixOfInertia(cut))[bend, bend] / 0.01
     box, centre = cut.BoundingBox(), cut.Center().toTuple()[axis]
     half = max(getattr(box, "xyz"[axis] + "max") - centre, centre - getattr(box, "xyz"[axis] + "min"))
-    stress = force / (cut.Volume() / 0.01) + moment * half / inertia
+    stress = load / (cut.Volume() / 0.01) + moment * half / inertia
     assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF
 
 

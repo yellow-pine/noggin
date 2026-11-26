@@ -41,11 +41,14 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
    pack's lead end, its lever reached through a hole in the lid, the power-path board lying flat in front, and the
    **cervical carrier** bolted to its floor, its two medial rails through the **torso lid** beside the wire corridor.
    The lid drops onto its ledge inside the walls, flush with their top.
-2. **Nod plate** turning on the carrier's C0 trunnions. The standard tilt servo's case is fixed to its upper saddle;
-   the supplied horn and printed adapter react through a closed parallelogram to the carrier. Its output reverses
-   the servo's rotation. A torsion balance spring at the tilt pivot supports the head's weight.
-3. **Head mount** on the F8-16M thrust bearing in the nod plate. The pan micro servo turns a keyed quill through the
-   bearing's bore; the bearing carries axial head load. Pan follows tilt in the joint order. From the side:
+2. **Nod plate** turning on the carrier's C0 trunnions. The standard tilt servo's case stands upright in its low rear
+   cradle, behind the wire corridor; the supplied horn and printed adapter react through a closed parallelogram to the
+   carrier. Its output reverses the servo's rotation. The standard pan servo hangs shaft down from the cradle's rear
+   mast, behind the pan bearing; both cases ride inside the compact head (#978). A torsion balance spring at the tilt
+   pivot supports the head's weight.
+3. **Head mount** on the C0 pan bearing (SKF 61804-2RS1) on the nod plate's hollow spindle. The pan servo turns it
+   through a parallelogram four-bar; the bearing carries the head's load, and the power leads pass its 8 mm bore. Pan
+   follows tilt in the joint order. From the side:
 
    [Open Stage 2 in the viewer](https://yellowpine.com/noggin/viewer/?stage=2&view=side)
 

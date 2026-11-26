@@ -45,7 +45,7 @@ STANDARD_STOCK_MM, STANDARD_EXT_MM = 10, 150
 # the Y lead into the Shields, across which the bulk capacitor sits (470 uF: open at DC, so worst_case() is unmoved by
 # it; it rides the start edges and the board's switchover).
 BATFET_OHM, NECK_CABLE_MM, NECK_OHM_PER_MM, BULK_F = 0.020, 250, 2 * 0.0535e-3, 470e-6
-# Head-local 5 V step-down regulator for the crown standard pan servo (#978): Pololu D36V28F5 (item 5267, APM81815
+# Head-local 5 V step-down regulator for the standard pan servo (#978): Pololu D36V28F5 (item 5267, APM81815
 # synchronous buck, 5 V / 3.2 A, 17.8 x 12.7 x 3.6 mm, 1.5 g) fed from the switched neck VBAT/GND; 4.9 V worst-case
 # 2 %-low regulation target, 0.5 V dropout [I], and 0.85 lower-bound efficiency at 2S input.
 PAN_BUCK_V, PAN_BUCK_DROPOUT_V, PAN_BUCK_EFF = 4.9, 0.5, 0.85
@@ -131,7 +131,7 @@ def lead_ohm(name, motor):
 def mech(soc):
     """The Mech's wiring at its worst (#858), on a pack at a state of charge, unplugged: pack, its lead, the
     power-path board's battery FET, the switch board, the neck cable's output pair up the post, the bulk capacitor
-    across its end, the Pololu D36V28F5 5 V buck feeding the crown standard pan servo, and the Y lead's branch from
+    across its end, the Pololu D36V28F5 5 V buck feeding the standard pan servo, and the Y lead's branch from
     there to each shield; per shield its standby, the 5 V servo rail and every shield-fed servo at stall on its lead,
     and the Core's 3.3 V in a transmit burst. A linear regulator is a behavioural source in series, dropping what is
     above its output or at least its dropout; the synchronous buck draws power-conserving input current."""
