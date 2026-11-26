@@ -51,6 +51,7 @@ def apply(path, report):
         me.update()
     bpy.context.scene["warp"] = open(report).read()
     print("rewarp:", json.loads(bpy.context.scene["warp"]), flush=True)
+    bpy.context.preferences.filepaths.save_version = 0  # no skeleton.blend1 beside it
     bpy.ops.wm.save_mainfile(compress=True)
 
 
