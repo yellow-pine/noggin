@@ -276,6 +276,13 @@ def test_a_quasi_static_pan_pose_is_quiet_with_the_life_size_heads_inertia(doc):
     assert fast.time == pytest.approx(0.5 + abs(command["pan horn"]) / rated, abs=model.opt.timestep)
 
 
+def test_the_standard_servo_reaches_full_torque_at_its_band_and_the_micro_at_its_deadband():
+    """#978: the MG996R's proportional band (mjcf.STANDARD_BAND_DEG, inferred); the 9 g micro keeps #625's model."""
+    for horn, band in (("tilt horn", mjcf.STANDARD_BAND_DEG), ("pan horn", mjcf.STANDARD_BAND_DEG), ("L lid horn", 0.5)):
+        values = mjcf.motor(horn)
+        assert math.degrees(values["stall_nm"] / values["kp"]) == pytest.approx(band)
+
+
 def test_a_quiet_but_stalled_pose_fails_and_restores_the_callers_contact_flags():
     model = mujoco.MjModel.from_xml_string("""
     <mujoco>
