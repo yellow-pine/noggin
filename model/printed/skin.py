@@ -401,7 +401,12 @@ def shirt(skin, half):
 
 
 # Cansin's open jacket (#813): each lapel's outline on the shirt's front (x, z), its L one, standing LAPEL_PROUD proud
-LAPEL = ((50.0, -123.0), (40.0, -123.0), (4.0, -168.0), (14.0, -168.0))
+LAPEL = (
+    (50.0, -145.0),
+    (40.0, -145.0),
+    (16.0, -175.0),
+    (26.0, -175.0),
+)  # 22 mm under #978's lower Torso, its slope kept
 
 
 def pupil_plug(side):

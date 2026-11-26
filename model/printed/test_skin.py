@@ -200,13 +200,56 @@ def _carriers():
     return out
 
 
+# {part: the poses it meets every Skin's hair in}: the hair, drawn for the old compact head, meets #978's life-size head
+# hardware and the eyes' repacked pitch drive, tray and hub. #850's refit of the Shells clears them and drops each entry.
+KNOWN_HAIR = {
+    **dict.fromkeys(
+        (
+            "cranium tray",
+            "head mount",
+            "hub",
+            "nod plate",
+            "pan horn",
+            "pan lever",
+            "pan servo",
+            "tilt servo",
+        ),
+        ("rest",),
+    ),
+    **dict.fromkeys(("pitch bar", "pitch horn"), ("pitch horn -30", "pitch horn 31")),
+}
+
+
+# the Skins whose hair meets a KNOWN_HAIR part, where not every Skin's does: Bart's, cut higher at the back, clears these
+HAIR_SKINS = dict.fromkeys(("pan horn", "pan lever"), ("morty", "cansin"))
+
+
+def _known(shell, part):
+    """Whether (Shell, part) is a KNOWN_HAIR meeting, placed names or stems."""
+    shell, part = shell.removesuffix(":1"), part.removesuffix(":1")
+    skin_shape, _, rest = shell.partition(" ")
+    return rest == "hair" and part in KNOWN_HAIR and skin_shape in HAIR_SKINS.get(part, g.SKINS)
+
+
 @pytest.mark.model
 @pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])  # its id the document's: its Model shard's -k
 @pytest.mark.parametrize("pose", list(_poses()))
 def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
     """At rest and at each servo's ends, each Shell keeps CLEAR_MM from each part it does not sit on, printed or
-    hardware (#51 shell containment), in each Skin (#813)."""
-    assert _near(doc, pose) == []
+    hardware (#51 shell containment), in each Skin (#813), but the KNOWN_HAIR meetings #850 clears."""
+    assert [n for n in _near(doc, pose) if not _known(*n[:2])] == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])
+@pytest.mark.parametrize("part", list(KNOWN_HAIR))
+def test_the_known_hair_meetings_are_still_there(part, doc):
+    """When #850's refit clears a KNOWN_HAIR part from a Skin's hair in all its poses, drop its entry."""
+    skin_shape = doc.removeprefix(g.undressed(doc)).removeprefix("-") or next(iter(g.SKINS))
+    if skin_shape not in HAIR_SKINS.get(part, g.SKINS):
+        pytest.skip(f"{skin_shape}'s hair is not listed as meeting the {part}")
+    only = {stages.stem(stages.STAGES[doc].parts[f"{part}:1"].file).removesuffix(g.MECHANICAL)}  # a hardware's file
+    assert any(n[1] == f"{part}:1" for pose in KNOWN_HAIR[part] for n in _near(doc, pose, only=only)), part
 
 
 @pytest.mark.model

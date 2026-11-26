@@ -2,6 +2,10 @@
 
 > #625, part of #51, from docs/research/2026-11-02-literature-simulation.md (1, Practices 1 and 2). Supersedes ADR
 > 0007's servo: its position actuators clipped at stall and the trajectories' slew at the no-load speed.
+>
+> Amended 2026-11-26 (#978): the standard servo (MG996R, tilt and pan) reaches full torque 7.5 deg off
+> (`mjcf.STANDARD_BAND_DEG`, inferred from docs/research/2026-11-26-standard-servo-band.md); 0.5 deg is its deadband.
+> The 9 g micro keeps the model below.
 
 A stiff position actuator that follows a command slewed at the no-load 428 deg/s sets its own peaks: a torque or an
 acceleration read from it comes from the clip, not from the servo, and #51 ranks its mechanisms on dynamic torque and

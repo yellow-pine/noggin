@@ -16,8 +16,10 @@ Stage 1 is calibrated (inferred): the lids in the shared lid frame, the right li
 180 - a to the left, inferred), closed at the low end where the lids meet, open at the high; the yaw and the pitch
 rest centred between their ends. The gestures turn the eyes left and right only, so the pitch holds the gaze level.
 The neck Core runs the same eye program, which drives its pan alone: its rows' ranges are the neck's in the model and
-its rest the model's neutral, 90 (the jaw's closed end), and its GPIOs are the Shield's as on the eyes Core (inferred:
-the same Shield). *Upcoming (#929): the neck Core drives the tilt and the jaw, from a calibration of their own.*
+its rest each servo's model midpoint (the jaw's closed end), and its GPIOs are the Shield's as on the eyes Core
+(inferred: the same Shield). The standard tilt servo's inferred 159° envelope gives a 79.5° midpoint; the micro
+servos use 90°. These are assembly targets, not measured pulse endpoints. *Upcoming (#929): the neck Core drives
+the tilt and the jaw, from a calibration of their own.*
 
 > [!WARNING]
 > **The lids bind at the ends.** Verify a range on the real Mech before pushing past it.

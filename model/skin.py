@@ -233,17 +233,20 @@ def _seats(skin):
         # the shirt's halves off the Torso's front and back walls, each wall thickened 1 mm inside behind its Seats, each
         # half on bosses out to its sleeve, which rounds its corners clear of the Torso's
         *[
-            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -137.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt front", "torso", (x, TORSO[0], -157.5), (0.0, -1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
         *[
-            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -137.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
+            Seat(f"{skin} shirt back", "torso", (x, TORSO[1], -157.5), (0.0, 1.0, 0.0), 3.0, SHIRT_BOSS, 1)
             for x in (-24.0, 24.0)
         ],
     ]
 
 
-SUNGLASSES = (0.0, -131.0)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813)
+SUNGLASSES = (
+    0.0,
+    -153.0,
+)  # (x, z) on the shirt front: Cansin's aviators hooked on the tee's neckline (#813), 6 under it
 SEATS += [
     *_seats("morty"),
     *_seats("cansin"),
@@ -276,7 +279,7 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS} | {s: d for s, (_, d) in GLUED.i
 # The Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so the
 # servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py), their clearance on
-# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the balance spring holds too
+# their own shapes (model/printed/test_skin.py). The head less these is its bare one, which the tilt servo holds too
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Shells (model/stages.py RIDES, held to it by model/printed/test_skin.py) and the private Morty
