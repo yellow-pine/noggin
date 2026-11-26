@@ -2,7 +2,7 @@
 middle at the origin). Each region (the skull, the mandible, the neck) is resized uniformly about the eyes' middle and
 placed, then the skull and the mandible each take one smooth field, a cubic B-spline lattice (LATTICE mm), solved so
 the functional landmarks land on the Mech: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
-condyles on the tilt axis, the skull's box on the compact head's (base.DOME). Its local length factors, the singular
+condyles on the tilt axis, the skull's box on the compact head's (LO, HI). Its local length factors, the singular
 values of the field's Jacobian at every vertex, stay within the confirmed budget (budget.py) or the fit raises. The
 neck's seven vertebrae are only resized and moved, each canal onto the cervical canal's path, C1's round the pan axis.
 
@@ -14,8 +14,8 @@ import trimesh
 from scipy import ndimage
 from scipy.optimize import minimize
 
-from model import base, gimbal, neck
 from model import geometry as g
+from model import gimbal, neck
 from model.skeleton import budget
 
 LATTICE = 20.0  # the field's control spacing, mm
@@ -27,7 +27,9 @@ TILT, HINGE, PAN = (neck.HEAD_AXES[k][0] for k in ("tilt", "jaw", "pan"))
 C0_BELOW = (
     3.0  # the occipital condyles' lowest points under the tilt axis, which runs through their curvature (inferred)
 )
-LO, HI = np.array(base.DOME).T  # the skull's box in the head's frame: the compact head's round the Mech
+# the box the skull fills (the head's frame): the compact head's (gimbal.HEAD_MM) round #975's mechanism, its eyes 0.54
+# up it; the finished bones' own box is base.DOME
+LO, HI = np.array(((-80.0, -41.0, -93.5), (80.0, 134.9, 80.0)))
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
 SCALES = {"skull": 1.05, "mandible": 0.95}  # the regions' uniform resize (the neck's: neck_scale())
 

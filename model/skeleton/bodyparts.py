@@ -6,7 +6,8 @@ the skull's 21 bones (the collection `skull bones`, which the skull's Finishes r
 old bones, points each Finish at its new bone (copying the atlas's for c3 to c7) and swaps in the Scene Mech.
 rewarp.py then writes the Warp (`just rewarp`).
 
-  blender -b --factory-startup model/skeleton/skeleton.blend -P model/skeleton/bodyparts.py -- <prototype.blend> \
+  blender -b --factory-startup <prototype.blend> -P model/skeleton/bodyparts.py -- bake <baked.blend>
+  blender -b --factory-startup model/skeleton/skeleton.blend -P model/skeleton/bodyparts.py -- <baked.blend> \
       <job.json> <out.blend>
 
 job.json: model/skeleton job()."""
@@ -20,7 +21,16 @@ import bpy
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import export  # noqa: E402
 
-PROTOTYPE, JOB, OUT = sys.argv[sys.argv.index("--") + 1 :][:3]
+ARGS = sys.argv[sys.argv.index("--") + 1 :]
+if ARGS[0] == "bake":  # first, on the prototype's own scene: every object where it stands, unparented, unconstrained
+    for o in bpy.data.objects:
+        at = o.matrix_world.copy()
+        o.constraints.clear()
+        o.parent = None
+        o.matrix_world = at
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(ARGS[1]), compress=True)
+    sys.exit(0)
+PROTOTYPE, JOB, OUT = ARGS[:3]
 SOURCES = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "sources.json")))["objects"]
 NECK = {"C1": "atlas", "C2": "axis", **{f"C{i}": f"c{i}" for i in range(3, 8)}}
 LANDMARKS = ("LM L orbit", "LM R orbit", "LM L condyle", "LM R condyle", "LM menton")
@@ -40,6 +50,8 @@ with bpy.data.libraries.load(PROTOTYPE, link=False) as (src, dst):
     dst.objects = [n for n in src.objects if n in SOURCES or n in LANDMARKS]
 skull = export.collection("Skull", export.collection("Skeleton"))
 bones = export.collection(SKULL_BONES, skull)
+
+
 for o in dst.objects:
     if o.name in LANDMARKS:
         bpy.data.collections["Landmarks"].objects.link(o)
@@ -49,9 +61,6 @@ for o in dst.objects:
     keys = o.data.shape_keys.key_blocks
     keys["Sculpt"].relative_key = keys["Warp"]
     keys["Warp"].value = keys["Sculpt"].value = 1.0
-    at = o.matrix_world.copy()
-    o.parent = None
-    o.matrix_world = at
 
 
 def point(group, bone):
