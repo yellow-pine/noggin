@@ -88,3 +88,8 @@ landmark within 1 mm. The vertebrae are resized and moved only, each canal on th
 prototype's numerical machinery (#976's adapters, constrained Gaussian field, refinement, GX10 exchange) is not
 adopted.
 
+The brow stands half an eye cap's radius ahead of the eye centres (`gimbal.CAP_R / 2`), no longer ahead of the caps'
+fronts (Cansin, 2026-11-27, #874; model/skeleton/test_skeleton.py holds it). A design change, not a loosened gate:
+within the length budget an anatomical brow reaches about 24 mm ahead of the orbits, and Morty's 40.4 mm eyes stand
+proud of it. Anatomy comes first.
+
