@@ -6,8 +6,8 @@
 The realistic Skeleton's bones are authored by hand, landmark by landmark, until Cansin has no more edits, and Cansin
 audits them by turning them in Blender, not in code or pictures. So their source is one committed Blender scene,
 `model/skeleton/skeleton.blend` (the Skeleton scene, GLOSSARY), not a Python module: its bones, each with a Warp shape
-key (fit.py's thin-plate spline from the Landmarks, solved on GX10; Blender only exports/applies the public Bone
-keys under its resource lock and RSS ceiling) and a Sculpt key over it for hand edits, and a Finish per exported bone (a live Geometry Nodes SDF stack:
+key (model/skeleton/fit.py's regional fit from the Basis and the Landmarks; Blender only exports the Basis and
+applies the Warp, rewarp.py) and a Sculpt key over it for hand edits, and a Finish per exported bone (a live Geometry Nodes SDF stack:
 the cranium shelled, the mechanism carved round with clearance, crumbs dropped, meshed). CI fits it to the Mech it just
 built: Blender opens the scene, deletes its Scene Mech, puts the Stage 3 document's parts where each bone sees them
 (at rest and over every horn's range), runs every Finish and exports each bone (model/skeleton `finish()`, part of `just
@@ -75,3 +75,16 @@ Under #979, the canonical authored private reference stays on the Mac, while imm
 dense fitting data may travel by SSH to the trusted GX10 private ignored cache. They remain excluded from git,
 public CI, published artifacts and public source scenes. GX10 supplies normal heavy numerical/Blender compute;
 the Mac remains the review viewer with its existing resource limit and backup-preserving atomic publication.
+
+## 2026-11-26 adoption (#874)
+
+The scene's bones are BodyParts3D's: the skull's 21 bones (read whole by the skull's Finishes), the mandible and C1
+to C7 (`atlas`, `axis`, `c3` to `c7`), each with the #872 prototype's Basis. The Warp resizes each region uniformly
+(skull 1.05, mandible 0.95, neck to the canal's height) and gives the skull and the mandible one cubic B-spline
+field each, solved against #975's mechanism: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
+condyles 3 mm under the tilt axis, the skull's box on the compact head's (`base.DOME`, which the head gate uses).
+Every vertex's local length factors stay within this budget's bounds (fit.py raises otherwise) and every functional
+landmark within 1 mm. The vertebrae are resized and moved only, each canal on the cervical canal's path. The
+prototype's numerical machinery (#976's adapters, constrained Gaussian field, refinement, GX10 exchange) is not
+adopted.
+

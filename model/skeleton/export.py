@@ -26,10 +26,9 @@ def collection(name, parent=None):
     return c
 
 
-def carve(bone, kind, part=None):
+def carve(bone, kind):
     """The collection of what the finish of `bone` cuts as `kind` (rigid, moving, skins)."""
-    c = collection(f"Carve {bone} {kind}", collection(CARVE, collection("helpers")))
-    return collection(f"{bone} {kind} {part}", c) if part is not None else c
+    return collection(f"Carve {bone} {kind}", collection(CARVE, collection("helpers")))
 
 
 def _empty(c):
@@ -74,22 +73,9 @@ def swap(job, ratio=None):
             meshes[path].name = os.path.basename(path).removesuffix(".stl")
     frame = Matrix.Translation(job["frame"])
     corners = {path: _corners(me) for path, me in meshes.items()}
-    selected = next((b for b, w in job["worn"].items() if w == job.get("only")), job.get("only"))
     for bone, kinds in job["bones"].items():
-        if selected is not None and bone != selected:
-            continue
-        if "parts" in job:
-            group = bpy.data.collections[job["parts"][bone]["source"]]
-            dg = bpy.context.evaluated_depsgraph_get()
-            box = [
-                o.matrix_world @ Vector(c)
-                for o in group.all_objects
-                if o.type == "MESH"
-                for c in o.evaluated_get(dg).bound_box
-            ]
-        else:
-            o = bpy.data.objects[bone]
-            box = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        o = bpy.data.objects[bone]
+        box = [o.matrix_world @ Vector(c) for c in o.bound_box]
         lo = Vector([min(p[i] for p in box) for i in range(3)]) - Vector((2,) * 3)
         hi = Vector([max(p[i] for p in box) for i in range(3)]) + Vector((2,) * 3)
         for kind, places in kinds.items():
@@ -102,11 +88,7 @@ def swap(job, ratio=None):
                     x = bpy.data.objects.new(name, me)
                     x.matrix_world = m
                     x.display_type, x.hide_render = "WIRE", True
-                    # Pose groups are rasterized separately by the adopted
-                    # live Finish, then SDF-unioned. Avoid a multi-million-face
-                    # realized sweep as one MeshToSDF allocation.
-                    target = carve(bone, kind, name) if "parts" in job and kind == "moving" else c
-                    target.objects.link(x)
+                    c.objects.link(x)
     mech = collection(MECH)
     for name, path in job["files"].items():
         x = bpy.data.objects.new(name, meshes[path])
@@ -130,16 +112,6 @@ def swap(job, ratio=None):
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True
-    if "bone_parts" in bpy.context.scene and "parts" in job:
-        # Rebuild against the actual spatially retained pose groups. Blender
-        # 5.2 cannot SDF-union empty groups; new mechanics or a rewarp can change
-        # which groups reach a Bone. No retained pose is discarded here.
-        import adopt
-
-        for o in bpy.data.collections[FINISHED].objects:
-            stem = o.name.removeprefix("finished ")
-            bone = next((b for b, w in job["worn"].items() if w == stem), stem)
-            adopt.wire(o.modifiers["Finish"].node_group, bone, job["parts"][bone], stem != bone, job)
 
 
 def _corners(me):
@@ -184,11 +156,6 @@ def numbers(job):
         for key, value in job["numbers"].items():
             if key != "Round" or key in mod.node_group.interface.items_tree:  # Round: the skull's alone
                 getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
-    if "bone_parts" in bpy.context.scene:
-        import adopt
-
-        bpy.context.scene["bone_finish_numbers"] = json.dumps(job["numbers"])
-        adopt.refresh()  # quality changes also change the cutter's required voxel/filter support
 
 
 def _stl(path, me):
@@ -207,36 +174,16 @@ def _stl(path, me):
 
 def write(job):
     """Each finished bone's STL in job["out"], moved from the document's frame into the head's."""
-    outputs = list(bpy.data.collections[FINISHED].objects)
-    if "only" in job:
-        assert job["only"] in {o.name.removeprefix("finished ") for o in outputs}, "Unknown finished Bone"
-    for o in outputs:
-        for mod in o.modifiers:
-            mod.show_viewport = False
-    if "only" in job:
-        # A single-output worker needs the actual retained cutters, not the
-        # full-resolution rest display or unrelated STL data in its depsgraph.
-        # The authored source keeps its light Scene Mech; this worker is not saved.
-        _empty(collection(MECH))
-        bpy.data.orphans_purge(do_recursive=True)
+    for o in bpy.data.collections[FINISHED].objects:
+        o.modifiers["Finish"].show_viewport = True
+    dg = bpy.context.evaluated_depsgraph_get()
     back = Matrix.Translation(-Vector(job["frame"]))
-    for o in outputs:
-        stem = o.name.removeprefix("finished ")
-        if "only" in job and stem != job["only"]:
-            continue
-        for mod in o.modifiers:
-            mod.show_viewport = True
-        dg = bpy.context.evaluated_depsgraph_get()
+    for o in bpy.data.collections[FINISHED].objects:
         me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
-        errors = [w.message for w in o.modifiers["Finish"].node_warnings if w.type == "ERROR"]
-        assert not errors, f"{stem}: live Finish errors: {errors}"
-        assert len(me.polygons), f"{stem}: live Finish produced an empty mesh"
         me.transform(back @ o.matrix_world)
+        stem = o.name.removeprefix("finished ")
         _stl(os.path.join(job["out"], stem + ".stl"), me)
         print(f"export: {stem} {len(me.polygons)} faces", flush=True)
-        bpy.data.meshes.remove(me)
-        for mod in o.modifiers:
-            mod.show_viewport = False
 
 
 if __name__ == "__main__":
@@ -245,4 +192,5 @@ if __name__ == "__main__":
     numbers(job)
     write(job)
     print("export: done", flush=True)
-    print("review: done", flush=True)
+    if not bpy.app.background:  # run with its window open (Cansin watches local Blender runs)
+        bpy.ops.wm.quit_blender()

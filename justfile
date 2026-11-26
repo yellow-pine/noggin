@@ -226,9 +226,9 @@ render: venv ours trajectories
 pictures *what: venv ours trajectories
     BLENDER={{BLENDER}} {{HEAVY}} {{PY}} -m model.render.pictures site {{what}}
 
-# The public Skeleton Landmarks solved on GX10; Blender only exports/applies keys under its RSS ceiling/lock.
+# the Skeleton scene's Warp fitted again from its Basis and Landmarks (model/skeleton/fit.py, Blender's window open) and the scene saved; open it with open model/skeleton/skeleton.blend
 rewarp: venv
-    BLENDER={{BLENDER}} NOGGIN_GX10={{GX10}} {{PY}} -m model.skeleton.warp_job
+    BLENDER={{BLENDER}} {{PY}} -m model.skeleton.fit model/skeleton/skeleton.blend
 
 # the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
 review quality="production" before="": venv

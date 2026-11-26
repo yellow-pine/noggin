@@ -17,19 +17,10 @@ from model.test_envelopes import BOXES, solid
 TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
 
 
-# the atlas and axis ride the cervical carrier since #978 dropped the neck mount, but touch nothing yet: #874 seats them
-UNMOUNTED = pytest.mark.xfail(
-    strict=True, reason="the atlas and axis are not seated on the cervical carrier yet (#874)"
-)
-
-
 @pytest.mark.model
 @pytest.mark.parametrize(
     "doc",
-    [
-        pytest.param(d, marks=(pytest.mark.bones, UNMOUNTED)) if g.SKULL_SUB in g.STAGES[d] else d
-        for d in sorted(g.STAGES)
-    ],
+    [pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.STAGES[d] else d for d in sorted(g.STAGES)],
 )  # the skull: its bones
 def test_every_part_of_the_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the Mech assembled, nothing lying apart: every part of each document
