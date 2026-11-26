@@ -242,9 +242,9 @@ def test_the_standard_tilts_model_tables_use_its_actual_travel_midpoint():
         for row in macros.wiring().splitlines()[2:]
         if (cells := [c.strip() for c in row.strip("|").split("|")])[0] == "2 (neck)"
     }
-    assert rows["tilt"][4:] == ["19.3..125.3", "79.5"]  # 159° envelope; the head ±20° via the four-bar (#978)
+    assert rows["tilt"][4:] == ["32.1..124.1", "79.5"]  # 159° envelope; the head ±20° via the four-bar (#978)
     assert rows["pan"][4:] == ["34.5..124.5", "79.5"]
-    assert "| neck | tilt | 19.3..125.3 |" in macros.stage_guides()[1]["2"]
+    assert "| neck | tilt | 32.1..124.1 |" in macros.stage_guides()[1]["2"]
 
 
 def test_the_calibration_is_the_models_nominals_until_a_stage_1_is_calibrated():

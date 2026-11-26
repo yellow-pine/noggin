@@ -231,7 +231,7 @@ def test_a_bar_parallel_to_its_lever_meets_it_square_at_rest():
 
 def test_the_tilt_servo_holds_the_heads_weight_through_a_reduction_of_2_to_3_at_rest(report):
     """#978: no balance spring; a reduction four-bar between the moving case and the fixed carrier turns the head
-    about 2.5x slower than its servo, so the servo holds about 0.4 of the head's turn. A head of 300 g 40 mm in front of
+    2 to 3x slower than its servo, so the servo holds a third to a half of the head's turn. A head of 300 g 40 mm in front of
     the tilt axis turns itself face down with 300 g x 40 mm = 1.2 kgf.cm at rest: the servo holds 1.2 x the gain."""
     ahead = neck.report((300.0, (0.0, TILT_Y - 40.0, TILT_Z + 30.0)))["tilt"]
     assert 1 / 3 <= abs(ahead["gain"]) <= 1 / 2

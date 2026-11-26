@@ -77,13 +77,27 @@ def test_the_bearing_carries_the_head_without_loading_a_servo_spline():
     assert not bearing.isInside(cq.Vector(0, py, sum(nk.BEARING_Z) / 2))
 
 
+def _tilt_angle():
+    """#978: the bar's worst angle over the servo's whole sweep, against the carrier's arm or the crank, whichever is
+    less (the crank's tangent force over its sine is the bar's)."""
+    out = []
+    for s in nk._sweep("tilt"):
+        _, a, b = nk.TILT_LOOP(s)
+        bar, crank = np.subtract(b, a)[1:], np.subtract(a, nk.TILT_SHAFT)[1:]
+        on_crank = math.degrees(
+            math.asin(abs(crank[0] * bar[1] - crank[1] * bar[0]) / np.linalg.norm(crank) / np.linalg.norm(bar))
+        )
+        out.append(min(nk.transmission("tilt", s), on_crank))
+    return min(out)
+
+
 @pytest.mark.model
 def test_the_tilt_reaction_bar_holds_the_actual_standard_servo_at_stall():
     """The bent reaction bar keeps the existing SF2 gate at the standard motor's actual 5 V stall force."""
     from model.printed.test_gimbal import _slice
 
     solid, mat = _built("tilt reaction bar"), g.MATERIALS[g.PRINTED["tilt reaction bar"][1]]
-    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
+    angle = _tilt_angle()
     force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
     force /= math.sin(math.radians(angle))
     joints = [p[1:] for p in nk.TILT_BAR_PATH]
@@ -105,7 +119,7 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     shaft, pin = nk.TILT_SHAFT, nk.TILT_PIN
     radius = np.linalg.norm(nk.TILT_CRANK)
     tangent = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / radius
-    angle = min(nk.transmission("tilt", s) for s in np.linspace(-20, 20, 41))
+    angle = _tilt_angle()
     force = tangent / math.sin(math.radians(angle))
     for t in (0.25, 0.4, 0.6, 0.8):
         area, _, bend, half = _slice(solid, shaft[1:], pin[1:], t)

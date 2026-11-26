@@ -2,8 +2,8 @@
 head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
 A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
-low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 21 mm crank and the
-carrier's 46 mm arm turn the head about 2.2x slower than the servo, reversed, so the servo holds under its rating with
+low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 22 mm crank and the
+carrier's 46 mm arm turn the head about 2.1x slower than the servo, reversed, so the servo holds under its rating with
 no balance spring.
 The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
 inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
@@ -48,11 +48,11 @@ BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs 
 # model/printed/test_base.py)
 TILT_SHAFT = (-21.45, 123.8, -62.0)
 TILT_CASE = (0.0, 0.0, 1.0)
-# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) 21 mm down and a little
-# back, the fixed carrier's arm 46 mm down and back from the tilt axis, so the head turns about 0.46 of the servo's turn
-# over the whole range (inferred). The crank keeps the pin under the case's corner over its sweep; the bar runs inboard
+# #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) 22 mm down and back, the
+# fixed carrier's arm 46 mm down and back from the tilt axis, so the head turns at most 0.48 of the servo's turn over the
+# range, and the bar meets both the crank and the arm at 35 deg or more (inferred). The pin clears the case's corner; the bar runs inboard
 # of the jaw's sweep to an anchor behind the R rail, so it never crosses the rail.
-TILT_ARMS = ((21.0, -80.0), (46.0, -72.0))  # (mm, deg from +y toward +z): the crank's, the carrier's arm's
+TILT_ARMS = ((22.0, -76.0), (46.0, -72.0))  # (mm, deg from +y toward +z): the crank's, the carrier's arm's
 
 
 def _arm(i):

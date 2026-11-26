@@ -43,8 +43,8 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
    The lid drops onto its ledge inside the walls, flush with their top.
 2. **Nod plate** turning on the carrier's C0 trunnions. The standard tilt servo's case stands upright in its low rear
    cradle, behind the wire corridor; the supplied horn and printed adapter react through a reduction four-bar to the
-   carrier: a 12 mm crank and a 30 mm arm on the carrier, so the head turns about 0.4 of the servo's turn, reversed,
-   and the servo holds the head's weight with no spring. The standard pan servo hangs shaft down from the cradle's rear
+   carrier: a short crank on the horn and a longer arm on the carrier, so the head turns about half the servo's turn,
+   reversed, and the servo holds the head's weight with no spring. The standard pan servo hangs shaft down from the cradle's rear
    mast, behind the pan bearing; both cases ride inside the compact head (#978).
 3. **Head mount** on the C0 pan bearing on the nod plate's hollow spindle. The pan servo turns it
    through a parallelogram four-bar; the bearing carries the head's load, and the power leads pass its 8 mm bore. Pan

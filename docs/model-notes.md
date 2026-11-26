@@ -193,8 +193,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
   weighs, the flexing spans' bends), gated in model/test_report.py; every size is inferred. The head's centre of mass
   hangs in front of the tilt axis, so since #978 the standard tilt servo turns it through a reduction four-bar (a
-  12 mm crank on the moving case, a 30 mm arm on the fixed carrier, `neck.TILT_ARMS`): the head turns 0.4 of the
-  servo's turn at rest and less toward the ends, so the servo holds the head in its Skin and bare (`tilt.bare`) under
+  short crank on the moving case, a longer arm on the fixed carrier, `neck.TILT_ARMS`; the report's `tilt.gain`): the head
+  turns about half the servo's turn, so the servo holds the head in its Skin and bare (`tilt.bare`) under
   its rating with no balance spring. The MJCF hangs the bar on the crank's pin and closes it on the carrier's anchor,
   so the transmission gate reads the bar against the carrier's arm, the angle the moving case sees. The neck is a spine since #838: since #858 the neck
   mount's hollow post (20 mm) rises from the Torso's floor through its lid, the pan servo on it over the lid and the
