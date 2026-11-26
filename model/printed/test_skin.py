@@ -108,6 +108,20 @@ def test_barts_head_holds_mortys_whole_with_a_flat_crown():
     assert morty.intersect(crown.translate(cq.Vector(40, 0, 0))).Volume() < 1e-3
 
 
+def test_the_hair_is_the_head_over_his_model_sheets_hairline_and_behind_the_nape():
+    """#992: the hair's region is the sheet's hairline (model/skin.py outline, which the review's reference is cut by
+    too) swept across the head, its face front on the Shells' (FACE_Y), and all behind NAPE: 1 mm over the line is hair
+    and 1 mm under it face, at the middle and at either side, down to the nape."""
+    region = skin._hair(0.0).val()
+    line = sk.contour("hairline") + (sk.FACE_Y - sk.FACE_FRONT[0] * gm.SPACING, 0.0)
+    t = np.gradient(line, axis=0)
+    over = np.c_[-t[:, 1], t[:, 0]] / np.linalg.norm(t, axis=1)[:, None]  # forehead first: left of it is up and back
+    for (y, z), (dy, dz) in zip(line, over, strict=True):
+        for x in (-60.0, 0.0, 60.0):
+            assert region.isInside(cq.Vector(x, y + dy, z + dz))
+            assert region.isInside(cq.Vector(x, y - dy, z - dz)) == (y - dy > sk.NAPE)
+
+
 @pytest.mark.parametrize("side, inward", [("L", -1), ("R", 1)])
 def test_the_pupil_sits_in_its_seat_toward_the_other_eye(side, inward):
     """The pupil fills its jagged seat to PUPIL_FIT a side, which keys it, and the seat turns TOE_IN toward the other

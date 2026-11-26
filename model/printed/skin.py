@@ -232,9 +232,14 @@ LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.
 
 
 def _hair(grow, skin="morty"):
-    """The hair's region (model/skin.py HAIRLINE, NAPE), `grow` mm out of it; Cansin's less his temples."""
-    y, z, r = sk.HAIRLINE
-    out = cyl("x", (0, y, z), r + grow, (-200, 200)).union(box((-200, 200), (sk.NAPE - grow, 300), (-300, 300)))
+    """The hair's region (model/skin.py outline("hairline"), NAPE), `grow` mm out of it; Cansin's less his temples."""
+    # sampled every 5 mm: within 0.1 mm of the curve, with few enough planes for OCCT's booleans (#992)
+    side = (
+        cq.Workplane("YZ", origin=(-200, 0, 0))
+        .polyline([tuple(p) for p in sk.outline("hairline", sk.FACE_Y, 5.0)])
+        .close()
+    )
+    out = side.offset2D(grow, "intersection").extrude(400).union(box((-200, 200), (sk.NAPE - grow, 300), (-300, 300)))
     if skin == "cansin":
         (x, ty, tz), tr = TEMPLES
         for s in (-1, 1):
@@ -252,7 +257,6 @@ def _skull(t, skin="morty"):
     return out.intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
 
 
-FACE_Y = min(u - r for u, _, r in sk.SIDE[0])  # the face's front over the eyes
 NOSE = sk.grown(7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
 EAR = sk.grown(18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
 
@@ -278,7 +282,7 @@ def face(skin="morty"):
     Cansin's: his temples higher, a pocket over each eye for his brow."""
     out = _skull(0.0, skin).cut(_hair(0.1, skin))
     r, z = NOSE
-    out = out.union(ball(r, (0, FACE_Y - 4.0, z)).cut(box((-r, r), (FACE_Y + sk.WALL, 0), (2 * z, 0))))
+    out = out.union(ball(r, (0, sk.FACE_Y - 4.0, z)).cut(box((-r, r), (sk.FACE_Y + sk.WALL, 0), (2 * z, 0))))
     for s in (-1, 1):
         out = out.union(_ear(s).cut(_head(sk.WALL, skin)))
     y0 = sk.HEAD_Y[0]
@@ -333,8 +337,9 @@ def hair(skin="morty"):
     if skin == "cansin":
         face = _head(0.0).cut(_hair(-0.1, skin))  # the face's, under the hairline
         top = box((-200, 200), (-200, 200), (-200, sk.HEAD_Z[1] + sk.HAIR))
-        for x, y, z, r in TUFTS:
-            out = out.union(ball(r, (x, y, z)).cut(face).cut(_head(sk.WALL)).intersect(top))
+        # the tufts as one first: unioned one by one, OCCT failed on the second over the hairline's many planes (#992)
+        tufts = functools.reduce(lambda u, b: u.union(b), (ball(r, (x, y, z)) for x, y, z, r in TUFTS))
+        out = out.union(tufts.cut(face).cut(_head(sk.WALL)).intersect(top))
     for seat in (s for s in sk.SEATS if s.shell == f"{skin} hair" and s.carrier == "gimbal frame"):
         x, y, z = seat.at
         web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
