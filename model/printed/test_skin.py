@@ -249,13 +249,16 @@ def _known(shell, part):
     return rest == "hair" and part in KNOWN_HAIR and skin_shape in HAIR_SKINS.get(part, g.SKINS)
 
 
-# the poses every Skin's mouth cover meets the Torso box's top and lid in: the head nodded down, the jaw open (#1020 clears them)
+# the poses every Skin's mouth cover meets the chest in (the Torso box's top and lid, its shirt's front): the head nodded
+# down, the jaw open (#1020 clears them)
 KNOWN_CHIN = [_jaw_open(pan, nk.RANGES["tilt"][1]) for pan in PANS]
 
 
 def _chin(shell, part, pose):
     """Whether (Shell, part) at `pose` is a KNOWN_CHIN meeting, placed names."""
-    return pose in KNOWN_CHIN and shell.endswith(" mouth cover:1") and part in ("torso:1", "torso lid:1")
+    skin_shape, _, rest = shell.partition(" ")
+    chest = ("torso:1", "torso lid:1", f"{skin_shape} shirt front:1")
+    return pose in KNOWN_CHIN and rest == "mouth cover:1" and part in chest
 
 
 @pytest.mark.model
@@ -273,7 +276,10 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
 @pytest.mark.parametrize("pose", KNOWN_CHIN)
 def test_the_known_chin_meetings_are_still_there(pose, doc):
     """When #1020 clears a KNOWN_CHIN pose for every Skin, drop it."""
-    assert any(_chin(*n[:2], pose) for n in _near(doc, pose, only={"torso", "torso lid"})), pose
+    assert any(
+        _chin(*n[:2], pose)
+        for n in _near(doc, pose, only={"torso", "torso lid", *(f"{s} shirt front" for s in g.SKINS)})
+    ), pose
 
 
 @pytest.mark.model
