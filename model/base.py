@@ -59,7 +59,7 @@ POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (44.0, 48.0), (81.0, 87.0)  # #978: outside the lower standard case's pan sweep
 TRAY_X = (-30.5, 30.5)  # the plate under the Cores; at the back behind the bail it widens to the legs
 CORES_AT = ((-16.0, 16.0), 50.0)
-HUB_X, HUB_Y, HUB_Z = (-46.2, -25.8), 85.0, gimbal.PLATE_Z[1] + 4.0  # #978: leave C0's retained bearing accessible
+HUB_X, HUB_Y, HUB_Z = (-41.2, -20.8), 78.5, gimbal.PLATE_Z[1] + 4.0  # #978, #1014: off C0's bearing, port at the skull
 HUB_LENGTH = 31.6  # the hub's, port to back: model/envelopes.py hub's (model/test_base.py)
 CAP_Y = 71.0
 # each place in the row: (the parts on it, as (name, Envelope); the Envelope's x extent, its back (the -y face) and its
