@@ -131,6 +131,35 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     )  # the pin boss ends at the bar
 
 
+@pytest.mark.model
+def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
+    """#968: SF 2 (beams.MIN_SF) in PETG across its layers along the carrier's L chain, hinge to chin, the jaw blocked
+    anywhere along it: every section bends under at most the bar's stall force times its lever about the hinge, in the
+    jaw's plane. On the Bone style, which the grown mechanical part takes in (bone.grown)."""
+    solid, mat = _built("jaw"), g.MATERIALS[g.PRINTED["jaw"][1]]
+    _, horn_pin, pin = nk.LINKAGES["jaw"](0)
+    hinge = np.asarray(nk.HEAD_AXES["jaw"][0])
+    force = sim.limits("jaw horn")["stall_kgf_cm"] * beams.G * 10 / nk.CRANK
+    force /= math.sin(math.radians(min(nk.transmission("jaw", s) for s in nk._sweep("jaw"))))
+    bar = np.subtract(pin, horn_pin) / math.dist(pin, horn_pin)
+    (_, ry, rz), (_, fy, fz) = np.subtract(pin, hinge), bar
+    moment = force * abs(ry * fz - rz * fy)
+    chain = [np.subtract(p, (2.5, 0, 0)) for p in nk.MANDIBLE_BORDER["L"]] + [np.asarray(nk.MENTON)]
+    chain = [p + (0, 0, nk.JAW_CHAIN_UP if i >= 4 else 0) for i, p in enumerate(chain)]
+    for a, b in zip(chain, chain[1:]):
+        along = (b - a) / np.linalg.norm(b - a)
+        u = np.subtract(g.X, along * along[0])
+        u /= np.linalg.norm(u)  # the bending axis, x in the section's plane
+        for t in (0.3, 0.5, 0.7):
+            cut = _section(solid, tuple(a + (b - a) * t), tuple(along), tuple(u), (14, 14))
+            area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
+            inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
+            fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
+            stress = force / area + moment * fibre / inertia
+            print(tuple(np.round(a, 1)), t, round(area, 1), round(mat["tensile_mpa"]["z"] / stress, 2))
+            assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (tuple(a), t)
+
+
 @pytest.fixture(scope="module")
 def saddle():
     return _built("nod plate")

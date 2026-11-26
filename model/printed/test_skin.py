@@ -1,8 +1,10 @@
 """Seam: the Skins' Shells (model/printed/skin.py: Morty's, Cansin's) and the Seats cut into what carries them, as
 model/stages.py places them: each a valid solid, the pupils keyed in their caps, and every Shell clear of every part but
-what carries it, at rest and with each servo at either end, in each Skin."""
+what carries it, at rest, with each servo at either end and with the jaw open at each corner of the head's pan and
+tilt, in each Skin."""
 
 import functools
+import itertools
 import math
 
 import cadquery as cq
@@ -13,6 +15,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
+from model import neck as nk
 from model import skin as sk
 from model import stages
 from model.printed import PARTS, gimbal, skin
@@ -184,6 +187,14 @@ def _poses(doc=DOC):
     out = {"rest": {n: p.matrix for n, p in stage.parts.items()}}
     for horn, h in stage.horns.items():
         out |= {f"{horn} {deg:.0f}": stages.pose(stage, horn, deg).parts for deg in h.limits}
+    # #968: the jaw open with the head at each corner of its pan and tilt, each drive's motion composed on the one it
+    # rides (the jaw on the pan on the tilt)
+    rest, jaw = out["rest"], stages.pose(stage, "jaw horn", nk.servo_for("jaw", nk.RANGES["jaw"][1])).parts
+    for pan, tilt in itertools.product(nk.RANGES["pan"], nk.RANGES["tilt"]):
+        t, p = (stages.pose(stage, f"{d} horn", nk.servo_for(d, a)).parts for d, a in (("tilt", tilt), ("pan", pan)))
+        out[f"pan {pan:g} tilt {tilt:g} jaw open"] = {
+            n: t[n] @ np.linalg.inv(m) @ p[n] @ np.linalg.inv(m) @ jaw[n] for n, m in rest.items()
+        }
     return out
 
 
