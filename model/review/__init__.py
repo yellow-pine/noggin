@@ -215,7 +215,17 @@ def _morty(stage):
         "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
+        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the contours'
+        "contours": contours(),
+        "eyes": gm.EYE,  # in the head's frame: each eye's lids part at its height
+        "face": [c * gm.SPACING for c in skin.FACE_FRONT],  # the sheet's face front, to meet the sculpt's
     }
+
+
+def contours():
+    """{contour: (its view, the region it bounds)}, skin.outline's: what the reference is cut along (#992), as the
+    Shells' hair is."""
+    return {n: (c["view"], skin.outline(n).tolist()) for n, c in skin.CONTOURS.items()}
 
 
 def job(quality="production", before=None):
