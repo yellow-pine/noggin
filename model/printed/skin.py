@@ -12,6 +12,11 @@ import math
 
 import cadquery as cq
 import numpy as np
+from OCP.Approx import Approx_ParametrizationType
+from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+from OCP.GeomAPI import GeomAPI_PointsToBSplineSurface
+from OCP.gp import gp_Pnt
+from OCP.TColgp import TColgp_Array2OfPnt
 from scipy.spatial import ConvexHull
 
 from model import base
@@ -20,6 +25,7 @@ from model import gimbal as gm
 from model import neck as nk
 from model import skin as sk
 from model.envelopes import box
+from model.printed.gimbal import _at as gimbal_at
 from model.printed.gimbal import ball, cyl
 
 
@@ -27,11 +33,12 @@ def _at(seat):
     """The Seat's frame in its carrier's: z out of the carrier's face along the normal, origin on that face."""
     n = seat.normal
     ref = (1, 0, 0) if abs(n[0]) < 0.9 else (0, 1, 0)
-    return cq.Matrix([list(map(float, row)) for row in g.align_rows(seat.at, ref, n)[:3]])
+    return g.align_rows(seat.at, ref, n)
 
 
 def _placed(shape, seat):
-    return cq.Workplane().add(shape.val().transformGeometry(_at(seat)))
+    # moved rigidly: transformGeometry's B-spline copies of the balls never finished a union with the head's surface
+    return cq.Workplane().add(shape.val().moved(gimbal_at(_at(seat))))
 
 
 def _groove(deg):
@@ -151,60 +158,76 @@ def pupil(side):
     return _pupil_prism(side, gm.PUPIL_FIT).intersect(ball(gm.CAP_R))
 
 
-def _hull(circles):
-    """The outline of the convex hull of (u, v, r) circles, counter-clockwise, as lines and arcs: [(circle, in, out)],
-    each circle on it with the angles its tangents meet it at."""
-    t = np.linspace(0, 2 * np.pi, 720, endpoint=False)
-    pts = np.concatenate([np.c_[u + r * np.cos(t), v + r * np.sin(t)] for u, v, r in circles])
-    seq = [int(i) // len(t) for i in ConvexHull(pts).vertices]
-    order = [c for k, c in enumerate(seq) if c != seq[k - 1]]
-    normals = []  # each tangent's outward normal, from one circle to the next
-    for a, b in zip(order, order[1:] + order[:1]):
-        (au, av, ar), (bu, bv, br) = circles[a], circles[b]
-        normals.append(math.atan2(bv - av, bu - au) - math.acos((ar - br) / math.dist((au, av), (bu, bv))))
-    return [(circles[c], normals[k - 1], normals[k]) for k, c in enumerate(order)]
-
-
-def _outline(plane, circles):
-    """The hull of the circles (_hull) on `plane` as a face."""
-    at = lambda c, a: (c[0] + c[2] * math.cos(a), c[1] + c[2] * math.sin(a))  # noqa: E731
-    pieces = _hull(circles)
-    w = cq.Workplane(plane).moveTo(*at(*pieces[0][:2]))
-    for k, (c, a_in, a_out) in enumerate(pieces):
-        a_out += 2 * math.pi * (a_out <= a_in)
-        w = w.threePointArc(at(c, (a_in + a_out) / 2), at(c, a_out))
-        if k + 1 < len(pieces):
-            w = w.lineTo(*at(*pieces[k + 1][:2]))
-    return cq.Face.makeFromWires(w.close().wires().val())
-
-
-def _profile(plane, hulls, t, rounded=0.0):
-    """The hulls' outlines on `plane` as one, its inside corners rounded `rounded`, `t` in from its outside, through
-    everything along the plane's normal."""
-    face = _outline(plane, hulls[0])
-    for h in hulls[1:]:
-        face = face.fuse(_outline(plane, h)).clean().Faces()[0]
-    wire = face.outerWire()
-    if rounded:
-        wire = wire.offset2D(rounded, "arc")[0].offset2D(-rounded, "arc")[0]
-    wire = wire.offset2D(-t, "arc")[0] if t else wire
-    n = cq.Plane.named(plane).zDir
-    return cq.Workplane().add(cq.Solid.extrudeLinear(cq.Face.makeFromWires(wire), n * 400).translate(n * -200))
-
-
 def _head(t, skin="morty"):
-    """The Skin's head (model/skin.py HEADS, else Morty's) `t` in from its outside (out of it, negative): arcs and
-    lines swept straight, planes and cylinders alone, since a B-spline surface reads back invalid from Linux's STEP
-    (#833). Each call its own copy of the one built: a Shell built again on Linux's OCCT, over shapes an earlier build's
-    booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
+    """The Skin's head (model/skin.py HEADS, else Morty's) `t` in from its outside (out of it, negative): one smooth
+    surface through Morty's rings (model/skin.py head_grid) closed by a flat floor under the head's own (#850), and on
+    Bart's a prism round his crown (_crown). Each call its own copy of the one built: a Shell built again on Linux's OCCT,
+    over shapes an earlier build's booleans had used, came out broken (four solids, a 200 mm clip box left in; #838)."""
     return cq.Workplane().add(_built_head(t, skin if skin in sk.HEADS else "morty").copy())
+
+
+def _wall(t, skin="morty"):
+    """The head's wall, from `t` in from its outside to WALL in: built between its two surfaces, since OCCT cut one
+    head out of the other broken (two solids, a sliver left)."""
+    return cq.Workplane().add(_built_wall(t, skin if skin in sk.HEADS else "morty").copy())
+
+
+def _wire(ring):
+    return cq.Wire.assembleEdges([cq.Edge.makeSpline([cq.Vector(*p) for p in ring], periodic=True)])
+
+
+@functools.cache
+def _side(t):
+    """The head's surface `t` in: one periodic cubic through every ring's points (head_grid), bottom up to the apex,
+    its lowest ring flat at the outside's, so a plane closes it (a loft through the rings cut by a plane came out
+    broken)."""
+    rings = sk.head_grid(t)[::-1]
+    rings[0, :, 2] = sk.RINGS[-1, 0]
+    pts = TColgp_Array2OfPnt(1, rings.shape[1], 1, len(rings) + 1)
+    for j, ring in enumerate(rings):
+        for i, p in enumerate(ring):
+            pts.SetValue(i + 1, j + 1, gp_Pnt(*map(float, p)))
+    for i in range(rings.shape[1]):
+        pts.SetValue(i + 1, len(rings) + 1, gp_Pnt(0.0, sk.APEX[0], sk.APEX[1] - t))
+    fit = GeomAPI_PointsToBSplineSurface()
+    fit.Interpolate(pts, Approx_ParametrizationType.Approx_Centripetal, True)
+    return cq.Face(BRepBuilderAPI_MakeFace(fit.Surface(), 1e-6).Face())
+
+
+def _rim(face):
+    return cq.Wire.assembleEdges([min(face.Edges(), key=lambda e: e.Center().z)])
+
+
+BART_UP = 0.1  # Bart's flat crown over Morty's apex: touching it, OCCT's fuse failed
+
+
+def _crown(t):
+    """Bart's crown, `t` in: a prism round every ring from 5 mm over the widest (WIDEST) up to BART_UP over the apex,
+    0.5 mm out, so it holds Morty's crown."""
+    rings = sk.head_grid(t)[: sk.WIDEST + 1, :, :2].reshape(-1, 2)
+    hull = rings[ConvexHull(rings).vertices]
+    out = hull - hull.mean(axis=0)
+    hull = hull + 0.5 * out / np.linalg.norm(out, axis=1)[:, None]
+    z = sk.RINGS[sk.WIDEST, 0] + 5.0
+    face = cq.Face.makeFromWires(_wire(np.c_[hull, np.full(len(hull), z)]))
+    return cq.Workplane().add(cq.Solid.extrudeLinear(face, cq.Vector(0, 0, sk.HEAD_Z[1] + BART_UP - t - z)))
 
 
 @functools.cache  # every Shell cuts and clips by the same few
 def _built_head(t, skin):
-    front, side, top = sk.HEADS[skin]
-    side = _profile("YZ", side, t, sk.SIDE_ROUND)
-    return _profile("XZ", [front], t).intersect(side).intersect(_profile("XY", [top], t)).val()
+    side = _side(t)
+    head = cq.Workplane().add(cq.Solid.makeSolid(cq.Shell.makeShell([side, cq.Face.makeFromWires(_rim(side))])).fix())
+    return (head.union(_crown(t)) if skin == "bart" else head).val()
+
+
+@functools.cache
+def _built_wall(t, skin):
+    outer, inner = _side(t), _side(sk.WALL)
+    floor = cq.Face.makeFromWires(_rim(outer), [_rim(inner)])
+    wall = cq.Workplane().add(cq.Solid.makeSolid(cq.Shell.makeShell([outer, inner, floor])).fix())
+    if skin == "bart":  # Morty's wall less the crown's inside, and the crown's wall outside Morty's inside
+        wall = wall.cut(_crown(sk.WALL)).union(_crown(t).cut(_crown(sk.WALL)).cut(_head(sk.WALL)))
+    return wall.val()
 
 
 def _eyes():
@@ -253,7 +276,7 @@ def _skull(t, skin="morty"):
     x, up = sk.NECK
     neck = box((-x, x), (-200, 300), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
     back = box((-200, 200), (sk.BACK_OPEN[0], 300), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
-    out = _head(t, skin).cut(_head(sk.WALL, skin)).cut(_eyes()).cut(neck).cut(back)
+    out = _wall(t, skin).cut(_eyes()).cut(neck).cut(back)
     return out.intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
 
 
@@ -264,14 +287,15 @@ EAR = sk.grown(18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dom
 def _ear(s):
     """The `s` (1 L, -1 R) ear: a dome out of the cheek, its hollow (the concha) open forward, so it reads as his C."""
     y, z, r, out = EAR
-    x = sk.HEAD_X + out - r
+    cheek = sk.head_x(y, z)
+    x = cheek + out - r
 
     def on_x(
         radius, at
     ):  # a ball its poles on x, its seam off the cheek's cut: OCCT cuts a ball across its seam to nothing
         return cq.Workplane().add(cq.Solid.makeSphere(radius, cq.Vector(*at), cq.Vector(1, 0, 0), -90, 90))
 
-    ear = on_x(r, (x, y, z)).cut(box((0, sk.HEAD_X - 6.0), (-200, 200), (-200, 200)))
+    ear = on_x(r, (x, y, z)).cut(box((0, cheek - 6.0), (-200, 200), (-200, 200)))
     ear = ear.cut(on_x(r - 4.0, (x + 6.0, y - 4.0, z)))
     return ear if s > 0 else ear.mirror("YZ")
 
@@ -282,20 +306,20 @@ def face(skin="morty"):
     Cansin's: his temples higher, a pocket over each eye for his brow."""
     out = _skull(0.0, skin).cut(_hair(0.1, skin))
     r, z = NOSE
-    out = out.union(ball(r, (0, sk.FACE_Y - 4.0, z)).cut(box((-r, r), (sk.FACE_Y + sk.WALL, 0), (2 * z, 0))))
+    front = sk.head_front(0.0, z)
+    out = out.union(ball(r, (0, front - 4.0, z)).cut(box((-r, r), (front + sk.WALL, 0), (2 * z, 0))))
     for s in (-1, 1):
         out = out.union(_ear(s).cut(_head(sk.WALL, skin)))
     y0 = sk.HEAD_Y[0]
-    out = out.cut(
-        box((-24 * sk.GROW, 24 * sk.GROW), (y0 - 11, y0 + 9 * sk.GROW), (sk.HEAD_Z[0] - 1, sk.HEAD_Z[0] + 6 * sk.GROW))
-    )
+    out = out.cut(_mouth())
     for seat in (s for s in sk.SEATS if s.carrier == f"{skin} face"):  # each a pad on a web from the forehead
         x, y, z = seat.at
-        out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(0.0, skin)))
+        out = out.union(box((x - 3, x + 3), (y0, y), (z - seat.pad, z)).intersect(_head(sk.WALL / 2, skin)))
     if skin == "cansin":
         for s in "LR":
             out = out.cut(_brow(s, gm.PUPIL_FIT, BROW_SUNK + gm.PUPIL_FIT))
-    return _finish(f"{skin} face", out, _head(0.0, skin))
+    # clipped mid-wall: a boss ending on the face's own outside, OCCT's union of the two never finished
+    return _finish(f"{skin} face", out, _head(sk.WALL / 2, skin))
 
 
 # Cansin's tufts on top (#813): balls (x, y, z, r) over the hairline's front, the head's top 1.5 mm proud at most
@@ -328,7 +352,7 @@ def _spikes():
 
 def hair(skin="morty"):
     """The hair (hair): the head's shell over the hairline and behind the nape, HAIR proud of the face; down onto the
-    gimbal frame plate's back (#838), each Seat's boss on a web from its back wall, and onto the face's temples.
+    cranium tray's back corners and onto the face over the eyes, each Seat's boss straight up into it.
     Cansin's: short, his temples higher, tufted on top (TUFTS). Bart's (#807): his crown, flush with his face, its
     spikes on."""
     out = _skull(0.0 if skin == "bart" else -sk.HAIR, skin).intersect(_hair(-0.1, skin))
@@ -340,25 +364,29 @@ def hair(skin="morty"):
         # the tufts as one first: unioned one by one, OCCT failed on the second over the hairline's many planes (#992)
         tufts = functools.reduce(lambda u, b: u.union(b), (ball(r, (x, y, z)) for x, y, z, r in TUFTS))
         out = out.union(tufts.cut(face).cut(_head(sk.WALL)).intersect(top))
-    for seat in (s for s in sk.SEATS if s.shell == f"{skin} hair" and s.carrier == "gimbal frame"):
-        x, y, z = seat.at
-        web = box((x - sk.PAD_R, x + sk.PAD_R), (y, sk.HEAD_Y[1] - 1.0), (z + sk.GAP + 1.0, z + sk.GAP + seat.boss))
-        out = out.union(web.intersect(_head(0.0, skin)))
     return _finish(f"{skin} hair", out, _head(0.0, skin))
 
 
+# The mouth (#850): the face open over the chin within MOUTH's half-width and from its front back to MOUTH's y, from
+# the floor up over the jaw's Seat, where the mouth cover is the head's shell; GAP_MM round it
+MOUTH = (24.0 * sk.GROW, sk.HEAD_Y[0] + 25.0, nk.JAW_ARM_Z[1] + sk.GAP + sk.COVER + 1.0)
+GAP_MM = 0.5
+
+
+def _mouth(gap=0.0):
+    x, y, z = MOUTH
+    return box((-x + gap, x - gap), (sk.HEAD_Y[0] - 11.0, y - gap), (sk.HEAD_Z[0] - 1.0, z - gap))
+
+
 def mouth_cover(skin="morty"):
-    """The mouth cover (face), the lower lip and chin: a plate on the jaw's Seat, a wall down in front of the chin
-    inside the face, and the chin under the jaw in the face's mouth opening, rounded as the head is, which the jaw
-    swings down; up off its Seat once the face is off. Cansin's: his teeth's pocket in the chin's top front."""
+    """The mouth cover (face), the lower lip and chin: the head's shell in the face's mouth opening, GAP_MM inside it,
+    and a plate on from it over the jaw's Seat, which the jaw swings down; up off its Seat once the face is off.
+    Cansin's: his teeth's pocket in the chin's top front."""
     (seat,) = (s for s in sk.SEATS if s.shell == f"{skin} mouth cover")
     _, y, z = seat.at
-    bottom, inner = sk.HEAD_Z[0], sk.MUZZLE_Y + sk.WALL + 2.6  # clear of the muzzle's curve over the Seat (#901)
-    plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (inner, y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
-    w = 22.0 * nk.JAW_K  # within the jaw's chin
-    wall = box((-w, w), (inner, inner + sk.COVER), (bottom, z + sk.GAP + sk.COVER))
-    chin = box((-w, w), (sk.MUZZLE_Y, nk.CHIN_Y - 1.0), (bottom, nk.JAW_ARM_Z[0] - 0.5)).intersect(_head(0.0))
-    out = plate.union(wall).union(chin)
+    plate = box((-sk.PAD_R - 2, sk.PAD_R + 2), (sk.HEAD_Y[0], y + sk.PAD_R), (z + sk.GAP, z + sk.GAP + sk.COVER))
+    chin = _wall(0.0).intersect(_mouth(GAP_MM))
+    out = plate.intersect(_head(0.0)).union(chin).intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
     return _finish(f"{skin} mouth cover", out.cut(_teeth(gm.PUPIL_FIT)) if skin == "cansin" else out)
 
 
@@ -448,7 +476,7 @@ def brow(side):
 def _teeth(grow=0.0):
     """Cansin's teeth, `grow` mm larger round: the chin's top front band (TEETH), flush with the head's outline."""
     (x0, x1), (z0, z1), deep = TEETH
-    y0 = sk.MUZZLE_Y
+    y0 = sk.head_front(0.0, (z0 + z1) / 2)
     return box((x0 - grow, x1 + grow), (y0 - 1.0, y0 + deep + grow), (z0 - grow, z1 + grow)).intersect(_head(0.0))
 
 
@@ -457,7 +485,8 @@ def teeth():
     tooth; glued in its pocket in the mouth cover, which the jaw swings down."""
     out, (x0, x1) = _teeth(), TEETH[0]
     for x in np.arange(x0 + TOOTH, x1 - 1.0, TOOTH):
-        out = out.cut(box((x - 0.4, x + 0.4), (sk.MUZZLE_Y - 2.0, sk.MUZZLE_Y + 0.6), (-200, 200)))
+        y0 = sk.head_front(0.0, sum(TEETH[1]) / 2)
+        out = out.cut(box((x - 0.4, x + 0.4), (y0 - 2.0, y0 + 0.6), (-200, 200)))
     return out
 
 

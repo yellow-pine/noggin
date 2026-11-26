@@ -49,30 +49,39 @@ def test_a_head_shell_built_again_is_the_same(skin_shape, heads):
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
-# W, D, H: the head Cansin set (#838), grown with the eyes (#901), the ears outside its width (#844)
-HEAD_LIMIT = sk.grown(140.0, 140.0, 150.0)
+def test_mortys_head_is_one_smooth_surface_round_from_every_angle():
+    """#850: the head every Shell is cut from has no crease where outlines meet, as the old head's three did (Cansin:
+    "a soft box"): one curved face through his rings and their apex, closed by a flat floor under the head's own."""
+    faces = skin._head(0.0).val().Faces()
+    assert sorted(f.geomType() for f in faces) == ["BSPLINE", "PLANE"]
+    floor = next(f for f in faces if f.geomType() == "PLANE")
+    assert floor.BoundingBox().zmax < sk.HEAD_Z[0]
 
 
 @pytest.mark.parametrize("skin_shape", g.SKINS)
-def test_each_head_fits_the_head_limit_but_for_its_ears(skin_shape, heads):
-    """Its face, hair and mouth cover at rest fit 140 W x 140 D x 150 H mm grown x1.5 (#901), Cansin's tufts too (#813); only the ears
-    stand out of its sides, and Bart's spikes out of its top (#807)."""
+def test_each_head_stands_on_mortys_rings_but_for_its_ears_and_nose(skin_shape, heads):
+    """#850: its face, hair and mouth cover at rest stand within the box of the rings they are drawn round
+    (model/head.json), HAIR proud at most (Bart's crown 0.6 mm round them); only the ears stand out of its sides, the
+    nose out of its front and Bart's spikes out of his crown (#807)."""
     head = dict(heads[skin_shape])
     if skin_shape == "bart":
-        top = sk.HEAD_Z[1] + 0.01
+        top = sk.HEAD_Z[1] + skin.BART_UP + 0.01
         above = gimbal.cyl("z", (0, 0, 0), 200, (top, top + 100))
         spikes = cq.Workplane().add(head["hair"]).intersect(above).val()
         assert len(spikes.Solids()) == 9  # his nine, on the flat crown
         assert spikes.BoundingBox().zmax == pytest.approx(sk.HEAD_Z[1] + skin.SPIKE[1], abs=0.01)
         head["hair"] = cq.Workplane().add(head["hair"]).cut(above).val()
-    head = list(head.values())
-    lo = [min(getattr(h.BoundingBox(), f"{a}min") for h in head) for a in "xyz"]
-    hi = [max(getattr(h.BoundingBox(), f"{a}max") for h in head) for a in "xyz"]
-    _, depth, height = np.subtract(hi, lo)
-    assert depth <= HEAD_LIMIT[1] and height <= HEAD_LIMIT[2]
     y, z, r, _ = skin.EAR
-    earless = cq.Workplane().add(head).cut(gimbal.cyl("x", (0, y, z), r + 0.1, (-300, 300))).val().BoundingBox()
-    assert earless.xlen <= HEAD_LIMIT[0] + 1e-3 < max(h.BoundingBox().xlen for h in head)
+    nose_r, nose_z = skin.NOSE
+    features = gimbal.cyl("x", (0, y, z), r + 0.1, (-300, 300)).union(
+        gimbal.cyl("z", (0, sk.head_front(0.0, nose_z), 0), nose_r + 5.0, (nose_z - nose_r - 1, nose_z + nose_r + 1))
+    )
+    bare = [cq.Workplane().add(h).cut(features).val().BoundingBox() for h in head.values()]
+    over = sk.HAIR + 0.6
+    assert min(b.xmin for b in bare) >= -sk.HEAD_X - over and max(b.xmax for b in bare) <= sk.HEAD_X + over
+    assert min(b.ymin for b in bare) >= sk.HEAD_Y[0] - over and max(b.ymax for b in bare) <= sk.HEAD_Y[1] + over
+    assert min(b.zmin for b in bare) >= sk.HEAD_Z[0] - 1e-3 and max(b.zmax for b in bare) <= sk.HEAD_Z[1] + over
+    assert max(h.BoundingBox().xmax for h in head.values()) > sk.HEAD_X + over  # the ears
 
 
 @pytest.mark.parametrize("skin_shape", g.SKINS)
@@ -96,11 +105,11 @@ def test_the_glued_shells_fill_their_pockets_without_overlapping(glued):
 
 def test_barts_head_holds_mortys_whole_with_a_flat_crown():
     """#807: Bart's head is Morty's with a flat crown in the same box, so whatever clears Morty's Shells inside clears
-    Bart's; his crown is level over the cranium where Morty's is round."""
+    Bart's; his crown is level over the cranium where Morty's is round (#850: up to his apex)."""
     morty, bart = (skin._head(0.0, k).val() for k in ("morty", "bart"))
     assert morty.cut(bart).Volume() < 1e-3
     corners = [[getattr(b.BoundingBox(), f"{a}{e}") for a in "xyz" for e in ("min", "max")] for b in (morty, bart)]
-    assert np.allclose(*corners, atol=1e-3)  # the same box
+    assert np.allclose(*corners, atol=0.6)  # the same box: his crown 0.5 mm round Morty's rings, BART_UP over the apex
     crown = gimbal.cyl("z", (0, 30, 0), 1.0, (sk.HEAD_Z[1] - 0.5, sk.HEAD_Z[1] - 0.1)).val()
     for x in (-40.0, 0.0, 40.0):  # level across, where Morty's falls away from his middle
         at = crown.translate(cq.Vector(x, 0, 0))

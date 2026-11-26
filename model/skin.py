@@ -74,12 +74,20 @@ def _lid_seats(skin, side, polarity):
     return out
 
 
-# Morty's head (#665, #844: his model sheet's round head), in the head's frame (model/neck.py): the face comes off
-# forward, the hair up. The head is what lies inside three outlines, each the hull of (u, v, r) circles: from the front
-# (x, z) a round cranium over the cheeks; from the side (y, z) the face
-# flat over the eyes, the cranium round behind it, and the muzzle over the jaw and the head mount (two hulls, the corner
-# between them rounded SIDE_ROUND); from above (x, y), square to the mouth servo's corners. Every size is inferred.
-# The head grows with the eyes (#901: x1.5 about their midpoint, as the eye gimbal does round Morty's own eyes).
+# Morty's head (#665; #850: one smooth shell, round from every angle), in the head's frame (model/neck.py): the face
+# comes off forward, the hair up. It is lofted through RINGS (model/head.json): each a height z, a centre's y and its
+# radius at each of THETA's angles, from forward (-y) round the +x side to the back, the -x side its mirror, closed at
+# the top in APEX. They were
+# measured off the private Morty reference at its fixed scale (his eye domes, which our caps stand in for, and his ears
+# left out, smoothed) and pushed out where the mechanism needs a wall and its clearance (the gimbal frame's front corners
+# 15 mm at most, the jaw's chin 10 mm: docs/face-design.md).
+with open(os.path.join(os.path.dirname(__file__), "head.json")) as _f:
+    _HEAD = json.load(_f)
+THETA = np.radians(_HEAD["theta"])
+RINGS = np.array(_HEAD["rings"])  # top down, under APEX
+APEX = tuple(_HEAD["apex"])  # (y, z) on the midline
+# The Skins' other features (ears, nose, brows, tufts, spikes) keep their sizes as first drawn round the eyes (#665),
+# grown with them (#901: x1.5 about their midpoint, as the eye gimbal does round Morty's own eyes)
 GROW = gm.K
 
 
@@ -88,38 +96,58 @@ def grown(*v):
     return tuple(c * GROW for c in v)
 
 
-FRONT = tuple(
-    grown(*c)
-    for c in ((0.0, 0.0, 68.0), (-48.5, -30.0, 20.0), (48.5, -30.0, 20.0), (-48.5, -58.0, 20.0), (48.5, -58.0, 20.0))
-)
-SIDE = (
-    tuple(grown(*c) for c in ((1.0, 25.7, 25.0), (-4.0, -12.0, 20.0), (30.0, 10.0, 58.0), (68.0, -60.0, 20.0))),
-    tuple(grown(*c) for c in ((-29.0, -50.0, 20.0), (-42.0, -73.0, 7.0), (40.0, -60.0, 20.0))),
-)
-SIDE_ROUND = 25.0 * GROW
-TOP = tuple(grown(*c) for c in ((-43.5, -24.0, 25.0), (43.5, -24.0, 25.0), (-46.5, 66.0, 22.0), (46.5, 66.0, 22.0)))
-# Bart's head (#807): Morty's with a flat crown, from the front square at its top corners and from the side level over
-# the cranium, so it holds all of Morty's in the same box (whatever clears his Shells clears Bart's); his spikes stand
-# on the crown (model/printed/skin.py SPIKE). Every other Skin's head is Morty's
-HEADS = {
-    "morty": (FRONT, SIDE, TOP),
-    "bart": (
-        (grown(-48.5, 48.0, 20.0), grown(48.5, 48.0, 20.0), *FRONT[1:]),
-        ((grown(5.0, 48.0, 20.0), grown(68.0, 48.0, 20.0), *SIDE[0]), SIDE[1]),
-        TOP,
-    ),
-}
-# outside: half-width, front (the muzzle's) to back, z
-HEAD_X = max(u + r for u, _, r in FRONT)
-HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
-# its floor where it was first drawn (#665), over the neck and the Torso however the head tilts (#901: grown, it met them)
-HEAD_Z = (-80.0, max(v + r for _, v, r in FRONT))
-MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
+def head_grid(t=0.0):
+    """Morty's head as points, rings x angles x 3 (the angles all the way round, +x first), `t` in from its outside
+    along its normal (out of it, negative)."""
+    z, c, r = RINGS[:, 0], RINGS[:, 1], RINGS[:, 2:]
+    th, r = np.r_[THETA, 2 * np.pi - THETA[-2:0:-1]], np.c_[r, r[:, -2:0:-1]]
+    p = np.stack([r * np.sin(th), c[:, None] - r * np.cos(th), np.repeat(z[:, None], len(th), axis=1)], axis=2)
+    if not t:
+        return p
+    n = np.cross(np.roll(p, -1, axis=1) - np.roll(p, 1, axis=1), np.gradient(p, axis=0))
+    n /= np.linalg.norm(n, axis=2, keepdims=True)
+    n *= np.sign(np.einsum("ijk,ijk->ij", n, p - p.mean(axis=1, keepdims=True)))[..., None]  # outward
+    return p - t * n
+
+
+def _ring(z):
+    """The head's outline at height z, (x, y) round it as head_grid's: between the two rings round it."""
+    p = head_grid()
+    k = int(np.clip(np.searchsorted(-RINGS[:, 0], -z), 1, len(RINGS) - 1))
+    w = (RINGS[k - 1, 0] - z) / (RINGS[k - 1, 0] - RINGS[k, 0])
+    return ((1 - w) * p[k - 1] + w * p[k])[:, :2]
+
+
+def head_front(x, z):
+    """y of the head's outside at (x, z), on its front."""
+    q = _ring(z)[: len(THETA)]  # the +x half, forward to back
+    i = int(np.argmax(q[:, 0]))
+    return float(np.interp(abs(x), q[: i + 1, 0], q[: i + 1, 1]))
+
+
+def head_x(y, z):
+    """The head's outside half-width at (y, z)."""
+    q = _ring(z)[: len(THETA)]
+    return float(np.interp(y, q[:, 1], q[:, 0], left=0.0, right=0.0))
+
+
+# Bart's head (#807): Morty's with a flat crown, a prism round his rings from over the widest (WIDEST) up to the apex,
+# so it holds all of Morty's in the same box (whatever clears his Shells clears Bart's); his spikes stand on the crown
+# (model/printed/skin.py SPIKE). Every other Skin's head is Morty's
+HEADS = ("morty", "bart")
+WIDEST = int(np.argmax(RINGS[:, 2 + len(THETA) // 2]))
+_ALL = head_grid().reshape(-1, 3)
+# outside: half-width, front (the jaw's chin) to back, z: its floor where it was first drawn (#665), over the neck and the
+# Torso however the head tilts (#901: grown, it met them)
+HEAD_X = float(_ALL[:, 0].max())
+HEAD_Y = (float(_ALL[:, 1].min()), float(_ALL[:, 1].max()))
+HEAD_Z = (-80.0, APEX[1])
+MUZZLE_Y = HEAD_Y[0]  # the face's front at its most forward, over the jaw's chin
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points traced off his model sheet (contours.json, its research note), in his
 # eyes' spacing from their midpoint, each in the view it was traced in, front (x, z) or side (y, z), and swept through
 # the head along that view's axis. One source for the Shells' hair seam (model/printed/skin.py) and the private
-# reference's cut (model/review). The Shells' hair also takes all behind NAPE, where the head starts to narrow (TOP), so
+# reference's cut (model/review). The Shells' hair also takes all behind NAPE, where the head starts to narrow, so
 # the hair comes off upward and the face forward; it stands HAIR proud of the face
 with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
     _SHEET = json.load(_f)
@@ -127,9 +155,9 @@ CONTOURS = _SHEET["contours"]
 # (y, z): the sheet's face front, on the side view's midline over the eyes. His drawn eyes stand out of his face where
 # ours sit behind it, so the eyes alone set no depth: a side view's contour moves along y to meet a head's own front there
 FACE_FRONT = _SHEET["face front"]
-FACE_Y = min(u - r for u, _, r in SIDE[0])  # the Shells' face's front over the eyes
+FACE_Y = head_front(0.0, FACE_FRONT[1] * gm.SPACING)  # the Shells' face's front over the eyes
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
-NAPE = TOP[2][1]
+NAPE = float(RINGS[RINGS[:, 0] >= HEAD_Z[0], 1].min())  # the least y a ring is widest at, over the floor
 HAIR = 1.5
 
 
@@ -169,7 +197,9 @@ BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behin
 # in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
 _PLATE = (gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
-_BACK = (32.5, 64.0)  # (|x|, y) on the gimbal frame plate's back, behind the pitch servo, clear of its collar (#838)
+_BACK = (45.0, 72.0)  # (|x|, y) on the cranium tray's back, outside the pan's sweep and the head mount (#850)
+_UP = HEAD_Z[1] - nb.TRAY_Z[1]  # its boss up through the head
+_FRONT = (10.0, 55.0)  # (y, z) of the face's Seats, 5 mm under the hairline there and 9 over the upper lids' covers
 SHIRT_BOSS = 4.0  # each shirt half's bosses out to its sleeve
 SHIRT_FRONT = TORSO[0] - GAP - SHIRT_BOSS - WALL  # the shirt front's outside, flat across its middle
 # The eyeball caps on the cores' seat faces, along the gaze: every Skin's (#665)
@@ -203,20 +233,21 @@ def _seats(skin):
                 (x, _PLATE[0], _PLATE[1]),
                 (0.0, -1.0, 0.0),
                 0.0,
-                _PLATE[0] - GAP - (MUZZLE_Y + WALL) + 1.0,
+                _PLATE[0] - GAP - (head_front(x, _PLATE[1]) + WALL) + 1.0,
                 1,
             )
             for x in (-45.0, 45.0)
         ],
-        # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside),
-        # far enough back that the boss rises into the hair over the sheet's hairline, not the face (#992)
+        # the hair straight down onto the cranium tray's back corners, clear of the pan's sweep (each tray thickened under
+        # its Seat, out past its corner), and onto the face over each eye, under the sheet's hairline and behind the
+        # forehead, clear over the lids' covers (#850: lower and inward, Cansin); each boss up to the hair's wall, cut at
+        # its outside, so the hair lifts straight off upward
         *[
-            Seat(f"{skin} hair", "gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
+            Seat(f"{skin} hair", "cranium tray", (x, _BACK[1], nb.TRAY_Z[1]), (0.0, 0.0, 1.0), nb.TRAY_T, _UP, 1)
             for x in (-_BACK[0], _BACK[0])
         ],
         *[
-            Seat(f"{skin} hair", f"{skin} face", grown(x, 10.0, 42.0), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - 42.0 * GROW, 1)
+            Seat(f"{skin} hair", f"{skin} face", (x, *_FRONT), (0.0, 0.0, 1.0), 6.0, HEAD_Z[1] - _FRONT[1], 1)
             for x in (-40.0, 40.0)
         ],
         # the mouth cover up off the top of the jaw's chin (model/neck.py CHIN_Y, JAW_ARM_Z), the chin thickened behind it
