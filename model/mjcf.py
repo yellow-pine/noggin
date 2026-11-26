@@ -92,15 +92,17 @@ STANDARD_BAND_DEG = 7.5
 
 
 def motor(horn):
-    """Per-axis motor on the actual 5 V rail; the micro's filmed fit and deadband never fit the standard servos."""
-    standard = horn in ("tilt horn", "pan horn")  # eyes/servo.py profile's standard axes
-    p = electrical.servo.profile(horn.removesuffix(" horn"), electrical.SERVO_RAIL_V)
-    stall = p["stall_kgfcm"] * 0.0980665
+    """Per-axis motor on the actual 5 V rail, band_deg off its command at full torque; the micro's filmed fit and
+    deadband never fit the standard servos."""
+    axis = horn.removesuffix(" horn")
+    p, standard = electrical.servo.profile(axis, electrical.SERVO_RAIL_V), axis in electrical.servo.STANDARD_AXES
+    stall, band = p["stall_kgfcm"] * 0.0980665, STANDARD_BAND_DEG if standard else 0.5
     return {
         "volts": p["volts"],
         "stall_nm": stall,
         "no_load_rad_s": math.radians(60 / p["s_per_60"]),
-        "kp": stall / math.radians(STANDARD_BAND_DEG if standard else 0.5),
+        "band_deg": band,
+        "kp": stall / math.radians(band),
         "armature": p["armature"],
         "delay_s": 0.02,
         "travel_deg": p["travel_deg"],
@@ -477,8 +479,8 @@ def pose(model, ctrl, deg_s=SLEW_DEG_S):
             mujoco.mj_step(model, data)
         quasi = deg_s == SLEW_DEG_S
         speed = error = math.inf
-        # each servo holds within its own full-torque band: a loaded standard servo sags inside its 7.5 deg
-        bands = [(lambda m: m["stall_nm"] / m["kp"])(motor(model.actuator(i).name)) for i in range(model.nu)]
+        # each servo holds within its own full-torque band: a loaded standard servo sags inside it
+        bands = [math.radians(motor(model.actuator(i).name)["band_deg"]) for i in range(model.nu)]
         for _ in range(round(SETTLE_MAX_S / SETTLE_S) if quasi else 1):
             mujoco.mj_step(model, data, nstep=round(SETTLE_S / model.opt.timestep))
             if not quasi:

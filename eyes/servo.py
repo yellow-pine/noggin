@@ -29,6 +29,7 @@ STANDARD_SPEC = {
     4.8: {"stall_kgfcm": 9.4, "s_per_60": 0.19},
     6.0: {"stall_kgfcm": 11.0, "s_per_60": 0.15},
 }
+STANDARD_AXES = ("tilt", "pan")  # the axes the standard servo drives
 
 
 def profile(axis, volts=5.0):
@@ -37,7 +38,7 @@ def profile(axis, volts=5.0):
     Between published voltages interpolation is inferred. The standard servo's
     continuous design limit is one third of stall, inferred, never a vendor rating.
     """
-    standard = axis in ("tilt", "pan")
+    standard = axis in STANDARD_AXES
     specs = STANDARD_SPEC if standard else SPEC
     (v0, s0), (v1, s1) = sorted(specs.items())
     if not v0 <= volts <= v1:
