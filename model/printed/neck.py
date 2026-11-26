@@ -123,7 +123,7 @@ def tilt_lever():
     outer = x + envelopes.STANDARD_HORN["face"]
     span = (outer - 5, outer)  # counterbore leaves a full 2 mm printed floor over the stock retaining screw
     out = cyl("x", (0, y, z), 11.5, span)
-    out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 7)], span[1] - span[0], (span[0], 0, 0)))
+    out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 5.5)], span[1] - span[0], (span[0], 0, 0)))
     out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (span[0], nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
     out = out.cut(cyl("x", (0, y, z), 2.8, (outer - 3, outer)))
