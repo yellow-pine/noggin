@@ -21,8 +21,9 @@ Decisions that are not in the code. Vocabulary: GLOSSARY.md (Model section); str
   viewer repaints; under Numbers from the code below; black drawn a touch lighter so its shading and lines read)
   and their material (geometry.MATERIALS, from the spool's TDS:
   density, and the across-layer values the Mech's links are held to, model/beams.py, #626). The sim weighs a printed
-  part as it prints, a 0.85 mm skin round a 15% infill core (Bambu Studio's default process; model/mjcf.py mass(),
-  #1003; inferred, Cansin's slicer settings aren't recorded). Electronics and servos are
+  part as it prints, a 0.85 mm skin round a 15% infill core (the slicer's default process,
+  docs/research/2026-11-26-print-infill.md; model/mjcf.py mass(), #1003; inferred, Cansin's slicer settings aren't
+  recorded). Electronics and servos are
   neutral greys, darker for the boards (model/render/scene.py GREYS).
 - `just view` (MuJoCo's viewer, local checks only; Cansin kept it 2026-11-01, model/test_mjcf.py pins it and CI
   renders it offscreen): headlight ambient 0.5, diffuse 0.5, specular 0; black and white pulled in

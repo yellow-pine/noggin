@@ -142,11 +142,11 @@ def _mesh(file, clip):
     return mesh
 
 
-# A printed part weighs as it prints (#1003): Bambu Studio's default process, two walls (0.42 and 0.45 mm lines), five
-# 0.2 mm top layers, three bottom, 15% sparse infill (BambuStudio resources/profiles/BBL/process/fdm_process_common.json
-# and fdm_process_single_0.20.json), so a skin about 0.85 mm thick round a 15% core. Inferred: Cansin's own slicer
-# settings aren't recorded. shortcut: MuJoCo spreads that mass evenly through the mesh, so a part's inertia about its
-# own centre reads a little low (its skin lies outside); weigh the skin as its own shell if a gate ever sits that close
+# A printed part weighs as it prints (#1003): the slicer's default process, two walls, five 0.2 mm top layers, three
+# bottom, 15% sparse infill (docs/research/2026-11-26-print-infill.md), so a skin about 0.85 mm thick round a 15% core.
+# Inferred: Cansin's own slicer settings aren't recorded. shortcut: MuJoCo spreads that mass evenly through the mesh, so
+# a part's inertia about its own centre reads a little low (its skin lies outside); weigh the skin as its own shell if a
+# gate ever sits that close
 SKIN_MM, INFILL = 0.85, 0.15
 
 
