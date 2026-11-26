@@ -29,15 +29,9 @@ def known(pair):
     return frozenset(pair) in KNOWN_PAIRS
 
 
-# The old neck's findings since the head grew (#942, #956): #978 replaces that neck, so its new head mechanism passes
-# these gates on its own and its PR drops the entries (Cansin, #1003).
-OLD_NECK = "the old neck, which #978 replaces; its PR drops this entry (#1003)"
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does, with why.
-KNOWN_FULL_SPEED = {
-    ("mech-back-mechanical", "pan horn", min(stages.STAGES["mech-back-mechanical"].horns["pan horn"].limits)): (
-        f"the heavier head swung to the pan's end settles 1.48 deg off the slow pose on {OLD_NECK}"
-    )
-}
+# None since #978's neck: its pan lands at either end (#1003).
+KNOWN_FULL_SPEED = {}
 # (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why. None since
 # printed parts weigh at their infill (#1003).
 KNOWN_NECK_HOLDS = {}
@@ -50,9 +44,6 @@ KNOWN_PEAKS = {
     for doc in g.SIMULATED
     if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
     for horn in ("pan horn", "tilt horn")
-} | {
-    ("mech-back-mechanical", "jaw horn"): "the hero's jaw (0.58 kgf.cm) on the old jaw and its mouth linkage,"
-    " which #978 rebuilds: its new jaw passes under half stall on its own, and its PR drops this entry (Cansin, #1003)"
 }
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {}
