@@ -39,8 +39,9 @@ YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0, "stem_r": 4.0, "stem_z": 
 YAW_CRANK_Z = (-27.0, -24.0)  # the yokes' cranks; the tie-bar under them, the yaw horn's outer face under that
 TIE_Z = (-30.0, -27.0)
 # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684) and behind the lower
-# lids' sweep (#901)
-YAW_Y = 22.0
+# lids' sweep (#901); near enough that the tie-bar from its pin to each yoke's leans 23.8 deg off x, so each crank meets
+# it at 41.2 deg or more over the yaw's range (the MuJoCo report's floor is 40; 22 read 33.8, #1003)
+YAW_Y = 16.0
 BAIL = (40.0 * K, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
 # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)

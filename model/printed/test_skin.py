@@ -262,3 +262,23 @@ def _near(doc, pose, only=None):
             if np.min(d) < CLEAR_MM:
                 near.append((n, other, round(float(np.min(d)), 2)))
     return near
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("doc", [g.dressed(DOC, s) for s in g.SKINS])
+def test_every_shell_moves_with_its_motion_region_and_the_body_never_moves(doc):
+    """#969: with each servo at either end, each Shell moves exactly as its Motion region's carrier (sk.MOTION) does, and
+    the torso's Shells not at all: no head motion reaches the shirt, no jaw motion the face."""
+    stage = stages.STAGES[doc]
+    rest = {n: p.matrix for n, p in stage.parts.items()}
+    shells = {
+        n: sk.MOTION[sk.region(stages.stem(p.file))] for n, p in stage.parts.items() if stages.stem(p.file) in sk.SHELLS
+    }
+    assert {sk.region(stages.stem(stage.parts[n].file)) for n in shells} >= {"head", "jaw", "torso"}
+    for horn, h in stage.horns.items():
+        for deg in h.limits:
+            mats = _poses(doc)[f"{horn} {deg:.0f}"]
+            for n, carrier in shells.items():
+                moved = mats[n] @ np.linalg.inv(rest[n])
+                by = np.eye(4) if carrier is None else mats[f"{carrier}:1"] @ np.linalg.inv(rest[f"{carrier}:1"])
+                assert np.allclose(moved, by, atol=1e-6), (n, horn, deg)
