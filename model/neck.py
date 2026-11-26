@@ -62,7 +62,7 @@ PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
 PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
-REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the carrier's R rail, under the case's shaft end
+REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the case's shaft end (inferred)
 REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
@@ -113,7 +113,7 @@ def jaw_y(y):
 # the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
 JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
-# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978)
+# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978, inferred)
 JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (29.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
 # #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
 # Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.

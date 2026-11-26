@@ -77,30 +77,34 @@ def nod_plate():
     # #978: the low rear tilt cradle, the case upright behind the canal: a screw block on each tab's case side, past the
     # case's ends, the lower on a beam down from the plate's crossbar in front of the case, the upper under a header over
     # the case's top that joins the rear mast; the mast, beside the case, from the plate's rear arm to the pan cradle.
-    sx, sy, sz = nk.TILT_SHAFT
-    tabs = (sx + 13.4, sx + 15.9)  # envelopes.STANDARD_SERVO's tabs, along the shaft
-    blocks, width = (tabs[1], tabs[1] + 5.0), (sy - 9.85, sy + 9.85)
+    s = envelopes.STANDARD_SERVO
+    (cx0, cx1), (_, half), _ = s["case"]
+    (tx0, tx1), _, (tz0, tz1) = s["tabs"]
+    holes, across = sorted({x for x, _ in s["holes"]}), max(y for _, y in s["holes"])  # its tabs' hole lines
+    sx, sy, sz = nk.TILT_SHAFT  # the case's long axis up (nk.TILT_CASE), its shaft along -x
+    tabs = (sx - tz1, sx - tz0)
+    blocks, width = (tabs[1], tabs[1] + 5.0), (sy - half, sy + half)
     beam = (sy - 23.8, width[0] - 0.3)  # in front of the case
-    top = (sz + 37.6, sz + 44.0)  # over the upper tab's end
-    for fz, zs in ((sz - 13.4, (sz - 16.5, sz - 10.3)), (sz + 34.1, (sz + 31.0, top[1]))):  # the tabs' hole lines
+    top = (sz + tx1, sz + tx1 + 6.4)  # over the upper tab's end
+    for fz, zs in ((sz + holes[0], (sz + tx0 + 0.4, sz + cx0 - 0.3)), (sz + holes[1], (sz + holes[1] - 3.1, top[1]))):
         out = out.union(box(blocks, (beam[1] - 4.0, width[1]), zs))
-        for fy in (sy - 5, sy + 5):
+        for fy in (sy - across, sy + across):
             out = out.cut(cyl("x", (0, fy, fz), 0.8, blocks))
     mast_x, mast_y = (23.0, 29.0), (125.7, 135.3)
     out = out.union(box((sx + 10.4, 21.5), width, top)).union(box((21.0, mast_x[1]), (mast_y[0], width[1]), top))
-    out = out.union(box((-9.2, blocks[1]), beam, (sz - 13.4, nk.NOD_Z[1])))
+    out = out.union(box((-9.2, blocks[1]), beam, (sz + holes[0], nk.NOD_Z[1])))
     arm = [(13.8, y + 2.5), (sum(mast_x) / 2, beam[0] + 8.0), (sum(mast_x) / 2, sum(mast_y) / 2)]
     out = out.union(_flat(arm, 6.0, nk.NOD_Z))
     out = out.union(_flat([(-4.6, beam[0] + 4.0), (sum(mast_x) / 2, beam[0] + 4.0)], 8.0, nk.NOD_Z))
     # The pan cradle (#978): a block on each tab's case side past the case's ends, joined by a side bar over the Shields'
     # sweep to the mast.
-    _, py, pz = nk.PAN_SHAFT
-    lid, bar = (pz + 15.9, pz + 27.0), (pz + 19.0, pz + 27.0)  # from the tabs' face; the side bar over the Shields
-    out = out.union(box((-9.85, 10.5), (py - 37.6, py - 30.7 - 0.3), lid))
-    out = out.union(box((-9.85, 10.5), (py + 10.0 + 0.3, py + 16.9), lid))
-    out = out.union(box((10.15, 20.0), (py - 37.6, py + 16.9), bar)).union(box((19.0, mast_x[1]), mast_y, bar))
-    for fy in (py - 34.1, py + 13.4):  # the tabs' hole lines
-        for x in (-5, 5):
+    _, py, pz = nk.PAN_SHAFT  # the case's long axis forward (nk.PAN_CASE), its shaft down
+    lid, bar = (pz - tz0, pz + 27.0), (pz + 19.0, pz + 27.0)  # from the tabs' face; the side bar over the Shields
+    out = out.union(box((-half, 10.5), (py - tx1, py - cx1 - 0.3), lid))
+    out = out.union(box((-half, 10.5), (py - cx0 + 0.3, py - tx0), lid))
+    out = out.union(box((half + 0.3, 20.0), (py - tx1, py - tx0), bar)).union(box((19.0, mast_x[1]), mast_y, bar))
+    for fy in (py - h for h in holes):
+        for x in (-across, across):
             out = out.cut(cyl("z", (x, fy, 0), 0.8, lid))
     out = out.union(box(mast_x, mast_y, (nk.NOD_Z[0], lid[1])))
     for xs in ((17.7, 26), (-26, -17.7)):

@@ -231,7 +231,7 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
 @pytest.mark.parametrize("part", list(KNOWN_HAIR))
 def test_the_known_hair_meetings_are_still_there(part, doc):
     """When #850's refit clears a KNOWN_HAIR part from a Skin's hair in all its poses, drop its entry."""
-    skin_shape = doc.removeprefix(g.undressed(doc) + "-") if g.undressed(doc) != doc else "morty"
+    skin_shape = doc.removeprefix(g.undressed(doc)).removeprefix("-") or next(iter(g.SKINS))
     if skin_shape not in HAIR_SKINS.get(part, g.SKINS):
         pytest.skip(f"{skin_shape}'s hair is not listed as meeting the {part}")
     only = {stages.stem(stages.STAGES[doc].parts[f"{part}:1"].file).removesuffix(g.MECHANICAL)}  # a hardware's file

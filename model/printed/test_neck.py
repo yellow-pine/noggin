@@ -136,7 +136,8 @@ def test_the_standard_servo_cradles_hold_their_actual_stall_reaction(saddle, mem
     whole mast slab: the tilt shaft's offset from its centroid)."""
     mat = g.MATERIALS[g.PRINTED["nod plate"][1]]
     (sx, sy, sz), (_, py, pz) = nk.TILT_SHAFT, nk.PAN_SHAFT
-    spacing = 34.1 + 13.4  # the tabs' hole lines (envelopes.STANDARD_SERVO)
+    holes = sorted({x for x, _ in envelopes.STANDARD_SERVO["holes"]})  # its tabs' hole lines
+    spacing = holes[1] - holes[0]
     torque = {d: sim.limits(f"{d} horn")["stall_kgf_cm"] * beams.G * 10 for d in ("tilt", "pan")}
     angle = {d: min(nk.transmission(d, s) for s in np.linspace(-r, r, 41)) for d, r in (("tilt", 20), ("pan", 45))}
     bar = {"tilt": torque["tilt"] / np.linalg.norm(nk.TILT_CRANK), "pan": torque["pan"] / np.linalg.norm(nk.PAN_ARM)}
@@ -151,13 +152,13 @@ def test_the_standard_servo_cradles_hold_their_actual_stall_reaction(saddle, mem
         cut = _section(saddle, (x, sy, sz + 41.0), (1, 0, 0), (0, 1, 0), (24, 10))
         axis, bend, load, moment = 1, 2, tab["tilt"], tab["tilt"] * abs(x - (sx + 18.4))
     elif member == "beam":  # in front of the case, from the plate's crossbar down to the lower tab's block
-        z = (sz - 13.4 + nk.NOD_Z[0]) / 2
+        z = (sz + holes[0] + nk.NOD_Z[0]) / 2
         cut = _section(saddle, (-5.0, sy - 17.0, z), (0, 0, 1), (1, 0, 0), (12, 16))
-        axis, bend, load, moment = 1, 0, tab["tilt"], tab["tilt"] * abs(z - (sz - 13.4))
+        axis, bend, load, moment = 1, 0, tab["tilt"], tab["tilt"] * abs(z - (sz + holes[0]))
     else:  # the pan cradle's side bar, from the fore tab's block to the mast
         y = py - 12.0
         cut = _section(saddle, (15.0, y, pz + 23.0), (0, 1, 0), (1, 0, 0), (12, 10))
-        axis, bend, load, moment = 0, 2, tab["pan"], tab["pan"] * abs(y - (py - 34.1))
+        axis, bend, load, moment = 0, 2, tab["pan"], tab["pan"] * abs(y - (py - holes[1]))
     inertia = np.asarray(cq.Shape.matrixOfInertia(cut))[bend, bend] / 0.01
     box, centre = cut.BoundingBox(), cut.Center().toTuple()[axis]
     half = max(getattr(box, "xyz"[axis] + "max") - centre, centre - getattr(box, "xyz"[axis] + "min"))
