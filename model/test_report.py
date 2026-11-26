@@ -35,13 +35,12 @@ OLD_NECK = "the old neck, which #978 replaces; its PR drops this entry (#1003)"
 # (document, horn, end): where a swing at the servo's rated speed does not end where the slow pose does, with why.
 KNOWN_FULL_SPEED = {
     ("mech-back-mechanical", "pan horn", min(stages.STAGES["mech-back-mechanical"].horns["pan horn"].limits)): (
-        f"the heavier head swung to the pan's end settles 5.75 deg off the slow pose on {OLD_NECK}"
+        f"the heavier head swung to the pan's end settles 1.48 deg off the slow pose on {OLD_NECK}"
     )
 }
-# (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why.
-KNOWN_NECK_HOLDS = {
-    ("mech-back-mechanical", "the bare head (its Skin off)"): f"0.341 kgf.cm against the rated 0.33 on {OLD_NECK}"
-}
+# (document, head): the tilt servo holding the head (in its Skin, or bare) over its rated torque, with why. None since
+# printed parts weigh at their infill (#1003).
+KNOWN_NECK_HOLDS = {}
 # (document, servo) whose load peaks over half its stall along a motion, with why.
 KNOWN_PEAKS = {
     (doc, horn): "the hero (#642) turns the Mech's heavier head on the hero's keys, timed for Stage 3's: each"
@@ -51,6 +50,9 @@ KNOWN_PEAKS = {
     for doc in g.SIMULATED
     if "pan horn" in stages.STAGES[doc].horns  # a Stage with the neck plays it (#720)
     for horn in ("pan horn", "tilt horn")
+} | {
+    ("mech-back-mechanical", "jaw horn"): "the hero's jaw (0.58 kgf.cm) on the old jaw and its mouth linkage,"
+    " which #978 rebuilds: its new jaw passes under half stall on its own, and its PR drops this entry (Cansin, #1003)"
 }
 # Four-bars whose bar meets its lever under mujoco_report.TRANSMISSION_DEG somewhere in their range, with why.
 KNOWN_TRANSMISSION = {}
