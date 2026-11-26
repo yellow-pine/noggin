@@ -108,9 +108,10 @@ def test_the_vertebrae_ring_the_post_under_the_heads_lugs():
 
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize("stem", [pytest.param(s, marks=REFIT) if s == "skull" else s for s in g.BONES])
+@pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
-    """One piece (but crumbs of a voxel or two), inside the head's box."""
+    """One piece (but crumbs of a voxel or two), inside the head's box: the skull too, since the yaw servo moved 6 mm
+    forward (#1005) and the skull's finish round the parts came out whole (#874 refits it all the same)."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")
     pieces = [p for p in mesh.split(only_watertight=False) if abs(p.volume) > skeleton.PITCH**3 * 8]
     assert len(pieces) == 1
