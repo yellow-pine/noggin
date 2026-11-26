@@ -209,7 +209,8 @@ def _seats(skin):
             for x in (-45.0, 45.0)
         ],
         # the hair down onto the gimbal frame plate's back (a web from its back wall, model/printed/skin.py, #838) and onto
-        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside)
+        # the face's temples under the hairline, back from the forehead (each boss up to the hair's wall, cut at its outside),
+        # far enough back that the boss rises into the hair over the sheet's hairline, not the face (#992)
         *[
             Seat(f"{skin} hair", "gimbal frame", (x, _BACK[1], gm.PLATE_Z[1]), (0.0, 0.0, 1.0), 0.0, 6.0, 1)
             for x in (-_BACK[0], _BACK[0])

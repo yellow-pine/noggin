@@ -78,8 +78,10 @@ def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
 def test_the_reference_is_cut_along_the_contours_the_shells_hair_is():
     """#992: the review cuts Morty's reference along skin.outline, the one source the Shells' hair seam reads too (ADR
     0011), each contour in the view it was traced in."""
-    assert review.contours() == {n: (c["view"], skin.outline(n).tolist()) for n, c in skin.CONTOURS.items()}
-    assert {v for v, _ in review.contours().values()} == {"front", "side"}
+    assert review.contours().keys() == skin.CONTOURS.keys()
+    for name, (view, region) in review.contours().items():
+        assert view == skin.CONTOURS[name]["view"]
+        np.testing.assert_allclose(region, skin.outline(name))
 
 
 HEAD = np.linalg.inv(stages.align(*stages.DOCS[review.DOC]["eyes"])).tolist()  # world to the head's frame

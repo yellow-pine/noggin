@@ -146,7 +146,11 @@ def morty(m):
 
 
 VIEWS = {"front": (0, 2), "side": (1, 2)}  # a contour's plane's axes in the head's frame; it sweeps along the third
-MOVING = ("head", "jaw", "L eye", "R eye")  # the reference's moving surfaces, which the contours share out
+
+
+def ahead(c):
+    """A front view's contours cut the face in front of the eyes, not the head's back behind it (the head's frame)."""
+    return c.y < 0
 
 
 def inside(points, poly):
@@ -202,7 +206,7 @@ def contoured(m, objects):
     the mouth line the jaw's; the rest the head's, its hair above and behind the hairline. On the fixed body, the hair
     above and behind the hairline, the shirt under the collar. A lid is a new surface carried by its lid."""
     head, contours, carriers = Matrix(m["head"]), m["contours"], m["carriers"]
-    moving = [o for o in objects if o["reference_region"] in MOVING]
+    moving = [o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith(" lid")]
     # the sculpt's face front on its midline at the sheet's face front's height, which a side view's contour meets
     (y, z), near = m["face"], 3.0
     front = [
@@ -226,10 +230,9 @@ def contoured(m, objects):
         bm.from_mesh(o.data)
         bmesh.ops.transform(bm, matrix=head, verts=bm.verts)
         own, names = o["reference_region"], [x.name for x in o.data.materials]
-        ahead = lambda c: c.y < 0  # noqa: E731 a front view's contours cut the face, not the head's back behind it
         cut(bm, poly["hairline"], "side")
-        if own in MOVING:
-            for n in ("L eye white", "R eye white", "L pupil", "R pupil", "mouth"):
+        if o in moving:  # the head's, the jaw's and the eyes', which the contours share out
+            for n in (n for n, (v, _) in contours.items() if v == "front"):
                 cut(bm, poly[n], "front", ahead)
             if own.endswith(" eye"):  # the lids part at the eye's height
                 z = m["eyes"][own[0]][2]
@@ -241,7 +244,7 @@ def contoured(m, objects):
         c = np.array([f.calc_center_median() for f in bm.faces]).reshape(-1, 3)
         xz, yz = c[:, [0, 2]], c[:, [1, 2]]
         hair = inside(yz, poly["hairline"])
-        if own in MOVING:
+        if o in moving:
             eye = {s: (c[:, 1] < 0) & inside(xz, poly[f"{s} eye white"]) for s in "LR"}
             pupil = {s: eye[s] & inside(xz, poly[f"{s} pupil"]) for s in "LR"}
             jaw = (c[:, 1] < 0) & inside(xz, poly["mouth"])
@@ -250,7 +253,7 @@ def contoured(m, objects):
         layer = bm.faces.layers.int.new("region")
         for k, f in enumerate(bm.faces):
             region, group = own, "hair" if hair[k] else "face"
-            if own not in MOVING:
+            if o not in moving:
                 group = "hair" if hair[k] else "clothes" if shirt[k] else "face"
             elif s := next((s for s in "LR" if eye[s][k]), None):
                 region, group = f"{s} eye", "pupils" if pupil[s][k] else "eye whites"
@@ -264,7 +267,7 @@ def contoured(m, objects):
             f[layer], f.material_index = regions.index(region), names.index(group)
         bmesh.ops.transform(bm, matrix=head.inverted(), verts=bm.verts)
         bm.faces.layers.int.remove(bm.faces.layers.int["piece"])
-        if own in MOVING:
+        if o in moving:
             shares[o] = bm
         else:
             bm.faces.layers.int.remove(layer)
