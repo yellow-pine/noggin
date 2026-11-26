@@ -43,24 +43,26 @@ TOUCH = {
             *[(f"{s} eyeball cap:1", f"{s} eyeball core:1") for s in "LR"],
         ]
     },
-    # the Mech's neck and jaw (#641): the same, the head mount screwed under the gimbal frame's plate
+    # the Mech's neck and jaw (#641, #978): the same, the head mount screwed under the gimbal frame's plate
     **{
-        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their collar"
-        for d, mount in (("pan", "neck mount:1"), ("tilt", "pan yoke:1"), ("mouth", "gimbal frame:1"))
+        frozenset((f"{d} servo:1", p)): "the horn on its spline, the tabs on their cradle or collar"
+        for d, mount in (("pan", "nod plate:1"), ("tilt", "nod plate:1"), ("mouth", "gimbal frame:1"))
         for p in (f"{d} horn:1", mount)
     },
     **{
-        frozenset(
-            pair
-        ): "screwed faces, the yoke on the mount's thrust face, pin-joined faces (0.0 mm, designed contacts)"
+        frozenset(pair): "screwed faces, bearing seats, pin-joined faces (0.0 mm, designed contacts)"
         for pair in [
             ("head mount:1", "gimbal frame:1"),
-            ("head mount:1", "pan yoke:1"),
-            ("pan yoke:1", "neck mount:1"),
-            ("pan bar:1", "pan yoke:1"),
-            ("pan bar:1", "pan horn:1"),
-            ("tilt bar:1", "tilt horn:1"),
-            ("tilt bar:1", "head mount:1"),
+            ("pan horn:1", "pan lever:1"),
+            ("tilt horn:1", "tilt lever:1"),
+            ("pan bar:1", "pan lever:1"),
+            ("pan bar:1", "head mount:1"),
+            ("tilt reaction bar:1", "tilt lever:1"),
+            ("tilt reaction bar:1", "cervical carrier:1"),
+            ("nod plate:1", "cervical carrier:1"),  # its C0 trunnions
+            *(("pan bearing:1", p) for p in ("nod plate:1", "head mount:1", "pan fixed cap:1", "pan moving cap:1")),
+            ("pan fixed cap:1", "nod plate:1"),
+            ("pan moving cap:1", "head mount:1"),
             ("jaw bar:1", "mouth horn:1"),
             ("jaw bar:1", "jaw:1"),
             ("jaw:1", "gimbal frame:1"),  # its lugs at the condyles (#838)
@@ -69,7 +71,6 @@ TOUCH = {
     # gaps under a millimetre the frame's and the yoke's coarse pieces fill (#838), each pair one MuJoCo filters (a body
     # and its weld body's parent): their exact solids clear (model/printed/test_gimbal.py, test_neck.py)
     **{frozenset((f"{s} lower lid:1", "gimbal frame:1")): "the lower lid's boss 0.3 mm off the upright" for s in "LR"},
-    frozenset(("gimbal frame:1", "pan yoke:1")): "the plate 0.5 mm over the cheeks' bosses",
     # the Cores on the cranium tray (#858): the same
     **{frozenset((f"Core {n}:1", f"Shield {n}:1")): "the Core plugged into its Shield" for n in (1, 2)},
     **{
@@ -92,10 +93,10 @@ TOUCH = {
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("torso:1", "neck mount:1"),
+            ("torso:1", "cervical carrier:1"),
             ("torso:1", "torso lid:1"),
-            # the neck mount's post up through the lid's hole, 1 mm round it: the lid's pieces fill the hole (#838, #858)
-            ("torso lid:1", "neck mount:1"),
+            # the carrier's rails up through the lid's slots: the lid's pieces fill the slots (#838, #978)
+            ("torso lid:1", "cervical carrier:1"),
             ("torso:1", "pack:1"),
             ("torso:1", "switch board:1"),
             ("torso:1", "power-path board:1"),
@@ -246,7 +247,9 @@ def test_every_four_bar_and_push_rod_closes_by_a_connect(doc):
     """Each four-bar and push-rod is closed by a connect at its coupler's rocker pin; its loops are gated by the sim
     report's sweep, where the ranking can mark them (#705, model/test_report.py)."""
     model = built(doc)
-    assert model.neq == sum(len(h.loops) + len(h.rods) for h in stages.STAGES[doc].horns.values())
+    horns = stages.STAGES[doc].horns.values()
+    reactions = sum(bool(h.direct and h.direct.reaction) for h in horns)  # a moving case's reaction bar (#902)
+    assert model.neq == sum(len(h.loops) + len(h.rods) for h in horns) + reactions
 
 
 @pytest.mark.parametrize("doc", grouped(MOVING))
@@ -303,6 +306,8 @@ def test_the_tilt_pivots_balance_spring_holds_the_head_the_mjcf_weighs():
     MJCF weighs (N.m), in its Skin and bare (#830), so the turns of their weights at rest split their miss."""
     model = built(DOC)
     rest, rate = neck.balance(mjcf.head(DOC, model), mjcf.head(DOC, model, bare=True))
+    if not neck.SPRING_VERIFIED:  # an uncertified spring is not fitted (model/mjcf.py)
+        rest, rate = 0.0, 0.0
     joint = model.joint("tilt pivot")
     # rel: the spec's own compile weighs the head a hair (1e-6) off the finished model's
     assert model.jnt_stiffness[joint.id] == pytest.approx(rate * mjcf.KGF_CM, rel=1e-4)
