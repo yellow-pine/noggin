@@ -46,7 +46,7 @@ The ranges are the model's, in servo degrees, where every part sweeps clear; the
    carrier. Its output reverses the servo's rotation. The standard pan servo hangs shaft down from the cradle's rear
    mast, behind the pan bearing; both cases ride inside the compact head (#978). A torsion balance spring at the tilt
    pivot supports the head's weight.
-3. **Head mount** on the C0 pan bearing (SKF 61804-2RS1) on the nod plate's hollow spindle. The pan servo turns it
+3. **Head mount** on the C0 pan bearing on the nod plate's hollow spindle. The pan servo turns it
    through a parallelogram four-bar; the bearing carries the head's load, and the power leads pass its 8 mm bore. Pan
    follows tilt in the joint order. From the side:
 

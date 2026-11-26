@@ -93,6 +93,8 @@ def nod_plate():
     mast_x, mast_y = (23.0, 29.0), (125.7, 135.3)
     out = out.union(box((sx + 10.4, 21.5), width, top)).union(box((21.0, mast_x[1]), (mast_y[0], width[1]), top))
     out = out.union(box((-9.2, blocks[1]), beam, (sz + holes[0], nk.NOD_Z[1])))
+    # a post up from the crossbar to the upper block, so the header, the mast and it frame the pan cradle's load
+    out = out.union(box((-9.2, blocks[1]), (beam[0] + 2.0, beam[1]), (nk.NOD_Z[1], top[1])))
     arm = [(13.8, y + 2.5), (sum(mast_x) / 2, beam[0] + 8.0), (sum(mast_x) / 2, sum(mast_y) / 2)]
     out = out.union(_flat(arm, 6.0, nk.NOD_Z))
     out = out.union(_flat([(-4.6, beam[0] + 4.0), (sum(mast_x) / 2, beam[0] + 4.0)], 8.0, nk.NOD_Z))
@@ -107,6 +109,7 @@ def nod_plate():
         for x in (-across, across):
             out = out.cut(cyl("z", (x, fy, 0), 0.8, lid))
     out = out.union(box(mast_x, mast_y, (nk.NOD_Z[0], lid[1])))
+    out = out.union(box((12.0, mast_x[1]), mast_y, (top[1] - 1.0, lid[1])))  # wider over the tilt case, under the pan's
     for xs in ((17.7, 26), (-26, -17.7)):
         out = out.cut(cyl("x", (0, y, z), 8.5, xs))
     for xs in ((13.4, 17.4), (-17.4, -13.4)):  # the trunnions' shank bores, which the mast's flat crosses
