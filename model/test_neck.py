@@ -194,8 +194,9 @@ def test_a_moving_case_reduction_drives_the_real_motor_joint_and_reads_the_bar_a
     model = spec.compile()
     assert model.actuator("tilt horn").trnid[0] == model.joint("tilt horn").id  # the actual offset motor shaft
     data = mjcf.pose(model, {"tilt horn": command})
-    assert np.degrees(data.joint("tilt horn").qpos[0]) == pytest.approx(command, abs=0.5)
-    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-solve(command)[0], abs=0.5)
+    held = np.degrees(data.joint("tilt horn").qpos[0])  # the head's weight sags the servo inside its band
+    assert held == pytest.approx(command, abs=mjcf.motor("tilt horn")["band_deg"])
+    assert np.degrees(data.joint("tilt pivot").qpos[0]) == pytest.approx(-solve(held)[0], abs=0.5)
     assert max(mjcf.residuals(model, data).values()) < 0.05
     if command == 0:
         ((_, angle),) = gates.loops(model, data).values()
