@@ -19,7 +19,7 @@ TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mechanical bar's round ends
 # #968: the jaw's ramus Bones, its chain's first spans (condyle to angle), deep fore and aft as the ramus is, to hold the
 # mouth servo's stall: (head, waist), each its half-depth fore and aft, then across
-RAMUS, RAMUS_SPANS = ((5.4, 2.4), (5.0, 2.2)), 3
+RAMUS, RAMUS_SPANS = ((4.2, 2.4), (5.0, 2.2)), 3  # its ends the size that sweeps clear of the frame
 
 
 def tie(x, y, z):
