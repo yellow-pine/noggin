@@ -1,9 +1,10 @@
 """The Mech's neck and jaw (#902/#978), clean-room (#618): geometry, kinematics and report in the eye gimbal's
 head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
-A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo rides its upper saddle and
-reacts through an equal-arm parallelogram against the fixed carrier, reversing the motor angle. The plate carries
-the pan bearing and crown standard pan servo; the head mount transfers head weight to the bearing. The four 22 AWG
+A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
+low rear cradle and reacts through an equal-arm parallelogram against the fixed carrier, reversing the motor angle.
+The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
+inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
 power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
 The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
 
@@ -42,21 +43,26 @@ PAN_STUDY_SCREWS = ((16.0, 48.0), (-16.0, 48.0), (19.5, 83.0), (-21.5, 83.0))
 NOD_X, NOD_Y = (-28.0, 28.0), (34.2, 88.6)
 NOD_Z = tuple(HEAD_AXES["tilt"][0][2] + d for d in (-3.3, 1.7))
 BEARING_Z = (-47.0, -42.0)  # lower axial stack clears the actual condylar lugs throughout pan
-TILT_SHAFT = (
-    -21.45,
-    132.0,
-    1.3,
-)  # rear horn clears the rotating tray annulus, while its raised case clears the rear Skin envelope
-TILT_CRANK = (15.0, -26.0)  # the horn pin stays below the real case throughout its ±20 degree relative travel
+# #978: the tilt case stands upright (its long axis up, TILT_CASE) low behind the canal, inside the compact head's back
+# (y <= 135.9 with its lever's disc), under the frame plate's and the bail's pan sweeps; its crank down, square to the
+# bar at rest, the pin under the case and inside the head's floor (inferred, held by model/printed/test_base.py)
+TILT_SHAFT = (-21.45, 123.8, -62.0)
+TILT_CASE = (0.0, 0.0, 1.0)
+TILT_CRANK = (-6.8, -24.1)
 TILT_PIN = (0.0, TILT_SHAFT[1] + TILT_CRANK[0], TILT_SHAFT[2] + TILT_CRANK[1])
 TILT_ANCHOR = (0.0, HEAD_AXES["tilt"][0][1] + TILT_CRANK[0], HEAD_AXES["tilt"][0][2] + TILT_CRANK[1])
 TILT_BAR_PATH = (TILT_ANCHOR, TILT_PIN)
-PAN_SHAFT = (0.0, 65.25, 61.5)  # crank underside clears the complete Shield and brow envelopes through pan
+# #978: the pan case behind the C0 axis, hung shaft down over the tray, its shaft at its back (PAN_CASE: its long axis
+# forward), its lever and crank under it, over the tray and clear of the Shields' and capacitor's sweeps; its top sets
+# the head's height (inferred, held by model/printed/test_base.py)
+PAN_SHAFT = (0.0, 118.4, 36.0)
+PAN_CASE = (0.0, -1.0, 0.0)
 PAN_ARM = (-30.0, 0.0)
-PAN_LEVER_Z, PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5), (62.2, 66.2), (66.5, 72.5)
+PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
+PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
-REACTION_BAR_X = (-4.5, 1.5)  # actual standard-servo stall bending load, not a micro-servo bar
+REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the carrier's R rail, under the case's shaft end
 REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
@@ -133,6 +139,7 @@ MANDIBLE_BORDER = {
 MENTON = (0.0, -1.4201, -97.7819)
 CHIN_Y = -33.4  # existing Skin rest contour; moving the anatomical carrier must not reshape a resting Skin
 JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
+JAW_CHAIN_UP = 8.0  # #978: the carrier's lower chain over the measured border, in the mandible's body (inferred)
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,

@@ -186,7 +186,7 @@ def test_the_tray_legs_clear_the_lower_rear_standard_case_through_pan():
     from model.printed import base
 
     tray = base.tray(True).val()
-    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.TILT_SHAFT, g.Y, (-1, 0, 0))))
+    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.TILT_SHAFT, nk.TILT_CASE, (-1, 0, 0))))
     for pan in (-45, -22.5, 0, 22.5, 45):
         moved = tray.moved(gimbal._at(linkage.rotation(g.Z, pan, (0, 75, -20))))
         assert moved.intersect(motor).Volume() < 0.01, pan
@@ -200,7 +200,7 @@ def test_the_pan_case_clears_the_electronics_tray_and_capacitor_through_pan():
 
     cap, matrix = layout.cranium()["bulk capacitor"]
     parts = {"tray": base.tray(True).val(), "capacitor": _built(cap).moved(gimbal._at(matrix))}
-    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.PAN_SHAFT, g.Y, (0, 0, -1))))
+    motor = envelopes.standard_servo().val().moved(gimbal._at(stages.align(nk.PAN_SHAFT, nk.PAN_CASE, (0, 0, -1))))
     for pan in (-45, -22.5, 0, 22.5, 45):
         delta = gimbal._at(linkage.rotation(g.Z, pan, (0, 75, -20)))
         for name, solid in parts.items():

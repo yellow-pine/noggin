@@ -286,9 +286,13 @@ def neck_sub():
     tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
     for stem in ("tilt lever", "tilt reaction bar", "pan lever", "pan bar", "pan fixed cap", "pan moving cap"):
         parts[stem + ":1"] = part(stl(stem), None, printed(stem))
-    parts["tilt servo:1"] = part(stl("standard servo"), align(neck.TILT_SHAFT, g.Y, (-1, 0, 0)), (55, "documented"))
+    parts["tilt servo:1"] = part(
+        stl("standard servo"), align(neck.TILT_SHAFT, neck.TILT_CASE, (-1, 0, 0)), (55, "documented")
+    )
     parts["tilt horn:1"] = part(stl("standard horn"), align(neck.TILT_SHAFT, g.Y, g.X), BOARD)
-    parts["pan servo:1"] = part(stl("standard servo"), align(neck.PAN_SHAFT, g.Y, (0, 0, -1)), (55, "documented"))
+    parts["pan servo:1"] = part(
+        stl("standard servo"), align(neck.PAN_SHAFT, neck.PAN_CASE, (0, 0, -1)), (55, "documented")
+    )
     parts["pan horn:1"] = part(stl("standard horn"), align(neck.PAN_SHAFT, g.X, g.Z), BOARD)
     parts["pan bearing:1"] = part(stl("pan bearing"), translate((0, pan[1], neck.PAN_STUDY_Z[0])), (18, "documented"))
     head = [*neck.HEAD, "pan moving cap:1"]

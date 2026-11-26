@@ -44,15 +44,15 @@ def cervical_carrier():
             rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
         rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
-    # A passive bar reacts the elevated moving-case motor at a pin behind the actual wire canal.
-    anchor = nk.TILT_ANCHOR
-    root = (-19.0, *nk.CERVICAL_PATH[-2])  # inside the R rail (x -22 +-4), so the bar's strut joins the carrier
-    elbow = (-10.5, 90.0, -78.0)
-    for a, b in ((root, elbow), (elbow, (-9.8, anchor[1], anchor[2]))):
-        out = out.union(strut(a, b, (4, 3), (3.5, 2.5)))
-    out = out.union(cq.Workplane().sphere(2.8).translate(elbow))
-    out = out.union(cyl("x", (0, anchor[1], anchor[2]), 3.5, (-11.3, nk.REACTION_TAP_X[1])))
-    out = out.cut(cyl("x", (0, anchor[1], anchor[2]), TAP_R, (-11.3, nk.REACTION_TAP_X[1])))
+    # A passive bar reacts the low rear moving-case motor (#978) at a pin in front of the R rail, beside the canal: the
+    # pin's boss on a strut forward from the rail at the pin's height.
+    _, ay, az = nk.TILT_ANCHOR
+    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
+    t = (az - z0) / (z1 - z0)
+    rail = (-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az)
+    boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
+    out = out.union(strut(rail, (boss[0] + 3.0, ay, az), (3.5, 3), (3, 2.5)))
+    out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
     out = out.union(tie(20.0, 78.5, -65.7))
     for x, fy in nk.CARRIER_FEET:
         out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
@@ -74,36 +74,35 @@ def nod_plate():
     # The tube is integral with the nod carrier: head weight never reaches either servo spline.
     out = out.union(pan_wire_candidate()["spindle"])
     out = out.cut(cyl("z", (0, y, 0), nk.WIRE_R, (nk.NOD_Z[0], nk.PAN_STUDY_Z[1])))
-    # Low rear tilt cradle: actual tab faces, four M2 tapping bores, an upper header clear of the case and rear Skin.
+    # #978: the low rear tilt cradle, the case upright behind the canal: a screw block on each tab's case side, past the
+    # case's ends, the lower on a beam down from the plate's crossbar in front of the case, the upper under a header over
+    # the case's top that joins the rear mast; the mast, beside the case, from the plate's rear arm to the pan cradle.
     sx, sy, sz = nk.TILT_SHAFT
-    tabs = (sx + 10.4, sx + 13.4)
-    front, rear = sy - 13.4, sy + 34.1
-    for fy in (front, rear):
-        out = out.union(box(tabs, (fy - 3.1, fy + 3.1), (sz - 8.1, sz + 22.0)))
-        for fz in (sz - 5, sz + 5):
-            out = out.cut(cyl("x", (0, fy, fz), 0.8, tabs))
-    out = out.union(box((sx + 10.4, sx + 16.9), (front - 3.1, rear + 3.1), (sz + 11.5, sz + 22.0)))
-    out = out.union(box((sx + 10.4, 25.0), (sy - 10.0, sy + 2.0), (sz + 11.5, sz + 22.0)))
-    # Crown pan cradle: a rear dogleg bypasses the entire rotating frame and the electronics tray.
-    mast = [
-        (13.8, y + 2.5, nk.NOD_Z[0] + 2.5),
-        (29.5, 133, -41),  # clears the tilt case's end (x 21.45) and, behind y 126, the frame's plate at pan 45
-        (29.5, 132, 31),
-        (18, 110, 65),
-        (18, nk.PAN_SHAFT[1] + 34.1, nk.PAN_SHAFT[2] + 9.4),
-    ]
-    out = out.union(_flat([tuple(mast[0][:2]), tuple(mast[1][:2])], 15, nk.NOD_Z))
-    for u, v in zip(mast[1:], mast[2:]):
-        out = out.union(strut(u, v, (6.8, 6.8), (6.8, 6.8)))
-    for v in mast[1:]:
-        out = out.union(cq.Workplane().sphere(6.6).translate(v))
-    fore, aft = nk.PAN_SHAFT[1] - 13.4, nk.PAN_SHAFT[1] + 34.1
-    plate = (nk.PAN_SHAFT[2] + 5.4, nk.PAN_SHAFT[2] + 13.4)
-    out = out.union(_flat([(18, fore), (18, aft)], 6.2, plate))
-    for fy in (fore, aft):
-        out = out.union(_flat([(-5, fy), (18, fy)], 6.2, plate))
+    tabs = (sx + 13.4, sx + 15.9)  # envelopes.STANDARD_SERVO's tabs, along the shaft
+    blocks, width = (tabs[1], tabs[1] + 5.0), (sy - 9.85, sy + 9.85)
+    beam = (sy - 23.8, width[0] - 0.3)  # in front of the case
+    top = (sz + 37.6, sz + 44.0)  # over the upper tab's end
+    for fz, zs in ((sz - 13.4, (sz - 16.5, sz - 10.3)), (sz + 34.1, (sz + 31.0, top[1]))):  # the tabs' hole lines
+        out = out.union(box(blocks, (beam[1] - 4.0, width[1]), zs))
+        for fy in (sy - 5, sy + 5):
+            out = out.cut(cyl("x", (0, fy, fz), 0.8, blocks))
+    mast_x, mast_y = (23.0, 29.0), (125.7, 135.3)
+    out = out.union(box((sx + 10.4, 21.5), width, top)).union(box((21.0, mast_x[1]), (mast_y[0], width[1]), top))
+    out = out.union(box((-9.2, blocks[1]), beam, (sz - 13.4, nk.NOD_Z[1])))
+    arm = [(13.8, y + 2.5), (sum(mast_x) / 2, beam[0] + 8.0), (sum(mast_x) / 2, sum(mast_y) / 2)]
+    out = out.union(_flat(arm, 6.0, nk.NOD_Z))
+    out = out.union(_flat([(-4.6, beam[0] + 4.0), (sum(mast_x) / 2, beam[0] + 4.0)], 8.0, nk.NOD_Z))
+    # The pan cradle (#978): a block on each tab's case side past the case's ends, joined by a side bar over the Shields'
+    # sweep to the mast.
+    _, py, pz = nk.PAN_SHAFT
+    lid, bar = (pz + 15.9, pz + 27.0), (pz + 19.0, pz + 27.0)  # from the tabs' face; the side bar over the Shields
+    out = out.union(box((-9.85, 10.5), (py - 37.6, py - 30.7 - 0.3), lid))
+    out = out.union(box((-9.85, 10.5), (py + 10.0 + 0.3, py + 16.9), lid))
+    out = out.union(box((10.15, 20.0), (py - 37.6, py + 16.9), bar)).union(box((19.0, mast_x[1]), mast_y, bar))
+    for fy in (py - 34.1, py + 13.4):  # the tabs' hole lines
         for x in (-5, 5):
-            out = out.cut(cyl("z", (x, fy, 0), 0.8, plate))
+            out = out.cut(cyl("z", (x, fy, 0), 0.8, lid))
+    out = out.union(box(mast_x, mast_y, (nk.NOD_Z[0], lid[1])))
     for xs in ((17.7, 26), (-26, -17.7)):
         out = out.cut(cyl("x", (0, y, z), 8.5, xs))
     for xs in ((13.4, 17.4), (-17.4, -13.4)):  # the trunnions' shank bores, which the mast's flat crosses
@@ -232,8 +231,10 @@ def jaw(mechanical=False):
     points = {}
     for side, border in nk.MANDIBLE_BORDER.items():
         sign = 1 if side == "L" else -1
-        points[side] = [(x - sign * 2.5, y, z + (3 if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)]
-        points[side].append(tuple(np.add(nk.MENTON, (0, 0, 3))))
+        points[side] = [
+            (x - sign * 2.5, y, z + (nk.JAW_CHAIN_UP if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)
+        ]
+        points[side].append(tuple(np.add(nk.MENTON, (0, 0, nk.JAW_CHAIN_UP))))
     out = None
     for chain in points.values():
         for a, b in zip(chain, chain[1:]):
