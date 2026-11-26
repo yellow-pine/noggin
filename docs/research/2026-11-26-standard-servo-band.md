@@ -1,10 +1,10 @@
 # The standard servo's band, frame rate and response (#978)
 
-Researched 2026-11-26. Purpose: the sourced facts behind the standard servo's model in the sim. The next Mech's tilt and
-pan use the MG996R standard metal-gear servo (PR #975's buy list and `docs/research/2026-11-04-standard-tilt-servo.md`
-on that branch). `model/mjcf.py motor()` gives it full torque at 0.5° of error (`kp` = stall / 0.5°), which is
-inferred. With 20 ms command steps that rings the life-size head at about 41 Hz on tilt and 25 Hz on pan, and the hero
-fails its tip-over and face-magnet gates
+Researched 2026-11-26. Purpose: the sourced facts behind the standard servo's model in the sim. The Mech's tilt and
+pan use the MG996R standard metal-gear servo (the buy list in `docs/build/parts.md` and
+`docs/research/2026-11-04-standard-tilt-servo.md`, since #975). When this was written, `model/mjcf.py motor()` gave it
+full torque at 0.5° of error (`kp` = stall / 0.5°), which is inferred. With 20 ms command steps that rang the
+life-size head at about 41 Hz on tilt and 25 Hz on pan, and the hero failed its tip-over and face-magnet gates
 ([#978 comment](https://github.com/yellow-pine/noggin/issues/978#issuecomment-7201463422)). Facts only; no design
 decision.
 
