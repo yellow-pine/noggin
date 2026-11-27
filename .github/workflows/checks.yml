@@ -215,7 +215,8 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.model != 'false' && needs.changes.outputs.parts != 'true' }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    # twice its longest run: 864 s on #1051's merge, every part cut cold (448 s, which grows with the Mech, #1068)
+    timeout-minutes: 30
     permissions:
       contents: read
     container:   # Blender for just ours's bones (model/skeleton, docs/adr/0025)
