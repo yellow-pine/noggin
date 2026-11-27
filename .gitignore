@@ -16,4 +16,3 @@ ci/node_modules/
 web/build/
 mech/build/
 .cache/
-.blender-site/

@@ -1,25 +1,18 @@
-"""In Blender, on the Skeleton scene (docs/adr/0025): the Warp re-run. One thin-plate-spline field (scipy's
-RBFInterpolator) from the Landmarks, written into every bone's Warp shape key; the Sculpt key over it, Cansin's hand
-edits, keeps its deltas through a re-warp. `just rewarp` runs it and saves the scene; scipy comes from the repo's
-gitignored .blender-site (`just blender-site`), never from Blender.app.
+"""In Blender, on the Skeleton scene (docs/adr/0025): the Warp's two ends. `export` writes every bone's Basis (the
+document's frame), its triangles and the Landmarks (each "LM <name>" empty on the Basis's anatomy) to an .npz;
+`apply` reads the fitted vertices back into each Warp key, the Sculpt key over it, Cansin's hand edits, keeping its
+deltas, puts the fit's report on the scene and saves it. model/skeleton/fit.py runs the fit between them (`just
+rewarp`).
 
-A Landmark is an empty "LM <name>" on the anatomy and its target "LM <name> target"; an "LM frame ..." empty with no
-target is a fixed point (source = target), against folds and extrapolation."""
+  blender -b --factory-startup model/skeleton/skeleton.blend -P model/skeleton/rewarp.py -- export|apply <npz> [json]"""
+
+import json
+import sys
 
 import bpy
 import numpy as np
-from scipy.interpolate import RBFInterpolator
 
-LANDMARKS, SKULL = "Landmarks", "Skull"
-
-
-def _pairs():
-    src, dst = [], []
-    for ob in bpy.data.collections[LANDMARKS].all_objects:
-        if not ob.name.endswith(" target"):
-            src.append(ob.matrix_world.translation[:])
-            dst.append(bpy.data.objects.get(ob.name + " target", ob).matrix_world.translation[:])
-    return np.array(src), np.array(dst)
+BONES = "Skull"  # the collection of the bones the Warp moves (the skull's 21 in its child, `skull bones`)
 
 
 def _co(key, n):
@@ -28,38 +21,43 @@ def _co(key, n):
     return out.reshape(n, 3)
 
 
-def min_jacobian(rbf, lo, hi, n=14, h=0.5):
-    """The warp's least Jacobian determinant over an n^3 grid in (lo, hi): <= 0 folds, near 0 collapses."""
-    p = np.stack(np.meshgrid(*[np.linspace(a, b, n) for a, b in zip(lo, hi)], indexing="ij"), -1).reshape(-1, 3)
-    jac = np.empty((len(p), 3, 3))
-    for i in range(3):
-        d = np.zeros(3)
-        d[i] = h
-        jac[:, :, i] = (rbf(p + d) - rbf(p - d)) / (2 * h)
-    return float(np.linalg.det(jac + np.eye(3)).min())
+def bones():
+    return [o for o in bpy.data.collections[BONES].all_objects if o.type == "MESH" and o.data.shape_keys]
 
 
-def rewarp():
-    src, dst = _pairs()
-    rbf = RBFInterpolator(src, dst - src, kernel="thin_plate_spline")
-    lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
-    for ob in bpy.data.collections[SKULL].all_objects:
-        me, n = ob.data, len(ob.data.vertices)
-        keys = me.shape_keys.key_blocks
-        warp, sculpt = keys["Warp"], keys["Sculpt"]
-        delta = _co(sculpt, n) - _co(warp, n)
-        m = np.array(ob.matrix_world)
-        world = _co(keys["Basis"], n) @ m[:3, :3].T + m[:3, 3]
-        lo, hi = np.minimum(lo, world.min(0)), np.maximum(hi, world.max(0))
-        local = (world + rbf(world) - m[:3, 3]) @ np.linalg.inv(m[:3, :3]).T
-        warp.data.foreach_set("co", local.ravel())
-        sculpt.data.foreach_set("co", (local + delta).ravel())
+def export(path):
+    out = {}
+    for o in bones():
+        me, m = o.data, np.array(o.matrix_world)
+        out[f"basis|{o.name}"] = _co(me.shape_keys.key_blocks["Basis"], len(me.vertices)) @ m[:3, :3].T + m[:3, 3]
+        me.calc_loop_triangles()
+        tri = np.empty(len(me.loop_triangles) * 3, np.int32)
+        me.loop_triangles.foreach_get("vertices", tri)
+        out[f"faces|{o.name}"] = tri.reshape(-1, 3)
+    for e in bpy.data.collections["Landmarks"].all_objects:
+        out[f"landmark|{e.name}"] = np.array(e.matrix_world.translation)
+    np.savez(path, **out)
+
+
+def apply(path, report):
+    warped = np.load(path)
+    for o in bones():
+        me, m = o.data, np.array(o.matrix_world)
+        keys, n = me.shape_keys.key_blocks, len(me.vertices)
+        delta = _co(keys["Sculpt"], n) - _co(keys["Warp"], n)
+        local = (warped[o.name] - m[:3, 3]) @ np.linalg.inv(m[:3, :3]).T
+        keys["Warp"].data.foreach_set("co", local.ravel())
+        keys["Sculpt"].data.foreach_set("co", (local + delta).ravel())
         me.update()
-    det, err = min_jacobian(rbf, lo, hi), float(np.abs(src + rbf(src) - dst).max())
-    print(f"rewarp: {len(src)} landmarks, residual {err:.2e} mm, least Jacobian {det:.3f}", flush=True)
-    return det, err
+    bpy.context.scene["warp"] = open(report).read()
+    print("rewarp:", json.loads(bpy.context.scene["warp"]), flush=True)
+    bpy.context.preferences.filepaths.save_version = 0  # no skeleton.blend1 beside it
+    bpy.ops.wm.save_mainfile(compress=True)
 
 
 if __name__ == "__main__":
-    rewarp()
-    bpy.ops.wm.save_mainfile(compress=True)
+    mode, *args = sys.argv[sys.argv.index("--") + 1 :]
+    export(*args) if mode == "export" else apply(*args)
+    print(f"rewarp: {mode} done", flush=True)
+    if not bpy.app.background:  # run with its window open (Cansin watches local Blender runs)
+        bpy.ops.wm.quit_blender()
