@@ -135,6 +135,57 @@ def test_each_lid_servo_keeps_room_from_the_pitch_servo_and_its_horn_from_the_pa
         assert horn.distance(cap) >= gm.BACK_ROOM_MM
 
 
+def _lids_shell(side):
+    """What the hidden lids and their cap will sweep about the `side` eye (#967): the shell gm.LIDS_SHELL through
+    gm.LIDS_SWEEP about the eye line, from the lids' inboard ends out to short of today's lid uprights, which go
+    with today's lids."""
+    eye, (lo, hi) = gm.EYE[side], gm.LIDS_SHELL
+    arc = np.radians(np.linspace(*gm.LIDS_SWEEP, 64))
+    fan = [(0.0, 0.0)] + [(-(hi + 5) * math.cos(t), (hi + 5) * math.sin(t)) for t in arc]
+    # along the eye line, + outboard: from the lids' inboard ends, 58 deg inboard of straight ahead (#967's layout)
+    reach = (-hi * math.sin(math.radians(58.0)), gm.LID_X["upright"][0] - 3.0)
+    x = sorted(eye[0] + (1 if side == "L" else -1) * u for u in reach)
+    wedge = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
+    return gimbal.ball(hi, eye).cut(gimbal.ball(lo, eye)).intersect(wedge).val()
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_the_yaw_drive_leaves_each_eyes_sphere_through_the_belt_behind_it_alone(rest, side):
+    """#967: the tie-bar, over the yaw, and the frame with its yaw bearings share no volume with the shell the hidden
+    lids and their cap will sweep: each finger and each bearing's neck cross it behind the eye, past the stowed lower
+    lid's back edge."""
+    shell = _lids_shell(side)
+    assert rest["gimbal frame:1"].intersect(shell).Volume() < 1e-3
+    for yaw in (-gm.YAW, 0.0, gm.YAW):
+        assert _posed(rest, gm.moved(0.0, 0.0, yaw), "tie-bar:1").intersect(shell).Volume() < 1e-3
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("yaw", [-gm.YAW, 0.0, gm.YAW])
+def test_the_tie_bar_keeps_room_from_the_frame_the_lid_servos_and_the_shut_lower_lids(rest, yaw):
+    """#967: behind the eyes the cross-bar passes in front of the lid servos and their collars and behind the shut
+    lower lids' hoops, and each finger over its yaw bearing's pad: gm.BACK_ROOM_MM from each over the yaw, on the exact
+    solids (more than a collision piece strays)."""
+    moved = gm.moved(float(gm.LID_EDGES[0] - gm.LID_REST), 0.0, yaw)  # the lids shut
+    tie = _posed(rest, moved, "tie-bar:1")
+    assert tie.distance(rest["gimbal frame:1"]) >= gm.BACK_ROOM_MM
+    for s in gm.EYE:
+        assert tie.distance(rest[f"{s} lid servo:1"]) >= gm.BACK_ROOM_MM
+        assert tie.distance(_posed(rest, moved, f"{s} lower lid:1")) >= gm.BACK_ROOM_MM
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+@pytest.mark.parametrize("yaw", [-gm.YAW, 0.0, gm.YAW])
+def test_each_yoke_turns_on_its_post_clear_of_the_rest_of_its_yaw_bearing(rest, side, yaw):
+    """#967: the yoke's bottom bar rides the post; yawed, its crank's head swings over the bearing's pad and beside
+    its web, gm.BACK_ROOM_MM from both."""
+    post = gimbal.cyl("z", (gm.EYE[side][0], 0, 0), gm.POST_R + 0.01, (-99, gm.YAW_CRANK_Z[0] + 0.01)).val()
+    yoke = _posed(rest, gm.moved(0.0, 0.0, yaw), f"{side} yaw yoke:1")
+    assert yoke.distance(rest["gimbal frame:1"].cut(post)) >= gm.BACK_ROOM_MM
+
+
 SAG_DEG = 0.5  # how far past either end of the pan its loaded servo sags, inside its band (#978)
 
 
@@ -190,9 +241,10 @@ def test_the_skeleton_moves_every_part_as_the_gimbal_does(skeleton):
     assert model.njnt == 10
 
 
-# The Bones (#703): the tie-bar's arms from each eye's pin to the yaw horn's, each push-rod from the lever's ball to
-# the bail arm's; (part, its joints, the axial load on one arm: the servo's stall at its horn pin, the bail's ratio on)
-TIE_PINS = [(-gm.EYE["L"][0], gm.CRANK), (gm.EYE["L"][0], gm.CRANK), (0.0, gm.YAW_Y + gm.CRANK)]
+# The tie-bar's pins (x, y, z): each yoke's, under its crank, and the yaw horn's (#967)
+TIE_PINS = [(s * gm.EYE["L"][0], gm.CRANK, sum(gm.FINGER_Z) / 2) for s in (-1, 1)]
+TIE_PINS += [(0.0, gm.YAW_Y + gm.CRANK, sum(gm.TIE_Z) / 2)]
+TIE_BED = np.linalg.inv(gimbal.tie_bed())  # onto the tie-bar's bed, as it prints
 ROD_BALLS = [(0.0, 0.0, gm.LEVER), (0.0, *gm.BAIL_BALL)]
 ROD_BED = np.linalg.inv(gimbal.rod_bed())  # onto the push-rod's bed, as it prints
 # each cup's mouth's way from its ball: the lever's down its bed's normal, the bail's up its neck
@@ -227,8 +279,8 @@ BAR_LOAD, ROD_LOAD = _pitch_loads()
 
 def test_the_tie_bar_keeps_its_three_pin_bores():
     """Each bore takes the M3 shank (PIN_R) through the bar's 3 mm, with wall round it."""
-    tie, z = gimbal.tie_bar().val(), sum(gm.TIE_Z) / 2
-    for x, y in TIE_PINS:
+    tie = gimbal.tie_bar().val()
+    for x, y, z in TIE_PINS:
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             assert not tie.isInside(cq.Vector(x + dx * (gm.PIN_R - 0.05), y + dy * (gm.PIN_R - 0.05), z))
             assert tie.isInside(cq.Vector(x + dx * (gm.PIN_R + 0.5), y + dy * (gm.PIN_R + 0.5), z))
@@ -257,9 +309,11 @@ def test_each_push_rod_cup_closes_on_its_ball_under_the_equator():
 
 
 def test_the_bones_print_as_drawn_with_no_overhang_past_45_deg():
-    """The tie-bar on its underside, its pins along Z; the push-rod on its bed (gimbal.rod_bed: the lever's cup's rim
+    """The tie-bar on its cross-bar's back edge (gimbal.tie_bed, #967: its fingers and its tail rising, its pins'
+    bores across the layers, their crowns excused); the push-rod on its bed (gimbal.rod_bed: the lever's cup's rim
     and the bail's cup's skirt on it; each socket's crown, an exact interface, excused)."""
-    assert bone.overhang_deg(gimbal.tie_bar().val()) <= 45
+    bore = lambda c: all(math.dist((gimbal.tie_bed() @ (*c, 1))[:2], p[:2]) > gm.PIN_R + 0.2 for p in TIE_PINS)  # noqa: E731
+    assert bone.overhang_deg(gimbal.tie_bar().val().moved(gimbal._at(TIE_BED)), keep=bore) <= 45
     crown = lambda c: min(math.dist(gimbal.rod_bed() @ (*c, 1), (*b, 1)) for b in ROD_BALLS) > gm.BALL_R + 0.2  # noqa: E731
     assert bone.overhang_deg(gimbal.push_rod().val().moved(gimbal._at(ROD_BED)), keep=crown) <= 45
 
@@ -276,25 +330,129 @@ def _section(solid, a, b, t, eps=0.01):
     return cut.Volume() / eps, float(np.linalg.eigvalsh(basis @ inertia @ basis.T).min())
 
 
-@pytest.mark.parametrize(
-    "part, a, b, load",
-    [
-        ("tie-bar", (*TIE_PINS[1], gm.TIE_Z[0]), (*TIE_PINS[2], gm.TIE_Z[0]), 1.0),
-        # along its bar, on its bed: the joints at the bar's ends, its span the balls'
-        ("push-rod", (0.0, 0.0, 2.25), (0.0, math.dist(*ROD_BALLS), 2.25), ROD_LOAD),
-    ],
-)
-def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
+def test_the_push_rod_holds_the_pitch_servo_at_stall():
     """SF 2 (beams.MIN_SF) in PETG across its layers along its waist, pinned at both joints: on its strength and against
-    Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809)."""
-    solid = gimbal.tie_bar(mechanical=True).val()
-    if part == "push-rod":
-        solid = gimbal.push_rod(mechanical=True).val().moved(gimbal._at(ROD_BED))
-    mat = g.MATERIALS[g.PRINTED[part][1]]
-    force = beams.stall_force_n() * load
+    Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809). Along its bar, on its
+    bed: the joints at the bar's ends, its span the balls'."""
+    a, b = (0.0, 0.0, 2.25), (0.0, math.dist(*ROD_BALLS), 2.25)
+    solid = gimbal.push_rod(mechanical=True).val().moved(gimbal._at(ROD_BED))
+    mat = g.MATERIALS[g.PRINTED["push-rod"][1]]
+    force = beams.stall_force_n() * ROD_LOAD
     area, least = min(_section(solid, a, b, t) for t in (0.3, 0.4, 0.5, 0.6, 0.7))
     assert mat["tensile_mpa"]["z"] * area / force >= beams.MIN_SF
     assert math.pi**2 * mat["E_mpa"]["z"] * least / math.dist(a, b) ** 2 / force >= beams.MIN_SF
+
+
+def _twisted_sf(solid, at, along, pin):
+    """The SF in PETG across its layers of `solid`'s section at `at`, square to `along` (in the plane across x), with
+    the yaw servo's stall along x at `pin`: von Mises of its bending (about the section's axis across x, its width b
+    along x) and its torsion about `along` (a b x t rectangle, Roark's beta)."""
+    along = np.asarray(along, float) / np.linalg.norm(along)
+    e2 = np.cross(along, (1.0, 0.0, 0.0))
+    plane = cq.Plane(origin=tuple(map(float, at)), xDir=(1, 0, 0), normal=tuple(along))
+    cut = solid.intersect(cq.Workplane(plane).rect(30, 14).extrude(0.005, both=True).val())
+    b = cut.BoundingBox().xlen
+    t = cut.Volume() / 0.01 / b
+    moment = np.cross(np.subtract(pin, at), (beams.stall_force_n(), 0.0, 0.0))
+    bending = abs(float(moment @ e2)) / (t * b**2 / 6)
+    beta = np.interp(b / t, (1.0, 1.5, 2.0, 2.5, 3.0, 4.0), (0.208, 0.231, 0.246, 0.258, 0.267, 0.282))
+    torsion = abs(float(moment @ along)) / (beta * b * t**2)
+    return g.MATERIALS[g.PRINTED["tie-bar"][1]]["tensile_mpa"]["z"] / math.hypot(bending, math.sqrt(3) * torsion)
+
+
+_FINGER_X = gm.EYE["L"][0] + sum(gm.FINGER_X) / 2
+_BACK = (gm.CROSS_Y[1] - 1.5, sum(gm.CROSS_Z) / 2)  # where the tail meets the cross-bar's back edge
+# (where on the tie-bar, the member's way there (y, z), the pin that loads it), each (x, y, z)
+TIE_SECTIONS = {
+    "the finger's rise": (
+        (_FINGER_X, *np.add(gm.FINGER[0], gm.FINGER[1]) / 2),
+        np.subtract(gm.FINGER[1], gm.FINGER[0]),
+        TIE_PINS[1],
+    ),
+    "the finger in the belt": ((_FINGER_X, gm.FINGER[1][0] + 3.0, gm.FINGER[1][1]), (1.0, 0.0), TIE_PINS[1]),
+    "the finger at the cross-bar": ((_FINGER_X, gm.CROSS_Y[0] - 0.5, gm.FINGER[1][1]), (1.0, 0.0), TIE_PINS[1]),
+    "the tail": (
+        (0.0, *np.add(TIE_PINS[2][1:], _BACK) / 2),
+        np.subtract(_BACK, TIE_PINS[2][1:]),
+        TIE_PINS[2],
+    ),
+}
+
+
+@pytest.mark.parametrize("where", TIE_SECTIONS)
+def test_the_tie_bar_holds_the_yaw_servo_at_stall(where):
+    """#967: SF 2 (beams.MIN_SF) with the servo's whole stall on one finger (the other yoke free) and on the tail: each
+    is bent across its width, and the finger is twisted too where it leaves the eye's sphere level, 10 mm over its
+    pin (so it is as thick as the cross-bar there)."""
+    at, way, pin = TIE_SECTIONS[where]
+    assert _twisted_sf(gimbal.tie_bar().val(), at, (0.0, *way), pin) >= beams.MIN_SF
+
+
+def _bent_sf(solid, at, normal, load_at, force):
+    """The SF in PETG across its layers of `solid`'s section through `at`, square to `normal`, with `force` (N, a
+    vector) at `load_at`: its pull and its bending about the section's two principal axes, at the extreme fibres."""
+    normal = np.asarray(normal, float) / np.linalg.norm(normal)
+    e1 = np.cross(normal, (1.0, 0.0, 0.0) if abs(normal[0]) < 0.9 else (0.0, 1.0, 0.0))
+    e1 /= np.linalg.norm(e1)
+    plane = cq.Plane(origin=tuple(map(float, at)), xDir=tuple(e1), normal=tuple(normal))
+    cut = solid.intersect(cq.Workplane(plane).rect(80, 80).extrude(0.005, both=True).val())
+    centre = np.array(cq.Shape.centerOfMass(cut).toTuple())
+    basis = np.array([e1, np.cross(normal, e1)])
+    seconds, axes = np.linalg.eigh(basis @ (np.array(cq.Shape.matrixOfInertia(cut)) / 0.01) @ basis.T)
+    fibres = np.array([v.toTuple() for v in cut.Vertices()]) - centre
+    moment = np.cross(np.subtract(load_at, centre), force)
+    stress = abs(float(np.dot(force, normal))) / (cut.Volume() / 0.01)
+    for second, axis in zip(seconds, axes.T @ basis):
+        stress += abs(float(moment @ axis)) * np.abs(fibres @ np.cross(normal, axis)).max() / second
+    return g.MATERIALS["PETG HF"]["tensile_mpa"]["z"] / stress
+
+
+def _rail_sections():
+    """{where on the L yaw bearing: (a point of the section, its normal)}: upright sections across its pad where the
+    web gives way under the tie-bar's boss, sections along the web, the neck, and the pylon at its knee and its foot."""
+    eye, down = np.array(gm.EYE["L"]), np.array([0.0, 0.0, -1.0])
+    a, phi = math.radians(-gm.RAIL_EXIT[0]), math.radians(gm.RAIL_EXIT[1])
+    way = np.array([math.sin(a), -math.cos(a) * math.cos(phi), math.cos(a) * math.sin(phi)])
+    back = np.cross(np.cross(down, way), down)
+    back /= np.linalg.norm(back)
+    end, tip = math.acos(float(down @ way)), eye + gimbal.RAIL_OUT * way
+
+    def along(deg):
+        return math.cos(math.radians(deg)) * down + math.sin(math.radians(deg)) * back
+
+    neck = math.degrees(end) + gimbal.RAIL_NECK / 2
+    return {
+        **{f"the pad {mm} mm back": (eye + mm * back + (0, 0, -30), back) for mm in (15.0, 17.0, 18.6, 19.3, 21.0)},
+        **{f"the web {deg} deg along": (eye + 32.0 * along(deg), along(deg + 90)) for deg in (10.0, 50.0)},
+        "the neck": (eye + 37.0 * along(neck), along(neck)),
+        "the pylon's knee": ((tip[0], tip[1], gimbal.PYLON_KNEE + 0.1), (0.0, 0.0, 1.0)),
+        "the pylon's foot": ((tip[0], tip[1], gm.PLATE_Z[1] + 0.2), (0.0, 0.0, 1.0)),
+    }
+
+
+RAIL_SECTIONS = _rail_sections()
+_ROD = np.array([0.0, *np.subtract(gm.BAIL_BALL, (0.0, gm.LEVER))])
+# (where the load meets the L eye, the force): the pitch servo's stall down the push-rod with the eye held, at the
+# pitch axle; the yaw servo's with the yoke held, at the crank's level on the yaw axis
+RAIL_LOADS = {
+    "pitch": (gm.EYE["L"], beams.stall_force_n() * ROD_LOAD * _ROD / np.linalg.norm(_ROD)),
+    "yaw": (np.add(gm.EYE["L"], (0.0, 0.0, sum(gm.YAW_CRANK_Z) / 2)), (beams.stall_force_n(), 0.0, 0.0)),
+}
+
+
+@pytest.fixture(scope="module")
+def rail():
+    return gimbal.rail().val()
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("load", RAIL_LOADS)
+@pytest.mark.parametrize("where", RAIL_SECTIONS)
+def test_each_yaw_bearing_holds_the_eyes_servos_at_stall(rail, where, load):
+    """#967: SF 2 (beams.MIN_SF) in bending on the yaw bearing's sections, from its post back to its pylon's foot,
+    with the eye held against the pitch servo's stall and with the yoke held against the yaw servo's: the eye stands
+    on it alone. (A strip of the sphere alone, 1.5 mm thick, read 0.2 there.)"""
+    assert _bent_sf(rail, *RAIL_SECTIONS[where], *RAIL_LOADS[load]) >= beams.MIN_SF
 
 
 # The full pass (#704): the yaw yoke prints as drawn, on its stem and crank (its yaw and crank pins along Z, the pitch
@@ -307,10 +465,10 @@ BAIL_BED = np.linalg.inv(gimbal.bail_bed())  # onto the bail's bed, as it prints
 
 
 def test_the_yoke_keeps_its_bores():
-    """The yaw shank's bore up the stem, the crank's pin bore, and the pitch axle's bore through each arm, each with
-    wall round it."""
+    """The yaw shank's bore through the bottom bar (#967: no stem), the crank's pin bore at that level, and the pitch
+    axle's bore through each arm, each with wall round it."""
     yoke, r = gimbal.yoke().val(), gm.PIN_R
-    z, zc = Y["stem_z"] + 4, sum(gm.YAW_CRANK_Z) / 2
+    z = zc = sum(gm.YAW_CRANK_Z) / 2
     for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
         for x, y, zz in ((0, 0, z), (0, gm.CRANK, zc)):
             assert not yoke.isInside(cq.Vector(x + dx * (r - 0.05), y + dy * (r - 0.05), zz))
@@ -382,9 +540,10 @@ F = beams.stall_force_n()
 ARM_UP = linkage.rotation((1, 0, 0), 90.0 - gimbal.BAIL_ARM_DEG, (0, *gm.BAIL))
 ARM_UP[:3, 3] -= (0, *gm.BAIL)
 ARM_LEVER = math.dist(gm.BAIL, gm.BAIL_BALL)
+_CRANK_Z = sum(gm.YAW_CRANK_Z) / 2
 # (part, how it is turned, a, b, force, its axis, lever) per member: split, so each test holds CI's 15 s (#808)
 MEMBERS = {
-    "crank": (gimbal.yoke, np.eye(4), (0, 0, -25.5), (0, gm.CRANK, -25.5), F, "x", gm.CRANK),
+    "crank": (gimbal.yoke, np.eye(4), (0, 0, _CRANK_Z), (0, gm.CRANK, _CRANK_Z), F, "x", gm.CRANK),
     **{
         f"arm at x {x:+.1f}": (gimbal.bail, ARM_UP, (x, 0, 4), (x, 0, 11), F * ROD_LOAD, "y", ARM_LEVER - 4)
         for x, _, _ in BALLS

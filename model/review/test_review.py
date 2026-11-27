@@ -28,6 +28,23 @@ def test_the_loop_takes_every_horn_to_each_end_of_its_range_and_back_to_rest():
         assert pts[0] == (1, 0.0) and pts[-1] == (review.FRAMES, 0.0)
 
 
+def test_the_loop_moves_the_lower_lids_with_the_blink_and_the_eyes_with_the_pitch():
+    """#967: the review's motion is stages.pose at each key, which left a horn's Rods at rest: no lower lid ever moved
+    in the file, nor an eye up or down. By the blink's shut each lower lid has risen on its link and by the pitch's
+    ends each eye has pitched on its push-rod."""
+    rest = {n: p.matrix for n, p in STAGE.parts.items()}
+    at = dict(review.motion(STAGE, review.keys(STAGE)))
+
+    def turned(frame, name):
+        m = at[frame][name] @ np.linalg.inv(rest[name])
+        return np.degrees(np.arccos(np.clip((np.trace(m[:3, :3]) - 1) / 2, -1, 1)))
+
+    for s in "LR":  # the loop poses the odd frames: one before the blink's shut, one off each of the pitch's ends
+        assert turned(219, f"{s} lower lid:1") > 40 and turned(219, f"{s} lid link:1") > 1
+        for frame in (189, 199):
+            assert turned(frame, f"{s} eyeball cap:1") > 10 and turned(frame, f"{s} push-rod:1") > 1
+
+
 def test_the_bones_ride_their_regions():
     """The skull and mandible in Skull, the atlas and axis in Mechanism, the Torso in Pedestal."""
     region = review.regions()
