@@ -1,8 +1,10 @@
 """In Blender, once (#874, #991): the Basis's slivers turned. BodyParts3D's decimated meshes hold triangles under SLIVER mm
-tall and up to 15 mm long, three vertices nearly in line, which any smooth Warp can fold over: 6 of the skull's did, 2
-of them at the eyes and nose, where model/skeleton/fit.py's gate refuses a fold. Each sliver's longest edge is turned
-onto its quad's other diagonal where that leaves both triangles at least twice as tall and the quad as flat (FLAT). No
-vertex moves, so every shape key stands (checked here). Kept as the record of how, like build.py and bodyparts.py.
+tall and up to 16 mm long, three vertices nearly in line, which any smooth Warp can fold over or shear out of shape: 7
+of the skull's folded in Morty's skin, 2 of them at the eyes and nose, where model/skeleton/fit.py's gate refuses a
+fold. Each sliver's longest edge is turned onto its quad's other diagonal where that leaves both triangles at least
+twice as tall and the quad as flat (FLAT): 2,996 edges, which leaves 1 fold on the skull and none at the eyes and
+nose. No vertex moves, so every shape key stands (checked here). Kept as the record of how, like build.py and
+bodyparts.py.
 
   blender --factory-startup model/skeleton/skeleton.blend -P model/skeleton/slivers.py"""
 
@@ -16,7 +18,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rewarp  # noqa: E402
 
-SLIVER, FLAT = 0.2, 0.9  # a sliver's height, mm; the least cosine between the turned quad's faces and the old ones
+SLIVER, FLAT = 1.5, 0.9  # a sliver's height, mm; the least cosine between the turned quad's faces and the old ones
 
 
 def height(a, b, c):

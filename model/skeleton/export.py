@@ -100,19 +100,22 @@ def swap(job, ratio=None):
         mech.objects.link(x)
         x.hide_set(" morty " in name)  # a Skin's Shells hidden: the Skeleton bare
     openings = collection(OPENINGS, collection("helpers"))
-    for i, ((x, y, z), r) in enumerate(job["orbits"]):  # each orbit opened round its lids, back to REACH
+    for i, ((x, y, z), r, back) in enumerate(job["orbits"]):  # each orbit a ball, cut off at y `back` where given
         bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=48, ring_count=24, location=(x, y, z))
         s = bpy.context.active_object
         s.name = f"orbit {i}"
-        reach = _box("reach", (x - r, y - r, z - r), (x + r, job["reach"], z + r), openings)
-        cut = s.modifiers.new("Reach", "BOOLEAN")
-        cut.operation, cut.object = "INTERSECT", reach
-        with bpy.context.temp_override(object=s):
-            bpy.ops.object.modifier_apply(modifier=cut.name)
-        bpy.data.objects.remove(reach)
+        if back is not None:
+            reach = _box("reach", (x - r, y - r, z - r), (x + r, back, z + r), openings)
+            cut = s.modifiers.new("Reach", "BOOLEAN")
+            cut.operation, cut.object = "INTERSECT", reach
+            with bpy.context.temp_override(object=s):
+                bpy.ops.object.modifier_apply(modifier=cut.name)
+            bpy.data.objects.remove(reach)
         for c in list(s.users_collection):
             c.objects.unlink(s)
         openings.objects.link(s)
+    for i, (lo, hi) in enumerate(job["belts"]):
+        _box(f"belt {i}", lo, hi, openings)
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True

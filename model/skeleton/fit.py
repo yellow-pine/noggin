@@ -35,22 +35,23 @@ C0_BELOW = (
 # a Warp's vertex under Morty's skin, at least: the limit and half the Finish's voxel, which its remesh can grow a
 # bone by (model/skeleton PITCH); AIM: the solve's margin inside it, so the check passes
 RAW, AIM = envelope.ROOM + 0.4, 0.5
-# the eyes-and-nose gate (#991), from the fit measured on 2026-11-27: within FACE_R of each orbit's centre and the
-# nasal aperture's middle no triangle may fold; a sound one (its longest edge at most SOUND heights, 98% of them)
-# shears at most SHEAR_MAX (measured 1.72; the budget's own 1.25 / 0.75 at a point is 1.67), a slenderer one shearing
-# with the field's bend along it, whatever the Warp (measured up to 5.1); the Jacobian stays over JACOBIAN_MIN
-FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 1.8, 0.5
-# the cranium's outer side (the vault's bones, where a vertex's normal points away from MIDDLE on the Basis) drawn
+# the eyes-and-nose gate (#991), from the fit measured in Morty's skin on 2026-11-27: within FACE_R of each orbit's
+# centre and the nasal aperture's middle no triangle may fold; a sound one (its longest edge at most SOUND heights)
+# shears at most SHEAR_MAX (measured 2.09 on a frontal triangle 12 mm long; the budget's own bound at a point is 1.25 /
+# 0.75 = 1.67, 2.0 in the growth zone), a slenderer one shearing with the field's bend along it, whatever the Warp; the
+# Jacobian stays over JACOBIAN_MIN (measured 0.61)
+FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.2, 0.5
+# the cranium's outer side (the vault's bones' farthest vertices from MIDDLE on the Basis, outer()) drawn
 # out to RAW under Morty's skin, FILL its pull's weight (on the rows' mean square gap): the vault closes over the mechanism,
 # which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes
 # down toward his nape and under-jaw, each vertex of it under BASE_Z at least CLEAR_MM off what moves under it: the
 # vertebrae over the tilt's and the pan's ranges
 FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
-VAULT = (*sorted(budget.CRANIAL), "frontal bone")
+VAULT, VAULT_EL = (*sorted(budget.CRANIAL), "frontal bone"), -20.0  # its bones; degrees up from MIDDLE
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
-# the regions' uniform resize (the neck's: neck_scale()): life-size, which Morty's crown and back hold as they are
-SCALES = {"skull": 1.0, "mandible": 1.0}
+# the regions' uniform resize (the neck's: neck_scale()): the skull's back and crown then stand at Morty's own
+SCALES = {"skull": 1.05, "mandible": 1.0}
 
 
 def lattice(points, lo, shape):
@@ -274,9 +275,10 @@ def _region(f, caps, hit, pairs):
     }
 
 
-def outer(x, step=3.0, skin=3.0):
-    """Which of the skull's vertices `x` lie on its outer side: within `skin` mm of the farthest one from the cranium's
-    MIDDLE in their direction (`step` degrees a bin)."""
+def outer(x, caps, step=3.0, skin=3.0):
+    """Which of the skull's vertices `x` lie on its outer side, where Morty's skin is to be reached: within `skin` mm
+    of the farthest one from the cranium's MIDDLE in their direction (`step` degrees a bin), over the skull base
+    (VAULT_EL up from MIDDLE) or on the growth zone's under side (`caps` over halfway to its 1.5)."""
     v = x - MIDDLE
     r = np.linalg.norm(v, axis=1)
     az, el = np.degrees(np.arctan2(v[:, 0], v[:, 1])), np.degrees(np.arcsin(v[:, 2] / r))
@@ -284,7 +286,7 @@ def outer(x, step=3.0, skin=3.0):
     _, at = np.unique(bins, return_inverse=True)
     far = np.zeros(at.max() + 1)
     np.maximum.at(far, at, r)
-    return r > far[at] - skin
+    return (r > far[at] - skin) & ((el > VAULT_EL) | (caps > 1.375))
 
 
 def warp(basis, faces, landmarks, skin):
@@ -306,7 +308,7 @@ def warp(basis, faces, landmarks, skin):
     caps = np.concatenate([budget.caps(n, basis[n], ref) for n in skull])
     sizes = [len(basis[n]) for n in skull]
     tris = np.vstack([faces[n] + at for n, at in zip(skull, np.cumsum([0, *sizes[:-1]]))])
-    fill = np.flatnonzero(outer(x) & np.concatenate([np.full(len(basis[n]), n in VAULT) for n in skull]))
+    fill = np.flatnonzero(outer(x, caps) & np.concatenate([np.full(len(basis[n]), n in VAULT) for n in skull]))
     # the skull base: its growth zone's under side stays clear of the neck as the head moves
     zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
     moving = cKDTree(np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES]))

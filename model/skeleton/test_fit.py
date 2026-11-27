@@ -117,7 +117,7 @@ def test_the_eyes_and_nose_gate_refuses_a_fold_a_shear_and_a_collapse():
     with pytest.raises(ValueError, match="folded"):
         fit.gate(v, folded, faces, one, [np.zeros(3)])
     with pytest.raises(ValueError, match="sheared"):
-        fit.gate(v, v * (2, 1, 1), faces, one, [np.zeros(3)])
+        fit.gate(v, v * (3, 1, 1), faces, one, [np.zeros(3)])
     with pytest.raises(ValueError, match="Jacobian"):
         fit.gate(v, v, faces, one * (fit.JACOBIAN_MIN - 0.01), [np.zeros(3)])
 
