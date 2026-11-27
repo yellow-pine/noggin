@@ -247,9 +247,8 @@ def _hair(grow, skin="morty"):
         for s in (-1, 1):
             out = out.cut(ball(tr - grow, (s * x, ty, tz)))
         # the face round each brow too: since #992 the sheet's hairline comes down the forehead to their tops (#1018)
-        (x0, x1), (z0, z1), c = *BROW, BROW_CLEAR - grow
-        for s in (-1, 1):
-            out = out.cut(box(sorted((s * (x0 - c), s * (x1 + c))), (-200, 0), (z0 - c, z1 + c)))
+        for s in "LR":
+            out = out.cut(_brow_span(s, BROW_CLEAR - grow))
     return out
 
 
@@ -371,16 +370,17 @@ def mouth_cover(skin="morty"):
 SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
 SHIRT_TOP = 6.0  # the collar's rise over the shirt's top, round the neck
 SHIRT_ROUND = (10.0, 3.0, 25.0)  # his T-shirt's rounding: its sides, its shoulders, and the crew neck's corners
-# the collar's back open this far each side of the middle, down to the shoulders: C7's spinous process (BodyParts3D's,
-# #976) reaches back through it over the Torso's wall, within 5.5 mm of the middle (inferred: read off the finished
-# bone, which is carved after the Shells; model/printed/test_skin.py holds the room)
-C7_SLOT = 7.5
+# the collar's back open this far each side of the middle (its slot's half-width), down to the shoulders: C7's spinous
+# process (BodyParts3D's, #976) reaches back through it over the Torso's wall, within 5.5 mm of the middle, so with
+# 2 mm round it (inferred: read off the finished bone, which is carved after the Shells; model/printed/test_skin.py
+# holds the room)
+SHIRT_C7 = 7.5
 
 
 def shirt(skin, half):
     """The shirt's `half` (front, back) (shirt and collar), his T-shirt: a sleeve round the Torso GAP outside its Seats'
     pads, its sides and shoulders rounded, a rim over its walls' top and the round crew neck's collar rising round the
-    neck, open at its back round C7 (C7_SLOT); each half off its Torso wall's Seats, the front forward, the back
+    neck, open at its back round C7 (SHIRT_C7); each half off its Torso wall's Seats, the front forward, the back
     backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     sides, shoulders, neck = SHIRT_ROUND
@@ -400,7 +400,7 @@ def shirt(skin, half):
         (z1 + 0.5, z1 + 0.5 + sk.WALL + SHIRT_TOP),  # clear of the Torso's lid (#838)
     )
     collar = collar.edges("|Z").fillet(neck + sk.WALL).edges(">Z").fillet(sk.WALL / 2)
-    collar = collar.cut(box((-C7_SLOT, C7_SLOT), (y1 - 5.0, y1 + 5.0), (z1 + 0.5 + sk.WALL, z1 + 30)))
+    collar = collar.cut(box((-SHIRT_C7, SHIRT_C7), (y1 - 5.0, y1 + 5.0), (z1 + 0.5 + sk.WALL, z1 + 30)))
     out = outer.cut(inner).union(collar).cut(hole)
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)
     out = out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30)))
@@ -440,14 +440,17 @@ def _dot(side, grow=0.0):
     return cyl("y", (x, 0, 0), r + grow, (-gm.CAP_R - 1.0, -gm.CAP_R + deep + grow))
 
 
+def _brow_span(side, grow=0.0):
+    """All ahead of the eyes within Cansin's `side` brow's span (BROW), `grow` mm larger round."""
+    (x0, x1), (z0, z1) = BROW
+    s = 1 if side == "L" else -1
+    return box(sorted((s * (x0 - grow), s * (x1 + grow))), (-200, 0), (z0 - grow, z1 + grow))
+
+
 def _brow(side, grow=0.0, sunk=BROW_SUNK):
     """Cansin's `side` brow over its eye (BROW), `grow` mm larger round, from `sunk` mm into the face out to
     BROW_PROUD proud of it, in the head's frame."""
-    (x0, x1), (z0, z1) = BROW
-    s = 1 if side == "L" else -1
-    xs = sorted((s * (x0 - grow), s * (x1 + grow)))
-    region = box(xs, (-200, 0), (z0 - grow, z1 + grow)).intersect(_head(-BROW_PROUD))
-    return region.cut(_head(sunk))
+    return _brow_span(side, grow).intersect(_head(-BROW_PROUD)).cut(_head(sunk))
 
 
 def brow(side):
