@@ -10,7 +10,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import morty, review, skin, stages
+from model import morty, skin, stages
 from model.morty import shells
 
 pytestmark = pytest.mark.model
@@ -112,8 +112,9 @@ def test_the_skin_stands_on_the_base_plane_with_no_floor(built):
 
 
 def test_each_shell_fits_the_bed_whole(built):
+    """#850: each prints in one piece on a 256 mm bed, 6 mm clear of its edges, as it stands in the head's frame."""
     for name, mesh in built.items():
-        assert (mesh.bounds[1] - mesh.bounds[0]).max() <= review.BED - 2 * review.GAP, name
+        assert (mesh.bounds[1] - mesh.bounds[0]).max() <= 256.0 - 2 * 6.0, name
 
 
 def test_the_shells_are_cut_where_the_cuts_are(built):
