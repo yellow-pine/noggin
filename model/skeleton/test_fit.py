@@ -1,22 +1,47 @@
 """Seam: model/skeleton/fit.py's numbers, on shapes small enough to solve in a test: the field lands its landmarks
-within the budget, refuses a stretch past it, and finds a vertebra's canal."""
+within the budget and under a skin, refuses a stretch past it, and finds a vertebra's canal."""
 
 import numpy as np
 import pytest
 import trimesh
 
-from model.skeleton import fit
+from model.skeleton import envelope, fit
 
 
-def test_the_field_lands_its_landmarks_inside_the_budget_and_its_box():
-    x = trimesh.creation.box(extents=(40, 40, 40)).subdivide().subdivide().vertices
+def _box():
+    return trimesh.creation.box(extents=(40, 40, 40)).subdivide().subdivide().vertices
+
+
+def test_the_field_lands_its_landmarks_inside_the_budget():
+    x = _box()
     pairs = [((20, 20, 20), (26, 24, 20), (1, 1, 1)), ((-20, -20, -20), (-20, -20, -20), (1, 1, 1))]
-    box = (np.full(3, -30.0), np.array((30.0, 30.0, 25.0)))
-    y, f, hit = fit.solve(x, np.full(len(x), 1.25), pairs, 1.0, box, ((2, 25.0, 1),))
+    _, f, hit = fit.solve(x, np.full(len(x), 1.25), pairs, 1.0)
     assert np.abs(hit - [p[1] for p in pairs]).max() <= fit.TOL_MM
     lo, hi = fit.stretch(f, np.full(len(x), 1.25))
     assert lo.min() >= fit.LOW and hi.max() <= 1.25
-    assert (y.max(0) <= box[1] + 0.5).all() and y[:, 2].max() == pytest.approx(25.0, abs=0.5)
+
+
+def test_the_field_brings_its_region_under_a_skin():
+    """A 40 mm box in a 33 mm ball, its corners 1.6 mm out of it: fitted, every vertex RAW under the ball."""
+    x, ball = _box(), envelope.Skin(trimesh.creation.icosphere(subdivisions=4, radius=33.0))
+    assert ball.depth(x).min() < -1.5
+    pairs = [((0, 0, s * 20), (0, 0, s * 20), (1, 1, 1)) for s in (-1, 1)]
+    y, f, _ = fit.solve(x, np.full(len(x), 1.25), pairs, 1.0, ball)
+    fit.stretch(f, np.full(len(x), 1.25))
+    assert ball.depth(y).min() >= fit.RAW
+
+
+def test_a_fill_draws_its_rows_out_to_the_skin_inside_the_budget():
+    """A 40 mm box in a 40 mm ball, its bottom's corners pinned, its top filled: the top comes up at least 4 mm, never
+    past RAW under the ball, every local length inside the budget (fit.stretch raises otherwise); unfilled, it stays."""
+    x, ball = _box(), envelope.Skin(trimesh.creation.icosphere(subdivisions=4, radius=40.0))
+    pairs = [((sx * 20, sy * 20, -20), (sx * 20, sy * 20, -20), (1, 1, 1)) for sx in (-1, 1) for sy in (-1, 1)]
+    rows, caps = np.flatnonzero(x[:, 2] > 19), np.full(len(x), 1.25)
+    y, f, _ = fit.solve(x, caps, pairs, 1.0, ball, rows)
+    fit.stretch(f, caps)
+    assert y[rows, 2].max() >= 24.0 and ball.depth(y).min() >= fit.RAW
+    still, _, _ = fit.solve(x, caps, pairs, 1.0, ball)
+    assert np.abs(still - x).max() < 0.01
 
 
 def test_a_stretch_past_the_budget_is_refused():
@@ -33,25 +58,26 @@ def test_the_canal_path_runs_from_its_foot_to_the_tilt_axis():
     assert fit.canal_y(-146.0) == pytest.approx(91.6) and fit.canal_y(-48.7) == pytest.approx(76.6)
 
 
-def test_the_neck_keeps_its_canals_on_the_path_and_its_spines_in_front_of_the_skins_back():
-    """Seven rings, their spines longer down the neck as C1 to C7's are, the lowest three past the Skin's neck back
-    before the fit: fitted, every canal on the cervical path, C1's round the pan axis, every vertex ROOM in front of
-    the back and over the path's foot, within the budget, each spine still a spine."""
+def test_the_neck_keeps_its_canals_on_the_path_and_its_spines_under_the_skin():
+    """Seven rings, their spines longer down the neck as C1 to C7's are, the lowest two past the skin's back (a box's
+    wall at y 123) before the fit: fitted, every canal on the cervical path, C1's round the pan axis, every vertex RAW
+    under the skin and over the path's foot, within the budget, each spine still a spine."""
     ring = trimesh.creation.annulus(r_min=8, r_max=14, height=12).subdivide()
     basis, faces = {}, {}
     for i, n in enumerate(fit.NECK):
         spine = trimesh.creation.box(extents=(6, 6 + 3 * i, 6)).subdivide().subdivide()
         one = trimesh.util.concatenate([ring, spine.apply_translation((0, 17 + 1.5 * i, 0))])
         basis[n], faces[n] = one.vertices + (0, 0, -14.0 * i), one.faces
-    out, report = fit.vertebrae(basis, faces)
+    skin = envelope.Skin(trimesh.creation.box(bounds=((-60, 20, -190), (60, 123, 0))))
+    out, report = fit.vertebrae(basis, faces, skin)
     for n in fit.NECK:
         y = out[n]
         z = (y[:, 2].min() + y[:, 2].max()) / 2
         mid = fit.canal(trimesh.Trimesh(y, faces[n], process=False))
         assert mid == pytest.approx((0, fit.PAN[1] if n == "atlas" else fit.canal_y(z)), abs=1.0)
-        assert (fit.back(y) - y[:, 1]).min() >= fit.ROOM and y[:, 2].min() >= -146.5
+        assert skin.depth(y).min() >= fit.RAW and y[:, 2].min() >= -146.5
     assert out["c7"][:, 1].max() > fit.canal_y(out["c7"][:, 2].mean()) + 25
-    assert fit.LOW <= report["stretch"][0] and report["stretch"][1] <= 1.25 and report["skin_back_mm"] >= fit.ROOM
+    assert fit.LOW <= report["stretch"][0] and report["stretch"][1] <= 1.25 and report["skin_mm"] >= fit.RAW
 
 
 def test_a_triangles_shear_is_its_greatest_over_its_least_length_factor():
@@ -106,24 +132,10 @@ def test_the_gate_reads_no_shear_off_a_sliver():
         fit.gate(v, w, np.array(((0, 1, 2),)), np.ones(3), [np.array((15.0, 0, 0))])
 
 
-def test_a_guide_draws_its_vertices_down_inside_the_budget():
-    """A 40 mm box, its top's corners pinned, its bottom guided 20 mm down: it comes down at least 4 mm, never past its
-    floor, every local length inside the budget (fit.stretch raises otherwise); unguided, it stays."""
-    x = trimesh.creation.box(extents=(40, 40, 40)).subdivide().subdivide().vertices
-    pairs = [((sx * 20, sy * 20, 20), (sx * 20, sy * 20, 20), (1, 1, 1)) for sx in (-1, 1) for sy in (-1, 1)]
-    rows = np.flatnonzero(x[:, 2] < -19)
-    caps, box = np.full(len(x), 1.25), (np.full(3, -100.0), np.full(3, 100.0))
-    y, f, _ = fit.solve(x, caps, pairs, 1.0, box, guide=(rows, np.full(len(rows), -40.0)))
-    fit.stretch(f, caps)
-    assert -40.0 <= y[rows, 2].min() and y[rows, 2].max() <= -24.0
-    still, _, _ = fit.solve(x, caps, pairs, 1.0, box)
-    assert np.abs(still - x).max() < 0.01
-
-
-def test_a_floor_stands_clear_over_what_moves_under_a_point_and_at_the_heads_bottom_elsewhere():
+def test_a_floor_stands_clear_over_what_moves_under_a_point_and_nowhere_else():
     obstacles = np.array(((0, 0, -70.0), (1, 0, -72.0), (0, 0, -20.0), (50, 50, -60.0)))
     points = np.array(((0, 0, -50.0), (20, 0, -50.0), (50, 51, -80.0)))  # over two, beside them, under the last
-    assert fit.floors(points, obstacles) == pytest.approx((-70 + fit.CLEAR_MM + fit.AIM, fit.LO[2], fit.LO[2]))
+    assert fit.floors(points, obstacles).tolist() == [-70 + fit.CLEAR_MM + fit.AIM, -np.inf, -np.inf]
 
 
 def test_the_head_sees_the_neck_turn_back_as_it_tilts_and_pans():

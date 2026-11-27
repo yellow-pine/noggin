@@ -1,24 +1,25 @@
-"""The Warp (docs/adr/0025, #874): BodyParts3D's original Basis fitted to the Mech, in the head's frame (mm, the eyes'
-middle at the origin). Each region (the skull, the mandible, the neck) is resized uniformly about the eyes' middle and
-placed, then the skull and the mandible each take one smooth field, a cubic B-spline lattice (LATTICE mm), solved so
-the functional landmarks land on the Mech: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
-condyles on the tilt axis, the skull's box on the compact head's (LO, HI). Its local length factors, the singular
-values of the field's Jacobian at every vertex, stay within the confirmed budget (budget.py) or the fit raises. The
-neck's seven vertebrae are only resized and moved, each canal onto the cervical canal's path, C1's round the pan axis.
+"""The Warp (docs/adr/0025, #874): BodyParts3D's original Basis fitted to the Mech inside Morty's skin, in the head's
+frame (mm, the eyes' middle at the origin). Each region (the skull, the mandible, the neck) is resized uniformly about
+the eyes' middle and placed, then takes one smooth field, a cubic B-spline lattice (LATTICE mm), solved so the
+functional landmarks land on the Mech (the orbits on the eyes, the condyles on the jaw's hinge, the occipital condyles
+on the tilt axis, each vertebra's canal on the cervical canal's path, C1's round the pan axis) and every vertex lies
+RAW under Morty's skin (envelope.py: the sculpt's surface, the bones' limit since 2026-11-27). The cranium's outer
+side is drawn out to that limit, softly, so the vault closes over the mechanism and the skull base comes down toward
+his nape. Its local length factors, the singular values of the field's Jacobian at every vertex, stay within the
+confirmed budget (budget.py) or the fit raises.
 
-rewarp.py hands Blender's Basis over and writes the Warp back: `warp(basis, faces, landmarks)`."""
+rewarp.py hands Blender's Basis over and writes the Warp back: `warp(basis, faces, landmarks, skin)`."""
 
 import numpy as np
 import scipy.sparse as sp
 import trimesh
 from scipy import ndimage
-from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import minimize
 from scipy.spatial import cKDTree
 
 from model import geometry as g
-from model import gimbal, neck, skin
-from model.skeleton import budget
+from model import gimbal, neck
+from model.skeleton import budget, envelope
 
 LATTICE = 20.0  # the field's control spacing, mm
 LOW, MARGIN = 0.75, 0.01  # the compression floor; the solve's margin inside every bound, so the check passes
@@ -29,32 +30,25 @@ TILT, HINGE, PAN = (neck.HEAD_AXES[k][0] for k in ("tilt", "jaw", "pan"))
 C0_BELOW = (
     3.0  # the occipital condyles' lowest points under the tilt axis, which runs through their curvature (inferred)
 )
-# the box the skull fills (the head's frame): the compact head's (gimbal.HEAD_MM) round #975's mechanism, its eyes 0.54
-# up it; the finished bones' own box is base.DOME
-LO, HI = np.array(((-80.0, -41.0, -93.5), (80.0, 134.9, 80.0)))
+# a Warp's vertex under Morty's skin, at least: the limit and half the Finish's voxel, which its remesh can grow a
+# bone by (model/skeleton PITCH); AIM: the solve's margin inside it, so the check passes
+RAW, AIM = envelope.ROOM + 0.4, 0.5
 # the eyes-and-nose gate (#991), from the fit measured on 2026-11-27: within FACE_R of each orbit's centre and the
 # nasal aperture's middle no triangle may fold; a sound one (its longest edge at most SOUND heights, 98% of them)
 # shears at most SHEAR_MAX (measured 1.72; the budget's own 1.25 / 0.75 at a point is 1.67), a slenderer one shearing
 # with the field's bend along it, whatever the Warp (measured up to 5.1); the Jacobian stays over JACOBIAN_MIN
 FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 1.8, 0.5
-# the skull-base guides (#991): the cranial growth zone's under side (budget.caps over halfway to its 1.5, under BASE_Z)
-# drawn down toward the head's bottom (LO), which the Skin's nape and under-jaw lie past (z -100 at y 129 and -110
-# at y 3 on the private reference, our measure, inferred), each vertex no lower than CLEAR_MM over what moves under it:
-# the vertebrae over the tilt's and the pan's ranges. GUIDE: the pull's weight against the budget's
-GUIDE, BASE_Z, CLEAR_MM = 0.02, TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
+# the cranium's outer side (the vault's bones, where a vertex's normal points away from MIDDLE on the Basis) drawn
+# out to RAW under Morty's skin, FILL its pull's weight against the budget's: the vault closes over the mechanism,
+# which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes
+# down toward his nape and under-jaw, each vertex of it under BASE_Z no lower than CLEAR_MM over what moves under it:
+# the vertebrae over the tilt's and the pan's ranges
+FILL, MIDDLE, BASE_Z, CLEAR_MM = 0.02, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
+VAULT = (*sorted(budget.CRANIAL), "frontal bone")
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
-SCALES = {"skull": 1.05, "mandible": 0.95}  # the regions' uniform resize (the neck's: neck_scale())
-# the Skin's neck back, the head's frame: its y (BACK_Y) at |x| (BACK_X) and z (BACK_Z), our own coarse measure of the
-# private Morty reference (docs/adr/0025: a coarse hull of our own, inferred), from his nape down to his shoulders; a
-# vertebra stays ROOM in front of it: the Skin's wall and the clearance behind it
-BACK_X, BACK_Z = (0.0, 20.0, 40.0), (-150.0, -140.0, -130.0, -120.0, -110.0, -100.0, -90.0)
-BACK_Y = (
-    (126.7, 125.4, 122.9, 118.0, 114.7, 128.9, 140.6),
-    (124.9, 123.6, 121.6, 117.6, 111.8, 126.8, 138.6),
-    (119.1, 118.9, 117.5, 114.6, 108.9, 117.1, 132.8),
-)
-ROOM, AIM = skin.WALL + CLEAR_MM, 1.0  # the solve's margin inside it, so the check passes
+# the regions' uniform resize (the neck's: neck_scale()): life-size, which Morty's crown and back hold as they are
+SCALES = {"skull": 1.0, "mandible": 1.0}
 
 
 def lattice(points, lo, shape):
@@ -78,10 +72,10 @@ def lattice(points, lo, shape):
     return [sp.csr_matrix((np.concatenate(v), (r, c)), shape=(len(points), n)) for v in vals]
 
 
-def solve(x, caps, pairs, scale, box, reach=(), guide=None):
+def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
-    weight); `box` (lo, hi): the warped region inside it; `reach`: (axis, bound, +1 its max or -1 its min) to touch;
-    `guide` (rows, floors): those vertices drawn down toward their floors (z), softly: the budget and the pairs win.
+    weight); `skin` (envelope.Skin): every warped vertex RAW under it; `fill`: the rows drawn out to that limit,
+    softly: the budget and the pairs win; `lo`: the warped region's lower bound, one or a vertex each (n, 3).
     Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
     lo = x.min(0) - LATTICE
     shape = np.ceil((x.max(0) + LATTICE - lo) / LATTICE).astype(int) + 3
@@ -104,19 +98,18 @@ def solve(x, caps, pairs, scale, box, reach=(), guide=None):
         r = (scale * (P + Bp @ d) - T) * W
         e += 10 * (r * r).sum()
         gd += 20 * scale * (Bp.T @ (r * W))
-        gy = np.zeros_like(y)
-        for sign, bound in ((1, box[1]), (-1, box[0])):
-            v = np.maximum(sign * (y - bound), 0)
+        v = np.maximum(lo - y, 0)
+        e += 10 * (v * v).sum()
+        gy = -20 * v
+        if skin:
+            depth, inward = skin.depth(y), skin.inward(y, 1e-3)
+            v = np.maximum(RAW + AIM - depth, 0)
             e += 10 * (v * v).sum()
-            gy += 20 * sign * v
-        for axis, bound, sign in reach:
-            j = np.argmax(sign * y[:, axis])
-            e += 10 * (y[j, axis] - bound) ** 2
-            gy[j, axis] += 20 * (y[j, axis] - bound)
-        if guide:
-            v = np.maximum(y[guide[0], 2] - guide[1], 0)
-            e += GUIDE * (v * v).sum()
-            gy[guide[0], 2] += 2 * GUIDE * v
+            gy -= 20 * v[:, None] * inward
+            if fill is not None:
+                v = np.maximum(depth[fill] - RAW - AIM, 0)
+                e += FILL * (v * v).sum()
+                gy[fill] += 2 * FILL * v[:, None] * inward[fill]
         gd += scale * (B[0].T @ gy)
         return e + 1e-3 * (z @ z), (gd + 2e-3 * d).ravel()
 
@@ -199,10 +192,10 @@ def seen(points, tilt, pan):
 
 def floors(points, obstacles, reach=CLEAR_MM + 2.0):
     """Each point's floor: CLEAR_MM and the solve's AIM over the top of the `obstacles` under it (within `reach` in
-    plan), the head's bottom (LO) where nothing is."""
+    plan), none (-inf) where nothing is."""
     near = cKDTree(obstacles[:, :2]).query_ball_point(points[:, :2], reach)
     tops = [obstacles[i, 2][obstacles[i, 2] < p[2]].max(initial=-np.inf) for i, p in zip(near, points)]
-    return np.maximum(np.array(tops) + CLEAR_MM + AIM, LO[2])
+    return np.array(tops) + CLEAR_MM + AIM
 
 
 def canal(mesh, b=0.5):
@@ -240,16 +233,10 @@ def neck_scale(basis):
     return round((TILT[2] - C0_BELOW - 0.5 - neck.CERVICAL_PATH[2][1]) / span, 3)
 
 
-def back(p):
-    """The Skin's neck back behind each point of `p` (n, 3): its y (BACK_Y), level past the measure's ends."""
-    at = np.stack([np.clip(np.abs(p[:, 0]), BACK_X[0], BACK_X[-1]), np.clip(p[:, 2], BACK_Z[0], BACK_Z[-1])], 1)
-    return RegularGridInterpolator((BACK_X, BACK_Z), BACK_Y)(at)
-
-
-def vertebrae(basis, faces):
+def vertebrae(basis, faces, skin):
     """({vertebra: fitted vertices}, the report): C1 to C7 resized uniformly about C1's top, under the occipital
     condyles, each canal onto the path, C1's round the pan axis; then one field over them all that brings every spine
-    ROOM in front of the Skin's neck back, each canal and each body's front staying where they stand."""
+    RAW under `skin` (Morty's neck and shoulders), each canal and each body's front staying where they stand."""
     s, top = neck_scale(basis), basis[NECK[0]][:, 2].max()
     placed, pairs = [], []
     for n in NECK:
@@ -261,15 +248,18 @@ def vertebrae(basis, faces):
         front = placed[-1][placed[-1][:, 1].argmin()]
         pairs += [(at, at, (1, 1, 1)), (front, front, (1, 1, 1))]
     x = np.vstack(placed)
-    hi = np.full_like(x, np.inf)
-    hi[:, 1] = back(x) - ROOM - AIM
     caps = np.full(len(x), 1.25)
-    y, f, hit = solve(x, caps, pairs, 1.0, ((-np.inf, -np.inf, neck.CERVICAL_PATH[2][1]), hi))  # over the path's foot
-    room = float((back(y) - y[:, 1]).min())
-    if room < ROOM:
-        raise ValueError(f"the neck comes within {room:.2f} mm of the Skin's back, less than {ROOM}")
-    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_back_mm": round(room, 2)}
+    y, f, hit = solve(x, caps, pairs, 1.0, skin, lo=(-np.inf, -np.inf, neck.CERVICAL_PATH[2][1]))  # the path's foot
+    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_mm": _under(skin, y)}
     return dict(zip(NECK, np.split(y, np.cumsum([len(v) for v in placed])[:-1]))), report
+
+
+def _under(skin, y):
+    """The warped vertices' least depth under the skin; raises under RAW."""
+    least = float(skin.depth(y).min())
+    if least < RAW:
+        raise ValueError(f"a vertex lies {least:.2f} mm under Morty's skin, less than {RAW}")
+    return round(least, 2)
 
 
 def _region(f, caps, hit, pairs):
@@ -285,9 +275,15 @@ def _region(f, caps, hit, pairs):
     }
 
 
-def warp(basis, faces, landmarks):
-    """({bone: warped vertices}, the report) from {bone: Basis vertices}, {bone: triangles} and the Basis's landmarks
-    {name: point} (the scene's LM empties), all in the head's frame."""
+def outer(v, faces):
+    """Which of a bone's vertices face away from the cranium's MIDDLE: its outer side."""
+    out = v - MIDDLE
+    return (trimesh.Trimesh(v, faces, process=False).vertex_normals * out).sum(1) > 0.3 * np.linalg.norm(out, axis=1)
+
+
+def warp(basis, faces, landmarks, skin):
+    """({bone: warped vertices}, the report) from {bone: Basis vertices}, {bone: triangles}, the Basis's landmarks
+    {name: point} (the scene's LM empties) and Morty's `skin` (envelope.Skin), all in the head's frame."""
     lm = {k.removeprefix("LM "): np.asarray(v, float) for k, v in landmarks.items()}
     occ = occipital_condyles(basis["occipital bone"])
     ref = {
@@ -296,7 +292,7 @@ def warp(basis, faces, landmarks):
         "condyles": [lm["L condyle"], lm["R condyle"]],
     }
     out, report = {}, {"scales": dict(SCALES)}
-    fitted, report["neck"] = vertebrae(basis, faces)
+    fitted, report["neck"] = vertebrae(basis, faces, skin)
     report["scales"]["neck"] = report["neck"].pop("scale")
 
     skull = [n for n in basis if n not in (*NECK, JAW)]
@@ -304,19 +300,19 @@ def warp(basis, faces, landmarks):
     caps = np.concatenate([budget.caps(n, basis[n], ref) for n in skull])
     sizes = [len(basis[n]) for n in skull]
     tris = np.vstack([faces[n] + at for n, at in zip(skull, np.cumsum([0, *sizes[:-1]]))])
-    # the skull base's guides: its growth zone's under side, down to the head's bottom or over the neck as it moves
+    fill = np.flatnonzero(np.concatenate([outer(basis[n], faces[n]) & (n in VAULT) for n in skull]))
+    # the skull base: its growth zone's under side stays over the neck as the head moves
     zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
     moving = np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES])
-    lo = np.tile(LO, (len(x), 1))
+    lo = np.full_like(x, -np.inf)
     lo[zone, 2] = floors(SCALES["skull"] * x[zone], moving)
     pairs = [
         *((lm[f"{s} orbit"], (sign * gimbal.SPACING / 2, 0, 0), (1, 1, 1)) for s, sign in (("L", 1), ("R", -1))),
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
-    touch = ((2, HI[2], 1), (1, LO[1], -1), (1, HI[1], 1))
-    y, f, hit = solve(x, caps, pairs, SCALES["skull"], (lo, HI), touch, (zone, lo[zone, 2]))
-    report["skull"] = _region(f, caps, hit, pairs)
+    y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, lo)
+    report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y)}
     report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)])
     base = np.isin(tris, zone).all(axis=1)
     room = float(cKDTree(moving).query(surface(y, tris[base]))[0].min())
@@ -324,15 +320,16 @@ def warp(basis, faces, landmarks):
         raise ValueError(
             f"the skull base comes within {room:.2f} mm of the neck as the head moves, less than {CLEAR_MM}"
         )
-    report["skull_base"] = {
-        "vertices": len(zone),
-        "lowered_mm": round(float(np.median(SCALES["skull"] * x[zone, 2] - y[zone, 2])), 1),
-        "lowest": round(float(y[zone, 2].min()), 1),
-        "neck_mm": round(room, 2),
+    under = skin.depth(y[fill])
+    report["vault"] = {
+        "vertices": len(fill),
+        "under_skin_mm": [round(float(np.percentile(under, q)), 1) for q in (50, 90, 100)],  # median, p90, most
+        "base_lowest": round(float(y[zone, 2].min()), 1),
+        "base_to_neck_mm": round(room, 2),
     }
     out |= dict(zip(skull, np.split(y, np.cumsum(sizes)[:-1])))
 
-    # the mandible: its condyles on the hinge, its chin on the box's bottom, its ridge GAP_MM under the maxillae's
+    # the mandible: its condyles on the hinge, its ridge GAP_MM under the maxillae's, its chin inside Morty's
     upper = np.vstack([out["L maxilla"], out["R maxilla"]])
     ridge = upper[upper[:, 2].argmin()]
     m = basis[JAW]
@@ -340,12 +337,11 @@ def warp(basis, faces, landmarks):
     top = top[top[:, 2].argmax()]
     pairs = [
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
-        (lm["menton"], (0, 0, LO[2]), (0, 0, 1)),
         (top, (0, ridge[1], ridge[2] - GAP_MM * SCALES["mandible"]), (1, 1, 1)),
     ]
     caps = budget.caps(JAW, m, ref)
-    out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], (LO, HI))
-    report["mandible"] = _region(f, caps, hit, pairs)
+    out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], skin)
+    report["mandible"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, out[JAW])}
 
     return out | fitted, report
 
@@ -380,6 +376,7 @@ def rewarp(scene):
             {n: data["basis|" + n] - frame for n in names},
             {n: data["faces|" + n] for n in names},
             {k.split("|", 1)[1]: data[k] - frame for k in data if k.startswith("landmark|")},
+            envelope.morty(),
         )
         np.savez(dst, **{n: v + frame for n, v in out.items()})
         json.dump(report, open(rep, "w"))
