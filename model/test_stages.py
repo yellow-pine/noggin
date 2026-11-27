@@ -97,6 +97,54 @@ def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
         assert np.allclose(moved.parts[name], one.parts[name].matrix), name
 
 
+def _pinned(stage, posed, horn, pins):
+    """Assert each pair of parts in `pins` ({(a, b): the pin they share at rest, in the horn's sub-assembly's frame})
+    still shares it as `posed`."""
+    for (a, b), p in pins.items():
+        at = [posed.parts[n] @ np.linalg.inv(stage.parts[n].matrix) @ stage.horns[horn].frame @ [*p, 1] for n in (a, b)]
+        assert at[0] == pytest.approx(at[1], abs=1e-6), (a, b)
+
+
+@pytest.mark.parametrize("side", "LR")
+def test_a_lid_horn_turns_its_lower_lid_on_the_lid_link(side):
+    """#967: pose() closes a horn's Rods too. The lid link rides the lid bar (a Rod, #698), so over the lid horn's
+    range the lower lid turns as the link's four-bar has it (gimbal.lower: 65 deg against the upper's 79) and the link
+    keeps its pin on the bar and its pin on the lower lid's crank. Before, pose() left both at rest, so the review's
+    animation never moved a lower lid."""
+    stage, horn, x = stages.STAGES["mech-back"], f"{side} lid horn", gimbal.EYE[side][0]
+    lo, hi = stage.horns[horn].limits
+    lower, link = f"{side} lower lid:1", f"{side} lid link:1"
+    for deg in (lo, lo / 2, hi):
+        posed = stages.pose(stage, horn, deg)
+        assert posed.joints[f"{side} lower lid pivot"] == pytest.approx(gimbal.lower(deg), abs=0.01)
+        turned = posed.parts[lower] @ np.linalg.inv(stage.parts[lower].matrix)
+        assert np.degrees(np.arccos((np.trace(turned[:3, :3]) - 1) / 2)) == pytest.approx(
+            abs(gimbal.lower(deg)), abs=0.01
+        )
+        pins = {(f"{side} lid bar:1", link): (x, *gimbal.LINK_PIN), (link, lower): (x, *gimbal.LOWER_PIN)}
+        _pinned(stage, posed, horn, pins)
+    assert gimbal.lower(lo) - gimbal.lower(hi) > 60
+
+
+def test_the_pitch_horn_pitches_each_eye_on_its_push_rod():
+    """#967: the push-rods ride the bail (Rods, #663), so over the pitch horn's range each core and its cap pitch as
+    the command map has it (gimbal.eyes: the eyes' 15 deg each way) and each push-rod keeps its cups on the bail's
+    ball and the lever's. Before, pose() turned the bail alone."""
+    stage = stages.STAGES["mech-back"]
+    for deg in stage.horns["pitch horn"].limits:
+        posed = stages.pose(stage, "pitch horn", deg)
+        for side, (x, _, _) in gimbal.EYE.items():
+            core, cap, rod = (f"{side} {p}:1" for p in ("eyeball core", "eyeball cap", "push-rod"))
+            pitch = gimbal.eyes(0, deg)[side][1]
+            assert abs(pitch) == pytest.approx(gimbal.PITCH, abs=0.01)
+            assert posed.joints[f"{side} eyeball pitch"] == pytest.approx(pitch, abs=0.01)
+            front = posed.parts[cap] @ np.linalg.inv(stage.parts[cap].matrix) @ stage.horns["pitch horn"].frame
+            front = np.linalg.inv(stage.horns["pitch horn"].frame) @ front @ (x, -1, 0, 1)  # the gaze, the eyes' frame
+            assert np.degrees(np.arctan2(front[2], -front[1])) == pytest.approx(pitch, abs=0.01)
+            pins = {("bail:1", rod): (x, *gimbal.BAIL_BALL), (rod, core): (x, 0, gimbal.LEVER), (core, cap): (x, 0, 9)}
+            _pinned(stage, posed, "pitch horn", pins)
+
+
 def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take():
     """#964: a Stage's fasteners, counted from the model's pivots, servos and head screws, by hand from the parts' bores:
     Stage 1's eyes take 23 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, each lid drive 5, its

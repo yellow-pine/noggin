@@ -149,7 +149,8 @@ def keys(stage):
 
 def motion(stage, curves):
     """[(frame, {part: 4x4})] every STEP frames and on FRAMES: each horn at its curve's angle (linear between keys),
-    each part where the horn that moves it puts it (the horns move disjoint parts)."""
+    each part where the horn that moves it puts it (the last such horn off rest: the yaw and the pitch both move each
+    core and cap, and keys() never takes them off rest together)."""
     rest = {n: p.matrix for n, p in stage.parts.items()}
     out = []
     for frame in [*range(1, FRAMES, STEP), FRAMES]:
