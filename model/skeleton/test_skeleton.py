@@ -19,8 +19,8 @@ SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 HEAD = ("skull", "mandible")
 # the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark: what rides with each cuts it exactly
+# (the skull's palate stays on it through the gimbal frame's windows, model/gimbal.py WINDOW_X, #967)
 SEVERED = {
-    "skull": "the lower lids, the gimbal frame's plate and the yaw servo cut the palate (7.7 cm3) off the cranium (#967)",
     "mandible": "the jaw bar, the mouth horn and servo cut the L ramus (3.3 cm3) off the mandible's body (#968)",
 }  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
 

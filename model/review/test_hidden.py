@@ -11,6 +11,7 @@ import shutil
 import numpy as np
 import pytest
 import trimesh
+from scipy import ndimage
 from scipy.spatial import cKDTree
 
 from model import geometry as g
@@ -20,6 +21,7 @@ from model import review, skeleton, skin, stages
 MARGIN = skin.WALL + gm.LID_CLEAR_MM  # a Shell's wall, and its least room to a part it does not sit on
 VISIBLE = ("eyeball cap", "upper lid", "lower lid")  # seen through his eye openings, not hidden behind his Skin
 HORNS = ("yaw horn", "pitch horn", "L lid horn", "R lid horn")  # the eyes Core's; the head's move the Skin with them
+PITCH, REACH = 1.0, 6.0  # depth()'s voxel, and how far from his surface it measures, mm
 EXPORT = """
 import bpy, numpy as np
 with bpy.data.libraries.load({blend!r}) as (src, dst):
@@ -42,56 +44,73 @@ def _parts(stage):
     return [n for n in stages.eyes_sub().parts if n in stage.parts and not any(v in n for v in VISIBLE)]
 
 
+def _points(mesh, step):
+    """Points on the mesh no farther apart than `step`: each triangle's barycentric grid."""
+    tri, out = mesh.triangles, []
+    n = np.ceil(np.linalg.norm(tri - np.roll(tri, 1, axis=1), axis=2).max(axis=1) / step).astype(int)
+    for k in np.unique(n):
+        i, j = np.meshgrid(np.arange(k + 1), np.arange(k + 1))
+        w = np.stack([i, j, k - i - j], -1)[i + j <= k] / k
+        out.append(np.einsum("pw,twc->tpc", w, tri[n == k]).reshape(-1, 3))
+    return np.vstack(out)
+
+
+def depth(mesh):
+    """(points) -> mm each lies outside the closed mesh's outer surface (negative: inside; past REACH either way,
+    REACH). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
+    through the PITCH voxels his surface does not cross: a point in a voxel the flood reached, or one his surface
+    crosses, is outside, and his outer surface is the part of it beside the flood. The distance is to that surface's
+    points, exact to their spacing; the voxels only sort inside from outside and skip the deep points."""
+    v = _points(mesh, 0.4 * PITCH)  # within a quarter voxel of every point of the surface: no face-to-face leak
+    lo = v.min(axis=0) - 2 * PITCH
+    shape = np.floor((v.max(axis=0) + 2 * PITCH - lo) / PITCH).astype(int) + 1
+
+    def cell(p):
+        return tuple(np.floor((p - lo) / PITCH).astype(int).T)
+
+    wall = np.zeros(shape, bool)
+    wall[cell(v)] = True
+    rooms, _ = ndimage.label(~wall)
+    room = rooms == rooms[0, 0, 0]
+    deep = ndimage.distance_transform_edt(~(wall | room)) * PITCH  # mm inside, to a voxel
+    outer = cKDTree(v[ndimage.binary_dilation(room, np.ones((3, 3, 3), bool))[cell(v)]])
+
+    def mm(points):
+        inside = ((points > lo) & (points < lo + shape * PITCH)).all(axis=1)
+        d = np.zeros(len(points))
+        d[inside] = deep[cell(points[inside])]
+        near = d < REACH  # the rest lie REACH or more inside
+        exact = np.minimum(outer.query(points[near], distance_upper_bound=REACH)[0], REACH)
+        d[near] = np.where(d[near] > 0, exact, -exact)
+        return -np.minimum(d, REACH)
+
+    return mm
+
+
+def test_depth_reads_a_ball_through_a_ball_as_one_surface():
+    """Two balls crossing, as his sculpt's meshes do: a point inside either is inside, by its distance to the outer
+    surface alone (the part of each ball inside the other is not his surface), and a point outside is outside."""
+    mesh = trimesh.util.concatenate(
+        [trimesh.creation.icosphere(4, 20.0), trimesh.creation.icosphere(4, 20.0).apply_translation((25.0, 0, 0))]
+    )
+    mm = depth(mesh)
+    points = np.array([(0.0, 0, 0), (12.5, 0, 0), (18.0, 0, 0), (0, 18.0, 0), (0, 21.0, 0), (60.0, 0, 0)])
+    # the middle of the lens is 7.5 mm inside each ball, and 15.6 mm from where the two meet, the outer surface there
+    assert mm(points) == pytest.approx([-REACH, -REACH, -REACH, -2.0, 1.0, REACH], abs=0.15)
+
+
 @pytest.fixture(scope="module")
 def outside(tmp_path_factory):
-    """(points) -> mm each lies outside Morty's outer surface (negative: inside), at rest, in the documents' world."""
+    """depth() of Morty's reference at rest, in the documents' world."""
     if not os.path.isfile(review.MORTY) or not shutil.which(skeleton.BLENDER):
         pytest.skip("no local Morty reference (review.MORTY) or no Blender")
-    import vtk  # here: cadquery's OCP brings it; only this local check casts rays
-    from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
-
     path = str(tmp_path_factory.mktemp("morty") / "reference.npz")
     # no review.SLOT here: the model tests run under that same heavy lock (just test), which a second flock would wait on
     review._blender(["--python-expr", EXPORT.format(blend=review.MORTY, out=path)])
     with np.load(path) as z:
         meshes = [trimesh.Trimesh(z[f"v{i}"], z[f"f{i}"], process=False) for i in range(len(z.files) // 2)]
     os.remove(path)  # the reference stays where it is
-    mesh = trimesh.util.concatenate(meshes).apply_transform(review.placed())
-    mesh.merge_vertices()
-    data, pts, cells = vtk.vtkPolyData(), vtk.vtkPoints(), vtk.vtkCellArray()
-    pts.SetData(numpy_to_vtk(mesh.vertices.astype(float), deep=True))
-    tri = np.c_[np.full(len(mesh.faces), 3), mesh.faces].astype(np.int64).ravel()
-    cells.SetCells(len(mesh.faces), numpy_to_vtkIdTypeArray(tri, deep=True))
-    data.SetPoints(pts)
-    data.SetPolys(cells)
-    tree = vtk.vtkOBBTree()
-    tree.SetDataSet(data)
-    tree.BuildLocator()
-    rays = np.random.default_rng(0).normal(size=(48, 3))
-    rays *= 2000.0 / np.linalg.norm(rays, axis=1)[:, None]
-    hits = vtk.vtkPoints()
-
-    def seen(p):
-        """Whether 3 of the rays from p leave without meeting him: outside a surface about half do; in a void (under
-        his hair, where his meshes overlap) none."""
-        free = 0
-        for r in rays:
-            tree.IntersectWithLine(p, p + r, hits, None)
-            free += hits.GetNumberOfPoints() == 0
-            if free == 3:
-                return True
-        return False
-
-    # his outer surface: the faces seen from just outside them
-    outer = [i for i, p in enumerate(mesh.triangles_center + 0.3 * mesh.face_normals) if seen(p)]
-    surface, faces = trimesh.sample.sample_surface_even(mesh.submesh([outer], append=True), 600000, seed=0)
-    normals, near = mesh.face_normals[outer][faces], cKDTree(surface)
-
-    def mm(points):
-        d, i = near.query(points)
-        return np.where(np.einsum("ij,ij->i", points - surface[i], normals[i]) > 0, d, -d)
-
-    return mm
+    return depth(trimesh.util.concatenate(meshes).apply_transform(review.placed()))
 
 
 @functools.cache

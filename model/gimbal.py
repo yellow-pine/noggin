@@ -142,9 +142,15 @@ BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' co
 # #967: Morty's life-size cheeks narrow under his eyes and widen behind them (the private reference, read locally by
 # model/review/test_hidden.py), so the beam ends inside them, its Seats' bosses within it, and an arm at its level runs
 # back from each end to its lid upright's foot, behind the lower lids' sweep; the upright leans back down to the plate's
-# level, where its rail reaches forward to meet it
-BEAM_X = 53.0
+# level, where its rail reaches forward to meet it; his cheeks curve in under the beam, so its lower outer corners are
+# cut back BEAM_CUT and the arms start that far up
+BEAM_X, BEAM_CUT = 53.0, 4.0
 FOOT_Y = (14.0, 20.0)
+# #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
+# realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
+# (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the
+# plate to its yoke's rail
+WINDOW_X, WINDOW_Y, WINDOW_BAR = 30.0, 21.0, 4.0
 # the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
 HEAD_MM = (160.0, 176.0, 175.0)
 
