@@ -24,6 +24,7 @@ from model.skeleton import budget, envelope
 LATTICE = 20.0  # the field's control spacing, mm
 LOW, MARGIN = 0.75, 0.01  # the compression floor; the solve's margin inside every bound, so the check passes
 TOL_MM = 1.0  # a functional landmark's miss, at most
+ROUNDS = 6  # the solve's rounds, at most, each adding the face points still short of the skin's limit
 # the solve's weights: on a length factor past the budget, a landmark's miss and a vertex past its limit (a mm2 each)
 BUDGET, PAIR, SKIN = 1e6, 1e3, 1e2
 NECK = g.NECK  # C1 (the atlas) to C7
@@ -75,10 +76,11 @@ def lattice(points, lo, shape):
     return [sp.csr_matrix((np.concatenate(v), (r, c)), shape=(len(points), n)) for v in vals]
 
 
-def spread(x, faces, step=1.0):
-    """Points about `step` mm apart on the mesh's faces, as their vertices' weights: a sparse (points, vertices)."""
+def spread(x, faces):
+    """Points about 1 mm apart on the mesh's faces (surface()'s), as their vertices' weights: a sparse (points,
+    vertices)."""
     mesh = trimesh.Trimesh(x, faces, process=False)
-    p, f = trimesh.sample.sample_surface(mesh, int(mesh.area / step**2) + 1, seed=0)
+    p, f = trimesh.sample.sample_surface(mesh, int(mesh.area) + 1, seed=0)
     w = trimesh.triangles.points_to_barycentric(mesh.triangles[f], p)
     return sp.csr_matrix((w.ravel(), (np.repeat(np.arange(len(p)), 3), faces[f].ravel())), shape=(len(p), len(x)))
 
@@ -86,7 +88,8 @@ def spread(x, faces, step=1.0):
 def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, faces=None):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
     weight); `skin` (envelope.Skin): every warped vertex RAW under it, and with the region's `faces` the points
-    spread over them too (a crease of the skin cuts in between vertices); `fill`: the rows drawn out to that limit,
+    spread over them too (a crease of the skin cuts in between vertices: the points spread over the Basis, then, a
+    round at a time, those spread over the Warp that still come short); `fill`: the rows drawn out to that limit,
     softly: the budget and the pairs win; `lo`: the warped region's lower bound; `clear` (rows, points): those rows
     kept CLEAR_MM off the points. Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
     origin = x.min(0) - LATTICE
@@ -139,9 +142,19 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, f
         gd += scale * (B[0].T @ gy)
         return e + 1e-3 * (z @ z), (gd + 2e-3 * d).ravel()
 
-    d = minimize(energy, np.zeros(k * 3), jac=True, method="L-BFGS-B", options={"maxiter": 4000, "maxfun": 8000})
-    d = d.x.reshape(k, 3)
-    return scale * (x + B[0] @ d), jacobians(d), scale * (P + Bp @ d)
+    z = np.zeros(k * 3)
+    for _ in range(ROUNDS):
+        z = minimize(energy, z, jac=True, method="L-BFGS-B", options={"maxiter": 4000, "maxfun": 8000}).x
+        d = z.reshape(k, 3)
+        y = scale * (x + B[0] @ d)
+        if over_faces is None:
+            break
+        more = spread(y, faces)
+        short = skin.depth(more @ y) < RAW + AIM / 2
+        if not short.any():
+            break
+        over_faces = sp.vstack([over_faces, more[short]]).tocsr()
+    return y, jacobians(d), scale * (P + Bp @ d)
 
 
 def stretch(f, caps):
