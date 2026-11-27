@@ -34,11 +34,11 @@ import trimesh
 from model import geometry as g
 from model import morty, skeleton, skin, stages
 from model.render import pictures, scene
+from scripts import heavy
 from scripts.gx10 import blender_ceiling
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
-# the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
-SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
+SLOT = heavy.PATH  # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
 QUALITY = {"production": skeleton.PITCH, "coarse": 1.6}  # the finish's voxel, mm
@@ -282,17 +282,16 @@ def _blender(args, ceiling_kb=CEILING_KB):
 
 
 def lock(path, wait=False):
-    """flock(2) on `path`, held (an open file) until it is closed or the process ends: waited for, or SystemExit when
-    another process holds it."""
+    """flock(2) on `path`, held (an open file) until it is closed or the process ends: SystemExit when another process
+    holds it, or with `wait` the heavy lock as scripts/heavy.py takes it, waited for unless the command above holds it."""
+    if wait:
+        return os.fdopen(heavy.take(path))
     f = open(path, "a+")  # noqa: SIM115 held by the caller
     try:
         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        if not wait:
-            f.close()
-            raise SystemExit(f"review: another writer holds {path}; try again once it is done") from None
-        print(f"review: waiting for {path}, the laptop's one Blender slot", flush=True)
-        fcntl.flock(f, fcntl.LOCK_EX)
+        f.close()
+        raise SystemExit(f"review: another writer holds {path}; try again once it is done") from None
     return f
 
 

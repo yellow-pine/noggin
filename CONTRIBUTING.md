@@ -163,7 +163,11 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   Everything heavier is CI's on main: `just check` is its `Code` job (adding actionlint, zizmor and hadolint; in CI
   zizmor runs online and shellcheck parses the shell scripts, so `just check` skips their offline twins, #732),
   `just check-all` adds the `model` tests. The heavy recipes take a machine-wide lock (`scripts/heavy.py`), so only one runs
-  at a time: several at once took the Mac to ~30 GB.
+  at a time: several at once took the Mac to ~30 GB. A heavy command with no recipe of its own takes it the same way,
+  wrapped once at the top: `python3 scripts/heavy.py uv run just _review-build production` is the review build on the
+  Mac, for when the GX10 is off (ADR 0026 has it there). The wrapped command owns the lock with everything it starts,
+  so a recipe, `model.review` or a test that takes it again beneath goes straight on (#1026); anything else waits, and
+  prints the holder's pid and the minutes it has held the lock.
 - CI runs on pushes to main, on ready (non-draft) PRs and weekly on main, where it runs everything and deploys nothing.
   A ready PR runs the slim gate alone, within about 1.5 min (#696, #714): `PR`, `Review`, and PR Gate (`pr-gate.yml`,
   #722): `Code` (`just check-light`), then its `Checks`. Checks (`checks.yml`: Site, Convex, Model, the sim, Render,

@@ -6,6 +6,8 @@ import inspect
 import json
 import os
 import shutil
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -13,6 +15,7 @@ import trimesh
 
 from model import geometry as g
 from model import review, skeleton, skin, stages
+from scripts import heavy
 
 STAGE = stages.STAGES[review.DOC]
 
@@ -67,6 +70,15 @@ def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
         review.lock(path)
     held.close()
     review.lock(path).close()
+
+
+def test_the_blender_slot_is_taken_again_at_once_under_the_command_that_holds_it(tmp_path):
+    """#1026: `just test` runs these tests under scripts/heavy.py, whose lock the slot is, and each waited on it forever."""
+    env = {**os.environ, "NOGGIN_HEAVY_LOCK": str(tmp_path / "heavy.lock")}
+    code = "from model import review; review.lock(review.SLOT, wait=True).close(); print('ran')"
+    under = [sys.executable, heavy.__file__, sys.executable, "-c", code]
+    done = subprocess.run(under, env=env, cwd=stages.REPO, capture_output=True, text=True, timeout=30)
+    assert (done.returncode, done.stdout) == (0, "ran\n")
 
 
 REFERENCE_CARRIERS = {r: c for r, c in review.CARRIERS.items() if c}  # the moving Motion regions'
