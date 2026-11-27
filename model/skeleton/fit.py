@@ -276,10 +276,12 @@ def vertebrae(basis, faces, skin):
 
 def _under(skin, y, faces):
     """The warped surface's least depth under the skin (its vertices and points 1 mm apart on it); raises under RAW."""
-    least = float(skin.depth(surface(y, faces)).min())
-    if least < RAW:
-        raise ValueError(f"the bone comes within {least:.2f} mm of Morty's skin, less than {RAW}")
-    return round(least, 2)
+    points = surface(y, faces)
+    depth = skin.depth(points)
+    if depth.min() < RAW:
+        at = points[depth.argmin()].round(1).tolist()
+        raise ValueError(f"the bone comes within {depth.min():.2f} mm of Morty's skin at {at}, less than {RAW}")
+    return round(float(depth.min()), 2)
 
 
 def _region(f, caps, hit, pairs):

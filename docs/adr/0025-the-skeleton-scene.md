@@ -93,3 +93,29 @@ fronts (Cansin, 2026-11-27, #874; model/skeleton/test_skeleton.py holds it). A d
 within the length budget an anatomical brow reaches about 24 mm ahead of the orbits, and Morty's 40.4 mm eyes stand
 proud of it. Anatomy comes first.
 
+
+## 2026-11-27 refit inside Morty's skin (#874)
+
+Cansin's directive on #893 (2026-11-27) makes the Sculpt's surface the bones' limit: every bone stays at least 2.1 mm
+under it (the Skin's 1.6 mm wall, grown inward, and 0.5 mm of clearance), where the compact head's box had been.
+Measured first (#874): the box-fitted skull stood 10.9 mm out of Morty's forehead, its chin 4.6 and C7's spine 8.6,
+with 32 mm unused under his crown, which stands 36 mm over the box's top.
+
+- `model/skeleton/envelope.py` reads the Sculpt as a depth under its outer surface (sheets it holds inside itself, its
+  hair's under side, are no skin). The Warp keeps every vertex and every face 2.5 mm under it: the limit and half the
+  Finish's voxel, which its remesh can grow a bone by.
+- The regions are about life-size: the skull 1.05 (its back and crown then stand at Morty's own), the mandible 1.0
+  (0.95 in the box), the neck 0.968 as before. Each takes one field. In the solve the length budget is the hardest
+  term, then the skin and the landmarks, last the fill.
+- The cranium's outer side is drawn out toward the skin, softly, within the budget: the vault then stands outside the
+  mechanism's sweep by its wall and clearance, so the Finish closes it, and the growth zone's under side comes down
+  toward his nape (#991's skull-base guides), 1.6 mm clear of the vertebrae over the tilt's and the pan's ranges.
+- The neck's vertebrae take a field of their own: each canal and each body's front pinned, the spines bent in under
+  his neck's skin.
+- BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
+  no vertex. The Warp refuses a fold, a shear past 2.2 or a Jacobian under 0.5 at the eyes and nose (#991).
+- #967's re-laid lids stow in a shell of radius 39.6 mm round each eye centre and their drives leave it through a
+  belt behind each eye: both are openings of the skull's Finish before those parts exist.
+- The gates read the Sculpt: `test_skeleton.py` holds each finished bone 2.1 mm under it and to no box. Until #850
+  commits the Sculpt (`model/morty`) they run where the local original is and skip elsewhere. `base.DOME` stays the
+  mechanism's box until its gates read the Sculpt too.
