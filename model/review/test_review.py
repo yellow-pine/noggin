@@ -17,6 +17,14 @@ from model import review, skeleton, skin, stages
 STAGE = stages.STAGES[review.DOC]
 
 
+def test_the_bones_limit_places_the_sculpt_as_the_review_does():
+    """model/skeleton/envelope.py's copy of the Sculpt's eye centres is the review's (ADR 0011): move one and the
+    bones' limit moves with it, and the Skeleton scene is rewarped."""
+    from model.skeleton import envelope
+
+    assert envelope.SCULPT_EYES == review.MORTY_EYES
+
+
 def test_the_loop_takes_every_horn_to_each_end_of_its_range_and_back_to_rest():
     """Each horn's keys reach its limits, its servo's range (ADR 0011), and are 0 on the loop's first and last frame."""
     for horn, pts in review.keys(STAGE).items():

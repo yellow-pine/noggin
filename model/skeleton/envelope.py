@@ -23,8 +23,9 @@ ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearan
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
 DENSITY = 8.0  # surface samples a mm2: about 0.35 mm apart, so a depth is good to 0.2 mm
 FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 and the shoulders' tops
-# the sculpt's eye centres that place it on the Mech's eyes, raw mm, z up, -y forward (#872's measure on its front depth
-# map, inferred; model/review places it by the same)
+# the Sculpt's eye centres that place it on the Mech's eyes, raw mm: model/review's MORTY_EYES, a copy (importing the
+# review would make every bone's test depend on it) that model/review/test_review.py holds to it (ADR 0011). When
+# they move, the scene is rewarped (`just rewarp`): the Warp is fitted to the Sculpt where it stands
 SCULPT_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
 
 

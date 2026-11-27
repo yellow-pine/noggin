@@ -35,7 +35,6 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skeleton, skin, stages
 from model.render import pictures, scene
-from model.skeleton import envelope
 from scripts.gx10 import blender_ceiling
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
@@ -56,7 +55,8 @@ FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
 BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
-MORTY_EYES = envelope.SCULPT_EYES  # the sculpt's eye centres, raw mm: one source with the bones' limit
+# the Morty sculpt's eye centres, raw mm (#872's measure on its front depth map, inferred), z up, -y forward
+MORTY_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
 CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
