@@ -364,10 +364,6 @@ def frame(mechanical=False):
     tz0 = envelopes.SERVO["tabs"][2][0]
     lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
     out = out.union(box((lo[0], hi[0]), tuple(sorted((lo[1], y0 + 1))), gm.PLATE_Z))
-    for m in servos:
-        out = out.cut(passes(m))
-    for m in servos:  # on the plate's top, or hanging from its underside
-        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
     # the maxillae's windows (#967) from the yaw servo's collar (its posts stay on the plate) out to WINDOW_X, each
     # closed in front by a bar from the plate beside the servo to the yoke's rail
     tabs = envelopes.SERVO["tabs"][0]
@@ -375,6 +371,11 @@ def frame(mechanical=False):
     for s, x in zip((-1, 1), inner, strict=True):
         bar = sorted((x - s * gm.WINDOW_BAR, s * (c - 5)))
         out = out.union(box(bar, (y0 - gm.WINDOW_BAR, y0 + 1), gm.PLATE_Z))
+    for m in servos:
+        out = out.cut(passes(m))
+    for m in servos:  # on the plate's top, or hanging from its underside
+        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
+    for s, x in zip((-1, 1), inner, strict=True):
         out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
     for s in (-1, 1):  # room for each yoke's crank to turn: the lid servo's collar comes down beside it
         reach = gm.CRANK + CRANK_BONE[0][0] + 0.5  # its Bone's head, which the yoke grows into its mechanical one

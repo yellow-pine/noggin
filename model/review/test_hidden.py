@@ -49,7 +49,7 @@ def _parts(stage):
 def _points(mesh, step):
     """Points on the mesh no farther apart than `step`: each triangle's barycentric grid."""
     tri, out = mesh.triangles, []
-    n = np.ceil(np.linalg.norm(tri - np.roll(tri, 1, axis=1), axis=2).max(axis=1) / step).astype(int)
+    n = np.ceil(np.linalg.norm(tri - np.roll(tri, 1, axis=1), axis=2).max(axis=1) / step).clip(1).astype(int)
     for k in np.unique(n):
         i, j = np.meshgrid(np.arange(k + 1), np.arange(k + 1))
         w = np.stack([i, j, k - i - j], -1)[i + j <= k] / k
