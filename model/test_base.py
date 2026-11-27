@@ -139,7 +139,7 @@ def test_the_boards_in_the_head_lie_inside_the_realistic_skull():
 @pytest.mark.xfail(
     strict=True,
     raises=AssertionError,
-    reason="#1014: the hub moved off C0's bearing (#978) and the BodyParts3D skull's base lies further back (#976): "
+    reason="#1014: the hub moved off C0's bearing (#975) and the BodyParts3D skull's base lies further back (#976): "
     "its port's mouth is 24.6 to 27.6 mm inside the hull",
 )
 def test_the_hubs_port_is_at_the_back_of_the_realistic_skulls_base():
