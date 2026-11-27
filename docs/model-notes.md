@@ -138,10 +138,19 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, hanging under the frame's plate, the pitch servo beside the pitch bar, each lid servo upright
   behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
+  Since #967's re-layout each lid servo stands behind the belt its eye's drives will leave the eye's sphere through
+  once the lids stow under Morty's skin (its horn's axis 56.5 mm behind the eye, 37 before, where its case stood
+  across that belt; its collar stands on a shelf under its case, out to a post outboard of the hub, which lies on
+  the cranium tray's riser under the R one), and the pitch drive rises over it: each push-rod leans 31 deg down to the back, from the lever's
+  ball to a ball on a bail arm that hangs forward of the bail's axis, which stands 51 mm behind and 24 mm over the
+  eyes, over the lid servos and under the cranium tray; the pitch servo and its horn stay, their bar leans. The
+  core's top is cut to a cone round the lever where the rod passes, and the lever's neck leans forward, square to the
+  rod's bed. The rod meets its lever at 50 deg or more and the bar its horn at 52, so the gaze's play counts each
+  pitch pin through the angle its link meets its arm at (1.69 deg with the pupil's seating, 1.44 were they square).
   Since #901 the eyes are Morty's at life size (#872's round 2), since #967 on his Sculpt's own eyeballs, each a
   sphere fitted to its dome: 73.3 mm apart, a 37.1 mm ball (his pupils sit 9 deg outward on it; the domes' feet, seen
   from the front, are 80 mm apart, as each dome faces outward). The cap is still a 40.4 mm
-  sphere, the core, yoke, lever and bail x1.5 with it, the upper lid 1 mm off the cap; each eye's inboard drives (bar,
+  sphere, the core, yoke and lever x1.5 with it, the upper lid 1 mm off the cap; each eye's inboard drives (bar,
   link, ears) within 33.75 mm of it, the two eyes' 5.2 mm apart about their shared axis. The bigger lower lids sweep
   under the eyes, so the frame's plate starts behind that sweep (the yokes' bearings reach forward from it) and its bar,
   a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Since #967 the
@@ -154,7 +163,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
   upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
   parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
-  four-bar turning it against the upper about 0.8x (`gimbal.lower`; searched again for #901's layout); at rest each
+  four-bar turning it against the upper about 0.8x (`gimbal.lower`; searched again for #901's layout, and for #967's
+  lid servos: its link meets its crank at 52 deg or more, the bar clear of where the tie-bar is to cross behind the
+  eyes); at rest each
   edge sits on the cap's rim (Morty's outline, 68 deg up and 52 down, lies past the cap's 45); shut they meet 4 deg
   below the eye's middle,
   1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
@@ -166,7 +177,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`mech-back`,
   `mech-back-mechanical`). As Bones the tie-bar and push-rods (#703, the
   pilot), the yaw yokes (a cradle round the core flaring into the stem at 40 deg, the crank a Bone), the bail (its rod
-  and input arm flat-bottomed, its arms round struts): each prints as drawn with no overhang past 45 deg, its bores across the layers where its pins
+  and input arm flat-bottomed, its arms round struts): each prints as drawn (the leaned push-rod and the bail on their
+  own beds, `rod_bed` and `bail_bed`, #967) with no overhang past 45 deg, its bores across the layers where its pins
   are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
   each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
   bars Bones between their pins, the frame's yaw bearings waisted struts and its uprights round Bones, the neck

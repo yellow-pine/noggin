@@ -44,6 +44,75 @@ def test_each_lid_servo_drives_from_the_inner_side_of_its_eye(side):
     assert gimbal.SPACING + 2 * gimbal.LID_X["upright"][1] <= gimbal.HEAD_MM[0]
 
 
+def _box(drive, part="case"):
+    """(lo, hi) corners of a drive's servo `part` (its case or its tabs) in the gimbal's frame."""
+    face, shaft, tab, _ = gimbal.drives()[drive]
+    corners = np.c_[list(itertools.product(*envelopes.SERVO[part])), np.ones(8)]
+    world = (gimbal.servo_matrix(face, shaft, tab) @ corners.T)[:3]
+    return world.min(axis=1), world.max(axis=1)
+
+
+@pytest.mark.parametrize("side", ["L", "R"])
+def test_each_lid_servo_stands_behind_the_belt_its_eyes_drives_leave_through(side):
+    """#967: once the lids stow under Morty's skin, the only way out of an eye's sphere is the belt behind it, between
+    the two stowed lids, and the lid servo's case stood across it (31 to 43 mm behind the eye). It stands behind it
+    now: the skull (#874) keeps a belt 48 mm back free, and the prototype's routes (comment 7209502441) end before
+    y 46.5. The pitch servo stays behind it."""
+    for part in ("case", "tabs"):
+        lo, hi = _box(f"{side} lid", part)
+        assert lo[1] >= 48.0
+        assert hi[1] <= _box("pitch")[0][1] - 2.0  # the sim's collision pieces stray up to 1.4 mm
+
+
+def test_the_bail_turns_over_the_lid_servos_and_under_the_cranium_tray():
+    """#967: the bail's rod crosses the head over both lid servos' cases and tabs, which stand where its axis was, and
+    under the cranium tray's plate (model/base.py TRAY_Z): its round, 3 mm about its axis, with 2 mm either way
+    (model/printed/test_gimbal.py reads the drawn bail, its Bones' flat-bottomed rod too, on the exact solids)."""
+    from model import base
+
+    y, z = gimbal.BAIL
+    for side in "LR":
+        for part in ("case", "tabs"):
+            lo, hi = _box(f"{side} lid", part)
+            assert lo[1] < y < hi[1]  # over it, so it has to clear its top
+            assert z - 3.0 - hi[2] >= 2.0
+    assert base.TRAY_Z[0] - (z + 3.0) >= 2.0
+
+
+def _meets(u, v):
+    """The angle two links meet at, folded to 0..90 deg."""
+    cos = abs(float(np.dot(u, v))) / np.linalg.norm(u) / np.linalg.norm(v)
+    return math.degrees(math.acos(min(1.0, cos)))
+
+
+@pytest.mark.parametrize("yaw", [-25.0, 0.0, 25.0])
+def test_each_push_rod_meets_its_lever_and_its_bail_arm_at_the_transmission_floor_or_more(yaw):
+    """#967: the rod leans down to the back, so it is square to neither the lever nor the bail's arm; over the pitch,
+    and the yaw, it meets each at the MuJoCo report's floor or more (a rod is no loop: the sim's report skips it)."""
+    for pitch in np.linspace(-gimbal.PITCH, gimbal.PITCH, 13):
+        m = gimbal.moved(0.0, pitch, yaw)
+        for s, (x, _, _) in gimbal.EYE.items():
+            centre, axis = np.array([x, 0, 0]), np.array([x, *gimbal.BAIL])
+            ball = (m[f"{s} eyeball core:1"] @ (x, 0, gimbal.LEVER, 1))[:3]
+            pin = (m["bail:1"] @ (x, *gimbal.BAIL_BALL, 1))[:3]
+            assert _meets(pin - ball, ball - centre) >= mujoco_report.TRANSMISSION_DEG
+            assert _meets(pin - ball, pin - axis) >= mujoco_report.TRANSMISSION_DEG
+
+
+def test_the_pitch_bar_meets_the_horn_and_the_input_arm_at_the_transmission_floor_or_more():
+    """#967: the pitch servo and its horn stay where they were and the bail's axis rose, so the bar leans; over the
+    pitch servo's range it meets the horn's arm and the bail's input arm at the MuJoCo report's floor or more."""
+    horn, axis = np.array([0, *gimbal.PITCH_HORN]), np.array([0, *gimbal.BAIL])
+    lo, hi = (gimbal.servos(0, p)[1] for p in (-gimbal.PITCH, gimbal.PITCH))
+    assert -gimbal.SERVO_DEG < lo < 0 < hi < gimbal.SERVO_DEG
+    for pitch in np.linspace(-gimbal.PITCH, gimbal.PITCH, 13):
+        m = gimbal.moved(0.0, pitch)
+        a = (m["pitch horn:1"] @ (0, gimbal.PITCH_HORN[0] + gimbal.CRANK, gimbal.PITCH_HORN[1], 1))[:3]
+        b = (m["bail:1"] @ (0, *gimbal.BAIL_TIP, 1))[:3]
+        assert _meets(b - a, a - horn) >= mujoco_report.TRANSMISSION_DEG
+        assert _meets(b - a, b - axis) >= mujoco_report.TRANSMISSION_DEG
+
+
 def test_each_lid_bar_meets_its_crank_at_the_transmission_floor_or_more():
     """#684: a lid's parallelogram bar keeps its direction (horn to lid pivot) while the crank turns with the lid, so
     the angle between them, folded to 0..90, stays at the MuJoCo report's floor over the lid servo's range."""
@@ -114,6 +183,17 @@ def test_the_hooke_error_is_the_literatures_and_the_command_map_takes_it_out(rep
     assert report["gaze_deg"] == pytest.approx(report["play_deg"] + report["pupil_deg"], abs=0.015)  # each rounded
 
 
+def test_the_gaze_gate_counts_each_pitch_pin_through_the_angle_its_link_meets_its_arm_at(report):
+    """#967: a pin's play strays its link along its own line, so it turns the arm the link is on by more the further
+    the two are from square. The leaned push-rod meets its lever at 50 to 75 deg, so the pitch's play is more than a
+    square drive's (each pin's play over its arm), and the gaze gate holds with it."""
+    from model import fits
+
+    c = fits.CLEARANCE[0]
+    square = math.hypot(math.degrees(2 * c / gimbal.CRANK), math.degrees(c * (2 / gimbal.BAIL_IN + 2 / gimbal.LEVER)))
+    assert square * 1.1 < report["play_deg"] < gimbal.GAZE_DEG - report["pupil_deg"]
+
+
 def test_the_gaze_gate_counts_the_pupils_seating_beside_the_play(report):
     """#650 (#51 perception [GH]): a pupil keyed with 0.3 mm of seat play strays 0.15 mm from its seat's centre, 0.21
     deg on Morty's 40.4 mm cap (#901); it can stray the way the play does, so the two add, and the total stays under 2
@@ -162,16 +242,16 @@ def test_the_moved_parts_keep_their_pins_together(lid, pitch):
     """moved() carries each part the lid servos and the eyes' pitch move (#650): every pin two of them share lands on
     one point in both, so the sweep poses an assembly, not loose parts."""
     m = gimbal.moved(lid, pitch)
-    c, (hy, hz), (by, bz) = gimbal.CRANK, gimbal.PITCH_HORN, gimbal.BAIL
+    c, (hy, hz) = gimbal.CRANK, gimbal.PITCH_HORN
     pins = [(("pitch horn:1", "pitch bar:1"), (0, hy + c, hz))]
-    pins.append((("bail:1", "pitch bar:1"), (0, by + gimbal.BAIL_IN, bz)))
+    pins.append((("bail:1", "pitch bar:1"), (0, *gimbal.BAIL_TIP)))
     for s, (x, _, _) in gimbal.EYE.items():
         pins.append(((f"{s} upper lid:1", f"{s} lid bar:1"), (x, *gimbal.LID_PIN)))
         pins.append(((f"{s} lid bar:1", f"{s} lid link:1"), (x, *gimbal.LINK_PIN)))
         pins.append(((f"{s} lid link:1", f"{s} lower lid:1"), (x, *gimbal.LOWER_PIN)))
         pins.append(((f"{s} lid bar:1", f"{s} lid horn:1"), (x, *np.add(gimbal.LID_HORN, gimbal.LID_PIN))))
         pins.append(((f"{s} eyeball core:1", f"{s} push-rod:1"), (x, 0, gimbal.LEVER)))
-        pins.append((("bail:1", f"{s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
+        pins.append((("bail:1", f"{s} push-rod:1"), (x, *gimbal.BAIL_BALL)))
     for (a, b), p in pins:
         assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
 
@@ -182,12 +262,12 @@ def test_a_yaw_keeps_the_tie_bar_and_the_push_rods_on_their_pins(yaw, pitch):
     """#656: with the eyes yawed the yaw horn, the tie-bar and the yokes turn together and each push-rod still meets its
     lever's ball and its bail arm's: the motion pictures pose an assembly."""
     m = gimbal.moved(0, pitch, yaw)
-    c, (by, bz) = gimbal.CRANK, gimbal.BAIL
+    c = gimbal.CRANK
     pins = [(("yaw horn:1", "tie-bar:1"), (0, gimbal.YAW_Y + c, 0))]
     for s, (x, _, _) in gimbal.EYE.items():
         pins.append(((f"{s} yaw yoke:1", "tie-bar:1"), (x, c, 0)))
         pins.append(((f"{s} eyeball core:1", f"{s} push-rod:1"), (x, 0, gimbal.LEVER)))
-        pins.append((("bail:1", f"{s} push-rod:1"), (x, by, bz + gimbal.LEVER)))
+        pins.append((("bail:1", f"{s} push-rod:1"), (x, *gimbal.BAIL_BALL)))
     for (a, b), p in pins:
         assert (m[a] @ [*p, 1]) == pytest.approx(m[b] @ [*p, 1], abs=1e-6), (a, b)
     front = m["L eyeball core:1"] @ (gimbal.EYE["L"][0], -1, 0, 1)

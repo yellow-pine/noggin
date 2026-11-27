@@ -16,10 +16,6 @@ from model.test_skin import _inside
 
 pytestmark = pytest.mark.model
 NAMES = [f"morty {n}" for n in g.SHELLS["morty"]]
-# the Sculpt's brows: each a sheet buried in its head behind the brow's ridge, inside this box, (low, high) in the
-# head's frame, mirrored in x. The Skin leaves them out: a wall would follow them 75 mm in. The surface it leaves
-# out, cm2: all but the sheets' edges under the brows' ridges (shells.SEEN's shortcut)
-BROWS, SHEETS_CM2 = ((0.0, -14.0, 27.0), (80.0, 90.0, 60.0)), 169.5
 # What gives way to a Shell that moves against it (shells.cleared()), measured. The shirt to the turning head and the
 # opening chin: no deeper under the collar's top, mm, and this much of the Sculpt's shirt, cm2 (of 329; the collar's
 # own gap among it). The face to the chin, under the jaw behind it: inside this box, (low, high) in the head's frame,
@@ -42,6 +38,13 @@ def sculpt():
 
 
 @pytest.fixture(scope="module")
+def outer():
+    """The Sculpt's outer skin, in the head's frame at rest (shells.outside(), which model/morty/test_outer.py holds
+    to the pockets measured on the Sculpt)."""
+    return shells._mesh(shells.outside())
+
+
+@pytest.fixture(scope="module")
 def kept(built, sculpt):
     """Which of the Sculpt's vertices are a Shell's, to 0.001 mm."""
     every = cKDTree(np.vstack([mesh.vertices for mesh in built.values()]))
@@ -49,17 +52,17 @@ def kept(built, sculpt):
 
 
 @pytest.fixture(scope="module")
-def sheets(sculpt, kept):
-    """The brows' buried sheets: the Sculpt's vertices in their box that no Shell has."""
-    return cKDTree(sculpt.vertices[~kept & _buried(sculpt.vertices)])
+def buried(sculpt, outer):
+    """Which of the Sculpt's vertices are not its outer skin's: the walls of the pockets behind its brows."""
+    return cKDTree(outer.vertices).query(sculpt.vertices)[0] > 1e-3
 
 
 @pytest.fixture(scope="module")
-def gone(sculpt, kept):
+def gone(sculpt, kept, buried):
     """The Sculpt's vertices no Shell has at a seam's gap or where a Shell gave way: all but the eye openings' and the
-    brows' sheets'."""
-    owed = (sculpt.vertices[:, 2] > shells.base() + 0.01) & ~_in_an_eye_opening(sculpt.vertices, room=0.5)
-    return owed & ~kept & ~_buried(sculpt.vertices)
+    pockets' walls'."""
+    owed = (sculpt.vertices[:, 2] > shells.base() + 0.01) & ~_in_an_eye_opening(sculpt.vertices, room=0.01)
+    return owed & ~kept & ~buried
 
 
 def _off(points, polygon):
@@ -84,21 +87,12 @@ def _box(points, box):
 
 
 def _in_an_eye_opening(points, room=0.0):
-    """Which points lie in an eye's opening: its sphere, or in front of the eyes inside its eye white's cut."""
+    """Which points lie in an eye's opening: in front of the eyes, inside its eye white's cut or within `room` of it."""
     out = np.zeros(len(points), bool)
-    for side, eye in gm.EYE.items():
+    for side in gm.EYE:
         white = skin.cuts()[f"{side} eye white"][1]
-        centre = white.mean(axis=0)
-        reach = np.linalg.norm(white - centre, axis=1).max() + room
-        out |= np.linalg.norm(points - eye, axis=1) < skin.EYE_OPENING_R + room
-        out |= (points[:, 1] < room) & (np.linalg.norm(points[:, [0, 2]] - centre, axis=1) < reach)
+        out |= (points[:, 1] < room) & (_inside(points[:, [0, 2]], white) | (_off(points[:, [0, 2]], white) < room))
     return out
-
-
-def _buried(points):
-    (x0, y0, z0), (x1, y1, z1) = BROWS
-    x, y, z = np.abs(points[:, 0]), points[:, 1], points[:, 2]
-    return (x0 <= x) & (x <= x1) & (y0 <= y) & (y <= y1) & (z0 <= z) & (z <= z1)
 
 
 def test_each_shell_is_one_closed_solid(built):
@@ -110,33 +104,40 @@ def test_each_shell_is_one_closed_solid(built):
 
 
 def test_the_skins_outside_is_the_sculpts_own_surface(sculpt, kept, gone):
-    """docs/adr/0027: his silhouette is the Sculpt's, exactly. Every vertex of the Sculpt from the base plane up is a
-    vertex of a Shell, but those in the eye openings (the caps are the eye whites), those of the brows' buried
-    sheets, those in a seam's gap, and those where a Shell gives way to one that moves against it: the top of the
-    shirt, and the face under the jaw behind the chin."""
-    owed = (sculpt.vertices[:, 2] > shells.base() + 0.01) & ~_in_an_eye_opening(sculpt.vertices, room=0.5)
+    """docs/adr/0027: his silhouette is the Sculpt's, exactly. Every vertex of the Sculpt's outer skin from the base
+    plane up is a vertex of a Shell, but those in the eye openings (the caps are the eye whites; an opening is its
+    eye white's cut and no larger, #893), those in a seam's gap, and those where a Shell gives way to one that moves
+    against it: the top of the shirt, and the face under the jaw behind the chin."""
+    owed = (sculpt.vertices[:, 2] > shells.base() + 0.01) & ~_in_an_eye_opening(sculpt.vertices, room=0.01)
     assert (owed & kept).sum() > 25_000
     top = skin.contour("collar")[:, 1].max()
     shirt = _inside(sculpt.vertices[:, [1, 2]], skin.cuts()["collar"][1]) & (sculpt.vertices[:, 2] > top - SHIRT_MM)
     stray = gone & ~_at_a_seam(sculpt.vertices) & ~shirt & ~_box(sculpt.vertices, UNDER_JAW)
     assert not stray.any(), sculpt.vertices[stray][:5]
-    # no more of the Sculpt than the sheets is left out for being buried
-    left_out = sculpt.area_faces[(owed & ~kept & ~gone)[sculpt.faces].all(axis=1)].sum() / 100
-    assert left_out == pytest.approx(SHEETS_CM2, abs=5.0)
 
 
-def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, sheets, gone):
-    """docs/adr/0027: the wall grows skin.WALL inward. Each Shell's faces are the Sculpt's own, a seam's (flat along
-    its cut's sweep, x or y), the base's, or the inside, which lies within 0.15 mm of WALL under the Sculpt for 98% of
-    it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone may begin (WALL and 0.5 mm of room).
-    Away from the eye openings, whose rims are cut round a sphere, from within 3 mm of the brows' buried sheets, where
-    the wall is filled, and from within 3 mm of where a Shell gave way, whose cut runs through the wall."""
-    surface = cKDTree(shells._points(sculpt.triangles, 0.3))
+def test_no_shell_holds_surface_buried_under_the_outer_skin(built, sculpt, outer, kept, buried):
+    """#850: the Shells are cut from the Sculpt's outer skin alone. None of the walls of the pockets behind its brows
+    is a Shell's, so each brow is its ridge on the face and nothing behind it; and no Shell reaches deeper under the
+    outer skin than its wall and 0.5 mm, a pocket's walls followed in (2.4 mm at each brow's inner end before)."""
+    assert (buried & (sculpt.vertices[:, 2] > shells.base())).sum() > 20_000  # the pockets are there to be left out
+    assert not (kept & buried).any(), sculpt.vertices[kept & buried][:5]
+    surface = cKDTree(shells._points(outer.triangles, 0.3))
+    for name, mesh in built.items():
+        deep = surface.query(mesh.triangles_center, workers=-1)[0]
+        assert deep.max() < skin.WALL + 0.5, (name, deep.max(), mesh.triangles_center[deep.argmax()])
+
+
+def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
+    """docs/adr/0027: the wall grows skin.WALL inward. Each Shell's faces are the outer skin's own, a seam's (flat
+    along its cut's sweep, x or y), the base's, or the inside, which lies within 0.15 mm of WALL under the outer skin
+    for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone may begin (WALL and 0.5 mm
+    of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the wall."""
+    surface = cKDTree(shells._points(outer.triangles, 0.3))
     gave = cKDTree(shells._points(sculpt.triangles[gone[sculpt.faces].any(axis=1)], 0.5))
     for name, mesh in built.items():
         seam = (np.abs(mesh.face_normals[:, :2]) < 1e-3).any(axis=1) | (mesh.face_normals[:, 2] < -0.9999)
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
-        points = points[~_in_an_eye_opening(points, room=3.0) & (sheets.query(points)[0] > 3.0)]
         points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
         inside = under[under > 0.25]  # the rest are the Sculpt's own
@@ -146,14 +147,18 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, sheets, gone):
 
 
 def test_the_skin_is_open_round_each_eye(built):
-    """#967: no wall inside skin.EYE_OPENING_R of an eye's centre, so the lids stow hidden behind the face's rim; and
-    none in front of the eyes inside an eye white's cut (to 1% of its size, its rim's own vertices), where the cap is
-    the eye white."""
+    """#893 (Cansin, 2026-11-27): an eye's opening is its eye white's cut, the Sculpt's own dome's edge, exactly. No
+    wall in front of the eyes inside it (to 1% of its size, its rim's own vertices), where the eyeball is the eye
+    white; and the face comes up to it all round: its rim is within 0.05 mm of the cut at every point of it. Its
+    wall then comes to 36.3 mm from the eye's centre at its nearest (measured): the room #967's eyeball and lids have
+    under the rim."""
     for name, mesh in built.items():
         ahead = mesh.vertices[mesh.vertices[:, 1] < 0]
         for side, eye in gm.EYE.items():
-            assert np.linalg.norm(mesh.triangles_center - eye, axis=1).min() >= skin.EYE_OPENING_R, name
             white = skin.cuts()[f"{side} eye white"][1]
+            if name == "morty face":
+                assert cKDTree(ahead[:, [0, 2]]).query(white)[0].max() < 0.05, side
+                assert np.linalg.norm(mesh.vertices - eye, axis=1).min() == pytest.approx(36.3, abs=0.2), side
             centre = white.mean(axis=0)
             assert not _inside(ahead[:, [0, 2]], centre + 0.99 * (white - centre)).any(), name
 

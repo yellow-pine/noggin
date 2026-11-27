@@ -39,9 +39,6 @@ SF = 2.0  # the magnets hold at least this many times a Shell's weight at its pe
 Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: the carrier's face, normal: out of it
 
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
-# round each eye's centre the Skin is open to this radius, so the lids stow hidden under its rim (#967: their band's
-# outer 37.5 mm and LID_CLEAR_MM; the Sculpt's face leaves its eye's ball at 37.1 to 37.2)
-EYE_OPENING_R = 38.0
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
 # midpoint, each in the view it was measured in, front (x, z) or side (y, z), and swept through the head along that
 # view's axis. Cut once, on his Sculpt's skin (docs/adr/0027, cuts()), each where the Sculpt itself has the form: its

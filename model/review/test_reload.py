@@ -3,9 +3,16 @@
 import hashlib
 import importlib.util
 import json
+import os
+import shutil
+import subprocess
 import sys
 import types
 from pathlib import Path
+
+import pytest
+
+from model import review, skeleton, stages
 
 
 def watcher(tmp_path, monkeypatch, name="noggin-stage3.blend", env="NOGGIN_REVIEW"):
@@ -31,6 +38,8 @@ def watcher(tmp_path, monkeypatch, name="noggin-stage3.blend", env="NOGGIN_REVIE
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.register()
+    for handler in bpy.app.handlers.load_post:  # as Blender opens the file once its scripts are registered
+        handler(None)
     return path, callbacks, opened
 
 
@@ -111,3 +120,42 @@ def test_a_different_file_cannot_reset_the_active_view(tmp_path, monkeypatch):
     callbacks[0]()
     assert new.region_3d.view_distance == 480
     assert new.region_3d.view_perspective == "ORTHO"
+
+
+def test_the_local_review_build_publishes_what_the_watcher_refreshes_on(tmp_path, monkeypatch):
+    """#1045: with the GX10 off, model.review's own build is the publisher (CONTRIBUTING.md, Code). A stand-in for
+    Blender writes the file, an empty document has no bones to finish, and the slot is this test's own."""
+    path, callbacks, opened = watcher(tmp_path, monkeypatch)
+    monkeypatch.setattr(review, "SLOT", str(tmp_path / "slot"))
+    monkeypatch.setattr(review, "job", lambda *_: {})
+    monkeypatch.setitem(stages.STAGES, review.DOC, types.SimpleNamespace(parts={}))
+    # each step's arguments end in the file it saves and the step's name
+    monkeypatch.setattr(review, "_blender", lambda args: Path(args[-2]).write_bytes(b"a rebuilt review"))
+    review.build(str(path))
+    callbacks[0]()
+    assert opened == [{"filepath": str(path), "load_ui": False, "use_scripts": False}]
+
+
+@pytest.mark.skipif(not shutil.which(skeleton.BLENDER), reason="no Blender on this host")
+def test_the_script_registers_when_blender_starts(tmp_path):
+    """#1045: a real Blender start with the script installed, since only Blender has the restricted bpy.data its
+    startup scripts register under. Its own user folder: neither Cansin's preferences nor his installed copy load."""
+    startup = tmp_path / "scripts/startup"
+    startup.mkdir(parents=True)
+    shutil.copy(Path(__file__).with_name("reload.py"), startup / "noggin_reload.py")
+    registered = (
+        "import bpy, sys; m = sys.modules['noggin_reload']; "
+        "assert bpy.app.timers.is_registered(m._tick) and m._loaded in bpy.app.handlers.load_post; "
+        "print('reload: registered')"
+    )
+    run = subprocess.run(
+        [skeleton.BLENDER, "-b", "--python-expr", registered],
+        env=os.environ | {"BLENDER_USER_RESOURCES": str(tmp_path)},
+        capture_output=True,
+        text=True,
+        timeout=50,
+    )
+    log = run.stdout + run.stderr
+    # a traceback of the script's names its file; one of a bundled add-on, on a Blender built without its library, is
+    # not this script's
+    assert "noggin_reload" not in log and "reload: registered" in log, log
