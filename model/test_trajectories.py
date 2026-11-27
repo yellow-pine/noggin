@@ -113,7 +113,7 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
     out = json.load(open(path))
     model = built(DOC)
     assert (out["doc"], out["motion"], out["fps"], out["stamp"]) == (DOC, "wink", 10, tj.stamp(DOC))
-    assert set(out["parts"]) == {model.body(b).name for b in range(1, model.nbody)}
+    assert set(out["parts"]) == {model.body(b).name for b in mjcf.parts(model)}
     n = len(tj.commands(DOC, "wink")[1])
     assert all(len(p["pos"]) == len(p["quat"]) == n for p in out["parts"].values())
     lid = out["parts"]["L lid horn:1"]["quat"]

@@ -147,7 +147,7 @@ def test_every_part_sits_where_stages_places_it(doc):
     stage = stages.STAGES[doc]
     model, data = forward(doc)
     placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg
-    assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
+    assert {model.body(i).name for i in mjcf.parts(model)} == set(placed)  # a bone's load is no part
     for name, expected in placed.items():
         body = data.body(name)
         lo, hi = trimesh.load(stage.parts[name].file, force="mesh").bounds

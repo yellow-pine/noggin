@@ -217,6 +217,14 @@ def _quat(m):
     return q
 
 
+LOAD = "anatomy "  # a finished bone's load: a body named this and its bone, on its carrier, with no geometry
+
+
+def parts(model):
+    """The ids of the model's bodies that are the document's parts: every body but the world and the bones' loads."""
+    return [b for b in range(1, model.nbody) if not model.body(b).name.startswith(LOAD)]
+
+
 def finished():
     """Whether `just ours` left the realistic Skeleton's bones finished here (Blender's: a host without it has none,
     and simulates the mechanism alone)."""
@@ -272,7 +280,7 @@ def anatomy(spec, stage, bodies, loads):
             axes[:, -1] *= -1
         orientation = np.eye(4)
         orientation[:3, :3] = axes
-        body = bodies[carrier].add_body(name=f"anatomy {stem}", pos=(matrix @ [*com, 1])[:3] * MM)
+        body = bodies[carrier].add_body(name=LOAD + stem, pos=(matrix @ [*com, 1])[:3] * MM)
         body.explicitinertial, body.mass = True, grams / 1000
         body.ipos = [0, 0, 0]  # the explicit inertia is about this child's own origin, already placed at the COM
         body.inertia, body.iquat = inertia * 1e-9, _quat(orientation)  # g.mm² -> kg.m²
@@ -466,7 +474,7 @@ def head(doc, model, bare=False):
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
     ids += [
-        i for i in range(1, model.nbody) if model.body(i).name.startswith("anatomy ") and model.body_parentid[i] in ids
+        i for i in range(1, model.nbody) if model.body(i).name.startswith(LOAD) and model.body_parentid[i] in ids
     ]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)

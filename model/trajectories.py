@@ -131,7 +131,7 @@ def bake(doc, names=None):
                 "pos": [np.round(pos[b], 6).tolist() for pos, _ in frames],
                 "quat": [np.round(quat[b], 6).tolist() for _, quat in frames],
             }
-            for b in range(1, model.nbody)
+            for b in mjcf.parts(model)
         }
         paths.append(os.path.join(OUT, doc, name + ".json"))
         with open(paths[-1], "w") as f:
