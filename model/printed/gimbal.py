@@ -389,6 +389,7 @@ def frame(mechanical=False):
         out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
     for s, x in zip((-1, 1), inner, strict=True):
         out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
+    out = out.cut(cyl("x", (0, by, bz), gm.BAIL_ROOM, (c + 3, c + gm.BAIL_END - 3)))  # the bail's rod past the collar
     for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
         pocket = [(x0, y1 + 1), (x0, y1 - depth), (x1, y1 - depth), (x1 + flare, y1), (x1 + flare, y1 + 1)]
         out = out.cut(cq.Workplane("XY", origin=(0, 0, bottom)).polyline(pocket).close().extrude(top - bottom))

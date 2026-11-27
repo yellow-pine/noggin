@@ -47,6 +47,9 @@ BAIL = (40.0 * K, 0.0)  # (y, z) of the bail's axis
 BAIL_IN = 25.0  # the bail's input arm, along +y
 # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
 BAIL_END = 12.0 * K
+# the frame is cut away this far round the bail's axis where its rod passes the pitch servo's collar: the rod reaches
+# 5.0 mm about its axis and turned through the collar's rim at pitch -15 (#967); past the rim's 5.95 mm, so no sliver
+BAIL_ROOM = 6.3
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
 CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
