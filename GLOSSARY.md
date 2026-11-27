@@ -314,9 +314,10 @@ _Avoid_: the Desktop file, the preview
 
 **Latest file**:
 Cansin's second local Blender file (`just latest`, model/latest): one rest-pose scene with each layer (Mechanism,
-Skeleton, Skin reference, Skin Shells) from its candidate, the newest of main and the open PRs whose changes touch that
-layer, labelled with where it came from and its gate status; the Skin Shells are the candidate's own cut of the
-Sculpt, the Skin reference switched off until asked for. Never committed or published.
+Skeleton, Skin reference, Skin Shells) from its candidate, the newest pushed open PR whose changes touch that layer and
+whose head contains main's newest commit touching it, else main, labelled with where it came from, its gate status and
+the PRs passed over for lacking main's commit; the Skin Shells are the candidate's own cut of the Sculpt, the Skin
+reference switched off until asked for. Never committed or published.
 _Avoid_: the dashboard, the overview, the status file
 
 **Scene Mech**:
